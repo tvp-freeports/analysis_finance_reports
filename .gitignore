@@ -7,3 +7,4 @@ src/*.egg-info
 **/*.pdf
 __pycache__/
 /build/
+.ruff_cache/
