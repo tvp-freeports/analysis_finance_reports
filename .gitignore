@@ -1,3 +1,9 @@
 .pyvenv
+venv/
 *.pdf
 src/**/*.pdf
+dist/
+src/*.egg-info
+**/*.pdf
+__pycache__/
+build/
