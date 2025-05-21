@@ -8,11 +8,12 @@ import freeports_analysis.search as sch
 from typing import Optional
 from freeports_analysis.consts import ENV_PREFIX, PDF_Formats
 import csv
-import re
 import pandas as pd
 from importlib_resources import files
 import freeports_analysis.data
-
+from freeports_analysis import extract_data
+from freeports_analysis import filter_text
+from freeports_analysis import pdf_parts
 
 logger = log.getLogger(__name__)
 
@@ -21,60 +22,18 @@ class NoPDFormatDetected(Exception):
     pass
 
 
-def EURIZON_tabulizer(lines: List[Tuple[str, str]]):
-    count = 0
-    parsed_rows = []
-    for company_match, full_text in lines:
-        # Pattern completo
-        complete_pattern = re.match(
-            r"(?P<nominal>[0-9.,]+)\s+(?P<company>.+?)\s*(?P<rate>\d[0-9.,]+%)\s*(?P<maturity>\d{2}/\d{2}/\d{4})\s+(?P<currency>[A-Z]{3})\s+(?P<acquisition>[0-9.,]+)\s+(?P<carrying>[0-9.,]+)\s+(?P<netassets>[0-9.,]+)",
-            full_text,
-        )
-
-        # Pattern senza interest rate e maturity
-        reduced_pattern = re.match(
-            r"(?P<nominal>[0-9.,]+)\s+(?P<company>.+?)\s+(?P<currency>[A-Z]{3})\s+(?P<acquisition>[0-9.,]+)\s+(?P<carrying>[0-9.,]+)\s+(?P<netassets>[0-9.,]+)",
-            full_text,
-        )
-
-        if complete_pattern:
-            print("ELA UNO!!!!!")
-            parsed_rows.append(
-                {
-                    "Matched Company": company_match,
-                    "Nominal Value": complete_pattern.group("nominal"),
-                    "Company": complete_pattern.group("company"),
-                    "Interest Rate": complete_pattern.group("rate"),
-                    "Maturity": complete_pattern.group("maturity"),
-                    "Currency": complete_pattern.group("currency"),
-                    "Acquisition Cost": complete_pattern.group("acquisition"),
-                    "Carrying Value": complete_pattern.group("carrying"),
-                    "Net Assets": complete_pattern.group("netassets"),
-                }
-            )
-        elif reduced_pattern:
-            print("ELA DUEE!!!!!")
-            parsed_rows.append(
-                {
-                    "Matched Company": company_match,
-                    "Nominal Value": reduced_pattern.group("nominal"),
-                    "Company": reduced_pattern.group("company"),
-                    "Interest Rate": None,
-                    "Maturity": None,
-                    "Currency": reduced_pattern.group("currency"),
-                    "Acquisition Cost": reduced_pattern.group("acquisition"),
-                    "Carrying Value": reduced_pattern.group("carrying"),
-                    "Net Assets": reduced_pattern.group("netassets"),
-                }
-            )
-        else:
-            count += 1
-    logger.warning("Row not recognized: %i", count)
-    return parsed_rows
-
-
-def _DEFAULT_tabulizer():
-    pass
+def get_functions(format: PDF_Formats):
+    functions = {"relevant_pdf_parts": None, "filter_text": None, "extract_data": None}
+    match format:
+        case PDF_Formats.EURIZON:
+            functions["relevant_pdf_parts"] = relevant_pdf_parts.EURIZON
+            functions["filter_text"] = filter_text.EURIZON
+            functions["extract_data"] = extract_data.EURIZON
+        case _:
+            functions["relevant_pdf_parts"] = relevant_pdf_parts._DEFAULT
+            functions["filter_text"] = filter_text._DEFAULT
+            functions["extract_data"] = extract_data._DEFAULT
+    return functions
 
 
 def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
@@ -110,19 +69,17 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
             format_selected.name,
         )
     format_pdf = detected_format if format_selected is None else format_selected
+
+    functions = get_functions(format_pdf)
     logger.info("Extracting relevant parts of pdf...")
-    pdf_text = fl.relevant_text(format_pdf, pdf_file)
+    pdf_parts = relevant_pdf_parts.get_relevant_parts(
+        pdf_file, functions["relevant_pdf_parts"]
+    )
     logger.info("Extracted!")
-    logger.info("Filtering relevant lines of text...")
-    lines = sch.relevant_lines(format_pdf, pdf_text, targets)
+    logger.info("Filtering relevant parts of text...")
+    filtered_text = filter_text.get_text_bits(pdf_parts, functions["filter_text"])
     logger.info("Filtered!")
-    tabulizer_func = None
-    match format_pdf:
-        case PDF_Formats.EURIZON:
-            tabulizer_func = EURIZON_tabulizer
-        case _:
-            tabulizer_func = _DEFAULT_tabulizer
-    tabular_data = tabulizer_func(lines)
+    tabular_data = extract_data.tabularize(filtered_text, functions["extract_data"])
     df = pd.DataFrame(tabular_data)
     df.to_csv(os.getenv(f"{ENV_PREFIX}OUT_CSV"))
 
