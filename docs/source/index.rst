@@ -6,7 +6,7 @@
 freeports_analysis documentation
 ================================
 
-This packages is intended for generate a `csv` file from different finance reports
+This packages is intended for generate a `csv` file from different finance `pdf` reports
 
 
 .. toctree::
