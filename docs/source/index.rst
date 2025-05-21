@@ -6,9 +6,7 @@
 freeports_analysis documentation
 ================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+This packages is intended for generate a `csv` file from different finance reports
 
 
 .. toctree::

@@ -71,10 +71,39 @@
              
   <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
-<p>In order to install this package launch
+<p>There are for now 2 installation method:
+- using <cite>pip</cite> <em>(Recommended)</em>
+- from source
+———–
+Using <cite>pip</cite>
+———–
+Install in a python virtual environment launching
 <code class="docutils literal notranslate"><span class="pre">`bash</span>
 <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">freeports_analysis</span>
-<span class="pre">`</span></code></p>
+<span class="pre">`</span></code>
+———–
+From source
+———–
+&gt; Requirements:
+&gt; You need to have the python <cite>build</cite> package.
+&gt; You can install it in your virtual environment with <cite>pip install build</cite>
+1. Clone the repository:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/GVoreste/analysis_finance_reports.git</span>
+<span class="pre">`</span></code>
+2. <cite>cd</cite> into the created directory
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">cd</span> <span class="pre">analysis_finance_reports</span>
+<span class="pre">`</span></code>
+3. build the package
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">python</span> <span class="pre">-m</span> <span class="pre">build</span> <span class="pre">.</span>
+<span class="pre">`</span></code>
+4. install local package
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span>
+<span class="pre">`</span></code>
+5. enjoy</p>
 </section>
 
 
