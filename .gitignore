@@ -6,4 +6,4 @@ dist/
 src/*.egg-info
 **/*.pdf
 __pycache__/
-build/
+/build/
