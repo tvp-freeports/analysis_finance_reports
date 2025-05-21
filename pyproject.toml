@@ -1,3 +1,58 @@
+[project]
+name = "freeports_analysis"
+description = "Script for dumping a csv from different finance reports about ethical aspects"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "GPL-3.0"
+license-files = [
+    "LICENSE"
+]
+authors = [
+    {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
+]
+maintainers = [
+    {name = "Oreste Sciacqualegni",  email = "orestesciacqualegni@tutanota.com"},
+]
+dynamic = ["version"]
+dependencies = [
+    "importlib_resources",
+    "rapidfuzz",
+    "dotenv",
+    "pyyaml",
+    "pandas",
+    "requests",
+    "PyMuPDF",
+    "lxml"
+]
+keywords = [
+    "finance",
+    "pdf",
+    "ethic",
+    "economy",
+    "datascience"
+]
+
+[project.urls]
+github = "https://github.com/GVoreste/analysis_finance_reports"
+documentation = "https://gvoreste.github.io/analysis_finance_reports/"
+
+[project.scripts] 
+freeports = "freeports_analysis.cmd:cmd"
+
+
+
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = [
+    "setuptools >= 77.0.3",
+    "setuptools-scm>=8"
+]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+[tool.setuptools]
+include-package-data = true
+
+
+[tool.setuptools.package-data]
+freeports_analysis = ["data/*"]
