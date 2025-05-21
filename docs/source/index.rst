@@ -8,6 +8,8 @@ freeports_analysis documentation
 
 This packages is intended for generate a `csv` file from different finance `pdf` reports
 
+.. automodule:: freeports_analysis
+   :members:
 
 .. toctree::
    :maxdepth: 2

@@ -38,6 +38,7 @@ def validate_args(args):
 
 
 def cmd():
+    """Command called when launching `freeports` from terminal"""
     parser = create_parser()
     args = validate_args(parser.parse_args())
     if args.url is not None:
