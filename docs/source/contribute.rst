@@ -57,9 +57,17 @@ Guidelines
 * add meaningful commit messages (add the issue id if it refears to one)
 * `lint <https://www.pylint.org/>`_ your code
 
-"""""""""
+***************************
+Contribution to the website
+***************************
+
+It is possible to contribute to the `official website <https://www.freeports.org>`_ of the project
+from the specific `GitHub repository <https://github.com/GVoreste/analysis_finance_reports_website>`_. 
+
+
+*********
 Resources
-"""""""""
+*********
 * `How to Contribute to Open Source <https://opensource.guide/how-to-contribute/>`_
 * `Using Pull Requests <https://help.github.com/articles/about-pull-requests/>`_
 * `GitHub Help <https://help.github.com>`_

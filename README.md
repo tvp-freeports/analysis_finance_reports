@@ -1,5 +1,6 @@
-# Finance reports analysis (Freereports)
+# Finance reports analysis ([Freeports](https://www.freeports.org))
 This project is intended parse finance pdf reports and create `CSV` dataset.
+The purpose of the project and related infos can be found at the [*official website*](https://www.freeports.org).
 
 ## Installation
 There are for now 2 installation method:
