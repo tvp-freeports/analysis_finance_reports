@@ -1,0 +1,14 @@
+﻿freeports\_analysis.cmd
+=======================
+
+.. automodule:: freeports_analysis.cmd
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      cmd
+      create_parser
+      validate_args
+   

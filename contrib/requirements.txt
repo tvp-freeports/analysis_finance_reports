@@ -1,0 +1,4 @@
+build
+sphinx
+pytest
+ruff

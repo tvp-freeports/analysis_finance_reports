@@ -20,8 +20,8 @@ release = "0.0.1"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx_rtd_theme", "sphinx.ext.autodoc"]
-
+extensions = ["sphinx_rtd_theme", "sphinx.ext.autodoc", "sphinx.ext.autosummary"]
+pygments_style = "sphinx"
 templates_path = ["_templates"]
 exclude_patterns = []
 

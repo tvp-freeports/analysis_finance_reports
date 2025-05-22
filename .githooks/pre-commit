@@ -6,7 +6,9 @@
 # it wants to stop the commit.
 #
 # To enable this hook, rename this file to "pre-commit".
-
+if [ "$(basename $VIRTUAL_ENV)" != "freeports-dev" ] ; then
+	exit 1
+fi
 
 (
 	cd docs
