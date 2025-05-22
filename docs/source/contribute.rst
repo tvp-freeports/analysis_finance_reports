@@ -3,6 +3,7 @@ How to contribute
 =================
 
 The general workflow to contribute is:
+
 1. *forking the repository*
 2. making your edits to the code
 3. *submitting a pull request*

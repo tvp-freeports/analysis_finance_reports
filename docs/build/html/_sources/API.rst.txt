@@ -8,4 +8,3 @@ Package reference
     freeports_analysis
     freeports_analysis.format
     freeports_analysis.cmd
-    

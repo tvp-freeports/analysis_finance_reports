@@ -22,8 +22,8 @@ Install in a python virtual environment launching
 From source
 -----------
 
-.. attention::    
-    You need to have the python ``build`` package installed. 
+.. attention::
+    You need to have the python ``build`` package installed.
     You can install it in your virtual environment with ``pip install build``
 
 1. Clone the repository:
@@ -48,7 +48,7 @@ From source
 4. install local package
 
 .. code-block:: console
-    
+
     pip install .
 
 5. enjoy
