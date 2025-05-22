@@ -28,8 +28,8 @@ then enter your local copy and initialize the repository launching from within t
 
 this script does:
 
-* install the [**githooks**](https://git-scm.com/docs/githooks) of the project
-* create a python [**virtual environment**](https://docs.python.org/3/library/venv.html)
+* install the `githooks <https://git-scm.com/docs/githooks>`_ of the project
+* create a python `virtual environment <https://docs.python.org/3/library/venv.html>`_
 * install the required packages for developing the project
 
 **********
@@ -51,11 +51,11 @@ Guidelines
 **********
 
 * comment your code
-* add the [*docstings*](https://peps.python.org/pep-0257/) in order to autogenerate the documentation
-* [*type hint*](https://peps.python.org/pep-0484/) your code
-* write [*tests*](https://docs.pytest.org/en/stable/) for your code
+* add the `docstings <https://peps.python.org/pep-0257/>`_ in order to autogenerate the documentation
+* `type hint <https://peps.python.org/pep-0484/>`_ your code
+* write `tests <https://docs.pytest.org/en/stable/>`_ for your code
 * add meaningful commit messages (add the issue id if it refears to one)
-* [*lint*](https://www.pylint.org/) your code
+* `lint <https://www.pylint.org/>`_ your code
 
 """""""""
 Resources
