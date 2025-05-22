@@ -3,3 +3,4 @@ sphinx
 pytest
 ruff
 sphinx_rtd_theme
+twine
