@@ -45,4 +45,4 @@ import freeports_analysis as fra
 ```
 
 ## Usage
-To have a complete overview of the package look at the [full documentation](https://gvoreste.github.io/analysis_finance_reports/).
+To have a complete overview of the package look at the [full documentation](https://docs.freeports.org).

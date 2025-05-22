@@ -34,7 +34,7 @@ keywords = [
 
 [project.urls]
 github = "https://github.com/GVoreste/analysis_finance_reports"
-documentation = "https://gvoreste.github.io/analysis_finance_reports/"
+documentation = "https://docs.freeports.org"
 
 [project.scripts] 
 freeports = "freeports_analysis.cmd:cmd"
