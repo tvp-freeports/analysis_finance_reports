@@ -15,6 +15,7 @@ import importlib
 logger = log.getLogger(__name__)
 log.basicConfig()
 
+
 class NoPDFormatDetected(Exception):
     pass
 
@@ -98,6 +99,7 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
 
 if __name__ == "__main__":
     import dotenv
+
     dotenv.load_dotenv()
     save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
     wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
