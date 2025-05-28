@@ -13,7 +13,7 @@ from .formats import pdf_filter_exec, text_extract_exec, tabularize_exec
 import importlib
 
 logger = log.getLogger(__name__)
-
+log.basicConfig()
 
 class NoPDFormatDetected(Exception):
     pass
@@ -56,6 +56,8 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]):
 
 
 def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
+    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
+    logger.setLevel(log_level)
     pdf = os.getenv(f"{ENV_PREFIX}PDF")
     url = os.getenv(f"{ENV_PREFIX}URL")
     detected_format = None
@@ -96,10 +98,7 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
 
 if __name__ == "__main__":
     import dotenv
-
     dotenv.load_dotenv()
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    log.basicConfig(level=log_level)
     save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
     wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
     format_selected = (

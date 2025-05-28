@@ -3,6 +3,7 @@ from freeports_analysis.consts import PDF_Formats, ENV_PREFIX
 from freeports_analysis.main import main
 import os
 
+default_verbosity=2
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -53,10 +54,7 @@ def cmd():
         os.environ[f"{ENV_PREFIX}OUT_CSV"] = args.out
     elif os.getenv(f"{ENV_PREFIX}OUT_CSV") is None:
         os.environ[f"{ENV_PREFIX}OUT_CSV"] = "report.csv"
-    if args.v != 0 or args.q != 0:
-        os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(min(max(args.v - args.q, 0), 5))
-    else:
-        os.environ[f"{ENV_PREFIX}VERBOSITY"] = "1"
+    os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(min(max(default_verbosity+args.v-args.q, 0), 5))
     save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
     wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
     format_selected = (
