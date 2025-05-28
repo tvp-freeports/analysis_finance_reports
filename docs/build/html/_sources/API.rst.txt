@@ -6,5 +6,5 @@ Package reference
     :toctree: generated
 
     freeports_analysis
-    freeports_analysis.format
+    freeports_analysis.main
     freeports_analysis.cmd
