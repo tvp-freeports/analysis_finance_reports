@@ -1,3 +1,4 @@
+[![Freeports logo](https://www.freeports.org/assets/logo/complete.svg)](https://www.freeports.org)
 # Finance reports analysis ([Freeports](https://www.freeports.org))
 This project is intended parse finance pdf reports and create `CSV` dataset.
 The purpose of the project and related infos can be found at the [*official website*](https://www.freeports.org).
