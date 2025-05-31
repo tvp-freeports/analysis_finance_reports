@@ -5,9 +5,10 @@ import logging as log
 import os
 
 default_verbosity = 2
-default_out_csv = '/dev/stdout'
+default_out_csv = "/dev/stdout"
 
 logger = log.getLogger(__name__)
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -54,7 +55,7 @@ def cmd():
         os.environ[f"{ENV_PREFIX}PDF_FORMAT"] = args.format
     if args.no_download:
         os.environ[f"{ENV_PREFIX}SAVE_PDF"] = None
-    if args.out!=default_out_csv:
+    if args.out != default_out_csv:
         os.environ[f"{ENV_PREFIX}OUT_CSV"] = args.out
     os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(
         min(max(default_verbosity + args.v - args.q, 0), 5)

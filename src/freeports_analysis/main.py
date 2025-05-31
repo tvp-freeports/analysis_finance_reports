@@ -9,7 +9,11 @@ import csv
 import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
-from freeports_analysis.formats import pdf_filter_exec, text_extract_exec, tabularize_exec
+from freeports_analysis.formats import (
+    pdf_filter_exec,
+    text_extract_exec,
+    tabularize_exec,
+)
 import importlib
 
 logger = log.getLogger(__name__)
@@ -27,7 +31,9 @@ TABULARIZE = None
 def get_functions(format: PDF_Formats):
     module_name = format.name
     try:
-        module = importlib.import_module(f"freeports_analysis.formats.{module_name}", package=__package__)
+        module = importlib.import_module(
+            f"freeports_analysis.formats.{module_name}", package=__package__
+        )
     except ImportError:
         print(f"Errore: modulo {module_name} non trovato")
         raise
@@ -96,6 +102,7 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
 
 if __name__ == "__main__":
     import dotenv
+
     dotenv.load_dotenv()
     log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
     log.basicConfig(level=log_level)
