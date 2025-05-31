@@ -9,10 +9,10 @@ import logging as log
 logger = log.getLogger(__name__)
 
 
-def pdf_filter(xml_root: etree.Element) -> List[Tuple[etree.Element, PDF_Block]]:
+def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
     parts = []
     for blk in xml_root.findall(".//block"):
-        parts.append((blk, PDF_Block(PDF_BlockType.TABLE, {}, "")))
+        parts.append(PDF_Block(PDF_BlockType.TABLE, {}, blk))
     return parts
 
 

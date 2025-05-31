@@ -1,19 +1,18 @@
 import os
 import re
 import pymupdf as pypdf
-from . import download as dw
+from freeports_analysis import download as dw
 import logging as log
 from typing import Optional, List
-from .consts import ENV_PREFIX, PDF_Formats
+from freeports_analysis.consts import ENV_PREFIX, PDF_Formats
 import csv
 import pandas as pd
 from importlib_resources import files
-from . import data
-from .formats import pdf_filter_exec, text_extract_exec, tabularize_exec
+from freeports_analysis import data
+from freeports_analysis.formats import pdf_filter_exec, text_extract_exec, tabularize_exec
 import importlib
 
 logger = log.getLogger(__name__)
-log.basicConfig()
 
 
 class NoPDFormatDetected(Exception):
@@ -28,7 +27,7 @@ TABULARIZE = None
 def get_functions(format: PDF_Formats):
     module_name = format.name
     try:
-        module = importlib.import_module(f".formats.{module_name}", package=__package__)
+        module = importlib.import_module(f"freeports_analysis.formats.{module_name}", package=__package__)
     except ImportError:
         print(f"Errore: modulo {module_name} non trovato")
         raise
@@ -57,8 +56,6 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]):
 
 
 def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    logger.setLevel(log_level)
     pdf = os.getenv(f"{ENV_PREFIX}PDF")
     url = os.getenv(f"{ENV_PREFIX}URL")
     detected_format = None
@@ -99,8 +96,9 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
 
 if __name__ == "__main__":
     import dotenv
-
     dotenv.load_dotenv()
+    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
+    log.basicConfig(level=log_level)
     save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
     wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
     format_selected = (

@@ -2,6 +2,9 @@ from enum import Enum
 from typing import Optional, List, Callable, Tuple
 from lxml import etree
 from pymupdf import Document
+import logging as log
+
+logger=log.getLogger(__name__)
 
 
 class PDF_Block:
@@ -9,10 +12,34 @@ class PDF_Block:
     metadata: Optional[dict]
     content: Optional[str]
 
-    def __init__(self, type_block: Enum, metadata: dict, content: str):
+    def _text_form_element(self,ele: etree.Element) -> str:
+        text = ""
+        if ele.tag=='line':
+            lines=[ele]
+        else:
+            lines=ele.findall("line")
+        for line in lines:
+            for e in line.findall(".//char"):
+                c = e.get("c")
+                if c is not None:
+                    text += c
+            text += "\n"
+        return text
+
+
+
+    def __init__(self, type_block: Enum, metadata: dict, xml_ele: etree.Element):
         self.type_block = type_block
         self.metadata = metadata
-        self.content = content
+        self.content = self._text_form_element(xml_ele)
+
+    def __str__(self) -> str:
+        text=f"PDF_Block:  ({self.type_block} type)\n"
+        text+=f"\tmetadata {self.metadata}\n"
+        text_no_last_nl=self.content
+        text+=f"\t\"{text_no_last_nl}\""
+        return text
+    
 
 
 class Text_Block:
@@ -28,15 +55,7 @@ class Text_Block:
         self.content = pdf_block.content
 
 
-def _text_form_element(ele: etree.Element) -> str:
-    text = ""
-    for line in ele.findall(".//line"):
-        for e in line.findall(".//char"):
-            c = e.get("c")
-            if c is not None:
-                text += c
-        text += "\n"
-    return text
+
 
 
 def pdf_filter_exec(
@@ -45,13 +64,13 @@ def pdf_filter_exec(
 ) -> List[PDF_Block]:
     parser = etree.XMLParser(recover=True)
     relevant_blocks = []
+    page_number=0
     for page in document:
+        page_number+=1
+        logger.debug("Filtered page %i",page_number)
         xml_str = page.get_text("xml")
         xml_tree = etree.fromstring(xml_str.encode(), parser=parser)
-        relevant_blocks_raw = pdf_filter_func(xml_tree)
-        for e, obj in relevant_blocks_raw:
-            obj.content = _text_form_element(e)
-            relevant_blocks.append(obj)
+        relevant_blocks += pdf_filter_func(xml_tree)
     return relevant_blocks
 
 

@@ -4,7 +4,7 @@ from typing import List
 from .. import PDF_Block, Text_Block
 
 
-def pdf_filter(xml_root: etree.Element) -> List[Tuple[etree.Element, PDF_Block]]:
+def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
     pass
 
 
