@@ -7,6 +7,7 @@ git config --local core.hooksPath "${REPO_PATH}/.githooks"
 python -m venv "${REPO_PATH}/venv/freeports-dev"
 source "${REPO_PATH}/venv/freeports-dev/bin/activate"
 pip install --upgrade pip
-pip install -r "${CONTRIB_DIR}/requirements.txt"
+pip install -r "${CONTRIB_DIR}/requirements.minimal.txt"
+pip install -r "${CONTRIB_DIR}/requirements.devtools.txt"
 
 deactivate
