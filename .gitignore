@@ -1,6 +1,8 @@
 .pyvenv
 venv/
 *.pdf
+*.csv
+**/*.csv
 src/**/*.pdf
 dist/
 src/*.egg-info
@@ -9,3 +11,7 @@ __pycache__/
 /build/
 .ruff_cache/
 .pytest_cache
+.env
+/.env
+devtools/*.ipynb
+!devtools/*.template.ipynb
