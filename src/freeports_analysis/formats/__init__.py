@@ -58,13 +58,15 @@ def pdf_filter_exec(
 ) -> List[PDF_Block]:
     parser = etree.XMLParser(recover=True)
     relevant_blocks = []
-    page_number = 0
+    page_number = 1
+    pages=len(document)
     for page in document:
-        page_number += 1
-        logger.debug("Filtered page %i", page_number)
+        if page_number % (pages//min(10,pages)) == 0:
+            logger.debug("Filtering page %i", page_number)
         xml_str = page.get_text("xml")
         xml_tree = etree.fromstring(xml_str.encode(), parser=parser)
         relevant_blocks += pdf_filter_func(xml_tree)
+        page_number += 1
     return relevant_blocks
 
 

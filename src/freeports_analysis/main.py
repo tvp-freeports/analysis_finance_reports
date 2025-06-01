@@ -61,9 +61,32 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]):
     return df
 
 
-def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
-    pdf = os.getenv(f"{ENV_PREFIX}PDF")
-    url = os.getenv(f"{ENV_PREFIX}URL")
+def process_env_vars():
+    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
+    log.basicConfig(level=log_level)
+
+    config=dict()
+    config["SAVE_PDF"]=os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
+    wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
+    config["FORMAT_SELECTED"] = (
+        PDF_Formats.__members__[wanted_format] if wanted_format is not None else None
+    )
+    config["PDF"]=os.getenv(f"{ENV_PREFIX}PDF")
+    config["URL"]=os.getenv(f"{ENV_PREFIX}URL")
+    config["OUT_CSV"]=os.getenv(f"{ENV_PREFIX}OUT_CSV")
+    logger.debug("Configuration: %s",str(config))
+    return config
+
+
+
+def main():
+    config=process_env_vars()
+    save_pdf = config["SAVE_PDF"]
+    format_selected = config["FORMAT_SELECTED"]
+    pdf = config["PDF"]
+    url = config["URL"]
+    out_csv = config["OUT_CSV"]
+
     detected_format = None
     if url is None or os.path.exists(pdf):
         logger.debug("PDF: %s", pdf)
@@ -74,41 +97,36 @@ def main(save_pdf: bool, format_selected: Optional[PDF_Formats]):
                 if bool(re.search(reg, url)):
                     detected_format = PDF_Formats.__members__[fmt]
                     break
-        logger.debug("URL: %s/%s", url, pdf)
+        logger.debug("URL: %s/%s [detected %s format]", url, pdf,detected_format.name)
         pdf_file = pypdf.Document(stream=dw.download_pdf(url, pdf, save_pdf))
-
+    
+    if detected_format is None and format_selected is None:
+        raise NoPDFormatDetected(
+            "No format selected and url doesn't match know formats"
+        )
+    if detected_format is not None and format_selected and format_selected is not None and format_selected != detected_format:
+        logger.warning(
+            "Detected and selected formats don't match [det=%f sel=%s]",
+            detected_format.name,
+            format_selected.name,
+        )
+    
+    format_pdf = detected_format if format_selected is None else format_selected
+    logger.debug("Using %s format",format_pdf.name)
     targets = []
     with files(data).joinpath("target.csv").open("r") as f:
         target_csv = csv.reader(f)
         targets = [row[0] for row in target_csv]
         targets.pop(0)
     logger.debug("First 5 targets: %s", str(targets[: min(5, len(targets))]))
-    if detected_format is None and format_selected is None:
-        raise NoPDFormatDetected(
-            "No format selected and url doesn't match know formats"
-        )
-    if detected_format is not None and format_selected != detected_format:
-        logger.warning(
-            "Detected and selected formats don't match [det=%f sel=%s]",
-            detected_format.name,
-            format_selected.name,
-        )
-    format_pdf = detected_format if format_selected is None else format_selected
+    
 
     get_functions(format_pdf)
     df = pipeline(pdf_file, targets)
-    df.to_csv(os.getenv(f"{ENV_PREFIX}OUT_CSV"))
+    df.to_csv(out_csv)
 
 
 if __name__ == "__main__":
     import dotenv
-
     dotenv.load_dotenv()
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    log.basicConfig(level=log_level)
-    save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
-    wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
-    format_selected = (
-        PDF_Formats.__members__[wanted_format] if wanted_format is not None else None
-    )
-    main(save_pdf, format_selected)
+    main()

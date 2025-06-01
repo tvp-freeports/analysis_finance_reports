@@ -4,8 +4,8 @@ from .main import main
 import logging as log
 import os
 
-default_verbosity = 2
-default_out_csv = "/dev/stdout"
+DEFAULT_VERBOSITY = 2
+DEFAULT_OUT_CSV = "/dev/stdout"
 
 logger = log.getLogger(__name__)
 
@@ -30,7 +30,6 @@ def create_parser():
         "-o",
         type=str,
         help="Output file cvs (default: stdout)",
-        default=default_out_csv,
     )
     parser.add_argument("-v", action="count", default=0, help="Verbosity level")
     parser.add_argument("-q", action="count", default=0, help="Quiet level")
@@ -55,16 +54,19 @@ def cmd():
         os.environ[f"{ENV_PREFIX}PDF_FORMAT"] = args.format
     if args.no_download:
         os.environ[f"{ENV_PREFIX}SAVE_PDF"] = None
-    if args.out != default_out_csv:
+    
+    if args.out:
         os.environ[f"{ENV_PREFIX}OUT_CSV"] = args.out
-    os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(
-        min(max(default_verbosity + args.v - args.q, 0), 5)
-    )
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    log.basicConfig(level=log_level)
-    save_pdf = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
-    wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
-    format_selected = (
-        PDF_Formats.__members__[wanted_format] if wanted_format is not None else None
-    )
-    main(save_pdf, format_selected)
+    if args.v!=0 or args.q!=0:
+        os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(
+            min(max(DEFAULT_VERBOSITY + args.v - args.q, 0), 5)
+        )
+    else:
+        os.environ[f"{ENV_PREFIX}VERBOSITY"]=str(DEFAULT_VERBOSITY)
+
+    if os.environ.get(f"{ENV_PREFIX}OUT_CSV") is None:
+        os.environ[f"{ENV_PREFIX}OUT_CSV"]=DEFAULT_OUT_CSV
+    
+
+   
+    main()
