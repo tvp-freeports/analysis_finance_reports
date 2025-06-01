@@ -9,5 +9,6 @@ source "${REPO_PATH}/venv/freeports-dev/bin/activate"
 pip install --upgrade pip
 pip install -r "${CONTRIB_DIR}/requirements.minimal.txt"
 pip install -r "${CONTRIB_DIR}/requirements.devtools.txt"
+pip install --editable .
 
 deactivate
