@@ -54,19 +54,17 @@ def cmd():
         os.environ[f"{ENV_PREFIX}PDF_FORMAT"] = args.format
     if args.no_download:
         os.environ[f"{ENV_PREFIX}SAVE_PDF"] = None
-    
+
     if args.out:
         os.environ[f"{ENV_PREFIX}OUT_CSV"] = args.out
-    if args.v!=0 or args.q!=0:
+    if args.v != 0 or args.q != 0:
         os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(
             min(max(DEFAULT_VERBOSITY + args.v - args.q, 0), 5)
         )
     else:
-        os.environ[f"{ENV_PREFIX}VERBOSITY"]=str(DEFAULT_VERBOSITY)
+        os.environ[f"{ENV_PREFIX}VERBOSITY"] = str(DEFAULT_VERBOSITY)
 
     if os.environ.get(f"{ENV_PREFIX}OUT_CSV") is None:
-        os.environ[f"{ENV_PREFIX}OUT_CSV"]=DEFAULT_OUT_CSV
-    
+        os.environ[f"{ENV_PREFIX}OUT_CSV"] = DEFAULT_OUT_CSV
 
-   
     main()

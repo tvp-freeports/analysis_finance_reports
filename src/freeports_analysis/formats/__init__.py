@@ -59,9 +59,9 @@ def pdf_filter_exec(
     parser = etree.XMLParser(recover=True)
     relevant_blocks = []
     page_number = 1
-    pages=len(document)
+    pages = len(document)
     for page in document:
-        if page_number % (pages//min(10,pages)) == 0:
+        if page_number % (pages // min(10, pages)) == 0:
             logger.debug("Filtering page %i", page_number)
         xml_str = page.get_text("xml")
         xml_tree = etree.fromstring(xml_str.encode(), parser=parser)

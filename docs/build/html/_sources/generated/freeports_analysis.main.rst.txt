@@ -11,6 +11,7 @@
       get_functions
       main
       pipeline
+      process_env_vars
    
    .. rubric:: Exceptions
 
