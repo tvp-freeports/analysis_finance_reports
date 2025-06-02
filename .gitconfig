@@ -1,0 +1,3 @@
+[filter "python_format"]
+    clean = ruff format %f
+    required
