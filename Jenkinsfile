@@ -64,8 +64,8 @@ pipeline {
             post {
                 always {
                     // Archive lint reports
-                    archiveArtifacts "${REPORTS_DIR}/pylint.*"
-                    
+                    //archiveArtifacts "${REPORTS_DIR}/pylint.*"
+                    echo "Done"
                     // // Record the lint score for trend analysis
                     // recordIssues(
                     //     tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
