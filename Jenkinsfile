@@ -13,7 +13,10 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scmGit(branches: [[name: 'main']],
+                userRemoteConfigs: [
+                    [ url: 'https://github.com/GVoreste/analysis_finance_reports.git' ]
+                ])
                 
                 // Verify if this is a tagged build
                 script {
