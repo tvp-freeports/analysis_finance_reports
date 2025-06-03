@@ -148,7 +148,6 @@ pipeline {
             }
         }
     }
-    
     post {
         always {
             // Clean up virtual environment
@@ -156,60 +155,61 @@ pipeline {
 
             // Generate lint trend graph (requires Plot plugin)
             script {
-            // Store lint score data
-            def lintScore = currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1')
-            if (lintScore && lintScore.isNumber()) {
-                writeFile file: 'lint_score.dat', text: "${env.BUILD_NUMBER}\t${lintScore}\n"
-                archiveArtifacts 'lint_score.dat'
+                // Store lint score data
+                def lintScore = currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1')
+                if (lintScore && lintScore.isNumber()) {
+                    writeFile file: 'lint_score.dat', text: "${env.BUILD_NUMBER}\t${lintScore}\n"
+                    archiveArtifacts 'lint_score.dat'
+                }
+                
+                // Store coverage data
+                def coveragePercent = currentBuild.description?.replaceAll(/.*Coverage: (\d+\.\d+)%.*/, '$1')
+                if (coveragePercent && coveragePercent.isNumber()) {
+                    writeFile file: 'coverage_score.dat', text: "${env.BUILD_NUMBER}\t${coveragePercent}\n"
+                    archiveArtifacts 'coverage_score.dat'
+                }
             }
+        
+            // Separate graph for Pylint scores
+            plot(
+                title: 'Pylint Score Trend',
+                yaxis: 'Score (out of 10)',
+                series: [
+                    [file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']
+                ],
+                group: 'code-quality',
+                useDescriptions: true,
+                yaxisMinimum: 0,
+                yaxisMaximum: 10
+            )
             
-            // Store coverage data
-            def coveragePercent = currentBuild.description?.replaceAll(/.*Coverage: (\d+\.\d+)%.*/, '$1')
-            if (coveragePercent && coveragePercent.isNumber()) {
-                writeFile file: 'coverage_score.dat', text: "${env.BUILD_NUMBER}\t${coveragePercent}\n"
-                archiveArtifacts 'coverage_score.dat'
-            }
+            // Separate graph for Test Coverage
+            plot(
+                title: 'Test Coverage Trend',
+                yaxis: 'Coverage (%)',
+                series: [
+                    [file: 'coverage_score.dat', label: 'Coverage', style: 'line', color: 'green']
+                ],
+                group: 'code-quality',
+                useDescriptions: true,
+                yaxisMinimum: 0,
+                yaxisMaximum: 100
+            )
+            
+            // Optional: Combined graph for quick overview
+            plot(
+                title: 'Code Quality Overview',
+                yaxis: 'Score',
+                series: [
+                    [file: 'lint_score.dat', label: 'Lint Score (scaled)', style: 'line', color: 'blue', 
+                    transformation: { it * 10 }], // Scale 0-10 to 0-100 for comparison
+                    [file: 'coverage_score.dat', label: 'Test Coverage', style: 'line', color: 'green']
+                ],
+                group: 'code-quality',
+                useDescriptions: true,
+                yaxisMinimum: 0,
+                yaxisMaximum: 100
+            )
         }
-        
-        // Separate graph for Pylint scores
-        plot(
-            title: 'Pylint Score Trend',
-            yaxis: 'Score (out of 10)',
-            series: [
-                [file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']
-            ],
-            group: 'code-quality',
-            useDescriptions: true,
-            yaxisMinimum: 0,
-            yaxisMaximum: 10
-        )
-        
-        // Separate graph for Test Coverage
-        plot(
-            title: 'Test Coverage Trend',
-            yaxis: 'Coverage (%)',
-            series: [
-                [file: 'coverage_score.dat', label: 'Coverage', style: 'line', color: 'green']
-            ],
-            group: 'code-quality',
-            useDescriptions: true,
-            yaxisMinimum: 0,
-            yaxisMaximum: 100
-        )
-        
-        // Optional: Combined graph for quick overview
-        plot(
-            title: 'Code Quality Overview',
-            yaxis: 'Score',
-            series: [
-                [file: 'lint_score.dat', label: 'Lint Score (scaled)', style: 'line', color: 'blue', 
-                 transformation: { it * 10 }], // Scale 0-10 to 0-100 for comparison
-                [file: 'coverage_score.dat', label: 'Test Coverage', style: 'line', color: 'green']
-            ],
-            group: 'code-quality',
-            useDescriptions: true,
-            yaxisMinimum: 0,
-            yaxisMaximum: 100
-        )
     }
 }
