@@ -39,8 +39,8 @@ pipeline {
                     lintOutput = sh(
                         script: """
                             . ${VENV_DIR}/bin/activate
-                            pylint --exit-zero --output-format=json ./ > ${REPORTS_DIR}/pylint.json || true
-                            pylint --exit-zero ./ | tee ${REPORTS_DIR}/pylint.txt
+                            pylint --exit-zero --output-format=json src > ${REPORTS_DIR}/pylint.json || true
+                            pylint --exit-zero src | tee ${REPORTS_DIR}/pylint.txt
                         """,
                         returnStdout: true
                     )
