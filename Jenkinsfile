@@ -17,7 +17,7 @@ pipeline {
                 
                 // Verify if this is a tagged build
                 script {
-                    isTagged = env.TAG_NAME != null
+                    def isTagged = env.TAG_NAME != null
                     if (isTagged) {
                         echo "Building tagged release: ${env.TAG_NAME}"
                     }
@@ -27,7 +27,7 @@ pipeline {
         stage('Setup') {
             steps {
                 sh """
-                    contribute/init.sh
+                    contrib/init.sh
                     mkdir -p ${REPORTS_DIR}
                 """
             }
