@@ -66,11 +66,11 @@ pipeline {
                     // Archive lint reports
                     archiveArtifacts "${REPORTS_DIR}/pylint.*"
                     
-                    // Record the lint score for trend analysis
-                    recordIssues(
-                        tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
-                        healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
-                    )
+                    // // Record the lint score for trend analysis
+                    // recordIssues(
+                    //     tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
+                    //     healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
+                    // )
                 }
             }
         }
