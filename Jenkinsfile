@@ -4,17 +4,17 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                echo 'pytest'
+                pytest
             }
         }
         stage('Lint') {
             steps {
-                echo 'pylint'
+                pylint
             }
         }
         stage('Build') {
             steps {
-                echo 'python -m build .'
+                python -m build .
             }
         }
         stage('Release') {
