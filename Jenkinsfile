@@ -13,8 +13,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-user/your-repo.git'
-                
                 // Verify if this is a tagged build
                 script {
                     isTagged = env.TAG_NAME != null
