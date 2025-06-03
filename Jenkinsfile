@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/your-user/your-repo.git'
                 
                 // Verify if this is a tagged build
                 script {
