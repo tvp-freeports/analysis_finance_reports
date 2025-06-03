@@ -14,7 +14,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                python -m build .
+                sh "python -m build ."
             }
         }
         stage('Release') {
