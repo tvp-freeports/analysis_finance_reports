@@ -79,7 +79,7 @@ pipeline {
             steps {
                 sh """
                     . ${VENV_DIR}/bin/activate
-                    pytest tests/ --cov=src --cov-report=xml --junitxml=${REPORTS_DIR}/test-results.xml  # Adjust test directory
+                    pytest tests/ --cov=src --cov-report=xml:${REPORTS_DIR}/coverage.xml --junitxml=${REPORTS_DIR}/test-results.xml  # Adjust test directory
                 """
             }
             post {
@@ -118,7 +118,7 @@ pipeline {
                 """
                 
                 // Archive the built distribution files
-                archiveArtifacts 'dist/*'
+                //archiveArtifacts 'dist/*'
             }
         }
         
