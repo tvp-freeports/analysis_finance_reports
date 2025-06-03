@@ -1,3 +1,5 @@
+#! /bin/bash
+ 
 REPO_PATH=$(git rev-parse --show-toplevel)
 
 CONTRIB_DIR="${REPO_PATH}/contrib"

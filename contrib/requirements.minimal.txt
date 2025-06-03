@@ -1,6 +1,7 @@
 build
 sphinx
 pytest
+pytest-cov
 ruff
 sphinx_rtd_theme
 twine
