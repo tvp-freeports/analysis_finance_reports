@@ -9,7 +9,10 @@ pipeline {
         }
         stage('Lint') {
             steps {
-                sh "pylint ."
+                sh '''
+                pylint . --exit-zero --output-format=parseable > pylint-report.txt
+                pylint . --score=y --exit-zero --output-format=json > pylint-score.json
+                '''
             }
         }
         stage('Build') {
