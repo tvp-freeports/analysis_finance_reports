@@ -13,14 +13,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scmGit(branches: [[name: 'main']],
-                userRemoteConfigs: [
-                    [ url: 'https://github.com/GVoreste/analysis_finance_reports.git' ]
-                ])
+                checkout scm
                 
                 // Verify if this is a tagged build
                 script {
-                    def isTagged = env.TAG_NAME != null
+                    isTagged = env.TAG_NAME != null
                     if (isTagged) {
                         echo "Building tagged release: ${env.TAG_NAME}"
                     }
