@@ -9,7 +9,7 @@ pipeline {
         }
         stage('Lint') {
             steps {
-                sh "pylint"
+                sh "pylint ."
             }
         }
         stage('Build') {
