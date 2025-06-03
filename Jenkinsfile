@@ -4,12 +4,12 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                pytest
+                sh "pytest"
             }
         }
         stage('Lint') {
             steps {
-                pylint
+                sh "pylint"
             }
         }
         stage('Build') {
