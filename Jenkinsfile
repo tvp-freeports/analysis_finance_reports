@@ -6,7 +6,8 @@ pipeline {
         PYPI_CREDENTIALS = credentials('pypi-credentials')
         VENV_DIR = "venv/freeports-dev"
         LINT_SCORE_THRESHOLD = '3.0'
-        LINT_REPORT_DIR = 'reports'
+        COVERAGE_TRASHOLD = '1.0'
+        REPORTS_DIR = 'reports'
         
     }
     stages {
@@ -27,7 +28,7 @@ pipeline {
             steps {
                 sh """
                     contribute/init.sh
-                    mkdir -p ${LINT_REPORT_DIR}
+                    mkdir -p ${REPORTS_DIR}
                 """
             }
         }
@@ -38,8 +39,8 @@ pipeline {
                     lintOutput = sh(
                         script: """
                             . ${VENV_DIR}/bin/activate
-                            pylint --exit-zero --output-format=json ./ > ${LINT_REPORT_DIR}/pylint.json || true
-                            pylint --exit-zero ./ | tee ${LINT_REPORT_DIR}/pylint.txt
+                            pylint --exit-zero --output-format=json ./ > ${REPORTS_DIR}/pylint.json || true
+                            pylint --exit-zero ./ | tee ${REPORTS_DIR}/pylint.txt
                         """,
                         returnStdout: true
                     )
@@ -48,7 +49,7 @@ pipeline {
                     lintScore = sh(
                         script: """
                             . ${VENV_DIR}/bin/activate
-                            python -c \"import re; print(re.search(r'Your code has been rated at (\\d+\\.\\d+)/10', open('${LINT_REPORT_DIR}/pylint.txt').read()).group(1))\"
+                            python -c \"import re; print(re.search(r'Your code has been rated at (\\d+\\.\\d+)/10', open('${REPORTS_DIR}/pylint.txt').read()).group(1))\"
                         """,
                         returnStdout: true
                     ).trim()
@@ -65,11 +66,11 @@ pipeline {
             post {
                 always {
                     // Archive lint reports
-                    archiveArtifacts "${LINT_REPORT_DIR}/pylint.*"
+                    archiveArtifacts "${REPORTS_DIR}/pylint.*"
                     
                     // Record the lint score for trend analysis
                     recordIssues(
-                        tools: [pylint(pattern: '${LINT_REPORT_DIR}/pylint.txt')],
+                        tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
                         healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
                     )
                 }
@@ -80,13 +81,33 @@ pipeline {
             steps {
                 sh """
                     . ${VENV_DIR}/bin/activate
-                    pytest tests/ --cov=src --cov-report=xml --junitxml=${LINT_REPORT_DIR}/test-results.xml  # Adjust test directory
+                    pytest tests/ --cov=src --cov-report=xml --junitxml=${REPORTS_DIR}/test-results.xml  # Adjust test directory
                 """
             }
             post {
                 always {
-                    junit "${LINT_REPORT_DIR}/test-results.xml"
-                    cobertura '**/coverage.xml'
+                    script {
+                        // These steps will run even if tests fail
+                        coverageOutput = sh(
+                            script: """
+                                . ${VENV_DIR}/bin/activate
+                                python -c \"import xml.etree.ElementTree as ET; print(ET.parse('${REPORTS_DIR}/coverage.xml').getroot().attrib['line-rate'])\" || echo "0"
+                            """,
+                            returnStdout: true
+                        ).trim()
+                        coveragePercent = (Float.parseFloat(coverageOutput) * 100).round(2)
+                        currentBuild.description = "${currentBuild.description} | Coverage: ${coveragePercent}%"
+                        
+                        // Fail if coverage is below threshold (only check if tests passed)
+                        if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
+                            if (coveragePercent < Float.parseFloat(env.COVERAGE_THRESHOLD)) {
+                                error("Test coverage ${coveragePercent}% is below threshold of ${env.COVERAGE_THRESHOLD}%")
+                            }
+                        }
+                    }
+                    
+                    junit "${REPORTS_DIR}/test-results.xml"
+                    cobertura "${REPORTS_DIR}/coverage.xml"
                 }
             }
         }
@@ -134,25 +155,61 @@ pipeline {
             sh 'rm -rf ${VENV_DIR}'
 
             // Generate lint trend graph (requires Plot plugin)
-            plot(
-                title: 'Pylint Score Trend',
-                yaxis: 'Score',
-                series: [
-                    [file: 'lint_score.dat', label: 'Lint Score', style: 'line']
-                ],
-                group: 'code-quality',
-                useDescriptions: true
-            )
-            
-            // Append current lint score to trend file
             script {
-                def lintScore = currentBuild.description?.replaceAll(/.*Lint score: (\d+\.\d+).*/, '$1')
-                if (lintScore && lintScore.isNumber()) {
-                    writeFile file: 'lint_score.dat', text: "${env.BUILD_NUMBER}\t${lintScore}\n"
-                    archiveArtifacts 'lint_score.dat'
-                }
+            // Store lint score data
+            def lintScore = currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1')
+            if (lintScore && lintScore.isNumber()) {
+                writeFile file: 'lint_score.dat', text: "${env.BUILD_NUMBER}\t${lintScore}\n"
+                archiveArtifacts 'lint_score.dat'
+            }
+            
+            // Store coverage data
+            def coveragePercent = currentBuild.description?.replaceAll(/.*Coverage: (\d+\.\d+)%.*/, '$1')
+            if (coveragePercent && coveragePercent.isNumber()) {
+                writeFile file: 'coverage_score.dat', text: "${env.BUILD_NUMBER}\t${coveragePercent}\n"
+                archiveArtifacts 'coverage_score.dat'
             }
         }
         
+        // Separate graph for Pylint scores
+        plot(
+            title: 'Pylint Score Trend',
+            yaxis: 'Score (out of 10)',
+            series: [
+                [file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']
+            ],
+            group: 'code-quality',
+            useDescriptions: true,
+            yaxisMinimum: 0,
+            yaxisMaximum: 10
+        )
+        
+        // Separate graph for Test Coverage
+        plot(
+            title: 'Test Coverage Trend',
+            yaxis: 'Coverage (%)',
+            series: [
+                [file: 'coverage_score.dat', label: 'Coverage', style: 'line', color: 'green']
+            ],
+            group: 'code-quality',
+            useDescriptions: true,
+            yaxisMinimum: 0,
+            yaxisMaximum: 100
+        )
+        
+        // Optional: Combined graph for quick overview
+        plot(
+            title: 'Code Quality Overview',
+            yaxis: 'Score',
+            series: [
+                [file: 'lint_score.dat', label: 'Lint Score (scaled)', style: 'line', color: 'blue', 
+                 transformation: { it * 10 }], // Scale 0-10 to 0-100 for comparison
+                [file: 'coverage_score.dat', label: 'Test Coverage', style: 'line', color: 'green']
+            ],
+            group: 'code-quality',
+            useDescriptions: true,
+            yaxisMinimum: 0,
+            yaxisMaximum: 100
+        )
     }
 }
