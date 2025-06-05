@@ -40,7 +40,7 @@ pipeline {
                         script: """
                             . ${VENV_DIR}/bin/activate
                             pylint --exit-zero --output-format=json src > ${REPORTS_DIR}/pylint.json || true
-                            pylint --exit-zero src | tee ${REPORTS_DIR}/pylint.txt
+                            pylint --msg-template='{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})' --exit-zero src | tee ${REPORTS_DIR}/pylint.txt
                         """,
                         returnStdout: true
                     )
@@ -69,7 +69,7 @@ pipeline {
                     archiveArtifacts "${REPORTS_DIR}/pylint.*"
                     // Record the lint score for trend analysis
                     recordIssues(
-                        tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
+                        tools: [pyLint(pattern: '${REPORTS_DIR}/pylint.txt')],
                         healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
                     )
                 }
