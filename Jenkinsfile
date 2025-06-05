@@ -149,7 +149,8 @@ pipeline {
     post {
         always {
             // Clean up virtual environment
-            sh 'rm -rf ${VENV_DIR}'
+            sh 'rm -rf ./*'
+            sh 'rm -rf ./.*'
 
             // Generate lint trend graph (requires Plot plugin)
             script {
