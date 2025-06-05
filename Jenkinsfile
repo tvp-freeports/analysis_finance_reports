@@ -136,7 +136,7 @@ pipeline {
                         script: """
                             . ${VENV_DIR}/bin/activate
                             python -c \"import re; \
-                                text = open('docs/_build/coverage/python.txt').read(); \
+                                text = open('docs/build/coverage/python.txt').read(); \
                                 match = re.search(r'Total\\s+(\\d+\\.\\d+)%', text); \
                                 print(match.group(1)) if match else print('0')\" || echo \"0\"
                         """,
