@@ -69,7 +69,7 @@ pipeline {
                     archiveArtifacts "${REPORTS_DIR}/pylint.*"
                     // Record the lint score for trend analysis
                     recordIssues(
-                        tools: [pyLint(pattern: '${REPORTS_DIR}/pylint.txt')],
+                        tools: [pyLint(pattern: "${REPORTS_DIR}/pylint.txt")],
                         healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
                     )
                 }
@@ -106,17 +106,17 @@ pipeline {
                     }
                     
                     junit "${REPORTS_DIR}/test-results.xml"
-                    // recordCoverage(
-                    //     tools: [
-                    //         coberturaParser(
-                    //             path: "${REPORTS_DIR}/coverage.xml",
-                    //             minimumClassCoverage: env.COVERAGE_THRESHOLD as int,
-                    //             minimumLineCoverage: env.COVERAGE_THRESHOLD as int,
-                    //             minimumPackageCoverage: env.COVERAGE_THRESHOLD as int
-                    //         )
-                    //     ],
-                    //     failOnError: true
-                    // )
+                    recordCoverage(
+                        tools: [
+                            coberturaParser(
+                                path: "${REPORTS_DIR}/coverage.xml",
+                                minimumClassCoverage: env.COVERAGE_THRESHOLD as float,
+                                minimumLineCoverage: env.COVERAGE_THRESHOLD as float,
+                                minimumPackageCoverage: env.COVERAGE_THRESHOLD as float
+                            )
+                        ],
+                        failOnError: true
+                    )
                 }
             }
         }
