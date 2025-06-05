@@ -217,7 +217,7 @@ pipeline {
             plot(
                 title: 'Pylint Score Trend',
                 yaxis: 'Score (0-10)',
-                series: [[file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']],
+                csvSeries: [[file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 10
             )
@@ -225,7 +225,7 @@ pipeline {
             plot(
                 title: 'Test Coverage Trend',
                 yaxis: 'Coverage %',
-                series: [[file: 'test_score.dat', label: 'Test Coverage', style: 'line', color: 'green']],
+                csvSeries: [[file: 'test_score.dat', label: 'Test Coverage', style: 'line', color: 'green']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 100
             )
@@ -233,7 +233,7 @@ pipeline {
             plot(
                 title: 'Documentation Coverage Trend',
                 yaxis: 'Coverage %',
-                series: [[file: 'docs_score.dat', label: 'Docs Coverage', style: 'line', color: 'purple']],
+                csvSeries: [[file: 'docs_score.dat', label: 'Docs Coverage', style: 'line', color: 'purple']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 100
             )
