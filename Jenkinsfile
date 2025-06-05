@@ -106,7 +106,18 @@ pipeline {
                     }
                     
                     junit "${REPORTS_DIR}/test-results.xml"
-                    cobertura "${REPORTS_DIR}/coverage.xml"
+                    recordCoverage(
+                        tools: [
+                            coberturaParser(
+                                path: "${REPORTS_DIR}/coverage.xml",
+                                minimumClassCoverage: env.COVERAGE_THRESHOLD as int,
+                                minimumLineCoverage: env.COVERAGE_THRESHOLD as int,
+                                minimumPackageCoverage: env.COVERAGE_THRESHOLD as int
+                            )
+                        ],
+                        failUnhealthy: true,
+                        failUnstable: true
+                    )
                 }
             }
         }
