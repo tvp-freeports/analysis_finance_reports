@@ -20,6 +20,11 @@ logger = log.getLogger(__name__)
 
 
 class NoPDFormatDetected(Exception):
+    """Exception that should rise when the script is not
+    capable of detecting a PDF format to use to decode the
+    report, and no explicit format is specified
+    """
+
     pass
 
 
@@ -29,6 +34,14 @@ TABULARIZE = None
 
 
 def get_functions(format: PDF_Formats):
+    """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
+    implementation of specific PDF format
+
+    Parameters
+    ----------
+    format : PDF_Formats
+        The format detected used to choose the decoding implementation
+    """
     module_name = format.name
     try:
         module = importlib.import_module(

@@ -1,8 +1,12 @@
+"""Contains all the functions related to command line use of the `freeport` script"""
+
 import argparse
-from .consts import PDF_Formats, ENV_PREFIX
-from .main import main
 import logging as log
 import os
+
+from .consts import PDF_Formats, ENV_PREFIX
+from .main import main
+
 
 DEFAULT_VERBOSITY = 2
 DEFAULT_OUT_CSV = "/dev/stdout"
@@ -10,9 +14,16 @@ DEFAULT_OUT_CSV = "/dev/stdout"
 logger = log.getLogger(__name__)
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
+    """Create and set the parser for command line args
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        class that contains the command line options, retrieve and validate them
+    """
     parser = argparse.ArgumentParser(
-        description="Analize finance reports searching for investing in companies allegedly involved interantional law violations by third parties"
+        description="Analyze finance reports searching for investing in companies allegedly involved interantional law violations by third parties"
     )
     # Argomenti obbligatori (stringhe)
     parser.add_argument(
@@ -43,7 +54,9 @@ def validate_args(args):
 
 
 def cmd():
-    """Command called when launching `freeports` from terminal"""
+    """Command called when launching `freeports` from terminal,
+    it calls the `main` function.
+    """
     parser = create_parser()
     args = validate_args(parser.parse_args())
     if args.url is not None:
