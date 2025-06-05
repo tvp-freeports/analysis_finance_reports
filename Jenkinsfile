@@ -90,7 +90,7 @@ pipeline {
                         coverageOutput = sh(
                             script: """
                                 . ${VENV_DIR}/bin/activate
-                                python -c \"import xml.etree.ElementTree as ET; print(ET.parse('${REPORTS_DIR}/coverage.xml').getroot().attrib['line-rate'])\" || echo "0"
+                                python -c \"import xml.etree.ElementTree as ET; print(ET.parse(\'${REPORTS_DIR}/coverage.xml\').getroot().attrib[\'line-rate\'])\" || echo "0"
                             """,
                             returnStdout: true
                         ).trim()
