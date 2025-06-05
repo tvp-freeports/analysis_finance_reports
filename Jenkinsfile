@@ -95,7 +95,7 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         coveragePercent = (Float.parseFloat(coverageOutput) * 100).round(2)
-                        currentBuild.description = "${currentBuild.description} | Test Coverage: ${coveragePercent}%"
+                        currentBuild.description = "${currentBuild.description} | Test coverage: ${coveragePercent}%"
                         
                         // Fail if coverage is below threshold (only check if tests passed)
                         if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
@@ -106,20 +106,6 @@ pipeline {
                     }
                     
                     junit "${REPORTS_DIR}/test-results.xml"
-                    // recordCoverage(
-                    //     tools: [
-                    //         [
-
-                    //         ]
-                    //         coberturaParser(
-                    //             path: "${REPORTS_DIR}/coverage.xml",
-                    //             minimumClassCoverage: env.COVERAGE_THRESHOLD as float,
-                    //             minimumLineCoverage: env.COVERAGE_THRESHOLD as float,
-                    //             minimumPackageCoverage: env.COVERAGE_THRESHOLD as float
-                    //         )
-                    //     ],
-                    //     failOnError: true
-                    // )
                 }
             }
         }
@@ -143,7 +129,7 @@ pipeline {
                         returnStdout: true
                     ).trim().toFloat()
                     
-                    currentBuild.description = "${currentBuild.description} | Docs: ${docsCoverage}%"
+                    currentBuild.description = "${currentBuild.description} | Docs coverage: ${docsCoverage}%"
                     
                     if (docsCoverage < Float.parseFloat(env.COVERAGE_THRESHOLD_DOCS)) {
                         error("Documentation coverage ${docsCoverage}% is below threshold of ${env.COVERAGE_THRESHOLD_DOCS}%")
