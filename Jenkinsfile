@@ -115,8 +115,7 @@ pipeline {
                                 minimumPackageCoverage: env.COVERAGE_THRESHOLD as int
                             )
                         ],
-                        failUnhealthy: true,
-                        failUnstable: true
+                        failOnError: true,
                     )
                 }
             }
