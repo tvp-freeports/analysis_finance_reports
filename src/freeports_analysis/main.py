@@ -34,6 +34,14 @@ TABULARIZE = None
 
 
 def get_functions(format: PDF_Formats):
+    """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
+    implementation of specific PDF format
+
+    Parameters
+    ----------
+    format : PDF_Formats
+        The format detected used to choose the decoding implementation
+    """
     module_name = format.name
     try:
         module = importlib.import_module(
