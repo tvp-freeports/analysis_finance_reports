@@ -9,6 +9,7 @@ pipeline {
         COVERAGE_THRESHOLD = '1.0'
         COVERAGE_THRESHOLD_DOCS = '1.0'
         REPORTS_DIR = 'reports'
+        DOCS_DIR = 'docs/build/html'
         
     }
     stages {
@@ -65,13 +66,12 @@ pipeline {
             post {
                 always {
                     // Archive lint reports
-                    //archiveArtifacts "${REPORTS_DIR}/pylint.*"
-                    echo "Done"
-                    // // Record the lint score for trend analysis
-                    // recordIssues(
-                    //     tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
-                    //     healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
-                    // )
+                    archiveArtifacts "${REPORTS_DIR}/pylint.*"
+                    // Record the lint score for trend analysis
+                    recordIssues(
+                        tools: [pylint(pattern: '${REPORTS_DIR}/pylint.txt')],
+                        healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
+                    )
                 }
             }
         }
@@ -95,7 +95,7 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         coveragePercent = (Float.parseFloat(coverageOutput) * 100).round(2)
-                        currentBuild.description = "${currentBuild.description} | Coverage: ${coveragePercent}%"
+                        currentBuild.description = "${currentBuild.description} | Test Coverage: ${coveragePercent}%"
                         
                         // Fail if coverage is below threshold (only check if tests passed)
                         if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
@@ -110,22 +110,69 @@ pipeline {
                 }
             }
         }
+        stage('Build Docs') {
+            steps {
+                script {
+                    sh """
+                        . ${VENV_DIR}/bin/activate
+                        cd docs && make html
+                    """
+                    
+                    // Check documentation coverage (requires sphinx-coverage)
+                    docsCoverage = sh(
+                        script: """
+                            . ${VENV_DIR}/bin/activate
+                            python -c \"import re; \
+                                text = open('docs/_build/coverage/python.txt').read(); \
+                                match = re.search(r'Total\\s+(\\d+\\.\\d+)%', text); \
+                                print(match.group(1)) if match else print('0')\" || echo \"0\"
+                        """,
+                        returnStdout: true
+                    ).trim().toFloat()
+                    
+                    currentBuild.description = "${currentBuild.description} | Docs: ${docsCoverage}%"
+                    
+                    if (docsCoverage < Float.parseFloat(env.DOCS_COVERAGE_THRESHOLD)) {
+                        error("Documentation coverage ${docsCoverage}% is below threshold of ${env.DOCS_COVERAGE_THRESHOLD}%")
+                    }
+                }
+            }
+            post {
+                always {
+                    publishHTML(
+                        target: [
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'docs/build/html',
+                            reportFiles: 'index.html',
+                            reportName: 'API Documentation'
+                        ]
+                    )
+                    archiveArtifacts 'docs/build/coverage/python.txt'
+                }
+            }
+        }
         
         stage('Build') {
+            when {
+                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
             steps {
                 sh """
                     . ${VENV_DIR}/bin/activate
                     python -m build
                 """
-                
-                // Archive the built distribution files
-                //archiveArtifacts 'dist/*'
+                archiveArtifacts 'dist/*'
             }
         }
         
         stage('Release to PyPI') {
             when {
-                expression { return isTagged }
+                allOf {
+                    expression { return isTagged }
+                    expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+                }
             }
             steps {
                 script {
@@ -141,8 +188,6 @@ pipeline {
                             twine upload --username ${PYPI_USERNAME} --password ${PYPI_PASSWORD} dist/*
                         """
                     }
-                    
-                    echo "Successfully released version ${env.TAG_NAME} to PyPI"
                 }
             }
         }
@@ -155,61 +200,45 @@ pipeline {
 
             // Generate lint trend graph (requires Plot plugin)
             script {
-                // Store lint score data
-                def lintScore = currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1')
-                if (lintScore && lintScore.isNumber()) {
-                    writeFile file: 'lint_score.dat', text: "${env.BUILD_NUMBER}\t${lintScore}\n"
-                    archiveArtifacts 'lint_score.dat'
-                }
-                
-                // Store coverage data
-                def coveragePercent = currentBuild.description?.replaceAll(/.*Coverage: (\d+\.\d+)%.*/, '$1')
-                if (coveragePercent && coveragePercent.isNumber()) {
-                    writeFile file: 'coverage_score.dat', text: "${env.BUILD_NUMBER}\t${coveragePercent}\n"
-                    archiveArtifacts 'coverage_score.dat'
+                // Store metrics for trend graphs
+                def metrics = [
+                    'lint': currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1'),
+                    'test': currentBuild.description?.replaceAll(/.*Test Coverage: (\d+\.\d+)%.*/, '$1'),
+                    'docs': currentBuild.description?.replaceAll(/.*Docs: (\d+\.\d+)%.*/, '$1')
+                ]
+                metrics.each { name, value ->
+                    if (value?.isNumber()) {
+                        writeFile file: "${name}_score.dat", text: "${env.BUILD_NUMBER}\t${value}\n"
+                        archiveArtifacts "${name}_score.dat"
+                    }
                 }
             }
-        
-            // Separate graph for Pylint scores
+            // Individual trend graphs
             plot(
                 title: 'Pylint Score Trend',
-                yaxis: 'Score (out of 10)',
-                series: [
-                    [file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']
-                ],
-                group: 'code-quality',
-                useDescriptions: true,
+                yaxis: 'Score (0-10)',
+                series: [[file: 'lint_score.dat', label: 'Lint Score', style: 'line', color: 'blue']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 10
             )
             
-            // Separate graph for Test Coverage
             plot(
                 title: 'Test Coverage Trend',
-                yaxis: 'Coverage (%)',
-                series: [
-                    [file: 'coverage_score.dat', label: 'Coverage', style: 'line', color: 'green']
-                ],
-                group: 'code-quality',
-                useDescriptions: true,
+                yaxis: 'Coverage %',
+                series: [[file: 'test_score.dat', label: 'Test Coverage', style: 'line', color: 'green']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 100
             )
             
-            // Optional: Combined graph for quick overview
             plot(
-                title: 'Code Quality Overview',
-                yaxis: 'Score',
-                series: [
-                    [file: 'lint_score.dat', label: 'Lint Score (scaled)', style: 'line', color: 'blue', 
-                    transformation: { it * 10 }], // Scale 0-10 to 0-100 for comparison
-                    [file: 'coverage_score.dat', label: 'Test Coverage', style: 'line', color: 'green']
-                ],
-                group: 'code-quality',
-                useDescriptions: true,
+                title: 'Documentation Coverage Trend',
+                yaxis: 'Coverage %',
+                series: [[file: 'docs_score.dat', label: 'Docs Coverage', style: 'line', color: 'purple']],
                 yaxisMinimum: 0,
                 yaxisMaximum: 100
             )
+        
+           
         }
     }
 }
