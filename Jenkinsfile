@@ -135,10 +135,10 @@ pipeline {
                     docsCoverage = sh(
                         script: """
                             . ${VENV_DIR}/bin/activate
-                            python -c \"import re; \
-                                text = open('docs/build/coverage/python.txt').read(); \
-                                match = re.search(r'TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%', text); \
-                                print(match.group(1)) if match else print('0')\" || echo \"0\"
+                            python -c 'import re; \
+                                text = open(\"docs/build/coverage/python.txt\").read(); \
+                                match = re.search(r\"TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%\", text); \
+                                print(match.group(1)) if match else print(\"0\")' || echo \"0\"
                         """,
                         returnStdout: true
                     ).trim().toFloat()
