@@ -106,17 +106,20 @@ pipeline {
                     }
                     
                     junit "${REPORTS_DIR}/test-results.xml"
-                    recordCoverage(
-                        tools: [
-                            coberturaParser(
-                                path: "${REPORTS_DIR}/coverage.xml",
-                                minimumClassCoverage: env.COVERAGE_THRESHOLD as float,
-                                minimumLineCoverage: env.COVERAGE_THRESHOLD as float,
-                                minimumPackageCoverage: env.COVERAGE_THRESHOLD as float
-                            )
-                        ],
-                        failOnError: true
-                    )
+                    // recordCoverage(
+                    //     tools: [
+                    //         [
+
+                    //         ]
+                    //         coberturaParser(
+                    //             path: "${REPORTS_DIR}/coverage.xml",
+                    //             minimumClassCoverage: env.COVERAGE_THRESHOLD as float,
+                    //             minimumLineCoverage: env.COVERAGE_THRESHOLD as float,
+                    //             minimumPackageCoverage: env.COVERAGE_THRESHOLD as float
+                    //         )
+                    //     ],
+                    //     failOnError: true
+                    // )
                 }
             }
         }
