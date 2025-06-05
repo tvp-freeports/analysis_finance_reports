@@ -10,7 +10,14 @@ DEFAULT_OUT_CSV = "/dev/stdout"
 logger = log.getLogger(__name__)
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
+    """Create and set the parser for command line args
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        class that contains the command line options, retrieve and validate them
+    """
     parser = argparse.ArgumentParser(
         description="Analize finance reports searching for investing in companies allegedly involved interantional law violations by third parties"
     )
