@@ -86,7 +86,6 @@ pipeline {
             post {
                 always {
                     script {
-                        // These steps will run even if tests fail
                         coverageOutput = sh(
                             script: """
                                 . ${VENV_DIR}/bin/activate
