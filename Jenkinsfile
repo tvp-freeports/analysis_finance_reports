@@ -145,8 +145,8 @@ pipeline {
                     
                     currentBuild.description = "${currentBuild.description} | Docs: ${docsCoverage}%"
                     
-                    if (docsCoverage < Float.parseFloat(env.DOCS_COVERAGE_THRESHOLD)) {
-                        error("Documentation coverage ${docsCoverage}% is below threshold of ${env.DOCS_COVERAGE_THRESHOLD}%")
+                    if (docsCoverage < Float.parseFloat(env.COVERAGE_THRESHOLD_DOCS)) {
+                        error("Documentation coverage ${docsCoverage}% is below threshold of ${env.COVERAGE_THRESHOLD_DOCS}%")
                     }
                 }
             }
