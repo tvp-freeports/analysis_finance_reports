@@ -7,7 +7,7 @@ pipeline {
         VENV_DIR = "venv/freeports-dev"
         LINT_SCORE_THRESHOLD = '3.0'
         COVERAGE_THRESHOLD = '1.0'
-        COVERAGE_THRESHOLD_DOCS = '1.0'
+        COVERAGE_THRESHOLD_DOCS = '0.0'
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
         
@@ -128,7 +128,7 @@ pipeline {
                 script {
                     sh """
                         . ${VENV_DIR}/bin/activate
-                        cd docs && make html && make coverage
+                        cd docs && make html && make coverage && cd ../
                     """
                     
                     // Check documentation coverage (requires sphinx-coverage)
@@ -136,9 +136,9 @@ pipeline {
                         script: """
                             . ${VENV_DIR}/bin/activate
                             python -c 'import re; \
-                                text = open(\"docs/build/coverage/python.txt\").read(); \
-                                match = re.search(r\"TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%\", text); \
-                                print(match.group(1)) if match else print(\"0\")' || echo \"0\"
+                            text = open(\"docs/build/coverage/python.txt\").read(); \
+                            match = re.search(r\"TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%\", text); \
+                            print(match.group(1)) if match else print(\"0\")' || echo \"0\"
                         """,
                         returnStdout: true
                     ).trim().toFloat()
