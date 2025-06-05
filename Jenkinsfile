@@ -103,8 +103,10 @@ pipeline {
                             }
                         }
                     }
-                    
-                    junit "${REPORTS_DIR}/test-results.xml"
+                    withChecks("Test restults"){
+                        junit "${REPORTS_DIR}/test-results.xml"
+
+                    }
                 }
             }
         }
