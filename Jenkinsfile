@@ -128,7 +128,7 @@ pipeline {
                 script {
                     sh """
                         . ${VENV_DIR}/bin/activate
-                        cd docs && make html
+                        cd docs && make html && make coverage
                     """
                     
                     // Check documentation coverage (requires sphinx-coverage)
