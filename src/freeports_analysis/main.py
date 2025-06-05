@@ -20,6 +20,11 @@ logger = log.getLogger(__name__)
 
 
 class NoPDFormatDetected(Exception):
+    """Exception that should rise when the script is not
+    capable of detecting a PDF format to use to decode the
+    report, and no explicit format is specified
+    """
+
     pass
 
 
