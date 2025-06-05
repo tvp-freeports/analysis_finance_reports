@@ -202,8 +202,8 @@ pipeline {
                 // Store metrics for trend graphs
                 def metrics = [
                     'lint': currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1'),
-                    'test': currentBuild.description?.replaceAll(/.*Test Coverage: (\d+\.\d+)%.*/, '$1'),
-                    'docs': currentBuild.description?.replaceAll(/.*Docs: (\d+\.\d+)%.*/, '$1')
+                    'test': currentBuild.description?.replaceAll(/.*Test coverage: (\d+\.\d+)%.*/, '$1'),
+                    'docs': currentBuild.description?.replaceAll(/.*Docs coverage: (\d+\.\d+)%.*/, '$1')
                 ]
                 metrics.each { name, value ->
                     if (value?.isNumber()) {
