@@ -7,6 +7,7 @@ pipeline {
         VENV_DIR = "venv/freeports-dev"
         LINT_SCORE_THRESHOLD = '3.0'
         COVERAGE_TRASHOLD = '1.0'
+        COVERAGE_TRASHOLD_DOCS = '1.0'
         REPORTS_DIR = 'reports'
         
     }
