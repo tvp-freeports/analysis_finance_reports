@@ -216,7 +216,7 @@ pipeline {
             // Individual trend graphs
              
             plot(
-                csvFileName: 'plot-pylintscore.csv'
+                csvFileName: 'plot-pylintscore.csv',
                 title: 'Pylint Score Trend',
                 yaxis: 'Score (0-10)',
                 group: 'Quality of code', 
@@ -229,7 +229,7 @@ pipeline {
             )
             
             plot(
-                csvFileName: 'plot-testcoverage.csv'
+                csvFileName: 'plot-testcoverage.csv',
                 title: 'Test Coverage Trend',
                 yaxis: 'Coverage %',
                 group: 'Quality of code', 
@@ -242,7 +242,7 @@ pipeline {
             )
             
             plot(
-                csvFileName: 'plot-docscoverage.csv'
+                csvFileName: 'plot-docscoverage.csv',
                 title: 'Documentation Coverage Trend',
                 yaxis: 'Coverage %',
                 group: 'Quality of code', 
