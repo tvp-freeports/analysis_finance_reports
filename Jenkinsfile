@@ -221,7 +221,7 @@ pipeline {
                                 selector: specific(env.BUILD_NUMBER.toInteger() - 1),
                                 filter: "${TREND_DATA_DIR}/${name}_score.dat",
                                 target: "${TREND_DATA_DIR}/",
-                                flatten: true
+                                //flatten: true
                             )
                         } catch (Exception e) {
                             echo "No previous trend data found for ${name}, starting fresh"
