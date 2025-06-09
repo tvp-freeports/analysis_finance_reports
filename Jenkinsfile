@@ -224,7 +224,8 @@ pipeline {
                                 selector: lastSuccessful(),
                                 filter: scoreFile,
                                 target: "${TREND_DATA_DIR}/",
-                                optional: true
+                                optional: true,
+                                flatten: true
                             )
                         } catch (e) {
                             echo "No previous trend data found for ${name}, starting fresh"
