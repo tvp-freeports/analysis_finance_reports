@@ -232,7 +232,8 @@ pipeline {
                         }
 
                         // Append to file or create new
-                        def existing = fileExists(scoreFile) ? readFile(scoreFile) : "nono"
+                        //def existing = fileExists(scoreFile) ? readFile(scoreFile) : ""
+                        def existing = ""
                         writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
 
                         archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
