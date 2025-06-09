@@ -218,7 +218,7 @@ pipeline {
                         try {
                             copyArtifacts(
                                 projectName: env.JOB_NAME,
-                                selector: specific(env.BUILD_NUMBER.toInteger() - 1),
+                                selector: lastSuccessful(),
                                 filter: "${TREND_DATA_DIR}/${name}_score.dat",
                                 target: "${TREND_DATA_DIR}/",
                                 //flatten: true
