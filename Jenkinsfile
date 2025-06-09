@@ -10,6 +10,7 @@ pipeline {
         COVERAGE_THRESHOLD_DOCS = '0.0'
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
+        TREND_DATA_DIR = 'trend_data'
         
     }
     stages {
@@ -200,20 +201,40 @@ pipeline {
 
             // Generate lint trend graph (requires Plot plugin)
             script {
+                // Create trend data directory if it doesn't exist
+                sh "mkdir -p ${TREND_DATA_DIR}"
+                
                 // Store metrics for trend graphs
                 def metrics = [
-                    'lint': currentBuild.description?.replaceAll(/.*Lint: (\d+\.\d+).*/, '$1'),
+                    'lint': currentBuild.description?.replaceAll(/.*Lint score: (\d+\.\d+).*/, '$1'),
                     'test': currentBuild.description?.replaceAll(/.*Test coverage: (\d+\.\d+)%.*/, '$1'),
                     'docs': currentBuild.description?.replaceAll(/.*Docs coverage: (\d+\.\d+)%.*/, '$1')
                 ]
+                
+                // Append new data to existing trend files
                 metrics.each { name, value ->
                     if (value?.isNumber()) {
-                        writeFile file: "${name}_score.dat", text: "${env.BUILD_NUMBER}\t${value}\n"
-                        archiveArtifacts "${name}_score.dat"
+                        // Try to copy existing trend file from archive
+                        try {
+                            copyArtifacts(
+                                projectName: env.JOB_NAME,
+                                selector: specific(env.BUILD_NUMBER.toInteger() - 1),
+                                filter: "${TREND_DATA_DIR}/${name}_score.dat",
+                                target: "${TREND_DATA_DIR}/",
+                                flatten: true
+                            )
+                        } catch (Exception e) {
+                            echo "No previous trend data found for ${name}, starting fresh"
+                        }
+                        
+                        // Append new data point
+                        writeFile file: "${TREND_DATA_DIR}/${name}_score.dat", text: "${env.BUILD_NUMBER}\t${value}\n", encoding: 'UTF-8'
+                        
+                        // Archive the updated trend file
+                        archiveArtifacts "${TREND_DATA_DIR}/${name}_score.dat"
                     }
                 }
             }
-            // Individual trend graphs
              
             plot(
                 csvFileName: 'plot-pylintscore.csv',
@@ -253,8 +274,6 @@ pipeline {
                 yaxisMinimum: '0',
                 yaxisMaximum: '100'
             )
-        
-           
         }
     }
 }
