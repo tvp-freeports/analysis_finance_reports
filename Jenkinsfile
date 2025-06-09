@@ -213,25 +213,30 @@ pipeline {
                 
                 // Append new data to existing trend files
                 metrics.each { name, value ->
+                    def scoreFile = "${TREND_DATA_DIR}/${name}_score.dat"
+                    def scoreLine = "${env.BUILD_NUMBER}\t${value}\n"
+
                     if (value?.isNumber()) {
-                        // Try to copy existing trend file from archive
+                        // Try to get the last successful trend file
                         try {
                             copyArtifacts(
                                 projectName: env.JOB_NAME,
                                 selector: lastSuccessful(),
-                                filter: "${TREND_DATA_DIR}/${name}_score.dat",
+                                filter: scoreFile,
                                 target: "${TREND_DATA_DIR}/",
-                                //flatten: true
+                                optional: true
                             )
-                        } catch (Exception e) {
+                        } catch (e) {
                             echo "No previous trend data found for ${name}, starting fresh"
                         }
-                        
-                        // Append new data point
-                        writeFile file: "${TREND_DATA_DIR}/${name}_score.dat", text: "${env.BUILD_NUMBER}\t${value}\n", encoding: 'UTF-8'
-                        
-                        // Archive the updated trend file
-                        archiveArtifacts "${TREND_DATA_DIR}/${name}_score.dat"
+
+                        // Append to file or create new
+                        def existing = fileExists(scoreFile) ? readFile(scoreFile) : ""
+                        writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
+
+                        archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
+                    } else {
+                        echo "Invalid or missing value for ${name}, skipping trend update."
                     }
                 }
             }
