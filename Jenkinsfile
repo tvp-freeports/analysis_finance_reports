@@ -192,7 +192,47 @@ pipeline {
                 }
             }
         }
-    }
+    //     stage('Deploy docs on GitHub Pages') {
+    //         when {
+    //             allOf {
+    //                 expression { return isTagged }
+    //                 expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+    //             }
+    //         }
+    //         steps {
+    //             script {
+    //                 // Verify the tag follows semantic versioning (optional but recommended)
+    //                 if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) {
+    //                     error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
+    //                 }
+                    
+    //                 // Upload to PyPI
+    //                 withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
+    //                     sh """
+    //                         # Configure git
+    //                         git config --global user.name "Jenkins"
+    //                         git config --global user.email "jenkins@freeports.org"
+                            
+    //                         # Clone gh-pages branch
+    //                         git clone -b gh-pages https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/your-org/your-repo.git gh-pages
+                            
+    //                         # Copy built docs
+    //                         rm -rf gh-pages/*
+    //                         cp -r docs/build/html/* gh-pages/
+                            
+    //                         # Commit and push
+    //                         cd gh-pages
+    //                         git add .
+    //                         git commit -m "Deploy docs for ${env.TAG_NAME}"
+    //                         git push origin gh-pages
+    //                         cd ..
+    //                         rm -rf gh-pages
+    //                     """
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     post {
         always {
             // Clean up virtual environment
@@ -213,29 +253,31 @@ pipeline {
                 
                 // Append new data to existing trend files
                 metrics.each { name, value ->
-                    def scoreFile = "${TREND_DATA_DIR}/${name}_score.dat"
+                    def scoreFile = "${TREND_DATA_DIR}/${name}_score.csv"
                     def scoreLine = "${env.BUILD_NUMBER}\t${value}\n"
+                    writeFile file: scoreFile, text: "${name} score\n${scoreLine}", encoding 'UTF-8'
+                    archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
 
-                    if (value?.isNumber()) {
-                        // Try to get the last successful trend file
-                        try {
-                            copyArtifacts(
-                                projectName: env.JOB_NAME,
-                                selector: lastSuccessful(),
-                                filter: scoreFile,
-                                target: "${TREND_DATA_DIR}/",
-                                optional: true,
-                                flatten: true
-                            )
-                        } catch (e) {
-                            echo "No previous trend data found for ${name}, starting fresh"
-                        }
+                    // if (value?.isNumber()) {
+                    //     // Try to get the last successful trend file
+                    //     try {
+                    //         copyArtifacts(
+                    //             projectName: env.JOB_NAME,
+                    //             selector: lastSuccessful(),
+                    //             filter: scoreFile,
+                    //             target: "${TREND_DATA_DIR}/",
+                    //             optional: true,
+                    //             flatten: true
+                    //         )
+                    //     } catch (e) {
+                    //         echo "No previous trend data found for ${name}, starting fresh"
+                    //     }
 
-                        // Append to file or create new
-                        def existing = fileExists(scoreFile) ? readFile(scoreFile) : ""
-                        writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
+                    //     // Append to file or create new
+                    //     def existing = fileExists(scoreFile) ? readFile(scoreFile) : ""
+                    //     writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
 
-                        archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
+                    //     archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
                     } else {
                         echo "Invalid or missing value for ${name}, skipping trend update."
                     }
@@ -250,7 +292,7 @@ pipeline {
                 numBuilds: '100',
                 description: 'Lint score of codebase generated by `pylint`',
                 style: 'line',
-                csvSeries: [[file: "${TREND_DATA_DIR}/lint_score.dat"]],
+                csvSeries: [[file: "${TREND_DATA_DIR}/lint_score.csv"]],
                 yaxisMinimum: '0',
                 yaxisMaximum: '10'
             )
@@ -262,7 +304,7 @@ pipeline {
                 group: 'Quality of code', 
                 numBuilds: '100',
                 description: 'Test coverage of codebase generated by `pytest`',
-                csvSeries: [[file: "${TREND_DATA_DIR}/test_score.dat"]],
+                csvSeries: [[file: "${TREND_DATA_DIR}/test_score.csv"]],
                 style: 'line',
                 yaxisMinimum: '0',
                 yaxisMaximum: '100'
@@ -275,7 +317,7 @@ pipeline {
                 group: 'Quality of code', 
                 numBuilds: '100',
                 description: 'Documentation coverage of codebase generated by `sphinx.ext.coverage`',
-                csvSeries: [[file: "${TREND_DATA_DIR}/docs_score.dat"]],
+                csvSeries: [[file: "${TREND_DATA_DIR}/docs_score.csv"]],
                 style: 'line',
                 yaxisMinimum: '0',
                 yaxisMaximum: '100'
