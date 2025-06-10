@@ -254,7 +254,7 @@ pipeline {
                 // Append new data to existing trend files
                 metrics.each { name, value ->
                     def scoreFile = "${TREND_DATA_DIR}/${name}_score.csv"
-                    def scoreLine = "${env.BUILD_NUMBER}\t${value}\n"
+                    def scoreLine = "${value}\n"
                     writeFile file: scoreFile, text: "${name} score\n${scoreLine}", encoding: 'UTF-8'
                     archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
 
