@@ -278,9 +278,9 @@ pipeline {
                     //     writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
 
                     //     archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
-                    } else {
-                        echo "Invalid or missing value for ${name}, skipping trend update."
-                    }
+                    // } else {
+                    //     echo "Invalid or missing value for ${name}, skipping trend update."
+                    // }
                 }
             }
              
