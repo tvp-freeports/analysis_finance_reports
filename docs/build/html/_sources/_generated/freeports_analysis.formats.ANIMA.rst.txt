@@ -1,0 +1,22 @@
+freeports\_analysis.formats.ANIMA
+=================================
+
+.. automodule:: freeports_analysis.formats.ANIMA
+   :members:
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      pdf_filter
+      tabularize
+      text_extract
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PDF_BlockType
+      Text_BlockType
+   

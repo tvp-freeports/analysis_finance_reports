@@ -16,6 +16,8 @@ from freeports_analysis.formats import (
 )
 import importlib
 
+__all__ = ["NoPDFormatDetected", "get_functions"]
+
 logger = log.getLogger(__name__)
 
 
@@ -74,7 +76,7 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]):
     return df
 
 
-def process_env_vars():
+def _process_env_vars():
     log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
     log.basicConfig(level=log_level)
 
@@ -92,7 +94,7 @@ def process_env_vars():
 
 
 def main():
-    config = process_env_vars()
+    config = _process_env_vars()
     save_pdf = config["SAVE_PDF"]
     format_selected = config["FORMAT_SELECTED"]
     pdf = config["PDF"]

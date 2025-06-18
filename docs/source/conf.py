@@ -10,7 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path("../../", "src").resolve()))
 import freeports_analysis
-
+import freeports_analysis.cmd
+from freeports_analysis import *
 
 project = "freeports_analysis"
 copyright = "2025, Oreste Sciacqualegni"
@@ -28,9 +29,9 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 
+napoleon_numpy_docstring = True
 
 autosummary_generate = True
-autosummary_imported_members = True
 
 
 pygments_style = "sphinx"
@@ -42,4 +43,4 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+# html_static_path = ["_static"]

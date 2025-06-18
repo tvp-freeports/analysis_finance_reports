@@ -7,6 +7,8 @@ import os
 from .consts import PDF_Formats, ENV_PREFIX
 from .main import main
 
+__all__ = ["create_parser", "cmd"]
+
 
 DEFAULT_VERBOSITY = 2
 DEFAULT_OUT_CSV = "/dev/stdout"
