@@ -1,0 +1,30 @@
+freeports\_analysis.formats
+===========================
+
+.. automodule:: freeports_analysis.formats
+   :members:
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      pdf_filter_exec
+      tabularize_exec
+      text_extract_exec
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PDF_Block
+      Text_Block
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   ANIMA
+   EURIZON

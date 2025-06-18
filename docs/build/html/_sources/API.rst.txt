@@ -2,9 +2,11 @@
 Package reference
 =================
 
+
+
 .. autosummary::
-    :toctree: generated
+    :toctree: _generated
+    :recursive:
 
     freeports_analysis
-    freeports_analysis.main
-    freeports_analysis.cmd
+    

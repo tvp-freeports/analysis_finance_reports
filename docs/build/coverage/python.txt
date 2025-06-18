@@ -4,35 +4,72 @@ Undocumented Python objects
 Statistics
 ----------
 
-+-------------------------+----------+--------------+
-| Module                  | Coverage | Undocumented |
-+=========================+==========+==============+
-| freeports_analysis      | 100.00%  | 0            |
-+-------------------------+----------+--------------+
-| freeports_analysis.cmd  | 0.00%    | 3            |
-+-------------------------+----------+--------------+
-| freeports_analysis.main | 0.00%    | 4            |
-+-------------------------+----------+--------------+
-| TOTAL                   | 0.00%    | 7            |
-+-------------------------+----------+--------------+
++------------------------------------+----------+--------------+
+| Module                             | Coverage | Undocumented |
++====================================+==========+==============+
+| freeports_analysis                 | 100.00%  | 0            |
++------------------------------------+----------+--------------+
+| freeports_analysis.cmd             | 66.67%   | 1            |
++------------------------------------+----------+--------------+
+| freeports_analysis.consts          | 100.00%  | 0            |
++------------------------------------+----------+--------------+
+| freeports_analysis.download        | 0.00%    | 1            |
++------------------------------------+----------+--------------+
+| freeports_analysis.formats         | 0.00%    | 3            |
++------------------------------------+----------+--------------+
+| freeports_analysis.formats.ANIMA   | 0.00%    | 3            |
++------------------------------------+----------+--------------+
+| freeports_analysis.formats.EURIZON | 0.00%    | 3            |
++------------------------------------+----------+--------------+
+| freeports_analysis.main            | 33.33%   | 2            |
++------------------------------------+----------+--------------+
+| TOTAL                              | 18.75%   | 13           |
++------------------------------------+----------+--------------+
 
 freeports_analysis.cmd
 ----------------------
 
 Functions:
- * cmd
- * create_parser
  * validate_args
+
+freeports_analysis.download
+---------------------------
+
+Functions:
+ * download_pdf
+
+freeports_analysis.formats
+--------------------------
+
+Functions:
+ * pdf_filter_exec
+ * tabularize_exec
+ * text_extract_exec
+
+Classes:
+ * PDF_Block
+ * Text_Block
+
+freeports_analysis.formats.ANIMA
+--------------------------------
+
+Functions:
+ * pdf_filter
+ * tabularize
+ * text_extract
+
+freeports_analysis.formats.EURIZON
+----------------------------------
+
+Functions:
+ * pdf_filter
+ * tabularize
+ * text_extract
 
 freeports_analysis.main
 -----------------------
 
 Functions:
- * get_functions
  * main
  * pipeline
- * process_env_vars
-
-Classes:
- * NoPDFormatDetected
 

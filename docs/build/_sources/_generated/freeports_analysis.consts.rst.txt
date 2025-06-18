@@ -1,0 +1,12 @@
+freeports\_analysis.consts
+==========================
+
+.. automodule:: freeports_analysis.consts
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      PDF_Formats
+   
