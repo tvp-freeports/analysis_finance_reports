@@ -8,7 +8,7 @@
   ethic invest and consumers empowerment
 - Director of the broader project
 
-## [Oreste Sciacqualegni](https://github.com/GVoreste) <orestesciacqualegni@tutanota.com>
+## [Oreste Sciacqualegni](https://github.com/GVoreste) - <orestesciacqualegni@tutanota.com>
 - Design of repository
 - Refactor of the existing code in order to permit contributions and modularity
 - Design of CI/CD Jenkins pipeline
