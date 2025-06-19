@@ -171,17 +171,12 @@ pipeline {
         stage('Release to PyPI') {
             when {
                 allOf {
-                    expression { return isTagged }
+                    tag comparator: 'REGEXP', pattern: '^v?\\d+\\.\\d+\\.\\d+(-.+)?$'
                     expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
                 }
             }
             steps {
                 script {
-                    // Verify the tag follows semantic versioning (optional but recommended)
-                    if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) {
-                        error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
-                    }
-                    
                     // Upload to PyPI
                     withCredentials([usernamePassword(credentialsId: 'pypi-credentials', usernameVariable: 'PYPI_USERNAME', passwordVariable: 'PYPI_PASSWORD')]) {
                         sh """
@@ -192,46 +187,6 @@ pipeline {
                 }
             }
         }
-    //     stage('Deploy docs on GitHub Pages') {
-    //         when {
-    //             allOf {
-    //                 expression { return isTagged }
-    //                 expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-    //             }
-    //         }
-    //         steps {
-    //             script {
-    //                 // Verify the tag follows semantic versioning (optional but recommended)
-    //                 if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) {
-    //                     error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
-    //                 }
-                    
-    //                 // Upload to PyPI
-    //                 withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-    //                     sh """
-    //                         # Configure git
-    //                         git config --global user.name "Jenkins"
-    //                         git config --global user.email "jenkins@freeports.org"
-                            
-    //                         # Clone gh-pages branch
-    //                         git clone -b gh-pages https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/your-org/your-repo.git gh-pages
-                            
-    //                         # Copy built docs
-    //                         rm -rf gh-pages/*
-    //                         cp -r docs/build/html/* gh-pages/
-                            
-    //                         # Commit and push
-    //                         cd gh-pages
-    //                         git add .
-    //                         git commit -m "Deploy docs for ${env.TAG_NAME}"
-    //                         git push origin gh-pages
-    //                         cd ..
-    //                         rm -rf gh-pages
-    //                     """
-    //                 }
-    //             }
-    //         }
-    //     }
     }
     post {
         always {
