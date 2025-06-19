@@ -93,6 +93,12 @@
              
   <section id="module-freeports_analysis.main">
 <span id="freeports-analysis-main"></span><h1>freeports_analysis.main<a class="headerlink" href="#module-freeports_analysis.main" title="Link to this heading"></a></h1>
+<p>This module is the one that contains the function called in order to decode the information
+from the pdf and to save the <cite>csv</cite> file. This is also the source code to be launched
+(providing the options with a <cite>dotenv</cite> file or with <cite>env variables</cite>) to mimic the behaviour of
+the command from commandline (to use the package as a script).</p>
+<p class="rubric">Example</p>
+<p><code class="docutils literal notranslate"><span class="pre">`python</span> <span class="pre">main.py`</span></code></p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -100,10 +106,10 @@
 <td><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use implementation of specific PDF format</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>()</p></td>
-<td><p></p></td>
+<td><p>Main function that expect the configuration to be already provided (for example with arguments on command line or with <cite>env variables</cite>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets)</p></td>
-<td><p></p></td>
+<td><p>Apply the pipeline of actions in order to get data in <cite>csv</cite></p></td>
 </tr>
 </tbody>
 </table>

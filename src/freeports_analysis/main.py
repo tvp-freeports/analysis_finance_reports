@@ -1,3 +1,13 @@
+"""This module is the one that contains the function called in order to decode the information
+from the pdf and to save the `csv` file. This is also the source code to be launched
+(providing the options with a `dotenv` file or with `env variables`) to mimic the behaviour of
+the command from commandline (to use the package as a script).
+
+Example:
+    ```python main.py```
+
+"""
+
 import os
 import re
 import pymupdf as pypdf
@@ -62,7 +72,21 @@ def get_functions(format: PDF_Formats):
     TABULARIZE = lambda text_blocks: tabularize_exec(text_blocks, module.tabularize)
 
 
-def pipeline(pdf_file: pypdf.Document, targets: List[str]):
+def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
+    """Apply the pipeline of actions in order to get data in `csv`
+
+    Parameters
+    ----------
+    pdf_file : pypdf.Document
+        `pdf` document to process in the format used in the python package `pymupdf`
+    targets : List[str]
+        the list of relevant companies in the report from which data is relevant
+
+    Returns
+    -------
+    pd.DataFrame
+        pandas dataframe with extracted data
+    """
     logger.info("Extracting relevant blocks of pdf...")
     pdf_blocks = PDF_FILTER(pdf_file)
     logger.info("Extracted!")
@@ -94,6 +118,16 @@ def _process_env_vars():
 
 
 def main():
+    """Main function that expect the configuration to be already provided
+    (for example with arguments on command line or with `env variables`)
+
+    Raises
+    ------
+    NoPDFormatDetected
+        if no explicit format is provided through the command line or `env variables` or other methods
+        and an url is not provided or not associated with any format the program cannot choose a way to
+        decode the pdf, so it raise this exception
+    """
     config = _process_env_vars()
     save_pdf = config["SAVE_PDF"]
     format_selected = config["FORMAT_SELECTED"]

@@ -5,9 +5,9 @@ pipeline {
         // PyPI credentials should be stored in Jenkins credentials store
         PYPI_CREDENTIALS = credentials('pypi-credentials')
         VENV_DIR = "venv/freeports-dev"
-        LINT_SCORE_THRESHOLD = '3.0'
-        COVERAGE_THRESHOLD = '1.0'
-        COVERAGE_THRESHOLD_DOCS = '0.0'
+        LINT_SCORE_THRESHOLD = '7.0'
+        COVERAGE_THRESHOLD = '25.0'
+        COVERAGE_THRESHOLD_DOCS = '15.0'
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
         TREND_DATA_DIR = 'trend_data'
