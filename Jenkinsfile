@@ -171,8 +171,10 @@ pipeline {
         stage('Release to PyPI') {
             when {
                 allOf {
-                    tag comparator: 'REGEXP', pattern: '^v?\\d+\\.\\d+\\.\\d+(-.+)?$'
-                    expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+                    tag pattern: '^v?\\d+\\.\\d+\\.\\d+(-.+)?$', comparator: 'REGEXP'
+                    expression {
+                        return currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS')
+                    }
                 }
             }
             steps {
