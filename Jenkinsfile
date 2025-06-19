@@ -179,7 +179,7 @@ pipeline {
             }
             steps {
                 script {
-//                     if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) {
+//                     if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) { 
 // -                        error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
 // -                    }
                     // Upload to PyPI
