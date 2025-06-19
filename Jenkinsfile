@@ -11,17 +11,19 @@ pipeline {
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
         TREND_DATA_DIR = 'trend_data'
+        CURRENT_TAG = ''
         
     }
     stages {
         stage('Checkout') {
             steps {
                 // Verify if this is a tagged build
-                script {
-                    isTagged = env.TAG_NAME != null
-                    if (isTagged) {
-                        echo "Building tagged release: ${env.TAG_NAME}"
-                    }
+                def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
+                if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
+                    env.CURRENT_TAG = tag
+                    echo "Detected release tag: ${env.CURRENT_TAG}"
+                } else {
+                    echo "Not a valid release tag: ${tag}"
                 }
             }
         }
@@ -171,17 +173,14 @@ pipeline {
         stage('Release to PyPI') {
             when {
                 allOf {
-                    buildingTag()
                     expression {
-                        return currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS')
+                        return env.CURRENT_TAG != '' &&
+                               (currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS'))
                     }
                 }
             }
             steps {
                 script {
-//                     if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) { 
-// -                        error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
-// -                    }
                     // Upload to PyPI
                     withCredentials([usernamePassword(credentialsId: 'pypi-credentials', usernameVariable: 'PYPI_USERNAME', passwordVariable: 'PYPI_PASSWORD')]) {
                         sh """
@@ -217,30 +216,6 @@ pipeline {
                     def scoreLine = "${value}\n"
                     writeFile file: scoreFile, text: "${name} score\n${scoreLine}", encoding: 'UTF-8'
                     archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
-
-                    // if (value?.isNumber()) {
-                    //     // Try to get the last successful trend file
-                    //     try {
-                    //         copyArtifacts(
-                    //             projectName: env.JOB_NAME,
-                    //             selector: lastSuccessful(),
-                    //             filter: scoreFile,
-                    //             target: "${TREND_DATA_DIR}/",
-                    //             optional: true,
-                    //             flatten: true
-                    //         )
-                    //     } catch (e) {
-                    //         echo "No previous trend data found for ${name}, starting fresh"
-                    //     }
-
-                    //     // Append to file or create new
-                    //     def existing = fileExists(scoreFile) ? readFile(scoreFile) : ""
-                    //     writeFile file: scoreFile, text: "${existing}${scoreLine}", encoding: 'UTF-8'
-
-                    //     archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
-                    // } else {
-                    //     echo "Invalid or missing value for ${name}, skipping trend update."
-                    // }
                 }
             }
              
