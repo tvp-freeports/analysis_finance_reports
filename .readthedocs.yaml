@@ -21,3 +21,5 @@ python:
   install:
     - requirements: contrib/requirements.minimal.txt
     - requirements: contrib/requirements.docs.txt
+    - method: pip
+      path: .
