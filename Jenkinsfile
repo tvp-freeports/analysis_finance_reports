@@ -17,13 +17,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Verify if this is a tagged build
-                def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
-                if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
-                    env.CURRENT_TAG = tag
-                    echo "Detected release tag: ${env.CURRENT_TAG}"
-                } else {
-                    echo "Not a valid release tag: ${tag}"
+                script {
+                    // Verify if this is a tagged build
+                    def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
+                    if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
+                        env.CURRENT_TAG = tag
+                        echo "Detected release tag: ${env.CURRENT_TAG}"
+                    } else {
+                        echo "Not a valid release tag: ${tag}"
+                    }
                 }
             }
         }
