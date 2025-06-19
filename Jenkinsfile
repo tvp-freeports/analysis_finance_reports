@@ -171,7 +171,7 @@ pipeline {
         stage('Release to PyPI') {
             when {
                 allOf {
-                    tag pattern: '^v?\\d+\\.\\d+\\.\\d+(-.+)?$', comparator: 'REGEXP'
+                    buildingTag()
                     expression {
                         return currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS')
                     }
@@ -179,6 +179,9 @@ pipeline {
             }
             steps {
                 script {
+//                     if (!(env.TAG_NAME ==~ /^v?\d+\.\d+\.\d+(-.+)?$/)) {
+// -                        error("Tag ${env.TAG_NAME} doesn't follow semantic versioning pattern")
+// -                    }
                     // Upload to PyPI
                     withCredentials([usernamePassword(credentialsId: 'pypi-credentials', usernameVariable: 'PYPI_USERNAME', passwordVariable: 'PYPI_PASSWORD')]) {
                         sh """
