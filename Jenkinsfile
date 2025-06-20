@@ -18,6 +18,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
+                    sh 'git fetch --tags'
                     // Verify if this is a tagged build
                     def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
                     if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
