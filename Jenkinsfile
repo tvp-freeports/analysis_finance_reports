@@ -11,9 +11,6 @@ pipeline {
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
         TREND_DATA_DIR = 'trend_data'
-        CURRENT_TAG = ''
-        IS_RELEASE_TAG = ''
-        
     }
     stages {
         stage('Checkout') {
