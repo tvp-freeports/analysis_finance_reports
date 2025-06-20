@@ -7,6 +7,8 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 if [ "$(basename $VIRTUAL_ENV)" != "freeports-dev" ] ; then
+	echo "You have to activate \`freeports-dev\` virtual env to commit" 1>&2
+	echo "In order to do so, execute \`source venv/freeports-dev/bin/activate\`" 1>&2
 	exit 1
 fi
 
