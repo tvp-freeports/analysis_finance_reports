@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {        
-        // PyPI credentials should be stored in Jenkins credentials store
+        // PyPI credentials should be stored in Jenkins credentials
         PYPI_CREDENTIALS = credentials('pypi-credentials')
         VENV_DIR = "venv/freeports-dev"
         LINT_SCORE_THRESHOLD = '7.0'
