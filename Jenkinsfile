@@ -12,6 +12,7 @@ pipeline {
         DOCS_DIR = 'docs/build/html'
         TREND_DATA_DIR = 'trend_data'
         CURRENT_TAG = ''
+        IS_RELEASE_TAG = ''
         
     }
     stages {
@@ -22,9 +23,11 @@ pipeline {
                     // Verify if this is a tagged build
                     def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
                     if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
+                        env.IS_RELEASE_TAG = 'true'
                         env.CURRENT_TAG = tag
                         echo "Detected release tag: ${env.CURRENT_TAG}"
                     } else {
+                        env.IS_RELEASE_TAG = 'false'
                         echo "Not a valid release tag: ${tag}"
                     }
                 }
@@ -177,8 +180,10 @@ pipeline {
             when {
                 allOf {
                     expression {
-                        return env.CURRENT_TAG != '' &&
-                               (currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS'))
+                        return currentBuild.result == null || currentBuild.resultIsBetterOrEqualTo('SUCCESS')
+                    }
+                    expression {
+                        return env.IS_RELEASE_TAG == 'true'
                     }
                 }
             }
