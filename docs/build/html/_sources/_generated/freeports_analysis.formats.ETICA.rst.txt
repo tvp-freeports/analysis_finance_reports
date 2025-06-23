@@ -1,7 +1,7 @@
-freeports\_analysis.formats.ANIMA
+freeports\_analysis.formats.ETICA
 =================================
 
-.. automodule:: freeports_analysis.formats.ANIMA
+.. automodule:: freeports_analysis.formats.ETICA
    :members:
    
    
@@ -9,5 +9,6 @@ freeports\_analysis.formats.ANIMA
 
    .. autosummary::
    
+      pdf_filter
       tabularize
    

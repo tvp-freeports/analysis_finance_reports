@@ -12,6 +12,7 @@
    :recursive:
 
    cmd
+   conf_parse
    consts
    download
    formats

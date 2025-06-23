@@ -9,14 +9,5 @@ freeports\_analysis.formats.ANIMA
 
    .. autosummary::
    
-      pdf_filter
       tabularize
-      text_extract
-   
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      PDF_BlockType
-      Text_BlockType
    

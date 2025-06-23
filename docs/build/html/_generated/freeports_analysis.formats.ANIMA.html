@@ -19,7 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.EURIZON" href="freeports_analysis.formats.EURIZON.html" />
+    <link rel="next" title="freeports_analysis.formats.ETICA" href="freeports_analysis.formats.ETICA.html" />
     <link rel="prev" title="freeports_analysis.formats" href="freeports_analysis.formats.html" /> 
 </head>
 
@@ -50,11 +50,17 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">freeports_analysis.formats.ANIMA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ETICA.html">freeports_analysis.formats.ETICA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_tabularize.html">freeports_analysis.formats.utils_tabularize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
@@ -97,38 +103,11 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter</span></code>(xml_root)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">tabularize</span></code>(text_block)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract</span></code>(pdf_blocks, targets)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">tabularize</span></code>(text_block)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
-<p class="rubric">Classes</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.ANIMA.PDF_BlockType" title="freeports_analysis.formats.ANIMA.PDF_BlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PDF_BlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.ANIMA.Text_BlockType" title="freeports_analysis.formats.ANIMA.Text_BlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Text_BlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.ANIMA.PDF_BlockType">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.ANIMA.</span></span><span class="sig-name descname"><span class="pre">PDF_BlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.ANIMA.PDF_BlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.ANIMA.Text_BlockType">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.ANIMA.</span></span><span class="sig-name descname"><span class="pre">Text_BlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.ANIMA.Text_BlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
 </section>
 
 
@@ -136,7 +115,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="freeports_analysis.formats.html" class="btn btn-neutral float-left" title="freeports_analysis.formats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.EURIZON.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.EURIZON" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.ETICA.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.ETICA" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

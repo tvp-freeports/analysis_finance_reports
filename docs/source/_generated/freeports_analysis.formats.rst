@@ -27,4 +27,9 @@ freeports\_analysis.formats
    :recursive:
 
    ANIMA
+   ETICA
    EURIZON
+   utils_commons
+   utils_pdf_filter
+   utils_tabularize
+   utils_text_extract
