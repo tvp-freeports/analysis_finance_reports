@@ -14,8 +14,8 @@ _logger = log.getLogger(__name__)
 def _find_config():
     # 1. Check local config file
     patterns = [
-        r"^(config|conf)[-\._]?freeports\.ya?ml$",
-        r"^freeports[-\._]?(config|conf)\.ya?ml$",
+        r"^\.?(config|conf)[-\._]?freeports\.ya?ml$",
+        r"^\.?freeports[-\._]?(config|conf)\.ya?ml$",
     ]
 
     for patter in patterns:
@@ -26,17 +26,47 @@ def _find_config():
                     _logger.debug("Found local conf file: '%s'", local_file)
                     return Path(local_file)
 
+    config_dirs = []
+    # For Linux/Unix-like systems (including macOS)
     # 2. Check XDG config directories for 'freeports.yaml' directly
-    for config_dir in BaseDirectory.load_config_paths(""):
+    if os.name == "posix":
+        # XDG config directories
+        config_dirs = BaseDirectory.load_config_paths("")
+
+    # For Windows systems
+    elif os.name == "nt":
+        # Local AppData (user-specific config)
+        local_appdata = os.environ.get("LOCALAPPDATA") or os.path.expanduser(
+            "~\\AppData\\Local"
+        )
+        config_dirs.append(local_appdata)
+
+        # ProgramData (system-wide config)
+        program_data = os.environ.get("PROGRAMDATA") or "C:\\ProgramData"
+        config_dirs.append(program_data)
+
+    for config_dir in config_dirs:
         for file_name in ["freeports.yaml", "freeports.yml"]:
             config_path = os.path.join(config_dir, file_name)
-            _logger.debug("Searching `xdg` compliant conf file: '%s'", config_path)
+            _logger.debug(
+                "Searching `xdg`/`Windows` compliant conf file: '%s'", config_path
+            )
             if os.path.isfile(config_path):
-                _logger.debug("Found `xdg` compliant conf file: '%s'", config_path)
+                _logger.debug(
+                    "Found `xdg`/`Windows` compliant conf file: '%s'", config_path
+                )
                 return Path(config_path)
 
-    # 3. Fallback to /etc/freeports.yaml
-    system_paths = ["/etc/freeports.yaml", "/etc/freeport.yaml"]
+    system_paths = []
+    if os.name == "posix":
+        # 3. Fallback to /etc/freeports.yaml
+        system_paths = ["/etc/freeports.yaml", "/etc/freeports.yml"]
+    elif os.name == "nt":
+        system_paths = [
+            os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yaml"),
+            os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yml"),
+        ]
+
     for system_path in system_paths:
         _logger.debug("Searching system wise conf file: '%s'", system_path)
         if os.path.isfile(system_path):
@@ -54,7 +84,11 @@ DEFAULT_CONFIG = {
     "VERBOSITY": 2,
     "BATCH_WORKERS": None,
     "BATCH": None,
-    "OUT_CSV": "/dev/stdout",
+    "OUT_CSV": "/dev/stdout"
+    if os.name == "posix"
+    else "CON"
+    if os.name == "nt"
+    else None,
     "SAVE_PDF": True,  # default to `True` because command line args permits to set only to `False`
     "URL": None,
     "PDF": None,
@@ -67,6 +101,7 @@ schema_yaml_config = {
     "verbosity": ("VERBOSITY", int),
     "n_workers": ("BATCH_WORKERS", int),
     "pdf": ("PDF", Path),
+    "url": ("URL", str),
     "batch_path": ("BATCH", Path),
     "out_path": ("OUT_CSV", Path),
     "save_pdf": ("SAVE_PDF", bool),
