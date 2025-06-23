@@ -16,3 +16,7 @@ __pycache__/
 devtools/*.ipynb
 !devtools/*.template.ipynb
 .coverage
+freeports*conf*.yaml
+freeports*conf*.yml
+conf*freeports.yaml
+conf*freeports.yml

@@ -4,23 +4,17 @@ from typing import List, Tuple
 import re
 from rapidfuzz import fuzz
 from .. import PDF_Block, Text_Block
+from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
+from ..utils_text_extract import standard_text_extraction
 import logging as log
 import datetime as dt
 
 logger = log.getLogger(__name__)
 
 
+@standard_header_font_filter("PORTFOLIO AS AT", "Frutiger-Black", "Frutiger-Light")
 def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
-    parts = []
-    portfolio_header = xml_root.xpath(
-        ".//line[contains(@text,'PORTFOLIO AS AT') and font[@name='Frutiger-Black']]"
-    )
-    if len(portfolio_header) > 0:
-        table_lines = xml_root.xpath(".//line[font[@name='Frutiger-Light']]")
-        parts += [
-            PDF_Block(PDF_BlockType.LINES_TABLE, {}, line) for line in table_lines
-        ]
-    return parts
+    pass
 
 
 def text_extract(pdf_blocks: List[PDF_Block], targets: List[str]) -> List[Text_Block]:
@@ -123,8 +117,9 @@ def tabularize(text_block: Text_Block) -> dict:
     return row
 
 
+@one_pdf_blk
 class PDF_BlockType(Enum):
-    LINES_TABLE = auto()
+    pass
 
 
 class Text_BlockType(Enum):

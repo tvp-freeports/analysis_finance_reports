@@ -5,7 +5,10 @@ import logging as log
 
 logger = log.getLogger(__name__)
 
+
 ENV_PREFIX = "AFINANCE_"
+
+
 from enum import Enum
 from freeports_analysis import data
 

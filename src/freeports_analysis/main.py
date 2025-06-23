@@ -10,19 +10,32 @@ Example:
 
 import os
 import re
+from multiprocessing import Pool
 import pymupdf as pypdf
 from freeports_analysis import download as dw
 import logging as log
 from typing import Optional, List
 from freeports_analysis.consts import ENV_PREFIX, PDF_Formats
 import csv
+from pathlib import Path
 import pandas as pd
+import tarfile
+import shutil
 from importlib_resources import files
 from freeports_analysis import data
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
     tabularize_exec,
+)
+from freeports_analysis.conf_parse import (
+    apply_config,
+    log_resultig_config,
+    get_config_file,
+    RESULTING_CONFIG,
+    RESULTING_LOCATION_CONFIG,
+    validate_conf,
+    schema_job_csv_config,
 )
 import importlib
 
@@ -62,14 +75,19 @@ def get_functions(format: PDF_Formats):
     except ImportError:
         print(f"Errore: modulo {module_name} non trovato")
         raise
+
     global PDF_FILTER
     global TEXT_EXTRACT
     global TABULARIZE
-    PDF_FILTER = lambda pdf_file: pdf_filter_exec(pdf_file, module.pdf_filter)
-    TEXT_EXTRACT = lambda pdf_blocks, target: text_extract_exec(
-        pdf_blocks, target, module.text_extract
-    )
-    TABULARIZE = lambda text_blocks: tabularize_exec(text_blocks, module.tabularize)
+
+    def PDF_FILTER(pdf_file):
+        return pdf_filter_exec(pdf_file, module.pdf_filter)
+
+    def TEXT_EXTRACT(pdf_blocks, target):
+        return text_extract_exec(pdf_blocks, target, module.text_extract)
+
+    def TABULARIZE(text_blocks):
+        return tabularize_exec(text_blocks, module.tabularize)
 
 
 def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
@@ -100,43 +118,32 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
     return df
 
 
-def _process_env_vars():
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    log.basicConfig(level=log_level)
+def batch_job_confs(config):
+    rows = None
+    with config["BATCH"].open(newline="", encoding="UTF-8") as csvfile:
+        rows = csv.DictReader(csvfile)
+        result = [
+            config
+            | {
+                k: cast(v)
+                for h, v in r.items()
+                for k, cast in [schema_job_csv_config[h.strip().lower()]]
+            }
+            for r in rows
+        ]
+    return result
 
-    config = dict()
-    config["SAVE_PDF"] = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
-    wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
-    config["FORMAT_SELECTED"] = (
-        PDF_Formats.__members__[wanted_format] if wanted_format is not None else None
-    )
-    config["PDF"] = os.getenv(f"{ENV_PREFIX}PDF")
-    config["URL"] = os.getenv(f"{ENV_PREFIX}URL")
-    config["OUT_CSV"] = os.getenv(f"{ENV_PREFIX}OUT_CSV")
-    logger.debug("Configuration: %s", str(config))
-    return config
 
-
-def main():
-    """Main function that expect the configuration to be already provided
-    (for example with arguments on command line or with `env variables`)
-
-    Raises
-    ------
-    NoPDFormatDetected
-        if no explicit format is provided through the command line or `env variables` or other methods
-        and an url is not provided or not associated with any format the program cannot choose a way to
-        decode the pdf, so it raise this exception
-    """
-    config = _process_env_vars()
+def _main_job(config):
+    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
     save_pdf = config["SAVE_PDF"]
-    format_selected = config["FORMAT_SELECTED"]
+    format_selected = config["FORMAT"]
     pdf = config["PDF"]
     url = config["URL"]
     out_csv = config["OUT_CSV"]
 
     detected_format = None
-    if url is None or os.path.exists(pdf):
+    if url is None or pdf.exists():
         logger.debug("PDF: %s", pdf)
         pdf_file = pypdf.Document(pdf)
     else:
@@ -175,11 +182,69 @@ def main():
 
     get_functions(format_pdf)
     df = pipeline(pdf_file, targets)
-    df.to_csv(out_csv)
+    if out_csv.name.endswith(".tar.gz"):
+        out_csv = out_csv.with_suffix("").with_suffix("")
+    prefix_csv = config.get("PREFIX_OUT_CSV")
+    if prefix_csv is None:
+        df.to_csv(out_csv)
+    else:
+        df.to_csv(out_csv / f"{prefix_csv}-{format_pdf.name}.csv")
+
+
+def main(config):
+    """Main function that expect the configuration to be already provided
+    (for example with arguments on command line or with `env variables`)
+
+    Raises
+    ------
+    NoPDFormatDetected
+        if no explicit format is provided through the command line or `env variables` or other methods
+        and an url is not provided or not associated with any format the program cannot choose a way to
+        decode the pdf, so it raise this exception
+    """
+    if config["BATCH"] is None:
+        _main_job(config)
+    else:
+        config_jobs = batch_job_confs(config)
+        n_workers = (
+            config["BATCH_WORKERS"]
+            if config["BATCH_WORKERS"] is not None and config["BATCH_WORKERS"] >= 0
+            else None
+        )
+        out_csv = config["OUT_CSV"]
+        out_dir = out_csv
+        compress = False
+        remove_dir = False
+        if out_csv.name.endswith(".tar.gz"):
+            compress = True
+            out_dir = out_csv.with_suffix("").with_suffix("")
+        if not out_dir.exists() and compress:
+            remove_dir = True
+
+        out_dir.mkdir(exist_ok=True)
+        with Pool(n_workers) as p:
+            p.map(_main_job, config_jobs)
+
+        if compress:
+            with tarfile.open(out_csv, "w:gz") as tar:
+                tar.add(out_dir, arcname=out_dir.name)
+            if remove_dir:
+                shutil.rmtree(out_dir)
 
 
 if __name__ == "__main__":
-    import dotenv
-
-    dotenv.load_dotenv()
-    main()
+    global RESULTING_CONFIG
+    global RESULTING_LOCATION_CONFIG
+    log_level = (5 - RESULTING_CONFIG["VERBOSITY"]) * 10
+    log.basicConfig(level=log_level)
+    RESULTING_CONFIG, RESULTING_LOCATION_CONFIG = get_config_file(
+        RESULTING_CONFIG, RESULTING_LOCATION_CONFIG
+    )
+    RESULTING_CONFIG, RESULTING_LOCATION_CONFIG = apply_config(
+        RESULTING_CONFIG, RESULTING_LOCATION_CONFIG
+    )
+    log_level = (5 - RESULTING_CONFIG["VERBOSITY"]) * 10
+    log.getLogger().setLevel(log_level)
+    log_resultig_config(logger)
+    validate_conf(RESULTING_CONFIG)
+    main(RESULTING_CONFIG, RESULTING_LOCATION_CONFIG)
