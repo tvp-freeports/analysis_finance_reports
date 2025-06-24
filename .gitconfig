@@ -1,3 +1,4 @@
 [filter "python_format"]
-    clean = ruff format --force-exclude --stdin-filename %f < %f    
+    clean = ruff format --force-exclude --stdin-filename %f < %f   
+    smudge = cat
     required
