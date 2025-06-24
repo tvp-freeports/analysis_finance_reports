@@ -1,3 +1,5 @@
+"""Module common to each format, it contains the definitions used by all the formats"""
+
 from enum import Enum
 from typing import Optional, List, Callable, Tuple
 from lxml import etree
@@ -7,7 +9,11 @@ import logging as log
 logger = log.getLogger(__name__)
 
 
-class PDF_Block:
+class PdfBlock:
+    """Rappresent a pdf content block with data to be extracted or relevant for the
+    subsequents filtering stages
+    """
+
     type_block: Enum
     metadata: Optional[dict]
     content: Optional[str]
@@ -32,9 +38,12 @@ class PDF_Block:
         self.content = self._text_form_element(xml_ele)
 
     def __str__(self) -> str:
-        text = f"PDF_Block:  ({self.type_block} type)\n"
+        text = f"PdfBlock:  ({self.type_block} type)\n"
         text += f"\tmetadata {self.metadata}\n"
         text_no_last_nl = self.content
+        if len(self.content) > 0:
+            if self.content[-1] == "\n":
+                text_no_last_nl = text_no_last_nl[:-1]
         text += f'\t"{text_no_last_nl}"'
         return text
 
@@ -43,9 +52,9 @@ class Text_Block:
     type_block: Enum
     metadata: dict
     content: str
-    pdf_block: PDF_Block
+    pdf_block: PdfBlock
 
-    def __init__(self, type_block: Enum, metadata: dict, pdf_block: PDF_Block):
+    def __init__(self, type_block: Enum, metadata: dict, pdf_block: PdfBlock):
         self.type_block = type_block
         self.metadata = metadata
         self.pdf_block = pdf_block
@@ -54,8 +63,8 @@ class Text_Block:
 
 def pdf_filter_exec(
     document: Document,
-    pdf_filter_func: Callable[[etree.Element], List[Tuple[etree.Element, PDF_Block]]],
-) -> List[PDF_Block]:
+    pdf_filter_func: Callable[[etree.Element], List[Tuple[etree.Element, PdfBlock]]],
+) -> List[PdfBlock]:
     parser = etree.XMLParser(recover=True)
     relevant_blocks = []
     page_number = 1
@@ -71,9 +80,9 @@ def pdf_filter_exec(
 
 
 def text_extract_exec(
-    pdf_blocks: List[PDF_Block],
+    pdf_blocks: List[PdfBlock],
     targets: List[str],
-    text_extract_func: Callable[[List[PDF_Block], List[str]], List[Text_Block]],
+    text_extract_func: Callable[[List[PdfBlock], List[str]], List[Text_Block]],
 ) -> List[Text_Block]:
     return text_extract_func(pdf_blocks, targets)
 

@@ -10,21 +10,33 @@ Example:
 
 import os
 import re
-import pymupdf as pypdf
-from freeports_analysis import download as dw
+import importlib
+import tarfile
+import shutil
+from multiprocessing import Pool
 import logging as log
-from typing import Optional, List
-from freeports_analysis.consts import ENV_PREFIX, PDF_Formats
+from typing import List
 import csv
+import pymupdf as pypdf
 import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
+from freeports_analysis import download as dw
+from freeports_analysis.consts import PDF_Formats
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
     tabularize_exec,
 )
-import importlib
+from freeports_analysis.conf_parse import (
+    apply_config,
+    log_config,
+    get_config_file,
+    DEFAULT_CONFIG,
+    DEFAULT_LOCATION_CONFIG,
+    validate_conf,
+    schema_job_csv_config,
+)
 
 __all__ = ["NoPDFormatDetected", "get_functions"]
 
@@ -37,15 +49,8 @@ class NoPDFormatDetected(Exception):
     report, and no explicit format is specified
     """
 
-    pass
 
-
-PDF_FILTER = None
-TEXT_EXTRACT = None
-TABULARIZE = None
-
-
-def get_functions(format: PDF_Formats):
+def get_functions(format_pdf: PDF_Formats):
     """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
     implementation of specific PDF format
 
@@ -54,7 +59,7 @@ def get_functions(format: PDF_Formats):
     format : PDF_Formats
         The format detected used to choose the decoding implementation
     """
-    module_name = format.name
+    module_name = format_pdf.name
     try:
         module = importlib.import_module(
             f"freeports_analysis.formats.{module_name}", package=__package__
@@ -62,17 +67,24 @@ def get_functions(format: PDF_Formats):
     except ImportError:
         print(f"Errore: modulo {module_name} non trovato")
         raise
-    global PDF_FILTER
-    global TEXT_EXTRACT
-    global TABULARIZE
-    PDF_FILTER = lambda pdf_file: pdf_filter_exec(pdf_file, module.pdf_filter)
-    TEXT_EXTRACT = lambda pdf_blocks, target: text_extract_exec(
-        pdf_blocks, target, module.text_extract
-    )
-    TABULARIZE = lambda text_blocks: tabularize_exec(text_blocks, module.tabularize)
+
+    def _pdf_filter(pdf_file):
+        pdf_filter_exec(pdf_file, module.pdf_filter)
+
+    def _text_extract(pdf_blks, targets):
+        text_extract_exec(pdf_blks, targets, module.text_extract)
+
+    def _tabularize(txt_blks):
+        tabularize_exec(txt_blks, module.tabularize)
+
+    return {
+        "PDF_FILTER": _pdf_filter,
+        "TEXT_EXTRACT": _text_extract,
+        "TABULARIZE": _tabularize,
+    }
 
 
-def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
+def pipeline(pdf_file: pypdf.Document, targets: List[str], funcs: dict) -> pd.DataFrame:
     """Apply the pipeline of actions in order to get data in `csv`
 
     Parameters
@@ -81,6 +93,8 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
         `pdf` document to process in the format used in the python package `pymupdf`
     targets : List[str]
         the list of relevant companies in the report from which data is relevant
+    funcs : dict
+        the dictionary containing the functions to use in order to parse the pdf
 
     Returns
     -------
@@ -88,65 +102,68 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str]) -> pd.DataFrame:
         pandas dataframe with extracted data
     """
     logger.info("Extracting relevant blocks of pdf...")
-    pdf_blocks = PDF_FILTER(pdf_file)
+    pdf_blocks = funcs["PDF_FILTER"](pdf_file)
     logger.info("Extracted!")
 
     logger.info("Filtering relevant blocks of text...")
-    filtered_text = TEXT_EXTRACT(pdf_blocks, targets)
+    filtered_text = funcs["TEXT_EXTRACT"](pdf_blocks, targets)
     logger.info("Filtered!")
 
-    tabular_data = TABULARIZE(filtered_text)
+    tabular_data = funcs["TABULARIZE"](filtered_text)
     df = pd.DataFrame(tabular_data)
     return df
 
 
-def _process_env_vars():
-    log_level = (5 - int(os.getenv(f"{ENV_PREFIX}VERBOSITY"))) * 10
-    log.basicConfig(level=log_level)
+def batch_job_confs(config: dict) -> List[dict]:
+    """Create a list of configurations overwritten after reading
+    a batch file with job contextual options
 
-    config = dict()
-    config["SAVE_PDF"] = os.getenv(f"{ENV_PREFIX}SAVE_PDF") is not None
-    wanted_format = os.getenv(f"{ENV_PREFIX}PDF_FORMAT")
-    config["FORMAT_SELECTED"] = (
-        PDF_Formats.__members__[wanted_format] if wanted_format is not None else None
-    )
-    config["PDF"] = os.getenv(f"{ENV_PREFIX}PDF")
-    config["URL"] = os.getenv(f"{ENV_PREFIX}URL")
-    config["OUT_CSV"] = os.getenv(f"{ENV_PREFIX}OUT_CSV")
-    logger.debug("Configuration: %s", str(config))
-    return config
+    Parameters
+    ----------
+    config : dict
+        configuration to overwrite
 
-
-def main():
-    """Main function that expect the configuration to be already provided
-    (for example with arguments on command line or with `env variables`)
-
-    Raises
-    ------
-    NoPDFormatDetected
-        if no explicit format is provided through the command line or `env variables` or other methods
-        and an url is not provided or not associated with any format the program cannot choose a way to
-        decode the pdf, so it raise this exception
+    Returns
+    -------
+    List[dict]
+        list of configurations
     """
-    config = _process_env_vars()
-    save_pdf = config["SAVE_PDF"]
-    format_selected = config["FORMAT_SELECTED"]
-    pdf = config["PDF"]
-    url = config["URL"]
-    out_csv = config["OUT_CSV"]
+    rows = None
+    with config["BATCH"].open(newline="", encoding="UTF-8") as csvfile:
+        rows = csv.DictReader(csvfile)
+        result = [
+            config
+            | {
+                k: cast(v)
+                for h, v in r.items()
+                for k, cast in [schema_job_csv_config[h.strip().lower()]]
+            }
+            for r in rows
+        ]
+    return result
+
+
+def _main_job(config):
+    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
+    format_selected = config["FORMAT"]
 
     detected_format = None
-    if url is None or os.path.exists(pdf):
-        logger.debug("PDF: %s", pdf)
-        pdf_file = pypdf.Document(pdf)
+    if config["URL"] is None or config["PDF"].exists():
+        logger.debug("PDF: %s", config["PDF"])
+        pdf_file = pypdf.Document(config["PDF"])
     else:
         for fmt in PDF_Formats.__members__:
             for reg in PDF_Formats.__members__[fmt].value:
-                if bool(re.search(reg, url)):
+                if bool(re.search(reg, config["URL"])):
                     detected_format = PDF_Formats.__members__[fmt]
                     break
-        logger.debug("URL: %s/%s [detected %s format]", url, pdf, detected_format.name)
-        pdf_file = pypdf.Document(stream=dw.download_pdf(url, pdf, save_pdf))
+        log_string = "URL: %s/%s [detected %s format]"
+        logger.debug(log_string, config["URL"], config["PDF"], detected_format.name)
+        pdf_file = pypdf.Document(
+            stream=dw.download_pdf(
+                config["URL"], config["PDF"] if config["SAVE_PDF"] else None
+            )
+        )
 
     if detected_format is None and format_selected is None:
         raise NoPDFormatDetected(
@@ -171,15 +188,70 @@ def main():
         target_csv = csv.reader(f)
         targets = [row[0] for row in target_csv]
         targets.pop(0)
-    logger.debug("First 5 targets: %s", str(targets[: min(5, len(targets))]))
+    log_string = str(targets[: min(5, len(targets))])
+    logger.debug("First 5 targets: %s", log_string)
 
-    get_functions(format_pdf)
-    df = pipeline(pdf_file, targets)
-    df.to_csv(out_csv)
+    funcs = get_functions(format_pdf)
+    df = pipeline(pdf_file, targets, funcs)
+    if config["OUT_CSV"].name.endswith(".tar.gz"):
+        config["OUT_CSV"] = config["OUT_CSV"].with_suffix("").with_suffix("")
+    prefix_csv = config.get("PREFIX_OUT_CSV")
+    if prefix_csv is None:
+        df.to_csv(config["OUT_CSV"])
+    else:
+        name_file = f"{format_pdf.name}.csv"
+        if prefix_csv is not None and prefix_csv != "":
+            name_file = f"{prefix_csv}-{format_pdf.name}.csv"
+        df.to_csv(config["OUT_CSV"] / name_file)
+
+
+def main(config):
+    """Main function that expect the configuration to be already provided
+    (for example with arguments on command line or with `env variables`)
+
+    Raises
+    ------
+    NoPDFormatDetected
+        if no explicit format is provided and an url is not provided
+        or not associated with any format the program cannot choose a way to
+        decode the pdf, so it raises this exception
+    """
+    if config["BATCH"] is None:
+        _main_job(config)
+    else:
+        config_jobs = batch_job_confs(config)
+        n_w_set = config["BATCH_WORKERS"]
+        n_workers = n_w_set if n_w_set is not None and n_w_set >= 0 else None
+        out_csv = config["OUT_CSV"]
+        out_dir = out_csv
+        compress = False
+        remove_dir = False
+        if out_csv.name.endswith(".tar.gz"):
+            compress = True
+            out_dir = out_csv.with_suffix("").with_suffix("")
+        if not out_dir.exists() and compress:
+            remove_dir = True
+
+        out_dir.mkdir(exist_ok=True)
+        with Pool(n_workers) as p:
+            p.map(_main_job, config_jobs)
+
+        if compress:
+            with tarfile.open(out_csv, "w:gz") as tar:
+                tar.add(out_dir, arcname=out_dir.name)
+            if remove_dir:
+                shutil.rmtree(out_dir)
 
 
 if __name__ == "__main__":
-    import dotenv
-
-    dotenv.load_dotenv()
-    main()
+    current_config = DEFAULT_CONFIG
+    config_location = DEFAULT_LOCATION_CONFIG
+    LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
+    log.basicConfig(level=LOG_LEVEL)
+    current_config, config_location = get_config_file(current_config, config_location)
+    current_config, config_location = apply_config(current_config, config_location)
+    LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
+    log.getLogger().setLevel(LOG_LEVEL)
+    log_config(logger, current_config, config_location)
+    validate_conf(current_config)
+    main(current_config)

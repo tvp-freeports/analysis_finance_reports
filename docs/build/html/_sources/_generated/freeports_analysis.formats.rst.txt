@@ -17,7 +17,7 @@ freeports\_analysis.formats
 
    .. autosummary::
    
-      PDF_Block
+      PdfBlock
       Text_Block
    
 .. rubric:: Modules
@@ -27,4 +27,9 @@ freeports\_analysis.formats
    :recursive:
 
    ANIMA
+   ETICA
    EURIZON
+   utils_commons
+   utils_pdf_filter
+   utils_tabularize
+   utils_text_extract

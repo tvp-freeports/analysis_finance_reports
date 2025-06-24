@@ -19,7 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.consts" href="freeports_analysis.consts.html" />
+    <link rel="next" title="freeports_analysis.conf_parse" href="freeports_analysis.conf_parse.html" />
     <link rel="prev" title="freeports_analysis" href="freeports_analysis.html" /> 
 </head>
 
@@ -51,9 +51,10 @@
 <li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.cmd</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.cmd.cmd"><code class="docutils literal notranslate"><span class="pre">cmd()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.cmd.create_parser"><code class="docutils literal notranslate"><span class="pre">create_parser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.cmd.overwrite_with_args"><code class="docutils literal notranslate"><span class="pre">overwrite_with_args()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
@@ -100,11 +101,8 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.cmd.cmd" title="freeports_analysis.cmd.cmd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cmd</span></code></a>()</p></td>
 <td><p>Command called when launching <cite>freeports</cite> from terminal, it calls the <cite>main</cite> function.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.cmd.create_parser" title="freeports_analysis.cmd.create_parser"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_parser</span></code></a>()</p></td>
-<td><p>Create and set the parser for command line args</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_args</span></code>(args)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.cmd.overwrite_with_args" title="freeports_analysis.cmd.overwrite_with_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overwrite_with_args</span></code></a>(args, config, ...)</p></td>
+<td><p>Overwrite configuration provided and update the dictionary containing from where the configuration are loaded from accordingly, using command line arguments</p></td>
 </tr>
 </tbody>
 </table>
@@ -116,15 +114,22 @@ it calls the <cite>main</cite> function.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.cmd.create_parser">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.cmd.</span></span><span class="sig-name descname"><span class="pre">create_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="headerlink" href="#freeports_analysis.cmd.create_parser" title="Link to this definition"></a></dt>
-<dd><p>Create and set the parser for command line args</p>
+<dt class="sig sig-object py" id="freeports_analysis.cmd.overwrite_with_args">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.cmd.</span></span><span class="sig-name descname"><span class="pre">overwrite_with_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_location</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.cmd.overwrite_with_args" title="Link to this definition"></a></dt>
+<dd><p>Overwrite configuration provided and update the dictionary containing
+from where the configuration are loaded from accordingly, using command line arguments</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>class that contains the command line options, retrieve and validate them</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<em>dict</em>) – configuration to overwrite</p></li>
+<li><p><strong>config_location</strong> (<em>dict</em>) – location of configuration to update</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>argparse.ArgumentParser</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>first <cite>dict</cite> is the new configuration, second is the updated location <cite>dict</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[dict,dict]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -136,7 +141,7 @@ it calls the <cite>main</cite> function.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="freeports_analysis.html" class="btn btn-neutral float-left" title="freeports_analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.consts.html" class="btn btn-neutral float-right" title="freeports_analysis.consts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.conf_parse.html" class="btn btn-neutral float-right" title="freeports_analysis.conf_parse" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

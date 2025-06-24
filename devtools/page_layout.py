@@ -3,10 +3,10 @@ from lxml import etree
 import copy
 
 
-def get_page(file_name: str, page: int):
+def get_page(file_name: str, page: int, offset: int = 0):
     pdf_file = pypdf.Document(file_name)
     parser = etree.XMLParser(recover=True)
-    page_doc = pdf_file[page]
+    page_doc = pdf_file[page + offset]
     xml_str = page_doc.get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=parser)
     return xml_tree

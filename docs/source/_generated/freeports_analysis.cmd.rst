@@ -10,6 +10,5 @@ freeports\_analysis.cmd
    .. autosummary::
    
       cmd
-      create_parser
-      validate_args
+      overwrite_with_args
    

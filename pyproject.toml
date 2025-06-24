@@ -15,6 +15,7 @@ maintainers = [
 ]
 dynamic = ["version"]
 dependencies = [
+    "pyxdg",
     "importlib_resources",
     "rapidfuzz",
     "dotenv",

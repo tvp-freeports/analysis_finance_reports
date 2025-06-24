@@ -3,49 +3,26 @@ from lxml import etree
 from typing import List, Tuple
 import re
 from rapidfuzz import fuzz
-from .. import PDF_Block, Text_Block
+from .. import PdfBlock, Text_Block
+from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
+from ..utils_text_extract import one_txt_blk, standard_text_extraction, target_match
 import logging as log
 
 logger = log.getLogger(__name__)
 
 
-def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
-    parts = []
-    hodings_header = xml_root.find(
-        ".//line[@text='Holdings']/font[@name='Helvetica-Bold']"
-    )
-    if hodings_header is not None:
-        rows = xml_root.xpath(".//line[font[@name='Helvetica-Light']]")
-        parts = [
-            PDF_Block(PDF_BlockType.REGULAR_LINES_HOLDING_PAGES, {}, blk)
-            for blk in rows
-        ]
-    return parts
+@standard_header_font_filter("Holdings", "Helvetica-Bold", "Helvetica-Light")
+def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+    pass
 
 
-def text_extract(pdf_blocks: List[PDF_Block], targets: List[str]) -> List[Text_Block]:
-    text_part_list = []
-    for i, row_block in enumerate(pdf_blocks):
-        row = row_block.content
-        row = row.lower()
-        row = " ".join(row.split())
-        for target in targets:
-            target_n = target.lower()
-            target_n = " ".join(target_n.split())
-            if target_n != "" and target_n in row:
-                text_part_list.append(
-                    Text_Block(
-                        Text_BlockType.LINE_TABLE_HOLDINGS,
-                        {
-                            "holdings": pdf_blocks[i - 1].content,
-                            "match": target,
-                            "fair value": pdf_blocks[i + 1].content,
-                            "% net asset": pdf_blocks[i + 2].content,
-                        },
-                        row_block,
-                    )
-                )
-    return text_part_list
+@standard_text_extraction(
+    target_match,
+    {"holdings": -1, "fair value": +1, "% net asset": +2},
+    lambda pdf_blocks, i: (Text_BlockType.TARGET, {}),
+)
+def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Block]:
+    pass
 
 
 def tabularize(text_block: Text_Block) -> dict:
@@ -78,9 +55,11 @@ def tabularize(text_block: Text_Block) -> dict:
     return parsed_row
 
 
+@one_pdf_blk
 class PDF_BlockType(Enum):
-    REGULAR_LINES_HOLDING_PAGES = auto()
+    pass
 
 
+@one_txt_blk
 class Text_BlockType(Enum):
-    LINE_TABLE_HOLDINGS = auto()
+    pass

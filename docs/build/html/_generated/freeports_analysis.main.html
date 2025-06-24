@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="How to contribute" href="../contribute.html" />
-    <link rel="prev" title="freeports_analysis.formats.EURIZON" href="freeports_analysis.formats.EURIZON.html" /> 
+    <link rel="prev" title="freeports_analysis.formats.utils_text_extract" href="freeports_analysis.formats.utils_text_extract.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,6 +50,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
@@ -102,13 +103,16 @@ the command from commandline (to use the package as a script).</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.get_functions" title="freeports_analysis.main.get_functions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_functions</span></code></a>(format)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_job_confs</span></code>(config)</p></td>
+<td><p>Create a list of configurations overwritten after reading a batch file with job contextual options</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.main.get_functions" title="freeports_analysis.main.get_functions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_functions</span></code></a>(format_pdf)</p></td>
 <td><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use implementation of specific PDF format</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(config)</p></td>
 <td><p>Main function that expect the configuration to be already provided (for example with arguments on command line or with <cite>env variables</cite>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets, funcs)</p></td>
 <td><p>Apply the pipeline of actions in order to get data in <cite>csv</cite></p></td>
 </tr>
 </tbody>
@@ -131,7 +135,7 @@ report, and no explicit format is specified</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.get_functions">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PDF_Formats" title="freeports_analysis.consts.PDF_Formats"><span class="pre">PDF_Formats</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.get_functions" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PDF_Formats" title="freeports_analysis.consts.PDF_Formats"><span class="pre">PDF_Formats</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.get_functions" title="Link to this definition"></a></dt>
 <dd><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use
 implementation of specific PDF format</p>
 <dl class="field-list simple">
@@ -147,7 +151,7 @@ implementation of specific PDF format</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.EURIZON.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.EURIZON" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils_text_extract.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils_text_extract" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../contribute.html" class="btn btn-neutral float-right" title="How to contribute" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

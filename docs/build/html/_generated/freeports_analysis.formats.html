@@ -50,11 +50,18 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ETICA.html">freeports_analysis.formats.ETICA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_tabularize.html">freeports_analysis.formats.utils_tabularize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
@@ -93,6 +100,7 @@
              
   <section id="module-freeports_analysis.formats">
 <span id="freeports-analysis-formats"></span><h1>freeports_analysis.formats<a class="headerlink" href="#module-freeports_analysis.formats" title="Link to this heading"></a></h1>
+<p>Module common to each format, it contains the definitions used by all the formats</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -110,21 +118,43 @@
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">PDF_Block</span></code>(type_block, metadata, xml_ele)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfBlock</span></code></a>(type_block, metadata, xml_ele)</p></td>
+<td><p>Rappresent a pdf content block with data to be extracted or relevant for the subsequents filtering stages</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Text_Block</span></code>(type_block, metadata, pdf_block)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">PdfBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xml_ele</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock" title="Link to this definition"></a></dt>
+<dd><p>Rappresent a pdf content block with data to be extracted or relevant for the
+subsequents filtering stages</p>
+</dd></dl>
+
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.ANIMA.html#module-freeports_analysis.formats.ANIMA" title="freeports_analysis.formats.ANIMA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ANIMA</span></code></a></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.EURIZON.html#module-freeports_analysis.formats.EURIZON" title="freeports_analysis.formats.EURIZON"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EURIZON</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.ETICA.html#module-freeports_analysis.formats.ETICA" title="freeports_analysis.formats.ETICA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ETICA</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.EURIZON.html#module-freeports_analysis.formats.EURIZON" title="freeports_analysis.formats.EURIZON"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EURIZON</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_commons.html#module-freeports_analysis.formats.utils_commons" title="freeports_analysis.formats.utils_commons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_commons</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html#module-freeports_analysis.formats.utils_pdf_filter" title="freeports_analysis.formats.utils_pdf_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_pdf_filter</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_tabularize.html#module-freeports_analysis.formats.utils_tabularize" title="freeports_analysis.formats.utils_tabularize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_tabularize</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html#module-freeports_analysis.formats.utils_text_extract" title="freeports_analysis.formats.utils_text_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_text_extract</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 </tbody>

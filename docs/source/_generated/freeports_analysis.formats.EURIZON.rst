@@ -9,7 +9,6 @@ freeports\_analysis.formats.EURIZON
 
    .. autosummary::
    
-      pdf_filter
       tabularize
       text_extract
    
@@ -17,6 +16,5 @@ freeports\_analysis.formats.EURIZON
 
    .. autosummary::
    
-      PDF_BlockType
       Text_BlockType
    
