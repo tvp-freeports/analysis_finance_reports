@@ -3,7 +3,7 @@ from lxml import etree
 from typing import List, Tuple
 import re
 from rapidfuzz import fuzz
-from .. import PDF_Block, Text_Block
+from .. import PdfBlock, Text_Block
 from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
 from ..utils_text_extract import standard_text_extraction
 import logging as log
@@ -13,11 +13,11 @@ logger = log.getLogger(__name__)
 
 
 @standard_header_font_filter("PORTFOLIO AS AT", "Frutiger-Black", "Frutiger-Light")
-def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
+def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
     pass
 
 
-def text_extract(pdf_blocks: List[PDF_Block], targets: List[str]) -> List[Text_Block]:
+def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Block]:
     text_part_list = []
     for i, row_block in enumerate(pdf_blocks):
         row = row_block.content

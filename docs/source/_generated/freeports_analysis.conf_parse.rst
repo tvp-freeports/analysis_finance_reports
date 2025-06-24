@@ -1,4 +1,4 @@
-freeports\_analysis.conf\_parse
+﻿freeports\_analysis.conf\_parse
 ===============================
 
 .. automodule:: freeports_analysis.conf_parse
@@ -11,7 +11,7 @@ freeports\_analysis.conf\_parse
    
       apply_config
       get_config_file
-      log_resultig_config
+      log_config
       overwrite_with_config_file
       overwrite_with_env_vars
       validate_conf
@@ -20,5 +20,5 @@ freeports\_analysis.conf\_parse
 
    .. autosummary::
    
-      POSSIBLE_LOCATION_CONFIG
+      PossibleLocationConfig
    

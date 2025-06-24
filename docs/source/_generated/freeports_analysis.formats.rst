@@ -17,7 +17,7 @@ freeports\_analysis.formats
 
    .. autosummary::
    
-      PDF_Block
+      PdfBlock
       Text_Block
    
 .. rubric:: Modules

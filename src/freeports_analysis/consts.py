@@ -1,16 +1,20 @@
+"""Provide basic constant and types used by all submodules,
+should facilitate avoiding circular imports
+"""
+
 from enum import Enum
+import logging as log
+
 import yaml
 from importlib_resources import files
-import logging as log
+from freeports_analysis import data
+
 
 logger = log.getLogger(__name__)
 
 
 ENV_PREFIX = "AFINANCE_"
 
-
-from enum import Enum
-from freeports_analysis import data
 
 # Leggi il file YAML
 YAML_DATA = None

@@ -1,7 +1,7 @@
 from lxml import etree
 from typing import List
 from enum import Enum, auto
-from . import PDF_Block
+from . import PdfBlock
 
 
 def one_pdf_blk(_):
@@ -13,7 +13,7 @@ def one_pdf_blk(_):
 
 def standard_header_font_filter(header_txt, header_font, body_font):
     def decorator(_):
-        def pdf_filter(xml_root: etree.Element) -> List[PDF_Block]:
+        def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
             @one_pdf_blk
             class PDF_BlockType(Enum):
                 pass
@@ -22,7 +22,7 @@ def standard_header_font_filter(header_txt, header_font, body_font):
             if is_present_txt_font(xml_root, header_txt, header_font):
                 rows = lines_with_font(xml_root, body_font)
                 parts = [
-                    PDF_Block(PDF_BlockType.RELEVANT_BLOCK, {}, blk) for blk in rows
+                    PdfBlock(PDF_BlockType.RELEVANT_BLOCK, {}, blk) for blk in rows
                 ]
             return parts
 

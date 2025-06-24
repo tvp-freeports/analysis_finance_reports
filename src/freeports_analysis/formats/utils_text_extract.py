@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import List
 from difflib import SequenceMatcher
-from . import Text_Block, PDF_Block
+from . import Text_Block, PdfBlock
 from .utils_commons import normalize_string
 
 
@@ -58,7 +58,7 @@ class Text_BlockType(Enum):
 
 
 def standard_text_extraction_func(
-    pdf_blocks: List[PDF_Block],
+    pdf_blocks: List[PdfBlock],
     targets: List[str],
     match_func,
     extract_positions: dict,
