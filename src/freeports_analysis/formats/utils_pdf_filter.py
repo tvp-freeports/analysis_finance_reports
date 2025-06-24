@@ -1,7 +1,7 @@
 from lxml import etree
 from typing import List
 from enum import Enum, auto
-from . import PdfBlock
+from freeports_analysis.formats import PdfBlock
 
 
 def one_pdf_blk(_):
