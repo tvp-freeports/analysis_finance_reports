@@ -1,5 +1,8 @@
 # Authors and Contributions
 
+## [Angelo Serrecchia](https://github.com/SerAngelo)
+- Fist version of `AMUNDI` code
+
 ## [Againor](https://github.com/Againor)
 - First version of `EURIZON` code (first working code)
 
