@@ -108,7 +108,7 @@ DEFAULT_CONFIG = {
     "VERBOSITY": 2,
     "BATCH_WORKERS": None,
     "BATCH": None,
-    "OUT_CSV": "/dev/stdout"
+    "OUT_CSV": Path("/dev/stdout")
     if os.name == "posix"
     else "CON"
     if os.name == "nt"

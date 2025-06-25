@@ -22,5 +22,5 @@ freeports\_analysis.formats.utils\_text\_extract
 
    .. autosummary::
    
-      Text_BlockType
+      TextBlockType
    

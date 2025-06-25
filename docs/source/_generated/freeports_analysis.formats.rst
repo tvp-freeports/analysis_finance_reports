@@ -1,4 +1,4 @@
-freeports\_analysis.formats
+﻿freeports\_analysis.formats
 ===========================
 
 .. automodule:: freeports_analysis.formats
@@ -18,7 +18,7 @@ freeports\_analysis.formats
    .. autosummary::
    
       PdfBlock
-      Text_Block
+      TextBlock
    
 .. rubric:: Modules
 
@@ -26,8 +26,8 @@ freeports\_analysis.formats
    :toctree:
    :recursive:
 
+   AMUNDI
    ANIMA
-   ETICA
    EURIZON
    utils_commons
    utils_pdf_filter

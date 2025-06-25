@@ -5,6 +5,7 @@ venv/
 src/**/*.pdf
 dist/
 docs/build/doctrees/
+src/freeports_analysis/formats/ETICA
 src/*.egg-info
 **/*.pdf
 __pycache__/

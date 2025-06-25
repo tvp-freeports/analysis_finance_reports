@@ -3,6 +3,9 @@
 ## [Againor](https://github.com/Againor)
 - First version of `EURIZON` code (first working code)
 
+## [Angelo Serrecchia](https://github.com/SerAngelo)
+- Fist version of `AMUNDI` code
+
 ## [Manfredi Orlando](https://github.com/ManfrediO)
 - First idea for the program in order to facilitate his broader project about 
   ethic invest and consumers empowerment

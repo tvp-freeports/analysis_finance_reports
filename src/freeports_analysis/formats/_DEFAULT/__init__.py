@@ -1,24 +1,22 @@
 from enum import Enum
 from lxml import etree
 from typing import List
-from .. import PdfBlock, Text_Block
+from .. import PdfBlock, TextBlock
 
 
 def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
-    pass
+    raise NotImplementedError
 
 
-def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Block]:
-    pass
+def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlock]:
+    raise NotImplementedError
 
 
-def tabularize(text_block: Text_Block) -> dict:
-    pass
+def tabularize(TextBlock: TextBlock) -> dict:
+    raise NotImplementedError
 
 
-class PDF_BlockType(Enum):
-    pass
+class PdfBlockType(Enum): ...
 
 
-class Text_BlockType(Enum):
-    pass
+class TextBlockType(Enum): ...

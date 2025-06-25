@@ -10,5 +10,7 @@ freeports\_analysis.formats.utils\_tabularize
    .. autosummary::
    
       perc_to_float
+      standard_tabularizer
       to_int
+      to_str
    
