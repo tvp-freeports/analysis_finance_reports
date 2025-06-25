@@ -18,7 +18,7 @@
    .. autosummary::
    
       PdfBlock
-      Text_Block
+      TextBlock
    
 .. rubric:: Modules
 

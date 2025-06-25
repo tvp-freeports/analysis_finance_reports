@@ -69,13 +69,13 @@ def get_functions(format_pdf: PDF_Formats):
         raise
 
     def _pdf_filter(pdf_file):
-        pdf_filter_exec(pdf_file, module.pdf_filter)
+        return pdf_filter_exec(pdf_file, module.pdf_filter)
 
     def _text_extract(pdf_blks, targets):
-        text_extract_exec(pdf_blks, targets, module.text_extract)
+        return text_extract_exec(pdf_blks, targets, module.text_extract)
 
     def _tabularize(txt_blks):
-        tabularize_exec(txt_blks, module.tabularize)
+        return tabularize_exec(txt_blks, module.tabularize)
 
     return {
         "PDF_FILTER": _pdf_filter,
@@ -148,7 +148,7 @@ def _main_job(config):
     format_selected = config["FORMAT"]
 
     detected_format = None
-    if config["URL"] is None or config["PDF"].exists():
+    if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
         logger.debug("PDF: %s", config["PDF"])
         pdf_file = pypdf.Document(config["PDF"])
     else:

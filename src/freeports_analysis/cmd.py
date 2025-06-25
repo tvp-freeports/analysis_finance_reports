@@ -53,11 +53,12 @@ def _create_parser() -> argparse.ArgumentParser:
         "--no-download", action="store_true", help="Don't save file locally"
     )
     parser.add_argument("--config", type=str, help="Custom configuration file location")
+    out_csv = DEFAULT_CONFIG["OUT_CSV"]
     parser.add_argument(
         "--out",
         "-o",
         type=str,
-        help="Output file cvs (default path: '" + DEFAULT_CONFIG["OUT_CSV"] + "')",
+        help=f"Output file cvs (default path: '{out_csv}')",
     )
     verb = DEFAULT_CONFIG["VERBOSITY"]
     parser.add_argument(

@@ -10,7 +10,7 @@ freeports\_analysis.formats.utils\_pdf\_filter
    .. autosummary::
    
       is_present_txt_font
-      lines_with_font
+      get_lines_with_font
       one_pdf_blk
       standard_header_font_filter
    

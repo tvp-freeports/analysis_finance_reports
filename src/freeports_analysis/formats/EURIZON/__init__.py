@@ -3,9 +3,8 @@ from lxml import etree
 from typing import List, Tuple
 import re
 from rapidfuzz import fuzz
-from .. import PdfBlock, Text_Block
+from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
-from ..utils_text_extract import standard_text_extraction
 import logging as log
 import datetime as dt
 
@@ -17,7 +16,7 @@ def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
     pass
 
 
-def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Block]:
+def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlock]:
     text_part_list = []
     for i, row_block in enumerate(pdf_blocks):
         row = row_block.content
@@ -36,8 +35,8 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Bl
                         interess_match_l2 = re.match(
                             interess_regex, pdf_blocks[i + 1].content
                         )
-                        txt_blk = Text_Block(
-                            Text_BlockType.TARGET_BOND_2LINES,
+                        txt_blk = TextBlock(
+                            TextBlockType.TARGET_BOND_2LINES,
                             {
                                 "match": target,
                                 "nominal value": pdf_blocks[i - 1].content,
@@ -55,8 +54,8 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Bl
                     else:
                         data_match = re.match(date_regex, row)
                         interess_match = re.match(interess_regex, row)
-                        txt_blk = Text_Block(
-                            Text_BlockType.TARGET_BOND_LINE,
+                        txt_blk = TextBlock(
+                            TextBlockType.TARGET_BOND_LINE,
                             {
                                 "match": target,
                                 "date": data_match[1],
@@ -71,8 +70,8 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Bl
                         )
 
                 else:
-                    txt_blk = Text_Block(
-                        Text_BlockType.TARGET_EQUITY_LINE,
+                    txt_blk = TextBlock(
+                        TextBlockType.TARGET_EQUITY_LINE,
                         {
                             "match": target,
                             "nominal value": pdf_blocks[i - 1].content,
@@ -88,14 +87,14 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[Text_Bl
     return text_part_list
 
 
-def tabularize(text_block: Text_Block) -> dict:
-    m = text_block.metadata
+def tabularize(TextBlock: TextBlock) -> dict:
+    m = TextBlock.metadata
 
     date = None
     interest_rate = None
     if (
-        text_block.type_block == Text_BlockType.TARGET_BOND_2LINES
-        or Text_BlockType.TARGET_BOND_LINE == text_block.type_block
+        TextBlock.type_block == TextBlockType.TARGET_BOND_2LINES
+        or TextBlockType.TARGET_BOND_LINE == TextBlock.type_block
     ):
         date = dt.datetime.strptime("".join(m["date"].split()), "%d/%m/%Y")
         interest_rate = (
@@ -118,11 +117,11 @@ def tabularize(text_block: Text_Block) -> dict:
 
 
 @one_pdf_blk
-class PDF_BlockType(Enum):
+class PdfBlockType(Enum):
     pass
 
 
-class Text_BlockType(Enum):
+class TextBlockType(Enum):
     TARGET_EQUITY_LINE = auto()
     TARGET_BOND_LINE = auto()
     TARGET_BOND_2LINES = auto()

@@ -16,5 +16,5 @@ freeports\_analysis.formats.EURIZON
 
    .. autosummary::
    
-      Text_BlockType
+      TextBlockType
    
