@@ -26,6 +26,7 @@
    :toctree:
    :recursive:
 
+   AMUNDI
    ANIMA
    EURIZON
    utils_commons

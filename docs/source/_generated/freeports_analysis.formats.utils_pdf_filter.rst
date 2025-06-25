@@ -9,8 +9,11 @@ freeports\_analysis.formats.utils\_pdf\_filter
 
    .. autosummary::
    
-      is_present_txt_font
+      filter_page_if
       get_lines_with_font
+      is_positioned
+      is_present_positioned
+      is_present_txt_font
       one_pdf_blk
       standard_header_font_filter
    
