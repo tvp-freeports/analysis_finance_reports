@@ -1,10 +1,10 @@
-.pyvenv
 venv/
 *.pdf
 *.csv
 **/*.csv
 src/**/*.pdf
 dist/
+docs/build/doctrees/
 src/*.egg-info
 **/*.pdf
 __pycache__/
