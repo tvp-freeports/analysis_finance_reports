@@ -21,7 +21,7 @@ The map between available environment variables and options is:
 +----------------------------+----------------------+-------------------------+
 | ``AFINANCE_PDF``           | ``PDF``              | ``Path``                |
 +----------------------------+----------------------+-------------------------+
-| ``AFINANCE_FORMAT``        | ``FORMAT``           | :py:class:`PDF_Formats` |
+| ``AFINANCE_FORMAT``        | ``FORMAT``           | :py:class:`PdfFormats` |
 +----------------------------+----------------------+-------------------------+
 | ``AFINANCE_CONFIG_FILE``   | ``CONFIG_FILE``      | ``Path``                |
 +----------------------------+----------------------+-------------------------+
