@@ -18,7 +18,7 @@ fi
 )
 
 
-pytest -m "not integration_tests and online_tests"
+pytest -m "not integration_tests and not online_tests"
 
 
 
