@@ -6,7 +6,10 @@ import data
 out_dir = Path(__file__).parent / "output/"
 data_dir = Path(__file__).parent / "data/"
 
-shutil.rmtree(out_dir)
+try:
+    shutil.rmtree(out_dir)
+except FileNotFoundError:
+    pass
 out_dir.mkdir()
 
 url_example_formats = {
