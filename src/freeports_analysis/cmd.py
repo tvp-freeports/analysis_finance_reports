@@ -4,7 +4,7 @@ import argparse
 import logging as log
 from pathlib import Path
 
-from freeports_analysis.consts import PDF_Formats
+from freeports_analysis.consts import PdfFormats
 from freeports_analysis.conf_parse import (
     PossibleLocationConfig,
     DEFAULT_CONFIG,
@@ -47,7 +47,7 @@ def _create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--workers", "-j", type=int, help=help_str)
     parser.add_argument(
-        "--format", "-f", type=str, choices=PDF_Formats.__members__, help="PDF format"
+        "--format", "-f", type=str, choices=PdfFormats.__members__, help="PDF format"
     )
     parser.add_argument(
         "--no-download", action="store_true", help="Don't save file locally"
@@ -104,7 +104,7 @@ def overwrite_with_args(args, config, config_location):
     for name_conf, value, cast_func in [
         ("URL", args.url, str),
         ("PDF", args.pdf, Path),
-        ("FORMAT", args.format, lambda x: PDF_Formats.__members__[x.strip()]),
+        ("FORMAT", args.format, lambda x: PdfFormats.__members__[x.strip()]),
         ("OUT_CSV", args.out, Path),
         ("BATCH", args.batch, Path),
         ("BATCH_WORKERS", args.workers, int),

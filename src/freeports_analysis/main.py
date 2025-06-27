@@ -22,7 +22,7 @@ import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
 from freeports_analysis import download as dw
-from freeports_analysis.consts import PDF_Formats
+from freeports_analysis.consts import PdfFormats
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
@@ -50,13 +50,13 @@ class NoPDFormatDetected(Exception):
     """
 
 
-def get_functions(format_pdf: PDF_Formats):
+def get_functions(format_pdf: PdfFormats):
     """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
     implementation of specific PDF format
 
     Parameters
     ----------
-    format : PDF_Formats
+    format : PdfFormats
         The format detected used to choose the decoding implementation
     """
     module_name = format_pdf.name
@@ -143,6 +143,15 @@ def batch_job_confs(config: dict) -> List[dict]:
     return result
 
 
+def get_targets() -> List[str]:
+    targets = []
+    with files(data).joinpath("target.csv").open("r") as f:
+        target_csv = csv.reader(f)
+        targets = [row[0] for row in target_csv]
+        targets.pop(0)
+    return targets
+
+
 def _main_job(config):
     logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
     format_selected = config["FORMAT"]
@@ -152,10 +161,10 @@ def _main_job(config):
         logger.debug("PDF: %s", config["PDF"])
         pdf_file = pypdf.Document(config["PDF"])
     else:
-        for fmt in PDF_Formats.__members__:
-            for reg in PDF_Formats.__members__[fmt].value:
+        for fmt in PdfFormats.__members__:
+            for reg in PdfFormats.__members__[fmt].value:
                 if bool(re.search(reg, config["URL"])):
-                    detected_format = PDF_Formats.__members__[fmt]
+                    detected_format = PdfFormats.__members__[fmt]
                     break
         log_string = "URL: %s/%s [detected %s format]"
         logger.debug(log_string, config["URL"], config["PDF"], detected_format.name)
@@ -183,11 +192,7 @@ def _main_job(config):
 
     format_pdf = detected_format if format_selected is None else format_selected
     logger.debug("Using %s format", format_pdf.name)
-    targets = []
-    with files(data).joinpath("target.csv").open("r") as f:
-        target_csv = csv.reader(f)
-        targets = [row[0] for row in target_csv]
-        targets.pop(0)
+    targets = get_targets()
     log_string = str(targets[: min(5, len(targets))])
     logger.debug("First 5 targets: %s", log_string)
 

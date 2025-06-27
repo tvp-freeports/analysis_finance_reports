@@ -5,11 +5,12 @@ from freeports_analysis.formats import PdfBlock
 from .utils_commons import overwrite_if_implemented
 
 
-def one_pdf_blk(_):
-    class PdfBlockType(Enum):
-        RELEVANT_BLOCK = auto()
+class one_PdfBlockType(Enum):
+    RELEVANT_BLOCK = auto()
 
-    return PdfBlockType
+
+def one_pdf_blk(_):
+    return one_PdfBlockType
 
 
 def standard_header_font_filter(header_txt, header_font, body_font):

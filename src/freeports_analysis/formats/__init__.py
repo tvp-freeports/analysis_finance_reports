@@ -20,6 +20,14 @@ def _str_blocks(blk) -> str:
     return text
 
 
+def _eq_blocks(a, b) -> bool:
+    equal = True
+    equal = equal and a.type_block == b.type_block
+    equal = equal and a.metadata == b.metadata
+    equal = equal and a.content == b.content
+    return equal
+
+
 class PdfBlock:
     """Rappresent a pdf content block with data to be extracted or relevant for the
     subsequents filtering stages
@@ -42,6 +50,10 @@ class PdfBlock:
                     text += c
             text += "\n"
         return text
+
+    def __eq__(self, other):
+        equal = _eq_blocks(self, other)
+        return equal
 
     def __init__(self, type_block: Enum, metadata: dict, xml_ele: etree.Element):
         self.type_block = type_block
@@ -66,6 +78,11 @@ class TextBlock:
 
     def __str__(self) -> str:
         return _str_blocks(self)
+
+    def __eq__(self, other):
+        equal = _eq_blocks(self, other)
+        equal = equal and self.pdf_block == other.pdf_block
+        return equal
 
 
 def pdf_filter_exec(

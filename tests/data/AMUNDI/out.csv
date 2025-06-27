@@ -1,0 +1,154 @@
+,company,subfund,n assets,fair value,% net asset
+0,Siemens,Euroland Equity,1165494.0,202469617,0.0412
+1,Siemens,Euroland Equity,2708422.0,65841739,0.0134
+2,Siemens,European Equity ESG Improvers,57959.0,10068637,0.0217
+3,Siemens,European Equity ESG Improvers,89112.0,4794226,0.0103
+4,TKH Group,Euroland Equity Small Cap,200637.0,8169939,0.0215
+5,Siemens,European Equity,22380.0,3887854,0.0403
+6,Siemens,European Equity,71329.0,1734008,0.0179
+7,Siemens,Europe ex UK Equity,923.0,160344,0.0325
+8,Siemens,Europe ex UK Equity,3536.0,85960,0.0174
+9,Alstom,European Equity Green Technology,281767.0,4423742,0.0258
+10,Siemens,European Equity Value,369061.0,64113277,0.0241
+11,CNH Industrial,European Equity Value,6230418.0,58565929,0.022000000000000002
+12,Siemens,European Equity Income ESG,153986.0,26750448,0.0338
+13,Siemens,Global Ecology ESG,298006.0,51769602,0.0204
+14,Siemens,Global Ecology ESG,1009953.0,24551957,0.0097
+15,Cisco Systems,Net Zero Ambition Global Equity,7857.0,373286,0.0204
+16,Siemens,Global Equity Income ESG,212368.0,39539611,0.0147
+17,Cisco Systems,Global Equity Income ESG,1140620.0,54190856,0.0202
+18,Cisco Systems,US Equity Dividend Growth,219520.0,10429395,0.032799999999999996
+19,Cisco Systems,US Equity ESG Improvers,183361.0,8711481,0.0458
+20,Booking Holdings,US Equity ESG Improvers,681.0,2697782,0.014199999999999999
+21,Motorola Solutions,US Equity Fundamental Growth,237496.0,85569471,0.0252
+22,Booking Holdings,US Equity Fundamental Growth,19503.0,72088766,0.0213
+23,Cisco Systems,US Equity Research,314676.0,13949388,0.0346
+24,Cisco Systems,US Equity Research Value,576636.0,25561909,0.050199999999999995
+25,Siemens,Polen Capital Global Growth,389826.0,22477426,0.0298
+26,Airbnb,Polen Capital Global Growth,95712.0,14512811,0.019299999999999998
+27,Siemens,Net Zero Ambition Top European Players,120393.0,20914672,0.036000000000000004
+28,CNH Industrial,Net Zero Ambition Top European Players,224062.0,2106183,0.0036
+29,Caterpillar,US Pioneer Fund,139244.0,43292639,0.0096
+30,Carlsberg,Emerging Markets Equity Focus,146747.0,17622633,0.0066
+31,Orbia,Emerging Markets Equity ESG Improvers,745700.0,1040732,0.0053
+32,Cemex,Emerging World Equity,225846.0,1440897,0.0012
+33,Cemex,Latin America Equity,129424.0,825725,0.0083
+34,Heidelberg Materials,Euroland Equity Dynamic Multi Factors,25351.0,2454484,0.0040999999999999995
+35,Siemens,Euroland Equity Dynamic Multi Factors,64725.0,11244027,0.018799999999999997
+36,Syensqo,Euroland Equity Risk Parity,8895.0,743355,0.005
+37,Alstom,Euroland Equity Risk Parity,10253.0,160972,0.0011
+38,Carrefour,Euroland Equity Risk Parity,65561.0,865405,0.0058
+39,Heidelberg Materials,Euroland Equity Risk Parity,6130.0,593507,0.004
+40,Siemens,Euroland Equity Risk Parity,2198.0,381837,0.0026
+41,Siemens,Euroland Equity Risk Parity,9877.0,240110,0.0016
+42,Siemens,Euroland Equity Risk Parity,17045.0,917021,0.0062
+43,Carlsberg,European Equity Conservative,76326.0,8552254,0.012199999999999999
+44,Carrefour,European Equity Conservative,143652.0,1896206,0.0027
+45,Siemens,European Equity Conservative,28286.0,1521787,0.0022
+46,Carlsberg,European Equity Dynamic Multi Factors,5969.0,668821,0.005
+47,Carrefour,European Equity Dynamic Multi Factors,4082.0,53882,0.0004
+48,Heidelberg Materials,European Equity Dynamic Multi Factors,1097.0,106212,0.0008
+49,Siemens,European Equity Dynamic Multi Factors,6286.0,1092004,0.008199999999999999
+50,Cisco Systems,Global Equity Conservative,99360.0,4720593,0.0184
+51,Motorola Solutions,Global Equity Conservative,10499.0,4054189,0.0159
+52,Carrefour,Global Equity Dynamic Multi Factors,7815.0,110560,0.0008
+53,Heidelberg Materials,Global Equity Dynamic Multi Factors,413.0,42856,0.0003
+54,Siemens,Global Equity Dynamic Multi Factors,1888.0,351516,0.0026
+55,Caterpillar,Global Equity Dynamic Multi Factors,3553.0,1183504,0.0089
+56,Cisco Systems,Global Equity Dynamic Multi Factors,12033.0,571688,0.0043
+57,Motorola Solutions,Global Equity Dynamic Multi Factors,281.0,108480,0.0008
+58,Alstom,Euro Aggregate Bond,1000000.0,1016300,0.0011
+59,Carrefour,Euro Aggregate Bond,1500000.0,1542465,0.0017000000000000001
+60,CNH Industrial,Euro Aggregate Bond,,1084908,0.0012
+61,Siemens,Euro Aggregate Bond,800000.0,803728,0.0009
+62,Siemens,Euro Aggregate Bond,,775544,0.0008
+63,Alstom,Euro Corporate ESG Bond,1700000.0,1727710,0.0021
+64,Carrefour,Euro Corporate ESG Bond,2000000.0,2056620,0.0025
+65,CNH Industrial,Euro Corporate ESG Bond,,1972560,0.0024
+66,Siemens,Euro Corporate ESG Bond,1800000.0,1808388,0.0022
+67,Siemens,Euro Corporate ESG Bond,,1163316,0.0014000000000000002
+68,Alstom,Euro High Yield Bond,700000.0,711410,0.0028000000000000004
+69,Bank Leumi,Pioneer Global High Yield Bond,1890000.0,1722717,0.0083
+70,Alstom,European Subordinated Bond ESG,5000000.0,5081500,0.0074
+71,CNH Industrial,Global Corporate Bond,3348000.0,3337688,0.0046
+72,CNH Industrial,Global Corporate ESG Improvers Bond,789000.0,797568,0.0092
+73,Alstom,Net Zero Ambition Global Corporate Bond,1700000.0,1550319,0.0062
+74,CNH Industrial,Net Zero Ambition Global Corporate Bond,,2602066,0.0103
+75,Siemens,Net Zero Ambition Global Corporate Bond,,1796103,0.0070999999999999995
+76,Bank Leumi,Global High Yield Bond,1165000.0,1138077,0.008100000000000001
+77,Cemex,Optimal Yield,400000.0,399171,0.002
+78,Cemex,Optimal Yield,,1258949,0.0064
+79,CNH Industrial,Strategic Income,8055000.0,7597366,0.0040999999999999995
+80,CNH Industrial,Net Zero Ambition US Corporate Bond,352000.0,344450,0.0109
+81,CNH Industrial,US Bond,,5716902,0.0034999999999999996
+82,CNH Industrial,US Corporate Bond,1090000.0,1066620,0.0034999999999999996
+83,CNH Industrial,US Corporate Bond,2330000.0,2355304,0.0077
+84,CNH Industrial,US Short Term Bond,,1098317,0.0021
+85,CNH Industrial,US Short Term Bond,1705000.0,1567741,0.003
+86,Expedia Group,US Short Term Bond,2000000.0,1871164,0.0034999999999999996
+87,Cemex,Emerging Markets Blended Bond,11800000.0,11775558,0.0040999999999999995
+88,Cemex,Emerging Markets Bond,6000000.0,4916221,0.0014000000000000002
+89,Bank Leumi,Emerging Markets Corporate Bond,1200000.0,1114008,0.0027
+90,Cemex,Emerging Markets Corporate Bond,2200000.0,2352966,0.005600000000000001
+91,Cemex,Emerging Markets Corporate Bond,,2313048,0.0055000000000000005
+92,Cemex,Emerging Markets Corporate Bond,2000000.0,1756320,0.0042
+93,Bank Hapoalim,Emerging Markets Green Bond,2000000.0,1801780,0.0105
+94,Cemex,Emerging Markets Green Bond,800000.0,855624,0.005
+95,Cemex,Emerging Markets Hard Currency Bond,2800000.0,2794200,0.0038
+96,Bank Hapoalim,Emerging Markets Short Term Bond,1200000.0,1081068,0.0045000000000000005
+97,Bank Leumi,Emerging Markets Short Term Bond,2500000.0,2442225,0.0102
+98,Siemens,Euro Multi-Asset Target Income,3430.0,595860,0.0027
+99,Siemens,Euro Multi-Asset Target Income,6179.0,332430,0.0015
+100,Cisco Systems,Euro Multi-Asset Target Income,6609.0,293343,0.0013
+101,Alstom,Euro Multi-Asset Target Income,200000.0,203260,0.0009
+102,Carrefour,Euro Multi-Asset Target Income,100000.0,94004,0.0004
+103,Carlsberg,Global Multi-Asset,3291.0,368753,0.0007000000000000001
+104,Siemens,Global Multi-Asset,5666.0,984298,0.002
+105,Siemens,Global Multi-Asset,22991.0,558911,0.0011
+106,Cisco Systems,Global Multi-Asset,92457.0,4098560,0.008199999999999999
+107,Alstom,Global Multi-Asset,700000.0,711410,0.0014000000000000002
+108,Siemens,Global Multi-Asset,,1565328,0.0032
+109,Carlsberg,Global Multi-Asset Conservative,8490.0,951296,0.0004
+110,Siemens,Global Multi-Asset Conservative,13936.0,2420962,0.001
+111,Siemens,Global Multi-Asset Conservative,59126.0,1437353,0.0006
+112,Cisco Systems,Global Multi-Asset Conservative,156216.0,6924957,0.0028000000000000004
+113,Alstom,Global Multi-Asset Conservative,3200000.0,3252160,0.0013
+114,Heidelberg Materials,Global Multi-Asset Conservative,4000000.0,3951400,0.0016
+115,Siemens,Global Multi-Asset Conservative,,9978966,0.0040999999999999995
+116,Siemens,Global Multi-Asset Target Income,5168.0,962201,0.0027
+117,Siemens,Global Multi-Asset Target Income,7849.0,452575,0.0012
+118,Cisco Systems,Global Multi-Asset Target Income,17621.0,837174,0.0023
+119,Alstom,Global Multi-Asset Target Income,200000.0,217844,0.0006
+120,Carrefour,Global Multi-Asset Target Income,100000.0,107924,0.0003
+121,Siemens,Global Multi-Asset Target Income,,161708,0.0004
+122,Syensqo,Net Zero Ambition Multi-Asset,341.0,28497,0.0002
+123,WSP Global,Net Zero Ambition Multi-Asset,700.0,101677,0.0005
+124,Alstom,Net Zero Ambition Multi-Asset,6237.0,97921,0.0005
+125,Siemens,Net Zero Ambition Multi-Asset,631.0,109617,0.0006
+126,Siemens,Net Zero Ambition Multi-Asset,3327.0,80879,0.0004
+127,CNH Industrial,Net Zero Ambition Multi-Asset,2193.0,20614,0.0001
+128,Booking Holdings,Net Zero Ambition Multi-Asset,34.0,125674,0.0007000000000000001
+129,Caterpillar,Net Zero Ambition Multi-Asset,427.0,132759,0.0007000000000000001
+130,Cisco Systems,Net Zero Ambition Multi-Asset,6376.0,282644,0.0015
+131,Expedia Group,Net Zero Ambition Multi-Asset,249.0,29271,0.0002
+132,Motorola Solutions,Net Zero Ambition Multi-Asset,185.0,66655,0.0004
+133,CNH Industrial,Net Zero Ambition Multi-Asset,300000.0,273912,0.0015
+134,Siemens,Multi-Asset Real Return,1685.0,292718,0.0008
+135,Siemens,Multi-Asset Real Return,4518.0,243068,0.0006
+136,Cisco Systems,Multi-Asset Real Return,10118.0,448525,0.0012
+137,Carrefour,Multi-Asset Real Return,332000.0,324513,0.0009
+138,Cisco Systems,Multi-Asset Sustainable Future,82975.0,3678229,0.0039000000000000003
+139,Alstom,Multi-Asset Sustainable Future,7700000.0,6923994,0.0073
+140,Cisco Systems,Pioneer Flexible Opportunities,14066.0,668276,0.0189
+141,Heidelberg Materials,Absolute Return Multi-Strategy,750000.0,740888,0.0009
+142,Cemex,Absolute Return Multi-Strategy,1720000.0,1716854,0.0021
+143,Siemens,Absolute Return Multi-Strategy,,788640,0.001
+144,Siemens,Absolute Return Multi-Strategy,,683466,0.0008
+145,Siemens,Absolute Return Multi-Strategy,,581658,0.0007000000000000001
+146,Heidelberg Materials,Multi-Strategy Growth,700000.0,691495,0.0009
+147,Cemex,Multi-Strategy Growth,1400000.0,1397440,0.0018
+148,Siemens,Multi-Strategy Growth,,887220,0.0011
+149,Siemens,Multi-Strategy Growth,,878742,0.0011
+150,Carrefour,Cash EUR,20000000.0,19623545,0.005699999999999999
+151,IBM,Cash USD,,19857333,0.0049
+152,Caterpillar,Cash USD,,10016077,0.0024

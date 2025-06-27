@@ -1,12 +1,11 @@
 from enum import Enum, auto
 from lxml import etree
-from typing import List, Tuple
 import re
-from rapidfuzz import fuzz
 from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
 import logging as log
 import datetime as dt
+from typing import List
 
 logger = log.getLogger(__name__)
 
