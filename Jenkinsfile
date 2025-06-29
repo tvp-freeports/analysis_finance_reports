@@ -13,6 +13,8 @@ pipeline {
         TREND_DATA_DIR = 'trend_data'
     }
     stages {
+        
+
         stage('Checkout') {
             steps {
                 script {
@@ -116,6 +118,18 @@ pipeline {
                 }
             }
         }
+        stage('Build') {
+            when {
+                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                sh """
+                    . ${VENV_DIR}/bin/activate
+                    python -m build
+                """
+                archiveArtifacts 'dist/*'
+            }
+        }
         stage('Build Docs') {
             steps {
                 script {
@@ -159,20 +173,6 @@ pipeline {
                 }
             }
         }
-        
-        stage('Build') {
-            when {
-                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                sh """
-                    . ${VENV_DIR}/bin/activate
-                    python -m build
-                """
-                archiveArtifacts 'dist/*'
-            }
-        }
-        
         stage('Release to PyPI') {
             when {
                 allOf {
@@ -200,8 +200,8 @@ pipeline {
     post {
         always {
             // Clean up virtual environment
-            // sh 'rm -rf ./*'
-            // sh 'rm -rf ./.*'
+            sh 'rm -rf ./*'
+            sh 'rm -rf ./.*'
 
             // Generate lint trend graph (requires Plot plugin)
             script {
