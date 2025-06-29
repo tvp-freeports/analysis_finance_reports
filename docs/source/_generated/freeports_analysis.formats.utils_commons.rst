@@ -9,6 +9,8 @@ freeports\_analysis.formats.utils\_commons
 
    .. autosummary::
    
+      default_if_not_implemented
       normalize_string
       normalize_word
+      overwrite_if_implemented
    

@@ -18,7 +18,7 @@
    .. autosummary::
    
       PdfBlock
-      Text_Block
+      TextBlock
    
 .. rubric:: Modules
 
@@ -26,6 +26,7 @@
    :toctree:
    :recursive:
 
+   AMUNDI
    ANIMA
    EURIZON
    utils_commons

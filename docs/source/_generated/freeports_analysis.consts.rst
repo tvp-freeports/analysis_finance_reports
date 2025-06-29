@@ -9,5 +9,5 @@ freeports\_analysis.consts
 
    .. autosummary::
    
-      PDF_Formats
+      PdfFormats
    

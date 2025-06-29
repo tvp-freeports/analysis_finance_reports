@@ -5,14 +5,16 @@ pipeline {
         // PyPI credentials should be stored in Jenkins credentials
         PYPI_CREDENTIALS = credentials('pypi-credentials')
         VENV_DIR = "venv/freeports-dev"
-        LINT_SCORE_THRESHOLD = '7.0'
-        COVERAGE_THRESHOLD = '20.0'
-        COVERAGE_THRESHOLD_DOCS = '15.0'
+        LINT_SCORE_THRESHOLD = '8.0'
+        COVERAGE_THRESHOLD = '60.0'
+        COVERAGE_THRESHOLD_DOCS = '30.0'
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
         TREND_DATA_DIR = 'trend_data'
     }
     stages {
+        
+
         stage('Checkout') {
             steps {
                 script {
@@ -116,6 +118,18 @@ pipeline {
                 }
             }
         }
+        stage('Build') {
+            when {
+                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                sh """
+                    . ${VENV_DIR}/bin/activate
+                    python -m build
+                """
+                archiveArtifacts 'dist/*'
+            }
+        }
         stage('Build Docs') {
             steps {
                 script {
@@ -159,20 +173,6 @@ pipeline {
                 }
             }
         }
-        
-        stage('Build') {
-            when {
-                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                sh """
-                    . ${VENV_DIR}/bin/activate
-                    python -m build
-                """
-                archiveArtifacts 'dist/*'
-            }
-        }
-        
         stage('Release to PyPI') {
             when {
                 allOf {

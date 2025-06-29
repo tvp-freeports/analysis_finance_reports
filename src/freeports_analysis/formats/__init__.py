@@ -9,6 +9,25 @@ import logging as log
 logger = log.getLogger(__name__)
 
 
+def _str_blocks(blk) -> str:
+    text = f"{blk.__class__.__name__}:  ({blk.type_block.name} type)\n"
+    text += f"\tmetadata {blk.metadata}\n"
+    text_no_last_nl = blk.content
+    if len(blk.content) > 0:
+        if blk.content[-1] == "\n":
+            text_no_last_nl = text_no_last_nl[:-1]
+    text += f'\t"{text_no_last_nl}"'
+    return text
+
+
+def _eq_blocks(a, b) -> bool:
+    equal = True
+    equal = equal and a.type_block == b.type_block
+    equal = equal and a.metadata == b.metadata
+    equal = equal and a.content == b.content
+    return equal
+
+
 class PdfBlock:
     """Rappresent a pdf content block with data to be extracted or relevant for the
     subsequents filtering stages
@@ -32,23 +51,20 @@ class PdfBlock:
             text += "\n"
         return text
 
+    def __eq__(self, other):
+        equal = _eq_blocks(self, other)
+        return equal
+
     def __init__(self, type_block: Enum, metadata: dict, xml_ele: etree.Element):
         self.type_block = type_block
         self.metadata = metadata
         self.content = self._text_form_element(xml_ele)
 
     def __str__(self) -> str:
-        text = f"PdfBlock:  ({self.type_block} type)\n"
-        text += f"\tmetadata {self.metadata}\n"
-        text_no_last_nl = self.content
-        if len(self.content) > 0:
-            if self.content[-1] == "\n":
-                text_no_last_nl = text_no_last_nl[:-1]
-        text += f'\t"{text_no_last_nl}"'
-        return text
+        return _str_blocks(self)
 
 
-class Text_Block:
+class TextBlock:
     type_block: Enum
     metadata: dict
     content: str
@@ -59,6 +75,14 @@ class Text_Block:
         self.metadata = metadata
         self.pdf_block = pdf_block
         self.content = pdf_block.content
+
+    def __str__(self) -> str:
+        return _str_blocks(self)
+
+    def __eq__(self, other):
+        equal = _eq_blocks(self, other)
+        equal = equal and self.pdf_block == other.pdf_block
+        return equal
 
 
 def pdf_filter_exec(
@@ -82,12 +106,12 @@ def pdf_filter_exec(
 def text_extract_exec(
     pdf_blocks: List[PdfBlock],
     targets: List[str],
-    text_extract_func: Callable[[List[PdfBlock], List[str]], List[Text_Block]],
-) -> List[Text_Block]:
+    text_extract_func: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
+) -> List[TextBlock]:
     return text_extract_func(pdf_blocks, targets)
 
 
 def tabularize_exec(
-    text_blocks: List[Text_Block], tabularize_func: Callable[[Text_Block], dict]
+    TextBlocks: List[TextBlock], tabularize_func: Callable[[TextBlock], dict]
 ) -> List[dict]:
-    return [tabularize_func(txtblk) for txtblk in text_blocks]
+    return [tabularize_func(txtblk) for txtblk in TextBlocks]

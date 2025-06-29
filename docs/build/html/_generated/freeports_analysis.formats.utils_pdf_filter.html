@@ -55,6 +55,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
@@ -103,20 +104,57 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_page_if</span></code>(condition)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.get_lines_with_font" title="freeports_analysis.formats.utils_pdf_filter.get_lines_with_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_font</span></code></a>(blk, font)</p></td>
+<td><p>Return all the line with a certain font in a tree</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_positioned</span></code>(blk)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_positioned</span></code>(blk)</p></td>
+<td><p></p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
 <td><p>Return if a certain pdf block with a specific text and font is present in the tree</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.lines_with_font" title="freeports_analysis.formats.utils_pdf_filter.lines_with_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lines_with_font</span></code></a>(blk, font)</p></td>
-<td><p>Return all the line with a certain font in a tree</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code>(_)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code>(_)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code>(header_txt, ...)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code>(header_txt, ...)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_PdfBlockType</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.get_lines_with_font">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk:</span> <span class="pre">&lt;module</span> <span class="pre">'lxml.etree'</span> <span class="pre">from</span> <span class="pre">'/home/giuly/Desktop/Progetti/freeports-AMUNDI/venv/freeports-dev/lib/python3.13/site-packages/lxml/etree.cpython-313-x86_64-linux-gnu.so'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font:</span> <span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">so'&gt;]</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.get_lines_with_font" title="Link to this definition"></a></dt>
+<dd><p>Return all the line with a certain font in a tree</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blk</strong> (<em>etree</em>) – tree from which extract lines</p></li>
+<li><p><strong>font</strong> (<em>str</em>) – font to extract</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of relevant blocks</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[etree]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_present_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk:</span> <span class="pre">&lt;module</span> <span class="pre">'lxml.etree'</span> <span class="pre">from</span> <span class="pre">'/home/giuly/Desktop/Progetti/freeports-AMUNDI/venv/freeports-dev/lib/python3.13/site-packages/lxml/etree.cpython-313-x86_64-linux-gnu.so'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font:</span> <span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="Link to this definition"></a></dt>
@@ -138,25 +176,10 @@
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.lines_with_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">lines_with_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk:</span> <span class="pre">&lt;module</span> <span class="pre">'lxml.etree'</span> <span class="pre">from</span> <span class="pre">'/home/giuly/Desktop/Progetti/freeports-AMUNDI/venv/freeports-dev/lib/python3.13/site-packages/lxml/etree.cpython-313-x86_64-linux-gnu.so'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font:</span> <span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">so'&gt;]</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.lines_with_font" title="Link to this definition"></a></dt>
-<dd><p>Return all the line with a certain font in a tree</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>blk</strong> (<em>etree</em>) – tree from which extract lines</p></li>
-<li><p><strong>font</strong> (<em>str</em>) – font to extract</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>list of relevant blocks</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[etree]</p>
-</dd>
-</dl>
-</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">one_PdfBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 </section>
 

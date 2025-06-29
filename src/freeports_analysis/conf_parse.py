@@ -9,7 +9,7 @@ import logging as log
 from xdg import BaseDirectory
 import yaml
 
-from .consts import ENV_PREFIX, PDF_Formats
+from .consts import ENV_PREFIX, PdfFormats
 
 _logger = log.getLogger(__name__)
 
@@ -108,7 +108,7 @@ DEFAULT_CONFIG = {
     "VERBOSITY": 2,
     "BATCH_WORKERS": None,
     "BATCH": None,
-    "OUT_CSV": "/dev/stdout"
+    "OUT_CSV": Path("/dev/stdout")
     if os.name == "posix"
     else "CON"
     if os.name == "nt"
@@ -129,7 +129,7 @@ schema_yaml_config = {
     "batch_path": ("BATCH", Path),
     "out_path": ("OUT_CSV", Path),
     "save_pdf": ("SAVE_PDF", bool),
-    "format": ("FORMAT", lambda x: PDF_Formats.__members__[x.strip()]),
+    "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
 }
 
 
@@ -155,7 +155,7 @@ schema_env_config = {
     f"{ENV_PREFIX}BATCH": ("BATCH", Path),
     f"{ENV_PREFIX}OUT_CSV": ("OUT_CSV", Path),
     f"{ENV_PREFIX}SAVE_PDF": ("SAVE_PDF", _str_to_bool),
-    f"{ENV_PREFIX}FORMAT": ("FORMAT", lambda x: PDF_Formats.__members__[x.strip()]),
+    f"{ENV_PREFIX}FORMAT": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     f"{ENV_PREFIX}PDF": ("PDF", Path),
     f"{ENV_PREFIX}CONFIG_FILE": ("CONFIG_FILE", Path),
 }
@@ -163,7 +163,7 @@ schema_env_config = {
 schema_job_csv_config = {
     "url": ("URL", str),
     "save pdf": ("SAVE_PDF", _str_to_bool),
-    "format": ("FORMAT", lambda x: PDF_Formats.__members__[x.strip()]),
+    "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     "pdf": ("PDF", Path),
     "prefix out": ("PREFIX_OUT_CSV", str),
 }

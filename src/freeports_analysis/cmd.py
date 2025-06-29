@@ -3,8 +3,9 @@
 import argparse
 import logging as log
 from pathlib import Path
+from typing import Tuple
 
-from freeports_analysis.consts import PDF_Formats
+from freeports_analysis.consts import PdfFormats
 from freeports_analysis.conf_parse import (
     PossibleLocationConfig,
     DEFAULT_CONFIG,
@@ -47,17 +48,18 @@ def _create_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--workers", "-j", type=int, help=help_str)
     parser.add_argument(
-        "--format", "-f", type=str, choices=PDF_Formats.__members__, help="PDF format"
+        "--format", "-f", type=str, choices=PdfFormats.__members__, help="PDF format"
     )
     parser.add_argument(
         "--no-download", action="store_true", help="Don't save file locally"
     )
     parser.add_argument("--config", type=str, help="Custom configuration file location")
+    out_csv = DEFAULT_CONFIG["OUT_CSV"]
     parser.add_argument(
         "--out",
         "-o",
         type=str,
-        help="Output file cvs (default path: '" + DEFAULT_CONFIG["OUT_CSV"] + "')",
+        help=f"Output file cvs (default path: '{out_csv}')",
     )
     verb = DEFAULT_CONFIG["VERBOSITY"]
     parser.add_argument(
@@ -84,7 +86,7 @@ def _set_str_arg(
     return config, config_location
 
 
-def overwrite_with_args(args, config, config_location):
+def overwrite_with_args(args, config: dict, config_location: dict) -> Tuple[dict, dict]:
     """Overwrite configuration provided and update the dictionary containing
     from where the configuration are loaded from accordingly, using command line arguments
 
@@ -103,7 +105,7 @@ def overwrite_with_args(args, config, config_location):
     for name_conf, value, cast_func in [
         ("URL", args.url, str),
         ("PDF", args.pdf, Path),
-        ("FORMAT", args.format, lambda x: PDF_Formats.__members__[x.strip()]),
+        ("FORMAT", args.format, lambda x: PdfFormats.__members__[x.strip()]),
         ("OUT_CSV", args.out, Path),
         ("BATCH", args.batch, Path),
         ("BATCH_WORKERS", args.workers, int),

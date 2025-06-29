@@ -55,6 +55,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
@@ -112,19 +113,16 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.prefix_similarity" title="freeports_analysis.formats.utils_text_extract.prefix_similarity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_similarity</span></code></a>(a, b)</p></td>
 <td><p>Compute a similarity ratio from the beginning of the two strings.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction</span></code>(match_func, ...)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction</span></code>(extract_positions)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction_func</span></code>(pdf_blocks, ...)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_fuzzy_match</span></code>(text, target, ratio)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_fuzzy_match</span></code>(text, target, ratio)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_match</span></code>(text, target)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_match</span></code>(text, target)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_prefix_match</span></code>(text, target, ratio)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_prefix_match</span></code>(text, target, ratio)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -132,14 +130,22 @@
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.Text_BlockType" title="freeports_analysis.formats.utils_text_extract.Text_BlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Text_BlockType</span></code></a>(*values)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EquityBondTextBlockType</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="freeports_analysis.formats.utils_text_extract.OneTextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OneTextBlockType</span></code></a>(*values)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.Text_BlockType">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">Text_BlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.Text_BlockType" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">EquityBondTextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.OneTextBlockType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">OneTextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">

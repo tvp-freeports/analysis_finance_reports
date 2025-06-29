@@ -109,10 +109,13 @@ the command from commandline (to use the package as a script).</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.main.get_functions" title="freeports_analysis.main.get_functions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_functions</span></code></a>(format_pdf)</p></td>
 <td><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use implementation of specific PDF format</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_targets</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(config)</p></td>
 <td><p>Main function that expect the configuration to be already provided (for example with arguments on command line or with <cite>env variables</cite>)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets, funcs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets, funcs)</p></td>
 <td><p>Apply the pipeline of actions in order to get data in <cite>csv</cite></p></td>
 </tr>
 </tbody>
@@ -135,12 +138,12 @@ report, and no explicit format is specified</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.get_functions">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PDF_Formats" title="freeports_analysis.consts.PDF_Formats"><span class="pre">PDF_Formats</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.get_functions" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PdfFormats" title="freeports_analysis.consts.PdfFormats"><span class="pre">PdfFormats</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.get_functions" title="Link to this definition"></a></dt>
 <dd><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use
 implementation of specific PDF format</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>format</strong> (<a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PDF_Formats" title="freeports_analysis.consts.PDF_Formats"><em>PDF_Formats</em></a>) – The format detected used to choose the decoding implementation</p>
+<dd class="field-odd"><p><strong>format</strong> (<a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PdfFormats" title="freeports_analysis.consts.PdfFormats"><em>PdfFormats</em></a>) – The format detected used to choose the decoding implementation</p>
 </dd>
 </dl>
 </dd></dl>
