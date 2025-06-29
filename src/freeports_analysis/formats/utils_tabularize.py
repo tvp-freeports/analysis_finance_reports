@@ -23,6 +23,24 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
 
 
 def to_int(data: str) -> int:
+    """Cast to int in a more loose way than the standard python `int`
+    namely it remove dots or commas and spaces around the string
+
+    Parameters
+    ----------
+    data : str
+        number written in string form
+
+    Returns
+    -------
+    int
+        casted result
+
+    Raises
+    ------
+    ValueError
+        the resulting processed string cannot be casted to `int`
+    """
     data = normalize_word(data)
     data = data.replace(",", "")
     data = data.replace(".", "")
