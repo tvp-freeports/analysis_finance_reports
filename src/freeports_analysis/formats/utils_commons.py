@@ -1,3 +1,6 @@
+from typing import Callable, Any
+
+
 def normalize_string(string: str):
     string = string.strip()
     string = string.lower()
@@ -12,6 +15,20 @@ def normalize_word(word: str):
 
 
 def default_if_not_implemented(default_func):
+    """Replace the decorated function with a default given as argument of the decorator
+    if the decorated function raise a `NotImplementedError` or return `None`
+
+    Parameters
+    ----------
+    default_func : Callable[Any,Any]
+        default function
+
+    Returns
+    -------
+    Callable[Any,Any]
+        the default function if the deorated function is overwritten, if not the decorated function
+    """
+
     def wrapper(primary_func):
         def func(*args, **kwargs):
             try:

@@ -3,6 +3,7 @@
 import argparse
 import logging as log
 from pathlib import Path
+from typing import Tuple
 
 from freeports_analysis.consts import PdfFormats
 from freeports_analysis.conf_parse import (
@@ -85,7 +86,7 @@ def _set_str_arg(
     return config, config_location
 
 
-def overwrite_with_args(args, config, config_location):
+def overwrite_with_args(args, config: dict, config_location: dict) -> Tuple[dict, dict]:
     """Overwrite configuration provided and update the dictionary containing
     from where the configuration are loaded from accordingly, using command line arguments
 
