@@ -11,7 +11,9 @@
    
       filter_page_if
       get_lines_with_font
+      is_contained
       is_positioned
+      is_present_contained
       is_present_positioned
       is_present_txt_font
       one_pdf_blk

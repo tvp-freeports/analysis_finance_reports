@@ -1,6 +1,8 @@
+"""AMUNDI format submodule"""
+
 from enum import Enum
-from lxml import etree
 from typing import List
+from lxml import etree
 from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import (
     one_pdf_blk,

@@ -1,14 +1,43 @@
-from typing import Any, Callable, TypeVar, ParamSpec
+"""Utilities of general interest common to all formats and that can be used
+for creating `pdf_filter` or `text_extract` or `tabularize` functions
+"""
+
+from typing import Callable, TypeVar, ParamSpec
 
 
-def normalize_string(string: str):
+def normalize_string(string: str) -> str:
+    """Normalize a string by:
+    1. Stripping leading/trailing whitespace
+    2. Converting to lowercase
+    3. Collapsing multiple whitespaces into single spaces
+    Parameters
+    ----------
+    string : str
+        Input string to normalize
+    Returns
+    -------
+    str
+        Normalized string
+    """
     string = string.strip()
     string = string.lower()
     string = " ".join(string.split())
     return string
 
 
-def normalize_word(word: str):
+def normalize_word(word: str) -> str:
+    """Normalize a word by:
+    1. Stripping leading/trailing whitespace
+    2. Removing all whitespace between characters
+    Parameters
+    ----------
+    word : str
+        Input word to normalize
+    Returns
+    -------
+    str
+        Normalized word with no whitespace
+    """
     word = word.strip()
     word = "".join(word.split())
     return word

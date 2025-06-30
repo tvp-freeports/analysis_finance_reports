@@ -55,6 +55,10 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.tabularize_exec"><code class="docutils literal notranslate"><span class="pre">tabularize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
@@ -101,29 +105,39 @@
              
   <section id="module-freeports_analysis.formats.utils_text_extract">
 <span id="freeports-analysis-formats-utils-text-extract"></span><h1>freeports_analysis.formats.utils_text_extract<a class="headerlink" href="#module-freeports_analysis.formats.utils_text_extract" title="Link to this heading"></a></h1>
+<p>Module for text block processing and extraction in document analysis.</p>
+<p>This module provides functionality for:
+- Defining text block types through enumerations
+- Matching text against targets using various matching strategies
+- Extracting text blocks from PDF documents based on target matches
+- Supporting different matching methods (exact, fuzzy, prefix-based)</p>
+<p>Key components:
+- Matching functions (target_match, target_fuzzy_match, target_prefix_match)
+- Decorators for text block type definition (one_txt_blk, equity_bond_blks)
+- Standard text extraction functionality through standard_text_extraction decorator</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">equity_bond_blks</span></code>(_)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.equity_bond_blks" title="freeports_analysis.formats.utils_text_extract.equity_bond_blks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">equity_bond_blks</span></code></a>(_)</p></td>
+<td><p>Decorator for overwriting classes definition with two text block types one for Equity rows, the other for Bond rows.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_txt_blk</span></code>(_)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.one_txt_blk" title="freeports_analysis.formats.utils_text_extract.one_txt_blk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_txt_blk</span></code></a>(_)</p></td>
+<td><p>Decorator for overwriting classes definition with a unique text block type.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.prefix_similarity" title="freeports_analysis.formats.utils_text_extract.prefix_similarity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_similarity</span></code></a>(a, b)</p></td>
 <td><p>Compute a similarity ratio from the beginning of the two strings.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction</span></code>(extract_positions)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.standard_text_extraction" title="freeports_analysis.formats.utils_text_extract.standard_text_extraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction</span></code></a>(extract_positions)</p></td>
+<td><p>Decorator for defining standard text extraction logic from PDF blocks based on target matches.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_fuzzy_match</span></code>(text, target, ratio)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.target_fuzzy_match" title="freeports_analysis.formats.utils_text_extract.target_fuzzy_match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_fuzzy_match</span></code></a>(text, target, ratio)</p></td>
+<td><p>Perform fuzzy string matching between normalized text and target.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_match</span></code>(text, target)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.target_match" title="freeports_analysis.formats.utils_text_extract.target_match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_match</span></code></a>(text, target)</p></td>
+<td><p>Check if normalized target string is contained within normalized text.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_prefix_match</span></code>(text, target, ratio)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.target_prefix_match" title="freeports_analysis.formats.utils_text_extract.target_prefix_match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_prefix_match</span></code></a>(text, target, ratio)</p></td>
+<td><p>Check if the normalized prefix of the target string matches the normalized text with a given similarity ratio.</p></td>
 </tr>
 </tbody>
 </table>
@@ -131,28 +145,201 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EquityBondTextBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Enum representing two type of text blocks in document processing.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="freeports_analysis.formats.utils_text_extract.OneTextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OneTextBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Enum representing one type of text blocks in document processing.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">EquityBondTextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Enum representing two type of text blocks in document processing.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType.BOND_TARGET">
+<span class="sig-name descname"><span class="pre">BOND_TARGET</span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType.BOND_TARGET" title="Link to this definition"></a></dt>
+<dd><p>Text block containing target <cite>Bond</cite> row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType.EQUITY_TARGET">
+<span class="sig-name descname"><span class="pre">EQUITY_TARGET</span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType.EQUITY_TARGET" title="Link to this definition"></a></dt>
+<dd><p>Text block containing target <cite>Equity</cite> row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.OneTextBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">OneTextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Enum representing one type of text blocks in document processing.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.OneTextBlockType.TARGET">
+<span class="sig-name descname"><span class="pre">TARGET</span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType.TARGET" title="Link to this definition"></a></dt>
+<dd><p>Text block containing target information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.equity_bond_blks">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">equity_bond_blks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType"><span class="pre">EquityBondTextBlockType</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.equity_bond_blks" title="Link to this definition"></a></dt>
+<dd><p>Decorator for overwriting classes definition with two
+text block types one for Equity rows, the other for Bond rows.
+It is helpful when there is only one type of text block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The text block type enum.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType" title="freeports_analysis.formats.utils_text_extract.EquityBondTextBlockType">EquityBondTextBlockType</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.one_txt_blk">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">one_txt_blk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="freeports_analysis.formats.utils_text_extract.OneTextBlockType"><span class="pre">OneTextBlockType</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.one_txt_blk" title="Link to this definition"></a></dt>
+<dd><p>Decorator for overwriting classes definition with a unique
+text block type. It is helpful when there is only one type of text block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The text block type enum.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.formats.utils_text_extract.OneTextBlockType" title="freeports_analysis.formats.utils_text_extract.OneTextBlockType">OneTextBlockType</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.prefix_similarity">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">prefix_similarity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.prefix_similarity" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">prefix_similarity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.prefix_similarity" title="Link to this definition"></a></dt>
 <dd><p>Compute a similarity ratio from the beginning of the two strings.
 Only matching prefixes are considered.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>str</em>) – first string to compare</p></li>
+<li><p><strong>b</strong> (<em>str</em>) – second string to compare</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>similarity ratio between 0.0 and 1.0</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.standard_text_extraction">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">standard_text_extraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extract_positions:</span> <span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_func=&lt;function</span> <span class="pre">target_match&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.standard_text_extraction" title="Link to this definition"></a></dt>
+<dd><p>Decorator for defining standard text extraction
+logic from PDF blocks based on target matches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>extract_positions</strong> (<em>dict</em>) – Dictionary specifying metadata keys and
+their relative positions (offsets) from matched blocks</p></li>
+<li><p><strong>match_func</strong> (<em>callable</em><em>, </em><em>optional</em>) – Matching function to compare text against targets (default: target_match)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A wrapped text extraction function that processes
+PDF blocks and returns matched TextBlock objects</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The decorated function can optionally be specified
+with the purpose of including additional metadata.
+The extraction process:
+1. Normalizes and matches text against targets using the specified match_func
+2. Extracts metadata from surrounding blocks based on extract_positions
+3. Creates TextBlock objects for successful matches</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.target_fuzzy_match">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">target_fuzzy_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.target_fuzzy_match" title="Link to this definition"></a></dt>
+<dd><p>Perform fuzzy string matching between normalized text and target.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – The input text to compare</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – The target string to compare against</p></li>
+<li><p><strong>ratio</strong> (<em>float</em>) – The minimum similarity ratio threshold (0.0 to 1.0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if similarity ratio meets or exceeds threshold, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.target_match">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">target_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.target_match" title="Link to this definition"></a></dt>
+<dd><p>Check if normalized target string is contained within normalized text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – The input text to search within</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – The target string to search for</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if target is found in text after normalization, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_text_extract.target_prefix_match">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_text_extract.</span></span><span class="sig-name descname"><span class="pre">target_prefix_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_text_extract.target_prefix_match" title="Link to this definition"></a></dt>
+<dd><p>Check if the normalized prefix of the target string
+matches the normalized text with a given similarity ratio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – The input text to compare against the target prefix</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – The target string whose prefix is being matched</p></li>
+<li><p><strong>ratio</strong> (<em>float</em>) – The minimum similarity ratio threshold (0.0 to 1.0) for the prefix match</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the normalized prefix similarity meets or exceeds the threshold, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

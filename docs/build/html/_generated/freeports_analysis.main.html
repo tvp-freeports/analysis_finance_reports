@@ -56,7 +56,11 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.main</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected"><code class="docutils literal notranslate"><span class="pre">NoPDFormatDetected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.batch_job_confs"><code class="docutils literal notranslate"><span class="pre">batch_job_confs()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.get_functions"><code class="docutils literal notranslate"><span class="pre">get_functions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.pipeline"><code class="docutils literal notranslate"><span class="pre">pipeline()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -103,19 +107,19 @@ the command from commandline (to use the package as a script).</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_job_confs</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.batch_job_confs" title="freeports_analysis.main.batch_job_confs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_job_confs</span></code></a>(config)</p></td>
 <td><p>Create a list of configurations overwritten after reading a batch file with job contextual options</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.main.get_functions" title="freeports_analysis.main.get_functions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_functions</span></code></a>(format_pdf)</p></td>
 <td><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use implementation of specific PDF format</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_targets</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.get_targets" title="freeports_analysis.main.get_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_targets</span></code></a>()</p></td>
+<td><p>Read target names from a CSV file and return them as a list.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code>(config)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.main.main" title="freeports_analysis.main.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>(config)</p></td>
 <td><p>Main function that expect the configuration to be already provided (for example with arguments on command line or with <cite>env variables</cite>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code>(pdf_file, targets, funcs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.pipeline" title="freeports_analysis.main.pipeline"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline</span></code></a>(pdf_file, targets, funcs)</p></td>
 <td><p>Apply the pipeline of actions in order to get data in <cite>csv</cite></p></td>
 </tr>
 </tbody>
@@ -137,6 +141,24 @@ report, and no explicit format is specified</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.main.batch_job_confs">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">batch_job_confs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.batch_job_confs" title="Link to this definition"></a></dt>
+<dd><p>Create a list of configurations overwritten after reading
+a batch file with job contextual options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<em>dict</em>) – configuration to overwrite</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of configurations</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.get_functions">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_functions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PdfFormats" title="freeports_analysis.consts.PdfFormats"><span class="pre">PdfFormats</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.get_functions" title="Link to this definition"></a></dt>
 <dd><p>Set wrapper functions <cite>PDF_FILTER</cite>, <cite>TEXT_EXTRACT</cite> and <cite>TABULARIZE</cite> to use
@@ -144,6 +166,64 @@ implementation of specific PDF format</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>format</strong> (<a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.PdfFormats" title="freeports_analysis.consts.PdfFormats"><em>PdfFormats</em></a>) – The format detected used to choose the decoding implementation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.main.get_targets">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.get_targets" title="Link to this definition"></a></dt>
+<dd><p>Read target names from a CSV file and return them as a list.</p>
+<p>Reads the first column of ‘target.csv’ (excluding header row) and returns
+the values as a list of strings. The file is expected to be in the package’s
+data directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of target names extracted from the CSV file.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[str]</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>FileNotFoundError</strong> – If ‘target.csv’ doesn’t exist in the data directory.</p></li>
+<li><p><strong>IndexError</strong> – If the CSV file is empty or malformed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.main.main">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.main" title="Link to this definition"></a></dt>
+<dd><p>Main function that expect the configuration to be already provided
+(for example with arguments on command line or with <cite>env variables</cite>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected" title="freeports_analysis.main.NoPDFormatDetected"><strong>NoPDFormatDetected</strong></a> – if no explicit format is provided and an url is not provided
+    or not associated with any format the program cannot choose a way to
+    decode the pdf, so it raises this exception</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.main.pipeline">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Document</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funcs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.main.pipeline" title="Link to this definition"></a></dt>
+<dd><p>Apply the pipeline of actions in order to get data in <cite>csv</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pdf_file</strong> (<em>pypdf.Document</em>) – <cite>pdf</cite> document to process in the format used in the python package <cite>pymupdf</cite></p></li>
+<li><p><strong>targets</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – the list of relevant companies in the report from which data is relevant</p></li>
+<li><p><strong>funcs</strong> (<em>dict</em>) – the dictionary containing the functions to use in order to parse the pdf</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>pandas dataframe with extracted data</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>

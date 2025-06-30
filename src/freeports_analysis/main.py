@@ -38,7 +38,6 @@ from freeports_analysis.conf_parse import (
     schema_job_csv_config,
 )
 
-__all__ = ["NoPDFormatDetected", "get_functions"]
 
 logger = log.getLogger(__name__)
 
@@ -144,11 +143,29 @@ def batch_job_confs(config: dict) -> List[dict]:
 
 
 def get_targets() -> List[str]:
+    """Read target names from a CSV file and return them as a list.
+
+    Reads the first column of 'target.csv' (excluding header row) and returns
+    the values as a list of strings. The file is expected to be in the package's
+    data directory.
+
+    Returns
+    -------
+    List[str]
+        list of target names extracted from the CSV file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If 'target.csv' doesn't exist in the data directory.
+    IndexError
+        If the CSV file is empty or malformed.
+    """
     targets = []
     with files(data).joinpath("target.csv").open("r") as f:
         target_csv = csv.reader(f)
-        targets = [row[0] for row in target_csv]
-        targets.pop(0)
+        targets = [row[0] for row in target_csv if row]  # Skip empty rows
+        targets.pop(0)  # Remove header
     return targets
 
 

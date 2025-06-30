@@ -55,6 +55,10 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.tabularize_exec"><code class="docutils literal notranslate"><span class="pre">tabularize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
@@ -101,29 +105,36 @@
              
   <section id="module-freeports_analysis.formats.utils_pdf_filter">
 <span id="freeports-analysis-formats-utils-pdf-filter"></span><h1>freeports_analysis.formats.utils_pdf_filter<a class="headerlink" href="#module-freeports_analysis.formats.utils_pdf_filter" title="Link to this heading"></a></h1>
+<p>Utilities for writing <cite>pdf_filter</cite> functions</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_page_if</span></code>(condition)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.filter_page_if" title="freeports_analysis.formats.utils_pdf_filter.filter_page_if"><code class="xref py py-obj docutils literal notranslate"><span class="pre">filter_page_if</span></code></a>(condition)</p></td>
+<td><p>Decorator factory for conditionally applying a PDF filter based on a predicate.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.get_lines_with_font" title="freeports_analysis.formats.utils_pdf_filter.get_lines_with_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_font</span></code></a>(blk, font)</p></td>
 <td><p>Return all the line with a certain font in a tree</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_positioned</span></code>(blk)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_contained" title="freeports_analysis.formats.utils_pdf_filter.is_contained"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_contained</span></code></a>(blk[, x_range, y_range])</p></td>
+<td><p>Check if a block's bounding box is fully contained within specified ranges.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_positioned</span></code>(blk)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_positioned</span></code></a>(blk[, x_range, y_range])</p></td>
+<td><p>Check if a block is positioned within specified x and/or y ranges.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_contained" title="freeports_analysis.formats.utils_pdf_filter.is_present_contained"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_contained</span></code></a>(blk, text[, x_range, ...])</p></td>
+<td><p>Check if text is present in a block fully contained within specified ranges.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_present_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_positioned</span></code></a>(blk, text[, x_range, ...])</p></td>
+<td><p>Check if text is present in a block within specified coordinate ranges.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
 <td><p>Return if a certain pdf block with a specific text and font is present in the tree</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code>(_)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_pdf_blk" title="freeports_analysis.formats.utils_pdf_filter.one_pdf_blk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code></a>(_)</p></td>
+<td><p>Decorator for overwriting classes definition with a unique pdf block type.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code>(header_txt, ...)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter" title="freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code></a>(header_txt, ...)</p></td>
+<td><p>Decorator factory for creating PDF filters that process pages with specific header and body fonts.</p></td>
 </tr>
 </tbody>
 </table>
@@ -131,18 +142,39 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_PdfBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Enum representing one type of pdf blocks in document processing.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.filter_page_if">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">filter_page_if</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.filter_page_if" title="Link to this definition"></a></dt>
+<dd><p>Decorator factory for conditionally applying a PDF filter based on a predicate.</p>
+<p>Creates a decorator that will only execute the wrapped PDF filter function if the
+specified condition evaluates to True for the given XML root element.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>condition</strong> (<em>Callable</em><em>[</em><em>[</em><em>etree.Element</em><em>]</em><em>, </em><em>bool</em><em>]</em>) – A function that takes an XML element and returns True if the filter should be applied</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A decorator that can be applied to PDF filter functions</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The decorated PDF filter function must accept an XML root element and return a list of PdfBlocks</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.get_lines_with_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk:</span> <span class="pre">&lt;module</span> <span class="pre">'lxml.etree'</span> <span class="pre">from</span> <span class="pre">'/home/giuly/Desktop/Progetti/freeports-AMUNDI/venv/freeports-dev/lib/python3.13/site-packages/lxml/etree.cpython-313-x86_64-linux-gnu.so'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font:</span> <span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">so'&gt;]</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.get_lines_with_font" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.get_lines_with_font" title="Link to this definition"></a></dt>
 <dd><p>Return all the line with a certain font in a tree</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>blk</strong> (<em>etree</em>) – tree from which extract lines</p></li>
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – tree from which extract lines</p></li>
 <li><p><strong>font</strong> (<em>str</em>) – font to extract</p></li>
 </ul>
 </dd>
@@ -150,19 +182,104 @@
 <dd class="field-even"><p>list of relevant blocks</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[etree]</p>
+<dd class="field-odd"><p>List[etree.Element]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_contained">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_contained</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_contained" title="Link to this definition"></a></dt>
+<dd><p>Check if a block’s bounding box is fully contained within specified ranges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML element representing a PDF block</p></li>
+<li><p><strong>x_range</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Horizontal range (min_x, max_x)</p></li>
+<li><p><strong>y_range</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Vertical range (min_y, max_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if entire bbox is within ranges, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_positioned">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_positioned</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_positioned" title="Link to this definition"></a></dt>
+<dd><p>Check if a block is positioned within specified x and/or y ranges.
+:param blk: XML element representing a PDF block
+:type blk: etree.Element
+:param x_range: Minimum and maximum x-coordinate values (left, right)
+:type x_range: Optional[Tuple[float, float]], optional
+:param y_range: Minimum and maximum y-coordinate values (bottom, top)
+:type y_range: Optional[Tuple[float, float]], optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if block’s coordinates are within specified ranges, False otherwise</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_present_contained">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_present_contained</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_present_contained" title="Link to this definition"></a></dt>
+<dd><p>Check if text is present in a block fully contained within specified ranges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML element representing a PDF block</p></li>
+<li><p><strong>text</strong> (<em>str</em>) – Text to search for</p></li>
+<li><p><strong>x_range</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Horizontal range (min_x, max_x)</p></li>
+<li><p><strong>y_range</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Vertical range (min_y, max_y)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if text is found in block fully contained within ranges, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_present_positioned">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_present_positioned</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_present_positioned" title="Link to this definition"></a></dt>
+<dd><p>Check if text is present in a block within specified coordinate ranges.
+:param blk: XML element representing a PDF block
+:type blk: etree.Element
+:param text: Text to search for
+:type text: str
+:param x_range: Horizontal range (left, right)
+:type x_range: Optional[Tuple[float, float]], optional
+:param y_range: Vertical range (bottom, top)
+:type y_range: Optional[Tuple[float, float]], optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if text is found in block within ranges, False otherwise</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_present_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk:</span> <span class="pre">&lt;module</span> <span class="pre">'lxml.etree'</span> <span class="pre">from</span> <span class="pre">'/home/giuly/Desktop/Progetti/freeports-AMUNDI/venv/freeports-dev/lib/python3.13/site-packages/lxml/etree.cpython-313-x86_64-linux-gnu.so'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font:</span> <span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_present_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="Link to this definition"></a></dt>
 <dd><p>Return if a certain pdf block with a specific text and font is present in the tree</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>blk</strong> (<em>etree</em>) – tree to search in</p></li>
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – tree to search in</p></li>
 <li><p><strong>txt</strong> (<em>str</em>) – text to search</p></li>
 <li><p><strong>font</strong> (<em>str</em>) – font to search</p></li>
 </ul>
@@ -179,7 +296,63 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">one_PdfBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Enum representing one type of pdf blocks in document processing.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType.RELEVANT_BLOCK">
+<span class="sig-name descname"><span class="pre">RELEVANT_BLOCK</span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType.RELEVANT_BLOCK" title="Link to this definition"></a></dt>
+<dd><p>Pdf block with relevant information to extract.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.one_pdf_blk">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">one_pdf_blk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType"><span class="pre">one_PdfBlockType</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.one_pdf_blk" title="Link to this definition"></a></dt>
+<dd><p>Decorator for overwriting classes definition with a unique
+pdf block type. It is helpful when there is only one type of pdf block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The text block type enum.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType" title="freeports_analysis.formats.utils_pdf_filter.one_PdfBlockType">one_PdfBlockType</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">standard_header_font_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">header_txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter" title="Link to this definition"></a></dt>
+<dd><p>Decorator factory for creating PDF filters
+that process pages with specific header and body fonts.</p>
+<p>Creates a filter that:
+1. Only processes pages containing the specified header text in the specified header font
+2. Extracts all lines with the specified body font as relevant blocks
+3. Allows customization of page metadata and block types through decorated functions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>header_txt</strong> (<em>str</em>) – Text that must be present in header to process the page</p></li>
+<li><p><strong>header_font</strong> (<em>str</em>) – Font name that header text must use</p></li>
+<li><p><strong>body_font</strong> (<em>str</em>) – Font name for lines to extract as relevant blocks</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorator that can be applied to PDF filter functions</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>function</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The decorated function can override:
+- page_metadata(): returns additional metadata dictionary for each page</p>
+</dd></dl>
 
 </section>
 
