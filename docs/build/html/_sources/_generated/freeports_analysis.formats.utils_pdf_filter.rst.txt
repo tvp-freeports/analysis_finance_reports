@@ -23,5 +23,5 @@
 
    .. autosummary::
    
-      OnePdfBlockType
+      one_PdfBlockType
    

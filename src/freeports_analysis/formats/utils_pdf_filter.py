@@ -9,7 +9,7 @@ from .utils_commons import overwrite_if_implemented
 PdfBlockType: TypeAlias = Enum
 
 
-class OnePdfBlockType(Enum):
+class one_PdfBlockType(Enum):
     """Enum representing one type of pdf blocks in document processing.
 
     Attributes
@@ -21,16 +21,16 @@ class OnePdfBlockType(Enum):
     RELEVANT_BLOCK = auto()
 
 
-def one_pdf_blk(_: PdfBlockType) -> OnePdfBlockType:
+def one_pdf_blk(_: PdfBlockType) -> one_PdfBlockType:
     """Decorator for overwriting classes definition with a unique
     pdf block type. It is helpful when there is only one type of pdf block
 
     Returns
     -------
-    OnePdfBlockType
+    one_PdfBlockType
         The text block type enum.
     """
-    return OnePdfBlockType
+    return one_PdfBlockType
 
 
 def standard_header_font_filter(header_txt: str, header_font: str, body_font: str):
