@@ -1,11 +1,14 @@
+"""EURIZON format submodule"""
+
 from enum import Enum, auto
-from lxml import etree
-import re
-from .. import PdfBlock, TextBlock
-from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
 import logging as log
 import datetime as dt
 from typing import List
+import re
+from lxml import etree
+from .. import PdfBlock, TextBlock
+from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
+
 
 logger = log.getLogger(__name__)
 
@@ -16,6 +19,32 @@ def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
 
 
 def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlock]:
+    """Extract target company data from PDF blocks and create TextBlock objects.
+
+    Parameters
+    ----------
+    pdf_blocks : List[PdfBlock]
+        Raw text blocks extracted from PDF
+    targets : List[str]
+        List of company names to search for
+
+    Returns
+    -------
+    List[TextBlock]
+        List of processed TextBlock objects containing:
+        - type_block: TextBlockType (bond/equity classification)
+        - metadata: dict containing extracted financial data
+        - source_block: original PdfBlock
+
+    Notes
+    -----
+    - Handles three formats:
+      1. TARGET_BOND_2LINES: Bond data split across two lines
+      2. TARGET_BOND_LINE: Bond data in single line
+      3. TARGET_EQUITY_LINE: Equity data
+    - Performs case-insensitive matching
+    - Normalizes whitespace in all text
+    """
     text_part_list = []
     for i, row_block in enumerate(pdf_blocks):
         row = row_block.content
@@ -87,6 +116,34 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlo
 
 
 def tabularize(TextBlock: TextBlock) -> dict:
+    """Convert a TextBlock containing EURIZON bond/equity data into a structured dictionary.
+
+    Parameters
+    ----------
+    TextBlock : TextBlock
+        Input text block containing financial data with metadata fields:
+        - match: str (company name)
+        - date: str (dd/mm/yyyy format, only for bonds)
+        - interest rate: str (percentage, only for bonds)
+        - nominal value: str (formatted with commas)
+        - currency: str
+        - acquisition cost: str (formatted with commas)
+        - carrying value: str (formatted with commas)
+        - % net assets: str (percentage)
+
+    Returns
+    -------
+    dict
+        Parsed row containing all numeric values converted to appropriate types:
+        - company: str
+        - date: datetime or None (for equities)
+        - interest rate: float or None (for equities)
+        - nominal value: int
+        - currency: str
+        - acquisition cost: int
+        - carrying value: int
+        - % net asset: float
+    """
     m = TextBlock.metadata
 
     date = None

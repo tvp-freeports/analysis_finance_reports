@@ -55,6 +55,10 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.tabularize_exec"><code class="docutils literal notranslate"><span class="pre">tabularize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
@@ -101,17 +105,19 @@
              
   <section id="module-freeports_analysis.formats.utils_commons">
 <span id="freeports-analysis-formats-utils-commons"></span><h1>freeports_analysis.formats.utils_commons<a class="headerlink" href="#module-freeports_analysis.formats.utils_commons" title="Link to this heading"></a></h1>
+<p>Utilities of general interest common to all formats and that can be used
+for creating <cite>pdf_filter</cite> or <cite>text_extract</cite> or <cite>tabularize</cite> functions</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_commons.default_if_not_implemented" title="freeports_analysis.formats.utils_commons.default_if_not_implemented"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_if_not_implemented</span></code></a>(default_func)</p></td>
 <td><p>Replace the decorated function with a default given as argument of the decorator if the decorated function raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_string</span></code>(string)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_commons.normalize_string" title="freeports_analysis.formats.utils_commons.normalize_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_string</span></code></a>(string)</p></td>
+<td><p>Normalize a string by: 1.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_word</span></code>(word)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_commons.normalize_word" title="freeports_analysis.formats.utils_commons.normalize_word"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_word</span></code></a>(word)</p></td>
+<td><p>Normalize a word by: 1.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_commons.overwrite_if_implemented" title="freeports_analysis.formats.utils_commons.overwrite_if_implemented"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overwrite_if_implemented</span></code></a>(primary_func)</p></td>
 <td><p>Replace the decorated default function with a function given as argument of the decorator if that function do not raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p></td>
@@ -132,6 +138,43 @@ if the decorated function raise a <cite>NotImplementedError</cite> or return <ci
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable[P,R]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_commons.normalize_string">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_commons.</span></span><span class="sig-name descname"><span class="pre">normalize_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_commons.normalize_string" title="Link to this definition"></a></dt>
+<dd><p>Normalize a string by:
+1. Stripping leading/trailing whitespace
+2. Converting to lowercase
+3. Collapsing multiple whitespaces into single spaces
+:param string: Input string to normalize
+:type string: str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Normalized string</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_commons.normalize_word">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_commons.</span></span><span class="sig-name descname"><span class="pre">normalize_word</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">word</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_commons.normalize_word" title="Link to this definition"></a></dt>
+<dd><p>Normalize a word by:
+1. Stripping leading/trailing whitespace
+2. Removing all whitespace between characters
+:param word: Input word to normalize
+:type word: str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Normalized word with no whitespace</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
 </dd>
 </dl>
 </dd></dl>

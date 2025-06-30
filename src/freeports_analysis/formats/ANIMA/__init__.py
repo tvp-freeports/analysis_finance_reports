@@ -1,12 +1,14 @@
-from enum import Enum, auto
-from lxml import etree
-from typing import List, Tuple
+"""ANIMA format submodule"""
+
+import logging as log
+from typing import List
 import re
-from rapidfuzz import fuzz
+from enum import Enum
+from lxml import etree
 from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import one_pdf_blk, standard_header_font_filter
 from ..utils_text_extract import one_txt_blk, standard_text_extraction
-import logging as log
+
 
 logger = log.getLogger(__name__)
 
@@ -22,6 +24,35 @@ def text_extract(pdf_blocks: List[PdfBlock], index: int) -> dict:
 
 
 def tabularize(TextBlock: TextBlock) -> dict:
+    """Convert a TextBlock containing ANIMA holding data into a structured dictionary.
+
+    Parses the metadata from a TextBlock object containing holding information in ANIMA format,
+    extracting holdings count, company name, fair value, and net asset percentage.
+
+    Parameters
+    ----------
+    TextBlock : TextBlock
+        Input text block containing holding data with metadata fields:
+        - holdings: str (formatted with commas as thousand separators)
+        - % net asset: str (percentage value)
+        - fair value: str (formatted with commas as thousand separators)
+        - match: str (company name)
+
+    Returns
+    -------
+    dict
+        Parsed row containing:
+        - holdings: int (numeric value without formatting)
+        - company: str
+        - fair value: int (numeric value without formatting)
+        - % net asset: float
+        Returns empty dict if parsing fails
+
+    Notes
+    -----
+    - Logs a warning if any field fails regex validation
+    - Removes all whitespace before parsing numeric fields
+    """
     holdings_regex = r"^\d{1,3}(?:,\d{3})*$"
     net_assets_regex = r"^\d{1,2}(?:\.\d+)?$"
     fair_value_regex = r"^\d{1,3}(?:,\d{3})*$"

@@ -55,6 +55,10 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.formats</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.tabularize_exec"><code class="docutils literal notranslate"><span class="pre">tabularize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
@@ -104,14 +108,14 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter_exec</span></code>(document, pdf_filter_func)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.pdf_filter_exec" title="freeports_analysis.formats.pdf_filter_exec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter_exec</span></code></a>(document, pdf_filter_func)</p></td>
+<td><p>Processes a PDF document through a filter function to extract relevant blocks.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">tabularize_exec</span></code>(TextBlocks, tabularize_func)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.tabularize_exec" title="freeports_analysis.formats.tabularize_exec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tabularize_exec</span></code></a>(TextBlocks, tabularize_func)</p></td>
+<td><p>Converts TextBlocks into tabular data using a specified formatting function.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract_exec</span></code>(pdf_blocks, targets, ...)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.text_extract_exec" title="freeports_analysis.formats.text_extract_exec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract_exec</span></code></a>(pdf_blocks, targets, ...)</p></td>
+<td><p>Extracts text content from PDF blocks using a specified extraction function.</p></td>
 </tr>
 </tbody>
 </table>
@@ -119,43 +123,179 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfBlock</span></code></a>(type_block, metadata, xml_ele)</p></td>
-<td><p>Rappresent a pdf content block with data to be extracted or relevant for the subsequents filtering stages</p></td>
+<td><p>Represents a PDF content block with data to be extracted or relevant for subsequent filtering stages.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextBlock</span></code>(type_block, metadata, pdf_block)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextBlock</span></code></a>(type_block, metadata, pdf_block)</p></td>
+<td><p>Represents a processed text block derived from a PdfBlock.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">PdfBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xml_ele</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock" title="Link to this definition"></a></dt>
-<dd><p>Rappresent a pdf content block with data to be extracted or relevant for the
-subsequents filtering stages</p>
+<dd><p>Represents a PDF content block with data to be extracted or relevant
+for subsequent filtering stages.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.type_block">
+<span class="sig-name descname"><span class="pre">type_block</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.type_block" title="Link to this definition"></a></dt>
+<dd><p>The type of the PDF block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.metadata" title="Link to this definition"></a></dt>
+<dd><p>Additional metadata associated with the block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.content">
+<span class="sig-name descname"><span class="pre">content</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.content" title="Link to this definition"></a></dt>
+<dd><p>The textual content extracted from the block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">TextBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.TextBlock" title="Link to this definition"></a></dt>
+<dd><p>Represents a processed text block derived from a PdfBlock.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.type_block">
+<span class="sig-name descname"><span class="pre">type_block</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.type_block" title="Link to this definition"></a></dt>
+<dd><p>The type of the text block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.metadata" title="Link to this definition"></a></dt>
+<dd><p>Additional metadata associated with the block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.content">
+<span class="sig-name descname"><span class="pre">content</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.content" title="Link to this definition"></a></dt>
+<dd><p>The textual content of the block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.pdf_block">
+<span class="sig-name descname"><span class="pre">pdf_block</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.pdf_block" title="Link to this definition"></a></dt>
+<dd><p>The original PdfBlock this text was derived from.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock">PdfBlock</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.pdf_filter_exec">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">pdf_filter_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">document</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Document</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf_filter_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.pdf_filter_exec" title="Link to this definition"></a></dt>
+<dd><p>Processes a PDF document through a filter function to extract relevant blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>document</strong> – The PDF document to process.</p></li>
+<li><p><strong>pdf_filter_func</strong> – A function that takes an XML element and returns a list of
+relevant PdfBlock.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of PdfBlock objects containing the filtered content.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.tabularize_exec">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">tabularize_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TextBlocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tabularize_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.tabularize_exec" title="Link to this definition"></a></dt>
+<dd><p>Converts TextBlocks into tabular data using a specified formatting function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TextBlocks</strong> – List of TextBlock objects to process.</p></li>
+<li><p><strong>tabularize_func</strong> – Function that converts a TextBlock into a dictionary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of dictionaries containing the tabularized data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.text_extract_exec">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">text_extract_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_extract_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.text_extract_exec" title="Link to this definition"></a></dt>
+<dd><p>Extracts text content from PDF blocks using a specified extraction function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pdf_blocks</strong> – List of PdfBlock objects to process.</p></li>
+<li><p><strong>targets</strong> – List of target identifiers for extraction.</p></li>
+<li><p><strong>text_extract_func</strong> – Function that processes PdfBlocks and targets into TextBlocks.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of TextBlock objects containing the extracted content.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html#module-freeports_analysis.formats.AMUNDI" title="freeports_analysis.formats.AMUNDI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AMUNDI</span></code></a></p></td>
-<td><p></p></td>
+<td><p>AMUNDI format submodule</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.ANIMA.html#module-freeports_analysis.formats.ANIMA" title="freeports_analysis.formats.ANIMA"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ANIMA</span></code></a></p></td>
-<td><p></p></td>
+<td><p>ANIMA format submodule</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.EURIZON.html#module-freeports_analysis.formats.EURIZON" title="freeports_analysis.formats.EURIZON"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EURIZON</span></code></a></p></td>
-<td><p></p></td>
+<td><p>EURIZON format submodule</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_commons.html#module-freeports_analysis.formats.utils_commons" title="freeports_analysis.formats.utils_commons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_commons</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Utilities of general interest common to all formats and that can be used for creating <cite>pdf_filter</cite> or <cite>text_extract</cite> or <cite>tabularize</cite> functions</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html#module-freeports_analysis.formats.utils_pdf_filter" title="freeports_analysis.formats.utils_pdf_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_pdf_filter</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Utilities for writing <cite>pdf_filter</cite> functions</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_tabularize.html#module-freeports_analysis.formats.utils_tabularize" title="freeports_analysis.formats.utils_tabularize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_tabularize</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html#module-freeports_analysis.formats.utils_text_extract" title="freeports_analysis.formats.utils_text_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils_text_extract</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Module for text block processing and extraction in document analysis.</p></td>
 </tr>
 </tbody>
 </table>
