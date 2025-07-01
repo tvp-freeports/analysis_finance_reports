@@ -84,6 +84,17 @@ def to_int(data: str) -> int:
     return None
 
 
+def to_float(data: str) -> float:
+    data = normalize_word(data)
+    data = data.replace(".", "")
+    data = data.replace(",", ".")
+    try:
+        return float(data)
+    except ValueError:
+        logger.warning("Data %s raise a value error when converting to `float`", data)
+    return None
+
+
 def to_str(data: str) -> str:
     """Normalize a string by stripping whitespace from both ends.
 
@@ -142,6 +153,8 @@ def standard_tabularizer(mapping: dict, tabularize_enanched_types: bool = True) 
                         enanched_cast = to_int
                     elif cast is str:
                         enanched_cast = to_str
+                    elif cast is float:
+                        enanched_cast = to_float
                 row[k if k != "match" else "company"] = enanched_cast(blk.metadata[k])
             return row
 
