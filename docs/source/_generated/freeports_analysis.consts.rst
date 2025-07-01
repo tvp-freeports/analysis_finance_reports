@@ -1,4 +1,4 @@
-freeports\_analysis.consts
+﻿freeports\_analysis.consts
 ==========================
 
 .. automodule:: freeports_analysis.consts
@@ -9,5 +9,10 @@ freeports\_analysis.consts
 
    .. autosummary::
    
+      Bond
+      Currency
+      Equity
+      FinancialData
+      FinancialInstrument
       PdfFormats
    
