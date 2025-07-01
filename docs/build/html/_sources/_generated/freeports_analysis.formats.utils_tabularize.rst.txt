@@ -1,4 +1,4 @@
-freeports\_analysis.formats.utils\_tabularize
+﻿freeports\_analysis.formats.utils\_tabularize
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils_tabularize
@@ -11,6 +11,7 @@ freeports\_analysis.formats.utils\_tabularize
    
       perc_to_float
       standard_tabularizer
+      to_float
       to_int
       to_str
    
