@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats.utils\_tabularize
+freeports\_analysis.formats.utils\_tabularize
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils_tabularize
