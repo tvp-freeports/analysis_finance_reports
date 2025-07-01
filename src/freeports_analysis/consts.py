@@ -43,49 +43,49 @@ class Currency(Enum):
     Contains standard 3-letter ISO currency codes for major world currencies.
     """
 
-    USD = auto()
-    EUR = auto()
-    GBP = auto()
-    JPY = auto()
-    CNY = auto()
-    AUD = auto()
-    CAD = auto()
-    CHF = auto()
-    SEK = auto()
-    NOK = auto()
-    DKK = auto()
-    SGD = auto()
-    HKD = auto()
-    KRW = auto()
-    INR = auto()
-    BRL = auto()
-    MXN = auto()
-    RUB = auto()
-    ZAR = auto()
-    TRY = auto()
-    PLN = auto()
-    THB = auto()
-    IDR = auto()
-    MYR = auto()
-    PHP = auto()
-    ILS = auto()
-    AED = auto()
-    SAR = auto()
-    QAR = auto()
-    KWD = auto()
-    CLP = auto()
-    COP = auto()
-    PEN = auto()
-    ARS = auto()
-    VND = auto()
-    UAH = auto()
-    CZK = auto()
-    HUF = auto()
-    RON = auto()
-    HRK = auto()
-    BGN = auto()
-    ISK = auto()
-    NZD = auto()
+    USD = "$"
+    EUR = "€"
+    GBP = "£"
+    JPY = "¥"
+    CNY = "¥"
+    AUD = "$"
+    CAD = "$"
+    CHF = "CHF"
+    SEK = "kr"
+    NOK = "kr"
+    DKK = "kr"
+    SGD = "$"
+    HKD = "$"
+    KRW = "₩"
+    INR = "₹"
+    BRL = "R$"
+    MXN = "$"
+    RUB = "₽"
+    ZAR = "R"
+    TRY = "₺"
+    PLN = "zł"
+    THB = "฿"
+    IDR = "Rp"
+    MYR = "RM"
+    PHP = "₱"
+    ILS = "₪"
+    AED = "د.إ"
+    SAR = "﷼"
+    QAR = "ر.ق"
+    KWD = "د.ك"
+    CLP = "$"
+    COP = "$"
+    PEN = "S/."
+    ARS = "$"
+    VND = "₫"
+    UAH = "₴"
+    CZK = "Kč"
+    HUF = "Ft"
+    RON = "lei"
+    HRK = "kn"
+    BGN = "лв"
+    ISK = "kr"
+    NZD = "$"
 
 
 class FinancialData(ABC):
@@ -98,6 +98,8 @@ class FinancialData(ABC):
     ----------
     page : int
         The page number where the financial data appears (must be positive).
+    targets: List[str]
+        The list of companies to search for, used as company validation
     company : str
         The name of the company or issuer.
     market_value : float
@@ -125,11 +127,11 @@ class FinancialData(ABC):
         page: int,
         targets: List[str],
         company: str,
+        subfund: str,
+        nominal_quantity: int,
         market_value: float,
         currency: Currency,
         perc_net_assets: float,
-        subfund: str,
-        nominal_quantity: int = None,
         acquisition_cost: float = None,
     ):
         if not 0.0 <= perc_net_assets <= 1.0:
@@ -196,6 +198,41 @@ class FinancialData(ABC):
         """float or None: The original acquisition cost of the instrument."""
         return self._acquisition_cost
 
+    def to_dict(self) -> dict:
+        return {
+            "Page report": self.page,
+            "Company": self.company,
+            "Financial instrument": self.instrument.name,
+            "Sub-fund": self.subfund,
+            "Nominal/Quantity": self.nominal_quantity,
+            "Market value": self.market_value,
+            "Currency": self.currency.name,
+            "% Net Assets": self.perc_net_assets,
+            "Acquisition cost": self.acquisition_cost,
+            "Maturity": None,
+            "Interest rate": None,
+        }
+
+    def _str_additional_infos(self) -> str:
+        string = ""
+        if self.acquisition_cost is not None:
+            string += f"\t\tAquisition cost: {self.acquisition_cost:.2f}{self.currency.value}\n"
+        return string
+
+    def __str__(self) -> str:
+        string = f"{self.__class__.__name__}:\n"
+        string += f"\t{self.instrument.name} {self.subfund} (pag. {self.page})\n"
+        string += f"\tCompany: {self.company}\n"
+        string += f"\tCurrency: {self.currency.name}\n"
+        string += f"\tMarket value: {self.market_value:.2f}{self.currency.value} ({self.perc_net_assets:.2%} of net assets)\n"
+        string += f"\tNominal/Quanatity: {self.nominal_quantity}\n"
+        string += "\tAdditional infos: {"
+        add_string = self._str_additional_infos()
+        if add_string != "":
+            string += "\n" + add_string
+        string += "}\n"
+        return string
+
 
 class Equity(FinancialData):
     """Concrete class representing equity financial instruments.
@@ -235,11 +272,11 @@ class Bond(FinancialData):
         page: int,
         targets: List[str],
         company: str,
+        subfund: str,
+        nominal_quantity: int,
         market_value: float,
         currency: Currency,
         perc_net_assets: float,
-        subfund: str,
-        nominal_quantity: int = None,
         acquisition_cost: float = None,
         maturity: datetime.date = None,
         interest_rate: float = None,
@@ -250,6 +287,8 @@ class Bond(FinancialData):
         ----------
         page : int
             The page number where the bond appears.
+        targets: List[str]
+            The list of companies to search for, used as company validation
         company : str
             The issuer of the bond.
         market_value : float
@@ -273,14 +312,18 @@ class Bond(FinancialData):
             page,
             targets,
             company,
+            subfund,
+            nominal_quantity,
             market_value,
             currency,
             perc_net_assets,
-            subfund,
-            nominal_quantity,
             acquisition_cost,
         )
         self._maturity = maturity
+        if not 0.0 <= interest_rate <= 1.0:
+            logger.warning(
+                "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
+            )
         self._interest_rate = interest_rate
 
     @property
@@ -301,10 +344,6 @@ class Bond(FinancialData):
         -----
         Logs a warning if interest rate is not normalized (0-1 range).
         """
-        if not 0.0 <= self._interest_rate <= 1.0:
-            logger.warning(
-                "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
-            )
         return self._interest_rate
 
     @property
@@ -317,3 +356,19 @@ class Bond(FinancialData):
             Always returns FinancialInstrument.BOND
         """
         return FinancialInstrument.BOND
+
+    def to_dict(self):
+        row = super().to_dict()
+        row["Maturity"] = self.maturity
+        row["Interest rate"] = self.interest_rate
+        return row
+
+    def _str_additional_infos(self) -> str:
+        string = super()._str_additional_infos()
+        if self.maturity is not None and self.interest_rate is not None:
+            string += f"Maturity {self.maturity} +{self.interest_rate:.2%}"
+        elif self.maturity is not None:
+            string += f"Maturity {self.maturity}"
+        elif self.interest_rate is not None:
+            string += f"Interest rate: {self.interest_rate:.2%}"
+        return string
