@@ -27,6 +27,7 @@
    :recursive:
 
    AMUNDI
+   AMUNDI2
    ANIMA
    EURIZON
    utils_commons

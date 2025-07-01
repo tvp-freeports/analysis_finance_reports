@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats.utils\_pdf\_filter
+freeports\_analysis.formats.utils\_pdf\_filter
 ==============================================
 
 .. automodule:: freeports_analysis.formats.utils_pdf_filter
