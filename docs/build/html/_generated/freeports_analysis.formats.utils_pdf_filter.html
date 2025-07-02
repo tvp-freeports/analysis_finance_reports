@@ -119,22 +119,25 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_contained" title="freeports_analysis.formats.utils_pdf_filter.is_contained"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_contained</span></code></a>(blk[, x_range, y_range])</p></td>
 <td><p>Check if a block's bounding box is fully contained within specified ranges.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_positioned</span></code></a>(blk[, x_range, y_range])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_located" title="freeports_analysis.formats.utils_pdf_filter.is_located"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_located</span></code></a>(blk, mean)</p></td>
+<td><p>Return the coordinates or center of a bounding box from a PDF block element.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_positioned</span></code></a>(blk[, x_range, y_range])</p></td>
 <td><p>Check if a block is positioned within specified x and/or y ranges.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_contained" title="freeports_analysis.formats.utils_pdf_filter.is_present_contained"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_contained</span></code></a>(blk, text[, x_range, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_contained" title="freeports_analysis.formats.utils_pdf_filter.is_present_contained"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_contained</span></code></a>(blk, text[, x_range, ...])</p></td>
 <td><p>Check if text is present in a block fully contained within specified ranges.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_present_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_positioned</span></code></a>(blk, text[, x_range, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_positioned" title="freeports_analysis.formats.utils_pdf_filter.is_present_positioned"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_positioned</span></code></a>(blk, text[, x_range, ...])</p></td>
 <td><p>Check if text is present in a block within specified coordinate ranges.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.is_present_txt_font" title="freeports_analysis.formats.utils_pdf_filter.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
 <td><p>Return if a certain pdf block with a specific text and font is present in the tree</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_pdf_blk" title="freeports_analysis.formats.utils_pdf_filter.one_pdf_blk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code></a>(_)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.one_pdf_blk" title="freeports_analysis.formats.utils_pdf_filter.one_pdf_blk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">one_pdf_blk</span></code></a>(_)</p></td>
 <td><p>Decorator for overwriting classes definition with a unique pdf block type.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter" title="freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code></a>(header_txt, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter" title="freeports_analysis.formats.utils_pdf_filter.standard_header_font_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_header_font_filter</span></code></a>(header_txt, ...)</p></td>
 <td><p>Decorator factory for creating PDF filters that process pages with specific header and body fonts.</p></td>
 </tr>
 </tbody>
@@ -205,6 +208,28 @@ specified condition evaluates to True for the given XML root element.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.is_located">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.</span></span><span class="sig-name descname"><span class="pre">is_located</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.is_located" title="Link to this definition"></a></dt>
+<dd><p>Return the coordinates or center of a bounding box from a PDF block element.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML element representing the PDF block, expected to contain a ‘bbox’ attribute.</p></li>
+<li><p><strong>mean</strong> (<em>bool</em>) – If True, return the center point (x, y) of the bounding box.
+If False, return the full bounding box coordinates (x0, y0, x1, y1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of float values representing either the full bounding box or its center.
+Returns None if no ‘bbox’ attribute is found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of float or None</p>
 </dd>
 </dl>
 </dd></dl>

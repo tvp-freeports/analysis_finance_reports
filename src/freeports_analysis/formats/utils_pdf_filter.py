@@ -85,6 +85,38 @@ def standard_header_font_filter(header_txt: str, header_font: str, body_font: st
     return decorator
 
 
+def is_located(blk: etree.Element, mean: bool) -> list | None:
+    """Return the coordinates or center of a bounding box from a PDF block element.
+
+    Parameters
+    ----------
+    blk : etree.Element
+        XML element representing the PDF block, expected to contain a 'bbox' attribute.
+    mean : bool
+        If True, return the center point (x, y) of the bounding box.
+        If False, return the full bounding box coordinates (x0, y0, x1, y1).
+
+    Returns
+    -------
+    list of float or None
+        A list of float values representing either the full bounding box or its center.
+        Returns None if no 'bbox' attribute is found.
+    """
+
+    bbox = blk.xpath(".//@bbox")
+    if not bbox:
+        return None
+
+    coords = [float(c) for c in bbox[0].split()]  # x0, y0, x1, y1
+
+    if mean:
+        x_center = (coords[0] + coords[2]) / 2
+        y_center = (coords[1] + coords[3]) / 2
+        coords = [x_center, y_center]
+
+    return coords
+
+
 def is_present_txt_font(blk: etree.Element, txt: str, font: str) -> bool:
     """Return if a certain pdf block with a specific text and font is present in the tree
 

@@ -1,4 +1,4 @@
-freeports\_analysis.formats.utils\_pdf\_filter
+﻿freeports\_analysis.formats.utils\_pdf\_filter
 ==============================================
 
 .. automodule:: freeports_analysis.formats.utils_pdf_filter
@@ -12,6 +12,7 @@ freeports\_analysis.formats.utils\_pdf\_filter
       filter_page_if
       get_lines_with_font
       is_contained
+      is_located
       is_positioned
       is_present_contained
       is_present_positioned
