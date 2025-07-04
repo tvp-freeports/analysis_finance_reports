@@ -102,7 +102,11 @@ def get_size(blk: etree.Element) -> Tuple[float, float]:
     return (x_bounds[1] - x_bounds[0], y_bounds[1] - y_bounds[0])
 
 
-def get_table_positions(blocks: List[etree.Element]) -> List[Tuple[int, int]]:
+def get_table_positions(
+    blocks: List[etree.Element],
+    small_rule: Tuple[bool, bool] = (True, True),
+    use_ruler_pos: Tuple[bool, bool] = (True, True),
+) -> List[Tuple[int, int]]:
     """Compute row and column index for each block assuming tabular layout.
 
     Parameters
@@ -116,53 +120,81 @@ def get_table_positions(blocks: List[etree.Element]) -> List[Tuple[int, int]]:
         A list of (row, column) indices corresponding to each block.
     """
     # Calcola i centri dei blocchi
+    small_rule_row, small_rule_col = small_rule
+    use_ruler_pos_row, use_ruler_pos_col = use_ruler_pos
+
+    choose_ruler_row = min if small_rule_row else max
+    choose_ruler_col = min if small_rule_col else max
+
     column_indexes = [None for blk in blocks]
     rows_indexes = [None for blk in blocks]
 
     index_sizes = [(i, get_size(blk)) for i, blk in enumerate(blocks)]
-    x_widests = []
-    y_highest = []
+    index_pos = [(i, get_position(blk, mean=True)) for i, blk in enumerate(blocks)]
+    x_rulers_col = []
+    y_rulers_row = []
     while None in column_indexes or None in rows_indexes:
-        curr_column = len(x_widests)
-        curr_row = len(y_highest)
+        curr_column = len(x_rulers_col)
+        curr_row = len(y_rulers_row)
         index_height_no_row = [
             (i, size[1]) for i, size in index_sizes if rows_indexes[i] is None
         ]
         index_wide_no_col = [
             (i, size[0]) for i, size in index_sizes if column_indexes[i] is None
         ]
-        x_bounds_widest = None
+        x_bounds_ruler_col = None
+        x_pos_ruler_col = None
         if len(index_wide_no_col) > 0:
-            index_size_widest = max(index_wide_no_col, key=lambda x: x[1])
-            widest_index = index_size_widest[0]
-            x_bounds_widest = get_bounds(blocks[widest_index])[0]
-            x_widests.append(
-                (curr_column, (x_bounds_widest[1] + x_bounds_widest[0]) / 2)
+            index_size_ruler_col = choose_ruler_col(
+                index_wide_no_col, key=lambda x: x[1]
             )
-        y_bounds_highest = None
+            ruler_col_index = index_size_ruler_col[0]
+
+            x_bounds_ruler_col = get_bounds(blocks[ruler_col_index])[0]
+            x_pos_ruler_col = index_pos[ruler_col_index][1][0]
+
+            x_rulers_col.append((curr_column, x_pos_ruler_col))
+
+        y_bounds_ruler_row = None
         if len(index_height_no_row) > 0:
-            index_size_highest = max(index_height_no_row, key=lambda x: x[1])
-            highest_index = index_size_highest[0]
-            y_bounds_highest = get_bounds(blocks[highest_index])[1]
-            y_highest.append(
-                (curr_row, (y_bounds_highest[1] - y_bounds_highest[1]) / 2)
+            index_size_ruler_row = choose_ruler_row(
+                index_height_no_row, key=lambda x: x[1]
             )
+            ruler_row_index = index_size_ruler_row[0]
+
+            y_bounds_ruler_row = get_bounds(blocks[ruler_row_index])[1]
+            y_pos_ruler_row = index_pos[ruler_row_index][1][1]
+
+            y_rulers_row.append((curr_row, y_pos_ruler_row))
 
         for i, blk in enumerate(blocks):
-            if x_bounds_widest is not None and is_positioned(
-                blk, x_bounds_widest, None
-            ):
-                column_indexes[i] = curr_column
+            if use_ruler_pos_col:
+                x_bounds = get_bounds(blk)[0]
+                if x_pos_ruler_col is not None and is_positioned(
+                    blocks[ruler_col_index], x_bounds, None
+                ):
+                    column_indexes[i] = curr_column
+            else:
+                if x_bounds_ruler_col is not None and is_positioned(
+                    blk, x_bounds_ruler_col, None
+                ):
+                    column_indexes[i] = curr_column
+            if use_ruler_pos_row:
+                y_bounds = get_bounds(blk)[1]
+                if y_pos_ruler_row is not None and is_positioned(
+                    blocks[ruler_row_index], None, y_bounds
+                ):
+                    rows_indexes[i] = curr_row
+            else:
+                if y_bounds_ruler_row is not None and is_positioned(
+                    blk, None, y_bounds_ruler_row
+                ):
+                    rows_indexes[i] = curr_row
 
-            if y_bounds_highest is not None and is_positioned(
-                blk, None, y_bounds_highest
-            ):
-                rows_indexes[i] = curr_row
-
-    sorted_x = sorted(x_widests, key=lambda x: x[1])
+    sorted_x = sorted(x_rulers_col, key=lambda x: x[1])
     column_mapping = {old_col: new_col for new_col, (old_col, _) in enumerate(sorted_x)}
-    # Sort y_highest by their height and create a mapping from old row index to new sorted index
-    sorted_y = sorted(y_highest, key=lambda x: x[1])
+    # Sort y_ruler_row by their height and create a mapping from old row index to new sorted index
+    sorted_y = sorted(y_rulers_row, key=lambda x: x[1])
     row_mapping = {old_row: new_row for new_row, (old_row, _) in enumerate(sorted_y)}
     # Apply the mappings to column_indexes and rows_indexes
     table_coords = list(zip(rows_indexes, column_indexes))
