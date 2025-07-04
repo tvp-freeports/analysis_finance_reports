@@ -163,7 +163,9 @@ def to_date(data: str) -> date:
     raise ValueError(f"Date string '{data}' is not in a recognized format.")
 
 
-def standard_deserialization(cost_and_value_interpret_int=False) -> Bond | Equity:
+def standard_deserialization(
+    cost_and_value_interpret_int=True, quantity_interpret_float=False
+) -> Bond | Equity:
     """Decorator factory that creates a deserializer function for TextBlock metadata.
 
     The resulting decorator transforms a TextBlock's metadata into a dictionary
@@ -218,6 +220,12 @@ def standard_deserialization(cost_and_value_interpret_int=False) -> Bond | Equit
                 else:
                     return to_float(x)
 
+            def int_cast(x):
+                if quantity_interpret_float:
+                    return int(to_float(x))
+                else:
+                    return to_int(x)
+
             ac = (
                 float_cast(md["acquisition cost"]) if "acquisition cost" in md else None
             )
@@ -227,7 +235,7 @@ def standard_deserialization(cost_and_value_interpret_int=False) -> Bond | Equit
                     "targets": targets,
                     "company": to_str(md["company"]),
                     "subfund": to_str(md["subfund"]),
-                    "nominal_quantity": to_int(md["quantity"]),
+                    "nominal_quantity": int_cast(md["quantity"]),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
                     "perc_net_assets": perc_to_float(md["% net assets"]),
