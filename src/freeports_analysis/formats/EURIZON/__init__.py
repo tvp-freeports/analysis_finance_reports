@@ -48,6 +48,6 @@ def text_extract(pdf_blocks, targets):
     pass
 
 
-@standard_deserialization()
+@standard_deserialization(cost_and_value_interpret_int=False)
 def deserialize(text_block, targets):
     pass
