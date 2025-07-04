@@ -37,6 +37,7 @@
    AMUNDI2
    ANIMA
    EURIZON
+   FIDEURAM
    utils_commons
    utils_deserialize
    utils_pdf_filter
