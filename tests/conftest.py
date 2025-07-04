@@ -14,10 +14,17 @@ out_dir.mkdir()
 
 url_example_formats = {
     "AMUNDI": "https://www.amundi.com/dl/doc/annual-report/LU1883342377/ENG/ITA/20240630?inline",
+    "AMUNDI2": "https://www.amundi.it/dl/doc/annual-report/IT0005491680/ITA/ITA/20241230",
     "EURIZON": "https://www.eurizonam.hr/UserDocsImages//LUX/SAR_HR_en_LU1341630033_YES_2023-06-30.pdf",
     "ANIMA": "https://www.animasgr.it/d/EN/downloads/Documents/Anima%20Funds%20plc%2031%20December%202023%20Financials.pdf",
 }
 
-single_page_tests = [("ANIMA", 544), ("EURIZON", 254), ("AMUNDI", 43), ("ASTERIA", 78)]
+single_page_tests = [
+    ("ANIMA", 544),
+    ("EURIZON", 254),
+    ("AMUNDI", 43),
+    ("ASTERIA", 78),
+    ("AMUNDI2", 558),
+]
 
-all_pages_tests = ["ANIMA", "EURIZON", "AMUNDI", "ASTERIA"]
+all_pages_tests = ["ANIMA", "EURIZON", "AMUNDI", "ASTERIA", "AMUNDI2"]
