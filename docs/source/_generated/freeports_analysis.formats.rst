@@ -36,6 +36,7 @@
    AMUNDI
    AMUNDI2
    ANIMA
+   ASTERIA
    EURIZON
    FIDEURAM
    utils_commons
