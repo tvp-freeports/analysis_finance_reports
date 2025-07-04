@@ -72,9 +72,7 @@ def to_float(data: str) -> float:
     pos_com = data.find(",")
     if pos_dot != -1 and pos_com != -1:
         first_pos = min(pos_dot, pos_com)
-        last_pos = max(pos_dot, pos_com)
         data = data.replace(data[first_pos], "")
-        data = data.replace(data[last_pos], ".")
 
     data = data.replace(",", ".")
     int_reg = r"^[1-9]\d{0,2}\.\d{3}(\.\d{3})+$"
@@ -108,9 +106,8 @@ def to_int(data: str) -> int:
     pos_com = data.find(",")
     if pos_dot != -1 and pos_com != -1:
         first_pos = min(pos_dot, pos_com)
-        last_pos = max(pos_dot, pos_com)
         data = data.replace(data[first_pos], "")
-        data = data.replace(data[last_pos], ".")
+
     data = data.replace(",", ".")
     int_reg = r"^[1-9]\d{0,2}(\.\d{3})+$"
     if re.match(int_reg, data):
