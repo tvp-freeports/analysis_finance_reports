@@ -38,6 +38,7 @@
    ANIMA
    ASTERIA
    EURIZON
+   EURIZON_OLD
    FIDEURAM
    utils_commons
    utils_deserialize
