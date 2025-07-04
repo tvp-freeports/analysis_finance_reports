@@ -9,5 +9,5 @@ freeports\_analysis.formats.ANIMA
 
    .. autosummary::
    
-      deserialize
+      pdf_filter
    

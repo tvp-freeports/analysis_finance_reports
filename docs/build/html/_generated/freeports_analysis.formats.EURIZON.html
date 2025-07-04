@@ -54,17 +54,19 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedPdfBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedPdfBlockNotFound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedTextBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedTextBlockNotFound</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.deserialize_exec"><code class="docutils literal notranslate"><span class="pre">deserialize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_deserialize.html">freeports_analysis.formats.utils_deserialize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
@@ -106,95 +108,6 @@
   <section id="module-freeports_analysis.formats.EURIZON">
 <span id="freeports-analysis-formats-eurizon"></span><h1>freeports_analysis.formats.EURIZON<a class="headerlink" href="#module-freeports_analysis.formats.EURIZON" title="Link to this heading"></a></h1>
 <p>EURIZON format submodule</p>
-<p class="rubric">Functions</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.deserialize" title="freeports_analysis.formats.EURIZON.deserialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize</span></code></a>(TextBlock)</p></td>
-<td><p>Convert a TextBlock containing EURIZON bond/equity data into a structured dictionary.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.text_extract" title="freeports_analysis.formats.EURIZON.text_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract</span></code></a>(pdf_blocks, targets)</p></td>
-<td><p>Extract target company data from PDF blocks and create TextBlock objects.</p></td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Classes</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.TextBlockType" title="freeports_analysis.formats.EURIZON.TextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.EURIZON.TextBlockType">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.EURIZON.</span></span><span class="sig-name descname"><span class="pre">TextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.EURIZON.TextBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.EURIZON.deserialize">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.EURIZON.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TextBlock</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#freeports_analysis.formats.EURIZON.deserialize" title="Link to this definition"></a></dt>
-<dd><p>Convert a TextBlock containing EURIZON bond/equity data into a structured dictionary.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>TextBlock</strong> (<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><em>TextBlock</em></a>) – Input text block containing financial data with metadata fields:
-- match: str (company name)
-- date: str (dd/mm/yyyy format, only for bonds)
-- interest rate: str (percentage, only for bonds)
-- nominal value: str (formatted with commas)
-- currency: str
-- acquisition cost: str (formatted with commas)
-- carrying value: str (formatted with commas)
-- % net assets: str (percentage)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Parsed row containing all numeric values converted to appropriate types:
-- company: str
-- date: datetime or None (for equities)
-- interest rate: float or None (for equities)
-- nominal value: int
-- currency: str
-- acquisition cost: int
-- carrying value: int
-- % net asset: float</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.EURIZON.text_extract">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.EURIZON.</span></span><span class="sig-name descname"><span class="pre">text_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.EURIZON.text_extract" title="Link to this definition"></a></dt>
-<dd><p>Extract target company data from PDF blocks and create TextBlock objects.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>pdf_blocks</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><em>PdfBlock</em></a><em>]</em>) – Raw text blocks extracted from PDF</p></li>
-<li><p><strong>targets</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of company names to search for</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>List of processed TextBlock objects containing:
-- type_block: TextBlockType (bond/equity classification)
-- metadata: dict containing extracted financial data
-- source_block: original PdfBlock</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock">TextBlock</a>]</p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<ul class="simple">
-<li><p>Handles three formats:
-1. TARGET_BOND_2LINES: Bond data split across two lines
-2. TARGET_BOND_LINE: Bond data in single line
-3. TARGET_EQUITY_LINE: Equity data</p></li>
-<li><p>Performs case-insensitive matching</p></li>
-<li><p>Normalizes whitespace in all text</p></li>
-</ul>
-</dd></dl>
-
 </section>
 
 

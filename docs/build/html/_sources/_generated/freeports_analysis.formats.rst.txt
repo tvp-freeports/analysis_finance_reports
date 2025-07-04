@@ -9,8 +9,8 @@
 
    .. autosummary::
    
-      pdf_filter_exec
       deserialize_exec
+      pdf_filter_exec
       text_extract_exec
    
    .. rubric:: Classes
@@ -19,6 +19,13 @@
    
       PdfBlock
       TextBlock
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      ExpectedPdfBlockNotFound
+      ExpectedTextBlockNotFound
    
 .. rubric:: Modules
 
@@ -31,6 +38,6 @@
    ANIMA
    EURIZON
    utils_commons
-   utils_pdf_filter
    utils_deserialize
+   utils_pdf_filter
    utils_text_extract

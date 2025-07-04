@@ -54,17 +54,19 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedPdfBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedPdfBlockNotFound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedTextBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedTextBlockNotFound</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.deserialize_exec"><code class="docutils literal notranslate"><span class="pre">deserialize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_deserialize.html">freeports_analysis.formats.utils_deserialize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
@@ -109,44 +111,11 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.ANIMA.deserialize" title="freeports_analysis.formats.ANIMA.deserialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize</span></code></a>(TextBlock)</p></td>
-<td><p>Convert a TextBlock containing ANIMA holding data into a structured dictionary.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter</span></code>(xml_root, page_number)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.ANIMA.deserialize">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.ANIMA.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TextBlock</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#freeports_analysis.formats.ANIMA.deserialize" title="Link to this definition"></a></dt>
-<dd><p>Convert a TextBlock containing ANIMA holding data into a structured dictionary.</p>
-<p>Parses the metadata from a TextBlock object containing holding information in ANIMA format,
-extracting holdings count, company name, fair value, and net asset percentage.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>TextBlock</strong> (<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><em>TextBlock</em></a>) – Input text block containing holding data with metadata fields:
-- holdings: str (formatted with commas as thousand separators)
-- % net asset: str (percentage value)
-- fair value: str (formatted with commas as thousand separators)
-- match: str (company name)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Parsed row containing:
-- holdings: int (numeric value without formatting)
-- company: str
-- fair value: int (numeric value without formatting)
-- % net asset: float
-Returns empty dict if parsing fails</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<ul class="simple">
-<li><p>Logs a warning if any field fails regex validation</p></li>
-<li><p>Removes all whitespace before parsing numeric fields</p></li>
-</ul>
-</dd></dl>
-
 </section>
 
 

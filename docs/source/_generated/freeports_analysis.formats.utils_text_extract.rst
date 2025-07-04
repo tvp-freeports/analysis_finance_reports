@@ -10,17 +10,19 @@ freeports\_analysis.formats.utils\_text\_extract
    .. autosummary::
    
       equity_bond_blks
-      one_txt_blk
-      prefix_similarity
       standard_text_extraction
-      target_fuzzy_match
-      target_match
-      target_prefix_match
+      standard_text_extraction_loop
    
    .. rubric:: Classes
 
    .. autosummary::
    
       EquityBondTextBlockType
-      OneTextBlockType
    
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   match
