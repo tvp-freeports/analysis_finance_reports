@@ -1,78 +1,53 @@
-from enum import Enum
-from lxml import etree
+"""AMUNDI2 format submodule"""
+
+from enum import Enum, auto
+import logging as log
+import datetime as dt
 from typing import List
+import re
+from lxml import etree
 from .. import PdfBlock, TextBlock
-from ..utils_pdf_filter import (
-    one_pdf_blk,
-    get_lines_with_font,
-    standard_header_font_filter,
-)
-from ..utils_text_extract import standard_text_extraction, one_txt_blk, target_match
-from ..utils_deserialize import standard_deserializer, perc_to_float
+from ..utils_pdf_filter import one_pdf_blk, standard_pdf_filtering
+from ..utils_text_extract import standard_text_extraction, equity_bond_blks
+from ..utils_deserialize import standard_deserialization
+from freeports_analysis.consts import Currency
 
-
-# PDF_FILTER
-@standard_header_font_filter("Titolo", "TrebuchetMS-Bold", "TrebuchetMS")
-def pdf_filter(xml_root: etree.Element) -> dict:
-    line = get_lines_with_font(xml_root, "Arial-BoldItalicMT")
-    text = None
-    for ln in line:
-        bbox = ln.xpath(".//@bbox")[0]
-        if float(bbox.split()[-1]) < 60:
-            text = ln.xpath(".//@text")[0]
-    return {"subfund": text}
-
-
-# TEXT_EXTRACTION
-def text_extract(pdf_blocks, targets):
-    txt_blks = []
-    for i, blk in enumerate(pdf_blocks):
-        for target in targets:
-            if target_match(blk.content, target):
-                metadata = {
-                    "company": target,
-                    "Respective Sub-fund": blk.metadata["subfund"],
-                    "Financial Instrument": "Equity",
-                    "Market Value": pdf_blocks[i + 4].content.strip(),
-                    "Quantity": pdf_blocks[i + 1].content.strip(),
-                    "Currency": "EUR",
-                    "%Assets": pdf_blocks[i + 5].content.strip(),
-                    "Price": pdf_blocks[i + 2].content.strip(),
-                    "Exchange rate": pdf_blocks[i + 3].content.strip(),
-                }
-
-                txt_blks.append(TextBlock(TextBlockType.TARGET, metadata, blk))
-    return txt_blks
-
-
-# @standard_text_extraction({"n assets": +1, "fair value": -1, "% net asset": -2})
-# def text_extract(pdf_blocks: List[PdfBlock], i: int) -> dict:
-#    pass
-
-
-@standard_deserializer(
-    {
-        "company": str,
-        "Respective Sub-fund": str,
-        "Financial Instrument": str,
-        "Market Value": float,
-        "Quantity": int,
-        "Currency": str,
-        "%Assets": perc_to_float,
-        "Price": float,
-        "Exchange rate": float,
-    },
-    True,
-)
-def deserialize(TextBlock: TextBlock) -> dict:
-    pass
+logger = log.getLogger(__name__)
 
 
 @one_pdf_blk
-class PdfBlockType(Enum):
+class PdfBlock:
     pass
 
 
-@one_txt_blk
-class TextBlockType(Enum):
+@equity_bond_blks
+class TextBlock:
+    pass
+
+
+@standard_pdf_filtering(
+    header_txt="Titolo",
+    header_font="TrebuchetMS-Bold",
+    subfund_height=(None, 60),
+    subfund_font="Arial-BoldItalicMT",
+    body_font="TrebuchetMS",
+    y_range=(None, None),
+)
+def pdf_filter(xml_root, page) -> dict:
+    pass
+
+
+@standard_text_extraction(
+    nominal_quantity_pos=+1,
+    market_value_pos=+4,
+    perc_net_assets_pos=+5,
+    currency=Currency.EUR,
+    acquisition_cost_pos=None,
+)
+def text_extract(pdf_blocks, targets):
+    pass
+
+
+@standard_deserialization()
+def deserialize(text_block, targets):
     pass
