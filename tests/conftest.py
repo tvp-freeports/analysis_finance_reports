@@ -18,6 +18,6 @@ url_example_formats = {
     "ANIMA": "https://www.animasgr.it/d/EN/downloads/Documents/Anima%20Funds%20plc%2031%20December%202023%20Financials.pdf",
 }
 
-single_page_tests = [("ANIMA", 544), ("EURIZON", 254), ("AMUNDI", 43)]
+single_page_tests = [("ANIMA", 544), ("EURIZON", 254), ("AMUNDI", 43), ("ASTERIA", 78)]
 
-all_pages_tests = ["ANIMA", "EURIZON", "AMUNDI"]
+all_pages_tests = ["ANIMA", "EURIZON", "AMUNDI", "ASTERIA"]
