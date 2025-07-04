@@ -106,7 +106,7 @@ def _find_config():
 
 DEFAULT_CONFIG = {
     "VERBOSITY": 2,
-    "BATCH_WORKERS": None,
+    "N_WORKERS": None,
     "BATCH": None,
     "OUT_CSV": Path("/dev/stdout")
     if os.name == "posix"
@@ -123,7 +123,7 @@ DEFAULT_CONFIG = {
 
 schema_yaml_config = {
     "verbosity": ("VERBOSITY", int),
-    "n_workers": ("BATCH_WORKERS", int),
+    "n_workers": ("N_WORKERS", int),
     "pdf": ("PDF", Path),
     "url": ("URL", str),
     "batch_path": ("BATCH", Path),
@@ -151,7 +151,7 @@ def _str_to_bool(string: str) -> bool:
 schema_env_config = {
     f"{ENV_PREFIX}URL": ("URL", str),
     f"{ENV_PREFIX}VERBOSITY": ("VERBOSITY", int),
-    f"{ENV_PREFIX}BATCH_WORKERS": ("BATCH_WORKERS", int),
+    f"{ENV_PREFIX}N_WORKERS": ("N_WORKERS", int),
     f"{ENV_PREFIX}BATCH": ("BATCH", Path),
     f"{ENV_PREFIX}OUT_CSV": ("OUT_CSV", Path),
     f"{ENV_PREFIX}SAVE_PDF": ("SAVE_PDF", _str_to_bool),

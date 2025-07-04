@@ -29,7 +29,7 @@ Statistics
 +-----------------------------------------------+----------+--------------+
 | freeports_analysis.formats.utils_pdf_filter   | 100.00%  | 0            |
 +-----------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils_tabularize   | 100.00%  | 0            |
+| freeports_analysis.formats.utils_deserialize   | 100.00%  | 0            |
 +-----------------------------------------------+----------+--------------+
 | freeports_analysis.formats.utils_text_extract | 100.00%  | 0            |
 +-----------------------------------------------+----------+--------------+

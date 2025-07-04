@@ -51,7 +51,7 @@ The options
 +-------------------+-------------------------+----------------------------------------------------------+------------------------+
 | ``BATCH``         | ``Path``                | If set to path of batch file, it triggers ``BATCH MODE`` |                        |
 +-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``BATCH_WORKERS`` | ``int``                 | Number of parallel processes in ``BATCH MODE``           |                        |
+| ``N_WORKERS`` | ``int``                 | Number of parallel processes in ``BATCH MODE``           |                        |
 +-------------------+-------------------------+----------------------------------------------------------+------------------------+
 | ``OUT_CSV``       | ``Path``                | File where to output ``csv`` files                       | ``/dev/stdout``        |
 +-------------------+-------------------------+----------------------------------------------------------+------------------------+
@@ -149,7 +149,7 @@ Noticebly the most important performed chekcs are:
 
 This mode permit to process different files all at one in parallel. This mode is caratterized by the ``BATCH``
 variable set to a *batch csv file*, ``OUT_CSV`` to a directory name or ``.tar.gz`` archive and 
-optionally ``BATCH_WORKERS`` to a number (if not set default to number of available CPUs). 
+optionally ``N_WORKERS`` to a number (if not set default to number of available CPUs). 
 The *batch csv file* is a csv file with some header that indicate the option to overwrite to the 
 resulting configuration. These option are called *job contextual options* and each row of the csv file is called a *job*.
 The available overwrittables options are:

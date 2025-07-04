@@ -1,11 +1,12 @@
 """Module common to each format, it contains the definitions used by all the formats"""
 
 from enum import Enum
+from multiprocessing import Pool
 from typing import Optional, List, Callable
 import logging as log
 from lxml import etree
 from pymupdf import Document
-
+from ..consts import FinancialData, _get_module
 
 logger = log.getLogger(__name__)
 
@@ -75,7 +76,12 @@ class PdfBlock:
         equal = _eq_blocks(self, other)
         return equal
 
-    def __init__(self, type_block: Enum, metadata: dict, xml_ele: etree.Element):
+    def __init__(
+        self,
+        type_block: Enum,
+        metadata: dict,
+        xml_ele: etree.Element | List[etree.Element],
+    ):
         """Initializes a PdfBlock instance.
 
         Args:
@@ -85,7 +91,13 @@ class PdfBlock:
         """
         self.type_block = type_block
         self.metadata = metadata
-        self.content = self._text_form_element(xml_ele)
+        txt = ""
+        if isinstance(xml_ele, list):
+            for ele in xml_ele:
+                txt += self._text_form_element(ele)
+        else:
+            txt = self._text_form_element(xml_ele)
+        self.content = txt
 
     def __str__(self) -> str:
         """Returns a string representation of the PdfBlock.
@@ -147,8 +159,7 @@ class TextBlock:
 
 
 def pdf_filter_exec(
-    document: Document,
-    pdf_filter_func: Callable[[etree.Element], List[PdfBlock]],
+    batch_pages: List[str], i_batch_page: int, n_pages: int, pdf_filter_func
 ) -> List[PdfBlock]:
     """Processes a PDF document through a filter function to extract relevant blocks.
 
@@ -160,18 +171,14 @@ def pdf_filter_exec(
     Returns:
         List of PdfBlock objects containing the filtered content.
     """
-    parser = etree.XMLParser(recover=True)
-    relevant_blocks = []
-    n_pages = len(document)
-    for page_number, page in enumerate(document, start=1):
-        if page_number % (n_pages // min(10, n_pages)) == 0:
+
+    batch_results = []
+    for page_number, page in enumerate(batch_pages, start=i_batch_page + 1):
+        if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
             logger.debug("Filtering page %i", page_number)
-        xml_tree = etree.fromstring(page.get_text("xml").encode(), parser=parser)
-        filtered_blocks = pdf_filter_func(xml_tree)
-        for blk in filtered_blocks:
-            blk.metadata.update({"page": page_number})
-            relevant_blocks.append(blk)
-    return relevant_blocks
+        result = pdf_filter_func(page, page_number)
+        batch_results.extend(result)
+    return batch_results
 
 
 def text_extract_exec(
@@ -192,16 +199,26 @@ def text_extract_exec(
     return text_extract_func(pdf_blocks, targets)
 
 
-def tabularize_exec(
-    TextBlocks: List[TextBlock], tabularize_func: Callable[[TextBlock], dict]
-) -> List[dict]:
+def deserialize_exec(
+    text_blocks: List[TextBlock],
+    targets: List[str],
+    deserialize_func: Callable[[TextBlock, List[str]], FinancialData],
+) -> List[FinancialData]:
     """Converts TextBlocks into tabular data using a specified formatting function.
 
     Args:
         TextBlocks: List of TextBlock objects to process.
-        tabularize_func: Function that converts a TextBlock into a dictionary.
+        deserialize_func: Function that converts a TextBlock into a finantial data class.
 
     Returns:
-        List of dictionaries containing the tabularized data.
+        List of FinantialData classes containing the deserialized data.
     """
-    return [tabularize_func(txtblk) for txtblk in TextBlocks]
+    return [deserialize_func(txtblk, targets) for txtblk in text_blocks]
+
+
+class ExpectedPdfBlockNotFound(Exception):
+    """Raised when a required PdfBlock is not found"""
+
+
+class ExpectedTextBlockNotFound(Exception):
+    """Raised when a required TextBlock is not found"""

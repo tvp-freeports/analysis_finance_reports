@@ -8,7 +8,7 @@ from ..utils_pdf_filter import (
     standard_header_font_filter,
 )
 from ..utils_text_extract import standard_text_extraction, one_txt_blk, target_match
-from ..utils_tabularize import standard_tabularizer, perc_to_float
+from ..utils_deserialize import standard_deserializer, perc_to_float
 
 
 # PDF_FILTER
@@ -50,7 +50,7 @@ def text_extract(pdf_blocks, targets):
 #    pass
 
 
-@standard_tabularizer(
+@standard_deserializer(
     {
         "company": str,
         "Respective Sub-fund": str,
@@ -64,7 +64,7 @@ def text_extract(pdf_blocks, targets):
     },
     True,
 )
-def tabularize(TextBlock: TextBlock) -> dict:
+def deserialize(TextBlock: TextBlock) -> dict:
     pass
 
 

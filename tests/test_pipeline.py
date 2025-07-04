@@ -10,7 +10,7 @@ import pandas as pd
 def conf():
     return {
         "VERBOSITY": 2,
-        "BATCH_WORKERS": None,
+        "N_WORKERS": None,
         "BATCH": None,
         "OUT_CSV": None,
         "SAVE_PDF": False,

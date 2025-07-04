@@ -57,14 +57,14 @@
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.pdf_filter_exec"><code class="docutils literal notranslate"><span class="pre">pdf_filter_exec()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.tabularize_exec"><code class="docutils literal notranslate"><span class="pre">tabularize_exec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.deserialize_exec"><code class="docutils literal notranslate"><span class="pre">deserialize_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.text_extract_exec"><code class="docutils literal notranslate"><span class="pre">text_extract_exec()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.AMUNDI.html">freeports_analysis.formats.AMUNDI</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.ANIMA.html">freeports_analysis.formats.ANIMA</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_tabularize.html">freeports_analysis.formats.utils_tabularize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_deserialize.html">freeports_analysis.formats.utils_deserialize</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
@@ -109,7 +109,7 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.tabularize" title="freeports_analysis.formats.EURIZON.tabularize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tabularize</span></code></a>(TextBlock)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.deserialize" title="freeports_analysis.formats.EURIZON.deserialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize</span></code></a>(TextBlock)</p></td>
 <td><p>Convert a TextBlock containing EURIZON bond/equity data into a structured dictionary.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.EURIZON.text_extract" title="freeports_analysis.formats.EURIZON.text_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract</span></code></a>(pdf_blocks, targets)</p></td>
@@ -131,8 +131,8 @@
 <dd></dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.EURIZON.tabularize">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.EURIZON.</span></span><span class="sig-name descname"><span class="pre">tabularize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TextBlock</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#freeports_analysis.formats.EURIZON.tabularize" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.EURIZON.deserialize">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.EURIZON.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TextBlock</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#freeports_analysis.formats.EURIZON.deserialize" title="Link to this definition"></a></dt>
 <dd><p>Convert a TextBlock containing EURIZON bond/equity data into a structured dictionary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

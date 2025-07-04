@@ -7,6 +7,7 @@ import datetime
 from enum import Enum, auto
 from typing import List
 import logging as log
+import importlib
 
 import yaml
 from importlib_resources import files
@@ -186,14 +187,17 @@ class FinancialData(ABC):
         """Currency: The currency in which the value is denominated."""
         return self._currency
 
+    @property
     def subfund(self) -> str:
         """str: The subfund to which this instrument belongs."""
         return self._subfund
 
+    @property
     def nominal_quantity(self) -> int:
         """int or None: The nominal quantity of the instrument, if applicable."""
         return self._nominal_quantity
 
+    @property
     def acquisition_cost(self) -> float:
         """float or None: The original acquisition cost of the instrument."""
         return self._acquisition_cost
@@ -216,22 +220,36 @@ class FinancialData(ABC):
     def _str_additional_infos(self) -> str:
         string = ""
         if self.acquisition_cost is not None:
-            string += f"\t\tAquisition cost: {self.acquisition_cost:.2f}{self.currency.value}\n"
+            string += f"\t\tAquisition cost:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
         return string
 
     def __str__(self) -> str:
         string = f"{self.__class__.__name__}:\n"
-        string += f"\t{self.instrument.name} {self.subfund} (pag. {self.page})\n"
-        string += f"\tCompany: {self.company}\n"
-        string += f"\tCurrency: {self.currency.name}\n"
-        string += f"\tMarket value: {self.market_value:.2f}{self.currency.value} ({self.perc_net_assets:.2%} of net assets)\n"
-        string += f"\tNominal/Quanatity: {self.nominal_quantity}\n"
+        string += f"\tType match:\t{self.instrument.name}\t(pag. {self.page})\n"
+        string += f"\tSubfund:\t{self.subfund}\n"
+        string += f"\tCompany:\t{self.company}\n"
+        string += f"\tCurrency:\t{self.currency.name}\n"
+        string += f"\tMarket value:\t{self.market_value:.2f}{self.currency.value}\t({self.perc_net_assets:.3%} of net assets)\n"
+        string += f"\tQuantity:\t{self.nominal_quantity}\n"
         string += "\tAdditional infos: {"
         add_string = self._str_additional_infos()
         if add_string != "":
-            string += "\n" + add_string
+            string += "\n" + add_string + "\t"
         string += "}\n"
         return string
+
+    def __eq__(self, other) -> bool:
+        eq = True
+        eq = eq and self.instrument == other.instrument
+        eq = eq and self.page == other.page
+        eq = eq and self.subfund == other.subfund
+        eq = eq and self.currency == other.currency
+        eq = eq and self.market_value == other.market_value
+        eq = eq and self.perc_net_assets == other.perc_net_assets
+        eq = eq and self.nominal_quantity == other.nominal_quantity
+        eq = eq and self.acquisition_cost == other.acquisition_cost
+        eq = eq and self.company == other.company
+        return eq
 
 
 class Equity(FinancialData):
@@ -320,7 +338,7 @@ class Bond(FinancialData):
             acquisition_cost,
         )
         self._maturity = maturity
-        if not 0.0 <= interest_rate <= 1.0:
+        if interest_rate is not None and not 0.0 <= interest_rate <= 1.0:
             logger.warning(
                 "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
             )
@@ -366,9 +384,26 @@ class Bond(FinancialData):
     def _str_additional_infos(self) -> str:
         string = super()._str_additional_infos()
         if self.maturity is not None and self.interest_rate is not None:
-            string += f"Maturity {self.maturity} +{self.interest_rate:.2%}"
+            string += f"\t\tMaturity:\t\t{self.maturity} +{self.interest_rate:.3%}\n"
         elif self.maturity is not None:
-            string += f"Maturity {self.maturity}"
+            string += f"\t\tMaturity:\t\t{self.maturity}\n"
         elif self.interest_rate is not None:
-            string += f"Interest rate: {self.interest_rate:.2%}"
+            string += f"\t\tInterest rate:\t{self.interest_rate:.3%}\n"
         return string
+
+    def __eq__(self, other):
+        eq = super().__eq__(self, other)
+        eq = eq and self.maturity == other.maturity
+        eq = eq and self.interest_rate == other._interest_rate
+        return eq
+
+
+def _get_module(module_name: str):
+    try:
+        module = importlib.import_module(
+            f"freeports_analysis.formats.{module_name}", package=__package__
+        )
+    except ImportError:
+        print(f"Errore: modulo {module_name} non trovato")
+        raise
+    return module

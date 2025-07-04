@@ -108,7 +108,7 @@ def overwrite_with_args(args, config: dict, config_location: dict) -> Tuple[dict
         ("FORMAT", args.format, lambda x: PdfFormats.__members__[x.strip()]),
         ("OUT_CSV", args.out, Path),
         ("BATCH", args.batch, Path),
-        ("BATCH_WORKERS", args.workers, int),
+        ("N_WORKERS", args.workers, int),
     ]:
         config, config_location = _set_str_arg(
             name_conf, value, config, config_location, cast_func

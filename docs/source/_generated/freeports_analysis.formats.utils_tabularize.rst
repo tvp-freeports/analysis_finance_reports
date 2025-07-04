@@ -1,7 +1,7 @@
-freeports\_analysis.formats.utils\_tabularize
+freeports\_analysis.formats.utils\_deserialize
 =============================================
 
-.. automodule:: freeports_analysis.formats.utils_tabularize
+.. automodule:: freeports_analysis.formats.utils_deserialize
    :members:
    
    
@@ -10,7 +10,7 @@ freeports\_analysis.formats.utils\_tabularize
    .. autosummary::
    
       perc_to_float
-      standard_tabularizer
+      standard_deserializer
       to_float
       to_int
       to_str

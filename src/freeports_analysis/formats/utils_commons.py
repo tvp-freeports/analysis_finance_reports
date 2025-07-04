@@ -1,11 +1,11 @@
 """Utilities of general interest common to all formats and that can be used
-for creating `pdf_filter` or `text_extract` or `tabularize` functions
+for creating `pdf_filter` or `text_extract` or `deserialize` functions
 """
 
 from typing import Callable, TypeVar, ParamSpec
 
 
-def normalize_string(string: str) -> str:
+def normalize_string(string: str, lower: bool = True) -> str:
     """Normalize a string by:
     1. Stripping leading/trailing whitespace
     2. Converting to lowercase
@@ -20,12 +20,13 @@ def normalize_string(string: str) -> str:
         Normalized string
     """
     string = string.strip()
-    string = string.lower()
+    if lower:
+        string = string.lower()
     string = " ".join(string.split())
     return string
 
 
-def normalize_word(word: str) -> str:
+def normalize_word(word: str, lower: bool = False) -> str:
     """Normalize a word by:
     1. Stripping leading/trailing whitespace
     2. Removing all whitespace between characters
@@ -40,6 +41,8 @@ def normalize_word(word: str) -> str:
     """
     word = word.strip()
     word = "".join(word.split())
+    if lower:
+        word = word.lower()
     return word
 
 

@@ -10,7 +10,7 @@
    .. autosummary::
    
       pdf_filter_exec
-      tabularize_exec
+      deserialize_exec
       text_extract_exec
    
    .. rubric:: Classes
@@ -32,5 +32,5 @@
    EURIZON
    utils_commons
    utils_pdf_filter
-   utils_tabularize
+   utils_deserialize
    utils_text_extract

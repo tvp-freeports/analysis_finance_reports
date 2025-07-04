@@ -9,7 +9,7 @@ freeports\_analysis.formats.EURIZON
 
    .. autosummary::
    
-      tabularize
+      deserialize
       text_extract
    
    .. rubric:: Classes

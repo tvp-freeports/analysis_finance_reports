@@ -10,10 +10,10 @@ Example:
 
 import os
 import re
-import importlib
 import tarfile
 import shutil
-from multiprocessing import Pool
+from lxml import etree
+from multiprocess import Pool
 import logging as log
 from typing import List
 import csv
@@ -22,11 +22,11 @@ import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
 from freeports_analysis import download as dw
-from freeports_analysis.consts import PdfFormats
+from freeports_analysis.consts import PdfFormats, _get_module
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
-    tabularize_exec,
+    deserialize_exec,
 )
 from freeports_analysis.conf_parse import (
     apply_config,
@@ -49,41 +49,13 @@ class NoPDFormatDetected(Exception):
     """
 
 
-def get_functions(format_pdf: PdfFormats):
-    """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
-    implementation of specific PDF format
-
-    Parameters
-    ----------
-    format : PdfFormats
-        The format detected used to choose the decoding implementation
-    """
-    module_name = format_pdf.name
-    try:
-        module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name}", package=__package__
-        )
-    except ImportError:
-        print(f"Errore: modulo {module_name} non trovato")
-        raise
-
-    def _pdf_filter(pdf_file):
-        return pdf_filter_exec(pdf_file, module.pdf_filter)
-
-    def _text_extract(pdf_blks, targets):
-        return text_extract_exec(pdf_blks, targets, module.text_extract)
-
-    def _tabularize(txt_blks):
-        return tabularize_exec(txt_blks, module.tabularize)
-
-    return {
-        "PDF_FILTER": _pdf_filter,
-        "TEXT_EXTRACT": _text_extract,
-        "TABULARIZE": _tabularize,
-    }
-
-
-def pipeline(pdf_file: pypdf.Document, targets: List[str], funcs: dict) -> pd.DataFrame:
+def pipeline_batch(
+    batch_pages: List[str],
+    i_page_batch: int,
+    n_pages: int,
+    targets: List[str],
+    module_name: str,
+) -> pd.DataFrame:
     """Apply the pipeline of actions in order to get data in `csv`
 
     Parameters
@@ -100,16 +72,30 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str], funcs: dict) -> pd.Da
     pd.DataFrame
         pandas dataframe with extracted data
     """
-    logger.info("Extracting relevant blocks of pdf...")
-    pdf_blocks = funcs["PDF_FILTER"](pdf_file)
-    logger.info("Extracted!")
-
-    logger.info("Filtering relevant blocks of text...")
-    filtered_text = funcs["TEXT_EXTRACT"](pdf_blocks, targets)
-    logger.info("Filtered!")
-
-    tabular_data = funcs["TABULARIZE"](filtered_text)
-    df = pd.DataFrame(tabular_data)
+    end_page_batch = i_page_batch + len(batch_pages)
+    logger.debug(
+        "Starting batch [%i] starting form page %i to %i",
+        os.getpid(),
+        i_page_batch,
+        end_page_batch,
+    )
+    parser = etree.XMLParser(recover=True)
+    xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
+    module = _get_module(module_name)
+    logger.info(
+        "Extracting relevant blocks of pdf from page %i to %i...",
+        i_page_batch,
+        end_page_batch,
+    )
+    pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, module.pdf_filter)
+    logger.info(
+        "Filtering relevant blocks of text from page %i to %i...",
+        i_page_batch,
+        end_page_batch,
+    )
+    filtered_text = text_extract_exec(pdf_blocks, targets, module.text_extract)
+    financtial_data = deserialize_exec(filtered_text, targets, module.deserialize)
+    df = pd.DataFrame([fd.to_dict() for fd in financtial_data])
     return df
 
 
@@ -169,10 +155,9 @@ def get_targets() -> List[str]:
     return targets
 
 
-def _main_job(config):
+def _main_job(config, n_workers):
     logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
     format_selected = config["FORMAT"]
-
     detected_format = None
     if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
         logger.debug("PDF: %s", config["PDF"])
@@ -190,7 +175,9 @@ def _main_job(config):
                 config["URL"], config["PDF"] if config["SAVE_PDF"] else None
             )
         )
-
+    logger.debug("Starting decoding pdf to xml...")
+    pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
+    logger.debug("End decoding pdf to xml!")
     if detected_format is None and format_selected is None:
         raise NoPDFormatDetected(
             "No format selected and url doesn't match know formats"
@@ -213,8 +200,20 @@ def _main_job(config):
     log_string = str(targets[: min(5, len(targets))])
     logger.debug("First 5 targets: %s", log_string)
 
-    funcs = get_functions(format_pdf)
-    df = pipeline(pdf_file, targets, funcs)
+    n_pages = len(pdf_file_xml)
+    batch_size = (n_pages + n_workers - 1) // n_workers
+    batches = []
+
+    for i in range(n_workers):
+        start_idx = i * batch_size
+        end_idx = min((i + 1) * batch_size, n_pages)
+        batch_pages = pdf_file_xml[start_idx:end_idx]
+        batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
+
+    with Pool(processes=n_workers) as pool:
+        results = pool.starmap(pipeline_batch, batches)
+    df = pd.concat(results, ignore_index=True)
+
     if config["OUT_CSV"].name.endswith(".tar.gz"):
         config["OUT_CSV"] = config["OUT_CSV"].with_suffix("").with_suffix("")
     prefix_csv = config.get("PREFIX_OUT_CSV")
@@ -238,12 +237,14 @@ def main(config):
         or not associated with any format the program cannot choose a way to
         decode the pdf, so it raises this exception
     """
+    n_w_set = config["N_WORKERS"]
+    n_workers = n_w_set if n_w_set is not None and n_w_set >= 0 else None
+    if n_workers is None:
+        n_workers = os.cpu_count()
     if config["BATCH"] is None:
-        _main_job(config)
+        _main_job(config, n_workers)
     else:
         config_jobs = batch_job_confs(config)
-        n_w_set = config["BATCH_WORKERS"]
-        n_workers = n_w_set if n_w_set is not None and n_w_set >= 0 else None
         out_csv = config["OUT_CSV"]
         out_dir = out_csv
         compress = False
@@ -256,7 +257,7 @@ def main(config):
 
         out_dir.mkdir(exist_ok=True)
         with Pool(n_workers) as p:
-            p.map(_main_job, config_jobs)
+            p.map(_main_job, (config_jobs, 1))
 
         if compress:
             with tarfile.open(out_csv, "w:gz") as tar:
