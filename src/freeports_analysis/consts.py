@@ -392,7 +392,7 @@ class Bond(FinancialData):
         return string
 
     def __eq__(self, other):
-        eq = super().__eq__(self, other)
+        eq = super().__eq__(other)
         eq = eq and self.maturity == other.maturity
         eq = eq and self.interest_rate == other._interest_rate
         return eq
