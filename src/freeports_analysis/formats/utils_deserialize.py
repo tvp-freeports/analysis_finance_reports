@@ -151,6 +151,7 @@ def to_date(data: str) -> date:
         "%d/%m/%Y",  # 02/07/2025
         "%d/%m/%y",  # 02/07/25
         "%m-%d-%Y",  # 07-02-2025
+        "%d-%m-%y",  # 01-05-25
     ]
     for fmt in formats:
         try:
@@ -223,10 +224,12 @@ def standard_deserialization(
                 else:
                     return to_int(x)
 
-            ac = (
-                float_cast(md["acquisition cost"]) if "acquisition cost" in md else None
-            )
             try:
+                ac = (
+                    float_cast(md["acquisition cost"])
+                    if "acquisition cost" in md
+                    else None
+                )
                 args = {
                     "page": md["page"],
                     "targets": targets,
@@ -238,21 +241,21 @@ def standard_deserialization(
                     "perc_net_assets": perc_to_float(md["% net assets"]),
                     "acquisition_cost": ac,
                 }
+                if blk.type_block == TextBlockType.EQUITY_TARGET:
+                    return Equity(**args)
+                elif blk.type_block == TextBlockType.BOND_TARGET:
+                    return Bond(
+                        **args,
+                        maturity=to_date(md["maturity"]) if "maturity" in md else None,
+                        interest_rate=perc_to_float(md["interest rate"])
+                        if "interest rate" in md
+                        else None,
+                    )
+                else:
+                    return default_other_txt_blk_deserializer(blk, targets)
             except ValueError as e:
                 logger.error("Cast error page %i company %s", md["page"], md["company"])
                 raise e
-            if blk.type_block == TextBlockType.EQUITY_TARGET:
-                return Equity(**args)
-            elif blk.type_block == TextBlockType.BOND_TARGET:
-                return Bond(
-                    **args,
-                    maturity=to_date(md["maturity"]) if "maturity" in md else None,
-                    interest_rate=perc_to_float(md["interest rate"])
-                    if "interest rate" in md
-                    else None,
-                )
-            else:
-                return default_other_txt_blk_deserializer(blk, targets)
 
         return deserialize
 

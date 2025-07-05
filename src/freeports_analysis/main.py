@@ -245,6 +245,7 @@ def main(config):
         _main_job(config, n_workers)
     else:
         config_jobs = batch_job_confs(config)
+        args = [(c, 1) for c in config_jobs]
         out_csv = config["OUT_CSV"]
         out_dir = out_csv
         compress = False
@@ -257,7 +258,7 @@ def main(config):
 
         out_dir.mkdir(exist_ok=True)
         with Pool(n_workers) as p:
-            p.map(_main_job, (config_jobs, 1))
+            p.starmap(_main_job, args)
 
         if compress:
             with tarfile.open(out_csv, "w:gz") as tar:
