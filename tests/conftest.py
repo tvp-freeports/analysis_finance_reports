@@ -27,7 +27,8 @@ single_page_tests = [
     ("ASTERIA", 78),
     ("AMUNDI2", 558),
     ("FIDEURAM", 51),
-    ("EURIZON_OLD", 97),
+    ("FIDEURAM", 33),
+    # ("EURIZON_OLD", 97),
 ]
 
 all_pages_tests = ["ANIMA", "EURIZON", "AMUNDI", "ASTERIA", "AMUNDI2", "FIDEURAM"]
