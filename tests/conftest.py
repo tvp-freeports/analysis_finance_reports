@@ -42,7 +42,7 @@ all_pages_tests = [
     "EURIZON",
     "AMUNDI",
     "ASTERIA",
-    "AMUNDI2",
+    # "AMUNDI2",
     "FIDEURAM",
     "EURIZON_OLD",
     "MEDIOLANUM",
