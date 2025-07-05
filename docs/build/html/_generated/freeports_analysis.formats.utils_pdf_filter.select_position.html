@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.FIDEURAM &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils_pdf_filter.select_position &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
@@ -19,8 +19,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.MEDIOLANUM" href="freeports_analysis.formats.MEDIOLANUM.html" />
-    <link rel="prev" title="freeports_analysis.formats.EURIZON_OLD" href="freeports_analysis.formats.EURIZON_OLD.html" /> 
+    <link rel="next" title="freeports_analysis.formats.utils_pdf_filter.xml" href="freeports_analysis.formats.utils_pdf_filter.xml.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils_pdf_filter.select_font" href="freeports_analysis.formats.utils_pdf_filter.select_font.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -69,11 +69,11 @@
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON.html">freeports_analysis.formats.EURIZON</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON_IT.html">freeports_analysis.formats.EURIZON_IT</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.EURIZON_OLD.html">freeports_analysis.formats.EURIZON_OLD</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">freeports_analysis.formats.FIDEURAM</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.FIDEURAM.html">freeports_analysis.formats.FIDEURAM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.MEDIOLANUM.html">freeports_analysis.formats.MEDIOLANUM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_commons.html">freeports_analysis.formats.utils_commons</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_deserialize.html">freeports_analysis.formats.utils_deserialize</a></li>
-<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
 <li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.utils_text_extract.html">freeports_analysis.formats.utils_text_extract</a></li>
 </ul>
 </li>
@@ -102,9 +102,10 @@
           <li class="breadcrumb-item"><a href="../API.html">Package reference</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.FIDEURAM</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils_pdf_filter.html">freeports_analysis.formats.utils_pdf_filter</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils_pdf_filter.select_position</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.FIDEURAM.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils_pdf_filter.select_position.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -112,17 +113,52 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.FIDEURAM">
-<span id="freeports-analysis-formats-fideuram"></span><h1>freeports_analysis.formats.FIDEURAM<a class="headerlink" href="#module-freeports_analysis.formats.FIDEURAM" title="Link to this heading"></a></h1>
-<p>FIDEURAM format submodule</p>
+  <section id="module-freeports_analysis.formats.utils_pdf_filter.select_position">
+<span id="freeports-analysis-formats-utils-pdf-filter-select-position"></span><h1>freeports_analysis.formats.utils_pdf_filter.select_position<a class="headerlink" href="#module-freeports_analysis.formats.utils_pdf_filter.select_position" title="Link to this heading"></a></h1>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils_pdf_filter.select_position.get_table_positions" title="freeports_analysis.formats.utils_pdf_filter.select_position.get_table_positions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_positions</span></code></a>(lines[, return_columns, ...])</p></td>
+<td><p>Compute either row or column indexes for areas in a tabular layout.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_inside</span></code>(lines, bounds)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_outside</span></code>(lines, bounds)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils_pdf_filter.select_position.get_table_positions">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils_pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">get_table_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">ExtractedPdfLine</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">small_rule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ruler_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils_pdf_filter.select_position.get_table_positions" title="Link to this definition"></a></dt>
+<dd><p>Compute either row or column indexes for areas in a tabular layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>return_columns</strong> (<em>bool</em>) – Whether to return column indexes (True) or row indexes (False)</p></li>
+<li><p><strong>areas</strong> (<em>list</em><em> of </em><em>Area</em>) – List of areas representing table cells</p></li>
+<li><p><strong>small_rule</strong> (<em>bool</em>) – Whether to use smallest (True) or largest (False) dimension for rulers</p></li>
+<li><p><strong>use_ruler_pos</strong> (<em>bool</em>) – Whether to use ruler position (True) or bounds (False) for classification</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of indexes corresponding to each area</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of int</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.EURIZON_OLD.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.EURIZON_OLD" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.MEDIOLANUM.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.MEDIOLANUM" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.utils_pdf_filter.select_font.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils_pdf_filter.select_font" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils_pdf_filter.xml.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils_pdf_filter.xml" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
