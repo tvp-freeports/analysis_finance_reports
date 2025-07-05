@@ -7,7 +7,7 @@ from ..utils_pdf_filter.select_position import select_inside
 from ..utils_text_extract import standard_text_extraction, equity_bond_blks
 from ..utils_deserialize import standard_deserialization
 from ..utils_pdf_filter.pdf_parts.position import YRange
-from ..utils_pdf_filter.pdf_parts.generic import ExtractedPdfLine
+from ..utils_pdf_filter.pdf_parts import ExtractedPdfLine
 from freeports_analysis.consts import Currency
 
 
