@@ -41,7 +41,6 @@ def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
     del etree_to_print
 
 
-
 PdfBlockType: TypeAlias = Enum
 
 
@@ -178,6 +177,7 @@ def standard_pdf_filtering(
     y_range: Optional[
         Tuple[Optional[float | Tuple[str, str]], Optional[float | Tuple[str, str]]]
     ] = None,
+    deselection_list: Optional[Tuple[str, str]] = None,
 ):
     """Decorator factory for creating PDF filters
     that process pages with specific header and body fonts and extract subfund information
@@ -228,6 +228,12 @@ def standard_pdf_filtering(
             rows = get_lines_with_font(xml_root, body_font)
             y_range_numeric_top = None
             y_range_numeric_btm = None
+
+            if deselection_list is not None:
+                for sentence, font in deselection_list:
+                    line = get_lines_with_txt_font(xml_root, sentence, font)
+                    if line is not None and line in line.getparent():
+                        line.getparent().remove(line)
 
             if y_range is not None:
                 if type(y_range[0]) is tuple:
