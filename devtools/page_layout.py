@@ -19,6 +19,13 @@ def get_page_html(file_name: str, page: int, offset: int = 0):
     return html_str
 
 
+def get_page_table(file_name: str, page: int, offset: int = 0):
+    pdf_file = pypdf.Document(file_name)
+    page_doc = pdf_file[page + offset]
+    tabs = page_doc.find_tables()
+    return tabs
+
+
 def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
     etree_to_print = copy.deepcopy(xml_tree)
 
