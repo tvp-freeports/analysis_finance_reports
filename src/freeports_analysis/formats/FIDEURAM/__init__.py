@@ -31,6 +31,16 @@ class TextBlock:
     subfund_font="Arial-Bold",
     body_font="Arial",
     y_range=(103, 749),
+    deselection_list=[
+        ("SHARES, WARRANTS, RIGHTS", "Arial"),
+        (
+            "TRANSFERABLE SECURITIES AND MONEY MARKET INSTRUMENTS ADMITTED TO AN OFFICIAL",
+            "Arial",
+        ),
+        ("EXCHANGE LISTING OR DEALT IN ON OTHER REGULATED MARKETS", "Arial"),
+        ("BONDS AND ASSIMILATED STRUCTURED PRODUCTS", "Arial"),
+        ("INVESTMENT FUNDS", "Arial"),
+    ],
 )
 def pdf_filter(xml_root, page) -> dict:
     pass
