@@ -5,82 +5,18 @@ from enum import Enum, auto
 from lxml import etree
 from freeports_analysis.formats import PdfBlock
 from .xml.font import get_lines_with_font, is_present_txt_font, get_lines_with_txt_font
-from .font import Font, TextSize
-from .position import select_inside, get_table_positions, Area, XRange, YRange
+from .select_position import select_inside, get_table_positions
+from .pdf_parts.position import YRange
+from .pdf_parts import ExtractedPdfLine
+from .select_font import deselect_txt_font
 from .xml.position import get_bounds
 
 # , get_bounds
 from ..utils_commons import overwrite_if_implemented
 from .. import ExpectedPdfBlockNotFound
-from page_layout import print_blocks
-import pymupdf as pypdf
-import copy
-
-
-def get_page(file_name: str, page: int, offset: int = 0):
-    pdf_file = pypdf.Document(file_name)
-    parser = etree.XMLParser(recover=True)
-    page_doc = pdf_file[page + offset]
-    xml_str = page_doc.get_text("xml")
-    xml_tree = etree.fromstring(xml_str.encode(), parser=parser)
-    return xml_tree
-
-
-def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
-    etree_to_print = copy.deepcopy(xml_tree)
-
-    def _remove_tree_to_depth(elem: etree.Element, depth: int = 0, max_depth: int = 0):
-        for e in list(elem):
-            if depth >= max_depth:
-                elem.remove(e)
-            else:
-                _remove_tree_to_depth(e, depth + 1, max_depth)
-
-    _remove_tree_to_depth(etree_to_print, depth=0, max_depth=max_deeph)
-    print(etree.tostring(etree_to_print, pretty_print=True).decode(), end="")
-    del etree_to_print
 
 
 PdfBlockType: TypeAlias = Enum
-
-
-class ExtractedPdfLine:
-    def __init__(self, blk: etree.Element):
-        self._blk = blk
-        bounds = get_bounds(blk)
-        self._geometry = Area(
-            XRange(bounds[0][0], bounds[0][1]), YRange(bounds[1][0], bounds[1][1])
-        )
-        self._font = Font(blk.xpath(".//font/@name")[0])
-        self._txt_size = TextSize(blk.xpath(".//font/@size")[0])
-
-    @property
-    def geometry(self):
-        return self._geometry
-
-    @property
-    def c(self):
-        return self._geometry.c
-
-    @property
-    def corners(self):
-        return self._geometry.corners
-
-    @property
-    def font(self):
-        return self._font
-
-    @property
-    def text_size(self):
-        return self._txt_size
-
-    def __str__(self):
-        string = f"Line PDF - Font '{self.font}' [{self.text_size}]\n"
-        ((tl, tr), (bl, br)) = self.corners
-        string += f"\t{tl}\t{tr}\n"
-        string += f"\t\t{self.c}\n"
-        string += f"\t{bl}\t{br}\n"
-        return string
 
 
 class one_PdfBlockType(Enum):
@@ -151,10 +87,12 @@ def standard_extraction_subfund(
             xml_root: etree.Element, page_number: int
         ) -> List[PdfBlock]:
             lines_with_font = get_lines_with_font(xml_root, subfund_font)
-            top_lines = select_inside(lines_with_font, None, subfund_height)
+            lines = [ExtractedPdfLine(blk) for blk in lines_with_font]
+            y_range = YRange(*subfund_height)
+            top_lines = select_inside(lines, y_range)
             subfund = None
             if len(top_lines) > 0:
-                subfund = top_lines[0].xpath(".//@text")[0]
+                subfund = top_lines[0].xml_blk.xpath(".//@text")[0]
             if subfund is None:
                 raise ExpectedPdfBlockNotFound(
                     "subfound block on top of page not found"
@@ -226,14 +164,14 @@ def standard_pdf_filtering(
         def pdf_filter(xml_root: etree.Element, page_number: int) -> List[PdfBlock]:
             metadata = page_metadata(xml_root, page_number)
             rows = get_lines_with_font(xml_root, body_font)
+            lines = [ExtractedPdfLine(r) for r in rows]
             y_range_numeric_top = None
             y_range_numeric_btm = None
 
             if deselection_list is not None:
-                for sentence, font in deselection_list:
-                    line = get_lines_with_txt_font(xml_root, sentence, font)
-                    if line is not None and line in line.getparent():
-                        line.getparent().remove(line)
+                lines = deselect_txt_font(
+                    deselection_list=deselection_list, lines=lines
+                )
 
             if y_range is not None:
                 if type(y_range[0]) is tuple:
@@ -251,33 +189,17 @@ def standard_pdf_filtering(
                 else:
                     y_range_numeric_btm = y_range[1]
             table_rows = select_inside(
-                rows, None, (y_range_numeric_top, y_range_numeric_btm)
+                lines, YRange(y_range_numeric_top, y_range_numeric_btm)
             )
             table_positions = get_table_positions(table_rows)
-            parts = []
-            i = 0
-            while i < len(table_rows) - 1:
-                if table_positions[i][1] == table_positions[i + 1][1]:
-                    parts.append(
-                        PdfBlock(
-                            PdfBlockType.RELEVANT_BLOCK,
-                            metadata,
-                            [table_rows[i], table_rows[i + 1]],
-                        )
-                    )
-                    i += 2  # Skip the next row since it's already grouped
-                else:
-                    parts.append(
-                        PdfBlock(PdfBlockType.RELEVANT_BLOCK, metadata, table_rows[i])
-                    )
-                    i += 1
-
-            # If there's an unprocessed row left at the end
-            if i < len(table_rows):
-                parts.append(
-                    PdfBlock(PdfBlockType.RELEVANT_BLOCK, metadata, table_rows[i])
+            return [
+                PdfBlock(
+                    PdfBlockType.RELEVANT_BLOCK,
+                    {**metadata, "table-col": table_positions[i]},
+                    table_row.xml_blk,
                 )
-            return parts
+                for i, table_row in enumerate(table_rows)
+            ]
 
         return pdf_filter
 

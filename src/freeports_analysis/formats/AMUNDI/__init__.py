@@ -1,14 +1,13 @@
 """AMUNDI format submodule"""
 
-from enum import Enum
-from typing import List
-from lxml import etree
 from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import one_pdf_blk, standard_pdf_filtering
-from ..utils_pdf_filter.font import get_lines_with_font
-from ..utils_pdf_filter.position import select_inside
+from ..utils_pdf_filter.xml.font import get_lines_with_font
+from ..utils_pdf_filter.select_position import select_inside
 from ..utils_text_extract import standard_text_extraction, equity_bond_blks
 from ..utils_deserialize import standard_deserialization
+from ..utils_pdf_filter.pdf_parts.position import YRange
+from ..utils_pdf_filter.pdf_parts.generic import ExtractedPdfLine
 from freeports_analysis.consts import Currency
 
 
@@ -32,7 +31,9 @@ class TextBlock:
 )
 def pdf_filter(xml_root, page_number) -> dict:
     lines = get_lines_with_font(xml_root, "ArialNarrow")
-    currency = select_inside(lines, None, (None, 208))[0].xpath(".//@text")[0]
+    lines = [ExtractedPdfLine(line) for line in lines]
+    y_range = YRange(None, 208)
+    currency = select_inside(lines, y_range)[0].xml_blk.xpath(".//@text")[0]
     return {"currency": currency, "page": page_number}
 
 

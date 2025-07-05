@@ -1,87 +1,25 @@
-from typing import Optional, Tuple, List, TypeAlias
-from lxml import etree
+from typing import List
 
-from .xml import Range
-
-
-class XRange(Range):
-    @property
-    def x0(self):
-        return self.start
-
-    @property
-    def x1(self):
-        return self.end
+from .pdf_parts import ExtractedPdfLine
+from .pdf_parts.position import XRange, YRange
 
 
-class YRange(Range):
-    @property
-    def y0(self):
-        return self.start
-
-    @property
-    def y1(self):
-        return self.end
-
-
-Coord: TypeAlias = Tuple[float, float]
-
-
-class Area:
-    def __init__(self, x_range: XRange, y_range: YRange):
-        self._x_range = x_range
-        self._y_range = y_range
-
-    @property
-    def x_bounds(self):
-        return self._x_range
-
-    @property
-    def y_bounds(self):
-        return self._y_range
-
-    @property
-    def c(self):
-        x = (self.x_bounds.x1 - self.x_bounds.x0) / 2.0
-        y = (self.y_bounds.y1 - self.y_bounds.y0) / 2.0
-        return Coord(x, y)
-
-    @property
-    def corners(self):
-        x0 = self.x_bounds.x0
-        x1 = self.x_bounds.x1
-        y0 = self.y_bounds.y0
-        y1 = self.y_bounds.y1
-        return ((Coord(x0, y0), Coord(x1, y0)), (Coord(x0, y1), Coord(x1, y1)))
-
-    @property
-    def width(self):
-        return self.x_bounds.size
-
-    @property
-    def height(self):
-        return self.y_bounds.size
-
-    def __str__(self):
-        ((tl, tr), (bl, br)) = self.corners
-        string += f"{tl}\t{tr}\n"
-        string += f"\t{self.c}\n"
-        string += f"{bl}\t{br}\n"
-        return string
-
-
-def select_inside(areas: List[Area], bounds: XRange | YRange):
+def select_inside(
+    lines: List[ExtractedPdfLine], bounds: XRange | YRange
+) -> List[ExtractedPdfLine]:
     coord = 0 if isinstance(bounds, XRange) else 1
-    return [a for a in areas if a.c[coord] in bounds]
+    return [line for line in lines if line.c[coord] in bounds]
 
 
-def select_outside(areas: List[Area], bounds: XRange | YRange):
+def select_outside(
+    lines: List[ExtractedPdfLine], bounds: XRange | YRange
+) -> List[ExtractedPdfLine]:
     coord = 0 if isinstance(bounds, XRange) else 1
-    return [a for a in areas if a.c[coord] not in bounds]
+    return [l for l in lines if l.c[coord] not in bounds]
 
 
-def get_table_indexes(
-    areas: List[Area],
+def get_table_positions(
+    lines: List[ExtractedPdfLine],
     return_columns: bool = True,
     small_rule: bool = True,
     use_ruler_pos: bool = True,
@@ -105,7 +43,8 @@ def get_table_indexes(
         A list of indexes corresponding to each area
     """
     # Initialize indexes
-    indexes = [None for _ in areas]
+    indexes = [None for _ in lines]
+    areas = [l.geometry for l in lines]
     rulers = []
 
     # Choose min/max function based on small_rule
@@ -135,14 +74,12 @@ def get_table_indexes(
                 continue
 
             if use_ruler_pos:
-                # Use ruler position classification
-                test_pos = area.c[0] if return_columns else area.c[1]
-                if test_pos in ruler_bounds:
-                    indexes[i] = curr_idx
-            else:
-                # Use bounds classification
                 test_bounds = area.x_bounds if return_columns else area.y_bounds
                 if ruler_pos in test_bounds:
+                    indexes[i] = curr_idx
+            else:
+                test_pos = area.c[0] if return_columns else area.c[1]
+                if test_pos in ruler_bounds:
                     indexes[i] = curr_idx
 
     # Sort rulers and create mapping

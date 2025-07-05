@@ -58,13 +58,42 @@ def standard_text_extraction_loop(match_func=target_match):
             pdf_blocks: List[PdfBlock], targets: List[str]
         ) -> List[TextBlock]:
             text_part_list = []
-            for i, row_block in enumerate(pdf_blocks):
+            i = 0
+            if len(pdf_blocks) == 0:
+                return text_part_list
+            while True:
+                company_name = False
+                split = False
+                current_block = pdf_blocks[i]
+                next_block = pdf_blocks[i + 1]
+                col = current_block.metadata["table-col"]
+                next_col = next_block.metadata["table-col"]
+                content = current_block.content
+                if col == next_col:
+                    split = True
+                    content += pdf_blocks[i + 1].content
                 for target in targets:
                     target_n = normalize_string(target)
-                    if target_n != "" and match_func(row_block.content, target):
-                        text_block = f(pdf_blocks, i)
-                        text_block.metadata["company"] = target
-                        text_part_list.append(text_block)
+                    if target_n != "" and match_func(content, target):
+                        company_name = True
+                        if company_name and split:
+                            pdf_blocks[i].content = content
+                            pdf_blocks.pop(i + 1)
+                        txt_blk = f(pdf_blocks, i)
+                        txt_blk.metadata["company"] = target
+                        text_part_list.append(txt_blk)
+                        break
+                i += 1
+                if i >= len(pdf_blocks) - 1:
+                    break
+            if i == len(pdf_blocks) - 1:
+                content = pdf_blocks[-1].content
+                for target in targets:
+                    target_n = normalize_string(target)
+                    if target_n != "" and match_func(content, target):
+                        txt_blk = f(pdf_blocks, i)
+                        txt_blk.metadata["company"] = target
+                        text_part_list.append(txt_blk)
             return text_part_list
 
         return text_extract

@@ -1,5 +1,5 @@
 from typing import TypeAlias
-from .xml_extract import Range
+from .generic import Range
 
 Font: TypeAlias = str
 TextSize: TypeAlias = float
