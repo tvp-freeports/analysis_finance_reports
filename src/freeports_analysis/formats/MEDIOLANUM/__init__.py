@@ -26,8 +26,8 @@ class TextBlock:
 
 
 @standard_pdf_filtering(
-    header_txt="Titolo",
-    header_font="Helvetica-Bold",
+    header_txt="Relazione di gestione al 30 dicembre 2024",
+    header_font="Helvetica",
     subfund_height=(None, 76),
     subfund_font="Helvetica",
     body_font="Helvetica",
