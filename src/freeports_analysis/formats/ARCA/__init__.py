@@ -10,6 +10,7 @@ from .. import PdfBlock, TextBlock
 from ..utils_pdf_filter import one_pdf_blk, standard_pdf_filtering
 from ..utils_text_extract import standard_text_extraction, equity_bond_blks
 from ..utils_deserialize import standard_deserialization
+from ..utils_text_extract.match import target_fuzzy_match, target_prefix_match
 from freeports_analysis.consts import Currency
 
 logger = log.getLogger(__name__)
