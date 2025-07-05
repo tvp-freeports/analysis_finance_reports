@@ -26,5 +26,7 @@ freeports\_analysis.formats.utils\_pdf\_filter
    :toctree:
    :recursive:
 
-   font
-   position
+   pdf_parts
+   select_font
+   select_position
+   xml

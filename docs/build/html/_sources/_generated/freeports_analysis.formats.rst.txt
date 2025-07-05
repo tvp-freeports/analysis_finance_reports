@@ -36,10 +36,13 @@
    AMUNDI
    AMUNDI2
    ANIMA
+   ARCA
    ASTERIA
    EURIZON
+   EURIZON_IT
    EURIZON_OLD
    FIDEURAM
+   MEDIOLANUM
    utils_commons
    utils_deserialize
    utils_pdf_filter
