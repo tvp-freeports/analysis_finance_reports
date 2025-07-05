@@ -210,6 +210,8 @@ def standard_deserialization(
             dict
                 Dictionary with keys from mapping and casted values
             """
+            if blk is None:
+                logger.error("Something wrong happened, text block is None...")
             md = blk.metadata
 
             def float_cast(x):
@@ -255,7 +257,8 @@ def standard_deserialization(
                     return default_other_txt_blk_deserializer(blk, targets)
             except ValueError as e:
                 logger.error("Cast error page %i company %s", md["page"], md["company"])
-                raise e
+                logger.error(str(e))
+                logger.warning("Skipping page %i company %s", md["page"], md["company"])
 
         return deserialize
 

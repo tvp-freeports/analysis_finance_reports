@@ -14,12 +14,14 @@ Key components:
 
 from enum import Enum, auto
 import re
+import logging
 from typing import List, TypeAlias, Optional
 from .match import target_match
 from .. import TextBlock, PdfBlock
 from ...consts import Currency
 from ..utils_commons import normalize_string, overwrite_if_implemented
 
+logger = logging.getLogger(__name__)
 
 TextBlockType: TypeAlias = Enum
 
@@ -165,20 +167,24 @@ def standard_text_extraction(
                 raise ValueError("All positions should be different")
 
             metadata = {}
-            metadata["subfund"] = pdf_blocks[i].metadata["subfund"]
-            metadata["page"] = pdf_blocks[i].metadata["page"]
-            metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
-            metadata["market value"] = pdf_blocks[i + market_value_pos].content
-            metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-            if type(currency) is int:
-                metadata["currency"] = pdf_blocks[i + currency].content
-            elif type(currency) is Currency:
-                metadata["currency"] = currency.name
+            try:
+                metadata["subfund"] = pdf_blocks[i].metadata["subfund"]
+                metadata["page"] = pdf_blocks[i].metadata["page"]
+                metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
+                metadata["market value"] = pdf_blocks[i + market_value_pos].content
+                metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
+                if type(currency) is int:
+                    metadata["currency"] = pdf_blocks[i + currency].content
+                elif type(currency) is Currency:
+                    metadata["currency"] = currency.name
 
-            if acquisition_cost_pos is not None:
-                metadata["acquisition cost"] = pdf_blocks[
-                    i + acquisition_cost_pos
-                ].content
+                if acquisition_cost_pos is not None:
+                    metadata["acquisition cost"] = pdf_blocks[
+                        i + acquisition_cost_pos
+                    ].content
+            except IndexError as e:
+                logger.error(str(e))
+                return None
 
             content = pdf_blocks[i].content
             instrument = TextBlockType.EQUITY_TARGET

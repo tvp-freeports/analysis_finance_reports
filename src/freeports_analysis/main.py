@@ -22,7 +22,7 @@ import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
 from freeports_analysis import download as dw
-from freeports_analysis.consts import PdfFormats, _get_module
+from freeports_analysis.consts import PdfFormats, _get_module, Equity, Currency
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
@@ -95,7 +95,24 @@ def pipeline_batch(
     )
     filtered_text = text_extract_exec(pdf_blocks, targets, module.text_extract)
     financtial_data = deserialize_exec(filtered_text, targets, module.deserialize)
-    df = pd.DataFrame([fd.to_dict() for fd in financtial_data])
+    error_msg = "ERROR, SOMETHING WENT WRONG!!!!"
+    df = pd.DataFrame(
+        [
+            fd.to_dict()
+            if fd is not None
+            else Equity(
+                page=9999,
+                targets=[error_msg],
+                company=error_msg,
+                subfund=None,
+                nominal_quantity=None,
+                market_value=None,
+                perc_net_assets=0.0,
+                currency=Currency.EUR,
+            ).to_dict()
+            for fd in financtial_data
+        ]
+    )
     return df
 
 

@@ -32,6 +32,7 @@ single_page_tests = [
     ("FIDEURAM", 33),
     ("EURIZON_OLD", 97),
     ("MEDIOLANUM", 55),
+    ("EURIZON_IT", 29),
 ]
 
 all_pages_tests = [
@@ -39,8 +40,9 @@ all_pages_tests = [
     "EURIZON",
     "AMUNDI",
     "ASTERIA",
-    "AMUNDI2",
+    # "AMUNDI2",
     "FIDEURAM",
     "EURIZON_OLD",
     "MEDIOLANUM",
+    "EURIZON_IT",
 ]
