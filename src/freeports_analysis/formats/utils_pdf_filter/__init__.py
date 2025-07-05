@@ -4,8 +4,12 @@ from typing import List, Optional, Tuple, TypeAlias, Callable
 from enum import Enum, auto
 from lxml import etree
 from freeports_analysis.formats import PdfBlock
-from .font import get_lines_with_font, is_present_txt_font, get_lines_with_txt_font
-from .position import select_inside, get_table_positions, get_bounds
+from .xml.font import get_lines_with_font, is_present_txt_font, get_lines_with_txt_font
+from .font import Font, TextSize
+from .position import select_inside, get_table_positions, Area, XRange, YRange
+from .xml.position import get_bounds
+
+# , get_bounds
 from ..utils_commons import overwrite_if_implemented
 from .. import ExpectedPdfBlockNotFound
 from page_layout import print_blocks
@@ -37,7 +41,47 @@ def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
     del etree_to_print
 
 
+
 PdfBlockType: TypeAlias = Enum
+
+
+class ExtractedPdfLine:
+    def __init__(self, blk: etree.Element):
+        self._blk = blk
+        bounds = get_bounds(blk)
+        self._geometry = Area(
+            XRange(bounds[0][0], bounds[0][1]), YRange(bounds[1][0], bounds[1][1])
+        )
+        self._font = Font(blk.xpath(".//font/@name")[0])
+        self._txt_size = TextSize(blk.xpath(".//font/@size")[0])
+
+    @property
+    def geometry(self):
+        return self._geometry
+
+    @property
+    def c(self):
+        return self._geometry.c
+
+    @property
+    def corners(self):
+        return self._geometry.corners
+
+    @property
+    def font(self):
+        return self._font
+
+    @property
+    def text_size(self):
+        return self._txt_size
+
+    def __str__(self):
+        string = f"Line PDF - Font '{self.font}' [{self.text_size}]\n"
+        ((tl, tr), (bl, br)) = self.corners
+        string += f"\t{tl}\t{tr}\n"
+        string += f"\t\t{self.c}\n"
+        string += f"\t{bl}\t{br}\n"
+        return string
 
 
 class one_PdfBlockType(Enum):

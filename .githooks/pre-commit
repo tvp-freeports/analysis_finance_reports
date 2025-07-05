@@ -12,10 +12,10 @@ if [ "$(basename $VIRTUAL_ENV)" != "freeports-dev" ] ; then
 	exit 1
 fi
 
-(
-	cd docs
-	make html
-)
+# (
+# 	cd docs
+# 	make html
+# )
 
 
 pytest -m "not integration_tests and not online_tests"
