@@ -308,7 +308,7 @@ def main(config):
             with Pool(n_workers) as p:
                 results = p.starmap(_main_job, args)
         else:
-            results[_main_job(*args[0])]
+            results = [_main_job(*args[0])]
 
     _output_file(config, results)
 
