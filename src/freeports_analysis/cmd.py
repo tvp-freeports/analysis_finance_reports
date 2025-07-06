@@ -53,6 +53,9 @@ def _create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-download", action="store_true", help="Don't save file locally"
     )
+    parser.add_argument(
+        "--separate-out", action="store_true", help="Separate output files"
+    )
     parser.add_argument("--config", type=str, help="Custom configuration file location")
     out_csv = DEFAULT_CONFIG["OUT_CSV"]
     parser.add_argument(
@@ -129,6 +132,9 @@ def overwrite_with_args(args, config: dict, config_location: dict) -> Tuple[dict
         )
         config_location["VERBOSITY"] = PossibleLocationConfig.CMD_ARG
 
+    if args.separate_out:
+        config["SEPARATE_OUT_FILES"] = True
+
     return config, config_location
 
 
@@ -151,5 +157,4 @@ def cmd():
     log_level = (5 - config["VERBOSITY"]) * 10
     log.getLogger().setLevel(log_level)
     log_config(logger, config, config_location)
-    validate_conf(config)
     main(config)

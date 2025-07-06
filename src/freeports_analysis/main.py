@@ -193,19 +193,46 @@ def _get_document(config):
     return pdf_file, detected_format
 
 
-def _output_file(config, results, format_pdf):
-    df = pd.concat(results, ignore_index=True)
-
-    if config["OUT_CSV"].name.endswith(".tar.gz"):
-        config["OUT_CSV"] = config["OUT_CSV"].with_suffix("").with_suffix("")
-    prefix_csv = config.get("PREFIX_OUT_CSV")
-    if prefix_csv is None and config["BATCH"] is None:
-        df.to_csv(config["OUT_CSV"])
+def _output_file(config, results):
+    out_csv = config["OUT_CSV"]
+    out_dir = out_csv.parent
+    compress = False
+    remove_dir = False
+    df = None
+    if config["BATCH"] is not None:
+        if config["SEPARATE_OUT_FILES"]:
+            out_dir = out_csv
+            if out_csv.name.endswith(".tar.gz"):
+                compress = True
+                out_dir = out_csv.with_suffix("").with_suffix("")
+            if not out_dir.exists() and compress:
+                remove_dir = True
+            out_dir.mkdir(exist_ok=True)
+        else:
+            dataframes = []
+            for r, format_pdf, prefix_out in results:
+                if prefix_out is not None:
+                    r["Report identifier"] = prefix_out
+                r["Format"] = format_pdf.name
+                dataframes.append(r)
+            df = pd.concat(dataframes)
     else:
-        name_file = f"{format_pdf.name}.csv"
-        if prefix_csv is not None and prefix_csv != "":
-            name_file = f"{prefix_csv}-{format_pdf.name}.csv"
-        df.to_csv(config["OUT_CSV"] / name_file)
+        df = results[0][0]
+
+    if df is None:
+        for df, format_pdf, prefix_out in results:
+            name_file = f"{format_pdf.name}.csv"
+            if prefix_out is not None and prefix_out != "":
+                name_file = f"{prefix_out}-{format_pdf.name}.csv"
+            df.to_csv(out_dir / name_file)
+    else:
+        df.to_csv(config["OUT_CSV"])
+
+    if compress:
+        with tarfile.open(out_csv, "w:gz") as tar:
+            tar.add(out_dir, arcname=out_dir.name)
+        if remove_dir:
+            shutil.rmtree(out_dir)
 
 
 def _update_format(config, detected_format):
@@ -230,9 +257,11 @@ def _update_format(config, detected_format):
 
 
 def _main_job(config, n_workers):
+    validate_conf(config)
     logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
     pdf_file, format_pdf = _get_document(config)
     format_pdf = _update_format(config, format_pdf)
+    prefix_out = config["PREFIX_OUT_CSV"]
     logger.debug("Starting decoding pdf to xml...")
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug("End decoding pdf to xml!")
@@ -247,14 +276,14 @@ def _main_job(config, n_workers):
         batch_pages = pdf_file_xml[start_idx:end_idx]
         batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
 
-    results = None
+    results_batches = None
     if n_workers > 1:
         with Pool(processes=n_workers) as pool:
-            results = pool.starmap(pipeline_batch, batches)
+            results_batches = pool.starmap(pipeline_batch, batches)
     else:
-        results = [pipeline_batch(*batches[0])]
-
-    _output_file(config, results, format_pdf)
+        results_batches = [pipeline_batch(*batches[0])]
+    result = pd.concat(results_batches)
+    return result, format_pdf, prefix_out
 
 
 def main(config):
@@ -268,34 +297,20 @@ def main(config):
         or not associated with any format the program cannot choose a way to
         decode the pdf, so it raises this exception
     """
-    n_w_set = config["N_WORKERS"]
-    n_workers = n_w_set if n_w_set is not None and n_w_set >= 0 else None
-    if n_workers is None:
-        n_workers = os.cpu_count()
+    n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
+    results = None
     if config["BATCH"] is None:
-        _main_job(config, n_workers)
+        results = [_main_job(config, n_workers)]
     else:
         config_jobs = batch_job_confs(config)
         args = [(c, 1) for c in config_jobs]
-        out_csv = config["OUT_CSV"]
-        out_dir = out_csv
-        compress = False
-        remove_dir = False
-        if out_csv.name.endswith(".tar.gz"):
-            compress = True
-            out_dir = out_csv.with_suffix("").with_suffix("")
-        if not out_dir.exists() and compress:
-            remove_dir = True
+        if n_workers > 1:
+            with Pool(n_workers) as p:
+                results = p.starmap(_main_job, args)
+        else:
+            results[_main_job(*args[0])]
 
-        out_dir.mkdir(exist_ok=True)
-        with Pool(n_workers) as p:
-            p.starmap(_main_job, args)
-
-        if compress:
-            with tarfile.open(out_csv, "w:gz") as tar:
-                tar.add(out_dir, arcname=out_dir.name)
-            if remove_dir:
-                shutil.rmtree(out_dir)
+    _output_file(config, results)
 
 
 if __name__ == "__main__":
@@ -308,5 +323,4 @@ if __name__ == "__main__":
     LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
     log.getLogger().setLevel(LOG_LEVEL)
     log_config(logger, current_config, config_location)
-    validate_conf(current_config)
     main(current_config)

@@ -106,14 +106,18 @@ def _find_config():
 
 DEFAULT_CONFIG = {
     "VERBOSITY": 2,
-    "N_WORKERS": None,
+    # `SEPARATE_OUT_FILES` default to `False` because command line args permits to set only to `True`
+    "SEPARATE_OUT_FILES": False,
+    "N_WORKERS": os.process_cpu_count(),
     "BATCH": None,
+    "PREFIX_OUT_CSV": None,
     "OUT_CSV": Path("/dev/stdout")
     if os.name == "posix"
     else "CON"
     if os.name == "nt"
     else None,
-    "SAVE_PDF": True,  # default to `True` because command line args permits to set only to `False`
+    # `SAVE_PDF` default to `True` because command line args permits to set only to `False`
+    "SAVE_PDF": True,
     "URL": None,
     "PDF": None,
     "FORMAT": None,
@@ -127,6 +131,7 @@ schema_yaml_config = {
     "pdf": ("PDF", Path),
     "url": ("URL", str),
     "batch_path": ("BATCH", Path),
+    "separate_out": ("SEPARATE_OUT_FILES", bool),
     "out_path": ("OUT_CSV", Path),
     "save_pdf": ("SAVE_PDF", bool),
     "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
@@ -153,6 +158,7 @@ schema_env_config = {
     f"{ENV_PREFIX}VERBOSITY": ("VERBOSITY", int),
     f"{ENV_PREFIX}N_WORKERS": ("N_WORKERS", int),
     f"{ENV_PREFIX}BATCH": ("BATCH", Path),
+    f"{ENV_PREFIX}SEPARATE_OUT": ("SEPARATE_OUT_FILES", _str_to_bool),
     f"{ENV_PREFIX}OUT_CSV": ("OUT_CSV", Path),
     f"{ENV_PREFIX}SAVE_PDF": ("SAVE_PDF", _str_to_bool),
     f"{ENV_PREFIX}FORMAT": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
@@ -333,7 +339,10 @@ def validate_conf(config: dict):
     if batch_path is not None:
         if not batch_path.exists() or not batch_path.is_file():
             raise ValueError(f"Batch has to be existent file [{batch_path}]")
-        if "." in out_path.name and not out_path.name.endswith(".tar.gz"):
-            err_str = "Out file in `BATCH MODE` should be directory or `.tar.gz` file,"
-            err_str += f"resulting '{out_path}"
-            raise ValueError(err_str)
+        if config["SEPARATE_OUT_FILES"]:
+            if "." in out_path.name and not out_path.name.endswith(".tar.gz"):
+                err_str = (
+                    "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
+                )
+                err_str += f" if `SEPARATE_OUT_FILES`, resulting '{out_path}'"
+                raise ValueError(err_str)
