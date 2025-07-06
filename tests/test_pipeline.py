@@ -10,7 +10,7 @@ import pandas as pd
 def conf():
     return {
         "VERBOSITY": 2,
-        "N_WORKERS": None,
+        "N_WORKERS": 1,
         "BATCH": None,
         "OUT_CSV": None,
         "SAVE_PDF": False,
@@ -18,6 +18,8 @@ def conf():
         "PDF": None,
         "FORMAT": None,
         "CONFIG_FILE": None,
+        "PREFIX_OUT_CSV": None,
+        "SEPARATE_OUT_FILES": None,
     }
 
 
