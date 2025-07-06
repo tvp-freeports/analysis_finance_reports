@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats_utils.deserialize &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils_deserialize &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
 
@@ -63,9 +63,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats_utils.deserialize</li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils_deserialize</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats_utils.tabularize.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils_tabularize.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -74,20 +74,21 @@
            <div itemprop="articleBody">
              
   <section id="freeports-analysis-formats-utils-deserialize">
-<h1>freeports_analysis.formats_utils.deserialize<a class="headerlink" href="#freeports-analysis-formats-utils-deserialize" title="Link to this heading"></a></h1>
-<p class="rubric" id="module-freeports_analysis.formats_utils.deserialize">Functions</p>
+<h1>freeports_analysis.formats.utils_deserialize<a class="headerlink" href="#freeports-analysis-formats-utils-deserialize" title="Link to this heading"></a></h1>
+<p id="module-freeports_analysis.formats_utils.deserialize">Utils for creating deserialize routines and functions</p>
+<p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats_utils.deserialize.perc_to_float" title="freeports_analysis.formats_utils.deserialize.perc_to_float"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perc_to_float</span></code></a>(perc[, norm])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats_utils.deserialize.html#freeports_analysis.formats_utils.deserialize.perc_to_float" title="freeports_analysis.formats_utils.deserialize.perc_to_float"><code class="xref py py-obj docutils literal notranslate"><span class="pre">perc_to_float</span></code></a>(perc[, norm])</p></td>
 <td><p>Convert a percentage string to float value.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_float</span></code>(data)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats_utils.deserialize.html#freeports_analysis.formats_utils.deserialize.to_float" title="freeports_analysis.formats_utils.deserialize.to_float"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_float</span></code></a>(data)</p></td>
+<td><p>Cast to float in a more loose way than the standard python <cite>float</cite> namely it removes dots or commas and spaces around the string and handles thousand separators.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats_utils.deserialize.to_int" title="freeports_analysis.formats_utils.deserialize.to_int"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_int</span></code></a>(data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats_utils.deserialize.html#freeports_analysis.formats_utils.deserialize.to_int" title="freeports_analysis.formats_utils.deserialize.to_int"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_int</span></code></a>(data)</p></td>
 <td><p>Cast to int in a more loose way than the standard python <cite>int</cite> namely it remove dots or commas and spaces around the string</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats_utils.deserialize.to_str" title="freeports_analysis.formats_utils.deserialize.to_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_str</span></code></a>(data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats_utils.deserialize.html#freeports_analysis.formats_utils.deserialize.to_str" title="freeports_analysis.formats_utils.deserialize.to_str"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_str</span></code></a>(data)</p></td>
 <td><p>Normalize a string by stripping whitespace from both ends.</p></td>
 </tr>
 </tbody>
@@ -140,6 +141,68 @@ When True, replaces int with to_int and str with to_str</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats_utils.deserialize.to_currency">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats_utils.deserialize.</span></span><span class="sig-name descname"><span class="pre">to_currency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Currency" title="freeports_analysis.consts.Currency"><span class="pre">Currency</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats_utils.deserialize.to_currency" title="Link to this definition"></a></dt>
+<dd><p>Convert a string to a Currency enum value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>str</em>) – The currency string to convert (e.g. “USD”, “EUR”)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The corresponding Currency enum value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Currency" title="freeports_analysis.consts.Currency">Currency</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If the string doesn’t match any Currency enum member</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats_utils.deserialize.to_date">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats_utils.deserialize.</span></span><span class="sig-name descname"><span class="pre">to_date</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">date</span></span></span><a class="headerlink" href="#freeports_analysis.formats_utils.deserialize.to_date" title="Link to this definition"></a></dt>
+<dd><p>Convert a date string to a date object using multiple possible formats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>str</em>) – The date string to parse</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The parsed date object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>date</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the string doesn’t match any of the supported date formats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats_utils.deserialize.to_float">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats_utils.deserialize.</span></span><span class="sig-name descname"><span class="pre">to_float</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#freeports_analysis.formats_utils.deserialize.to_float" title="Link to this definition"></a></dt>
+<dd><p>Cast to float in a more loose way than the standard python <cite>float</cite>
+namely it removes dots or commas and spaces around the string and handles
+thousand separators.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>str</em>) – number written in string form</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>casted result</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – the resulting processed string cannot be casted to <cite>float</cite></p>
 </dd>
 </dl>
 </dd></dl>

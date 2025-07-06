@@ -1,4 +1,4 @@
-﻿freeports\_analysis.main
+freeports\_analysis.main
 ========================
 
 .. automodule:: freeports_analysis.main

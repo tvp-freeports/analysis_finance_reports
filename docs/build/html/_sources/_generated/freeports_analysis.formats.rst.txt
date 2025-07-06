@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats
+freeports\_analysis.formats
 ===========================
 
 .. automodule:: freeports_analysis.formats
@@ -33,17 +33,13 @@
    :toctree:
    :recursive:
 
-   AMUNDI
-   AMUNDI2
-   ANIMA
-   ARCA
-   ASTERIA
-   EURIZON
-   EURIZON_IT
-   EURIZON_OLD
-   FIDEURAM
-   MEDIOLANUM
-   utils_commons
-   utils_deserialize
-   utils_pdf_filter
-   utils_text_extract
+   amundi
+   amundi2
+   anima
+   arca
+   asteria
+   eurizon
+   eurizon_it
+   eurizon_old
+   fideuram
+   mediolanum

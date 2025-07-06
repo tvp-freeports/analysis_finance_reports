@@ -1,4 +1,4 @@
-﻿freeports\_analysis.consts
+freeports\_analysis.consts
 ==========================
 
 .. automodule:: freeports_analysis.consts
