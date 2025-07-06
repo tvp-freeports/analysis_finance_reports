@@ -199,7 +199,7 @@ def _output_file(config, results, format_pdf):
     if config["OUT_CSV"].name.endswith(".tar.gz"):
         config["OUT_CSV"] = config["OUT_CSV"].with_suffix("").with_suffix("")
     prefix_csv = config.get("PREFIX_OUT_CSV")
-    if prefix_csv is None:
+    if prefix_csv is None and config["BATCH"] is None:
         df.to_csv(config["OUT_CSV"])
     else:
         name_file = f"{format_pdf.name}.csv"
@@ -247,8 +247,12 @@ def _main_job(config, n_workers):
         batch_pages = pdf_file_xml[start_idx:end_idx]
         batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
 
-    with Pool(processes=n_workers) as pool:
-        results = pool.starmap(pipeline_batch, batches)
+    results = None
+    if n_workers > 1:
+        with Pool(processes=n_workers) as pool:
+            results = pool.starmap(pipeline_batch, batches)
+    else:
+        results = [pipeline_batch(*batches[0])]
 
     _output_file(config, results, format_pdf)
 
