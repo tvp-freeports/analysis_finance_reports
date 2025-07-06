@@ -1,12 +1,10 @@
 """Module common to each format, it contains the definitions used by all the formats"""
 
 from enum import Enum
-from multiprocessing import Pool
 from typing import Optional, List, Callable
 import logging as log
 from lxml import etree
-from pymupdf import Document
-from ..consts import FinancialData, _get_module
+from freeports_analysis.consts import FinancialData
 
 logger = log.getLogger(__name__)
 

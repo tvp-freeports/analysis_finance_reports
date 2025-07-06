@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils\_pdf\_filter.select\_position
 ===============================================================
 
-.. automodule:: freeports_analysis.formats.utils_pdf_filter.select_position
+.. automodule:: freeports_analysis.formats_utils.pdf_filter.select_position
    :members:
    
    

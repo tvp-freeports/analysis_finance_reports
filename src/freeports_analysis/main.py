@@ -12,11 +12,11 @@ import os
 import re
 import tarfile
 import shutil
-from lxml import etree
-from multiprocess import Pool
 import logging as log
 from typing import List
+from multiprocessing import Pool
 import csv
+from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
 from importlib_resources import files
@@ -172,9 +172,7 @@ def get_targets() -> List[str]:
     return targets
 
 
-def _main_job(config, n_workers):
-    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
-    format_selected = config["FORMAT"]
+def _get_document(config):
     detected_format = None
     if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
         logger.debug("PDF: %s", config["PDF"])
@@ -192,43 +190,10 @@ def _main_job(config, n_workers):
                 config["URL"], config["PDF"] if config["SAVE_PDF"] else None
             )
         )
-    logger.debug("Starting decoding pdf to xml...")
-    pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
-    logger.debug("End decoding pdf to xml!")
-    if detected_format is None and format_selected is None:
-        raise NoPDFormatDetected(
-            "No format selected and url doesn't match know formats"
-        )
-    if (
-        detected_format is not None
-        and format_selected
-        and format_selected is not None
-        and format_selected != detected_format
-    ):
-        logger.warning(
-            "Detected and selected formats don't match [det=%f sel=%s]",
-            detected_format.name,
-            format_selected.name,
-        )
+    return pdf_file, detected_format
 
-    format_pdf = detected_format if format_selected is None else format_selected
-    logger.debug("Using %s format", format_pdf.name)
-    targets = get_targets()
-    log_string = str(targets[: min(5, len(targets))])
-    logger.debug("First 5 targets: %s", log_string)
 
-    n_pages = len(pdf_file_xml)
-    batch_size = (n_pages + n_workers - 1) // n_workers
-    batches = []
-
-    for i in range(n_workers):
-        start_idx = i * batch_size
-        end_idx = min((i + 1) * batch_size, n_pages)
-        batch_pages = pdf_file_xml[start_idx:end_idx]
-        batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
-
-    with Pool(processes=n_workers) as pool:
-        results = pool.starmap(pipeline_batch, batches)
+def _output_file(config, results, format_pdf):
     df = pd.concat(results, ignore_index=True)
 
     if config["OUT_CSV"].name.endswith(".tar.gz"):
@@ -241,6 +206,51 @@ def _main_job(config, n_workers):
         if prefix_csv is not None and prefix_csv != "":
             name_file = f"{prefix_csv}-{format_pdf.name}.csv"
         df.to_csv(config["OUT_CSV"] / name_file)
+
+
+def _update_format(config, detected_format):
+    if detected_format is None and config["FORMAT"] is None:
+        raise NoPDFormatDetected(
+            "No format selected and url doesn't match know formats"
+        )
+    if (
+        detected_format is not None
+        and config["FORMAT"] is not None
+        and config["FORMAT"] != detected_format
+    ):
+        logger.warning(
+            "Detected and selected formats don't match [det=%s sel=%s]",
+            detected_format.name,
+            config["FORMAT"].name,
+        )
+
+    format_pdf = detected_format if config["FORMAT"] is None else config["FORMAT"]
+    logger.debug("Using %s format", format_pdf.name)
+    return format_pdf
+
+
+def _main_job(config, n_workers):
+    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
+    pdf_file, format_pdf = _get_document(config)
+    format_pdf = _update_format(config, format_pdf)
+    logger.debug("Starting decoding pdf to xml...")
+    pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
+    logger.debug("End decoding pdf to xml!")
+    targets = get_targets()
+    logger.debug("First 5 targets: %s", str(targets[: min(5, len(targets))]))
+    n_pages = len(pdf_file_xml)
+    batch_size = (n_pages + n_workers - 1) // n_workers
+    batches = []
+    for i in range(n_workers):
+        start_idx = i * batch_size
+        end_idx = min((i + 1) * batch_size, n_pages)
+        batch_pages = pdf_file_xml[start_idx:end_idx]
+        batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
+
+    with Pool(processes=n_workers) as pool:
+        results = pool.starmap(pipeline_batch, batches)
+
+    _output_file(config, results, format_pdf)
 
 
 def main(config):

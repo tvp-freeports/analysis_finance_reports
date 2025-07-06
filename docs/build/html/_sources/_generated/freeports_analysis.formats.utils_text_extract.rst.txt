@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils\_text\_extract
 ================================================
 
-.. automodule:: freeports_analysis.formats.utils_text_extract
+.. automodule:: freeports_analysis.formats_utils.text_extract
    :members:
    
    
@@ -9,7 +9,7 @@ freeports\_analysis.formats.utils\_text\_extract
 
    .. autosummary::
    
-      equity_bond_blks
+      EquityBondTextBlockType
       standard_text_extraction
       standard_text_extraction_loop
    

@@ -16,7 +16,7 @@ def test_pdf_filter(fmt, page, xml_parser):
     pdf = Document(data_dir / fmt / "report.pdf")
     xml_str = pdf[page].get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=xml_parser)
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt}")
+    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     pdf_blks = module.pdf_filter(xml_tree, page)
     # with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("wb") as f:
     #     dill.dump(pdf_blks,f)

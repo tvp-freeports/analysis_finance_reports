@@ -18,7 +18,7 @@ def test_deserialize(fmt, page, targets):
     with (data_dir / fmt / f"txt_blks-{page}.pkl").open("rb") as f:
         txt_blks = dill.load(f)
 
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt}")
+    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     financial_data = [module.deserialize(blk, targets) for blk in txt_blks]
     # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
     #     dill.dump(txt_blks,f)

@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils\_deserialize
 =============================================
 
-.. automodule:: freeports_analysis.formats.utils_deserialize
+.. automodule:: freeports_analysis.formats_utils.deserialize
    :members:
    
    

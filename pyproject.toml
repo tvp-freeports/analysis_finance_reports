@@ -66,3 +66,7 @@ markers = [
     "integration_tests: mark test as an integration test (supposingly slow) to avoid running on each commit",
     "online_tests: mark test as an test that requires an internet conncetion to avoid running on each commit"
 ]
+
+[tool.pylint."TYPECHECK"]
+extension-pkg-allow-list = ["lxml.etree"]
+

@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils\_pdf\_filter
 ==============================================
 
-.. automodule:: freeports_analysis.formats.utils_pdf_filter
+.. automodule:: freeports_analysis.formats_utils.pdf_filter
    :members:
    
    
@@ -10,7 +10,7 @@ freeports\_analysis.formats.utils\_pdf\_filter
    .. autosummary::
    
       filter_page_if
-      one_pdf_blk
+      OnePdfBlockType
       standard_extraction_subfund
       standard_pdf_filtering
    

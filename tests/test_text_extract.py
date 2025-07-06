@@ -18,7 +18,7 @@ def test_pdf_filter(fmt, page, targets):
     with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("rb") as f:
         pdf_blks = dill.load(f)
 
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt}")
+    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     txt_blks = module.text_extract(pdf_blks, targets)
     # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
     #     dill.dump(txt_blks,f)

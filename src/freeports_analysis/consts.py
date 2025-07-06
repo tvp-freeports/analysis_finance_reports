@@ -203,6 +203,13 @@ class FinancialData(ABC):
         return self._acquisition_cost
 
     def to_dict(self) -> dict:
+        """Cast financial data to python dictionary
+
+        Returns
+        -------
+        dict
+            casted data
+        """
         return {
             "Page report": self.page,
             "Company": self.company,
@@ -229,7 +236,8 @@ class FinancialData(ABC):
         string += f"\tSubfund:\t{self.subfund}\n"
         string += f"\tCompany:\t{self.company}\n"
         string += f"\tCurrency:\t{self.currency.name}\n"
-        string += f"\tMarket value:\t{self.market_value:.2f}{self.currency.value}\t({self.perc_net_assets:.3%} of net assets)\n"
+        string += f"\tMarket value:\t{self.market_value:.2f}{self.currency.value}"
+        string += f"\t({self.perc_net_assets:.3%} of net assets)\n"
         string += f"\tQuantity:\t{self.nominal_quantity}\n"
         string += "\tAdditional infos: {"
         add_string = self._str_additional_infos()
@@ -401,9 +409,9 @@ class Bond(FinancialData):
 def _get_module(module_name: str):
     try:
         module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name}", package=__package__
+            f"freeports_analysis.formats.{module_name.lower()}", package=__package__
         )
     except ImportError:
-        print(f"Errore: modulo {module_name} non trovato")
+        print(f"Errore: modulo {module_name.lower()} ({module_name}) non trovato")
         raise
     return module
