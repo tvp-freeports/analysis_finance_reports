@@ -128,6 +128,62 @@ Each way of specify option set one of the program option described in this page.
 The options here documented have an effecton the behaviour of the <code class="docutils literal notranslate"><span class="pre">freeports</span></code> call.</p>
 <section id="the-options">
 <h2>The options<a class="headerlink" href="#the-options" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">VERBOSITY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>Describe how much the program verbosity</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BATCH</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Path</span></code></p></td>
+<td><p>If set to path of batch file, it triggers <code class="docutils literal notranslate"><span class="pre">BATCH</span> <span class="pre">MODE</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">N_WORKERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>Number of parallel processes in <code class="docutils literal notranslate"><span class="pre">BATCH</span> <span class="pre">MODE</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">OUT_CSV</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Path</span></code></p></td>
+<td><p>File where to output <code class="docutils literal notranslate"><span class="pre">csv</span></code> files</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/dev/stdout</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SAVE_PDF</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p>If set and <code class="docutils literal notranslate"><span class="pre">URL</span></code> is specified, it save the input pdf</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">URL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p>Url of the pdf to take in input</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PDF</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Path</span></code></p></td>
+<td><p>Path to local pdf</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FORMAT</span></code></p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">PdfFormats</span></code></p></td>
+<td><p>Format to parse the pdf document</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CONFIG_FILE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Path</span></code></p></td>
+<td><p>Custom config file location</p></td>
+<td><p>Calculated dynamically</p></td>
+</tr>
+</tbody>
+</table>
 <section id="verbosity">
 <h3><code class="docutils literal notranslate"><span class="pre">VERBOSITY</span></code><a class="headerlink" href="#verbosity" title="Link to this heading"></a></h3>
 <p>This values goes from 0 to 5, 0 indicate min verbosity called <code class="docutils literal notranslate"><span class="pre">CRITICAL</span> <span class="pre">VERBOSITY</span></code> and 4 indicate the max verbosity also called <code class="docutils literal notranslate"><span class="pre">DEBUG</span> <span class="pre">VERBOSITY</span></code>, 5 is the <code class="docutils literal notranslate"><span class="pre">NOSET</span> <span class="pre">VERBOSITY</span></code>.
