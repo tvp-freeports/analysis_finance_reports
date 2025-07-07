@@ -30,6 +30,7 @@ The map between command line options and program variables is:
 | ``--separate-out``    | Save ``SEPARATE_OUT_FILES``   to ``True`` if present | ``bool``                |
 +-----------------------+------------------------------------------------------+-------------------------+
 
+
 ``-v`` and ``-q`` options are cumulabes and increase or decrease the default ``VERBOSITY``, for example ``-vvv`` increase verbosity by 3, ``-qq`` decrease by 2,
 ``-v`` increase of 1, ecc. ecc.
 
