@@ -61,8 +61,6 @@ def generic_test_pipeline(fmt):
     fra.main.main(conf)
     out_csv = pd.read_csv(conf["OUT_CSV"], index_col=False)
     reference_csv = pd.read_csv(data_dir / fmt / "out.csv", index_col=False)
-    print(out_csv[:5])
-    print(reference_csv[:5])
     pd.testing.assert_frame_equal(
         out_csv.sort_values(by=out_csv.columns.tolist()).reset_index(drop=True),
         reference_csv.sort_values(by=reference_csv.columns.tolist()).reset_index(
