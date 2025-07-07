@@ -6,7 +6,7 @@ pipeline {
         PYPI_CREDENTIALS = credentials('pypi-credentials')
         VENV_DIR = "venv/freeports-dev"
         LINT_SCORE_THRESHOLD = '9.0'
-        COVERAGE_THRESHOLD = '60.0'
+        COVERAGE_THRESHOLD = '70.0'
         COVERAGE_THRESHOLD_DOCS = '90.0'
         REPORTS_DIR = 'reports'
         DOCS_DIR = 'docs/build/html'
