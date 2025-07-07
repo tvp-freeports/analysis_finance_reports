@@ -13,8 +13,6 @@ pipeline {
         TREND_DATA_DIR = 'trend_data'
     }
     stages {
-        
-
         stage('Checkout') {
             steps {
                 script {
@@ -83,7 +81,6 @@ pipeline {
                 }
             }
         }
-        
         stage('Test') {
             steps {
                 sh """
