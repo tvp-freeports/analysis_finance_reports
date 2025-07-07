@@ -31,7 +31,7 @@ From source
 
 .. code-block:: console
 
-    git clone https://github.com/GVoreste/analysis_finance_reports.git
+    git clone https://github.com/tvp-freeports/analysis_finance_reports.git
 
 
 2. `cd` into the created directory
