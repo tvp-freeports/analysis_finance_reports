@@ -224,9 +224,9 @@ def _output_file(config, results):
             name_file = f"{format_pdf.name}.csv"
             if prefix_out is not None and prefix_out != "":
                 name_file = f"{prefix_out}-{format_pdf.name}.csv"
-            df.to_csv(out_dir / name_file)
+            df.to_csv(out_dir / name_file, index=False)
     else:
-        df.to_csv(config["OUT_CSV"])
+        df.to_csv(config["OUT_CSV"], index=False)
 
     if compress:
         with tarfile.open(out_csv, "w:gz") as tar:

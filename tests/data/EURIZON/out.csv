@@ -1,223 +1,223 @@
-,Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
-0,177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,800000,772648.0,EUR,0.0034000000000000002,783522.78,2027-09-08,0.025
-1,177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,500000,449550.0,EUR,0.002,480672.31,2027-02-25,0.00625
-2,177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,300000,293430.0,EUR,0.0013,301551.08,2026-04-05,0.04
-3,177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,100000,91180.0,EUR,0.0004,91479.86,2026-06-05,0.00375
-4,178,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,1000000,927310.0,EUR,0.0040999999999999995,934839.13,2027-03-03,0.018000000000000002
-5,179,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,600000,561366.0,EUR,0.0025,560268.03,2025-03-08,0.001
-6,179,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,100000,100193.0,EUR,0.0005,101411.61,2026-11-15,0.04
-7,181,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,200000,191948.0,EUR,0.0008,208707.74,2025-02-07,0.015
-8,186,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,300000,261573.0,EUR,0.0011,263845.78,2027-06-30,0.00375
-9,193,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,400000,364756.0,EUR,0.0016,398696.06,2026-02-20,0.0
-10,199,Alstom,EQUITY,Eurizon Fund - Equity Euro LTE,15718,429415.76,EUR,0.0023,405923.1,,
-11,199,Carrefour,EQUITY,Eurizon Fund - Equity Euro LTE,28722,498470.31,EUR,0.0027,482832.03,,
-12,200,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,36962,5638183.48,EUR,0.0304,4975348.35,,
-13,200,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Euro LTE,6998,526249.6,EUR,0.0028000000000000004,424592.12,,
-14,200,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,15921,257601.78,EUR,0.0014000000000000002,303372.97,,
-15,201,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,8572,444543.92,EUR,0.0024,433668.17,,
-16,202,CNH Industrial,EQUITY,Eurizon Fund - Equity Euro LTE,49695,656222.48,EUR,0.0034999999999999996,730267.24,,
-17,211,Alstom,EQUITY,Eurizon Fund - Equity Europe LTE,24121,658985.72,EUR,0.0011,667936.14,,
-18,211,Carrefour,EQUITY,Eurizon Fund - Equity Europe LTE,45841,795570.56,EUR,0.0013,768313.35,,
-19,213,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,60986,9302804.44,EUR,0.015300000000000001,8156830.64,,
-20,213,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Europe LTE,7249,545124.8,EUR,0.0009,435151.04,,
-21,213,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,19948,322758.64,EUR,0.0005,468700.13,,
-22,214,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,17072,885353.92,EUR,0.0014000000000000002,894427.85,,
-23,215,CNH Industrial,EQUITY,Eurizon Fund - Equity Europe LTE,102371,1351809.06,EUR,0.0022,1348040.34,,
-24,216,Carlsberg,EQUITY,Eurizon Fund - Equity Europe LTE,6764,990629.54,SEK,0.0016,927154.45,,
-25,229,Alstom,EQUITY,Eurizon Fund - Equity Europe ESG LTE,17967,490858.44,EUR,0.0009,507840.07,,
-26,229,Carrefour,EQUITY,Eurizon Fund - Equity Europe ESG LTE,48696,845119.08,EUR,0.0015,834222.8,,
-27,231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,46188,7045517.52,EUR,0.012199999999999999,6017975.21,,
-28,231,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Europe ESG LTE,7125,535800.0,EUR,0.0009,459440.03,,
-29,231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,29308,474203.44,EUR,0.0008,580340.8,,
-30,231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,17679,916832.94,EUR,0.0016,934919.56,,
-31,232,CNH Industrial,EQUITY,Eurizon Fund - Equity Europe ESG LTE,69954,923742.57,EUR,0.0016,916036.1,,
-32,233,Carlsberg,EQUITY,Eurizon Fund - Equity Europe ESG LTE,6529,956212.34,SEK,0.0017000000000000001,832456.56,,
-33,243,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,18950,291805.59,USD,0.0011,267200.4,,
-34,246,Booking Holdings,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,532,1316750.79,USD,0.0052,1253931.45,,
-35,246,Caterpillar,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,7232,1631011.04,USD,0.0064,1478522.68,,
-36,247,Coca-Cola Co,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,58085,3206120.64,USD,0.0126,3292677.41,,
-37,253,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity USA ESG LTE,58025,893510.26,USD,0.001,768590.62,,
-38,256,Cisco Systems,EQUITY,Eurizon Fund - Equity USA ESG LTE,101756,4825713.85,USD,0.0052,4439769.52,,
-39,256,Booking Holdings,EQUITY,Eurizon Fund - Equity USA ESG LTE,1037,2566674.01,USD,0.0028000000000000004,1961778.23,,
-40,256,Airbnb,EQUITY,Eurizon Fund - Equity USA ESG LTE,10261,1205361.46,USD,0.0013,1234992.92,,
-41,256,Motorola Solutions,EQUITY,Eurizon Fund - Equity USA ESG LTE,3381,908872.02,USD,0.001,704300.06,,
-42,259,Caterpillar,EQUITY,Eurizon Fund - Equity USA ESG LTE,12176,2746016.38,USD,0.0029,2201767.8,,
-43,261,Coca-Cola Co,EQUITY,Eurizon Fund - Equity USA ESG LTE,124402,6866623.39,USD,0.0074,6709947.14,,
-44,269,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity North America LTE,74103,1141090.76,USD,0.0005,1061284.46,,
-45,276,Cisco Systems,EQUITY,Eurizon Fund - Equity North America LTE,317301,15047798.95,USD,0.0072,14414788.79,,
-46,276,Booking Holdings,EQUITY,Eurizon Fund - Equity North America LTE,2093,5180374.83,USD,0.0025,4555794.1,,
-47,276,Motorola Solutions,EQUITY,Eurizon Fund - Equity North America LTE,14670,3943552.95,USD,0.0019,3627818.55,,
-48,276,Airbnb,EQUITY,Eurizon Fund - Equity North America LTE,20213,2374424.64,USD,0.0011,2112018.08,,
-49,276,Expedia Group,EQUITY,Eurizon Fund - Equity North America LTE,12156,1218830.82,USD,0.0006,1173908.81,,
-50,276,Caterpillar,EQUITY,Eurizon Fund - Equity North America LTE,22961,5178324.75,USD,0.0025,4645606.35,,
-51,278,Coca-Cola Co,EQUITY,Eurizon Fund - Equity North America LTE,332646,18361077.83,USD,0.0088,19115849.83,,
-52,281,WSP Global,EQUITY,Eurizon Fund - Equity North America LTE,5255,637079.47,USD,0.0003,549538.68,,
-53,301,MAN Group,EQUITY,Eurizon Fund - Equity Pacific Ex-Japan LTE,702103,8597441.92,USD,0.018799999999999997,8463854.54,,
-54,313,Siemens,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,11075,466063.68,INR,0.0006,298441.27,,
-55,317,Hyundai Heavy Industries,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,1398,128076.07,KRW,0.0002,120243.83,,
-56,323,Cemex,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,2424715,1567994.01,USD,0.0019,1098269.81,,
-57,323,Orbia,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,160693,316727.81,USD,0.0004,316506.17,,
-58,326,Carlsberg,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,236,943.58,MYR,0.0,1376.35,,
-59,342,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,15860,244223.57,USD,0.0008,226489.68,,
-60,345,Booking Holdings,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,428,1059340.86,USD,0.0034000000000000002,1007732.65,,
-61,345,Caterpillar,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,6070,1368948.71,USD,0.0044,1298220.57,,
-62,346,Coca-Cola Co,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,47955,2646974.52,USD,0.0086,2726489.13,,
-63,350,Carrefour,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,9538,165531.99,EUR,0.0005,166158.16,,
-64,353,CNH Industrial,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,9729,128471.45,EUR,0.0004,139960.02,,
-65,353,MAN Group,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,18271,223733.36,USD,0.0007000000000000001,225022.87,,
-66,355,Heidelberg Materials,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,1747,131374.4,EUR,0.0004,105124.99,,
-67,358,Bank Leumi,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,16978,117711.52,ILS,0.0004,137869.26,,
-68,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,615000,570572.4,EUR,0.0023,657684.08,2027-03-03,0.018000000000000002
-69,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,298671.0,EUR,0.0012,299798.99,2033-05-12,0.04125
-70,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,500000,522600.0,EUR,0.0021,535400.54,2034-11-15,0.0475
-71,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,450000,386442.0,EUR,0.0016,420540.06,2028-03-08,0.005
-72,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,350000,327547.5,EUR,0.0013,350708.81,2025-03-08,0.001
-73,366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,309099.0,EUR,0.0013,314419.45,2031-11-15,0.045
-74,367,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,100000,101414.0,EUR,0.0004,103070.31,2029-05-15,0.0425
-75,371,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate Smart ESG,400000,380656.0,EUR,0.0015,375584.57,2032-05-31,0.0375
-76,371,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,287946.0,EUR,0.0012,307073.94,2025-02-07,0.015
-77,383,Alstom,BOND,Eurizon Fund - Bond Corporate Smart ESG,500000,407005.0,EUR,0.0017000000000000001,397318.6,2029-01-11,0.0
-78,391,CNH Industrial,EQUITY,Eurizon Fund - Equity Italy Smart Volatility,122074,1611987.17,EUR,0.0296,1462613.44,,
-79,409,Siemens,EQUITY,Eurizon Fund - Equity Emerging Markets Smart Volatility,5741,241595.63,INR,0.0005,208013.22,,
-80,417,Cemex,EQUITY,Eurizon Fund - Equity Emerging Markets Smart Volatility,768261,496812.47,USD,0.001,361100.7,,
-81,432,Cisco Systems,EQUITY,Eurizon Fund - Equity World Smart Volatility,128233,6081368.8,USD,0.0053,5197037.47,,
-82,432,Motorola Solutions,EQUITY,Eurizon Fund - Equity World Smart Volatility,13116,3525810.53,USD,0.0031,3265292.5,,
-83,432,Booking Holdings,EQUITY,Eurizon Fund - Equity World Smart Volatility,373,923210.61,USD,0.0008,833878.73,,
-84,432,Airbnb,EQUITY,Eurizon Fund - Equity World Smart Volatility,5274,619537.7,USD,0.0005,529887.78,,
-85,432,Caterpillar,EQUITY,Eurizon Fund - Equity World Smart Volatility,33109,7466972.43,USD,0.006500000000000001,7280483.81,,
-86,433,Coca-Cola Co,EQUITY,Eurizon Fund - Equity World Smart Volatility,30866,1703712.14,USD,0.0015,1739353.35,,
-87,437,WSP Global,EQUITY,Eurizon Fund - Equity World Smart Volatility,5182,628229.46,USD,0.0006,600411.68,,
-88,439,Siemens,EQUITY,Eurizon Fund - Equity World Smart Volatility,8002,1220625.08,EUR,0.0011,1146845.35,,
-89,473,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2600000,2557490.0,EUR,0.0028000000000000004,2600000.0,2027-05-05,0.04079
-90,473,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1300000,1200108.0,EUR,0.0013,1300000.0,2025-06-14,0.00107
-91,474,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1000000,934820.0,EUR,0.001,942080.0,2026-10-30,0.01875
-92,474,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term,4300000,4189103.0,EUR,0.0045000000000000005,4293980.0,2025-03-10,0.0225
-93,474,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2500000,2445625.0,EUR,0.0027,2499875.0,2024-02-28,0.003
-94,476,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term,3600000,3369060.0,EUR,0.0037,3492393.0,2025-03-08,0.001
-95,476,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1000000,1002200.0,EUR,0.0011,999930.0,2026-11-15,0.04
-96,479,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2100000,2064489.0,EUR,0.0023,2093855.0,2025-10-12,0.0325
-97,479,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1700000,1682303.0,EUR,0.0018,1699694.0,2026-11-26,0.035
-98,484,CNH Industrial,BOND,Eurizon Fund - Bond Corporate EUR Short Term,3200000,3103424.0,EUR,0.0034000000000000002,3197120.0,2024-04-01,0.0
-99,492,Alstom,BOND,Eurizon Fund - Bond Corporate EUR,2400000,2131776.0,EUR,0.001,2390208.0,2026-10-14,0.0025
-100,493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,5900000,5630724.0,EUR,0.0027,5956014.0,2027-12-15,0.02625
-101,493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,1800000,1815156.0,EUR,0.0008,1781514.0,2028-10-12,0.04125
-102,493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,1800000,1617102.0,EUR,0.0008,1791612.0,2027-05-17,0.01
-103,494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,4600000,4462368.0,EUR,0.0021,4595308.0,2033-09-08,0.03
-104,494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2500000,2491100.0,EUR,0.0012,2464775.0,2036-02-24,0.035
-105,494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2400000,2338104.0,EUR,0.0011,2396640.0,2025-03-10,0.0225
-106,494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2222237.0,EUR,0.0011,2297976.0,2027-09-08,0.025
-107,494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2206505.0,EUR,0.001,2290064.0,2030-09-09,0.0275
-108,495,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2274769.0,EUR,0.0011,2298114.0,2028-11-12,0.03625
-109,495,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,1500000,1567800.0,EUR,0.0008,1495830.0,2034-11-15,0.0475
-110,496,Coca-Cola Co,BOND,Eurizon Fund - Bond Corporate EUR,3900000,3237117.0,EUR,0.0015,3402750.0,2029-03-09,0.00125
-111,496,Coca-Cola Co,BOND,Eurizon Fund - Bond Corporate EUR,2500000,2055225.0,EUR,0.001,2514251.57,2035-03-09,0.01625
-112,496,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,3400000,3384938.0,EUR,0.0016,3380620.0,2033-05-12,0.04125
-113,498,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate EUR,3656000,3479195.84,EUR,0.0017000000000000001,3610080.64,2032-05-31,0.0375
-114,501,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR,1000000,983090.0,EUR,0.0005,998370.0,2025-10-12,0.0325
-115,507,CNH Industrial,BOND,Eurizon Fund - Bond Corporate EUR,4200000,4073244.0,EUR,0.0019,4196220.0,2024-04-01,0.0
-116,515,Siemens,BOND,Eurizon Fund - Green Euro Credit,2000000,1956420.0,EUR,0.0028000000000000004,1994680.0,2026-04-05,0.04
-117,515,Siemens,BOND,Eurizon Fund - Green Euro Credit,1200000,1169604.0,EUR,0.0017000000000000001,1193724.0,2029-04-05,0.0425
-118,528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,500000,487105.0,EUR,0.004699999999999999,493026.0,2025-03-10,0.0225
-119,528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,200000,200030.0,EUR,0.0019,199330.0,2031-08-24,0.03375
-120,528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,200000,195642.0,EUR,0.0019,199468.0,2026-04-05,0.04
-121,544,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR,500000,449580.0,EUR,0.0004,503109.44,2028-02-28,0.009000000000000001
-122,544,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR,400000,364764.0,EUR,0.0003,399788.0,2026-06-05,0.00375
-123,545,Booking Holdings,BOND,Eurizon Fund - Bond Aggregate EUR,1850000,1854070.0,EUR,0.0017000000000000001,1854918.0,2026-11-15,0.04
-124,546,CNH Industrial,BOND,Eurizon Fund - Bond Aggregate EUR,1000000,952770.0,EUR,0.0009,1039205.0,2025-09-12,0.0175
-125,605,eDreams ODIGEO,BOND,Eurizon Fund - Bond Euro High Yield,500000,455595.0,EUR,0.0038,459000.0,2027-07-15,0.055
-126,617,eDreams ODIGEO,BOND,Eurizon Fund - Bond High Yield,1400000,1275666.0,EUR,0.0005,1276800.0,2027-07-15,0.055
-127,693,CNH Industrial,EQUITY,Eurizon Fund - Italian Equity Opportunities,290000,3829450.0,EUR,0.0207,3654923.96,,
-128,699,Siemens,EQUITY,Eurizon Fund - Top European Research,313489,47819612.06,EUR,0.0207,36317845.84,,
-129,700,Carlsberg,EQUITY,Eurizon Fund - Top European Research,133783,19593345.85,SEK,0.0085,19595740.12,,
-130,706,Alstom,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,37731,1030810.92,EUR,0.0067,986778.66,,
-131,706,Carrefour,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,189048,3280928.04,EUR,0.0213,3197875.35,,
-132,707,Siemens,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,49714,804372.52,EUR,0.0052,1050523.32,,
-133,707,CNH Industrial,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,66239,874686.0,EUR,0.005699999999999999,873931.8,,
-134,715,Motorola Solutions,EQUITY,Eurizon Fund - Equity USA,129343,34769663.88,USD,0.008100000000000001,33139844.73,,
-135,715,Booking Holdings,EQUITY,Eurizon Fund - Equity USA,10047,24867284.24,USD,0.0058,21466990.81,,
-136,764,WSP Global,EQUITY,Eurizon Fund - Sustainable Global Equity,13202,1600518.21,USD,0.0022,1205516.42,,
-137,766,Israel Discount Bank,EQUITY,Eurizon Fund - Sustainable Global Equity,101952,466365.85,ILS,0.0007000000000000001,391545.97,,
-138,766,Bank Hapoalim,EQUITY,Eurizon Fund - Sustainable Global Equity,3592,27237.34,ILS,0.0,29203.64,,
-139,772,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity Planet,267405,4117692.58,USD,0.0023,3733904.74,,
-140,773,Caterpillar,EQUITY,Eurizon Fund - Equity Planet,20896,4712611.56,USD,0.0026,3826407.03,,
-141,773,Cisco Systems,EQUITY,Eurizon Fund - Equity Planet,181110,8589027.04,USD,0.0048,8028156.99,,
-142,776,WSP Global,EQUITY,Eurizon Fund - Equity Planet,10600,1285069.92,USD,0.0007000000000000001,1242094.88,,
-143,776,Siemens,EQUITY,Eurizon Fund - Equity Planet,437503,7896929.15,EUR,0.0044,7894990.49,,
-144,776,Siemens,EQUITY,Eurizon Fund - Equity Planet,30014,4578335.56,EUR,0.0026,3190116.08,,
-145,780,MAN Group,EQUITY,Eurizon Fund - Equity Planet,79279,970792.89,USD,0.0005,1034391.84,,
-146,784,Airbnb,EQUITY,Eurizon Fund - Equity Innovation,180493,21202544.19,USD,0.0102,20648881.75,,
-147,784,Cisco Systems,EQUITY,Eurizon Fund - Equity Innovation,440923,20910494.0,USD,0.01,19974512.93,,
-148,785,Siemens,EQUITY,Eurizon Fund - Equity Innovation,205863,31402342.02,EUR,0.015,27827149.64,,
-149,786,Siemens,EQUITY,Eurizon Fund - Equity Innovation,462954,8356319.7,EUR,0.004,8985782.95,,
-150,792,Airbnb,EQUITY,Eurizon Fund - Equity People,88214,10362513.97,USD,0.0085,9600825.57,,
-151,793,Caterpillar,EQUITY,Eurizon Fund - Equity People,17490,3944466.7,USD,0.0032,3216166.76,,
-152,793,Carrefour,EQUITY,Eurizon Fund - Equity People,270635,4696870.43,EUR,0.0038,4397598.94,,
-153,793,CNH Industrial,EQUITY,Eurizon Fund - Equity People,490268,6473988.94,EUR,0.0053,5719325.64,,
-154,800,Caterpillar,EQUITY,Eurizon Fund - Equity Circular Economy,13072,2948088.55,USD,0.004699999999999999,2534436.23,,
-155,800,Cisco Systems,EQUITY,Eurizon Fund - Equity Circular Economy,210057,9961820.18,USD,0.016,9513707.01,,
-156,800,Coca-Cola Co,EQUITY,Eurizon Fund - Equity Circular Economy,190562,10518460.21,USD,0.0168,11110084.54,,
-157,802,WSP Global,EQUITY,Eurizon Fund - Equity Circular Economy,19101,2315671.74,USD,0.0037,2261629.64,,
-158,808,Cisco Systems,EQUITY,Eurizon Fund - Equity High Dividend,74359,3526428.48,USD,0.0181,3406607.38,,
-159,808,Coca-Cola Co,EQUITY,Eurizon Fund - Equity High Dividend,85541,4721610.84,USD,0.024300000000000002,5039185.58,,
-160,809,Carrefour,EQUITY,Eurizon Fund - Equity High Dividend,86606,1503047.13,EUR,0.0077,1526885.65,,
-161,816,Booking Holdings,BOND,Eurizon Fund - Absolute Active,1000000,1002200.0,EUR,0.0037,999930.0,2026-11-15,0.04
-162,817,Heidelberg Materials,BOND,Eurizon Fund - Absolute Active,1000000,959820.0,EUR,0.0034999999999999996,1050150.0,2025-02-07,0.015
-163,846,eDreams ODIGEO,BOND,Eurizon Fund - Absolute High Yield,1000000,911190.0,EUR,0.0025,917000.0,2027-07-15,0.055
-164,856,Booking Holdings,BOND,Eurizon Fund - Absolute Prudent,1300000,1302860.0,EUR,0.0038,1299909.0,2026-11-15,0.04
-165,857,Heidelberg Materials,BOND,Eurizon Fund - Absolute Prudent,2800000,2687496.0,EUR,0.0079,2940420.0,2025-02-07,0.015
-166,866,Booking Holdings,EQUITY,Eurizon Fund - Absolute Return Solution,73,180681.97,USD,0.0023,159368.01,,
-167,866,Cisco Systems,EQUITY,Eurizon Fund - Absolute Return Solution,858,40690.11,USD,0.0005,39208.63,,
-168,867,Coca-Cola Co,EQUITY,Eurizon Fund - Absolute Return Solution,2164,119446.42,USD,0.0015,124465.0,,
-169,868,Siemens,EQUITY,Eurizon Fund - Absolute Return Solution,2685,139244.1,EUR,0.0018,143887.8,,
-170,868,Siemens,EQUITY,Eurizon Fund - Absolute Return Solution,4447,71952.46,EUR,0.0009,96481.51,,
-171,875,CNH Industrial,BOND,Eurizon Fund - Absolute Return Solution,100000,96982.0,EUR,0.0012,98380.0,2024-04-01,0.0
-172,882,Booking Holdings,EQUITY,Eurizon Fund - Active Allocation,1750,4331417.08,USD,0.0034999999999999996,4016498.22,,
-173,883,Carrefour,EQUITY,Eurizon Fund - Active Allocation,181185,3144465.68,EUR,0.0026,4395222.16,,
-174,883,Siemens,EQUITY,Eurizon Fund - Active Allocation,50000,809000.0,EUR,0.0007000000000000001,989381.91,,
-175,890,CNH Industrial,BOND,Eurizon Fund - Active Allocation,6600000,6400812.0,EUR,0.0052,6495730.0,2024-04-01,0.0
-176,903,Caterpillar,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,136000,30671667.86,USD,0.0052,19790285.32,,
-177,904,Coca-Cola Co,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,528165,29153149.81,USD,0.0049,26227440.53,,
-178,904,Cisco Systems,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,641814,30437622.43,USD,0.0052,27372125.22,,
-179,906,Siemens,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,186872,28505454.88,EUR,0.0048,23976665.03,,
-180,906,Carlsberg,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,208879,30591618.43,SEK,0.0052,24089041.74,,
-181,914,Carrefour,BOND,Eurizon Fund - Bond Flexible,200000,179678.0,EUR,0.0002,179744.0,2027-05-17,0.01
-182,915,Siemens,BOND,Eurizon Fund - Bond Flexible,220000,190040.4,EUR,0.0002,189758.8,2031-02-28,0.0125
-183,915,Siemens,BOND,Eurizon Fund - Bond Flexible,100000,91191.0,EUR,0.0001,91629.5,2026-06-05,0.00375
-184,918,Coca-Cola Co,BOND,Eurizon Fund - Bond Flexible,750000,616567.5,EUR,0.0005,599981.22,2035-03-09,0.01625
-185,918,Booking Holdings,BOND,Eurizon Fund - Bond Flexible,200000,199114.0,EUR,0.0002,198860.0,2033-05-12,0.04125
-186,923,Carlsberg,BOND,Eurizon Fund - Bond Flexible,200000,197918.0,EUR,0.0002,199964.0,2026-11-26,0.035
-187,951,Caterpillar,EQUITY,Eurizon Fund - Conservative Allocation,6215,1401650.12,USD,0.0017000000000000001,908193.33,,
-188,952,Coca-Cola Co,EQUITY,Eurizon Fund - Conservative Allocation,24135,1332180.8,USD,0.0017000000000000001,1141941.74,,
-189,952,Cisco Systems,EQUITY,Eurizon Fund - Conservative Allocation,29329,1390909.25,USD,0.0018,1196347.36,,
-190,954,Siemens,EQUITY,Eurizon Fund - Conservative Allocation,8542,1302996.68,EUR,0.0016,1143565.57,,
-191,954,Carlsberg,EQUITY,Eurizon Fund - Conservative Allocation,9545,1397924.15,SEK,0.0017000000000000001,1128993.94,,
-192,957,Carlsberg,BOND,Eurizon Fund - Conservative Allocation,2300000,2276057.0,EUR,0.0028000000000000004,2299586.0,2026-11-26,0.035
-193,965,Coca-Cola Co,BOND,Eurizon Fund - Dynamic Asset Allocation,510000,419265.9,EUR,0.0009,501208.93,2035-03-09,0.01625
-194,966,Booking Holdings,BOND,Eurizon Fund - Dynamic Asset Allocation,100000,99557.0,EUR,0.0002,99430.0,2033-05-12,0.04125
-195,967,Carrefour,BOND,Eurizon Fund - Dynamic Asset Allocation,100000,89839.0,EUR,0.0002,95401.5,2027-05-17,0.01
-196,969,Siemens,BOND,Eurizon Fund - Dynamic Asset Allocation,50000,43191.0,EUR,0.0001,49551.64,2031-02-28,0.0125
-197,984,Coca-Cola Co,BOND,Eurizon Fund - Flexible Allocation,5000000,4427496.34,USD,0.008199999999999999,4427737.46,2024-09-06,0.0175
-198,985,CNH Industrial,BOND,Eurizon Fund - Flexible Allocation,6000000,5716620.0,EUR,0.0106,5745560.0,2025-09-12,0.0175
-199,985,Siemens,BOND,Eurizon Fund - Flexible Allocation,2000000,1934200.0,EUR,0.0036,1979620.0,2024-06-05,0.0025
-200,986,CNH Industrial,BOND,Eurizon Fund - Flexible Allocation,10000000,9698200.0,EUR,0.018000000000000002,9688320.0,2024-04-01,0.0
-201,994,Siemens,EQUITY,Eurizon Fund - Flexible Europe Strategy,3239,494077.06,EUR,0.0097,390676.78,,
-202,994,Carlsberg,EQUITY,Eurizon Fund - Flexible Europe Strategy,3620,530171.34,SEK,0.0104,447822.48,,
-203,1001,Carlsberg,BOND,Eurizon Fund - Flexible Multistrategy,630000,620896.5,EUR,0.0011,641478.0,2024-05-28,0.025
-204,1009,Caterpillar,EQUITY,Eurizon Fund - Flexible US Strategy,5790,1305801.15,USD,0.0104,1046802.1,,
-205,1010,Coca-Cola Co,EQUITY,Eurizon Fund - Flexible US Strategy,22486,1241160.86,USD,0.009899999999999999,1277655.92,,
-206,1010,Cisco Systems,EQUITY,Eurizon Fund - Flexible US Strategy,27325,1295870.82,USD,0.0104,1207310.3,,
-207,1013,Booking Holdings,BOND,Eurizon Fund - Global Multi Credit,400000,398228.0,EUR,0.0014000000000000002,397720.0,2033-05-12,0.04125
-208,1013,Coca-Cola Co,BOND,Eurizon Fund - Global Multi Credit,1270000,1044054.3,EUR,0.0036,1173025.42,2035-03-09,0.01625
-209,1015,Carrefour,BOND,Eurizon Fund - Global Multi Credit,400000,359356.0,EUR,0.0012,372198.0,2027-05-17,0.01
-210,1015,Siemens,BOND,Eurizon Fund - Global Multi Credit,410000,354166.2,EUR,0.0012,398807.0,2031-02-28,0.0125
-211,1015,Siemens,BOND,Eurizon Fund - Global Multi Credit,300000,273573.0,EUR,0.001,289684.0,2026-06-05,0.00375
-212,1023,Carlsberg,BOND,Eurizon Fund - Global Multi Credit,300000,296877.0,EUR,0.001,299946.0,2026-11-26,0.035
-213,1034,Booking Holdings,EQUITY,Eurizon Fund - Inflation Strategy,751,1858796.7,USD,0.016,1749587.69,,
-214,1035,Heidelberg Materials,EQUITY,Eurizon Fund - Inflation Strategy,6779,509780.8,EUR,0.0044,308158.55,,
-215,1058,Caterpillar,EQUITY,Eurizon Fund - Sustainable Multiasset,11112,2506055.69,USD,0.0048,2063576.45,,
-216,1059,Cisco Systems,EQUITY,Eurizon Fund - Sustainable Multiasset,52439,2486886.36,USD,0.0048,2398908.56,,
-217,1059,Booking Holdings,EQUITY,Eurizon Fund - Sustainable Multiasset,984,2435493.95,USD,0.004699999999999999,1829711.07,,
-218,1061,CNH Industrial,EQUITY,Eurizon Fund - Sustainable Multiasset,73661,972693.51,EUR,0.0019,1019795.82,,
-219,1061,Siemens,EQUITY,Eurizon Fund - Sustainable Multiasset,3987,608176.98,EUR,0.0012,518957.33,,
-220,1063,MAN Group,EQUITY,Eurizon Fund - Sustainable Multiasset,44327,542796.15,USD,0.001,569982.01,,
-221,1063,Carlsberg,EQUITY,Eurizon Fund - Sustainable Multiasset,4462,653487.43,SEK,0.0013,602504.08,,
+Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
+177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,800000,772648.0,EUR,0.0034000000000000002,783522.78,2027-09-08,0.025
+177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,500000,449550.0,EUR,0.002,480672.31,2027-02-25,0.00625
+177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,300000,293430.0,EUR,0.0013,301551.08,2026-04-05,0.04
+177,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,100000,91180.0,EUR,0.0004,91479.86,2026-06-05,0.00375
+178,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,1000000,927310.0,EUR,0.0040999999999999995,934839.13,2027-03-03,0.018000000000000002
+179,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,600000,561366.0,EUR,0.0025,560268.03,2025-03-08,0.001
+179,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,100000,100193.0,EUR,0.0005,101411.61,2026-11-15,0.04
+181,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,200000,191948.0,EUR,0.0008,208707.74,2025-02-07,0.015
+186,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,300000,261573.0,EUR,0.0011,263845.78,2027-06-30,0.00375
+193,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term LTE,400000,364756.0,EUR,0.0016,398696.06,2026-02-20,0.0
+199,Alstom,EQUITY,Eurizon Fund - Equity Euro LTE,15718,429415.76,EUR,0.0023,405923.1,,
+199,Carrefour,EQUITY,Eurizon Fund - Equity Euro LTE,28722,498470.31,EUR,0.0027,482832.03,,
+200,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,36962,5638183.48,EUR,0.0304,4975348.35,,
+200,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Euro LTE,6998,526249.6,EUR,0.0028000000000000004,424592.12,,
+200,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,15921,257601.78,EUR,0.0014000000000000002,303372.97,,
+201,Siemens,EQUITY,Eurizon Fund - Equity Euro LTE,8572,444543.92,EUR,0.0024,433668.17,,
+202,CNH Industrial,EQUITY,Eurizon Fund - Equity Euro LTE,49695,656222.48,EUR,0.0034999999999999996,730267.24,,
+211,Alstom,EQUITY,Eurizon Fund - Equity Europe LTE,24121,658985.72,EUR,0.0011,667936.14,,
+211,Carrefour,EQUITY,Eurizon Fund - Equity Europe LTE,45841,795570.56,EUR,0.0013,768313.35,,
+213,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,60986,9302804.44,EUR,0.015300000000000001,8156830.64,,
+213,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Europe LTE,7249,545124.8,EUR,0.0009,435151.04,,
+213,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,19948,322758.64,EUR,0.0005,468700.13,,
+214,Siemens,EQUITY,Eurizon Fund - Equity Europe LTE,17072,885353.92,EUR,0.0014000000000000002,894427.85,,
+215,CNH Industrial,EQUITY,Eurizon Fund - Equity Europe LTE,102371,1351809.06,EUR,0.0022,1348040.34,,
+216,Carlsberg,EQUITY,Eurizon Fund - Equity Europe LTE,6764,990629.54,SEK,0.0016,927154.45,,
+229,Alstom,EQUITY,Eurizon Fund - Equity Europe ESG LTE,17967,490858.44,EUR,0.0009,507840.07,,
+229,Carrefour,EQUITY,Eurizon Fund - Equity Europe ESG LTE,48696,845119.08,EUR,0.0015,834222.8,,
+231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,46188,7045517.52,EUR,0.012199999999999999,6017975.21,,
+231,Heidelberg Materials,EQUITY,Eurizon Fund - Equity Europe ESG LTE,7125,535800.0,EUR,0.0009,459440.03,,
+231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,29308,474203.44,EUR,0.0008,580340.8,,
+231,Siemens,EQUITY,Eurizon Fund - Equity Europe ESG LTE,17679,916832.94,EUR,0.0016,934919.56,,
+232,CNH Industrial,EQUITY,Eurizon Fund - Equity Europe ESG LTE,69954,923742.57,EUR,0.0016,916036.1,,
+233,Carlsberg,EQUITY,Eurizon Fund - Equity Europe ESG LTE,6529,956212.34,SEK,0.0017000000000000001,832456.56,,
+243,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,18950,291805.59,USD,0.0011,267200.4,,
+246,Booking Holdings,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,532,1316750.79,USD,0.0052,1253931.45,,
+246,Caterpillar,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,7232,1631011.04,USD,0.0064,1478522.68,,
+247,Coca-Cola Co,EQUITY,Eurizon Fund - Equity USA ESG Leaders LTE,58085,3206120.64,USD,0.0126,3292677.41,,
+253,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity USA ESG LTE,58025,893510.26,USD,0.001,768590.62,,
+256,Cisco Systems,EQUITY,Eurizon Fund - Equity USA ESG LTE,101756,4825713.85,USD,0.0052,4439769.52,,
+256,Booking Holdings,EQUITY,Eurizon Fund - Equity USA ESG LTE,1037,2566674.01,USD,0.0028000000000000004,1961778.23,,
+256,Airbnb,EQUITY,Eurizon Fund - Equity USA ESG LTE,10261,1205361.46,USD,0.0013,1234992.92,,
+256,Motorola Solutions,EQUITY,Eurizon Fund - Equity USA ESG LTE,3381,908872.02,USD,0.001,704300.06,,
+259,Caterpillar,EQUITY,Eurizon Fund - Equity USA ESG LTE,12176,2746016.38,USD,0.0029,2201767.8,,
+261,Coca-Cola Co,EQUITY,Eurizon Fund - Equity USA ESG LTE,124402,6866623.39,USD,0.0074,6709947.14,,
+269,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity North America LTE,74103,1141090.76,USD,0.0005,1061284.46,,
+276,Cisco Systems,EQUITY,Eurizon Fund - Equity North America LTE,317301,15047798.95,USD,0.0072,14414788.79,,
+276,Booking Holdings,EQUITY,Eurizon Fund - Equity North America LTE,2093,5180374.83,USD,0.0025,4555794.1,,
+276,Motorola Solutions,EQUITY,Eurizon Fund - Equity North America LTE,14670,3943552.95,USD,0.0019,3627818.55,,
+276,Airbnb,EQUITY,Eurizon Fund - Equity North America LTE,20213,2374424.64,USD,0.0011,2112018.08,,
+276,Expedia Group,EQUITY,Eurizon Fund - Equity North America LTE,12156,1218830.82,USD,0.0006,1173908.81,,
+276,Caterpillar,EQUITY,Eurizon Fund - Equity North America LTE,22961,5178324.75,USD,0.0025,4645606.35,,
+278,Coca-Cola Co,EQUITY,Eurizon Fund - Equity North America LTE,332646,18361077.83,USD,0.0088,19115849.83,,
+281,WSP Global,EQUITY,Eurizon Fund - Equity North America LTE,5255,637079.47,USD,0.0003,549538.68,,
+301,MAN Group,EQUITY,Eurizon Fund - Equity Pacific Ex-Japan LTE,702103,8597441.92,USD,0.018799999999999997,8463854.54,,
+313,Siemens,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,11075,466063.68,INR,0.0006,298441.27,,
+317,Hyundai Heavy Industries,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,1398,128076.07,KRW,0.0002,120243.83,,
+323,Cemex,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,2424715,1567994.01,USD,0.0019,1098269.81,,
+323,Orbia,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,160693,316727.81,USD,0.0004,316506.17,,
+326,Carlsberg,EQUITY,Eurizon Fund - Equity Emerging Markets LTE,236,943.58,MYR,0.0,1376.35,,
+342,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,15860,244223.57,USD,0.0008,226489.68,,
+345,Booking Holdings,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,428,1059340.86,USD,0.0034000000000000002,1007732.65,,
+345,Caterpillar,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,6070,1368948.71,USD,0.0044,1298220.57,,
+346,Coca-Cola Co,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,47955,2646974.52,USD,0.0086,2726489.13,,
+350,Carrefour,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,9538,165531.99,EUR,0.0005,166158.16,,
+353,CNH Industrial,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,9729,128471.45,EUR,0.0004,139960.02,,
+353,MAN Group,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,18271,223733.36,USD,0.0007000000000000001,225022.87,,
+355,Heidelberg Materials,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,1747,131374.4,EUR,0.0004,105124.99,,
+358,Bank Leumi,EQUITY,Eurizon Fund - Equity World ESG Leaders LTE,16978,117711.52,ILS,0.0004,137869.26,,
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,615000,570572.4,EUR,0.0023,657684.08,2027-03-03,0.018000000000000002
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,298671.0,EUR,0.0012,299798.99,2033-05-12,0.04125
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,500000,522600.0,EUR,0.0021,535400.54,2034-11-15,0.0475
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,450000,386442.0,EUR,0.0016,420540.06,2028-03-08,0.005
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,350000,327547.5,EUR,0.0013,350708.81,2025-03-08,0.001
+366,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,309099.0,EUR,0.0013,314419.45,2031-11-15,0.045
+367,Booking Holdings,BOND,Eurizon Fund - Bond Corporate Smart ESG,100000,101414.0,EUR,0.0004,103070.31,2029-05-15,0.0425
+371,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate Smart ESG,400000,380656.0,EUR,0.0015,375584.57,2032-05-31,0.0375
+371,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate Smart ESG,300000,287946.0,EUR,0.0012,307073.94,2025-02-07,0.015
+383,Alstom,BOND,Eurizon Fund - Bond Corporate Smart ESG,500000,407005.0,EUR,0.0017000000000000001,397318.6,2029-01-11,0.0
+391,CNH Industrial,EQUITY,Eurizon Fund - Equity Italy Smart Volatility,122074,1611987.17,EUR,0.0296,1462613.44,,
+409,Siemens,EQUITY,Eurizon Fund - Equity Emerging Markets Smart Volatility,5741,241595.63,INR,0.0005,208013.22,,
+417,Cemex,EQUITY,Eurizon Fund - Equity Emerging Markets Smart Volatility,768261,496812.47,USD,0.001,361100.7,,
+432,Cisco Systems,EQUITY,Eurizon Fund - Equity World Smart Volatility,128233,6081368.8,USD,0.0053,5197037.47,,
+432,Motorola Solutions,EQUITY,Eurizon Fund - Equity World Smart Volatility,13116,3525810.53,USD,0.0031,3265292.5,,
+432,Booking Holdings,EQUITY,Eurizon Fund - Equity World Smart Volatility,373,923210.61,USD,0.0008,833878.73,,
+432,Airbnb,EQUITY,Eurizon Fund - Equity World Smart Volatility,5274,619537.7,USD,0.0005,529887.78,,
+432,Caterpillar,EQUITY,Eurizon Fund - Equity World Smart Volatility,33109,7466972.43,USD,0.006500000000000001,7280483.81,,
+433,Coca-Cola Co,EQUITY,Eurizon Fund - Equity World Smart Volatility,30866,1703712.14,USD,0.0015,1739353.35,,
+437,WSP Global,EQUITY,Eurizon Fund - Equity World Smart Volatility,5182,628229.46,USD,0.0006,600411.68,,
+439,Siemens,EQUITY,Eurizon Fund - Equity World Smart Volatility,8002,1220625.08,EUR,0.0011,1146845.35,,
+473,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2600000,2557490.0,EUR,0.0028000000000000004,2600000.0,2027-05-05,0.04079
+473,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1300000,1200108.0,EUR,0.0013,1300000.0,2025-06-14,0.00107
+474,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1000000,934820.0,EUR,0.001,942080.0,2026-10-30,0.01875
+474,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term,4300000,4189103.0,EUR,0.0045000000000000005,4293980.0,2025-03-10,0.0225
+474,Siemens,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2500000,2445625.0,EUR,0.0027,2499875.0,2024-02-28,0.003
+476,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term,3600000,3369060.0,EUR,0.0037,3492393.0,2025-03-08,0.001
+476,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1000000,1002200.0,EUR,0.0011,999930.0,2026-11-15,0.04
+479,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term,2100000,2064489.0,EUR,0.0023,2093855.0,2025-10-12,0.0325
+479,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR Short Term,1700000,1682303.0,EUR,0.0018,1699694.0,2026-11-26,0.035
+484,CNH Industrial,BOND,Eurizon Fund - Bond Corporate EUR Short Term,3200000,3103424.0,EUR,0.0034000000000000002,3197120.0,2024-04-01,0.0
+492,Alstom,BOND,Eurizon Fund - Bond Corporate EUR,2400000,2131776.0,EUR,0.001,2390208.0,2026-10-14,0.0025
+493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,5900000,5630724.0,EUR,0.0027,5956014.0,2027-12-15,0.02625
+493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,1800000,1815156.0,EUR,0.0008,1781514.0,2028-10-12,0.04125
+493,Carrefour,BOND,Eurizon Fund - Bond Corporate EUR,1800000,1617102.0,EUR,0.0008,1791612.0,2027-05-17,0.01
+494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,4600000,4462368.0,EUR,0.0021,4595308.0,2033-09-08,0.03
+494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2500000,2491100.0,EUR,0.0012,2464775.0,2036-02-24,0.035
+494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2400000,2338104.0,EUR,0.0011,2396640.0,2025-03-10,0.0225
+494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2222237.0,EUR,0.0011,2297976.0,2027-09-08,0.025
+494,Siemens,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2206505.0,EUR,0.001,2290064.0,2030-09-09,0.0275
+495,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,2300000,2274769.0,EUR,0.0011,2298114.0,2028-11-12,0.03625
+495,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,1500000,1567800.0,EUR,0.0008,1495830.0,2034-11-15,0.0475
+496,Coca-Cola Co,BOND,Eurizon Fund - Bond Corporate EUR,3900000,3237117.0,EUR,0.0015,3402750.0,2029-03-09,0.00125
+496,Coca-Cola Co,BOND,Eurizon Fund - Bond Corporate EUR,2500000,2055225.0,EUR,0.001,2514251.57,2035-03-09,0.01625
+496,Booking Holdings,BOND,Eurizon Fund - Bond Corporate EUR,3400000,3384938.0,EUR,0.0016,3380620.0,2033-05-12,0.04125
+498,Heidelberg Materials,BOND,Eurizon Fund - Bond Corporate EUR,3656000,3479195.84,EUR,0.0017000000000000001,3610080.64,2032-05-31,0.0375
+501,Carlsberg,BOND,Eurizon Fund - Bond Corporate EUR,1000000,983090.0,EUR,0.0005,998370.0,2025-10-12,0.0325
+507,CNH Industrial,BOND,Eurizon Fund - Bond Corporate EUR,4200000,4073244.0,EUR,0.0019,4196220.0,2024-04-01,0.0
+515,Siemens,BOND,Eurizon Fund - Green Euro Credit,2000000,1956420.0,EUR,0.0028000000000000004,1994680.0,2026-04-05,0.04
+515,Siemens,BOND,Eurizon Fund - Green Euro Credit,1200000,1169604.0,EUR,0.0017000000000000001,1193724.0,2029-04-05,0.0425
+528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,500000,487105.0,EUR,0.004699999999999999,493026.0,2025-03-10,0.0225
+528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,200000,200030.0,EUR,0.0019,199330.0,2031-08-24,0.03375
+528,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR Short Term,200000,195642.0,EUR,0.0019,199468.0,2026-04-05,0.04
+544,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR,500000,449580.0,EUR,0.0004,503109.44,2028-02-28,0.009000000000000001
+544,Siemens,BOND,Eurizon Fund - Bond Aggregate EUR,400000,364764.0,EUR,0.0003,399788.0,2026-06-05,0.00375
+545,Booking Holdings,BOND,Eurizon Fund - Bond Aggregate EUR,1850000,1854070.0,EUR,0.0017000000000000001,1854918.0,2026-11-15,0.04
+546,CNH Industrial,BOND,Eurizon Fund - Bond Aggregate EUR,1000000,952770.0,EUR,0.0009,1039205.0,2025-09-12,0.0175
+605,eDreams ODIGEO,BOND,Eurizon Fund - Bond Euro High Yield,500000,455595.0,EUR,0.0038,459000.0,2027-07-15,0.055
+617,eDreams ODIGEO,BOND,Eurizon Fund - Bond High Yield,1400000,1275666.0,EUR,0.0005,1276800.0,2027-07-15,0.055
+693,CNH Industrial,EQUITY,Eurizon Fund - Italian Equity Opportunities,290000,3829450.0,EUR,0.0207,3654923.96,,
+699,Siemens,EQUITY,Eurizon Fund - Top European Research,313489,47819612.06,EUR,0.0207,36317845.84,,
+700,Carlsberg,EQUITY,Eurizon Fund - Top European Research,133783,19593345.85,SEK,0.0085,19595740.12,,
+706,Alstom,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,37731,1030810.92,EUR,0.0067,986778.66,,
+706,Carrefour,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,189048,3280928.04,EUR,0.0213,3197875.35,,
+707,Siemens,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,49714,804372.52,EUR,0.0052,1050523.32,,
+707,CNH Industrial,EQUITY,Eurizon Fund - Equity Small Mid Cap Europe,66239,874686.0,EUR,0.005699999999999999,873931.8,,
+715,Motorola Solutions,EQUITY,Eurizon Fund - Equity USA,129343,34769663.88,USD,0.008100000000000001,33139844.73,,
+715,Booking Holdings,EQUITY,Eurizon Fund - Equity USA,10047,24867284.24,USD,0.0058,21466990.81,,
+764,WSP Global,EQUITY,Eurizon Fund - Sustainable Global Equity,13202,1600518.21,USD,0.0022,1205516.42,,
+766,Israel Discount Bank,EQUITY,Eurizon Fund - Sustainable Global Equity,101952,466365.85,ILS,0.0007000000000000001,391545.97,,
+766,Bank Hapoalim,EQUITY,Eurizon Fund - Sustainable Global Equity,3592,27237.34,ILS,0.0,29203.64,,
+772,Hewlett Packard Enterprise,EQUITY,Eurizon Fund - Equity Planet,267405,4117692.58,USD,0.0023,3733904.74,,
+773,Caterpillar,EQUITY,Eurizon Fund - Equity Planet,20896,4712611.56,USD,0.0026,3826407.03,,
+773,Cisco Systems,EQUITY,Eurizon Fund - Equity Planet,181110,8589027.04,USD,0.0048,8028156.99,,
+776,WSP Global,EQUITY,Eurizon Fund - Equity Planet,10600,1285069.92,USD,0.0007000000000000001,1242094.88,,
+776,Siemens,EQUITY,Eurizon Fund - Equity Planet,437503,7896929.15,EUR,0.0044,7894990.49,,
+776,Siemens,EQUITY,Eurizon Fund - Equity Planet,30014,4578335.56,EUR,0.0026,3190116.08,,
+780,MAN Group,EQUITY,Eurizon Fund - Equity Planet,79279,970792.89,USD,0.0005,1034391.84,,
+784,Airbnb,EQUITY,Eurizon Fund - Equity Innovation,180493,21202544.19,USD,0.0102,20648881.75,,
+784,Cisco Systems,EQUITY,Eurizon Fund - Equity Innovation,440923,20910494.0,USD,0.01,19974512.93,,
+785,Siemens,EQUITY,Eurizon Fund - Equity Innovation,205863,31402342.02,EUR,0.015,27827149.64,,
+786,Siemens,EQUITY,Eurizon Fund - Equity Innovation,462954,8356319.7,EUR,0.004,8985782.95,,
+792,Airbnb,EQUITY,Eurizon Fund - Equity People,88214,10362513.97,USD,0.0085,9600825.57,,
+793,Caterpillar,EQUITY,Eurizon Fund - Equity People,17490,3944466.7,USD,0.0032,3216166.76,,
+793,Carrefour,EQUITY,Eurizon Fund - Equity People,270635,4696870.43,EUR,0.0038,4397598.94,,
+793,CNH Industrial,EQUITY,Eurizon Fund - Equity People,490268,6473988.94,EUR,0.0053,5719325.64,,
+800,Caterpillar,EQUITY,Eurizon Fund - Equity Circular Economy,13072,2948088.55,USD,0.004699999999999999,2534436.23,,
+800,Cisco Systems,EQUITY,Eurizon Fund - Equity Circular Economy,210057,9961820.18,USD,0.016,9513707.01,,
+800,Coca-Cola Co,EQUITY,Eurizon Fund - Equity Circular Economy,190562,10518460.21,USD,0.0168,11110084.54,,
+802,WSP Global,EQUITY,Eurizon Fund - Equity Circular Economy,19101,2315671.74,USD,0.0037,2261629.64,,
+808,Cisco Systems,EQUITY,Eurizon Fund - Equity High Dividend,74359,3526428.48,USD,0.0181,3406607.38,,
+808,Coca-Cola Co,EQUITY,Eurizon Fund - Equity High Dividend,85541,4721610.84,USD,0.024300000000000002,5039185.58,,
+809,Carrefour,EQUITY,Eurizon Fund - Equity High Dividend,86606,1503047.13,EUR,0.0077,1526885.65,,
+816,Booking Holdings,BOND,Eurizon Fund - Absolute Active,1000000,1002200.0,EUR,0.0037,999930.0,2026-11-15,0.04
+817,Heidelberg Materials,BOND,Eurizon Fund - Absolute Active,1000000,959820.0,EUR,0.0034999999999999996,1050150.0,2025-02-07,0.015
+846,eDreams ODIGEO,BOND,Eurizon Fund - Absolute High Yield,1000000,911190.0,EUR,0.0025,917000.0,2027-07-15,0.055
+856,Booking Holdings,BOND,Eurizon Fund - Absolute Prudent,1300000,1302860.0,EUR,0.0038,1299909.0,2026-11-15,0.04
+857,Heidelberg Materials,BOND,Eurizon Fund - Absolute Prudent,2800000,2687496.0,EUR,0.0079,2940420.0,2025-02-07,0.015
+866,Booking Holdings,EQUITY,Eurizon Fund - Absolute Return Solution,73,180681.97,USD,0.0023,159368.01,,
+866,Cisco Systems,EQUITY,Eurizon Fund - Absolute Return Solution,858,40690.11,USD,0.0005,39208.63,,
+867,Coca-Cola Co,EQUITY,Eurizon Fund - Absolute Return Solution,2164,119446.42,USD,0.0015,124465.0,,
+868,Siemens,EQUITY,Eurizon Fund - Absolute Return Solution,2685,139244.1,EUR,0.0018,143887.8,,
+868,Siemens,EQUITY,Eurizon Fund - Absolute Return Solution,4447,71952.46,EUR,0.0009,96481.51,,
+875,CNH Industrial,BOND,Eurizon Fund - Absolute Return Solution,100000,96982.0,EUR,0.0012,98380.0,2024-04-01,0.0
+882,Booking Holdings,EQUITY,Eurizon Fund - Active Allocation,1750,4331417.08,USD,0.0034999999999999996,4016498.22,,
+883,Carrefour,EQUITY,Eurizon Fund - Active Allocation,181185,3144465.68,EUR,0.0026,4395222.16,,
+883,Siemens,EQUITY,Eurizon Fund - Active Allocation,50000,809000.0,EUR,0.0007000000000000001,989381.91,,
+890,CNH Industrial,BOND,Eurizon Fund - Active Allocation,6600000,6400812.0,EUR,0.0052,6495730.0,2024-04-01,0.0
+903,Caterpillar,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,136000,30671667.86,USD,0.0052,19790285.32,,
+904,Coca-Cola Co,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,528165,29153149.81,USD,0.0049,26227440.53,,
+904,Cisco Systems,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,641814,30437622.43,USD,0.0052,27372125.22,,
+906,Siemens,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,186872,28505454.88,EUR,0.0048,23976665.03,,
+906,Carlsberg,EQUITY,Eurizon Fund - Azioni Strategia Flessibile,208879,30591618.43,SEK,0.0052,24089041.74,,
+914,Carrefour,BOND,Eurizon Fund - Bond Flexible,200000,179678.0,EUR,0.0002,179744.0,2027-05-17,0.01
+915,Siemens,BOND,Eurizon Fund - Bond Flexible,220000,190040.4,EUR,0.0002,189758.8,2031-02-28,0.0125
+915,Siemens,BOND,Eurizon Fund - Bond Flexible,100000,91191.0,EUR,0.0001,91629.5,2026-06-05,0.00375
+918,Coca-Cola Co,BOND,Eurizon Fund - Bond Flexible,750000,616567.5,EUR,0.0005,599981.22,2035-03-09,0.01625
+918,Booking Holdings,BOND,Eurizon Fund - Bond Flexible,200000,199114.0,EUR,0.0002,198860.0,2033-05-12,0.04125
+923,Carlsberg,BOND,Eurizon Fund - Bond Flexible,200000,197918.0,EUR,0.0002,199964.0,2026-11-26,0.035
+951,Caterpillar,EQUITY,Eurizon Fund - Conservative Allocation,6215,1401650.12,USD,0.0017000000000000001,908193.33,,
+952,Coca-Cola Co,EQUITY,Eurizon Fund - Conservative Allocation,24135,1332180.8,USD,0.0017000000000000001,1141941.74,,
+952,Cisco Systems,EQUITY,Eurizon Fund - Conservative Allocation,29329,1390909.25,USD,0.0018,1196347.36,,
+954,Siemens,EQUITY,Eurizon Fund - Conservative Allocation,8542,1302996.68,EUR,0.0016,1143565.57,,
+954,Carlsberg,EQUITY,Eurizon Fund - Conservative Allocation,9545,1397924.15,SEK,0.0017000000000000001,1128993.94,,
+957,Carlsberg,BOND,Eurizon Fund - Conservative Allocation,2300000,2276057.0,EUR,0.0028000000000000004,2299586.0,2026-11-26,0.035
+965,Coca-Cola Co,BOND,Eurizon Fund - Dynamic Asset Allocation,510000,419265.9,EUR,0.0009,501208.93,2035-03-09,0.01625
+966,Booking Holdings,BOND,Eurizon Fund - Dynamic Asset Allocation,100000,99557.0,EUR,0.0002,99430.0,2033-05-12,0.04125
+967,Carrefour,BOND,Eurizon Fund - Dynamic Asset Allocation,100000,89839.0,EUR,0.0002,95401.5,2027-05-17,0.01
+969,Siemens,BOND,Eurizon Fund - Dynamic Asset Allocation,50000,43191.0,EUR,0.0001,49551.64,2031-02-28,0.0125
+984,Coca-Cola Co,BOND,Eurizon Fund - Flexible Allocation,5000000,4427496.34,USD,0.008199999999999999,4427737.46,2024-09-06,0.0175
+985,CNH Industrial,BOND,Eurizon Fund - Flexible Allocation,6000000,5716620.0,EUR,0.0106,5745560.0,2025-09-12,0.0175
+985,Siemens,BOND,Eurizon Fund - Flexible Allocation,2000000,1934200.0,EUR,0.0036,1979620.0,2024-06-05,0.0025
+986,CNH Industrial,BOND,Eurizon Fund - Flexible Allocation,10000000,9698200.0,EUR,0.018000000000000002,9688320.0,2024-04-01,0.0
+994,Siemens,EQUITY,Eurizon Fund - Flexible Europe Strategy,3239,494077.06,EUR,0.0097,390676.78,,
+994,Carlsberg,EQUITY,Eurizon Fund - Flexible Europe Strategy,3620,530171.34,SEK,0.0104,447822.48,,
+1001,Carlsberg,BOND,Eurizon Fund - Flexible Multistrategy,630000,620896.5,EUR,0.0011,641478.0,2024-05-28,0.025
+1009,Caterpillar,EQUITY,Eurizon Fund - Flexible US Strategy,5790,1305801.15,USD,0.0104,1046802.1,,
+1010,Coca-Cola Co,EQUITY,Eurizon Fund - Flexible US Strategy,22486,1241160.86,USD,0.009899999999999999,1277655.92,,
+1010,Cisco Systems,EQUITY,Eurizon Fund - Flexible US Strategy,27325,1295870.82,USD,0.0104,1207310.3,,
+1013,Booking Holdings,BOND,Eurizon Fund - Global Multi Credit,400000,398228.0,EUR,0.0014000000000000002,397720.0,2033-05-12,0.04125
+1013,Coca-Cola Co,BOND,Eurizon Fund - Global Multi Credit,1270000,1044054.3,EUR,0.0036,1173025.42,2035-03-09,0.01625
+1015,Carrefour,BOND,Eurizon Fund - Global Multi Credit,400000,359356.0,EUR,0.0012,372198.0,2027-05-17,0.01
+1015,Siemens,BOND,Eurizon Fund - Global Multi Credit,410000,354166.2,EUR,0.0012,398807.0,2031-02-28,0.0125
+1015,Siemens,BOND,Eurizon Fund - Global Multi Credit,300000,273573.0,EUR,0.001,289684.0,2026-06-05,0.00375
+1023,Carlsberg,BOND,Eurizon Fund - Global Multi Credit,300000,296877.0,EUR,0.001,299946.0,2026-11-26,0.035
+1034,Booking Holdings,EQUITY,Eurizon Fund - Inflation Strategy,751,1858796.7,USD,0.016,1749587.69,,
+1035,Heidelberg Materials,EQUITY,Eurizon Fund - Inflation Strategy,6779,509780.8,EUR,0.0044,308158.55,,
+1058,Caterpillar,EQUITY,Eurizon Fund - Sustainable Multiasset,11112,2506055.69,USD,0.0048,2063576.45,,
+1059,Cisco Systems,EQUITY,Eurizon Fund - Sustainable Multiasset,52439,2486886.36,USD,0.0048,2398908.56,,
+1059,Booking Holdings,EQUITY,Eurizon Fund - Sustainable Multiasset,984,2435493.95,USD,0.004699999999999999,1829711.07,,
+1061,CNH Industrial,EQUITY,Eurizon Fund - Sustainable Multiasset,73661,972693.51,EUR,0.0019,1019795.82,,
+1061,Siemens,EQUITY,Eurizon Fund - Sustainable Multiasset,3987,608176.98,EUR,0.0012,518957.33,,
+1063,MAN Group,EQUITY,Eurizon Fund - Sustainable Multiasset,44327,542796.15,USD,0.001,569982.01,,
+1063,Carlsberg,EQUITY,Eurizon Fund - Sustainable Multiasset,4462,653487.43,SEK,0.0013,602504.08,,

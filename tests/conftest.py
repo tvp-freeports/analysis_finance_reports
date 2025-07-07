@@ -1,7 +1,8 @@
 from pathlib import Path
-import os
 import shutil
-import data
+import os
+from lxml import etree
+from freeports_analysis.main import get_targets
 
 out_dir = Path(__file__).parent / "output/"
 data_dir = Path(__file__).parent / "data/"
@@ -23,29 +24,32 @@ url_example_formats = {
     "ARCA": "https://docs.arcafondi.it/docs/getdoc/documenti/RENDICONTO_ANNUALE_IT0005419103.pdf",
 }
 
-single_page_tests = [
-    ("ANIMA", 544),
-    ("EURIZON", 254),
-    ("AMUNDI", 43),
-    ("ASTERIA", 78),
-    ("AMUNDI2", 558),
-    ("FIDEURAM", 51),
-    ("FIDEURAM", 33),
-    ("EURIZON_OLD", 97),
-    ("MEDIOLANUM", 55),
-    ("EURIZON_IT", 29),
-    ("ARCA", 20),
-]
+single_page_tests = {
+    "ANIMA": [544],
+    "AMUNDI": [43],
+    "ASTERIA": [78],
+    "AMUNDI2": [558],
+    "FIDEURAM": [51, 33],
+    "EURIZON_OLD": [97],
+    "MEDIOLANUM": [55],
+    "EURIZON_IT": [29],
+    "ARCA": [20],
+    "EURIZON": [254],
+}
 
-all_pages_tests = [
-    "ANIMA",
-    "EURIZON",
-    "AMUNDI",
-    "ASTERIA",
-    # "AMUNDI2",
-    "FIDEURAM",
-    "EURIZON_OLD",
-    "MEDIOLANUM",
-    "EURIZON_IT",
-    "ARCA",
-]
+xml_parser = etree.XMLParser(recover=True)
+targets = get_targets()
+
+conf = {
+    "VERBOSITY": 2,
+    "N_WORKERS": os.cpu_count(),
+    "BATCH": None,
+    "OUT_CSV": None,
+    "SAVE_PDF": False,
+    "URL": None,
+    "PDF": None,
+    "FORMAT": None,
+    "CONFIG_FILE": None,
+    "PREFIX_OUT_CSV": None,
+    "SEPARATE_OUT_FILES": None,
+}

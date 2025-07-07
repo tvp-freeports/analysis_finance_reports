@@ -1,6 +1,6 @@
-,Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
-0,56,Hewlett Packard Enterprise,EQUITY,,192455,3967572.0,EUR,0.0105,,,
-1,57,Siemens,EQUITY,,13138,2477301.0,EUR,0.0066,,,
-2,57,Coca-Cola Co,EQUITY,,40818,2439132.0,EUR,0.006500000000000001,,,
-3,96,Siemens,EQUITY,,32314,6093128.0,EUR,0.0121,,,
-4,97,Vinci / SEMI,EQUITY,,24277,2396625.0,EUR,0.0048,,,
+Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
+56,Hewlett Packard Enterprise,EQUITY,,192455,3967572.0,EUR,0.0105,,,
+57,Siemens,EQUITY,,13138,2477301.0,EUR,0.0066,,,
+57,Coca-Cola Co,EQUITY,,40818,2439132.0,EUR,0.006500000000000001,,,
+96,Siemens,EQUITY,,32314,6093128.0,EUR,0.0121,,,
+97,Vinci / SEMI,EQUITY,,24277,2396625.0,EUR,0.0048,,,

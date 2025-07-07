@@ -1,16 +1,16 @@
-,Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
-0,34,WSP Global,EQUITY,Asteria Funds - Planet Impact Global Equities,1400,246241.0,USD,0.0033,230528.0,,
-1,37,Cisco Systems,EQUITY,Asteria Funds - Planet Impact Global Equities,13381,792155.0,USD,0.010700000000000001,653414.0,,
-2,79,Siemens,BOND,Asteria Funds - Global Investment Grade,200000,206352.0,EUR,0.0032,206946.0,,0.03375
-3,79,Siemens,BOND,Asteria Funds - Global Investment Grade,100000,99614.0,EUR,0.0015,100635.0,,0.03625
-4,79,IBM,BOND,Asteria Funds - Global Investment Grade,100000,91377.0,USD,0.0014000000000000002,92753.0,,0.0525
-5,79,IBM,BOND,Asteria Funds - Global Investment Grade,190000,169415.0,USD,0.0026,174497.0,,0.053
-6,80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,100000,101055.0,EUR,0.0015,101038.0,,0.0375
-7,80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,200000,199216.0,EUR,0.003,203532.0,,0.03875
-8,80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,200000,202114.0,EUR,0.0031,207886.0,,0.04
-9,80,Caterpillar,BOND,Asteria Funds - Global Investment Grade,470000,478577.0,EUR,0.0073,478380.0,,0.03742
-10,80,Cisco Systems,BOND,Asteria Funds - Global Investment Grade,110000,106626.0,USD,0.0016,104706.0,,0.0495
-11,81,Hewlett Packard Enterprise,BOND,Asteria Funds - Global Investment Grade,180000,164015.0,USD,0.0025,163034.0,,0.055999999999999994
-12,83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,495000,409743.0,USD,0.0062,398684.0,,0.023
-13,83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,165000,138077.0,USD,0.0021,135001.0,,0.0275
-14,83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,15000,14499.0,USD,0.0002,14292.0,,0.054000000000000006
+Page report,Company,Financial instrument,Sub-fund,Nominal/Quantity,Market value,Currency,% Net Assets,Acquisition cost,Maturity,Interest rate
+34,WSP Global,EQUITY,Asteria Funds - Planet Impact Global Equities,1400,246241.0,USD,0.0033,230528.0,,
+37,Cisco Systems,EQUITY,Asteria Funds - Planet Impact Global Equities,13381,792155.0,USD,0.010700000000000001,653414.0,,
+79,Siemens,BOND,Asteria Funds - Global Investment Grade,200000,206352.0,EUR,0.0032,206946.0,,0.03375
+79,Siemens,BOND,Asteria Funds - Global Investment Grade,100000,99614.0,EUR,0.0015,100635.0,,0.03625
+79,IBM,BOND,Asteria Funds - Global Investment Grade,100000,91377.0,USD,0.0014000000000000002,92753.0,,0.0525
+79,IBM,BOND,Asteria Funds - Global Investment Grade,190000,169415.0,USD,0.0026,174497.0,,0.053
+80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,100000,101055.0,EUR,0.0015,101038.0,,0.0375
+80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,200000,199216.0,EUR,0.003,203532.0,,0.03875
+80,Booking Holdings,BOND,Asteria Funds - Global Investment Grade,200000,202114.0,EUR,0.0031,207886.0,,0.04
+80,Caterpillar,BOND,Asteria Funds - Global Investment Grade,470000,478577.0,EUR,0.0073,478380.0,,0.03742
+80,Cisco Systems,BOND,Asteria Funds - Global Investment Grade,110000,106626.0,USD,0.0016,104706.0,,0.0495
+81,Hewlett Packard Enterprise,BOND,Asteria Funds - Global Investment Grade,180000,164015.0,USD,0.0025,163034.0,,0.055999999999999994
+83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,495000,409743.0,USD,0.0062,398684.0,,0.023
+83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,165000,138077.0,USD,0.0021,135001.0,,0.0275
+83,Motorola Solutions,BOND,Asteria Funds - Global Investment Grade,15000,14499.0,USD,0.0002,14292.0,,0.054000000000000006
