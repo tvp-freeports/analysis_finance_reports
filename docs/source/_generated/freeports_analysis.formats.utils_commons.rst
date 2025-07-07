@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils\_commons
 ==========================================
 
-.. automodule:: freeports_analysis.formats.utils_commons
+.. automodule:: freeports_analysis.formats_utils.commons
    :members:
    
    

@@ -1,4 +1,4 @@
-from conftest import out_dir, data_dir, url_example_formats
+from .conftest import out_dir, data_dir, url_example_formats
 import pytest
 from pathlib import Path
 from freeports_analysis import download as dw

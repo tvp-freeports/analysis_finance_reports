@@ -7,13 +7,13 @@ def create_plk_one_page(
     page_n,
     pdf_filter_func,
     text_extract_func,
-    tabularize_func,
-    print_rows=True,
+    deserialize_func,
+    print_financial_data=True,
     print_txt_blks=False,
     print_pdf_blks=False,
 ):
     page = get_page("report.pdf", page_n)
-    blks = pdf_filter_func(page)
+    blks = pdf_filter_func(page, page_n)
     if print_pdf_blks:
         for blk in blks:
             print(blk)
@@ -33,11 +33,11 @@ def create_plk_one_page(
 
     tab = []
     for blk in blks:
-        tab.append(tabularize_func(blk))
-    if print_rows:
+        tab.append(deserialize_func(blk, get_targets()))
+    if print_financial_data:
         for row in tab:
             print(row)
     else:
-        print(f"Saved {len(blks)} csv rows...")
-    with open(f"rows-{page_n}.pkl", "wb") as f:
+        print(f"Saved {len(blks)} financial data...")
+    with open(f"financial_data-{page_n}.pkl", "wb") as f:
         dill.dump(tab, f)

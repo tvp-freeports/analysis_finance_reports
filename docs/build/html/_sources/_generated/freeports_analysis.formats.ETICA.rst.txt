@@ -10,5 +10,5 @@ freeports\_analysis.formats.ETICA
    .. autosummary::
    
       pdf_filter
-      tabularize
+      deserialize
    

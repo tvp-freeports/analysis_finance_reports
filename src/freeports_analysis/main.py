@@ -10,23 +10,23 @@ Example:
 
 import os
 import re
-import importlib
 import tarfile
 import shutil
-from multiprocessing import Pool
 import logging as log
 from typing import List
+from multiprocessing import Pool
 import csv
+from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
 from importlib_resources import files
 from freeports_analysis import data
 from freeports_analysis import download as dw
-from freeports_analysis.consts import PdfFormats
+from freeports_analysis.consts import PdfFormats, _get_module, Equity, Currency
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
-    tabularize_exec,
+    deserialize_exec,
 )
 from freeports_analysis.conf_parse import (
     apply_config,
@@ -49,41 +49,13 @@ class NoPDFormatDetected(Exception):
     """
 
 
-def get_functions(format_pdf: PdfFormats):
-    """Set wrapper functions `PDF_FILTER`, `TEXT_EXTRACT` and `TABULARIZE` to use
-    implementation of specific PDF format
-
-    Parameters
-    ----------
-    format : PdfFormats
-        The format detected used to choose the decoding implementation
-    """
-    module_name = format_pdf.name
-    try:
-        module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name}", package=__package__
-        )
-    except ImportError:
-        print(f"Errore: modulo {module_name} non trovato")
-        raise
-
-    def _pdf_filter(pdf_file):
-        return pdf_filter_exec(pdf_file, module.pdf_filter)
-
-    def _text_extract(pdf_blks, targets):
-        return text_extract_exec(pdf_blks, targets, module.text_extract)
-
-    def _tabularize(txt_blks):
-        return tabularize_exec(txt_blks, module.tabularize)
-
-    return {
-        "PDF_FILTER": _pdf_filter,
-        "TEXT_EXTRACT": _text_extract,
-        "TABULARIZE": _tabularize,
-    }
-
-
-def pipeline(pdf_file: pypdf.Document, targets: List[str], funcs: dict) -> pd.DataFrame:
+def pipeline_batch(
+    batch_pages: List[str],
+    i_page_batch: int,
+    n_pages: int,
+    targets: List[str],
+    module_name: str,
+) -> pd.DataFrame:
     """Apply the pipeline of actions in order to get data in `csv`
 
     Parameters
@@ -100,16 +72,47 @@ def pipeline(pdf_file: pypdf.Document, targets: List[str], funcs: dict) -> pd.Da
     pd.DataFrame
         pandas dataframe with extracted data
     """
-    logger.info("Extracting relevant blocks of pdf...")
-    pdf_blocks = funcs["PDF_FILTER"](pdf_file)
-    logger.info("Extracted!")
-
-    logger.info("Filtering relevant blocks of text...")
-    filtered_text = funcs["TEXT_EXTRACT"](pdf_blocks, targets)
-    logger.info("Filtered!")
-
-    tabular_data = funcs["TABULARIZE"](filtered_text)
-    df = pd.DataFrame(tabular_data)
+    end_page_batch = i_page_batch + len(batch_pages)
+    logger.debug(
+        "Starting batch [%i] starting form page %i to %i",
+        os.getpid(),
+        i_page_batch,
+        end_page_batch,
+    )
+    parser = etree.XMLParser(recover=True)
+    xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
+    module = _get_module(module_name)
+    logger.info(
+        "Extracting relevant blocks of pdf from page %i to %i...",
+        i_page_batch,
+        end_page_batch,
+    )
+    pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, module.pdf_filter)
+    logger.info(
+        "Filtering relevant blocks of text from page %i to %i...",
+        i_page_batch,
+        end_page_batch,
+    )
+    filtered_text = text_extract_exec(pdf_blocks, targets, module.text_extract)
+    financtial_data = deserialize_exec(filtered_text, targets, module.deserialize)
+    error_msg = "ERROR, SOMETHING WENT WRONG!!!!"
+    df = pd.DataFrame(
+        [
+            fd.to_dict()
+            if fd is not None
+            else Equity(
+                page=9999,
+                targets=[error_msg],
+                company=error_msg,
+                subfund=None,
+                nominal_quantity=None,
+                market_value=None,
+                perc_net_assets=0.0,
+                currency=Currency.EUR,
+            ).to_dict()
+            for fd in financtial_data
+        ]
+    )
     return df
 
 
@@ -169,10 +172,7 @@ def get_targets() -> List[str]:
     return targets
 
 
-def _main_job(config):
-    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
-    format_selected = config["FORMAT"]
-
+def _get_document(config):
     detected_format = None
     if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
         logger.debug("PDF: %s", config["PDF"])
@@ -190,41 +190,100 @@ def _main_job(config):
                 config["URL"], config["PDF"] if config["SAVE_PDF"] else None
             )
         )
+    return pdf_file, detected_format
 
-    if detected_format is None and format_selected is None:
+
+def _output_file(config, results):
+    out_csv = config["OUT_CSV"]
+    out_dir = out_csv.parent
+    compress = False
+    remove_dir = False
+    df = None
+    if config["BATCH"] is not None:
+        if config["SEPARATE_OUT_FILES"]:
+            out_dir = out_csv
+            if out_csv.name.endswith(".tar.gz"):
+                compress = True
+                out_dir = out_csv.with_suffix("").with_suffix("")
+            if not out_dir.exists() and compress:
+                remove_dir = True
+            out_dir.mkdir(exist_ok=True)
+        else:
+            dataframes = []
+            for r, format_pdf, prefix_out in results:
+                if prefix_out is not None:
+                    r["Report identifier"] = prefix_out
+                r["Format"] = format_pdf.name
+                dataframes.append(r)
+            df = pd.concat(dataframes)
+    else:
+        df = results[0][0]
+
+    if df is None:
+        for df, format_pdf, prefix_out in results:
+            name_file = f"{format_pdf.name}.csv"
+            if prefix_out is not None and prefix_out != "":
+                name_file = f"{prefix_out}-{format_pdf.name}.csv"
+            df.to_csv(out_dir / name_file, index=False)
+    else:
+        df.to_csv(config["OUT_CSV"], index=False)
+
+    if compress:
+        with tarfile.open(out_csv, "w:gz") as tar:
+            tar.add(out_dir, arcname=out_dir.name)
+        if remove_dir:
+            shutil.rmtree(out_dir)
+
+
+def _update_format(config, detected_format):
+    if detected_format is None and config["FORMAT"] is None:
         raise NoPDFormatDetected(
             "No format selected and url doesn't match know formats"
         )
     if (
         detected_format is not None
-        and format_selected
-        and format_selected is not None
-        and format_selected != detected_format
+        and config["FORMAT"] is not None
+        and config["FORMAT"] != detected_format
     ):
         logger.warning(
-            "Detected and selected formats don't match [det=%f sel=%s]",
+            "Detected and selected formats don't match [det=%s sel=%s]",
             detected_format.name,
-            format_selected.name,
+            config["FORMAT"].name,
         )
 
-    format_pdf = detected_format if format_selected is None else format_selected
+    format_pdf = detected_format if config["FORMAT"] is None else config["FORMAT"]
     logger.debug("Using %s format", format_pdf.name)
-    targets = get_targets()
-    log_string = str(targets[: min(5, len(targets))])
-    logger.debug("First 5 targets: %s", log_string)
+    return format_pdf
 
-    funcs = get_functions(format_pdf)
-    df = pipeline(pdf_file, targets, funcs)
-    if config["OUT_CSV"].name.endswith(".tar.gz"):
-        config["OUT_CSV"] = config["OUT_CSV"].with_suffix("").with_suffix("")
-    prefix_csv = config.get("PREFIX_OUT_CSV")
-    if prefix_csv is None:
-        df.to_csv(config["OUT_CSV"])
+
+def _main_job(config, n_workers):
+    validate_conf(config)
+    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
+    pdf_file, format_pdf = _get_document(config)
+    format_pdf = _update_format(config, format_pdf)
+    prefix_out = config["PREFIX_OUT_CSV"]
+    logger.debug("Starting decoding pdf to xml...")
+    pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
+    logger.debug("End decoding pdf to xml!")
+    targets = get_targets()
+    logger.debug("First 5 targets: %s", str(targets[: min(5, len(targets))]))
+    n_pages = len(pdf_file_xml)
+    batch_size = (n_pages + n_workers - 1) // n_workers
+    batches = []
+    for i in range(n_workers):
+        start_idx = i * batch_size
+        end_idx = min((i + 1) * batch_size, n_pages)
+        batch_pages = pdf_file_xml[start_idx:end_idx]
+        batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
+
+    results_batches = None
+    if n_workers > 1:
+        with Pool(processes=n_workers) as pool:
+            results_batches = pool.starmap(pipeline_batch, batches)
     else:
-        name_file = f"{format_pdf.name}.csv"
-        if prefix_csv is not None and prefix_csv != "":
-            name_file = f"{prefix_csv}-{format_pdf.name}.csv"
-        df.to_csv(config["OUT_CSV"] / name_file)
+        results_batches = [pipeline_batch(*batches[0])]
+    result = pd.concat(results_batches)
+    return result, format_pdf, prefix_out
 
 
 def main(config):
@@ -238,31 +297,20 @@ def main(config):
         or not associated with any format the program cannot choose a way to
         decode the pdf, so it raises this exception
     """
+    n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
+    results = None
     if config["BATCH"] is None:
-        _main_job(config)
+        results = [_main_job(config, n_workers)]
     else:
         config_jobs = batch_job_confs(config)
-        n_w_set = config["BATCH_WORKERS"]
-        n_workers = n_w_set if n_w_set is not None and n_w_set >= 0 else None
-        out_csv = config["OUT_CSV"]
-        out_dir = out_csv
-        compress = False
-        remove_dir = False
-        if out_csv.name.endswith(".tar.gz"):
-            compress = True
-            out_dir = out_csv.with_suffix("").with_suffix("")
-        if not out_dir.exists() and compress:
-            remove_dir = True
+        args = [(c, 1) for c in config_jobs]
+        if n_workers > 1:
+            with Pool(n_workers) as p:
+                results = p.starmap(_main_job, args)
+        else:
+            results = [_main_job(*args[0])]
 
-        out_dir.mkdir(exist_ok=True)
-        with Pool(n_workers) as p:
-            p.map(_main_job, config_jobs)
-
-        if compress:
-            with tarfile.open(out_csv, "w:gz") as tar:
-                tar.add(out_dir, arcname=out_dir.name)
-            if remove_dir:
-                shutil.rmtree(out_dir)
+    _output_file(config, results)
 
 
 if __name__ == "__main__":
@@ -275,5 +323,4 @@ if __name__ == "__main__":
     LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
     log.getLogger().setLevel(LOG_LEVEL)
     log_config(logger, current_config, config_location)
-    validate_conf(current_config)
     main(current_config)

@@ -1,4 +1,4 @@
-﻿freeports\_analysis.conf\_parse
+freeports\_analysis.conf\_parse
 ===============================
 
 .. automodule:: freeports_analysis.conf_parse

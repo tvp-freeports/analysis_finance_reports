@@ -9,5 +9,10 @@ freeports\_analysis.consts
 
    .. autosummary::
    
+      Bond
+      Currency
+      Equity
+      FinancialData
+      FinancialInstrument
       PdfFormats
    

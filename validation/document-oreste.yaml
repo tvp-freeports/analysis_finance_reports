@@ -1,0 +1,31 @@
+sig: |
+  alkjdsflajflasjd
+  akjdsflkskjfdkja
+  fajsdkflasjfa483
+  43989fjsakfjalsd
+
+
+who:
+  name: Oreste Sciaqualegni
+  email: orestesciaqualegni@tutanota.com
+  pubkey-id: 0x12345678
+  key-server: fjdaskdfjla
+
+methodology:
+  - name: human check
+    sha256: 08432085248ipoidg98ads09
+  - name: automatic check
+    sha256: 08432085248ipoidg98ads09
+
+data:
+  - methodology: human check
+    - path: pdf_blks-246.pkl
+      sha256: fasdklka78978
+    - path: txt_blks-45.pkl
+      sha256: kfdlasjdaf
+    - path: txt_blks.pkl 
+      sha256: 24532345jhklhj
+  - methodology: automatic check
+    - path: financial_data-56.pkl
+      sha256: 523k54jhk2
+

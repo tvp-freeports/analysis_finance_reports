@@ -1,4 +1,4 @@
-﻿freeports\_analysis.main
+freeports\_analysis.main
 ========================
 
 .. automodule:: freeports_analysis.main
@@ -10,10 +10,9 @@
    .. autosummary::
    
       batch_job_confs
-      get_functions
       get_targets
       main
-      pipeline
+      pipeline_batch
    
    .. rubric:: Exceptions
 

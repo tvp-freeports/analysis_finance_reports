@@ -1,7 +1,7 @@
-﻿freeports\_analysis.formats.utils\_pdf\_filter
+freeports\_analysis.formats.utils\_pdf\_filter
 ==============================================
 
-.. automodule:: freeports_analysis.formats.utils_pdf_filter
+.. automodule:: freeports_analysis.formats_utils.pdf_filter
    :members:
    
    
@@ -10,14 +10,9 @@
    .. autosummary::
    
       filter_page_if
-      get_lines_with_font
-      is_contained
-      is_positioned
-      is_present_contained
-      is_present_positioned
-      is_present_txt_font
-      one_pdf_blk
-      standard_header_font_filter
+      OnePdfBlockType
+      standard_extraction_subfund
+      standard_pdf_filtering
    
    .. rubric:: Classes
 
@@ -25,3 +20,13 @@
    
       one_PdfBlockType
    
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   pdf_parts
+   select_font
+   select_position
+   xml

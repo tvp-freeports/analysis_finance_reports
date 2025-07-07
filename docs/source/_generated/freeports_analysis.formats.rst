@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats
+freeports\_analysis.formats
 ===========================
 
 .. automodule:: freeports_analysis.formats
@@ -9,8 +9,8 @@
 
    .. autosummary::
    
+      deserialize_exec
       pdf_filter_exec
-      tabularize_exec
       text_extract_exec
    
    .. rubric:: Classes
@@ -20,16 +20,26 @@
       PdfBlock
       TextBlock
    
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      ExpectedPdfBlockNotFound
+      ExpectedTextBlockNotFound
+   
 .. rubric:: Modules
 
 .. autosummary::
    :toctree:
    :recursive:
 
-   AMUNDI
-   ANIMA
-   EURIZON
-   utils_commons
-   utils_pdf_filter
-   utils_tabularize
-   utils_text_extract
+   amundi
+   amundi2
+   anima
+   arca
+   asteria
+   eurizon
+   eurizon_it
+   eurizon_old
+   fideuram
+   mediolanum
