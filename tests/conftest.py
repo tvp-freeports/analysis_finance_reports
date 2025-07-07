@@ -42,7 +42,7 @@ targets = get_targets()
 
 conf = {
     "VERBOSITY": 2,
-    "N_WORKERS": os.cpu_count(),
+    "N_WORKERS": 1,
     "BATCH": None,
     "OUT_CSV": None,
     "SAVE_PDF": False,
