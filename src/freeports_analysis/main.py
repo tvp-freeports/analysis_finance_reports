@@ -261,7 +261,7 @@ def _main_job(config, n_workers):
     logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
     pdf_file, format_pdf = _get_document(config)
     format_pdf = _update_format(config, format_pdf)
-    prefix_out = config["PREFIX_OUT_CSV"]
+    prefix_out = config["PREFIX_OUT"]
     logger.debug("Starting decoding pdf to xml...")
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug("End decoding pdf to xml!")

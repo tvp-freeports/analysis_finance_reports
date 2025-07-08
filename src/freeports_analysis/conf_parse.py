@@ -110,7 +110,7 @@ DEFAULT_CONFIG = {
     "SEPARATE_OUT_FILES": False,
     "N_WORKERS": os.process_cpu_count(),
     "BATCH": None,
-    "PREFIX_OUT_CSV": None,
+    "PREFIX_OUT": None,
     "OUT_CSV": Path("/dev/stdout")
     if os.name == "posix"
     else "CON"
@@ -171,7 +171,7 @@ schema_job_csv_config = {
     "save pdf": ("SAVE_PDF", _str_to_bool),
     "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     "pdf": ("PDF", Path),
-    "prefix out": ("PREFIX_OUT_CSV", str),
+    "prefix out": ("PREFIX_OUT", str),
 }
 
 

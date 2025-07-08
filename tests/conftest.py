@@ -50,6 +50,6 @@ conf = {
     "PDF": None,
     "FORMAT": None,
     "CONFIG_FILE": None,
-    "PREFIX_OUT_CSV": None,
+    "PREFIX_OUT": None,
     "SEPARATE_OUT_FILES": None,
 }

@@ -33,7 +33,7 @@ The option available to be overwritten and how are documented in the respective 
    config/env_variables.rst
    config/config_file.rst 
 
-After specified overwritten the options are overwritten as described in :ref:`the section about validation <conf_validation>`.
+After specified the options are overwritten as described in :ref:`the section about validation <conf_validation>`.
 Each method of overwriting also has a specific validation mechanism documented in the respective page and applied before
 the validation of resulting configuration.
 Each way of specify option set one of the program option described in this page.
@@ -43,28 +43,31 @@ The options here documented have an effecton the behaviour of the ``freeports`` 
 The options
 -----------
 
-
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| Option            | Type                    | Description                                              | Default                |
-+===================+=========================+==========================================================+========================+
-| ``VERBOSITY``     | ``int``                 | Describe how much the program verbosity                  | 2                      |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``BATCH``         | ``Path``                | If set to path of batch file, it triggers ``BATCH MODE`` |                        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``N_WORKERS``     | ``int``                 | Number of parallel processes in ``BATCH MODE``           |                        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``OUT_CSV``       | ``Path``                | File where to output ``csv`` files                       | ``/dev/stdout``        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``SAVE_PDF``      | ``bool``                | If set and ``URL`` is specified, it save the input pdf   | ``True``               |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``URL``           | ``str``                 | Url of the pdf to take in input                          |                        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``PDF``           | ``Path``                | Path to local pdf                                        |                        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``FORMAT``        | :py:class:`PdfFormats`  | Format to parse the pdf document                         |                        |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
-| ``CONFIG_FILE``   | ``Path``                | Custom config file location                              | Calculated dynamically |
-+-------------------+-------------------------+----------------------------------------------------------+------------------------+
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| Option                 | Type                    | Description                                              | Default                    |
++========================+=========================+==========================================================+============================+
+| ``VERBOSITY``          | ``int``                 | Describe how much the program verbosity                  | 2                          |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``BATCH``              | ``Path``                | If set to path of batch file, it triggers ``BATCH MODE`` |                            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``N_WORKERS``          | ``int``                 | Number of parallel processes in ``BATCH MODE``           | ``os.process_cpu_count()`` |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``OUT_CSV``            | ``Path``                | File where to output ``csv`` files                       | ``/dev/stdout``            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``SAVE_PDF``           | ``bool``                | If set and ``URL`` is specified, it save the input pdf   | ``True``                   |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``URL``                | ``str``                 | Url of the pdf to take in input                          |                            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``PDF``                | ``Path``                | Path to local pdf                                        |                            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``FORMAT``             | :py:class:`PdfFormats`  | Format to parse the pdf document                         |                            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``CONFIG_FILE``        | ``Path``                | Custom config file location                              | Calculated dynamically     |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``SEPARATE_OUT_FILES`` | ``bool``                | In ``BATCH_MODE`` do not merge the results of the batch  | ``False``                  |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+
+| ``PREFIX_OUT``         | ``str``                 | In ``BATCH_MODE`` define an id for the different outputs |                            |
++------------------------+-------------------------+----------------------------------------------------------+----------------------------+ 
 
 """""""""""""
 ``VERBOSITY``
@@ -93,9 +96,10 @@ The meaning of the others levels are the ones used by the python `logging packag
 ``URL``, ``PDF`` and ``SAVE_PDF``
 """""""""""""""""""""""""""""""""
 
-When not in ``BATCH MODE`` one between ``URL`` or ``PDF`` has to be specified.
-If ``URL`` is specified the program use the pdf file corresponding to the url,
-if ``PDF`` is specified it load a pdf file from local filesystem and if both are specified
+One between ``URL`` or ``PDF`` has to be specified, directly or by consequently to 
+*job contextual options* overwriting.
+If ``URL`` is specified the program use the pdf resource corresponding to the url,
+if ``PDF`` is specified it load a pdf file from local filesystem. If both are specified
 it tries to load from local storage, then fallback to the url.
 If both are specified and ``SAVE_PDF`` is ``True``, if the file is not present locally, it download it
 and save on disk with name indicate by ``PDF`` option.
@@ -126,6 +130,15 @@ a mapping file that map different url regular expressions to a format. The file 
 This option indicate the config file loaded to overwrite the default options, this option can only be specified
 using an environment variable or using a command line argument, and it is evaluated before any other option.
 
+""""""""""""""
+``N_WORKWERS``
+""""""""""""""
+
+Integer that rappresent the number of process spawned (if not set default to number of available CPUs).
+When in ``BATCH MODE`` it indicate the process to spawn concurrently to achieve parrallelization on the
+processing of different files. When not in ``BATCH_MODE`` the program divide the pdf document in different
+section of pages and parallelize processing document wise.
+
 .. _conf_validation:
 
 -------------------------------------
@@ -148,8 +161,8 @@ Noticebly the most important performed chekcs are:
 --------------
 
 This mode permit to process different files all at one in parallel. This mode is caratterized by the ``BATCH``
-variable set to a *batch csv file*, ``OUT_CSV`` to a directory name or ``.tar.gz`` archive and 
-optionally ``N_WORKERS`` to a number (if not set default to number of available CPUs). 
+variable set to a *batch csv file* and the possibility of setting ``SEPARATE_OUT_FILES`` to ``True``
+( in this case ``OUT_CSV`` should be a directory name or the name of a ``.tar.gz`` archive to create)
 The *batch csv file* is a csv file with some header that indicate the option to overwrite to the 
 resulting configuration. These option are called *job contextual options* and each row of the csv file is called a *job*.
 The available overwrittables options are:
@@ -176,10 +189,23 @@ the bool matching is done so that cast to ``True`` if csv value is one between (
 ``OUT_CSV`` and ``prefix out``
 """"""""""""""""""""""""""""""
 
-When in ``BATCH MODE``, ``OUT_CSV`` has to be a directory or a ``.tar.gz`` archive. 
-The ``prefix out`` cell add to the resulting configuration a ``PREFIX_OUT_CSV`` option.
+When in ``BATCH MODE`` there are two output profiles, the standard one on a single *csv* and 
+on separate files (this distinction can be made setting ``SEPARATE_OUT_FILES`` to ``True`` or ``False``).
+The ``prefix out`` cell of the batch file set the ``PREFIX_OUT`` option.
+When output on same file the usual *csv* add a column (*Format*) to indicate the format used to parse the 
+pdf report from which the data come from. To identify precisely the line of the batch file that generate
+the data can if is present ``PREFIX_OUT`` it is added a column called *Report identifier* 
+with the corresponding value.
+
+.. tip::
+    Set ``PREFIX_OUT`` something meaning full that distinguish the input document, like for example
+    the date of the publication of the pdf and istitution that created the report
+
+
+When on different files ``OUT_CSV`` has to be a directory or a ``.tar.gz`` archive. 
 The program create if it doesn't exists a directory named as ``OUT_CSV`` if is not an archive
 or the name of the archive without ``.tar.gz`` exstension and for each *job*, save an output file
-named ``{PREFIX_OUT_CSV}-{FORMAT}.csv``. Than if was specified ``OUT_CSV`` as an archive, the directory
+named ``{PREFIX_OUT}-{FORMAT}.csv`` or just ``{FORMAT}.csv`` if absent or empty prefix. 
+If ``OUT_CSV`` was specified  as an archive, the directory
 is compressed into ``.tar.gz``. If the directory didn't existed and an archive is created, after creation
 the directory is deleted from the filesystem.
