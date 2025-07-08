@@ -18,7 +18,7 @@ pip install freeports_analysis
 > You can install it in your virtual environment with `pip install build`
 1. Clone the repository:
 ```bash
-git clone https://github.com/GVoreste/analysis_finance_reports.git
+git clone https://github.com/tvp-freeports/analysis_finance_reports.git
 ```
 2. `cd` into the created directory
 ```bash
