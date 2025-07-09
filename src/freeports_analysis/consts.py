@@ -125,6 +125,7 @@ class FinancialData(ABC):
     ValueError
         If perc_net_assets is not between 0 and 1.
         If page is not a positive number.
+        If company is not in targets.
     """
 
     def __init__(
@@ -235,7 +236,8 @@ class FinancialData(ABC):
     def _str_additional_infos(self) -> str:
         string = ""
         if self.acquisition_cost is not None:
-            string += f"\t\tAquisition cost:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
+            translated_field = _("Acquisition cost")
+            string += f"\t\t{translated_field}:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
         return string
 
     def __str__(self) -> str:
@@ -432,10 +434,8 @@ def _get_module(module_name: str):
             f"freeports_analysis.formats.{module_name.lower()}", package=__package__
         )
     except ImportError:
-        print(
-            _("Error: module {} ({}) not found").format(
-                module_name.lower(), module_name
-            )
+        logger.error(
+            _("Module {} ({}) not found").format(module_name.lower(), module_name)
         )
         raise
     return module
