@@ -237,14 +237,22 @@ class FinancialData(ABC):
 
     def __str__(self) -> str:
         string = f"{self.__class__.__name__}:\n"
-        string += f"\tType match:\t{self.instrument.name}\t(pag. {self.page})\n"
-        string += f"\tSubfund:\t{self.subfund}\n"
-        string += f"\tCompany:\t{self.company}\n"
-        string += f"\tCurrency:\t{self.currency.name}\n"
-        string += f"\tMarket value:\t{self.market_value:.2f}{self.currency.value}"
-        string += f"\t({self.perc_net_assets:.3%} of net assets)\n"
-        string += f"\tQuantity:\t{self.nominal_quantity}\n"
-        string += "\tAdditional infos: {"
+        translated_field = _("Type match")
+        string += f"\t{translated_field}:\t{self.instrument.name}\t(pag. {self.page})\n"
+        translated_field = _("Subfund")
+        string += f"\t{translated_field}:\t{self.subfund}\n"
+        translated_field = _("Company")
+        string += f"\t{translated_field}:\t{self.company}\n"
+        translated_field = _("Currency")
+        string += f"\t{translated_field}:\t{self.currency.name}\n"
+        translated_field = _("Market value")
+        string += f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.value}"
+        translated_field = _("of net assets")
+        string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
+        translated_field = _("Quantity")
+        string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
+        translated_field = _("Additional infos")
+        string += f"\t{translated_field}: \{{"
         add_string = self._str_additional_infos()
         if add_string != "":
             string += "\n" + add_string + "\t"
@@ -398,12 +406,14 @@ class Bond(FinancialData):
 
     def _str_additional_infos(self) -> str:
         string = super()._str_additional_infos()
+        translated_maturity = _("Maturity")
+        translated_interest_rate = _("Interest rate")
         if self.maturity is not None and self.interest_rate is not None:
-            string += f"\t\tMaturity:\t\t{self.maturity} +{self.interest_rate:.3%}\n"
+            string += f"\t\t{translated_maturity}:\t\t{self.maturity} +{self.interest_rate:.3%}\n"
         elif self.maturity is not None:
-            string += f"\t\tMaturity:\t\t{self.maturity}\n"
+            string += f"\t\t{translated_maturity}:\t\t{self.maturity}\n"
         elif self.interest_rate is not None:
-            string += f"\t\tInterest rate:\t{self.interest_rate:.3%}\n"
+            string += f"\t\t{translated_interest_rate}:\t{self.interest_rate:.3%}\n"
         return string
 
     def __eq__(self, other):
