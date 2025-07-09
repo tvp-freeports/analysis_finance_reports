@@ -9,8 +9,6 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path("../../", "src").resolve()))
-import freeports_analysis
-import freeports_analysis.cmd
 from freeports_analysis import *
 
 project = "freeports_analysis"
@@ -21,9 +19,14 @@ release = "0.0.3"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+locale_dirs = ["locales/"]
+language = "en"
+
 extensions = [
     "sphinx_rtd_theme",
+    # 'sphinx.ext.i18n',
     "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.napoleon",

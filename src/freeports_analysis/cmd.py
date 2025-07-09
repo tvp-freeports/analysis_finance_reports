@@ -4,6 +4,10 @@ import argparse
 import logging as log
 from pathlib import Path
 from typing import Tuple
+import gettext
+import tempfile
+import locale
+from importlib_resources import files, as_file
 
 from freeports_analysis.consts import PdfFormats
 from freeports_analysis.conf_parse import (
@@ -13,17 +17,31 @@ from freeports_analysis.conf_parse import (
     log_config,
     apply_config,
     get_config_file,
-    validate_conf,
 )
 from freeports_analysis.main import main
+
+locale = locale.getlocale()[0]
+if locale is None:
+    locale = "en_US.UFT-8"
+lang = locale.split("_")[0]
+translation = None
+with tempfile.TemporaryDirectory() as tmp_dir:
+    for f in (files("freeports_analysis.locales") / lang / "LC_MESSAGES").iterdir():
+        translation_dir = Path(tmp_dir) / lang / "LC_MESSAGES"
+        translation_dir.mkdir(parents=True, exist_ok=True)
+        tmp_file = translation_dir / f.name
+        tmp_file.write_bytes(f.read_bytes())
+    translation = gettext.translation("messages", tmp_dir, [lang])
+    translation.install()
+_ = translation.gettext
 
 
 logger = log.getLogger(__name__)
 
 
-PROGRAM_DESCRIPTION = """Analyze finance reports searching for investing in companies
+PROGRAM_DESCRIPTION = _("""Analyze finance reports searching for investing in companies
 allegedly involved interantional law violations by third parties
-"""
+""")
 
 
 def _create_parser() -> argparse.ArgumentParser:
@@ -37,46 +55,55 @@ def _create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=PROGRAM_DESCRIPTION)
     # Argomenti obbligatori (stringhe)
     parser.add_argument(
-        "--url", "-u", type=str, help="URL of the dir where to find the pdf"
+        "--url", "-u", type=str, help=_("URL of the dir where to find the pdf")
     )
-    parser.add_argument("--pdf", "-i", type=str, help="Name of the file")
+    parser.add_argument("--pdf", "-i", type=str, help=_("Name of the file"))
     parser.add_argument(
-        "--batch", "-b", type=str, help="Activate `BATCH MODE`, path of the batch file"
+        "--batch",
+        "-b",
+        type=str,
+        help=_("Activate `BATCH MODE`, path of the batch file"),
     )
-    help_str = (
+    help_str = _(
         "# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu avalaibles"
     )
     parser.add_argument("--workers", "-j", type=int, help=help_str)
     parser.add_argument(
-        "--format", "-f", type=str, choices=PdfFormats.__members__, help="PDF format"
+        "--format", "-f", type=str, choices=PdfFormats.__members__, help=_("PDF format")
     )
     parser.add_argument(
-        "--no-download", action="store_true", help="Don't save file locally"
+        "--no-download", action="store_true", help=_("Don't save file locally")
     )
     parser.add_argument(
-        "--separate-out", action="store_true", help="Separate output files"
+        "--separate-out", action="store_true", help=_("Separate output files")
     )
-    parser.add_argument("--config", type=str, help="Custom configuration file location")
+    parser.add_argument(
+        "--config", type=str, help=_("Custom configuration file location")
+    )
     out_csv = DEFAULT_CONFIG["OUT_CSV"]
     parser.add_argument(
         "--out",
         "-o",
         type=str,
-        help=f"Output file cvs (default path: '{out_csv}')",
+        help=_("Output file cvs (default path: '{}')").format(out_csv),
     )
     verb = DEFAULT_CONFIG["VERBOSITY"]
     parser.add_argument(
-        "-v", action="count", help=f"Increase verbosity (default level: {verb})"
+        "-v",
+        action="count",
+        help=_("Increase verbosity (default level: {})").format(verb),
     )
     parser.add_argument(
-        "-q", action="count", help=f"Decrease verbosity (default level: {verb})"
+        "-q",
+        action="count",
+        help=_("Decrease verbosity (default level: {})").format(verb),
     )
     return parser
 
 
 def _validate_args(args):
     if args.v is not None and args.q is not None:
-        raise argparse.ArgumentTypeError("Cannot increase and decrease verbosity!")
+        raise argparse.ArgumentTypeError(_("Cannot increase and decrease verbosity!"))
     return args
 
 
@@ -142,6 +169,9 @@ def cmd():
     """Command called when launching `freeports` from terminal,
     it calls the `main` function.
     """
+    gettext.bindtextdomain(
+        "messages",
+    )
     config = DEFAULT_CONFIG
     config_location = DEFAULT_LOCATION_CONFIG
     log_level = (5 - config["VERBOSITY"]) * 10

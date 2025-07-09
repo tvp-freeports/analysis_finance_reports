@@ -13,6 +13,7 @@ pip install --upgrade pip
 pip install -r "${CONTRIB_DIR}/requirements.minimal.txt"
 pip install -r "${CONTRIB_DIR}/requirements.devtools.txt"
 pip install -r "${CONTRIB_DIR}/requirements.docs.txt"
+pip install -r "${CONTRIB_DIR}/requirements.i18n.txt"
 pip install --editable .
 
 deactivate
