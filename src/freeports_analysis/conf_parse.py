@@ -326,27 +326,31 @@ def validate_conf(config: dict):
     """
     verb = config["VERBOSITY"]
     if verb > 5 or verb < 0:
-        err_str = f"Verbosity must be between 0 and 5, resulting is {verb}"
+        err_str = _("Verbosity must be between 0 and 5, resulting is {}").format(verb)
         raise ValueError(err_str)
     batch_path = config["BATCH"]
     out_path = config["OUT_CSV"]
     if config["URL"] is None and config["PDF"] is None:
         raise ValueError(
-            _("You have to specify or the pdf url or the pdf file path or both")
+            _(
+                "You have to specify at least one input option: the url or the resource, the pdf file path or both"
+            )
         )
     if not out_path.parent.exists():
         raise ValueError(
-            _("Out path is not valid because {} doesn't exists").format(out_path.parent)
+            _("Out path is not valid because directory '{}' doesn't exists").format(
+                out_path.parent
+            )
         )
     if batch_path is not None:
         if not batch_path.exists() or not batch_path.is_file():
-            raise ValueError(_("Batch has to be existent file [{}]").format(batch_path))
+            raise ValueError(_("Batch '{}' has to be existent file").format(batch_path))
         if config["SEPARATE_OUT_FILES"]:
             if "." in out_path.name and not out_path.name.endswith(".tar.gz"):
                 err_str = _(
                     "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
                 )
-                err_str += _(" if `SEPARATE_OUT_FILES`, resulting '{}'").format(
+                err_str += _(" if `SEPARATE_OUT_FILES` not set to '{}'").format(
                     out_path
                 )
                 raise ValueError(err_str)
