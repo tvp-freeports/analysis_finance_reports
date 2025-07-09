@@ -9,6 +9,8 @@ import logging as log
 from xdg import BaseDirectory
 import yaml
 
+from freeports_analysis.i18n import _
+
 from .consts import ENV_PREFIX, PdfFormats
 
 _logger = log.getLogger(__name__)
@@ -56,7 +58,7 @@ def _standard_config():
         for file_name in ["freeports.yaml", "freeports.yml"]:
             config_path = os.path.join(config_dir, file_name)
             _logger.debug(
-                "Searching `xdg`/`Windows` compliant conf file: '%s'", config_path
+                _("Searching `xdg`/`Windows` compliant conf file: '%s'"), config_path
             )
             if os.path.isfile(config_path):
                 return Path(config_path)
@@ -84,22 +86,22 @@ def _system_config():
 def _find_config():
     config_file = _local_config()
     if config_file is not None:
-        _logger.debug("Found local conf file: '%s'", config_file)
+        _logger.debug(_("Found local conf file: '%s'"), config_file)
         return config_file
 
     config_file = _standard_config()
     if config_file is not None:
-        _logger.debug("Found `xdg`/`Windows` compliant conf file: '%s'", config_file)
+        _logger.debug(_("Found `xdg`/`Windows` compliant conf file: '%s'"), config_file)
         return config_file
 
     config_file = _system_config()
     if config_file is not None:
-        _logger.debug("Found system wise conf file: '%s'", config_file)
+        _logger.debug(_("Found system wise conf file: '%s'"), config_file)
         return config_file
 
     # 4. Not found
     _logger.debug(
-        "Configuration not found in default location, `CONFIG_FILE` set to `None`"
+        _("Configuration not found in default location, `CONFIG_FILE` set to `None`")
     )
     return None
 
@@ -147,8 +149,8 @@ def _str_to_bool(string: str) -> bool:
     if string in false_list:
         return False
 
-    error_string = (
-        f"'{string}' is not castable to `True` {true_list} nor `False` {false_list}"
+    error_string = _("'{}' is not castable to `True` {} nor `False` {}").format(
+        string, true_list, false_list
     )
     raise ValueError(error_string)
 
@@ -197,7 +199,7 @@ def log_config(logger: log.Logger, config: dict, config_location: dict):
         the logger that has to log
     """
     logger.debug(
-        "Resulting config: %s",
+        _("Resulting config: %s"),
         {k: (v, config_location[k].name) for k, v in config.items()},
     )
 
@@ -330,19 +332,21 @@ def validate_conf(config: dict):
     out_path = config["OUT_CSV"]
     if config["URL"] is None and config["PDF"] is None:
         raise ValueError(
-            "You have to specify or the pdf url or the pdf file path or both"
+            _("You have to specify or the pdf url or the pdf file path or both")
         )
     if not out_path.parent.exists():
         raise ValueError(
-            f"Out path is not valid because {out_path.parent} doesn't exists"
+            _("Out path is not valid because {} doesn't exists").format(out_path.parent)
         )
     if batch_path is not None:
         if not batch_path.exists() or not batch_path.is_file():
-            raise ValueError(f"Batch has to be existent file [{batch_path}]")
+            raise ValueError(_("Batch has to be existent file [{}]").format(batch_path))
         if config["SEPARATE_OUT_FILES"]:
             if "." in out_path.name and not out_path.name.endswith(".tar.gz"):
-                err_str = (
+                err_str = _(
                     "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
                 )
-                err_str += f" if `SEPARATE_OUT_FILES`, resulting '{out_path}'"
+                err_str += _(" if `SEPARATE_OUT_FILES`, resulting '{}'").format(
+                    out_path
+                )
                 raise ValueError(err_str)

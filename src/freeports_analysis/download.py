@@ -4,6 +4,7 @@ import logging as log
 from io import BytesIO
 import os
 import requests as rq
+from freeports_analysis.i18n import _
 
 logger = log.getLogger(__name__)
 
@@ -38,5 +39,5 @@ def download_pdf(url: str, pdf: str = None) -> BytesIO:
     if pdf is not None:
         with pdf.open("wb") as f:
             f.write(file.read())
-        logger.debug("File %s saved on disk [in %s]", pdf, os.getcwd())
+        logger.debug(_("File %s saved on disk [in %s]"), pdf, os.getcwd())
     return file

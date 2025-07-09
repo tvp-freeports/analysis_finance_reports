@@ -12,6 +12,7 @@ import importlib
 import yaml
 from importlib_resources import files
 from freeports_analysis import data
+from freeports_analysis.i18n import _
 
 
 logger = log.getLogger(__name__)
@@ -137,12 +138,16 @@ class FinancialData(ABC):
     ):
         if not 0.0 <= perc_net_assets <= 1.0:
             raise ValueError(
-                f"perc_net_assets must be between 0 and 1, not {perc_net_assets}"
+                _("perc_net_assets must be between 0 and 1, not {}").format(
+                    perc_net_assets
+                )
             )
         if not page > 0:
-            raise ValueError(f"page should be a positive number, not {page}")
+            raise ValueError(_("page should be a positive number, not {}").format(page))
         if company not in targets:
-            raise ValueError(f"company should be between targets, not {company}")
+            raise ValueError(
+                _("company should be between targets, not {}").format(company)
+            )
         self._company = company
         self._page = page
         self._market_value = market_value
@@ -348,7 +353,9 @@ class Bond(FinancialData):
         self._maturity = maturity
         if interest_rate is not None and not 0.0 <= interest_rate <= 1.0:
             logger.warning(
-                "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
+                _(
+                    "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
+                )
             )
         self._interest_rate = interest_rate
 
@@ -412,6 +419,10 @@ def _get_module(module_name: str):
             f"freeports_analysis.formats.{module_name.lower()}", package=__package__
         )
     except ImportError:
-        print(f"Errore: modulo {module_name.lower()} ({module_name}) non trovato")
+        print(
+            _("Error: module {} ({}) not found").format(
+                module_name.lower(), module_name
+            )
+        )
         raise
     return module

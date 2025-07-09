@@ -4,12 +4,10 @@ import argparse
 import logging as log
 from pathlib import Path
 from typing import Tuple
-import gettext
-import tempfile
-import locale
-from importlib_resources import files, as_file
+
 
 from freeports_analysis.consts import PdfFormats
+from freeports_analysis.i18n import _
 from freeports_analysis.conf_parse import (
     PossibleLocationConfig,
     DEFAULT_CONFIG,
@@ -19,21 +17,6 @@ from freeports_analysis.conf_parse import (
     get_config_file,
 )
 from freeports_analysis.main import main
-
-locale = locale.getlocale()[0]
-if locale is None:
-    locale = "en_US.UFT-8"
-lang = locale.split("_")[0]
-translation = None
-with tempfile.TemporaryDirectory() as tmp_dir:
-    for f in (files("freeports_analysis.locales") / lang / "LC_MESSAGES").iterdir():
-        translation_dir = Path(tmp_dir) / lang / "LC_MESSAGES"
-        translation_dir.mkdir(parents=True, exist_ok=True)
-        tmp_file = translation_dir / f.name
-        tmp_file.write_bytes(f.read_bytes())
-    translation = gettext.translation("messages", tmp_dir, [lang])
-    translation.install()
-_ = translation.gettext
 
 
 logger = log.getLogger(__name__)
@@ -169,9 +152,6 @@ def cmd():
     """Command called when launching `freeports` from terminal,
     it calls the `main` function.
     """
-    gettext.bindtextdomain(
-        "messages",
-    )
     config = DEFAULT_CONFIG
     config_location = DEFAULT_LOCATION_CONFIG
     log_level = (5 - config["VERBOSITY"]) * 10
