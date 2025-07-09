@@ -14,7 +14,7 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     body_font="TrebuchetMS",
     y_range=None,
 )
-def pdf_filter(xml_root, page) -> dict:
+def pdf_filter(xml_root) -> dict:
     pass
 
 

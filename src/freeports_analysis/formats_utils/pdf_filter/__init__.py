@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, TypeAlias, Callable
 from enum import Enum, auto
 from lxml import etree
 from freeports_analysis.formats import PdfBlock, ExpectedPdfBlockNotFound, TextBlock
+from freeports_analysis.i18n import _
 from .xml.font import get_lines_with_font, is_present_txt_font, get_lines_with_txt_font
 from .select_position import select_inside, get_table_positions
 from .pdf_parts.position import YRange
@@ -54,12 +55,10 @@ def filter_page_if(
     """
 
     def wrapper(pdf_filter: PdfFilterFunc) -> PdfFilterFunc:
-        def conditionated_pdf_filter(
-            xml_root: etree.Element, page_number: int
-        ) -> List[PdfBlock]:
+        def conditionated_pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
             parts = []
             if condition(xml_root):
-                parts = pdf_filter(xml_root, page_number)
+                parts = pdf_filter(xml_root)
             return parts
 
         return conditionated_pdf_filter
@@ -87,9 +86,7 @@ def standard_extraction_subfund(
     """
 
     def decorator(old_page_metadata):
-        def new_page_metadata(
-            xml_root: etree.Element, page_number: int
-        ) -> List[PdfBlock]:
+        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
             lines_with_font = get_lines_with_font(xml_root, subfund_font)
             lines = [ExtractedPdfLine(blk) for blk in lines_with_font]
             top_lines = select_inside(lines, subfund_height)
@@ -98,9 +95,9 @@ def standard_extraction_subfund(
                 subfund = top_lines[0].xml_blk.xpath(".//@text")[0]
             if subfund is None:
                 raise ExpectedPdfBlockNotFound(
-                    "subfound block on top of page not found"
+                    _("subfound block on top of page not found")
                 )
-            metadata = old_page_metadata(xml_root, page_number)
+            metadata = old_page_metadata(xml_root)
             metadata["subfund"] = subfund
             return metadata
 
@@ -156,12 +153,12 @@ def standard_pdf_filtering(
     def decorator(f):
         @standard_extraction_subfund(subfund_height, subfund_font)
         @overwrite_if_implemented(f)
-        def page_metadata(_: etree.Element, page_number: int) -> dict:
-            return {"page": page_number}
+        def page_metadata(_: etree.Element) -> dict:
+            return {}
 
         @filter_page_if(lambda x: is_present_txt_font(x, header_txt, header_font))
-        def pdf_filter(xml_root: etree.Element, page_number: int) -> List[PdfBlock]:
-            metadata = page_metadata(xml_root, page_number)
+        def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+            metadata = page_metadata(xml_root)
             rows = get_lines_with_font(xml_root, body_font)
             lines = [ExtractedPdfLine(r) for r in rows]
             y_range_numeric_top = None

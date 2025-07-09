@@ -1,6 +1,7 @@
 """Pdf xml parts in a friendly format (custom python classes)."""
 
 from lxml import etree
+from freeports_analysis.i18n import _
 from .font import Font, TextSize
 from ..xml.position import get_bounds
 from .position import Area, XRange, YRange, Coord
@@ -109,7 +110,8 @@ class ExtractedPdfLine:
         str
             Formatted string showing font, text size, and coordinates.
         """
-        string = f"Line PDF - Font '{self.font}' [{self.text_size}]\n"
+        string = _("Line PDF - Font")
+        string += f" '{self.font}' [{self.text_size}]\n"
         (((x_tl, y_tl), (x_tr, y_tr)), ((x_bl, y_bl), (x_br, y_br))) = self.corners
         x, y = self.c
         string += f"\t({x_tl:.3f}, {y_tl:.3f})\t({x_tr:.3f}, {y_tr:.3f})\n"

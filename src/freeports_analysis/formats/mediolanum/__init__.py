@@ -34,7 +34,7 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
     body_font="Helvetica",
     y_range=(83, None),
 )
-def pdf_filter(xml_root, page) -> dict:
+def pdf_filter(xml_root) -> dict:
     pass
 
 

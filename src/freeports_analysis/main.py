@@ -23,7 +23,14 @@ from importlib_resources import files
 from freeports_analysis.i18n import _
 from freeports_analysis import data
 from freeports_analysis import download as dw
-from freeports_analysis.consts import PdfFormats, _get_module, Equity, Currency
+from freeports_analysis.consts import (
+    PdfFormats,
+    _get_module,
+    Equity,
+    Currency,
+    STANDARD_LOG_FORMATTER,
+    STANDARD_LOG_FORMATTER_MP,
+)
 from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
@@ -40,7 +47,11 @@ from freeports_analysis.conf_parse import (
 )
 
 
-logger = log.getLogger(__name__)
+logger = log.getLogger(__package__)
+logger.propagate = False
+stderr_log = log.StreamHandler()
+stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
+logger.addHandler(stderr_log)
 
 
 class NoPDFormatDetected(Exception):
@@ -74,9 +85,8 @@ def pipeline_batch(
         pandas dataframe with extracted data
     """
     end_page_batch = i_page_batch + len(batch_pages)
-    logger.debug(
-        _("Starting batch [%i] starting form page %i to %i"),
-        os.getpid(),
+    logger.info(
+        _("Starting batch form page %i to %i"),
         i_page_batch,
         end_page_batch,
     )
@@ -279,8 +289,10 @@ def _main_job(config, n_workers):
 
     results_batches = None
     if n_workers > 1:
+        stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
         with Pool(processes=n_workers) as pool:
             results_batches = pool.starmap(pipeline_batch, batches)
+        stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
     else:
         results_batches = [pipeline_batch(*batches[0])]
     result = pd.concat(results_batches)
@@ -306,8 +318,10 @@ def main(config):
         config_jobs = batch_job_confs(config)
         args = [(c, 1) for c in config_jobs]
         if n_workers > 1:
+            stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
             with Pool(n_workers) as p:
                 results = p.starmap(_main_job, args)
+            stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
         else:
             results = [_main_job(*args[0])]
 

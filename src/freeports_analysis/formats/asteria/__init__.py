@@ -13,7 +13,7 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     body_font="CenturyGothic",
     y_range=(None, 810),
 )
-def pdf_filter(xml_root, page):
+def pdf_filter(xml_root):
     pass
 
 

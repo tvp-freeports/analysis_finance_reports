@@ -38,7 +38,7 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
         ("INVESTMENT FUNDS", "Arial"),
     ],
 )
-def pdf_filter(xml_root, page) -> dict:
+def pdf_filter(xml_root) -> dict:
     pass
 
 
