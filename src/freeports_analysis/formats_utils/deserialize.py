@@ -6,6 +6,7 @@ from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock
 from freeports_analysis.consts import Bond, Equity, Currency
+from freeports_analysis.i18n import _
 from .text_extract import EquityBondTextBlockType
 from . import normalize_word, overwrite_if_implemented, normalize_string
 
@@ -46,7 +47,9 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
         perc = normalize_word(perc)
         if not norm:
             logger.warning(
-                "Found percentage symbol '%' but `norm` is False - forcing normalization"
+                _(
+                    "Found percentage symbol '%' but `norm` is False - forcing normalization"
+                )
             )
         norm = True
 
@@ -54,15 +57,15 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
         f = to_float(perc)
         return f / 100.0 if norm else f
     except ValueError as e:
-        logger.error("Failed to convert percentage string '%f' to float", perc)
-        raise ValueError(f"Could not convert '{perc}' to float") from e
+        logger.error(_("Failed to convert percentage string '%f' to float"), perc)
+        raise ValueError(_("Could not convert '{}' to float").format(perc)) from e
 
 
 def _force_numeric(data: str) -> str:
     reg_num = r"^\d+([\.,]\d+)*$"
     data = normalize_word(data)
     if not re.match(reg_num, data):
-        logger.warning("Trying to cast to number but found %s forcing cast...", data)
+        logger.warning(_("Trying to cast to number but found %s forcing cast..."), data)
         data = re.sub(r"[^a-zA-Z.,0-9]+", "", data)
     return data
 
@@ -138,7 +141,9 @@ def to_int(data: str) -> int:
     if pos_dot != -1:
         mantissa = int(data[pos_dot + 1 :])
         if mantissa != 0:
-            raise ValueError(f"Number {data} has a mantissa different form 0")
+            raise ValueError(
+                _("Number {} has a mantissa different form 0").format(data)
+            )
         data = data[:pos_dot]
     return int(data)
 
@@ -213,7 +218,7 @@ def to_date(data: str) -> date:
             return datetime.strptime(data, fmt).date()
         except ValueError:
             continue
-    raise ValueError(f"Date string '{data}' is not in a recognized format.")
+    raise ValueError(_("Date string '{}' is not in a recognized format.").format(data))
 
 
 def standard_deserialization(
@@ -245,7 +250,9 @@ def standard_deserialization(
             blk: TextBlock, targets: List[str]
         ) -> Bond | Equity:
             raise ValueError(
-                f"Expected bond or equity text blocks, found {blk.type_block.__name__}"
+                _("Expected bond or equity text blocks, found {}").format(
+                    blk.type_block.__name__
+                )
             )
 
         def deserialize(blk: TextBlock, targets: List[str]) -> Bond | Equity:
@@ -262,7 +269,7 @@ def standard_deserialization(
                 Dictionary with keys from mapping and casted values
             """
             if blk is None:
-                logger.error("Something wrong happened, text block is None...")
+                logger.error(_("Something wrong happened, text block is None..."))
             md = blk.metadata
 
             def float_cast(x):
@@ -304,9 +311,13 @@ def standard_deserialization(
                     )
                 return default_other_txt_blk_deserializer(blk, targets)
             except ValueError as e:
-                logger.error("Cast error page %i company %s", md["page"], md["company"])
+                logger.error(
+                    _("Cast error page %i company %s"), md["page"], md["company"]
+                )
                 logger.error(str(e))
-                logger.warning("Skipping page %i company %s", md["page"], md["company"])
+                logger.warning(
+                    _("Skipping page %i company %s"), md["page"], md["company"]
+                )
 
         return deserialize
 
