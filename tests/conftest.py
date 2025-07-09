@@ -1,6 +1,5 @@
 from pathlib import Path
 import shutil
-import os
 from lxml import etree
 from freeports_analysis.main import get_targets
 
