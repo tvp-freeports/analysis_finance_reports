@@ -12,7 +12,10 @@ def generic_test_pdf_filter(fmt, page):
     xml_str = pdf[page].get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=xml_parser)
     module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
-    pdf_blks = module.pdf_filter(xml_tree)
+    pdf_blks = []
+    for r in module.pdf_filter(xml_tree):
+        r.metadata["page"] = page
+        pdf_blks.append(r)
     # with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("wb") as f:
     #     dill.dump(pdf_blks,f)
     reference_pdf_blks = None
