@@ -34,7 +34,7 @@ options = {
 
 
 @standard_pdf_filtering(**options, y_range=(103, 821))
-def _filter_long_pages(xml_root, page_number) -> dict:
+def _filter_long_pages(xml_root) -> dict:
     pass
 
 
@@ -42,15 +42,15 @@ def _filter_long_pages(xml_root, page_number) -> dict:
     **options,
     y_range=(("Holdings", "Helvetica-Bold"), ("Futures contracts", "Helvetica-Bold")),
 )
-def _filter_short_pages(xml_root, page_number) -> dict:
+def _filter_short_pages(xml_root) -> dict:
     pass
 
 
-def pdf_filter(xml_root, page_number) -> List[PdfBlock]:
+def pdf_filter(xml_root) -> List[PdfBlock]:
     if is_present_txt_font(xml_root, "Futures contracts", "Helvetica-Bold"):
-        return _filter_short_pages(xml_root, page_number)
+        return _filter_short_pages(xml_root)
     else:
-        return _filter_long_pages(xml_root, page_number)
+        return _filter_long_pages(xml_root)
 
 
 @standard_text_extraction(

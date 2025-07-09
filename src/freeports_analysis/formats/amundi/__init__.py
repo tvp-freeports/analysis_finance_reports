@@ -1,6 +1,7 @@
 """AMUNDI format submodule"""
 
 from typing import TypeAlias
+from logging import getLogger
 from freeports_analysis.formats_utils.pdf_filter import (
     OnePdfBlockType,
     standard_pdf_filtering,
@@ -16,6 +17,7 @@ from freeports_analysis.formats_utils.pdf_filter.pdf_parts.position import YRang
 from freeports_analysis.formats_utils.pdf_filter.pdf_parts import ExtractedPdfLine
 from freeports_analysis.consts import Currency
 
+logger = getLogger(__name__)
 
 PdfBlockType: TypeAlias = OnePdfBlockType
 
@@ -30,13 +32,13 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
     body_font="ArialNarrow",
     y_range=(None, 768),
 )
-def pdf_filter(xml_root, page_number) -> dict:
+def pdf_filter(xml_root) -> dict:
     """Add currency metadata taking it from ceratin area"""
     lines = get_lines_with_font(xml_root, "ArialNarrow")
     lines = [ExtractedPdfLine(line) for line in lines]
     y_range = YRange(None, 208)
     currency = select_inside(lines, y_range)[0].xml_blk.xpath(".//@text")[0]
-    return {"currency": currency, "page": page_number}
+    return {"currency": currency}
 
 
 @standard_text_extraction(

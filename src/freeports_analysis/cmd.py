@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple
 
 
-from freeports_analysis.consts import PdfFormats
+from freeports_analysis.consts import PdfFormats, STANDARD_LOG_FORMATTER
 from freeports_analysis.i18n import _
 from freeports_analysis.conf_parse import (
     PossibleLocationConfig,
@@ -19,7 +19,11 @@ from freeports_analysis.conf_parse import (
 from freeports_analysis.main import main
 
 
-logger = log.getLogger(__name__)
+logger = log.getLogger()
+stderr_log = log.StreamHandler()
+stderr_log.setLevel(log.DEBUG)
+stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
+logger.addHandler(stderr_log)
 
 
 PROGRAM_DESCRIPTION = _("""Analyze finance reports searching for investing in companies
@@ -155,7 +159,7 @@ def cmd():
     config = DEFAULT_CONFIG
     config_location = DEFAULT_LOCATION_CONFIG
     log_level = (5 - config["VERBOSITY"]) * 10
-    log.basicConfig(level=log_level)
+    logger.setLevel(log_level)
     parser = _create_parser()
     args = _validate_args(parser.parse_args())
     config, config_location = get_config_file(config, config_location)
@@ -165,6 +169,6 @@ def cmd():
     config, config_location = apply_config(config, config_location)
     config, config_location = overwrite_with_args(args, config, config_location)
     log_level = (5 - config["VERBOSITY"]) * 10
-    log.getLogger().setLevel(log_level)
+    logger.setLevel(log_level)
     log_config(logger, config, config_location)
     main(config)

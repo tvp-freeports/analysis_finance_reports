@@ -5,13 +5,27 @@ from typing import Optional, List, Callable
 import logging as log
 from lxml import etree
 from freeports_analysis.consts import FinancialData
+from freeports_analysis.i18n import _
 
 logger = log.getLogger(__name__)
 
 
+class LogFormatterWithPage(log.Formatter):
+    def __init__(self, old_formatter):
+        super().__init__()
+        self._parent_fmt = old_formatter
+        self.page = None
+
+    def format(self, record):
+        string = self._parent_fmt.format(record).replace(":", f"{{pag. {self.page}}}:")
+        return string
+
+
 def _str_blocks(blk) -> str:
-    text = f"{blk.__class__.__name__}:  ({blk.type_block.name} type)\n"
-    text += f"\tmetadata {blk.metadata}\n"
+    type_translated = _("({} type)").format(blk.type_block.name)
+    metadata_translated = _("metadata")
+    text = f"{blk.__class__.__name__}:  {type_translated}\n"
+    text += f"\t{metadata_translated} {blk.metadata}\n"
     text_no_last_nl = blk.content
     if len(blk.content) > 0:
         if blk.content[-1] == "\n":
@@ -169,13 +183,21 @@ def pdf_filter_exec(
     Returns:
         List of PdfBlock objects containing the filtered content.
     """
-
     batch_results = []
+    logger.propagate = False
+    std_err_log = log.StreamHandler()
+    page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
+    std_err_log.setFormatter(page_format_log)
+    logger.addHandler(std_err_log)
+
     for page_number, page in enumerate(batch_pages, start=i_batch_page + 1):
+        page_format_log.page = page_number
         if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
-            logger.debug("Filtering page %i", page_number)
-        result = pdf_filter_func(page, page_number)
-        batch_results.extend(result)
+            logger.info(_("Still filtering..."))
+
+        for r in pdf_filter_func(page):
+            r.metadata["page"] = page_number
+            batch_results.append(r)
     return batch_results
 
 

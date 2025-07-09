@@ -16,7 +16,10 @@ from freeports_analysis.i18n import _
 
 
 logger = log.getLogger(__name__)
-
+STANDARD_LOG_FORMATTER = log.Formatter("%(levelname)s %(name)s: %(message)s")
+STANDARD_LOG_FORMATTER_MP = log.Formatter(
+    "%(levelname)s[%(process)d] %(name)s: %(message)s"
+)
 
 ENV_PREFIX = "AFINANCE_"
 
@@ -252,7 +255,7 @@ class FinancialData(ABC):
         translated_field = _("Quantity")
         string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
         translated_field = _("Additional infos")
-        string += f"\t{translated_field}: \{{"
+        string += f"\t{translated_field}: {{"
         add_string = self._str_additional_infos()
         if add_string != "":
             string += "\n" + add_string + "\t"

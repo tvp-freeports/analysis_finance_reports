@@ -15,7 +15,8 @@ Key components:
 from enum import Enum, auto
 import re
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Optional
+from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
 from freeports_analysis.consts import Currency
 from .match import target_match
@@ -154,19 +155,19 @@ def standard_text_extraction(
 
     def wrapper(f):
         @overwrite_if_implemented(f)
-        def add_metadata(*_: Tuple[List[PdfBlock], int]) -> dict:
+        def add_metadata(blks: List[PdfBlock], i: int) -> dict:
             return {}
 
         @standard_text_extraction_loop(match_func)
         def text_extract(pdf_blocks: List[PdfBlock], i: int) -> TextBlock:
             if nominal_quantity_pos * market_value_pos * perc_net_assets_pos == 0:
-                raise ValueError("All positions must be non-zero")
+                raise ValueError(_("All positions must be non-zero"))
             if (
                 nominal_quantity_pos == market_value_pos
                 or nominal_quantity_pos == perc_net_assets_pos
                 or market_value_pos == perc_net_assets_pos
             ):
-                raise ValueError("All positions should be different")
+                raise ValueError(_("All positions should be different"))
 
             metadata = {}
             try:
