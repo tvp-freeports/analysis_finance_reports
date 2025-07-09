@@ -1,0 +1,83 @@
+# Italian translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-07-09 01:42+0200\n"
+"PO-Revision-Date: 2025-07-09 01:25+0200\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: src/freeports_analysis/cmd.py:42
+msgid ""
+"Analyze finance reports searching for investing in companies\n"
+"allegedly involved interantional law violations by third parties\n"
+msgstr ""
+"Analizza report finanziari cercando investimenti in aziende\n"
+"presumibilmente coinvolte in violazioni del diritto internazionale\n"
+
+#: src/freeports_analysis/cmd.py:58
+msgid "URL of the dir where to find the pdf"
+msgstr "Indirizzo URL della risorsa pdf"
+
+#: src/freeports_analysis/cmd.py:60
+msgid "Name of the file"
+msgstr "Nome del file"
+
+#: src/freeports_analysis/cmd.py:62
+msgid "Activate `BATCH MODE`, path of the batch file"
+msgstr "Attiva `MODALITA' BATCH`, percorso del file batch"
+
+#: src/freeports_analysis/cmd.py:65
+msgid ""
+"# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu "
+"avalaibles"
+msgstr ""
+"# processi paralleli in `MODALITA' BATCH`, se num <=0 e' fissato a # cpu "
+"disponibili"
+
+#: src/freeports_analysis/cmd.py:69
+msgid "PDF format"
+msgstr "Formato PDF"
+
+#: src/freeports_analysis/cmd.py:72
+msgid "Don't save file locally"
+msgstr "Non salvare i file localmente"
+
+#: src/freeports_analysis/cmd.py:75
+msgid "Separate output files"
+msgstr "Separa i file di output"
+
+#: src/freeports_analysis/cmd.py:77
+msgid "Custom configuration file location"
+msgstr "Percorso custom del file di configurazione"
+
+#: src/freeports_analysis/cmd.py:83
+#, python-brace-format
+msgid "Output file cvs (default path: '{}')"
+msgstr "File csv di output (percorso di default '{}')"
+
+#: src/freeports_analysis/cmd.py:87
+#, python-brace-format
+msgid "Increase verbosity (default level: {})"
+msgstr "Aumenta verbosita' (livello di default: {})"
+
+#: src/freeports_analysis/cmd.py:90
+#, python-brace-format
+msgid "Decrease verbosity (default level: {})"
+msgstr "Diminuisci verbosita' (livello di default: {})"
+
+#: src/freeports_analysis/cmd.py:97
+msgid "Cannot increase and decrease verbosity!"
+msgstr "Non puoi aumentare e diminuire la verbosita'!"
+

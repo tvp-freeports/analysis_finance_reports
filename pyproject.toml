@@ -57,7 +57,7 @@ include-package-data = true
 
 
 [tool.setuptools.package-data]
-freeports_analysis = ["data/*"]
+freeports_analysis = ["data/*","locales/*/*/*.mo"]
 
 
 [tool.pytest.ini_options]
