@@ -20,6 +20,7 @@ from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
 from importlib_resources import files
+from freeports_analysis.i18n import _
 from freeports_analysis import data
 from freeports_analysis import download as dw
 from freeports_analysis.consts import PdfFormats, _get_module, Equity, Currency
@@ -74,7 +75,7 @@ def pipeline_batch(
     """
     end_page_batch = i_page_batch + len(batch_pages)
     logger.debug(
-        "Starting batch [%i] starting form page %i to %i",
+        _("Starting batch [%i] starting form page %i to %i"),
         os.getpid(),
         i_page_batch,
         end_page_batch,
@@ -83,19 +84,19 @@ def pipeline_batch(
     xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
     module = _get_module(module_name)
     logger.info(
-        "Extracting relevant blocks of pdf from page %i to %i...",
+        _("Extracting relevant blocks of pdf from page %i to %i..."),
         i_page_batch,
         end_page_batch,
     )
     pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, module.pdf_filter)
     logger.info(
-        "Filtering relevant blocks of text from page %i to %i...",
+        _("Filtering relevant blocks of text from page %i to %i..."),
         i_page_batch,
         end_page_batch,
     )
     filtered_text = text_extract_exec(pdf_blocks, targets, module.text_extract)
     financtial_data = deserialize_exec(filtered_text, targets, module.deserialize)
-    error_msg = "ERROR, SOMETHING WENT WRONG!!!!"
+    error_msg = _("ERROR, SOMETHING WENT WRONG!!!!")
     df = pd.DataFrame(
         [
             fd.to_dict()
@@ -183,7 +184,7 @@ def _get_document(config):
                 if bool(re.search(reg, config["URL"])):
                     detected_format = PdfFormats.__members__[fmt]
                     break
-        log_string = "URL: %s/%s [detected %s format]"
+        log_string = _("URL: %s/%s [detected %s format]")
         logger.debug(log_string, config["URL"], config["PDF"], detected_format.name)
         pdf_file = pypdf.Document(
             stream=dw.download_pdf(
@@ -238,7 +239,7 @@ def _output_file(config, results):
 def _update_format(config, detected_format):
     if detected_format is None and config["FORMAT"] is None:
         raise NoPDFormatDetected(
-            "No format selected and url doesn't match know formats"
+            _("No format selected and url doesn't match know formats")
         )
     if (
         detected_format is not None
@@ -246,27 +247,27 @@ def _update_format(config, detected_format):
         and config["FORMAT"] != detected_format
     ):
         logger.warning(
-            "Detected and selected formats don't match [det=%s sel=%s]",
+            _("Detected and selected formats don't match [det=%s sel=%s]"),
             detected_format.name,
             config["FORMAT"].name,
         )
 
     format_pdf = detected_format if config["FORMAT"] is None else config["FORMAT"]
-    logger.debug("Using %s format", format_pdf.name)
+    logger.debug(_("Using %s format"), format_pdf.name)
     return format_pdf
 
 
 def _main_job(config, n_workers):
     validate_conf(config)
-    logger.debug("Starting job [%i] with configuration %s", os.getpid(), str(config))
+    logger.debug(_("Starting job [%i] with configuration %s"), os.getpid(), str(config))
     pdf_file, format_pdf = _get_document(config)
     format_pdf = _update_format(config, format_pdf)
     prefix_out = config["PREFIX_OUT"]
-    logger.debug("Starting decoding pdf to xml...")
+    logger.debug(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
-    logger.debug("End decoding pdf to xml!")
+    logger.debug(_("End decoding pdf to xml!"))
     targets = get_targets()
-    logger.debug("First 5 targets: %s", str(targets[: min(5, len(targets))]))
+    logger.debug(_("First 5 targets: %s"), str(targets[: min(5, len(targets))]))
     n_pages = len(pdf_file_xml)
     batch_size = (n_pages + n_workers - 1) // n_workers
     batches = []
