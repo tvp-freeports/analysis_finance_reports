@@ -47,7 +47,7 @@ class LogFormatterWithPage(log.Formatter):
         return string
 
 
-def _str_blocks(blk: PdfBlock | TextBlock) -> str:
+def _str_blocks(blk) -> str:
     """Basic function to format both PdfBlock and TextBlock
     for string rappresentation
 
