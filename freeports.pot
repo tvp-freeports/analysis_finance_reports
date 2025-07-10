@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-07-10 16:21+0200\n"
+"POT-Creation-Date: 2025-07-10 19:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -115,95 +115,97 @@ msgstr ""
 msgid "Verbosity must be between 0 and 5, resulting is {}"
 msgstr ""
 
-#: src/freeports_analysis/conf_parse.py:339
-msgid ""
-"You have to specify at least one input option: the url or the resource, "
-"the pdf file path or both"
+#: src/freeports_analysis/conf_parse.py:338
+msgid "You have to specify at least one input option: "
 msgstr ""
 
-#: src/freeports_analysis/conf_parse.py:343
+#: src/freeports_analysis/conf_parse.py:339
+msgid "the url or the resource, the pdf file path or both"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:345
 #, python-brace-format
 msgid "Out path is not valid because directory '{}' doesn't exists"
 msgstr ""
 
-#: src/freeports_analysis/conf_parse.py:350
+#: src/freeports_analysis/conf_parse.py:352
 #, python-brace-format
 msgid "Batch '{}' has to be existent file"
 msgstr ""
 
-#: src/freeports_analysis/conf_parse.py:354
+#: src/freeports_analysis/conf_parse.py:356
 msgid "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
 msgstr ""
 
-#: src/freeports_analysis/conf_parse.py:355
+#: src/freeports_analysis/conf_parse.py:357
 #, python-brace-format
 msgid " if `SEPARATE_OUT_FILES` not set to '{}'"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:143
+#: src/freeports_analysis/consts.py:142
 #, python-brace-format
 msgid "perc_net_assets must be between 0 and 1, not {}"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:149
+#: src/freeports_analysis/consts.py:148
 #, python-brace-format
 msgid "page should be a positive number, not {}"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:153
+#: src/freeports_analysis/consts.py:152
 #, python-brace-format
 msgid "company should be between targets, not {}"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:239
+#: src/freeports_analysis/consts.py:238
 msgid "Acquisition cost"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:245
+#: src/freeports_analysis/consts.py:244
 msgid "Type match"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:247
+#: src/freeports_analysis/consts.py:246
 msgid "Subfund"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:249
+#: src/freeports_analysis/consts.py:248
 msgid "Company"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:251
+#: src/freeports_analysis/consts.py:250
 msgid "Currency"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:253
+#: src/freeports_analysis/consts.py:252
 msgid "Market value"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:255
+#: src/freeports_analysis/consts.py:254
 msgid "of net assets"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:257
+#: src/freeports_analysis/consts.py:256
 msgid "Quantity"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:259
+#: src/freeports_analysis/consts.py:258
 msgid "Additional infos"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:369
+#: src/freeports_analysis/consts.py:368
 msgid "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:412
+#: src/freeports_analysis/consts.py:411
 msgid "Maturity"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:413
+#: src/freeports_analysis/consts.py:412
 msgid "Interest rate"
 msgstr ""
 
-#: src/freeports_analysis/consts.py:437
+#: src/freeports_analysis/consts.py:436
 #, python-brace-format
 msgid "Module {} ({}) not found"
 msgstr ""
@@ -232,9 +234,14 @@ msgstr ""
 msgid "ERROR, SOMETHING WENT WRONG!!!!"
 msgstr ""
 
+#: src/freeports_analysis/main.py:188
+#, python-format
+msgid "Local PDF file used %s"
+msgstr ""
+
 #: src/freeports_analysis/main.py:196
 #, python-format
-msgid "URL: %s/%s [detected %s format]"
+msgid "Remote URL %s/%s used [detected %s format]"
 msgstr ""
 
 #: src/freeports_analysis/main.py:253
@@ -253,7 +260,7 @@ msgstr ""
 
 #: src/freeports_analysis/main.py:273
 #, python-format
-msgid "Starting job [%i] with configuration %s"
+msgid "Starting job with configuration %s"
 msgstr ""
 
 #: src/freeports_analysis/main.py:277
@@ -282,23 +289,18 @@ msgstr ""
 msgid "Still filtering..."
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:50
+#: src/freeports_analysis/formats_utils/deserialize.py:52
 msgid "Found percentage symbol '%' but `norm` is False - forcing normalization"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:58
-#, python-format
-msgid "Failed to convert percentage string '%f' to float"
-msgstr ""
-
 #: src/freeports_analysis/formats_utils/deserialize.py:60
-#, python-brace-format
-msgid "Could not convert '{}' to float"
+#, python-format
+msgid "Failed to convert percentage string '%s' to float"
 msgstr ""
 
 #: src/freeports_analysis/formats_utils/deserialize.py:68
 #, python-format
-msgid "Trying to cast to number but found %s forcing cast..."
+msgid "Trying to cast to number but found '%s' - forcing cast"
 msgstr ""
 
 #: src/freeports_analysis/formats_utils/deserialize.py:145
@@ -306,32 +308,31 @@ msgstr ""
 msgid "Number {} has a mantissa different form 0"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:221
+#: src/freeports_analysis/formats_utils/deserialize.py:222
 #, python-brace-format
 msgid "Date string '{}' is not in a recognized format."
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:254
+#: src/freeports_analysis/formats_utils/deserialize.py:252
 #, python-brace-format
 msgid "Expected bond or equity text blocks, found {}"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:273
+#: src/freeports_analysis/formats_utils/deserialize.py:274
 msgid "Something wrong happened, text block is None..."
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:315
+#: src/freeports_analysis/formats_utils/deserialize.py:316
 #, python-format
-msgid "Cast error page %i company %s"
+msgid "Cast error in company %s"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/deserialize.py:317
-#, python-format
-msgid "Skipping page %i company %s"
+#: src/freeports_analysis/formats_utils/deserialize.py:318
+msgid "Skipping page"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:104
-msgid "subfound block on top of page not found"
+#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:98
+msgid "subfund block on top of page not found"
 msgstr ""
 
 #: src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:113

@@ -29,7 +29,6 @@ YAML_DATA = None
 with files(data).joinpath("format_url_mapping.yaml").open("r") as f:
     YAML_DATA = yaml.safe_load(f)
 
-logger.debug(YAML_DATA)
 PdfFormats = Enum(
     "PdfFormats", {k: v if v is not None else [] for k, v in YAML_DATA.items()}
 )

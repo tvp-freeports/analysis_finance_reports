@@ -7,17 +7,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-07-10 16:21+0200\n"
-"PO-Revision-Date: 2025-07-10 16:23+0200\n"
+"POT-Creation-Date: 2025-07-10 19:39+0200\n"
+"PO-Revision-Date: 2025-07-10 19:16+0200\n"
 "Last-Translator: \n"
-"Language-Team: it <LL@li.org>\n"
 "Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.17.0\n"
-"X-Generator: Poedit 3.6\n"
 
 #: src/freeports_analysis/cmd.py:33
 msgid ""
@@ -41,9 +40,10 @@ msgstr "Attiva `MODALITA' BATCH`, percorso del file batch"
 
 #: src/freeports_analysis/cmd.py:56
 msgid ""
-"# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu avalaibles"
+"# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu "
+"avalaibles"
 msgstr ""
-"# processi paralleli in `MODALITA' BATCH`, se num <=0 e' fissato a # cpu "
+"# processi paralleli in `MODALITA' BATCH`, se num <=0 è fissato a # cpu "
 "disponibili"
 
 #: src/freeports_analysis/cmd.py:60
@@ -70,45 +70,51 @@ msgstr "File csv di output (percorso di default '{}')"
 #: src/freeports_analysis/cmd.py:78
 #, python-brace-format
 msgid "Increase verbosity (default level: {})"
-msgstr "Aumenta verbosita' (livello di default: {})"
+msgstr "Aumenta verbosità (livello di default: {})"
 
 #: src/freeports_analysis/cmd.py:81
 #, python-brace-format
 msgid "Decrease verbosity (default level: {})"
-msgstr "Diminuisci verbosita' (livello di default: {})"
+msgstr "Diminuisci verbosità (livello di default: {})"
 
 #: src/freeports_analysis/cmd.py:88
 msgid "Cannot increase and decrease verbosity!"
-msgstr "Non puoi aumentare e diminuire la verbosita'!"
+msgstr "Non puoi aumentare e diminuire la verbosità!"
 
 #: src/freeports_analysis/conf_parse.py:61
 #, python-format
 msgid "Searching `xdg`/`Windows` compliant conf file: '%s'"
 msgstr ""
+"Cerco il file di configurazione in una posizione standard "
+"`xdg`/`Windows`: '%s'"
 
 #: src/freeports_analysis/conf_parse.py:89
 #, python-format
 msgid "Found local conf file: '%s'"
-msgstr ""
+msgstr "Trovato file di configurazione locale: '%s'"
 
 #: src/freeports_analysis/conf_parse.py:94
 #, python-format
 msgid "Found `xdg`/`Windows` compliant conf file: '%s'"
 msgstr ""
+"Trovato file di configurazione in un percorso standard `xdg`/`Windows`: "
+"'%s'"
 
 #: src/freeports_analysis/conf_parse.py:99
 #, python-format
 msgid "Found system wise conf file: '%s'"
-msgstr ""
+msgstr "Trovata un file di configurazione di sistema: '%s'"
 
 #: src/freeports_analysis/conf_parse.py:104
 msgid "Configuration not found in default location, `CONFIG_FILE` set to `None`"
 msgstr ""
+"File di configurazione non trovato nei percorsi default, `CONFIG_FILE` e'"
+" fissato a `None`"
 
 #: src/freeports_analysis/conf_parse.py:153
 #, python-brace-format
 msgid "'{}' is not castable to `True` {} nor `False` {}"
-msgstr ""
+msgstr "'{}' non è convertibile ne a `True` {} che a `False` {}"
 
 #: src/freeports_analysis/conf_parse.py:206
 #, python-format
@@ -118,235 +124,247 @@ msgstr "Configurazione risultante: %s"
 #: src/freeports_analysis/conf_parse.py:333
 #, python-brace-format
 msgid "Verbosity must be between 0 and 5, resulting is {}"
-msgstr "La verbosita' deve essere tra 0 e 5, invece risulta uguale a {}"
+msgstr "La verbosità deve essere tra 0 e 5, invece risulta uguale a {}"
+
+#: src/freeports_analysis/conf_parse.py:338
+msgid "You have to specify at least one input option: "
+msgstr "Devi specificare almeno una opzione in input:"
 
 #: src/freeports_analysis/conf_parse.py:339
-msgid ""
-"You have to specify at least one input option: the url or the resource, the "
-"pdf file path or both"
-msgstr ""
+msgid "the url or the resource, the pdf file path or both"
+msgstr "l'url della risorsa, il file pdf o entrambi"
 
-#: src/freeports_analysis/conf_parse.py:343
+#: src/freeports_analysis/conf_parse.py:345
 #, python-brace-format
 msgid "Out path is not valid because directory '{}' doesn't exists"
-msgstr ""
+msgstr "Il percorso di output non è valido perché la cartella '{}' non esiste"
 
-#: src/freeports_analysis/conf_parse.py:350
+#: src/freeports_analysis/conf_parse.py:352
 #, python-brace-format
 msgid "Batch '{}' has to be existent file"
-msgstr ""
+msgstr "Il batch '{}' deve essere un file esistente"
 
-#: src/freeports_analysis/conf_parse.py:354
+#: src/freeports_analysis/conf_parse.py:356
 msgid "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
 msgstr ""
+"Il file in output in `MODALITA' BATCH` deve essere una cartella o un file"
+" `.tar.gz`"
 
-#: src/freeports_analysis/conf_parse.py:355
+#: src/freeports_analysis/conf_parse.py:357
 #, python-brace-format
 msgid " if `SEPARATE_OUT_FILES` not set to '{}'"
-msgstr ""
+msgstr "se `SEPARATE_OUT_FILES` è vero, non fissato a  '{}'"
 
-#: src/freeports_analysis/consts.py:143
+#: src/freeports_analysis/consts.py:142
 #, python-brace-format
 msgid "perc_net_assets must be between 0 and 1, not {}"
-msgstr ""
+msgstr "perc_net_assets deve essere tra 0 e 1, non {}"
 
-#: src/freeports_analysis/consts.py:149
+#: src/freeports_analysis/consts.py:148
 #, python-brace-format
 msgid "page should be a positive number, not {}"
 msgstr "la pagina deve essere un numero positivo, non {}"
 
-#: src/freeports_analysis/consts.py:153
+#: src/freeports_analysis/consts.py:152
 #, python-brace-format
 msgid "company should be between targets, not {}"
-msgstr ""
+msgstr "la compagnia deve essere tra i targets, non {}"
 
-#: src/freeports_analysis/consts.py:239
+#: src/freeports_analysis/consts.py:238
 msgid "Acquisition cost"
-msgstr ""
+msgstr "Costo di acquisizione"
 
-#: src/freeports_analysis/consts.py:245
+#: src/freeports_analysis/consts.py:244
 msgid "Type match"
-msgstr ""
+msgstr "Tipo di corrispondenza"
 
-#: src/freeports_analysis/consts.py:247
+#: src/freeports_analysis/consts.py:246
 msgid "Subfund"
-msgstr ""
+msgstr "Sottofondo"
 
-#: src/freeports_analysis/consts.py:249
+#: src/freeports_analysis/consts.py:248
 msgid "Company"
-msgstr ""
+msgstr "Compagnia"
 
-#: src/freeports_analysis/consts.py:251
+#: src/freeports_analysis/consts.py:250
 msgid "Currency"
-msgstr ""
+msgstr "Valuta"
 
-#: src/freeports_analysis/consts.py:253
+#: src/freeports_analysis/consts.py:252
 msgid "Market value"
-msgstr ""
+msgstr "Valore di mercato"
 
-#: src/freeports_analysis/consts.py:255
+#: src/freeports_analysis/consts.py:254
 msgid "of net assets"
-msgstr ""
+msgstr "del patrimonio netto"
 
-#: src/freeports_analysis/consts.py:257
+#: src/freeports_analysis/consts.py:256
 msgid "Quantity"
-msgstr ""
+msgstr "Quantità"
 
-#: src/freeports_analysis/consts.py:259
+#: src/freeports_analysis/consts.py:258
 msgid "Additional infos"
-msgstr ""
+msgstr "Informazioni aggiuntive"
 
-#: src/freeports_analysis/consts.py:369
+#: src/freeports_analysis/consts.py:368
 msgid "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
-msgstr ""
+msgstr "Il tasso di interesse non è tra 0 e 1, forse andrebbe normalizzato?"
+
+#: src/freeports_analysis/consts.py:411
+msgid "Maturity"
+msgstr "Scadenza"
 
 #: src/freeports_analysis/consts.py:412
-msgid "Maturity"
-msgstr ""
-
-#: src/freeports_analysis/consts.py:413
 msgid "Interest rate"
-msgstr ""
+msgstr "Tasso di interesse"
 
-#: src/freeports_analysis/consts.py:437
+#: src/freeports_analysis/consts.py:436
 #, python-brace-format
 msgid "Module {} ({}) not found"
-msgstr ""
+msgstr "Modulo {} ({}) non è stato trovato"
 
 #: src/freeports_analysis/download.py:42
 #, python-format
 msgid "File %s saved on disk [in %s]"
-msgstr ""
+msgstr "File %s salvato sul disco [in %s]"
 
 #: src/freeports_analysis/main.py:88
 #, python-format
 msgid "Starting batch form page %i to %i"
-msgstr ""
+msgstr "Inizio batch da pagina %i a %i"
 
 #: src/freeports_analysis/main.py:96
 #, python-format
 msgid "Extracting relevant blocks of pdf from page %i to %i..."
-msgstr ""
+msgstr "Sto estraendo i blocchi del pdf rilevanti dalla pagina %i alla %i..."
 
 #: src/freeports_analysis/main.py:102
 #, python-format
 msgid "Filtering relevant blocks of text from page %i to %i..."
-msgstr ""
+msgstr "Sto esrtaendo i blocchi di testo dalla pagina %i alla %i..."
 
 #: src/freeports_analysis/main.py:108
 msgid "ERROR, SOMETHING WENT WRONG!!!!"
-msgstr ""
+msgstr "ERRORE, QUALCOSA E' ANDATO STORTO!!!!"
+
+#: src/freeports_analysis/main.py:188
+#, fuzzy, python-format
+msgid "Local PDF file used %s"
+msgstr "Utilizzato file PDF locale %s"
 
 #: src/freeports_analysis/main.py:196
 #, python-format
-msgid "URL: %s/%s [detected %s format]"
-msgstr ""
+msgid "Remote URL %s/%s used [detected %s format]"
+msgstr "Utilizzato URL remoto %s/%s [rilevato formato %s]"
 
 #: src/freeports_analysis/main.py:253
 msgid "No format selected and url doesn't match know formats"
 msgstr ""
+"Nessun formato è selezionato e l'indirizzo url non corrisponde a nessun "
+"formato conosciuto"
 
 #: src/freeports_analysis/main.py:261
 #, python-format
 msgid "Detected and selected formats don't match [det=%s sel=%s]"
-msgstr ""
+msgstr "Formato rilevato e formato selezionato non corrispondono [det=%s sel=%s]"
 
 #: src/freeports_analysis/main.py:267
 #, python-format
 msgid "Using %s format"
-msgstr ""
+msgstr "Uso il formato %s"
 
 #: src/freeports_analysis/main.py:273
 #, python-format
-msgid "Starting job [%i] with configuration %s"
-msgstr ""
+msgid "Starting job with configuration %s"
+msgstr "Inizio del task con configurazione %s"
 
 #: src/freeports_analysis/main.py:277
 msgid "Starting decoding pdf to xml..."
-msgstr ""
+msgstr "Inizio della decodifica da pdf a xml"
 
 #: src/freeports_analysis/main.py:279
 msgid "End decoding pdf to xml!"
-msgstr ""
+msgstr "Fine della decodifica da pdf a xml!"
 
 #: src/freeports_analysis/main.py:281
 #, python-format
 msgid "First 5 targets: %s"
-msgstr ""
+msgstr "Primi 5 targets: %s"
 
 #: src/freeports_analysis/formats/__init__.py:65
 #, python-brace-format
 msgid "({} type)"
-msgstr ""
+msgstr "(tipo {})"
 
 #: src/freeports_analysis/formats/__init__.py:66
 msgid "metadata"
-msgstr ""
+msgstr "metadata"
 
 #: src/freeports_analysis/formats/__init__.py:285
 msgid "Still filtering..."
-msgstr ""
+msgstr "Sto ancora filtrando..."
 
-#: src/freeports_analysis/formats_utils/deserialize.py:50
+#: src/freeports_analysis/formats_utils/deserialize.py:52
 msgid "Found percentage symbol '%' but `norm` is False - forcing normalization"
 msgstr ""
-
-#: src/freeports_analysis/formats_utils/deserialize.py:58
-#, python-format
-msgid "Failed to convert percentage string '%f' to float"
-msgstr ""
+"Ho trovato il simbolo della percentuale '%' ma `norm` è fissato a Falso -"
+" forzo la normalizzazione"
 
 #: src/freeports_analysis/formats_utils/deserialize.py:60
-#, python-brace-format
-msgid "Could not convert '{}' to float"
+#, python-format
+msgid "Failed to convert percentage string '%s' to float"
 msgstr ""
+"Ho fallito a convertire la percentuale come testo '%s' a numero a virgola"
+" mobile"
 
 #: src/freeports_analysis/formats_utils/deserialize.py:68
 #, python-format
-msgid "Trying to cast to number but found %s forcing cast..."
+msgid "Trying to cast to number but found '%s' - forcing cast"
 msgstr ""
+"Sto trovando a convertire a numero, ma ho trovato '%s' - forzo la "
+"conversione"
 
 #: src/freeports_analysis/formats_utils/deserialize.py:145
 #, python-brace-format
 msgid "Number {} has a mantissa different form 0"
-msgstr ""
+msgstr "Il numero {} ha una mantissa diversa da 0"
 
-#: src/freeports_analysis/formats_utils/deserialize.py:221
+#: src/freeports_analysis/formats_utils/deserialize.py:222
 #, python-brace-format
 msgid "Date string '{}' is not in a recognized format."
-msgstr ""
+msgstr "La data in formato testuale '{}' non è riconosciuta."
 
-#: src/freeports_analysis/formats_utils/deserialize.py:254
+#: src/freeports_analysis/formats_utils/deserialize.py:252
 #, python-brace-format
 msgid "Expected bond or equity text blocks, found {}"
-msgstr ""
+msgstr "Aspettati blocchi testuali di obbligazione o azione, trovato {}"
 
-#: src/freeports_analysis/formats_utils/deserialize.py:273
+#: src/freeports_analysis/formats_utils/deserialize.py:274
 msgid "Something wrong happened, text block is None..."
-msgstr ""
+msgstr "Qualcosa è andato storto, il blocco di testo è vuoto..."
 
-#: src/freeports_analysis/formats_utils/deserialize.py:315
+#: src/freeports_analysis/formats_utils/deserialize.py:316
 #, python-format
-msgid "Cast error page %i company %s"
-msgstr ""
+msgid "Cast error in company %s"
+msgstr "Errore di conversione per la compagnia %s"
 
-#: src/freeports_analysis/formats_utils/deserialize.py:317
-#, python-format
-msgid "Skipping page %i company %s"
-msgstr ""
+#: src/freeports_analysis/formats_utils/deserialize.py:318
+msgid "Skipping page"
+msgstr "Pagina saltata"
 
-#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:104
-msgid "subfound block on top of page not found"
-msgstr ""
+#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:98
+msgid "subfund block on top of page not found"
+msgstr "blocco del sottofondo a inizio pagina non trovato"
 
 #: src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:113
 msgid "Line PDF - Font"
-msgstr ""
+msgstr "Linea PDF - Font"
 
 #: src/freeports_analysis/formats_utils/text_extract/__init__.py:172
 msgid "All positions must be non-zero"
-msgstr ""
+msgstr "Tutte le posizioni devono essere diverse da zero"
 
 #: src/freeports_analysis/formats_utils/text_extract/__init__.py:178
 msgid "All positions should be different"
-msgstr ""
+msgstr "Tutte le posizioni devono essere diverse tra loro"
+

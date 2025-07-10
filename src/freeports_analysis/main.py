@@ -186,7 +186,7 @@ def get_targets() -> List[str]:
 def _get_document(config):
     detected_format = None
     if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
-        logger.debug("PDF: %s", config["PDF"])
+        logger.debug(_("Local PDF file used %s"), config["PDF"])
         pdf_file = pypdf.Document(config["PDF"])
     else:
         for fmt in PdfFormats.__members__:
@@ -194,7 +194,7 @@ def _get_document(config):
                 if bool(re.search(reg, config["URL"])):
                     detected_format = PdfFormats.__members__[fmt]
                     break
-        log_string = _("URL: %s/%s [detected %s format]")
+        log_string = _("Remote URL %s/%s used [detected %s format]")
         logger.debug(log_string, config["URL"], config["PDF"], detected_format.name)
         pdf_file = pypdf.Document(
             stream=dw.download_pdf(
@@ -269,7 +269,7 @@ def _update_format(config, detected_format):
 
 def _main_job(config, n_workers):
     validate_conf(config)
-    logger.debug(_("Starting job [%i] with configuration %s"), os.getpid(), str(config))
+    logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file, format_pdf = _get_document(config)
     format_pdf = _update_format(config, format_pdf)
     prefix_out = config["PREFIX_OUT"]
