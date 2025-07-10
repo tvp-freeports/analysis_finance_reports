@@ -8,12 +8,14 @@ from typing import Callable, TypeVar, ParamSpec
 def normalize_string(string: str, lower: bool = True) -> str:
     """Normalize a string by:
     1. Stripping leading/trailing whitespace
-    2. Converting to lowercase
+    2. Converting to lowercase if `lower`
     3. Collapsing multiple whitespaces into single spaces
+
     Parameters
     ----------
     string : str
         Input string to normalize
+
     Returns
     -------
     str
@@ -30,10 +32,12 @@ def normalize_word(word: str, lower: bool = False) -> str:
     """Normalize a word by:
     1. Stripping leading/trailing whitespace
     2. Removing all whitespace between characters
+
     Parameters
     ----------
     word : str
         Input word to normalize
+
     Returns
     -------
     str

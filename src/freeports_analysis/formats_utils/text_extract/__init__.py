@@ -126,27 +126,33 @@ def standard_text_extraction(
     acquisition_cost_pos: Optional[int] = None,
     match_func=target_match,
 ):
-    """Decorator for defining standard text extraction
-    logic from PDF blocks based on target matches.
+    """Decorator for defining standard text extraction logic
+    from PDF blocks based on target matches.
 
     Parameters
     ----------
-    extract_positions : dict
-        Dictionary specifying metadata keys and
-        their relative positions (offsets) from matched blocks
+    nominal_quantity_pos : int
+        Relative position for nominal quantity metadata
+    market_value_pos : int
+        Relative position for market value metadata
+    perc_net_assets_pos : int
+        Relative position for percentage of net assets metadata
+    currency : Optional[Union[int, Currency]], optional
+        Either relative position for currency metadata or Currency enum value, by default None
+    acquisition_cost_pos : Optional[int], optional
+        Relative position for acquisition cost metadata, by default None
     match_func : callable, optional
-        Matching function to compare text against targets (default: target_match)
+        Matching function to compare text against targets, by default target_match
 
     Returns
     -------
     callable
-        A wrapped text extraction function that processes
-        PDF blocks and returns matched TextBlock objects
-
+        A wrapped text extraction function that processes PDF blocks
+        and returns matched TextBlock objects
     Notes
     -----
-    The decorated function can optionally be specified
-    with the purpose of including additional metadata.
+    The decorated function can optionally be specified with
+    the purpose of including additional metadata.
     The extraction process:
     1. Normalizes and matches text against targets using the specified match_func
     2. Extracts metadata from surrounding blocks based on extract_positions
