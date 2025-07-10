@@ -14,9 +14,9 @@ from .select_font import deselect_txt_font
 from .xml.position import get_bounds
 from .. import overwrite_if_implemented
 
-UpdateMetadataFunc: TypeAlias = Callable[[etree.Element, int], dict]
+UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 FilterCondition: TypeAlias = Callable[[etree.Element], bool]
-PdfFilterFunc: TypeAlias = Callable[[etree.Element, int], List[TextBlock]]
+PdfFilterFunc: TypeAlias = Callable[[etree.Element], List[TextBlock]]
 
 
 class OnePdfBlockType(Enum):
