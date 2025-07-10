@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-07-09 01:42+0200\n"
+"POT-Creation-Date: 2025-07-10 16:21+0200\n"
 "PO-Revision-Date: 2025-07-09 01:25+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -18,62 +18,332 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: src/freeports_analysis/cmd.py:42
+#: src/freeports_analysis/cmd.py:33
 msgid ""
 "Analyze finance reports searching for investing in companies\n"
 "allegedly involved interantional law violations by third parties\n"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:58
+#: src/freeports_analysis/cmd.py:49
 msgid "URL of the dir where to find the pdf"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:60
+#: src/freeports_analysis/cmd.py:51
 msgid "Name of the file"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:62
+#: src/freeports_analysis/cmd.py:53
 msgid "Activate `BATCH MODE`, path of the batch file"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:65
+#: src/freeports_analysis/cmd.py:56
 msgid ""
 "# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu "
 "avalaibles"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:69
+#: src/freeports_analysis/cmd.py:60
 msgid "PDF format"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:72
+#: src/freeports_analysis/cmd.py:63
 msgid "Don't save file locally"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:75
+#: src/freeports_analysis/cmd.py:66
 msgid "Separate output files"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:77
+#: src/freeports_analysis/cmd.py:68
 msgid "Custom configuration file location"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:83
+#: src/freeports_analysis/cmd.py:74
 #, python-brace-format
 msgid "Output file cvs (default path: '{}')"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:87
+#: src/freeports_analysis/cmd.py:78
 #, python-brace-format
 msgid "Increase verbosity (default level: {})"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:90
+#: src/freeports_analysis/cmd.py:81
 #, python-brace-format
 msgid "Decrease verbosity (default level: {})"
 msgstr ""
 
-#: src/freeports_analysis/cmd.py:97
+#: src/freeports_analysis/cmd.py:88
 msgid "Cannot increase and decrease verbosity!"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:61
+#, python-format
+msgid "Searching `xdg`/`Windows` compliant conf file: '%s'"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:89
+#, python-format
+msgid "Found local conf file: '%s'"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:94
+#, python-format
+msgid "Found `xdg`/`Windows` compliant conf file: '%s'"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:99
+#, python-format
+msgid "Found system wise conf file: '%s'"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:104
+msgid "Configuration not found in default location, `CONFIG_FILE` set to `None`"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:153
+#, python-brace-format
+msgid "'{}' is not castable to `True` {} nor `False` {}"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:206
+#, python-format
+msgid "Resulting config: %s"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:333
+#, python-brace-format
+msgid "Verbosity must be between 0 and 5, resulting is {}"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:339
+msgid ""
+"You have to specify at least one input option: the url or the resource, "
+"the pdf file path or both"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:343
+#, python-brace-format
+msgid "Out path is not valid because directory '{}' doesn't exists"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:350
+#, python-brace-format
+msgid "Batch '{}' has to be existent file"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:354
+msgid "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
+msgstr ""
+
+#: src/freeports_analysis/conf_parse.py:355
+#, python-brace-format
+msgid " if `SEPARATE_OUT_FILES` not set to '{}'"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:143
+#, python-brace-format
+msgid "perc_net_assets must be between 0 and 1, not {}"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:149
+#, python-brace-format
+msgid "page should be a positive number, not {}"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:153
+#, python-brace-format
+msgid "company should be between targets, not {}"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:239
+msgid "Acquisition cost"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:245
+msgid "Type match"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:247
+msgid "Subfund"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:249
+msgid "Company"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:251
+msgid "Currency"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:253
+msgid "Market value"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:255
+msgid "of net assets"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:257
+msgid "Quantity"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:259
+msgid "Additional infos"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:369
+msgid "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:412
+msgid "Maturity"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:413
+msgid "Interest rate"
+msgstr ""
+
+#: src/freeports_analysis/consts.py:437
+#, python-brace-format
+msgid "Module {} ({}) not found"
+msgstr ""
+
+#: src/freeports_analysis/download.py:42
+#, python-format
+msgid "File %s saved on disk [in %s]"
+msgstr ""
+
+#: src/freeports_analysis/main.py:88
+#, python-format
+msgid "Starting batch form page %i to %i"
+msgstr ""
+
+#: src/freeports_analysis/main.py:96
+#, python-format
+msgid "Extracting relevant blocks of pdf from page %i to %i..."
+msgstr ""
+
+#: src/freeports_analysis/main.py:102
+#, python-format
+msgid "Filtering relevant blocks of text from page %i to %i..."
+msgstr ""
+
+#: src/freeports_analysis/main.py:108
+msgid "ERROR, SOMETHING WENT WRONG!!!!"
+msgstr ""
+
+#: src/freeports_analysis/main.py:196
+#, python-format
+msgid "URL: %s/%s [detected %s format]"
+msgstr ""
+
+#: src/freeports_analysis/main.py:253
+msgid "No format selected and url doesn't match know formats"
+msgstr ""
+
+#: src/freeports_analysis/main.py:261
+#, python-format
+msgid "Detected and selected formats don't match [det=%s sel=%s]"
+msgstr ""
+
+#: src/freeports_analysis/main.py:267
+#, python-format
+msgid "Using %s format"
+msgstr ""
+
+#: src/freeports_analysis/main.py:273
+#, python-format
+msgid "Starting job [%i] with configuration %s"
+msgstr ""
+
+#: src/freeports_analysis/main.py:277
+msgid "Starting decoding pdf to xml..."
+msgstr ""
+
+#: src/freeports_analysis/main.py:279
+msgid "End decoding pdf to xml!"
+msgstr ""
+
+#: src/freeports_analysis/main.py:281
+#, python-format
+msgid "First 5 targets: %s"
+msgstr ""
+
+#: src/freeports_analysis/formats/__init__.py:65
+#, python-brace-format
+msgid "({} type)"
+msgstr ""
+
+#: src/freeports_analysis/formats/__init__.py:66
+msgid "metadata"
+msgstr ""
+
+#: src/freeports_analysis/formats/__init__.py:285
+msgid "Still filtering..."
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:50
+msgid "Found percentage symbol '%' but `norm` is False - forcing normalization"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:58
+#, python-format
+msgid "Failed to convert percentage string '%f' to float"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:60
+#, python-brace-format
+msgid "Could not convert '{}' to float"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:68
+#, python-format
+msgid "Trying to cast to number but found %s forcing cast..."
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:145
+#, python-brace-format
+msgid "Number {} has a mantissa different form 0"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:221
+#, python-brace-format
+msgid "Date string '{}' is not in a recognized format."
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:254
+#, python-brace-format
+msgid "Expected bond or equity text blocks, found {}"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:273
+msgid "Something wrong happened, text block is None..."
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:315
+#, python-format
+msgid "Cast error page %i company %s"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/deserialize.py:317
+#, python-format
+msgid "Skipping page %i company %s"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:104
+msgid "subfound block on top of page not found"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:113
+msgid "Line PDF - Font"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/text_extract/__init__.py:172
+msgid "All positions must be non-zero"
+msgstr ""
+
+#: src/freeports_analysis/formats_utils/text_extract/__init__.py:178
+msgid "All positions should be different"
 msgstr ""
 
