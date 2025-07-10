@@ -13,9 +13,10 @@ def create_plk_one_page(
     print_pdf_blks=False,
 ):
     page = get_page("report.pdf", page_n)
-    blks = pdf_filter_func(page, page_n)
-    if print_pdf_blks:
-        for blk in blks:
+    blks = pdf_filter_func(page)
+    for blk in blks:
+        blk.metadata["page"] = page_n
+        if print_pdf_blks:
             print(blk)
     else:
         print(f"Saved {len(blks)} pdf blocks...")
