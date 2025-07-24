@@ -89,6 +89,7 @@ def standard_text_extraction_loop(match_func=target_match):
                             pdf_blocks[i].content = content
                             pdf_blocks.pop(i + 1)
                         txt_blk = f(pdf_blocks, i)
+                        txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
                         break
@@ -187,6 +188,7 @@ def standard_text_extraction(
                     metadata["currency"] = pdf_blocks[i + currency].content
                 elif isinstance(currency, Currency):
                     metadata["currency"] = currency.name
+                metadata["acquisition currency"] = metadata["currency"]
 
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[

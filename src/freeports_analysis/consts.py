@@ -145,10 +145,6 @@ class Promise:
         return f'{self.__class__.__name__}("{self.id}")'
 
 
-class CompanyPromise(Promise):
-    """Promise for resolving company names in financial data."""
-
-
 class SubfundPromise(Promise):
     """Promise for resolving subfund names in financial data."""
 
@@ -171,6 +167,10 @@ class PercNetAssetsPromise(Promise):
 
 class AcquisitionCostPromise(Promise):
     """Promise for resolving acquisition cost values."""
+
+
+class AcquisitionCurrencyPromise(Promise):
+    """Promise for resolving acquisition currency."""
 
 
 class MaturityPromise(Promise):
@@ -264,8 +264,10 @@ class FinancialData(ABC):
         The page number where the financial data appears (must be positive).
     targets: List[str]
         The list of companies to search for, used as company validation
-    company : str | CompanyPromise
-        The name of the company or issuer.
+    company : str
+        The identifier of the company or issuer.
+    company_match : str
+        The complete name of the company or issuer as it is in the report.
     market_value : float | MarketValuePromise
         The current market value of the instrument.
     currency : Currency | CurrencyPromise
@@ -278,6 +280,8 @@ class FinancialData(ABC):
         The nominal quantity of the instrument, if applicable.
     acquisition_cost : float | AcquisitionCostPromise , optional
         The original acquisition cost of the instrument.
+    acquisition_currency : Currency | AcquisitionCurrencyPromise , optional
+        The original acquisition currency of the instrument.
 
     Raises
     ------
@@ -292,21 +296,23 @@ class FinancialData(ABC):
         self,
         page: int,
         targets: List[str],
-        company: str | CompanyPromise,
+        company: str,
+        company_match: str,
         subfund: str | SubfundPromise,
         nominal_quantity: int | NominalQuantityPromise,
         market_value: float | MarkedValuePromise,
         currency: Currency | CurrencyPromise,
         perc_net_assets: float | PercNetAssetsPromise,
         acquisition_cost: float | AcquisitionCostPromise = None,
+        acquisition_currency: Currency | AcquisitionCurrencyPromise = None,
     ):
         if not page > 0:
             raise ValueError(_("page should be a positive number, not {}").format(page))
         if not isinstance(perc_net_assets, PercNetAssetsPromise):
             self._validate_perc_net_assets(perc_net_assets)
-        if not isinstance(company, CompanyPromise):
-            self._validate_company(company, targets)
 
+        self._company_match = company_match
+        self._validate_company(company, targets)
         self._company = company
         self._page = page
         self._market_value = market_value
@@ -315,6 +321,7 @@ class FinancialData(ABC):
         self._subfund = subfund
         self._nominal_quantity = nominal_quantity
         self._acquisition_cost = acquisition_cost
+        self._acquisition_currency = acquisition_currency
 
     @property
     @abstractmethod
@@ -337,6 +344,11 @@ class FinancialData(ABC):
         return self._perc_net_assets
 
     @property
+    def company_match(self) -> str:
+        """str: The name of the company or issuer as it is in the report."""
+        return self._company_match
+
+    @property
     def company(self) -> str:
         """str: The name of the company or issuer."""
         return self._company
@@ -350,6 +362,11 @@ class FinancialData(ABC):
     def currency(self) -> Currency:
         """Currency: The currency in which the value is denominated."""
         return self._currency
+
+    @property
+    def acquisition_currency(self) -> Currency:
+        """Currency: The currency in which the financial data is acquired."""
+        return self._acquisition_currency
 
     @property
     def subfund(self) -> str:
@@ -380,9 +397,7 @@ class FinancialData(ABC):
                 _("company should be between targets, not {}").format(company)
             )
 
-    def fulfill_promises(
-        self, mapping: PromisesResolutionMap, targets: List[str]
-    ) -> None:
+    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.
 
         Processes each attribute that may contain a Promise object, resolving it
@@ -392,8 +407,6 @@ class FinancialData(ABC):
         ----------
         mapping : PromisesResolutionMap
             Dictionary containing values to resolve promises from.
-        targets : List[str]
-            List of valid company names for validation.
 
         Notes
         -----
@@ -419,10 +432,6 @@ class FinancialData(ABC):
             perc_net_assets = self._perc_net_assets.fulfill_with(mapping)
             self._validate_perc_net_assets(perc_net_assets)
             self._perc_net_assets = perc_net_assets
-        if isinstance(self._company, CompanyPromise):
-            company = self._company.fulfill_with(mapping)
-            self._validate_company(company, targets)
-            self._company = company
 
     def to_dict(self) -> dict:
         """Cast financial data to python dictionary
@@ -435,6 +444,7 @@ class FinancialData(ABC):
         return {
             "Page report": self.page,
             "Company": self.company,
+            "Matched company": self.company_match,
             "Financial instrument": self.instrument.name,
             "Sub-fund": self.subfund,
             "Nominal/Quantity": self.nominal_quantity,
@@ -442,6 +452,7 @@ class FinancialData(ABC):
             "Currency": self.currency.name,
             "% Net Assets": self.perc_net_assets,
             "Acquisition cost": self.acquisition_cost,
+            "Acquisition currency": self.acquisition_currency,
             "Maturity": None,
             "Interest rate": None,
         }
@@ -451,6 +462,9 @@ class FinancialData(ABC):
         if self.acquisition_cost is not None:
             translated_field = _("Acquisition cost")
             string += f"\t\t{translated_field}:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
+        if self.acquisition_currency is not None:
+            translated_field = _("Acquisition currency")
+            string += f"\t\t{translated_field}:\t{self.acquisition_currency.value}\n"
         return string
 
     def __str__(self) -> str:
@@ -460,7 +474,7 @@ class FinancialData(ABC):
         translated_field = _("Subfund")
         string += f"\t{translated_field}:\t{self.subfund}\n"
         translated_field = _("Company")
-        string += f"\t{translated_field}:\t{self.company}\n"
+        string += f"\t{translated_field}:\t{self.company_match}\t[{self.company}]\n"
         translated_field = _("Currency")
         string += f"\t{translated_field}:\t{self.currency.name}\n"
         translated_field = _("Market value")
@@ -487,7 +501,9 @@ class FinancialData(ABC):
         eq = eq and self.perc_net_assets == other.perc_net_assets
         eq = eq and self.nominal_quantity == other.nominal_quantity
         eq = eq and self.acquisition_cost == other.acquisition_cost
+        eq = eq and self.acquisition_currency == other._acquisition_currency
         eq = eq and self.company == other.company
+        eq = eq and self.company_match == other.company_match
         return eq
 
 
@@ -529,12 +545,14 @@ class Bond(FinancialData):
         page: int,
         targets: List[str],
         company: str,
+        company_match: str,
         subfund: str,
         nominal_quantity: int,
         market_value: float,
         currency: Currency,
         perc_net_assets: float,
         acquisition_cost: float = None,
+        acquisition_currency: Currency = None,
         maturity: datetime.date = None,
         interest_rate: float = None,
     ) -> None:
@@ -547,7 +565,9 @@ class Bond(FinancialData):
         targets: List[str]
             The list of companies to search for, used as company validation
         company : str
-            The issuer of the bond.
+            The id of the issuer of the bond.
+        company_match : str
+            The issuer of the bond as it is in the report.
         market_value : float
             Current market value of the bond.
         currency : Currency
@@ -566,15 +586,17 @@ class Bond(FinancialData):
             Bond interest rate (0-1).
         """
         super().__init__(
-            page,
-            targets,
-            company,
-            subfund,
-            nominal_quantity,
-            market_value,
-            currency,
-            perc_net_assets,
-            acquisition_cost,
+            page=page,
+            targets=targets,
+            company=company,
+            company_match=company_match,
+            subfund=subfund,
+            nominal_quantity=nominal_quantity,
+            market_value=market_value,
+            currency=currency,
+            perc_net_assets=perc_net_assets,
+            acquisition_cost=acquisition_cost,
+            acquisition_currency=acquisition_currency,
         )
         self._maturity = maturity
         if interest_rate is not None and not 0.0 <= interest_rate <= 1.0:
