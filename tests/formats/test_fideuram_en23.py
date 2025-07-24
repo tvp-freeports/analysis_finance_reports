@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "ASTERIA_2023"
+fmt = "FIDEURAM_EN23"
 pages = single_page_tests[fmt]
 
 

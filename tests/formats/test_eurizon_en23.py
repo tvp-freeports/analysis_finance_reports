@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "AMUNDI2"
+fmt = "EURIZON_EN23"
 pages = single_page_tests[fmt]
 
 

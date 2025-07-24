@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "FIDEURAM"
+fmt = "AMUNDI_EN24"
 pages = single_page_tests[fmt]
 
 
