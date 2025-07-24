@@ -1,4 +1,4 @@
-"""EURIZON_IT format submodule"""
+"""EURIZON_IT24 format submodule"""
 
 from freeports_analysis.consts import Currency
 from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering, YRange

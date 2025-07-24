@@ -1,4 +1,4 @@
-"""EURIZON format submodule"""
+"""EURIZON_EN23 format submodule"""
 
 import logging as log
 from typing import TypeAlias

@@ -1,3 +1,5 @@
+"""MEDIOLLANUM_ES24 format submodule"""
+
 from enum import Enum, auto
 from typing import List, TypeAlias
 import re

@@ -1,4 +1,4 @@
-"""ASTERIA submodule"""
+"""ASTERIA_EN24 format submodule"""
 
 from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering, YRange
 from freeports_analysis.formats_utils.text_extract import standard_text_extraction

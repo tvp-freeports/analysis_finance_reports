@@ -1,4 +1,4 @@
-"""ANIMA format submodule"""
+"""ANIMA _EN23 format submodule"""
 
 import logging as log
 from typing import List, TypeAlias

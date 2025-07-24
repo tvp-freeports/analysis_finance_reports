@@ -1,4 +1,4 @@
-"""FIDEURAM format submodule"""
+"""FIDEURAM_EN23 format submodule"""
 
 import logging as log
 from typing import TypeAlias

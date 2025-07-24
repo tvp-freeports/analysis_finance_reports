@@ -1,4 +1,4 @@
-"""AMUNDI format submodule"""
+"""AMUNDI_EN24 format submodule"""
 
 from typing import TypeAlias
 from logging import getLogger
