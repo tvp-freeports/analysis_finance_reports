@@ -1,4 +1,4 @@
-"""MEDIOLANUM format submodule"""
+"""MEDIOLANUM_IT24 format submodule"""
 
 import logging as log
 from typing import TypeAlias
