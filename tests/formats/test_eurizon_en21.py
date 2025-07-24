@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "MEDIOLANUM"
+fmt = "EURIZON_EN21"
 pages = single_page_tests[fmt]
 
 

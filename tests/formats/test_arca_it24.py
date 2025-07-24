@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "ANIMA"
+fmt = "ARCA_IT24"
 pages = single_page_tests[fmt]
 
 
