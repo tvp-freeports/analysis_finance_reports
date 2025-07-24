@@ -2,7 +2,7 @@
 Command reference
 =================
 
-The command can be used launching 
+This command can be used for launching 
 
 .. code-block:: console
 
@@ -14,16 +14,16 @@ from the command line. To get a contextual help use the option ``--help`` shorte
 
     freeports -h
 
-the options can be specified in different ways that overwrite each other. The same option can be specified in 3 different ways:
+To controll the operation of the script different options are in use, these can be specified in 3 different ways that overwrite each other, with hierarchy:
 
-1. **configuration file**
+1. **command line options**
 2. **environment variables**
-3. **command line options**
+3. **configuration file**
 
-option not specified default to values specified in the :ref:`conf_parse submodule <freeports\_analysis.conf\_parse>`. 
-Those are overwritten by the options specified in the **configuration file**, then the result is overwritten by the **environment variables**,
+in this way options specified through the command line are never overwritten and have maximum priority. An options not specified defaults to the values specified in the :ref:`conf_parse submodule <freeports\_analysis.conf\_parse>`. 
+These are overwritten by the options specified in the **configuration file**, then the result is overwritten by the **environment variables**,
 **command line options** and finally if when in :ref:`BATCH MODE <batch_mode>` by the *job contextual options*.
-The option available to be overwritten and how are documented in the respective reference page:
+The options available to be overwritten and how are documented in the respective reference pages:
 
 .. toctree::
    :maxdepth: 1
@@ -36,8 +36,7 @@ The option available to be overwritten and how are documented in the respective 
 After specified the options are overwritten as described in :ref:`the section about validation <conf_validation>`.
 Each method of overwriting also has a specific validation mechanism documented in the respective page and applied before
 the validation of resulting configuration.
-Each way of specify option set one of the program option described in this page.
-The options here documented have an effecton the behaviour of the ``freeports`` call.
+Each of these three ways to set parameters goes to modify the value of the option in the program.
 
 -----------
 The options
@@ -46,17 +45,17 @@ The options
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
 | Option                 | Type                    | Description                                              | Default                    |
 +========================+=========================+==========================================================+============================+
-| ``VERBOSITY``          | ``int``                 | Describe how much the program verbosity                  | 2                          |
+| ``VERBOSITY``          | ``int``                 | Sets how verbose the program is in the terminal          | 2                          |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
 | ``BATCH``              | ``Path``                | If set to path of batch file, it triggers ``BATCH MODE`` |                            |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
 | ``N_WORKERS``          | ``int``                 | Number of parallel processes in ``BATCH MODE``           | ``os.process_cpu_count()`` |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
-| ``OUT_CSV``            | ``Path``                | File where to output ``csv`` files                       | ``/dev/stdout``            |
+| ``OUT_CSV``            | ``Path``                | File where to output ``csv``                             | ``/dev/stdout``            |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
-| ``SAVE_PDF``           | ``bool``                | If set and ``URL`` is specified, it save the input pdf   | ``True``                   |
+| ``SAVE_PDF``           | ``bool``                | If set and ``URL`` is specified, it saves the input pdf  | ``True``                   |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
-| ``URL``                | ``str``                 | Url of the pdf to take in input                          |                            |
+| ``URL``                | ``str``                 | Url of the pdf to take as input                          |                            |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
 | ``PDF``                | ``Path``                | Path to local pdf                                        |                            |
 +------------------------+-------------------------+----------------------------------------------------------+----------------------------+
@@ -74,7 +73,7 @@ The options
 """""""""""""
 
 This values goes from 0 to 5, 0 indicate min verbosity called ``CRITICAL VERBOSITY`` and 4 indicate the max verbosity also called ``DEBUG VERBOSITY``, 5 is the ``NOSET VERBOSITY``.
-The meaning of the others levels are the ones used by the python `logging package <https://docs.python.org/3/library/logging.html>`_:
+The meaning of the other levels are the ones used by the python `logging package <https://docs.python.org/3/library/logging.html>`_:
 
 +-----------+----------------------------------------------------------------------------+
 | freeports | `logging <https://docs.python.org/3/library/logging.html#logging-levels>`_ |
@@ -96,7 +95,7 @@ The meaning of the others levels are the ones used by the python `logging packag
 ``URL``, ``PDF`` and ``SAVE_PDF``
 """""""""""""""""""""""""""""""""
 
-One between ``URL`` or ``PDF`` has to be specified, directly or by consequently to 
+Either ``URL`` or ``PDF``, or both, has to be specified, directly or if in ``BATCH_MODE`` it can be left to 
 *job contextual options* overwriting.
 If ``URL`` is specified the program use the pdf resource corresponding to the url,
 if ``PDF`` is specified it load a pdf file from local filesystem. If both are specified
