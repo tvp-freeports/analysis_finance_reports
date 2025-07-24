@@ -298,12 +298,14 @@ def standard_deserialization(
                     "page": md["page"],
                     "targets": targets,
                     "company": to_str(md["company"]),
+                    "company_match": to_str(md["company match"]),
                     "subfund": to_str(md["subfund"]),
                     "nominal_quantity": int_cast(md["quantity"]),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
                     "perc_net_assets": perc_to_float(md["% net assets"]),
                     "acquisition_cost": ac,
+                    "acquisition_currency": to_currency(md["acquisition currency"]),
                 }
                 if blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
                     return Equity(**args)
