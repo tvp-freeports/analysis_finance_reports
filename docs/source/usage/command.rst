@@ -98,16 +98,16 @@ The meaning of the other levels are the ones used by the python `logging package
 Either ``URL`` or ``PDF``, or both, has to be specified, directly or if in ``BATCH_MODE`` it can be left to 
 *job contextual options* overwriting.
 If ``URL`` is specified the program use the pdf resource corresponding to the url,
-if ``PDF`` is specified it load a pdf file from local filesystem. If both are specified
+if ``PDF`` is specified it loads a pdf file from local filesystem. If both are specified
 it tries to load from local storage, then fallback to the url.
-If both are specified and ``SAVE_PDF`` is ``True``, if the file is not present locally, it download it
-and save on disk with name indicate by ``PDF`` option.
+If both are specified and ``SAVE_PDF`` is ``True``, if the file is not present locally, it will download it
+and save it on disk with name indicate by ``PDF`` option.
 
 """""""""""
 ``OUT_CSV``
 """""""""""
 
-When not in ``BATCH MODE`` it indicate the file where to output the resulting ``csv`` parsed from the pdf document.
+When not in ``BATCH MODE`` it indicates where to output the resulting ``csv`` file parsed from the pdf document.
 
 .. note::
     
@@ -118,25 +118,25 @@ When not in ``BATCH MODE`` it indicate the file where to output the resulting ``
 ``FORMAT``
 """"""""""
 
-It indicate which algorithm to use to parse the pdf, these algorithms are called the 'formats' of the pdf reports.
-It is mandatory to specify this variable if no ``URL`` is provided, if it is provided the format try to be inferred using
-a mapping file that map different url regular expressions to a format. The file is called ``format_url_mapping.yaml`` in the source code.
+It indicates which algorithm to use to parse the pdf, these algorithms are called the 'formats' of the pdf reports.
+It is mandatory to specify this variable if no ``URL`` is provided, if it is provided the format will be inferred using
+a mapping file that maps different url regular expressions to a format. The file is called ``format_url_mapping.yaml`` in the source code.
 
 """""""""""""""
 ``CONFIG_FILE``
 """""""""""""""
 
-This option indicate the config file loaded to overwrite the default options, this option can only be specified
+This option indicates the config file loaded to overwrite the default options, this option can only be specified
 using an environment variable or using a command line argument, and it is evaluated before any other option.
 
 """"""""""""""
 ``N_WORKWERS``
 """"""""""""""
 
-Integer that rappresent the number of process spawned (if not set default to number of available CPUs).
-When in ``BATCH MODE`` it indicate the process to spawn concurrently to achieve parrallelization on the
-processing of different files. When not in ``BATCH_MODE`` the program divide the pdf document in different
-section of pages and parallelize processing document wise.
+Integer that rappresents the number of process spawned (if not set it defaults to the number of available CPUs).
+When in ``BATCH_MODE`` it indicates the process to spawn concurrently to achieve parrallelization on the
+processing of different files. When not in ``BATCH_MODE`` the program divides the pdf document in different
+section of pages and parallelizes processing document wise.
 
 .. _conf_validation:
 
@@ -144,11 +144,11 @@ section of pages and parallelize processing document wise.
 Validation of resulting configuration
 -------------------------------------
 
-Each way of specify options have his algorithm to validate the user choice, but after those checks 
-it is performed a consistency check on the resulting configuration.
-Noticebly the most important performed chekcs are:
+Each way of specifying options has its algorithm to validate the user's choice, but after those checks 
+a consistency check is performed on the resulting configuration.
+Noticebly the most important performed checks are:
 
-* In ``BATCH MODE`` ``OUT_CSV`` is the name of an archive or of a directory
+* In ``BATCH_MODE`` ``OUT_CSV`` is the name of an archive or of a directory
 * After *job contextual options* overwriting at least one between ``PDF`` or ``URL`` is defined
 
 
@@ -156,14 +156,14 @@ Noticebly the most important performed chekcs are:
 .. _batch_mode:
 
 --------------
-``BATCH MODE``
+``BATCH_MODE``
 --------------
 
-This mode permit to process different files all at one in parallel. This mode is caratterized by the ``BATCH``
+This mode permits to process different files all at one in parallel. This mode is caratterized by the ``BATCH``
 variable set to a *batch csv file* and the possibility of setting ``SEPARATE_OUT_FILES`` to ``True``
 ( in this case ``OUT_CSV`` should be a directory name or the name of a ``.tar.gz`` archive to create)
 The *batch csv file* is a csv file with some header that indicate the option to overwrite to the 
-resulting configuration. These option are called *job contextual options* and each row of the csv file is called a *job*.
+resulting configuration. These options are called *job contextual options* and each row of the csv file is called a *job*.
 The available overwrittables options are:
 
 +----------------+--------------------+
@@ -182,29 +182,28 @@ The available overwrittables options are:
 
 the header is case insensitive, so for example *url*, *URL* and *Url* are considered the same header.
 the bool matching is done so that cast to ``True`` if csv value is one between (case insensitive) 
-*true, on, yes, y, t, 1* to ``False`` if between *false, off, no, n, f, 0*.
+*true, on, yes, y, t, 1* or ``False`` if between *false, off, no, n, f, 0*.
 
 """"""""""""""""""""""""""""""
 ``OUT_CSV`` and ``prefix out``
 """"""""""""""""""""""""""""""
 
-When in ``BATCH MODE`` there are two output profiles, the standard one on a single *csv* and 
-on separate files (this distinction can be made setting ``SEPARATE_OUT_FILES`` to ``True`` or ``False``).
-The ``prefix out`` cell of the batch file set the ``PREFIX_OUT`` option.
-When output on same file the usual *csv* add a column (*Format*) to indicate the format used to parse the 
-pdf report from which the data come from. To identify precisely the line of the batch file that generate
-the data can if is present ``PREFIX_OUT`` it is added a column called *Report identifier* 
-with the corresponding value.
+When in ``BATCH_MODE`` there are two output profiles, the standard is a single *csv* and 
+the non standard are separate files (this distinction can be made setting ``SEPARATE_OUT_FILES`` to ``True`` or ``False``).
+The ``prefix out`` cell of the batch file sets the ``PREFIX_OUT`` option.
+When outputing on the same file the data is separated by *Format* column to indicate the format used to parse the 
+pdf report. Identifying precisely the line of the batch file that generates
+the data is done by setting ``PREFIX_OUT`` to a string, which is added to a column called *Report identifier*.
 
 .. tip::
-    Set ``PREFIX_OUT`` something meaning full that distinguish the input document, like for example
+    Set ``PREFIX_OUT`` to something meaningfull that distinguishes the input document, like for example
     the date of the publication of the pdf and istitution that created the report
 
 
 When on different files ``OUT_CSV`` has to be a directory or a ``.tar.gz`` archive. 
-The program create if it doesn't exists a directory named as ``OUT_CSV`` if is not an archive
-or the name of the archive without ``.tar.gz`` exstension and for each *job*, save an output file
+The program creates, if it doesn't exist, a directory named ``OUT_CSV`` if it's not an archive
+or the name of the archive without the ``.tar.gz`` exstension otherwise, and for each *job*, save an output file
 named ``{PREFIX_OUT}-{FORMAT}.csv`` or just ``{FORMAT}.csv`` if absent or empty prefix. 
 If ``OUT_CSV`` was specified  as an archive, the directory
-is compressed into ``.tar.gz``. If the directory didn't existed and an archive is created, after creation
+is compressed into ``.tar.gz``. If the directory didn't exist and an archive is created, after creation
 the directory is deleted from the filesystem.
