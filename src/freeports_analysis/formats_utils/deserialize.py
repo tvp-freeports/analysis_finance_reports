@@ -218,6 +218,7 @@ def to_date(data: str) -> date:
         "%d/%m/%y",  # 02/07/25
         "%m-%d-%Y",  # 07-02-2025
         "%d-%m-%y",  # 01-05-25
+        "%m/%y",  # 05-25
     ]
     for fmt in formats:
         try:
