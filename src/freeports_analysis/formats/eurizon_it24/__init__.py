@@ -1,18 +1,18 @@
 """EURIZON_IT24 format submodule"""
 
 from freeports_analysis.consts import Currency
-from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering, YRange
+from freeports_analysis.formats_utils.pdf_filter import (
+    standard_pdf_filtering,
+    PdfLineSet,
+)
 from freeports_analysis.formats_utils.text_extract import standard_text_extraction
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
 
 
 @standard_pdf_filtering(
-    header_txt="Elenco",
-    header_font="TrebuchetMS,Bold",
-    subfund_height=YRange(793, 803),
-    subfund_font="TrebuchetMS,Italic",
-    body_font="TrebuchetMS",
-    y_range=None,
+    header_set=PdfLineSet("TrebuchetMS,Bold", text="Elenco"),
+    subfund_set=PdfLineSet("TrebuchetMS,Italic", area=(793, 803)),
+    body_set=PdfLineSet("TrebuchetMS"),
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError

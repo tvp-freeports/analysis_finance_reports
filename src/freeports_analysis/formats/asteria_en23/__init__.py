@@ -1,17 +1,17 @@
 """ASTERIA_EN23 format submodule"""
 
-from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering, YRange
+from freeports_analysis.formats_utils.pdf_filter import (
+    standard_pdf_filtering,
+    PdfLineSet,
+)
 from freeports_analysis.formats_utils.text_extract import standard_text_extraction
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
 
 
 @standard_pdf_filtering(
-    header_txt="Number of Shares/",
-    header_font="CenturyGothic-Bold",
-    subfund_height=YRange(80, 95),
-    subfund_font="CenturyGothic-Bold",
-    body_font="CenturyGothic",
-    y_range=None,
+    header_set=PdfLineSet("CenturyGothic-Bold", text="Number of Shares/"),
+    subfund_set=PdfLineSet("CenturyGothic-Bold", area=(80, 95)),
+    body_set=PdfLineSet("CenturyGothic"),
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError

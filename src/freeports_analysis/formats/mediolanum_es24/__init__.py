@@ -1,15 +1,12 @@
 """MEDIOLLANUM_ES24 format submodule"""
 
-from enum import Enum, auto
 from typing import List, TypeAlias
-import re
 from lxml import etree
-from freeports_analysis.consts import Equity, Bond, Currency
 from freeports_analysis.formats_utils.pdf_filter import (
     standard_pdf_filtering,
     OnePdfBlockType,
 )
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import YRange
+from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
 from freeports_analysis.formats_utils.text_extract import (
     standard_text_extraction,
     EquityBondTextBlockType,
@@ -19,11 +16,9 @@ from .. import PdfBlock, TextBlock
 
 
 @standard_pdf_filtering(
-    header_font="TimesNewRomanPSMT",
-    header_txt="n de la cartera",
-    subfund_height=YRange(60, 77),
-    subfund_font="TimesNewRomanPSMT",
-    body_font="TimesNewRomanPSMT",
+    header_set=PdfLineSet("TimesNewRomanPSMT", text="n de la cartera"),
+    subfund_set=PdfLineSet("TimesNewRomanPSMT", area=(60, 77)),
+    body_set=PdfLineSet("TimesNewRomanPSMT"),
 )
 def pdf_filter(xml_root: etree.Element) -> dict:
     raise NotImplementedError

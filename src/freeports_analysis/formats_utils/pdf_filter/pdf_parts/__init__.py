@@ -1,6 +1,6 @@
 """Pdf xml parts in a friendly format (custom python classes)."""
 
-from typing import Optional
+from typing import Optional, Tuple
 from lxml import etree
 from freeports_analysis.i18n import _
 from .font import Font, FontSize
@@ -29,10 +29,10 @@ class PdfLine:
 
     def __init__(
         self,
-        text: Optional[str] = None,
         font: Optional[Font] = None,
         font_size: Optional[FontSize] = None,
-        area: Optional[Area] = None,
+        area: Optional[Area | XRange | YRange | Tuple[float, float]] = None,
+        text: Optional[str] = None,
     ):
         """Initialize the ExtractedPdfLine from an XML element.
 
@@ -41,6 +41,12 @@ class PdfLine:
         blk : etree.Element
             The XML element containing the line data.
         """
+        if isinstance(area, XRange):
+            area = Area(area, YRange(None, None))
+        elif isinstance(area, YRange):
+            area = Area(XRange(None, None), area)
+        if isinstance(area, tuple):
+            area = Area(XRange(None, None), YRange(*area))
         self._text = text
         self._font = font
         self._font_size = font_size
