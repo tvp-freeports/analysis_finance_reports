@@ -113,19 +113,21 @@ def standard_extraction_subfund(
 def standard_extraction_currency(
     currency_set: PdfLineSet | Currency | str,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
-    """Decorator for extracting currency text and updating metadata.
+    """Decorator for extracting currency information and updating metadata.
 
     Parameters
     ----------
-    subfund_height : YRange
-        The vertical range in which the currency text is expected.
-    subfund_font : str
-        The font used by the currency text.
+    currency_set : PdfLineSet | Currency | str
+        The source of currency information. It can be:
+        - a PdfLineSet containing raw text lines to search for a currency,
+        - a Currency object directly,
+        - or a string representing the currency code (e.g., "USD").
 
     Returns
     -------
     Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
-        A decorator that updates metadata with the extracted currency text.
+        A decorator that enhances a metadata update function by extracting
+        the currency and storing it in the metadata.
     """
 
     def decorator(old_page_metadata):
