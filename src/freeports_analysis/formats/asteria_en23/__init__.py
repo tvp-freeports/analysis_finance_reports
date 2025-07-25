@@ -12,6 +12,7 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     header_set=PdfLineSet("CenturyGothic-Bold", text="Number of Shares/"),
     subfund_set=PdfLineSet("CenturyGothic-Bold", area=(80, 95)),
     body_set=PdfLineSet("CenturyGothic"),
+    currency_set=PdfLineSet("CenturyGothic-Bold", 8.9802, text="(Expressed in"),
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError
@@ -21,7 +22,7 @@ def pdf_filter(xml_root) -> dict:
     nominal_quantity_pos=+1,
     market_value_pos=+4,
     perc_net_assets_pos=+5,
-    currency=+2,
+    acquisition_currency_pos=+2,
     acquisition_cost_pos=+3,
 )
 def text_extract(pdf_blocks, targets):
