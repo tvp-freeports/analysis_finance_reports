@@ -15,13 +15,14 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     ),
     subfund_set=PdfLineSet("CenturyGothic-Bold", area=(None, 87)),
     body_set=PdfLineSet("CenturyGothic", area=(None, 810)),
+    currency_set=PdfLineSet("CenturyGothic-Bold", 8.9802, text="(expressed in"),
 )
 def pdf_filter(xml_root):
     raise NotImplementedError
 
 
 @standard_text_extraction(
-    currency=+2,
+    acquisition_currency_pos=+2,
     nominal_quantity_pos=+1,
     market_value_pos=+4,
     perc_net_assets_pos=+5,
