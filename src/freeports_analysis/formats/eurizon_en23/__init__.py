@@ -7,11 +7,6 @@ from freeports_analysis.formats_utils.pdf_filter import (
     standard_pdf_filtering,
     PdfLineSet,
 )
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts.position import (
-    Area,
-    YRange,
-    XRange,
-)
 from freeports_analysis.formats_utils.text_extract import (
     standard_text_extraction,
     EquityBondTextBlockType,
@@ -24,17 +19,12 @@ logger = log.getLogger(__name__)
 PdfBlockType: TypeAlias = OnePdfBlockType
 TextBlockType: TypeAlias = EquityBondTextBlockType
 
-subfund_set = PdfLineSet(
-    font="Frutiger-Black", area=Area(x_range=XRange(None, None), y_range=YRange(65, 85))
-)
+subfund_set = PdfLineSet(font="Frutiger-Black", area=(65, 85))
 header_set = PdfLineSet(
     text="PORTFOLIO AS AT",
     font="Frutiger-Black",
 )
-body_set = PdfLineSet(
-    font="Frutiger-Light",
-    area=Area(x_range=XRange(None, None), y_range=YRange(160, 765)),
-)
+body_set = PdfLineSet(font="Frutiger-Light", area=(160, 765))
 
 
 @standard_pdf_filtering(
