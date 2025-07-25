@@ -15,7 +15,7 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     body_set=PdfLineSet("TrebuchetMS"),
 )
 def pdf_filter(xml_root) -> dict:
-    raise NotImplementedError
+    return {"currency": "EUR"}
 
 
 @standard_text_extraction(

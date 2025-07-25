@@ -188,6 +188,8 @@ def to_currency(data: str) -> Currency:
     KeyError
         If the string doesn't match any Currency enum member
     """
+    if isinstance(data, Currency):
+        return data
     data = normalize_word(data)
     data = data.upper()
     return Currency[data]
