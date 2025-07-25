@@ -5,7 +5,12 @@ from typing import TypeAlias
 from freeports_analysis.formats_utils.pdf_filter import (
     OnePdfBlockType,
     standard_pdf_filtering,
+    PdfLineSet,
+)
+from freeports_analysis.formats_utils.pdf_filter.pdf_parts.position import (
+    Area,
     YRange,
+    XRange,
 )
 from freeports_analysis.formats_utils.text_extract import (
     standard_text_extraction,
@@ -19,14 +24,21 @@ logger = log.getLogger(__name__)
 PdfBlockType: TypeAlias = OnePdfBlockType
 TextBlockType: TypeAlias = EquityBondTextBlockType
 
+subfund_set = PdfLineSet(
+    font="Frutiger-Black", area=Area(x_range=XRange(None, None), y_range=YRange(65, 85))
+)
+header_set = PdfLineSet(
+    text="PORTFOLIO AS AT",
+    font="Frutiger-Black",
+)
+body_set = PdfLineSet(
+    font="Frutiger-Light",
+    area=Area(x_range=XRange(None, None), y_range=YRange(160, 765)),
+)
+
 
 @standard_pdf_filtering(
-    header_txt="PORTFOLIO AS AT",
-    header_font="Frutiger-Black",
-    subfund_height=YRange(65, 85),
-    subfund_font="Frutiger-Black",
-    body_font="Frutiger-Light",
-    y_range=(160, 765),
+    header_set=header_set, subfund_set=subfund_set, body_set=body_set
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError

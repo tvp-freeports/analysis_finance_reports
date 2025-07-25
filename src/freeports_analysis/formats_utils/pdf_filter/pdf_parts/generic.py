@@ -59,7 +59,7 @@ class Range:
         """
         return self.end - self.start
 
-    def __contains__(self, value: float | "Range") -> bool:
+    def __contains__(self, value) -> bool:
         """Check if a value is within the range.
 
         Parameters

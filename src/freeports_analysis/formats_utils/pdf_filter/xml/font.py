@@ -108,7 +108,7 @@ def get_lines_with_size(blk: etree.Element, size: str) -> List[etree.Element]:
     return blk.xpath(f".//line[font[@size='{size}']]")
 
 
-def get_lines_with_txt_size(
+def get_lines_with_font_size(
     blk: etree.Element, txt: str, size: str, all_elem: bool = False
 ) -> List[etree.Element] | etree.Element:
     """Get lines with a certain txt and size
@@ -136,7 +136,7 @@ def get_lines_with_txt_size(
     return blks if all_elem else blks[0] if len(blks) > 0 else None
 
 
-def is_present_txt_size(blk: etree.Element, txt: str, size: str) -> bool:
+def is_present_font_size(blk: etree.Element, txt: str, size: str) -> bool:
     """Return if a certain pdf block with a specific text and size is present in the tree
 
     Parameters
@@ -153,5 +153,5 @@ def is_present_txt_size(blk: etree.Element, txt: str, size: str) -> bool:
     bool
         boolean describing if the block is present or not
     """
-    relevant_part = get_lines_with_txt_size(blk, txt, size, all_elem=True)
+    relevant_part = get_lines_with_font_size(blk, txt, size, all_elem=True)
     return len(relevant_part) > 0

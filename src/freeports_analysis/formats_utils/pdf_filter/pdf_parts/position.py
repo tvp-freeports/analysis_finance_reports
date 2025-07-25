@@ -136,8 +136,14 @@ class Area:
         Coord
             The (x, y) center coordinate.
         """
-        x = (self.x_bounds.x1 + self.x_bounds.x0) / 2.0
-        y = (self.y_bounds.y1 + self.y_bounds.y0) / 2.0
+        if self.x_bounds.x1 is None or self.x_bounds.x0 is None:
+            x = None
+        else:
+            x = (self.x_bounds.x1 + self.x_bounds.x0) / 2.0
+        if self.y_bounds.y1 is None or self.y_bounds.y0 is None:
+            y = None
+        else:
+            y = (self.y_bounds.y1 + self.y_bounds.y0) / 2.0
         return (x, y)
 
     @property
@@ -190,7 +196,7 @@ class Area:
         bool
             The area is contained
         """
-        return self.height in other.height and self.width in other.width
+        return self.x_bounds in other.x_bounds and self.y_bounds in other.y_bounds
 
     def __str__(self) -> str:
         """Return a string representation of the area.

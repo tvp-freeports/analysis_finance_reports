@@ -452,7 +452,7 @@ class FinancialData(ABC):
             "Currency": self.currency.name,
             "% Net Assets": self.perc_net_assets,
             "Acquisition cost": self.acquisition_cost,
-            "Acquisition currency": self.acquisition_currency,
+            "Acquisition currency": self.acquisition_currency.name,
             "Maturity": None,
             "Interest rate": None,
         }
@@ -464,7 +464,7 @@ class FinancialData(ABC):
             string += f"\t\t{translated_field}:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
         if self.acquisition_currency is not None:
             translated_field = _("Acquisition currency")
-            string += f"\t\t{translated_field}:\t{self.acquisition_currency.value}\n"
+            string += f"\t\t{translated_field}:\t{self.acquisition_currency.name}\n"
         return string
 
     def __str__(self) -> str:

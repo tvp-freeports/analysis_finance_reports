@@ -129,7 +129,7 @@ def get_table_positions(
     # Initialize indexes
     indexes = [None for _ in lines]
     areas = [line.geometry for line in lines]
-    font_sizes = [line.text_size for line in lines]
+    font_sizes = [line.font_size for line in lines]
     rulers = []
 
     # Choose min/max function based on small_rule

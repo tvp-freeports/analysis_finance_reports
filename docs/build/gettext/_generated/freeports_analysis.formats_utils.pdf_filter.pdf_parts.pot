@@ -89,11 +89,11 @@ msgstr ""
 msgid "The area representing the line's bounds."
 msgstr ""
 
-#: ../../../src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:docstring of freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.text_size:1
+#: ../../../src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:docstring of freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.font_size:1
 msgid "Get the text size used in the line."
 msgstr ""
 
-#: ../../../src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:docstring of freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.text_size:3
+#: ../../../src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:docstring of freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.font_size:3
 msgid "The text size used in the line."
 msgstr ""
 

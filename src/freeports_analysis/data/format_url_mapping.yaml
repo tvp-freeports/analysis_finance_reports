@@ -1,34 +1,34 @@
-EURIZON:
+EURIZON_EN23:
  - https://www.eurizonam.hr/
 
-ANIMA:
+ANIMA_EN23:
  - https://www.animasgr.it/
 
-AMUNDI:
+AMUNDI_EN24:
  - https://www.amundi.com/
 
-ASTERIA:
+ASTERIA_EN24:
  - https://www.asteria-im.com/
 
-ASTERIA_2023:
+ASTERIA_EN23:
  - https://www.fundsquare.net/.*aKxRJLzQbOPf89pUHU0Jbso
 
-EURIZON_OLD:
+EURIZON_EN21:
  - https://www.fundsquare.net/
 
-EURIZON_IT:
+EURIZON_IT23:
  - https://www.eurizoncapital.com/
 
-AMUNDI2:
+AMUNDI_IT24:
  - https://www.amundi.it/
 
-FIDEURAM:
+FIDEURAM_EN23:
  - https://www.fideuramassetmanagement.ie/
 
-MEDIOLANUM:
+MEDIOLANUM_IT24:
  - https://www.mediolanumgestionefondi.it/
 
-ARCA:
+ARCA_IT24:
  - https://docs.arcafondi.it/
 
 
