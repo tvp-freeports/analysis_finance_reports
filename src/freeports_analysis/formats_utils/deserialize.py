@@ -297,6 +297,11 @@ def standard_deserialization(
                     if "acquisition cost" in md
                     else None
                 )
+                acu = (
+                    to_currency(md["acquisition currency"])
+                    if "acquisition currency" in md
+                    else None
+                )
                 args = {
                     "page": md["page"],
                     "targets": targets,
@@ -308,7 +313,7 @@ def standard_deserialization(
                     "currency": to_currency(md["currency"]),
                     "perc_net_assets": perc_to_float(md["% net assets"]),
                     "acquisition_cost": ac,
-                    "acquisition_currency": to_currency(md["acquisition currency"]),
+                    "acquisition_currency": acu,
                 }
                 if blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
                     return Equity(**args)

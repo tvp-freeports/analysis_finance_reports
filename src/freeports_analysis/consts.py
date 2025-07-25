@@ -452,7 +452,9 @@ class FinancialData(ABC):
             "Currency": self.currency.name,
             "% Net Assets": self.perc_net_assets,
             "Acquisition cost": self.acquisition_cost,
-            "Acquisition currency": self.acquisition_currency.name,
+            "Acquisition currency": self.acquisition_currency.name
+            if self.acquisition_currency is not None
+            else None,
             "Maturity": None,
             "Interest rate": None,
         }

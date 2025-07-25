@@ -13,16 +13,16 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     header_set=PdfLineSet("TrebuchetMS,Bold", text="Elenco"),
     subfund_set=PdfLineSet("TrebuchetMS,Italic", area=(793, 803)),
     body_set=PdfLineSet("TrebuchetMS"),
+    currency_set=Currency.EUR,
 )
 def pdf_filter(xml_root) -> dict:
-    return {"currency": "EUR"}
+    raise NotImplementedError
 
 
 @standard_text_extraction(
     nominal_quantity_pos=+1,
     market_value_pos=+2,
     perc_net_assets_pos=+4,
-    currency=Currency.EUR,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

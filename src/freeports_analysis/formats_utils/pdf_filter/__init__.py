@@ -133,7 +133,6 @@ def standard_extraction_currency(
     def decorator(old_page_metadata):
         def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
             metadata = old_page_metadata(xml_root)
-
             if isinstance(currency_set, str):
                 metadata["currency"] = Currency[currency_set]
                 return metadata
