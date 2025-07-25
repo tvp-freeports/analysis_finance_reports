@@ -191,7 +191,7 @@ def standard_text_extraction(
                     currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
                     for curr_cand in currency_candidates:
                         try:
-                            metadata["currency"] = Currency(curr_cand)
+                            metadata["currency"] = Currency[curr_cand]
                             continue
                         except KeyError:
                             pass
