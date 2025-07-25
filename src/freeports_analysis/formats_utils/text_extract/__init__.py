@@ -18,7 +18,6 @@ import logging
 from typing import List, Optional
 from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
-from freeports_analysis.consts import Currency
 from .match import target_match
 from .. import normalize_string, overwrite_if_implemented
 
@@ -124,7 +123,7 @@ def standard_text_extraction(
     nominal_quantity_pos: int,
     market_value_pos: int,
     perc_net_assets_pos: int,
-    acquisition_currency: Optional[int] = None,
+    acquisition_currency_pos: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
     match_func=target_match,
 ):
@@ -139,7 +138,7 @@ def standard_text_extraction(
         Relative position for market value metadata
     perc_net_assets_pos : int
         Relative position for percentage of net assets metadata
-    currency : Optional[Union[int, Currency]], optional
+    acquisition_currency_pos : Optional[Currency], optional
         Either relative position for currency metadata or Currency enum value, by default None
     acquisition_cost_pos : Optional[int], optional
         Relative position for acquisition cost metadata, by default None
@@ -184,11 +183,13 @@ def standard_text_extraction(
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
                 metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-                metadata["acquisition_currency"] = pdf_blocks[i + currency].content
                 metadata["currency"] = re.findall(
                     r"\b[A-Z]{3}\b", pdf_blocks[i].metadata["currency"]
-                )
-
+                )[0]
+                if acquisition_currency_pos is not None:
+                    metadata["acquisition currency"] = pdf_blocks[
+                        i + acquisition_currency_pos
+                    ].content
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[
                         i + acquisition_cost_pos

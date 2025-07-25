@@ -41,7 +41,9 @@ class PdfLine:
         blk : etree.Element
             The XML element containing the line data.
         """
-        if isinstance(area, XRange):
+        if area is None:
+            area = Area(XRange(None, None), YRange(None, None))
+        elif isinstance(area, XRange):
             area = Area(area, YRange(None, None))
         elif isinstance(area, YRange):
             area = Area(XRange(None, None), area)

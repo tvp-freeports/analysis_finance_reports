@@ -22,13 +22,19 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 subfund_set = PdfLineSet(font="Frutiger-Black", area=(65, 85))
 header_set = PdfLineSet(
     text="PORTFOLIO AS AT",
+    font_size=11.9735,
     font="Frutiger-Black",
 )
 body_set = PdfLineSet(font="Frutiger-Light", area=(160, 765))
 
+currency_set = header_set
+
 
 @standard_pdf_filtering(
-    header_set=header_set, subfund_set=subfund_set, body_set=body_set
+    header_set=header_set,
+    subfund_set=subfund_set,
+    currency_set=currency_set,
+    body_set=body_set,
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError
@@ -38,7 +44,7 @@ def pdf_filter(xml_root) -> dict:
     nominal_quantity_pos=-1,
     market_value_pos=+3,
     perc_net_assets_pos=+4,
-    currency=+1,
+    acquisition_currency_pos=+1,
     acquisition_cost_pos=+2,
 )
 def text_extract(pdf_blocks, targets):
