@@ -184,15 +184,17 @@ def standard_text_extraction(
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
                 metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-                currency_candidates = re.findall(
-                    r"\b[A-Z]{3}\b", pdf_blocks[i].metadata["currency"]
-                )
-                for curr_cand in currency_candidates:
-                    try:
-                        metadata["currency"] = Currency(curr_cand)
-                        continue
-                    except:
-                        pass
+                curr = pdf_blocks[i].metadata["currency"]
+                if isinstance(curr, Currency):
+                    metadata["currency"] = curr
+                else:
+                    currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+                    for curr_cand in currency_candidates:
+                        try:
+                            metadata["currency"] = Currency[curr_cand]
+                            continue
+                        except KeyError:
+                            pass
 
                 if acquisition_currency_pos is not None:
                     metadata["acquisition currency"] = pdf_blocks[

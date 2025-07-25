@@ -111,7 +111,7 @@ class PdfLine:
         return self._font_size
 
     @property
-    def text(self) -> FontSize:
+    def text(self) -> str:
         """Get the text used in the line.
 
         Returns
@@ -195,12 +195,10 @@ class PdfLineSet(PdfLine):
 
     def __contains__(self, other: ExtractedPdfLine):
         eq = True
-        eq = eq and self.text is None or self.text in other.text
-        eq = eq and self.font is None or self.font == other.font
-        eq = (
-            eq
-            and self.font_size is None
-            or abs(self.font_size - other.font_size) <= 1e-4
+        eq = eq and (self.text is None or self.text in other.text)
+        eq = eq and (self.font is None or self.font == other.font)
+        eq = eq and (
+            self.font_size is None or abs(self.font_size - other.font_size) <= 1e-4
         )
-        eq = eq and self.geometry is None or self.geometry in other.geometry
+        eq = eq and (self.geometry is None or self.geometry in other.geometry)
         return eq
