@@ -14,7 +14,7 @@ from .xml.font import get_lines_with_font, get_lines_with_txt_font
 from .select_position import get_table_positions, TablePosAlgorithm
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
-import re
+from freeports_analysis.consts import Currency
 
 logger = log.getLogger(__name__)
 
@@ -111,7 +111,7 @@ def standard_extraction_subfund(
 
 
 def standard_extraction_currency(
-    currency_set: PdfLineSet,
+    currency_set: PdfLineSet | Currency | str,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
     """Decorator for extracting currency text and updating metadata.
 
@@ -130,6 +130,15 @@ def standard_extraction_currency(
 
     def decorator(old_page_metadata):
         def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
+            metadata = old_page_metadata(xml_root)
+
+            if isinstance(currency_set, str):
+                metadata["currency"] = Currency[currency_set]
+                return metadata
+            elif isinstance(currency_set, Currency):
+                metadata["currency"] = currency_set
+                return metadata
+
             xml_lines = None
             if currency_set.font is not None:
                 xml_lines = get_lines_with_font(xml_root, currency_set.font)
@@ -142,7 +151,7 @@ def standard_extraction_currency(
                 currency = [line.text for line in lines if line in currency_set][0]
             except IndexError as exc:
                 raise ExpectedPdfBlockNotFound(_("currency block  not found")) from exc
-            metadata = old_page_metadata(xml_root)
+
             metadata["currency"] = currency
             return metadata
 
@@ -155,7 +164,7 @@ def standard_pdf_filtering(
     header_set: PdfLineSet | List[PdfLineSet],
     subfund_set: PdfLineSet,
     body_set: PdfLineSet,
-    currency_set: PdfLineSet,
+    currency_set: PdfLineSet | Currency | str,
     deselection_list: Optional[List[PdfLineSet]] = [],
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
