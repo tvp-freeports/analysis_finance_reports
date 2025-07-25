@@ -20,6 +20,7 @@ from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
 from .match import target_match
 from .. import normalize_string, overwrite_if_implemented
+from freeports_analysis.consts import Currency
 
 logger = logging.getLogger(__name__)
 
@@ -183,9 +184,16 @@ def standard_text_extraction(
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
                 metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-                metadata["currency"] = re.findall(
+                currency_candidates = re.findall(
                     r"\b[A-Z]{3}\b", pdf_blocks[i].metadata["currency"]
-                )[0]
+                )
+                for curr_cand in currency_candidates:
+                    try:
+                        metadata["currency"] = Currency(curr_cand)
+                        continue
+                    except:
+                        pass
+
                 if acquisition_currency_pos is not None:
                     metadata["acquisition currency"] = pdf_blocks[
                         i + acquisition_currency_pos
