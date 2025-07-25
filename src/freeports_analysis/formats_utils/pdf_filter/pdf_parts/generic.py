@@ -59,19 +59,23 @@ class Range:
         """
         return self.end - self.start
 
-    def __contains__(self, value: float) -> bool:
+    def __contains__(self, value: float | "Range") -> bool:
         """Check if a value is within the range.
 
         Parameters
         ----------
-        value : float
-            The value to check.
+        value : float | Range
+            The value to check or the range to check overlap.
 
         Returns
         -------
         bool
             True if the value is within the range, False otherwise.
         """
+        if value is None:
+            return False
+        if isinstance(value, type(self)):
+            return value.start in self and value.end in self
         return (self.start is None or self.start <= value) and (
             self.end is None or value <= self.end
         )

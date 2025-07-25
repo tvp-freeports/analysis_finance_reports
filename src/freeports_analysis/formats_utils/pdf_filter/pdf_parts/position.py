@@ -177,6 +177,21 @@ class Area:
         """
         return self.y_bounds.size
 
+    def __contains__(self, other) -> bool:
+        """Check if the area is contained in another area
+
+        Parameters
+        ----------
+        other : Area
+            The area to check containment
+
+        Returns
+        -------
+        bool
+            The area is contained
+        """
+        return self.height in other.height and self.width in other.width
+
     def __str__(self) -> str:
         """Return a string representation of the area.
 
