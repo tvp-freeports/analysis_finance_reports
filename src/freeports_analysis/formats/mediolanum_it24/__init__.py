@@ -1,12 +1,12 @@
 """MEDIOLLANUM_IT24 format submodule"""
 
-from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering, YRange
+from freeports_analysis.formats_utils.pdf_filter import (
+    standard_pdf_filtering,
+    YRange,
+    is_present_txt_font,
+)
 from freeports_analysis.formats_utils.text_extract import standard_text_extraction
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
-from freeports_analysis.formats_utils.text_extract.match import (
-    target_fuzzy_match,
-    target_prefix_match,
-)
 
 
 @standard_pdf_filtering(
@@ -14,13 +14,34 @@ from freeports_analysis.formats_utils.text_extract.match import (
     header_font="TT5D22o00",
     subfund_height=YRange(47, 62),
     subfund_font="TT5CC2o00",
-    body_font=["TT5D42o00", "TT6162o00"],
+    body_font="TT5D42o00",
     y_range=None,
     algorithm_flags=[False, False, False, False],
     tolerance=0,
 )
-def pdf_filter(xml_root) -> dict:
+def pdf_filter_1(xml_root) -> dict:
     raise NotImplementedError
+
+
+# bond
+@standard_pdf_filtering(
+    header_txt="Descrizione",
+    header_font="TT6142o00",
+    subfund_height=YRange(47, 62),
+    subfund_font="TT60C2o00",
+    body_font="TT6162o00",
+    y_range=None,
+    algorithm_flags=[False, False, False, False],
+    tolerance=0,
+)
+def pdf_filter_2(xml_root) -> dict:
+    raise NotImplementedError
+
+
+def pdf_filter(xml_root) -> dict:
+    if is_present_txt_font(xml_root, "Descrizione", "TT5D22o00"):
+        return pdf_filter_1(xml_root)
+    return pdf_filter_2(xml_root)
 
 
 @standard_text_extraction(
@@ -29,8 +50,6 @@ def pdf_filter(xml_root) -> dict:
     perc_net_assets_pos=+5,
     currency=+2,
     acquisition_cost_pos=+3,
-    match_func=lambda x, y: target_fuzzy_match(x, y, 0.8)
-    and target_prefix_match(x, y, 0.3),
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError
