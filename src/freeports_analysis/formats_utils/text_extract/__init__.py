@@ -124,7 +124,7 @@ def standard_text_extraction(
     nominal_quantity_pos: int,
     market_value_pos: int,
     perc_net_assets_pos: int,
-    currency: Optional[int | Currency] = None,
+    acquisition_currency: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
     match_func=target_match,
 ):
@@ -184,11 +184,10 @@ def standard_text_extraction(
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
                 metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-                if isinstance(currency, int):
-                    metadata["currency"] = pdf_blocks[i + currency].content
-                elif isinstance(currency, Currency):
-                    metadata["currency"] = currency.name
-                metadata["acquisition currency"] = metadata["currency"]
+                metadata["acquisition_currency"] = pdf_blocks[i + currency].content
+                metadata["currency"] = re.findall(
+                    r"\b[A-Z]{3}\b", pdf_blocks[i].metadata["currency"]
+                )
 
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[

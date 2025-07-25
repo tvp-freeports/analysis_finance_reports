@@ -14,6 +14,7 @@ from .xml.font import get_lines_with_font, get_lines_with_txt_font
 from .select_position import get_table_positions, TablePosAlgorithm
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
+import re
 
 logger = log.getLogger(__name__)
 
@@ -109,10 +110,52 @@ def standard_extraction_subfund(
     return decorator
 
 
+def standard_extraction_currency(
+    currency_set: PdfLineSet,
+) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+    """Decorator for extracting currency text and updating metadata.
+
+    Parameters
+    ----------
+    subfund_height : YRange
+        The vertical range in which the currency text is expected.
+    subfund_font : str
+        The font used by the currency text.
+
+    Returns
+    -------
+    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+        A decorator that updates metadata with the extracted currency text.
+    """
+
+    def decorator(old_page_metadata):
+        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
+            xml_lines = None
+            if currency_set.font is not None:
+                xml_lines = get_lines_with_font(xml_root, currency_set.font)
+            else:
+                xml_lines = xml_root.findall(".//line")
+
+            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
+            currency = None
+            try:
+                currency = [line.text for line in lines if line in currency_set][0]
+            except IndexError as exc:
+                raise ExpectedPdfBlockNotFound(_("currency block  not found")) from exc
+            metadata = old_page_metadata(xml_root)
+            metadata["currency"] = currency
+            return metadata
+
+        return new_page_metadata
+
+    return decorator
+
+
 def standard_pdf_filtering(
     header_set: PdfLineSet | List[PdfLineSet],
     subfund_set: PdfLineSet,
     body_set: PdfLineSet,
+    currency_set: PdfLineSet,
     deselection_list: Optional[List[PdfLineSet]] = [],
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
@@ -150,6 +193,7 @@ def standard_pdf_filtering(
 
     def decorator(f):
         @standard_extraction_subfund(subfund_set)
+        @standard_extraction_currency(currency_set)
         @overwrite_if_implemented(f)
         def page_metadata(_: etree.Element) -> dict:
             return {}
