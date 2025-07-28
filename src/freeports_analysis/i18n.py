@@ -1,13 +1,18 @@
 """Module that detect the locale and implement the translation of the messages"""
 
+import os
 import locale
 import tempfile
 from pathlib import Path
 import gettext
 from importlib_resources import files
 
+LOC = None
+if os.system == "posix":
+    LOC = locale.getlocale()[0]
+elif os.system == "nt":
+    LOC = locale.getlocale()[0][:2].lower()
 
-LOC = locale.getlocale()[0]
 if LOC is None:
     LOC = "en_US.UFT-8"
 lang = LOC.split("_")[0]
