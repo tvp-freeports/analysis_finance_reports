@@ -10,9 +10,10 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
 
 @standard_pdf_filtering(
     header_set=PdfLineSet(font_size=8.037657, text="Descrizione"),
-    subfund_set=PdfLineSet(font_size=15.47555, area=(47, 62)),
+    subfund_set=PdfLineSet(font_size=15.47555, area=(47, 66)),
     body_set=PdfLineSet(font_size=8.037657),
     currency_set=PdfLineSet(font_size=8.037657, text="valori espressi in"),
+    algorithm_flags=[False, False, False, False],
 )
 def pdf_filter(xml_root):
     raise NotImplementedError

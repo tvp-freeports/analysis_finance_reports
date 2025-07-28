@@ -263,13 +263,22 @@ def standard_pdf_filtering(
                         algo |= flag
                 _algorithm_flags = algo
 
-            table_positions = get_table_positions(
+            table_col_positions = get_table_positions(
                 table_rows, algorithm_flags=_algorithm_flags, tolerance=tolerance
             )
+
+            table_cell_widths = [table_row.geometry.width for table_row in table_rows]
+            max_width = max(table_cell_widths)
+            is_max_width = [width == max_width for width in table_cell_widths]
+
             return [
                 PdfBlock(
                     OnePdfBlockType.RELEVANT_BLOCK,
-                    {**metadata, "table-col": table_positions[i]},
+                    {
+                        **metadata,
+                        "table-col": table_col_positions[i],
+                        "is-max-width": is_max_width[i],
+                    },
                     table_row.xml_blk,
                 )
                 for i, table_row in enumerate(table_rows)

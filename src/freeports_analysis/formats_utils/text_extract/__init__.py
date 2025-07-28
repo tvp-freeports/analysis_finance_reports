@@ -77,10 +77,16 @@ def standard_text_extraction_loop(match_func=target_match):
                 next_block = pdf_blocks[i + 1]
                 col = current_block.metadata["table-col"]
                 next_col = next_block.metadata["table-col"]
+                cell_width = current_block.metadata["is-max-width"]
+
                 content = current_block.content
-                if col == next_col:
+                if col == next_col and cell_width == True:
                     split = True
                     content += pdf_blocks[i + 1].content
+                elif col == next_col and cell_width == False:
+                    i += 1
+                    continue
+
                 for target in targets:
                     target_n = normalize_string(target)
                     if target_n != "" and match_func(content, target):
