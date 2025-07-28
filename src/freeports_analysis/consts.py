@@ -463,10 +463,10 @@ class FinancialData(ABC):
         string = ""
         if self.acquisition_cost is not None:
             translated_field = _("Acquisition cost")
-            string += f"\t\t{translated_field}:\t{self.acquisition_cost:.2f}{self.currency.value}\n"
+            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.value}\n"
         if self.acquisition_currency is not None:
             translated_field = _("Acquisition currency")
-            string += f"\t\t{translated_field}:\t{self.acquisition_currency.name}\n"
+            string += f"\t\t{translated_field}:\t\t{self.acquisition_currency.name}\n"
         return string
 
     def __str__(self) -> str:
@@ -648,14 +648,15 @@ class Bond(FinancialData):
 
     def _str_additional_infos(self) -> str:
         string = super()._str_additional_infos()
+        translated_maturity_interest_rate = _("Maturity & interest rate")
         translated_maturity = _("Maturity")
         translated_interest_rate = _("Interest rate")
         if self.maturity is not None and self.interest_rate is not None:
-            string += f"\t\t{translated_maturity}:\t\t{self.maturity} +{self.interest_rate:.3%}\n"
+            string += f"\t\t{translated_maturity_interest_rate}:\t{self.maturity} +{self.interest_rate:.3%}\n"
         elif self.maturity is not None:
             string += f"\t\t{translated_maturity}:\t\t{self.maturity}\n"
         elif self.interest_rate is not None:
-            string += f"\t\t{translated_interest_rate}:\t{self.interest_rate:.3%}\n"
+            string += f"\t\t{translated_interest_rate}:\t\t{self.interest_rate:.3%}\n"
         return string
 
     def __eq__(self, other):
