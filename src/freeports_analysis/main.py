@@ -306,8 +306,9 @@ def _main_job(config, n_workers):
             dict_results.append(
                 Equity(
                     page=9999,
-                    targets=[error_msg],
+                    targets=[""],
                     company=error_msg,
+                    company_match="",
                     subfund=None,
                     nominal_quantity=None,
                     market_value=None,
