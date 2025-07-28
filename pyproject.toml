@@ -23,7 +23,8 @@ dependencies = [
     "pandas",
     "requests",
     "PyMuPDF",
-    "lxml"
+    "lxml",
+    "sqlalchemy"
 ]
 keywords = [
     "finance",
