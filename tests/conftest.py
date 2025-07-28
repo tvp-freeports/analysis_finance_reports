@@ -36,6 +36,7 @@ single_page_tests = {
     "EURIZON": [254],
     "ASTERIA_2023": [21, 26],
     "MEDIOLANUM_ES24": [39, 40],
+    "MEDIOLANUM_IT24": [438, 604, 553],
     "DANSKEINVEST_EN24": [148],
 }
 
