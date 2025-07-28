@@ -308,6 +308,7 @@ def _main_job(config, n_workers):
                     page=9999,
                     targets=[error_msg],
                     company=error_msg,
+                    company_match="",
                     subfund=None,
                     nominal_quantity=None,
                     market_value=None,

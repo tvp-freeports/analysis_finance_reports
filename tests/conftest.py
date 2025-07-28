@@ -36,6 +36,7 @@ single_page_tests = {
     "EURIZON": [254],
     "ASTERIA_2023": [21, 26],
     "MEDIOLANUM_ES24": [39, 40],
+    "DANSKEINVEST_EN24": [148],
 }
 
 xml_parser = etree.XMLParser(recover=True)
