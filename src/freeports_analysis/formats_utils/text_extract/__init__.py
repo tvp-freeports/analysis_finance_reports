@@ -206,6 +206,7 @@ def standard_text_extraction(
                     metadata["acquisition currency"] = pdf_blocks[
                         i + acquisition_currency_pos
                     ].content
+
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[
                         i + acquisition_cost_pos

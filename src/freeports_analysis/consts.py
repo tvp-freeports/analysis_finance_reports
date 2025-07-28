@@ -51,49 +51,97 @@ class Currency(Enum):
     Contains standard 3-letter ISO currency codes for major world currencies.
     """
 
-    USD = "$"
-    EUR = "€"
-    GBP = "£"
-    JPY = "¥"
-    CNY = "¥"
-    AUD = "$"
-    CAD = "$"
-    CHF = "CHF"
-    SEK = "kr"
-    NOK = "kr"
-    DKK = "kr"
-    SGD = "$"
-    HKD = "$"
-    KRW = "₩"
-    INR = "₹"
-    BRL = "R$"
-    MXN = "$"
-    RUB = "₽"
-    ZAR = "R"
-    TRY = "₺"
-    PLN = "zł"
-    THB = "฿"
-    IDR = "Rp"
-    MYR = "RM"
-    PHP = "₱"
-    ILS = "₪"
-    AED = "د.إ"
-    SAR = "﷼"
-    QAR = "ر.ق"
-    KWD = "د.ك"
-    CLP = "$"
-    COP = "$"
-    PEN = "S/."
-    ARS = "$"
-    VND = "₫"
-    UAH = "₴"
-    CZK = "Kč"
-    HUF = "Ft"
-    RON = "lei"
-    HRK = "kn"
-    BGN = "лв"
-    ISK = "kr"
-    NZD = "$"
+    USD = auto()
+    EUR = auto()
+    GBP = auto()
+    JPY = auto()
+    CNY = auto()
+    AUD = auto()
+    CAD = auto()
+    CHF = auto()
+    SEK = auto()
+    NOK = auto()
+    DKK = auto()
+    SGD = auto()
+    HKD = auto()
+    KRW = auto()
+    INR = auto()
+    BRL = auto()
+    MXN = auto()
+    RUB = auto()
+    ZAR = auto()
+    TRY = auto()
+    PLN = auto()
+    THB = auto()
+    IDR = auto()
+    MYR = auto()
+    PHP = auto()
+    ILS = auto()
+    AED = auto()
+    SAR = auto()
+    QAR = auto()
+    KWD = auto()
+    CLP = auto()
+    COP = auto()
+    PEN = auto()
+    ARS = auto()
+    VND = auto()
+    UAH = auto()
+    CZK = auto()
+    HUF = auto()
+    RON = auto()
+    HRK = auto()
+    BGN = auto()
+    ISK = auto()
+    NZD = auto()
+
+    @property
+    def symbol(self):
+        return {
+            Currency.USD: "$",
+            Currency.EUR: "€",
+            Currency.GBP: "£",
+            Currency.JPY: "¥",
+            Currency.CNY: "¥",
+            Currency.AUD: "$",
+            Currency.CAD: "$",
+            Currency.CHF: "CHF",
+            Currency.SEK: "kr",
+            Currency.NOK: "kr",
+            Currency.DKK: "kr",
+            Currency.SGD: "$",
+            Currency.HKD: "$",
+            Currency.KRW: "₩",
+            Currency.INR: "₹",
+            Currency.BRL: "R$",
+            Currency.MXN: "$",
+            Currency.RUB: "₽",
+            Currency.ZAR: "R",
+            Currency.TRY: "₺",
+            Currency.PLN: "zł",
+            Currency.THB: "฿",
+            Currency.IDR: "Rp",
+            Currency.MYR: "RM",
+            Currency.PHP: "₱",
+            Currency.ILS: "₪",
+            Currency.AED: "د.إ",
+            Currency.SAR: "﷼",
+            Currency.QAR: "ر.ق",
+            Currency.KWD: "د.ك",
+            Currency.CLP: "$",
+            Currency.COP: "$",
+            Currency.PEN: "S/.",
+            Currency.ARS: "$",
+            Currency.VND: "₫",
+            Currency.UAH: "₴",
+            Currency.CZK: "Kč",
+            Currency.HUF: "Ft",
+            Currency.RON: "lei",
+            Currency.HRK: "kn",
+            Currency.BGN: "лв",
+            Currency.ISK: "kr",
+            Currency.NZD: "$",
+        }[self]
 
 
 PromisesResolutionMap: TypeAlias = dict
@@ -463,7 +511,7 @@ class FinancialData(ABC):
         string = ""
         if self.acquisition_cost is not None:
             translated_field = _("Acquisition cost")
-            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.value}\n"
+            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.symbol}\n"
         if self.acquisition_currency is not None:
             translated_field = _("Acquisition currency")
             string += f"\t\t{translated_field}:\t\t{self.acquisition_currency.name}\n"
