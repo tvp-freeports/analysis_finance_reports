@@ -1,4 +1,4 @@
-"""MEDIOLLANUM_ES24 format submodule"""
+"""MEDIOLLANUM_ES24_A format submodule"""
 
 from typing import List, TypeAlias
 from lxml import etree
