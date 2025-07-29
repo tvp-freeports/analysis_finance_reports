@@ -1,6 +1,5 @@
 from .conftest import out_dir, data_dir, url_example_formats
 import pytest
-from pathlib import Path
 from freeports_analysis import download as dw
 from requests import ConnectionError
 
@@ -13,7 +12,7 @@ def test_download_pdf_URL_NOT_FOUND():
 
 @pytest.mark.online_tests
 def test_download_pdf_200_OK_NO_SAVE():
-    fmt = "EURIZON"
+    fmt = "EURIZON_EN23"
     pdf = dw.download_pdf(url_example_formats[fmt])
     pdf_reference = data_dir / fmt / "report.pdf"
     assert pdf.getvalue() == pdf_reference.read_bytes()
@@ -21,7 +20,7 @@ def test_download_pdf_200_OK_NO_SAVE():
 
 @pytest.mark.online_tests
 def test_download_pdf_200_OK_SAVE():
-    fmt = "ANIMA"
+    fmt = "ANIMA_EN23"
     pdf_saved = out_dir / f"report-{fmt}.pdf"
     pdf = dw.download_pdf(url_example_formats[fmt], pdf_saved)
     pdf_reference = data_dir / fmt / "report.pdf"

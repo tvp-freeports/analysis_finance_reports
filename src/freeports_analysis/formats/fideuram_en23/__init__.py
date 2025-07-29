@@ -12,6 +12,7 @@ from freeports_analysis.formats_utils.text_extract import (
     EquityBondTextBlockType,
 )
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
+from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
 
 logger = log.getLogger(__name__)
 
@@ -21,21 +22,20 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 
 
 @standard_pdf_filtering(
-    header_txt="Country",
-    header_font="Arial",
-    subfund_height=YRange(None, 82),
-    subfund_font="Arial-Bold",
-    body_font="Arial",
-    y_range=(103, 749),
+    header_set=PdfLineSet("Arial", "Country"),
+    subfund_set=PdfLineSet(font="Arial-Bold", area=YRange(None, 82)),
+    body_set=PdfLineSet(font="Arial", area=YRange(103, 749)),
     deselection_list=[
-        ("SHARES, WARRANTS, RIGHTS", "Arial"),
-        (
-            "TRANSFERABLE SECURITIES AND MONEY MARKET INSTRUMENTS ADMITTED TO AN OFFICIAL",
-            "Arial",
+        PdfLineSet(text="SHARES, WARRANTS, RIGHTS", font="Arial"),
+        PdfLineSet(
+            text="TRANSFERABLE SECURITIES AND MONEY MARKET INSTRUMENTS ADMITTED TO AN OFFICIAL",
+            font="Arial",
         ),
-        ("EXCHANGE LISTING OR DEALT IN ON OTHER REGULATED MARKETS", "Arial"),
-        ("BONDS AND ASSIMILATED STRUCTURED PRODUCTS", "Arial"),
-        ("INVESTMENT FUNDS", "Arial"),
+        PdfLineSet(
+            text="EXCHANGE LISTING OR DEALT IN ON OTHER REGULATED MARKETS", font="Arial"
+        ),
+        PdfLineSet(text="BONDS AND ASSIMILATED STRUCTURED PRODUCTS", font="Arial"),
+        PdfLineSet(text="INVESTMENT FUNDS", font="Arial"),
     ],
 )
 def pdf_filter(xml_root) -> dict:
@@ -46,8 +46,7 @@ def pdf_filter(xml_root) -> dict:
     nominal_quantity_pos=-1,
     market_value_pos=+1,
     perc_net_assets_pos=+2,
-    currency=-2,
-    acquisition_cost_pos=None,
+    acquisition_currency_pos=-2,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

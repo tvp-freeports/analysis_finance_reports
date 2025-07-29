@@ -16,6 +16,8 @@ from freeports_analysis.formats_utils.text_extract.match import (
     target_prefix_match,
 )
 from freeports_analysis.formats_utils.pdf_filter.pdf_parts.position import YRange
+from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.consts import Currency
 
 logger = log.getLogger(__name__)
 
@@ -25,12 +27,16 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 
 
 @standard_pdf_filtering(
-    header_txt="Titoli",
-    header_font="TrebuchetMS-Bold",
-    subfund_height=YRange(None, 42),
-    subfund_font="Calibri",
-    body_font="TrebuchetMS",
-    y_range=(83, None),
+    header_set=PdfLineSet(
+        text="Titoli",
+        font="TrebuchetMS-Bold",
+    ),
+    subfund_set=PdfLineSet(
+        font="Calibri",
+        area=YRange(None, 42),
+    ),
+    body_set=PdfLineSet(font="TrebuchetMS", area=YRange(83, None)),
+    currency_set=Currency.EUR,
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError
@@ -40,8 +46,7 @@ def pdf_filter(xml_root) -> dict:
     nominal_quantity_pos=+3,
     market_value_pos=+2,
     perc_net_assets_pos=+4,
-    currency=+1,
-    acquisition_cost_pos=None,
+    acquisition_currency_pos=+1,
     match_func=lambda x, y: target_fuzzy_match(x, y, 0.8)
     and target_prefix_match(x, y, 0.3),
 )
