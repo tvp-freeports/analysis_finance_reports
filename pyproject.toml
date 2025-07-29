@@ -24,7 +24,8 @@ dependencies = [
     "requests",
     "PyMuPDF",
     "lxml",
-    "sqlalchemy"
+    "pydantic",
+    "pandera"
 ]
 keywords = [
     "finance",
