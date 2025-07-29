@@ -191,6 +191,7 @@ def to_currency(data: str) -> Currency:
     if isinstance(data, Currency):
         return data
     data = normalize_word(data)
+
     data = data.upper()
     return Currency[data]
 
@@ -297,11 +298,13 @@ def standard_deserialization(
                     if "acquisition cost" in md
                     else None
                 )
+
                 acu = (
                     to_currency(md["acquisition currency"])
                     if "acquisition currency" in md
                     else None
                 )
+                # print("AOOOOOOOOOOOOOOOOO DESERIALIZING:", acu)
                 args = {
                     "page": md["page"],
                     "targets": targets,
