@@ -35,7 +35,7 @@ single_page_tests = {
     "ARCA_IT24": [20],
     "EURIZON_EN23": [254],
     "ASTERIA_EN23": [21, 26],
-    "MEDIOLANUM_ES24": [39, 40],
+    "MEDIOLANUM_ES24_A": [39, 40],
     "MEDIOLANUM_IT24": [438, 604, 553],
     "DANSKEINVEST_EN24": [148],
 }
