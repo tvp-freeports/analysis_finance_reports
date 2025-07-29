@@ -80,12 +80,13 @@ def standard_text_extraction_loop(match_func=target_match):
                 cell_width = current_block.metadata["is-max-width"]
 
                 content = current_block.content
-                if col == next_col and cell_width == True:
-                    split = True
-                    content += pdf_blocks[i + 1].content
-                elif col == next_col and cell_width == False:
-                    i += 1
-                    continue
+                if col == next_col:
+                    if cell_width == True or " " in content:
+                        split = True
+                        content += pdf_blocks[i + 1].content
+                    else:
+                        i += 1
+                        continue
 
                 for target in targets:
                     target_n = normalize_string(target)
