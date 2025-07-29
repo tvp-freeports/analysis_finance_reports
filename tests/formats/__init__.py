@@ -16,8 +16,8 @@ def generic_test_pdf_filter(fmt, page):
     for r in module.pdf_filter(xml_tree):
         r.metadata["page"] = page
         pdf_blks.append(r)
-    # with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("wb") as f:
-    #     dill.dump(pdf_blks,f)
+    with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("wb") as f:
+        dill.dump(pdf_blks, f)
     reference_pdf_blks = None
     with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("rb") as f:
         reference_pdf_blks = dill.load(f)
@@ -32,8 +32,8 @@ def generic_test_text_extract(fmt, page):
 
     module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     txt_blks = module.text_extract(pdf_blks, targets)
-    # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
-    #     dill.dump(txt_blks,f)
+    with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
+        dill.dump(txt_blks, f)
     reference_txt_blks = None
     with (data_dir / fmt / f"txt_blks-{page}.pkl").open("rb") as f:
         reference_txt_blks = dill.load(f)
@@ -48,8 +48,8 @@ def generic_test_deserialize(fmt, page):
 
     module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     financial_data = [module.deserialize(blk, targets) for blk in txt_blks]
-    # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
-    #     dill.dump(txt_blks,f)
+    with (data_dir / fmt / f"financial_data-{page}.pkl").open("wb") as f:
+        dill.dump(financial_data, f)
     reference_financial_data = None
     with (data_dir / fmt / f"financial_data-{page}.pkl").open("rb") as f:
         reference_financial_data = dill.load(f)
