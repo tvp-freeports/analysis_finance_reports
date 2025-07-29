@@ -81,7 +81,7 @@ def standard_text_extraction_loop(match_func=target_match):
 
                 content = current_block.content
                 if col == next_col:
-                    if cell_width == True or " " in content:
+                    if cell_width or (len(content) > 0 and " " == content[-1]):
                         split = True
                         content += pdf_blocks[i + 1].content
                     else:
