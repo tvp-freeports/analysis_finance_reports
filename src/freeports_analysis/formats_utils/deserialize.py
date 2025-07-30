@@ -188,7 +188,10 @@ def to_currency(data: str) -> Currency:
     KeyError
         If the string doesn't match any Currency enum member
     """
+    if isinstance(data, Currency):
+        return data
     data = normalize_word(data)
+
     data = data.upper()
     return Currency[data]
 
@@ -218,6 +221,7 @@ def to_date(data: str) -> date:
         "%d/%m/%y",  # 02/07/25
         "%m-%d-%Y",  # 07-02-2025
         "%d-%m-%y",  # 01-05-25
+        "%m/%y",  # 05-25
     ]
     for fmt in formats:
         try:
@@ -294,16 +298,27 @@ def standard_deserialization(
                     if "acquisition cost" in md
                     else None
                 )
+
+                acu = (
+                    to_currency(md["acquisition currency"])
+                    if "acquisition currency" in md
+                    else None
+                )
+                pna = (
+                    perc_to_float(md["% net assets"]) if "% net assets" in md else None
+                )
                 args = {
                     "page": md["page"],
                     "targets": targets,
                     "company": to_str(md["company"]),
+                    "company_match": to_str(md["company match"]),
                     "subfund": to_str(md["subfund"]),
                     "nominal_quantity": int_cast(md["quantity"]),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
-                    "perc_net_assets": perc_to_float(md["% net assets"]),
+                    "perc_net_assets": pna,
                     "acquisition_cost": ac,
+                    "acquisition_currency": acu,
                 }
                 if blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
                     return Equity(**args)

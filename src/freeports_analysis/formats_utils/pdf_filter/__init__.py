@@ -4,19 +4,20 @@ This module provides decorators and utilities for filtering and processing PDF c
 based on XML elements, fonts, and positional data.
 """
 
-from typing import List, Optional, Tuple, TypeAlias, Callable, Union
+from typing import List, Optional, TypeAlias, Callable
 from enum import Enum, auto
+import logging as log
 from lxml import etree
 from freeports_analysis.formats import PdfBlock, ExpectedPdfBlockNotFound, TextBlock
 from freeports_analysis.i18n import _
-from .xml.font import get_lines_with_font, is_present_txt_font, get_lines_with_txt_font
-from .select_position import select_inside, get_table_positions, TablePosAlgorithm
-from .pdf_parts.position import YRange
-from .pdf_parts.font import Font
-from .pdf_parts import ExtractedPdfLine
-from .select_font import deselect_txt_font
-from .xml.position import get_bounds
+from .xml.font import get_lines_with_font, get_lines_with_txt_font
+from .select_position import get_table_positions, TablePosAlgorithm
+from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
+from freeports_analysis.consts import Currency
+
+logger = log.getLogger(__name__)
+
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 FilterCondition: TypeAlias = Callable[[etree.Element], bool]
@@ -67,8 +68,7 @@ def filter_page_if(
 
 
 def standard_extraction_subfund(
-    subfund_height: YRange,
-    subfund_font: str,
+    subfund_set: PdfLineSet,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
     """Decorator for extracting subfund text and updating metadata.
 
@@ -87,16 +87,20 @@ def standard_extraction_subfund(
 
     def decorator(old_page_metadata):
         def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
-            lines_with_font = get_lines_with_font(xml_root, subfund_font)
-            lines = [ExtractedPdfLine(blk) for blk in lines_with_font]
-            top_lines = select_inside(lines, subfund_height)
+            xml_lines = None
+            if subfund_set.font is not None:
+                xml_lines = get_lines_with_font(xml_root, subfund_set.font)
+            else:
+                xml_lines = xml_root.findall(".//line")
+
+            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
             subfund = None
-            if len(top_lines) > 0:
-                subfund = top_lines[0].xml_blk.xpath(".//@text")[0]
-            if subfund is None:
+            try:
+                subfund = [line.text for line in lines if line in subfund_set][0]
+            except IndexError as exc:
                 raise ExpectedPdfBlockNotFound(
                     _("subfund block on top of page not found")
-                )
+                ) from exc
             metadata = old_page_metadata(xml_root)
             metadata["subfund"] = subfund
             return metadata
@@ -106,17 +110,65 @@ def standard_extraction_subfund(
     return decorator
 
 
+def standard_extraction_currency(
+    currency_set: PdfLineSet | Currency | str,
+) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+    """Decorator for extracting currency information and updating metadata.
+
+    Parameters
+    ----------
+    currency_set : PdfLineSet | Currency | str
+        The source of currency information. It can be:
+        - a PdfLineSet containing raw text lines to search for a currency,
+        - a Currency object directly,
+        - or a string representing the currency code (e.g., "USD").
+
+    Returns
+    -------
+    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+        A decorator that enhances a metadata update function by extracting
+        the currency and storing it in the metadata.
+    """
+
+    def decorator(old_page_metadata):
+        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
+            metadata = old_page_metadata(xml_root)
+            if isinstance(currency_set, str):
+                metadata["currency"] = Currency[currency_set]
+                return metadata
+            elif isinstance(currency_set, Currency):
+                metadata["currency"] = currency_set
+                return metadata
+
+            xml_lines = None
+            if currency_set.font is not None:
+                xml_lines = get_lines_with_font(xml_root, currency_set.font)
+            else:
+                xml_lines = xml_root.findall(".//line")
+
+            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
+            currency = None
+            try:
+                currency = [line.text for line in lines if line in currency_set][0]
+            except IndexError as exc:
+                print(list(map(lambda x: x.text, lines))[:10])
+                raise ExpectedPdfBlockNotFound(_("currency block  not found")) from exc
+
+            metadata["currency"] = currency
+            return metadata
+
+        return new_page_metadata
+
+    return decorator
+
+
 def standard_pdf_filtering(
-    header_txt: str,
-    header_font: Font,
-    subfund_height: YRange,
-    subfund_font: Font,
-    body_font: Union[str, List[str]],
-    y_range: Optional[
-        Tuple[Optional[float | Tuple[str, str]], Optional[float | Tuple[str, str]]]
-    ] = None,
-    deselection_list: Optional[Tuple[str, Font]] = None,
-    algorithm_flags: List = [False, False, False, False],
+    header_set: PdfLineSet | List[PdfLineSet],
+    subfund_set: PdfLineSet,
+    body_set: PdfLineSet,
+    currency_set: PdfLineSet | Currency | str,
+    deselection_list: Optional[List[PdfLineSet]] = [],
+    algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
 ) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
     """Decorator factory for creating PDF filters with standardized processing.
@@ -151,68 +203,83 @@ def standard_pdf_filtering(
     """
 
     def decorator(f):
-        @standard_extraction_subfund(subfund_height, subfund_font)
+        @standard_extraction_subfund(subfund_set)
+        @standard_extraction_currency(currency_set)
         @overwrite_if_implemented(f)
         def page_metadata(_: etree.Element) -> dict:
             return {}
 
-        @filter_page_if(lambda x: is_present_txt_font(x, header_txt, header_font))
+        def _is_header(xml_root, header_set) -> bool:
+            if not isinstance(header_set, list):
+                header_set = [header_set]
+            for hs in header_set:
+                if hs.font is not None:
+                    if hs.text is not None:
+                        rows = get_lines_with_txt_font(
+                            xml_root, hs.text, hs.font, all_elem=True
+                        )
+                    else:
+                        rows = get_lines_with_font(xml_root, hs.font)
+                else:
+                    rows = xml_root.findall(".//line")
+                lines = [ExtractedPdfLine(line) for line in rows]
+                lines = [line for line in lines if line in hs]
+                if len(lines) == 0:
+                    return False
+            return True
+
+        @filter_page_if(lambda x: _is_header(x, header_set))
         def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
-            metadata = page_metadata(xml_root)
+            _algorithm_flags = algorithm_flags
+            metadata = {}
+            try:
+                metadata = page_metadata(xml_root)
+            except ExpectedPdfBlockNotFound as e:
+                logger.warning(e)
 
-            if isinstance(body_font, str):
-                body_fonts = [body_font]
+            rows = []
+            if body_set.font is not None:
+                rows = get_lines_with_font(xml_root, body_set.font)
             else:
-                body_fonts = body_font
+                rows = xml_root.findall(".//line")
+            rows = [ExtractedPdfLine(r) for r in rows]
 
-            rows = get_lines_with_font(xml_root, body_fonts)
-            lines = [ExtractedPdfLine(r) for r in rows]
-            y_range_numeric_top = None
-            y_range_numeric_btm = None
+            table_rows = [row for row in rows if row in body_set]
+            for deselection_set in deselection_list:
+                table_rows = [
+                    table_row
+                    for table_row in table_rows
+                    if (table_row not in deselection_set)
+                ]
+            if isinstance(_algorithm_flags, list):
+                all_flags = [
+                    TablePosAlgorithm.ROW,
+                    TablePosAlgorithm.BIG_RULE,
+                    TablePosAlgorithm.RULER_AREA,
+                    TablePosAlgorithm.TEST_POS,
+                ]
+                algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+                for flag, enabled in zip(all_flags, _algorithm_flags):
+                    if enabled:
+                        algo |= flag
+                _algorithm_flags = algo
 
-            if deselection_list is not None:
-                lines = deselect_txt_font(
-                    deselection_list=deselection_list, lines=lines
-                )
-
-            if y_range is not None:
-                if isinstance(y_range[0], tuple):
-                    txt, font = y_range[0]
-                    top_limit_blk = get_lines_with_txt_font(xml_root, txt, font)
-                    if top_limit_blk is not None:
-                        y_range_numeric_top = get_bounds(top_limit_blk)[1][1]
-                else:
-                    y_range_numeric_top = y_range[0]
-                if isinstance(y_range[1], tuple):
-                    txt, font = y_range[1]
-                    btm_limit_blk = get_lines_with_txt_font(xml_root, txt, font)
-                    if btm_limit_blk is not None:
-                        y_range_numeric_btm = get_bounds(btm_limit_blk)[1][0]
-                else:
-                    y_range_numeric_btm = y_range[1]
-            table_rows = select_inside(
-                lines, YRange(y_range_numeric_top, y_range_numeric_btm)
+            table_col_positions = get_table_positions(
+                table_rows, algorithm_flags=_algorithm_flags, tolerance=tolerance
             )
 
-            all_flags = [
-                TablePosAlgorithm.ROW,
-                TablePosAlgorithm.BIG_RULE,
-                TablePosAlgorithm.RULER_AREA,
-                TablePosAlgorithm.TEST_POS,
-            ]
+            table_cell_widths = [table_row.geometry.width for table_row in table_rows]
+            max_width = max(table_cell_widths)
+            is_max_width = [width == max_width for width in table_cell_widths]
 
-            algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
-            for flag, enabled in zip(all_flags, algorithm_flags):
-                if enabled:
-                    algo |= flag
-
-            table_positions = get_table_positions(
-                table_rows, algorithm_flags=algo, tolerance=tolerance
-            )
             return [
                 PdfBlock(
                     OnePdfBlockType.RELEVANT_BLOCK,
-                    {**metadata, "table-col": table_positions[i]},
+                    {
+                        **metadata,
+                        "table-col": table_col_positions[i],
+                        "is-max-width": is_max_width[i],
+                    },
                     table_row.xml_blk,
                 )
                 for i, table_row in enumerate(table_rows)

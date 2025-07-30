@@ -48,8 +48,8 @@ def generic_test_deserialize(fmt, page):
 
     module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     financial_data = [module.deserialize(blk, targets) for blk in txt_blks]
-    # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
-    #     dill.dump(txt_blks,f)
+    # with (data_dir / fmt / f"financial_data-{page}.pkl").open("wb") as f:
+    #     dill.dump(financial_data,f)
     reference_financial_data = None
     with (data_dir / fmt / f"financial_data-{page}.pkl").open("rb") as f:
         reference_financial_data = dill.load(f)

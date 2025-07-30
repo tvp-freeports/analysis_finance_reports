@@ -281,10 +281,13 @@ def pdf_filter_exec(
         page_format_log.page = page_number
         if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
             logger.info(_("Still filtering..."))
-
-        for r in pdf_filter_func(page):
-            r.metadata["page"] = page_number
-            batch_results.append(r)
+        try:
+            for r in pdf_filter_func(page):
+                r.metadata["page"] = page_number
+                batch_results.append(r)
+        except Exception as e:
+            logger.error("fatal error in pdf filter")
+            raise e
     return batch_results
 
 
@@ -309,7 +312,13 @@ def text_extract_exec(
     List[TextBlock]
         TextBlock objects containing the extracted content.
     """
-    return text_extract_func(pdf_blocks, targets)
+    txt_blocks = None
+    try:
+        txt_blocks = text_extract_func(pdf_blocks, targets)
+    except Exception as e:
+        logger.error("Invalid text extraction!!")
+        raise e
+    return txt_blocks
 
 
 def deserialize_exec(

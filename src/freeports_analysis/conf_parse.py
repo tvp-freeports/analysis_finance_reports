@@ -108,9 +108,13 @@ def _find_config():
 
 DEFAULT_CONFIG = {
     "VERBOSITY": 2,
-    # `SEPARATE_OUT_FILES` default to `False` because command line args permits to set only to `True`
+    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
     "SEPARATE_OUT_FILES": False,
-    "N_WORKERS": os.process_cpu_count(),
+    "N_WORKERS": os.process_cpu_count()
+    if os.name == "posix"
+    else os.cpu_count()
+    if os.name == "nt"
+    else None,
     "BATCH": None,
     "PREFIX_OUT": None,
     "OUT_CSV": Path("/dev/stdout")

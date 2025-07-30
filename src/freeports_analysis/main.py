@@ -300,7 +300,7 @@ def _main_job(config, n_workers):
     error_msg = _("ERROR, SOMETHING WENT WRONG!!!!")
     for result in results:
         if result is not None:
-            result.fulfill_promises(flat_promises_map, targets)
+            result.fulfill_promises(flat_promises_map)
             dict_results.append(result.to_dict())
         else:
             dict_results.append(
@@ -308,6 +308,7 @@ def _main_job(config, n_workers):
                     page=9999,
                     targets=[error_msg],
                     company=error_msg,
+                    company_match="",
                     subfund=None,
                     nominal_quantity=None,
                     market_value=None,

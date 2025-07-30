@@ -18,9 +18,9 @@ import logging
 from typing import List, Optional
 from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
-from freeports_analysis.consts import Currency
 from .match import target_match
 from .. import normalize_string, overwrite_if_implemented
+from freeports_analysis.consts import Currency
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +77,14 @@ def standard_text_extraction_loop(match_func=target_match):
                 next_block = pdf_blocks[i + 1]
                 col = current_block.metadata["table-col"]
                 next_col = next_block.metadata["table-col"]
+                cell_width = current_block.metadata["is-max-width"]
+
                 content = current_block.content
                 if col == next_col:
                     split = True
-                    content += pdf_blocks[i + 1].content
+                    if cell_width or (len(content) > 0 and " " == content[-1]):
+                        content += next_block.content
+
                 for target in targets:
                     target_n = normalize_string(target)
                     if target_n != "" and match_func(content, target):
@@ -89,6 +93,7 @@ def standard_text_extraction_loop(match_func=target_match):
                             pdf_blocks[i].content = content
                             pdf_blocks.pop(i + 1)
                         txt_blk = f(pdf_blocks, i)
+                        txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
                         break
@@ -114,15 +119,16 @@ date_regexes = [
     r".*(\d{2}[/-]\d{2}[/-]\d{4}).*",
     r".*(\d{4}[/-]\d{2}[/-]\d{2}).*",
     r".*(\d{2}[/-]\d{2}[/-]\d{2}).*",
+    r".*\s(\d{2}[/-]\d{2})\s.*",
 ]
-perc_regexes = [r".*((\d+[\.,]\d+)\s*%).*"]
+perc_regexes = [r".*((\d+[\.,]\d+)\s*%).*", r".*((\d+[\.,]\d+)\s*).*"]
 
 
 def standard_text_extraction(
     nominal_quantity_pos: int,
     market_value_pos: int,
     perc_net_assets_pos: int,
-    currency: Optional[int | Currency] = None,
+    acquisition_currency_pos: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
     match_func=target_match,
 ):
@@ -135,9 +141,9 @@ def standard_text_extraction(
         Relative position for nominal quantity metadata
     market_value_pos : int
         Relative position for market value metadata
-    perc_net_assets_pos : int
+    perc_net_assets_pos : Optional[int], optional
         Relative position for percentage of net assets metadata
-    currency : Optional[Union[int, Currency]], optional
+    acquisition_currency_pos : Optional[Currency], optional
         Either relative position for currency metadata or Currency enum value, by default None
     acquisition_cost_pos : Optional[int], optional
         Relative position for acquisition cost metadata, by default None
@@ -181,11 +187,26 @@ def standard_text_extraction(
                 metadata["page"] = pdf_blocks[i].metadata["page"]
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
-                metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
-                if isinstance(currency, int):
-                    metadata["currency"] = pdf_blocks[i + currency].content
-                elif isinstance(currency, Currency):
-                    metadata["currency"] = currency.name
+                curr = pdf_blocks[i].metadata["currency"]
+                if isinstance(curr, Currency):
+                    metadata["currency"] = curr
+                else:
+                    currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+                    for curr_cand in currency_candidates:
+                        try:
+                            metadata["currency"] = Currency[curr_cand]
+                            continue
+                        except KeyError:
+                            pass
+                if perc_net_assets_pos is not None:
+                    metadata["% net assets"] = pdf_blocks[
+                        i + perc_net_assets_pos
+                    ].content
+
+                if acquisition_currency_pos is not None:
+                    metadata["acquisition currency"] = pdf_blocks[
+                        i + acquisition_currency_pos
+                    ].content
 
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[

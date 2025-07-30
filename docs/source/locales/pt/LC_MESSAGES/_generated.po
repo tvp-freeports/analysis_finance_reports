@@ -1630,12 +1630,12 @@ msgstr ""
 msgid "The area representing the line's bounds."
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.text_size:1
+#: freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.font_size:1
 #: of
 msgid "Get the text size used in the line."
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.text_size:3
+#: freeports_analysis.formats_utils.pdf_filter.pdf_parts.ExtractedPdfLine.font_size:3
 #: of
 msgid "The text size used in the line."
 msgstr ""

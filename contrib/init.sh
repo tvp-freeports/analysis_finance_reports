@@ -7,7 +7,7 @@ CONTRIB_DIR="${REPO_PATH}/contrib"
 git config --local core.hooksPath "${REPO_PATH}/.githooks"
 git config --local include.path "${REPO_PATH}/.gitconfig"
 
-python -m venv "${REPO_PATH}/venv/freeports-dev"
+python3 -m venv "${REPO_PATH}/venv/freeports-dev"
 source "${REPO_PATH}/venv/freeports-dev/bin/activate"
 pip install --upgrade pip
 pip install -r "${CONTRIB_DIR}/requirements.minimal.txt"
