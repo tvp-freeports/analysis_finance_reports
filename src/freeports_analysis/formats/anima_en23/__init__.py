@@ -16,9 +16,13 @@ from freeports_analysis.formats_utils.pdf_filter.pdf_parts import (
     PdfLineSet,
     XRange,
     Area,
+    ExtractedPdfLine,
 )
-from freeports_analysis.formats_utils.pdf_filter.xml.font import is_present_txt_font
-from freeports_analysis.consts import Currency
+from freeports_analysis.formats_utils.pdf_filter.xml.font import (
+    get_lines_with_txt_font,
+    get_lines_with_font,
+)
+from freeports_analysis.formats_utils.pdf_filter.xml.position import get_bounds
 from .. import PdfBlock
 
 
@@ -35,30 +39,65 @@ options = {
         text="Holdings",
     ),
     "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=YRange(62, 82)),
-    "body_set": PdfLineSet("Helvetica-Light", area=YRange(103, 821)),
-    "currency_set": PdfLineSet(
-        "Helvetica-Bold", font_size=8.9802, area=Area(XRange(460, 500), YRange(95, 170))
-    ),
 }
+long_pages_body_set = PdfLineSet("Helvetica-Light", area=YRange(103, 821))
+
+long_pages_currency_set = PdfLineSet(
+    "Helvetica-Bold", font_size=8.9802, area=Area(XRange(460, 500), YRange(95, 170))
+)
 
 
-@standard_pdf_filtering(**options)
+@standard_pdf_filtering(
+    **options, body_set=long_pages_body_set, currency_set=long_pages_currency_set
+)
 def _filter_long_pages(xml_root) -> dict:
     raise NotImplementedError
 
 
-# @standard_pdf_filtering(
-#     **options,
-#     y_range=(("Holdings", "Helvetica-Bold"), ("Futures contracts", "Helvetica-Bold")),
-# )
-# def _filter_short_pages(xml_root) -> dict:
-#     raise NotImplementedError
-
-
 def pdf_filter(xml_root) -> List[PdfBlock]:
-    # if is_present_txt_font(xml_root, "Futures contracts", "Helvetica-Bold"):
-    #     return _filter_short_pages(xml_root)
-    return _filter_long_pages(xml_root)
+    fair_value_line = get_lines_with_txt_font(
+        xml_root, "Fair Value", "Helvetica-Bold", exact_match=True
+    )
+    if fair_value_line is None:
+        return []
+    ((x0, x1), (y0, y1)) = get_bounds(fair_value_line)
+    y_offset = 10
+    w_enlarge = 10
+    h_enlarge = 10
+    currency_set = PdfLineSet(
+        "Helvetica-Bold",
+        font_size=8.9802,
+        area=Area(
+            XRange(x0 - w_enlarge / 2, x1 + w_enlarge / 2),
+            YRange(y0 + y_offset, y1 + y_offset + h_enlarge),
+        ),
+    )
+    skeleton = get_lines_with_font(xml_root, "Helvetica-Bold")
+    skeleton_lines = [ExtractedPdfLine(line) for line in skeleton]
+    tables = [
+        line for line in skeleton_lines if line in PdfLineSet(area=XRange(None, 105))
+    ]
+    if len(tables) == 0:
+        return []
+    elif len(tables) == 1:
+        area = None
+    else:
+        if tables[-1].text == "Holdings":
+            y0 = tables[-1].geometry.y_bounds.y0
+            y1 = None
+        else:
+            for i, table in enumerate(tables):
+                if table.text == "Holdings":
+                    y0 = table.geometry.y_bounds.y0
+                    y1 = tables[i + 1].geometry.y_bounds.y0
+        area = YRange(y0, y1)
+    body_set = PdfLineSet("Helvetica-Light", area=area)
+
+    @standard_pdf_filtering(**options, body_set=body_set, currency_set=currency_set)
+    def filter_page(xml_root):
+        raise NotImplementedError
+
+    return filter_page(xml_root)
 
 
 @standard_text_extraction(
