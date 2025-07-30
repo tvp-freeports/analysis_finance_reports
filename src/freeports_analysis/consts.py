@@ -320,12 +320,12 @@ class FinancialData(ABC):
         The current market value of the instrument.
     currency : Currency | CurrencyPromise
         The currency in which the value is denominated.
-    perc_net_assets : float | PercNetAssetsPromise
-        Percentage of net assets (must be between 0 and 1).
     subfund : str | SubfundPromise
         The subfund to which this instrument belongs.
-    nominal_quantity : int | NominalQuantityPromise , optional
+    nominal_quantity : int | NominalQuantityPromise
         The nominal quantity of the instrument, if applicable.
+    perc_net_assets : float | PercNetAssetsPromise , optional
+        Percentage of net assets (must be between 0 and 1).
     acquisition_cost : float | AcquisitionCostPromise , optional
         The original acquisition cost of the instrument.
     acquisition_currency : Currency | AcquisitionCurrencyPromise , optional
@@ -350,7 +350,7 @@ class FinancialData(ABC):
         nominal_quantity: int | NominalQuantityPromise,
         market_value: float | MarkedValuePromise,
         currency: Currency | CurrencyPromise,
-        perc_net_assets: float | PercNetAssetsPromise,
+        perc_net_assets: float | PercNetAssetsPromise = None,
         acquisition_cost: float | AcquisitionCostPromise = None,
         acquisition_currency: Currency | AcquisitionCurrencyPromise = None,
     ):
@@ -432,7 +432,7 @@ class FinancialData(ABC):
         return self._acquisition_cost
 
     def _validate_perc_net_assets(self, perc_net_assets: float):
-        if not 0.0 <= perc_net_assets <= 1.0:
+        if perc_net_assets is not None and not 0.0 <= perc_net_assets <= 1.0:
             raise ValueError(
                 _("perc_net_assets must be between 0 and 1, not {}").format(
                     perc_net_assets
@@ -509,6 +509,9 @@ class FinancialData(ABC):
 
     def _str_additional_infos(self) -> str:
         string = ""
+        if self.perc_net_assets is not None:
+            translated_field = _("Percentage of net assets")
+            string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
         if self.acquisition_cost is not None:
             translated_field = _("Acquisition cost")
             string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.symbol}\n"
@@ -529,8 +532,9 @@ class FinancialData(ABC):
         string += f"\t{translated_field}:\t{self.currency.name}\n"
         translated_field = _("Market value")
         string += f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.value}"
-        translated_field = _("of net assets")
-        string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
+        if self.perc_net_assets is not None:
+            translated_field = _("of net assets")
+            string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
         translated_field = _("Quantity")
         string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
         translated_field = _("Additional infos")
@@ -600,7 +604,7 @@ class Bond(FinancialData):
         nominal_quantity: int,
         market_value: float,
         currency: Currency,
-        perc_net_assets: float,
+        perc_net_assets: float = None,
         acquisition_cost: float = None,
         acquisition_currency: Currency = None,
         maturity: datetime.date = None,
@@ -622,10 +626,10 @@ class Bond(FinancialData):
             Current market value of the bond.
         currency : Currency
             Currency denomination.
-        perc_net_assets : float
-            Percentage of net assets (0-1).
         subfund : str
             Associated subfund.
+        perc_net_assets : float, optional
+            Percentage of net assets (0-1).
         nominal_quantity : int, optional
             Nominal quantity of bonds.
         acquisition_cost : float, optional

@@ -304,7 +304,9 @@ def standard_deserialization(
                     if "acquisition currency" in md
                     else None
                 )
-                # print("AOOOOOOOOOOOOOOOOO DESERIALIZING:", acu)
+                pna = (
+                    perc_to_float(md["% net assets"]) if "% net assets" in md else None
+                )
                 args = {
                     "page": md["page"],
                     "targets": targets,
@@ -314,7 +316,7 @@ def standard_deserialization(
                     "nominal_quantity": int_cast(md["quantity"]),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
-                    "perc_net_assets": perc_to_float(md["% net assets"]),
+                    "perc_net_assets": pna,
                     "acquisition_cost": ac,
                     "acquisition_currency": acu,
                 }
