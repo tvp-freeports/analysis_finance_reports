@@ -312,7 +312,13 @@ def text_extract_exec(
     List[TextBlock]
         TextBlock objects containing the extracted content.
     """
-    return text_extract_func(pdf_blocks, targets)
+    txt_blocks = None
+    try:
+        txt_blocks = text_extract_func(pdf_blocks, targets)
+    except Exception as e:
+        logger.error("Invalid text extraction!!")
+        raise e
+    return txt_blocks
 
 
 def deserialize_exec(

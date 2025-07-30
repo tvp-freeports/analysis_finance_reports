@@ -11,6 +11,7 @@ Page report,Company,Matched company,Financial instrument,Sub-fund,Nominal/Quanti
 107,Siemens,Siemens AG,EQUITY,Europe High Dividend,5802.0,1094025.0,EUR,0.0246,803116.0,EUR,,
 110,Heidelberg Materials,Heidelberg Materials AG,EQUITY,Europe Long-Short Equity Factors,5225.0,623343.0,EUR,0.0098,637351.0,EUR,,
 117,Alstom,Alstom SA 5.87% 31.12.64,BOND,European Corporate Sustainable Bond,1300000.0,1365390.0,EUR,0.0021,1334500.0,EUR,,0.0587
+119,Siemens,Siemens Energy Finance BV 4.25%,BOND,European Corporate Sustainable Bond,2000000.0,2072681.0,EUR,0.0032,2079180.0,EUR,,0.0425
 148,MAN Group,Goodman Group,EQUITY,Global Index,117776.0,28715949.0,SEK,0.0006,10385466.0,AUD,,
 149,Syensqo,Syensqo SA,EQUITY,Global Index,5115.0,4129401.0,SEK,0.0001,4324118.0,EUR,,
 150,WSP Global,"WSP Global, Inc.",EQUITY,Global Index,10100.0,19628483.0,SEK,0.0004,7092838.0,CAD,,

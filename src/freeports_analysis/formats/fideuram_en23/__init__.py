@@ -5,14 +5,18 @@ from typing import TypeAlias
 from freeports_analysis.formats_utils.pdf_filter import (
     OnePdfBlockType,
     standard_pdf_filtering,
-    YRange,
 )
 from freeports_analysis.formats_utils.text_extract import (
     standard_text_extraction,
     EquityBondTextBlockType,
 )
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats_utils.pdf_filter.pdf_parts import (
+    PdfLineSet,
+    YRange,
+    Area,
+    XRange,
+)
 
 logger = log.getLogger(__name__)
 
@@ -22,7 +26,7 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 
 
 @standard_pdf_filtering(
-    header_set=PdfLineSet("Arial", "Country"),
+    header_set=PdfLineSet("Arial", text="Country"),
     subfund_set=PdfLineSet(font="Arial-Bold", area=YRange(None, 82)),
     body_set=PdfLineSet(font="Arial", area=YRange(103, 749)),
     deselection_list=[
@@ -37,6 +41,9 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
         PdfLineSet(text="BONDS AND ASSIMILATED STRUCTURED PRODUCTS", font="Arial"),
         PdfLineSet(text="INVESTMENT FUNDS", font="Arial"),
     ],
+    currency_set=PdfLineSet(
+        font="Arial", font_size=6.9846, area=Area(XRange(480, None), YRange(148, 155.5))
+    ),
 )
 def pdf_filter(xml_root) -> dict:
     raise NotImplementedError

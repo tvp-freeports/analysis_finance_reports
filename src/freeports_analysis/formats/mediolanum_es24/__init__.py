@@ -19,6 +19,7 @@ from .. import PdfBlock, TextBlock
     header_set=PdfLineSet("TimesNewRomanPSMT", text="n de la cartera"),
     subfund_set=PdfLineSet("TimesNewRomanPSMT", area=(60, 77)),
     body_set=PdfLineSet("TimesNewRomanPSMT"),
+    currency_set=PdfLineSet("TimesNewRomanPSMT", 9, text="(expresado en"),
 )
 def pdf_filter(xml_root: etree.Element) -> dict:
     raise NotImplementedError
@@ -29,7 +30,7 @@ def pdf_filter(xml_root: etree.Element) -> dict:
     market_value_pos=4,
     perc_net_assets_pos=5,
     acquisition_cost_pos=3,
-    currency=2,
+    acquisition_currency_pos=2,
 )
 def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlock]:
     raise NotImplementedError
