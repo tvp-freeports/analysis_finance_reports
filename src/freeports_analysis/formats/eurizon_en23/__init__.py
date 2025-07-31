@@ -19,11 +19,10 @@ logger = log.getLogger(__name__)
 PdfBlockType: TypeAlias = OnePdfBlockType
 TextBlockType: TypeAlias = EquityBondTextBlockType
 
-subfund_set = PdfLineSet(font="Frutiger-Black", area=(65, 85))
+subfund_set = PdfLineSet(font="Frutiger-Black", area=(55, 85))
 header_set = [
     PdfLineSet(
         text="PORTFOLIO AS AT",
-        font_size=11.9735,
         font="Frutiger-Black",
     ),
     PdfLineSet(
@@ -35,7 +34,6 @@ body_set = PdfLineSet(font="Frutiger-Light", area=(160, 765))
 
 currency_set = PdfLineSet(
     text="PORTFOLIO AS AT",
-    font_size=11.9735,
     font="Frutiger-Black",
 )
 
