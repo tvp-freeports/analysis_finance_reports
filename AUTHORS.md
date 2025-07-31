@@ -1,7 +1,7 @@
 # Authors and Contributions
 
 ## [Againor](https://github.com/Againor)
-- First version of `EURIZON` code (first working code)
+- First version of `EURIZON` code (first ever working code)
 
 ## [Angelo Serrecchia](https://github.com/SerAngelo)
 - Fist version of `AMUNDI` code
@@ -9,6 +9,7 @@
 - First version of `AMUNDI2` code
 - First version of `MEDIOLANUM` code
 - First version of `ARCA` code
+- Design and enanchement of utilities for format parsing
 
 ## [Fabian Lochner](https://github.com/FabiLochner)
 - First version of `DANSKEINVEST_EN24` code
@@ -19,7 +20,9 @@
 ## [Manfredi Orlando](https://github.com/ManfrediO)
 - First idea for the program in order to facilitate his broader project about 
   ethic invest and consumers empowerment
-- Director of the broader project
+- Metodologies about the economic part
+- Search of the relevant pdf documents
+- Alpha testing of the code
 
 ## [Oreste Sciacqualegni](https://github.com/GVoreste) - <orestesciacqualegni@tutanota.com>
 - Design of repository
@@ -33,7 +36,6 @@
 - [**Freeports**](https://www.freeports.org) website (first version)
 - Hosting of the `Jenkins` server
 - Name "Freeports"
-- Purpose of [**this**](https://github.com/GVoreste/analysis_finance_reports) project
 - First version `EURIZON_OLD` code
 - First version `EURIZON_IT` code
 - First version `ASTERIA` code
