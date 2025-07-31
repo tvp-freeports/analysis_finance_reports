@@ -336,7 +336,7 @@ def standard_deserialization(
             except ValueError as e:
                 logger.error(_("Cast error in company %s"), md["company"])
                 logger.exception(str(e))
-                logger.warning(_("Skipping page"))
+                logger.warning(_("Skipping line"))
 
         return deserialize
 
