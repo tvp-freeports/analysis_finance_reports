@@ -12,6 +12,7 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     header_set=PdfLineSet("ArialMT-Bold", text="Face value/"),
     subfund_set=PdfLineSet("ArialMT", area=(82, 98)),
     body_set=PdfLineSet("Verdana", area=(195, 710)),
+    currency_set=PdfLineSet("ArialMT", 8.9802, text="(expressed in"),
 )
 def pdf_filter(xml_root):
     raise NotImplementedError
@@ -19,7 +20,7 @@ def pdf_filter(xml_root):
 
 @standard_text_extraction(
     nominal_quantity_pos=+1,
-    currency=+2,
+    acquisition_currency_pos=+2,
     acquisition_cost_pos=+3,
     market_value_pos=+4,
     perc_net_assets_pos=+5,

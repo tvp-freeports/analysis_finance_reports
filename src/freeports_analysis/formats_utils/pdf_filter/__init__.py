@@ -151,6 +151,7 @@ def standard_extraction_currency(
             try:
                 currency = [line.text for line in lines if line in currency_set][0]
             except IndexError as exc:
+                print(list(map(lambda x: x.text, lines))[:10])
                 raise ExpectedPdfBlockNotFound(_("currency block  not found")) from exc
 
             metadata["currency"] = currency

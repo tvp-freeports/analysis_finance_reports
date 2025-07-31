@@ -80,12 +80,10 @@ def standard_text_extraction_loop(match_func=target_match):
                 cell_width = current_block.metadata["is-max-width"]
 
                 content = current_block.content
-                if col == next_col and cell_width == True:
+                if col == next_col:
                     split = True
-                    content += pdf_blocks[i + 1].content
-                elif col == next_col and cell_width == False:
-                    i += 1
-                    continue
+                    if cell_width or (len(content) > 0 and " " == content[-1]):
+                        content += next_block.content
 
                 for target in targets:
                     target_n = normalize_string(target)
@@ -143,7 +141,7 @@ def standard_text_extraction(
         Relative position for nominal quantity metadata
     market_value_pos : int
         Relative position for market value metadata
-    perc_net_assets_pos : int
+    perc_net_assets_pos : Optional[int], optional
         Relative position for percentage of net assets metadata
     acquisition_currency_pos : Optional[Currency], optional
         Either relative position for currency metadata or Currency enum value, by default None
@@ -189,7 +187,6 @@ def standard_text_extraction(
                 metadata["page"] = pdf_blocks[i].metadata["page"]
                 metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
-                metadata["% net assets"] = pdf_blocks[i + perc_net_assets_pos].content
                 curr = pdf_blocks[i].metadata["currency"]
                 if isinstance(curr, Currency):
                     metadata["currency"] = curr
@@ -201,11 +198,16 @@ def standard_text_extraction(
                             continue
                         except KeyError:
                             pass
+                if perc_net_assets_pos is not None:
+                    metadata["% net assets"] = pdf_blocks[
+                        i + perc_net_assets_pos
+                    ].content
 
                 if acquisition_currency_pos is not None:
                     metadata["acquisition currency"] = pdf_blocks[
                         i + acquisition_currency_pos
                     ].content
+
                 if acquisition_cost_pos is not None:
                     metadata["acquisition cost"] = pdf_blocks[
                         i + acquisition_cost_pos

@@ -29,7 +29,11 @@ def is_present_txt_font(blk: etree.Element, txt: str, font: str) -> bool:
 
 
 def get_lines_with_txt_font(
-    blk: etree.Element, txt: str, font: str, all_elem: bool = False
+    blk: etree.Element,
+    txt: str,
+    font: str,
+    all_elem: bool = False,
+    exact_match: bool = False,
 ) -> List[etree.Element] | etree.Element:
     """Get lines with a certain txt and font
 
@@ -44,14 +48,18 @@ def get_lines_with_txt_font(
     all_elem : bool, optional
         if `True` return a list with all matches, if `False` just the first
         as a scalar element
+    exact_match: bool, optional
+        if `False` check if substring is contained in text, if `True` it check
+        against the whole string
 
     Returns
     -------
     List[etree.Element] | etree.Element
         matching lines
     """
+    match_text = f"@text='{txt}'" if exact_match else f"contains(@text,'{txt}')"
     blks = blk.xpath(
-        f"./descendant-or-self::line[contains(@text,'{txt}') and font[@name='{font}']]"
+        f"./descendant-or-self::line[{match_text} and font[@name='{font}']]"
     )
     return blks if all_elem else blks[0] if len(blks) > 0 else None
 

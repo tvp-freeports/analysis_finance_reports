@@ -20,14 +20,24 @@ PdfBlockType: TypeAlias = OnePdfBlockType
 TextBlockType: TypeAlias = EquityBondTextBlockType
 
 subfund_set = PdfLineSet(font="Frutiger-Black", area=(65, 85))
-header_set = PdfLineSet(
+header_set = [
+    PdfLineSet(
+        text="PORTFOLIO AS AT",
+        font_size=11.9735,
+        font="Frutiger-Black",
+    ),
+    PdfLineSet(
+        text="Nominal /",
+        font="Frutiger-Light",
+    ),
+]
+body_set = PdfLineSet(font="Frutiger-Light", area=(160, 765))
+
+currency_set = PdfLineSet(
     text="PORTFOLIO AS AT",
     font_size=11.9735,
     font="Frutiger-Black",
 )
-body_set = PdfLineSet(font="Frutiger-Light", area=(160, 765))
-
-currency_set = header_set
 
 
 @standard_pdf_filtering(

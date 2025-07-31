@@ -51,49 +51,97 @@ class Currency(Enum):
     Contains standard 3-letter ISO currency codes for major world currencies.
     """
 
-    USD = "$"
-    EUR = "€"
-    GBP = "£"
-    JPY = "¥"
-    CNY = "¥"
-    AUD = "$"
-    CAD = "$"
-    CHF = "CHF"
-    SEK = "kr"
-    NOK = "kr"
-    DKK = "kr"
-    SGD = "$"
-    HKD = "$"
-    KRW = "₩"
-    INR = "₹"
-    BRL = "R$"
-    MXN = "$"
-    RUB = "₽"
-    ZAR = "R"
-    TRY = "₺"
-    PLN = "zł"
-    THB = "฿"
-    IDR = "Rp"
-    MYR = "RM"
-    PHP = "₱"
-    ILS = "₪"
-    AED = "د.إ"
-    SAR = "﷼"
-    QAR = "ر.ق"
-    KWD = "د.ك"
-    CLP = "$"
-    COP = "$"
-    PEN = "S/."
-    ARS = "$"
-    VND = "₫"
-    UAH = "₴"
-    CZK = "Kč"
-    HUF = "Ft"
-    RON = "lei"
-    HRK = "kn"
-    BGN = "лв"
-    ISK = "kr"
-    NZD = "$"
+    USD = auto()
+    EUR = auto()
+    GBP = auto()
+    JPY = auto()
+    CNY = auto()
+    AUD = auto()
+    CAD = auto()
+    CHF = auto()
+    SEK = auto()
+    NOK = auto()
+    DKK = auto()
+    SGD = auto()
+    HKD = auto()
+    KRW = auto()
+    INR = auto()
+    BRL = auto()
+    MXN = auto()
+    RUB = auto()
+    ZAR = auto()
+    TRY = auto()
+    PLN = auto()
+    THB = auto()
+    IDR = auto()
+    MYR = auto()
+    PHP = auto()
+    ILS = auto()
+    AED = auto()
+    SAR = auto()
+    QAR = auto()
+    KWD = auto()
+    CLP = auto()
+    COP = auto()
+    PEN = auto()
+    ARS = auto()
+    VND = auto()
+    UAH = auto()
+    CZK = auto()
+    HUF = auto()
+    RON = auto()
+    HRK = auto()
+    BGN = auto()
+    ISK = auto()
+    NZD = auto()
+
+    @property
+    def symbol(self):
+        return {
+            Currency.USD: "$",
+            Currency.EUR: "€",
+            Currency.GBP: "£",
+            Currency.JPY: "¥",
+            Currency.CNY: "¥",
+            Currency.AUD: "$",
+            Currency.CAD: "$",
+            Currency.CHF: "CHF",
+            Currency.SEK: "kr",
+            Currency.NOK: "kr",
+            Currency.DKK: "kr",
+            Currency.SGD: "$",
+            Currency.HKD: "$",
+            Currency.KRW: "₩",
+            Currency.INR: "₹",
+            Currency.BRL: "R$",
+            Currency.MXN: "$",
+            Currency.RUB: "₽",
+            Currency.ZAR: "R",
+            Currency.TRY: "₺",
+            Currency.PLN: "zł",
+            Currency.THB: "฿",
+            Currency.IDR: "Rp",
+            Currency.MYR: "RM",
+            Currency.PHP: "₱",
+            Currency.ILS: "₪",
+            Currency.AED: "د.إ",
+            Currency.SAR: "﷼",
+            Currency.QAR: "ر.ق",
+            Currency.KWD: "د.ك",
+            Currency.CLP: "$",
+            Currency.COP: "$",
+            Currency.PEN: "S/.",
+            Currency.ARS: "$",
+            Currency.VND: "₫",
+            Currency.UAH: "₴",
+            Currency.CZK: "Kč",
+            Currency.HUF: "Ft",
+            Currency.RON: "lei",
+            Currency.HRK: "kn",
+            Currency.BGN: "лв",
+            Currency.ISK: "kr",
+            Currency.NZD: "$",
+        }[self]
 
 
 PromisesResolutionMap: TypeAlias = dict
@@ -272,12 +320,12 @@ class FinancialData(ABC):
         The current market value of the instrument.
     currency : Currency | CurrencyPromise
         The currency in which the value is denominated.
-    perc_net_assets : float | PercNetAssetsPromise
-        Percentage of net assets (must be between 0 and 1).
     subfund : str | SubfundPromise
         The subfund to which this instrument belongs.
-    nominal_quantity : int | NominalQuantityPromise , optional
+    nominal_quantity : int | NominalQuantityPromise
         The nominal quantity of the instrument, if applicable.
+    perc_net_assets : float | PercNetAssetsPromise , optional
+        Percentage of net assets (must be between 0 and 1).
     acquisition_cost : float | AcquisitionCostPromise , optional
         The original acquisition cost of the instrument.
     acquisition_currency : Currency | AcquisitionCurrencyPromise , optional
@@ -302,7 +350,7 @@ class FinancialData(ABC):
         nominal_quantity: int | NominalQuantityPromise,
         market_value: float | MarkedValuePromise,
         currency: Currency | CurrencyPromise,
-        perc_net_assets: float | PercNetAssetsPromise,
+        perc_net_assets: float | PercNetAssetsPromise = None,
         acquisition_cost: float | AcquisitionCostPromise = None,
         acquisition_currency: Currency | AcquisitionCurrencyPromise = None,
     ):
@@ -384,7 +432,7 @@ class FinancialData(ABC):
         return self._acquisition_cost
 
     def _validate_perc_net_assets(self, perc_net_assets: float):
-        if not 0.0 <= perc_net_assets <= 1.0:
+        if perc_net_assets is not None and not 0.0 <= perc_net_assets <= 1.0:
             raise ValueError(
                 _("perc_net_assets must be between 0 and 1, not {}").format(
                     perc_net_assets
@@ -461,9 +509,12 @@ class FinancialData(ABC):
 
     def _str_additional_infos(self) -> str:
         string = ""
+        if self.perc_net_assets is not None:
+            translated_field = _("Percentage of net assets")
+            string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
         if self.acquisition_cost is not None:
             translated_field = _("Acquisition cost")
-            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.value}\n"
+            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.symbol}\n"
         if self.acquisition_currency is not None:
             translated_field = _("Acquisition currency")
             string += f"\t\t{translated_field}:\t\t{self.acquisition_currency.name}\n"
@@ -481,8 +532,9 @@ class FinancialData(ABC):
         string += f"\t{translated_field}:\t{self.currency.name}\n"
         translated_field = _("Market value")
         string += f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.value}"
-        translated_field = _("of net assets")
-        string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
+        if self.perc_net_assets is not None:
+            translated_field = _("of net assets")
+            string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
         translated_field = _("Quantity")
         string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
         translated_field = _("Additional infos")
@@ -552,7 +604,7 @@ class Bond(FinancialData):
         nominal_quantity: int,
         market_value: float,
         currency: Currency,
-        perc_net_assets: float,
+        perc_net_assets: float = None,
         acquisition_cost: float = None,
         acquisition_currency: Currency = None,
         maturity: datetime.date = None,
@@ -574,10 +626,10 @@ class Bond(FinancialData):
             Current market value of the bond.
         currency : Currency
             Currency denomination.
-        perc_net_assets : float
-            Percentage of net assets (0-1).
         subfund : str
             Associated subfund.
+        perc_net_assets : float, optional
+            Percentage of net assets (0-1).
         nominal_quantity : int, optional
             Nominal quantity of bonds.
         acquisition_cost : float, optional
