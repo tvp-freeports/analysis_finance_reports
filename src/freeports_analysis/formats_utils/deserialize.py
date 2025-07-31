@@ -265,18 +265,17 @@ def standard_deserialization(
         def deserialize(blk: TextBlock, targets: List[str]) -> Bond | Equity:
             """Transform TextBlock metadata into a typed dictionary.
 
-            Parameters
-            ----------
-            blk : TextBlock
-                The text block containing metadata to deserialize
-            targets : List[str]
-                List of target companies used as validation when initializing
-                the financial data object
+                        Parameters
+                        ----------
+                        blk : TextBlock
+                            The text block containing metadata to deserialize
+                        targets : List[str]
+                            List of target companies used as validation when initializing
+                            the financial data object
 
-            Returns
-            -------
-            Bond | Equity
-                Finantial data deserialized from text block
+                        Returns
+                        -------
+            s                Finantial data deserialized from text block
             """
             if blk is None:
                 logger.error(_("Something wrong happened, text block is None..."))
