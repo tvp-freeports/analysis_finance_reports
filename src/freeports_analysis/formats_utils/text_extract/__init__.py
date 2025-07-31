@@ -125,9 +125,9 @@ perc_regexes = [r".*((\d+[\.,]\d+)\s*%).*", r".*((\d+[\.,]\d+)\s*).*"]
 
 
 def standard_text_extraction(
-    nominal_quantity_pos: int,
     market_value_pos: int,
-    perc_net_assets_pos: int,
+    nominal_quantity_pos: Optional[int] = None,
+    perc_net_assets_pos: Optional[int] = None,
     acquisition_currency_pos: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
     match_func=target_match,
@@ -137,7 +137,7 @@ def standard_text_extraction(
 
     Parameters
     ----------
-    nominal_quantity_pos : int
+    nominal_quantity_pos : Optional[int], optional
         Relative position for nominal quantity metadata
     market_value_pos : int
         Relative position for market value metadata
@@ -185,7 +185,6 @@ def standard_text_extraction(
             try:
                 metadata["subfund"] = pdf_blocks[i].metadata["subfund"]
                 metadata["page"] = pdf_blocks[i].metadata["page"]
-                metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
                 metadata["market value"] = pdf_blocks[i + market_value_pos].content
                 curr = pdf_blocks[i].metadata["currency"]
                 if isinstance(curr, Currency):
@@ -202,6 +201,9 @@ def standard_text_extraction(
                     metadata["% net assets"] = pdf_blocks[
                         i + perc_net_assets_pos
                     ].content
+
+                if nominal_quantity_pos is not None:
+                    metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
 
                 if acquisition_currency_pos is not None:
                     metadata["acquisition currency"] = pdf_blocks[
