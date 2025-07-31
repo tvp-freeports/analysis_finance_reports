@@ -172,14 +172,15 @@ def standard_text_extraction(
 
         @standard_text_extraction_loop(match_func)
         def text_extract(pdf_blocks: List[PdfBlock], i: int) -> TextBlock:
-            if nominal_quantity_pos * market_value_pos * perc_net_assets_pos == 0:
-                raise ValueError(_("All positions must be non-zero"))
-            if (
-                nominal_quantity_pos == market_value_pos
-                or nominal_quantity_pos == perc_net_assets_pos
-                or market_value_pos == perc_net_assets_pos
-            ):
-                raise ValueError(_("All positions should be different"))
+            if nominal_quantity_pos != None and perc_net_assets_pos != None:
+                if nominal_quantity_pos * market_value_pos * perc_net_assets_pos == 0:
+                    raise ValueError(_("All positions must be non-zero"))
+                if (
+                    nominal_quantity_pos == market_value_pos
+                    or nominal_quantity_pos == perc_net_assets_pos
+                    or market_value_pos == perc_net_assets_pos
+                ):
+                    raise ValueError(_("All positions should be different"))
 
             metadata = {}
             try:
