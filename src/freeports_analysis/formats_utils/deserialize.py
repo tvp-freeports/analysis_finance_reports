@@ -307,15 +307,17 @@ def standard_deserialization(
                 pna = (
                     perc_to_float(md["% net assets"]) if "% net assets" in md else None
                 )
+                nq = int_cast(md["quantity"]) if "quantity" in md else None
+
                 args = {
                     "page": md["page"],
                     "targets": targets,
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
                     "subfund": to_str(md["subfund"]),
-                    "nominal_quantity": int_cast(md["quantity"]),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
+                    "nominal_quantity": nq,
                     "perc_net_assets": pna,
                     "acquisition_cost": ac,
                     "acquisition_currency": acu,

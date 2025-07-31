@@ -509,6 +509,9 @@ class FinancialData(ABC):
 
     def _str_additional_infos(self) -> str:
         string = ""
+        if self.nominal_quantity is not None:
+            translated_field = _("Quantity")
+            string += f"\t\t{translated_field}:\t\t{self.nominal_quantity}\n"
         if self.perc_net_assets is not None:
             translated_field = _("Percentage of net assets")
             string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
@@ -535,8 +538,9 @@ class FinancialData(ABC):
         if self.perc_net_assets is not None:
             translated_field = _("of net assets")
             string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
-        translated_field = _("Quantity")
-        string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
+        if self.nominal_quantity is not None:
+            translated_field = _("Quantity")
+            string += f"\t({self.nominal_quantity} {translated_field})\n"
         translated_field = _("Additional infos")
         string += f"\t{translated_field}: {{"
         add_string = self._str_additional_infos()

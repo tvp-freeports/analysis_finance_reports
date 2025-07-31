@@ -20,9 +20,9 @@ def pdf_filter(xml_root):
 
 
 @standard_text_extraction(
-    market_value_pos=+4,
-    acquisition_currency_pos=+1,
-    acquisition_cost_pos=+2,
+    market_value_pos=+5,
+    # acquisition_currency_pos=+1,
+    # acquisition_cost_pos=+2,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError
