@@ -40,18 +40,6 @@ options = {
     ),
     "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=YRange(62, 82)),
 }
-long_pages_body_set = PdfLineSet("Helvetica-Light", area=YRange(103, 821))
-
-long_pages_currency_set = PdfLineSet(
-    "Helvetica-Bold", font_size=8.9802, area=Area(XRange(460, 500), YRange(95, 170))
-)
-
-
-@standard_pdf_filtering(
-    **options, body_set=long_pages_body_set, currency_set=long_pages_currency_set
-)
-def _filter_long_pages(xml_root) -> dict:
-    raise NotImplementedError
 
 
 def pdf_filter(xml_root) -> List[PdfBlock]:
