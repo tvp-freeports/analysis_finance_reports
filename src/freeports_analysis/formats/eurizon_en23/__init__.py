@@ -59,6 +59,8 @@ def text_extract(pdf_blocks, targets):
     raise NotImplementedError
 
 
-@standard_deserialization(cost_and_value_interpret_int=False)
+@standard_deserialization(
+    cost_and_value_interpret_int=False, quantity_interpret_float=True
+)
 def deserialize(text_block, targets):
     raise NotImplementedError

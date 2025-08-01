@@ -352,7 +352,7 @@ class FinancialData(ABC):
         company: str,
         company_match: str,
         subfund: str | SubfundPromise,
-        nominal_quantity: int | NominalQuantityPromise,
+        nominal_quantity: float | NominalQuantityPromise,
         market_value: float | MarkedValuePromise,
         currency: Currency | CurrencyPromise,
         perc_net_assets: float | PercNetAssetsPromise = None,
@@ -427,7 +427,7 @@ class FinancialData(ABC):
         return self._subfund
 
     @property
-    def nominal_quantity(self) -> int:
+    def nominal_quantity(self) -> float:
         """int or None: The nominal quantity of the instrument, if applicable."""
         return self._nominal_quantity
 
@@ -516,7 +516,7 @@ class FinancialData(ABC):
         string = ""
         if self.nominal_quantity is not None:
             translated_field = _("Quantity")
-            string += f"\t\t{translated_field}:\t\t{self.nominal_quantity}\n"
+            string += f"\t\t{translated_field}:\t\t{int(self.nominal_quantity)}\n"
         if self.perc_net_assets is not None:
             translated_field = _("Percentage of net assets")
             string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
@@ -562,10 +562,10 @@ class FinancialData(ABC):
         eq = eq and self.page == other.page
         eq = eq and self.subfund == other.subfund
         eq = eq and self.currency == other.currency
-        eq = eq and self.market_value == other.market_value
-        eq = eq and self.perc_net_assets == other.perc_net_assets
-        eq = eq and self.nominal_quantity == other.nominal_quantity
-        eq = eq and self.acquisition_cost == other.acquisition_cost
+        eq = eq and abs(self.market_value - other.market_value) < 1e-4
+        eq = eq and abs(self.perc_net_assets - other.perc_net_assets) < 1e-4
+        eq = eq and abs(self.nominal_quantity - other.nominal_quantity) < 1e-4
+        eq = eq and abs(self.acquisition_cost - other.acquisition_cost) < 1e-4
         eq = eq and self.acquisition_currency == other._acquisition_currency
         eq = eq and self.company == other.company
         eq = eq and self.company_match == other.company_match
@@ -612,7 +612,7 @@ class Bond(FinancialData):
         company: str,
         company_match: str,
         subfund: str,
-        nominal_quantity: int,
+        nominal_quantity: float,
         market_value: float,
         currency: Currency,
         perc_net_assets: float = None,
@@ -735,9 +735,6 @@ def _get_module(module_name: str):
             f"freeports_analysis.formats.{module_name.lower()}", package=__package__
         )
     except ImportError:
-        logger.error(
-            _("Module {} ({}) not found").format(module_name.lower(), module_name)
-        )
         logger.error(
             _("Module {} ({}) not found").format(module_name.lower(), module_name)
         )

@@ -286,10 +286,10 @@ def standard_deserialization(
                     return float(to_int(x))
                 return to_float(x)
 
-            def int_cast(x):
+            def quantity_cast(x):
                 if quantity_interpret_float:
-                    return int(to_float(x))
-                return to_int(x)
+                    return to_float(x)
+                return float(to_int(x))
 
             try:
                 ac = (
@@ -306,7 +306,7 @@ def standard_deserialization(
                 pna = (
                     perc_to_float(md["% net assets"]) if "% net assets" in md else None
                 )
-                nq = int_cast(md["quantity"]) if "quantity" in md else None
+                nq = quantity_cast(md["quantity"]) if "quantity" in md else None
 
                 args = {
                     "page": md["page"],
