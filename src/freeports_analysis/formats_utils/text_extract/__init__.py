@@ -193,24 +193,12 @@ def standard_text_extraction(
                     metadata["currency"] = curr
                 else:
                     currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
-
-                    if currency_candidates:
-                        for curr_cand in currency_candidates:
-                            try:
-                                metadata["currency"] = Currency[curr_cand]
-                                break
-                            except KeyError:
-                                continue
-
-                    else:
-                        words = re.findall(r"\b\w+\b", curr)
-                        if words:
-                            metadata["currency"] = Currency["XXX"]
-                            metadata["currency"].mod_name = words[-1]
-                        else:
-                            raise ValueError(
-                                f"Could not extract a valid currency from input: {curr}"
-                            )
+                    for curr_cand in currency_candidates:
+                        try:
+                            metadata["currency"] = Currency[curr_cand]
+                            continue
+                        except KeyError:
+                            pass
 
                 if perc_net_assets_pos is not None:
                     metadata["% net assets"] = pdf_blocks[
