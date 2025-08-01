@@ -557,15 +557,22 @@ class FinancialData(ABC):
         return string
 
     def __eq__(self, other) -> bool:
+        def _float_cmp(x, y):
+            return (
+                x is None
+                and y is None
+                or ((x is not None and y is not None) and (abs(x - y) < 1e-4))
+            )
+
         eq = True
         eq = eq and self.instrument == other.instrument
         eq = eq and self.page == other.page
         eq = eq and self.subfund == other.subfund
         eq = eq and self.currency == other.currency
-        eq = eq and abs(self.market_value - other.market_value) < 1e-4
-        eq = eq and abs(self.perc_net_assets - other.perc_net_assets) < 1e-4
-        eq = eq and abs(self.nominal_quantity - other.nominal_quantity) < 1e-4
-        eq = eq and abs(self.acquisition_cost - other.acquisition_cost) < 1e-4
+        eq = eq and _float_cmp(self.market_value, other.market_value)
+        eq = eq and _float_cmp(self.perc_net_assets, other.perc_net_assets)
+        eq = eq and _float_cmp(self.nominal_quantity, other.nominal_quantity)
+        eq = eq and _float_cmp(self.acquisition_cost, other.acquisition_cost)
         eq = eq and self.acquisition_currency == other._acquisition_currency
         eq = eq and self.company == other.company
         eq = eq and self.company_match == other.company_match
