@@ -94,10 +94,6 @@ class Currency(Enum):
     BGN = auto()
     ISK = auto()
     NZD = auto()
-    XXX = auto()
-
-    def __init__(self, mod_name: Optional[str] = None):
-        self.mod_name = mod_name if mod_name is not None else self.name
 
     @property
     def symbol(self):
@@ -145,7 +141,6 @@ class Currency(Enum):
             Currency.BGN: "лв",
             Currency.ISK: "kr",
             Currency.NZD: "$",
-            Currency.XXX: self.mod_name,
         }[self]
 
 
@@ -502,7 +497,7 @@ class FinancialData(ABC):
             "Sub-fund": self.subfund,
             "Nominal/Quantity": self.nominal_quantity,
             "Market value": self.market_value,
-            "Currency": self.currency.mod_name,
+            "Currency": self.currency.name,
             "% Net Assets": self.perc_net_assets,
             "Acquisition cost": self.acquisition_cost,
             "Acquisition currency": self.acquisition_currency.name
@@ -537,7 +532,7 @@ class FinancialData(ABC):
         translated_field = _("Company")
         string += f"\t{translated_field}:\t{self.company_match}\t[{self.company}]\n"
         translated_field = _("Currency")
-        string += f"\t{translated_field}:\t{self.currency.mod_name}\n"
+        string += f"\t{translated_field}:\t{self.currency.symbol}\n"
         translated_field = _("Market value")
         string += (
             f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.symbol}"
