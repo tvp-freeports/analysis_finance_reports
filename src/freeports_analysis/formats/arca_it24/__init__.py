@@ -47,6 +47,7 @@ def pdf_filter(xml_root) -> dict:
     market_value_pos=+2,
     perc_net_assets_pos=+4,
     acquisition_currency_pos=+1,
+    geometrical_indexes=False,
     match_func=lambda x, y: target_fuzzy_match(x, y, 0.8)
     and target_prefix_match(x, y, 0.3),
 )

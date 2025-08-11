@@ -313,7 +313,7 @@ def standard_deserialization(
                     "targets": targets,
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
-                    "subfund": to_str(md["subfund"]),
+                    "subfund": to_str(md["subfund"]).upper(),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
                     "nominal_quantity": nq,

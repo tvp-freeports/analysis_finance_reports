@@ -92,6 +92,7 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
     nominal_quantity_pos=-1,
     market_value_pos=+1,
     perc_net_assets_pos=+2,
+    geometrical_indexes=False,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

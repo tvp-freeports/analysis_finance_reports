@@ -24,6 +24,7 @@ def pdf_filter(xml_root):
     acquisition_cost_pos=+3,
     market_value_pos=+4,
     perc_net_assets_pos=+5,
+    geometrical_indexes=False,
 )
 def text_extract(pdf_blks, targets):
     raise NotImplementedError

@@ -35,7 +35,10 @@ def pdf_filter(xml_root) -> dict:
 
 
 @standard_text_extraction(
-    nominal_quantity_pos=+1, market_value_pos=+4, perc_net_assets_pos=+5
+    nominal_quantity_pos=+1,
+    market_value_pos=+4,
+    perc_net_assets_pos=+5,
+    geometrical_indexes=False,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

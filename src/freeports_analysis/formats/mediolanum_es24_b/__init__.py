@@ -21,7 +21,7 @@ def pdf_filter(xml_root):
 
 
 @standard_text_extraction(
-    market_value_pos=+52,
+    market_value_pos=+4,
     acquisition_currency_pos=+1,
     acquisition_cost_pos=+2,
 )
