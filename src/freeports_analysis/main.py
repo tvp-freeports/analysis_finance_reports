@@ -107,6 +107,7 @@ def pipeline_batch(
         i_page_batch,
         end_page_batch,
     )
+
     pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, module.pdf_filter)
     logger.info(
         _("Filtering relevant blocks of text from page %i to %i..."),

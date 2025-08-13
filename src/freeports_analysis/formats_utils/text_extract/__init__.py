@@ -100,6 +100,7 @@ class PdfBlocksTable:
     def __len__(self):
         return len(self._blks)
 
+    @property
     def shape(self):
         return (self._rows, self._cols)
 
@@ -138,7 +139,7 @@ class PdfBlocksTable:
         self.pop(j)
 
 
-def standard_text_extraction_loop(geometrical_indexes=False, match_func=target_match):
+def standard_text_extraction_loop(geometrical_indexes=True, match_func=target_match):
     """Decorator for standard text extraction loop.
 
     This decorator wrap the function provide in the usual loop that give a simplify
@@ -191,7 +192,6 @@ def standard_text_extraction_loop(geometrical_indexes=False, match_func=target_m
                         company_name = True
                         if company_name and split:
                             pdf_blocks_table.merge(i + 1, i)
-
                         txt_blk = f(
                             pdf_blocks_table,
                             i if not geometrical_indexes else (row, col),
@@ -208,7 +208,10 @@ def standard_text_extraction_loop(geometrical_indexes=False, match_func=target_m
                 for target in targets:
                     target_n = normalize_string(target)
                     if target_n != "" and match_func(content, target):
-                        txt_blk = f(pdf_blocks_table, i, geometrical_indexes)
+                        txt_blk = f(
+                            pdf_blocks_table,
+                            i if not geometrical_indexes else (row, col),
+                        )
                         txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
@@ -294,9 +297,9 @@ def standard_text_extraction(
                     if isinstance(offset, tuple):
                         ro, co = offset
                     else:
-                        nc = pdf_blocks_table.shape()[1]
-                        co = offset % nc
-                        ro = offset // nc
+                        nc = pdf_blocks_table.shape[1]
+                        co = (c + offset) % nc - c
+                        ro = (c + offset) // nc
                     return (r + ro, c + co)
                 return i + offset
 
@@ -353,8 +356,16 @@ def standard_text_extraction(
                     ].content
 
             except IndexError as e:
-                logger.error(str(e))
+                logger.exception(str(e))
                 return None
+            except Exception as e:
+                if isinstance(pdf_blocks_table[i], PdfBlock):
+                    logger.error(_("Block:"))
+                    logger.exception(pdf_blocks_table[i])
+                elif len(pdf_blocks_table[i]) > 0:
+                    logger.error(_("First block:"))
+                    logger.exception(pdf_blocks_table[i][0])
+                raise e
 
             content = pdf_blocks_table[i].content.replace("\n", "")
             instrument = EquityBondTextBlockType.EQUITY_TARGET

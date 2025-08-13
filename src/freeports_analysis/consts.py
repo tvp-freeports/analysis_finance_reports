@@ -536,14 +536,15 @@ class FinancialData(ABC):
         string += f"\t{translated_field}:\t{self.currency.name}\n"
         translated_field = _("Market value")
         string += (
-            f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.symbol}\n"
+            f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.symbol}"
         )
         if self.perc_net_assets is not None:
             translated_field = _("of net assets")
-            string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
+            string += f"\t({self.perc_net_assets:.3%} {translated_field})"
+        string += "\n"
         if self.nominal_quantity is not None:
             translated_field = _("Quantity")
-            string += f"\t({self.nominal_quantity} {translated_field})\n"
+            string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
         translated_field = _("Additional infos")
         string += f"\t{translated_field}: {{"
         add_string = self._str_additional_infos()

@@ -14,15 +14,17 @@ from freeports_analysis.consts import Currency
     subfund_set=PdfLineSet(font="Helvetica-Bold", area=(0, 80)),
     body_set=PdfLineSet(font="Helvetica"),
     currency_set=Currency["EUR"],
-    deselection_list=[PdfLineSet(text="Cartera de inversiones financieras a")],
+    deselection_list=[
+        PdfLineSet(text="Cartera de inversiones financieras a"),
+        PdfLineSet(font="Helvetica", text="-$"),
+    ],
 )
 def pdf_filter(xml_root):
     raise NotImplementedError
 
 
 @standard_text_extraction(
-    market_value_pos=+4,
-    acquisition_currency_pos=+1,
+    market_value_pos=+3,
     acquisition_cost_pos=+2,
 )
 def text_extract(pdf_blocks, targets):

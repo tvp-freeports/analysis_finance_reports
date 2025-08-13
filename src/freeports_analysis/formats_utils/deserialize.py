@@ -279,6 +279,7 @@ def standard_deserialization(
             """
             if blk is None:
                 logger.error(_("Something wrong happened, text block is None..."))
+                return None
             md = blk.metadata
 
             def float_cast(x):

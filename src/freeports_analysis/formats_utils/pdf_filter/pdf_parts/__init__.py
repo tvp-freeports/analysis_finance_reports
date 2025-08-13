@@ -195,7 +195,31 @@ class PdfLineSet(PdfLine):
 
     def __contains__(self, other: ExtractedPdfLine):
         eq = True
-        eq = eq and (self.text is None or self.text in other.text)
+        if self.text is not None:
+            effective_text = self.text
+            begin = False
+            end = False
+            if len(effective_text) >= 2 and effective_text.startswith(r"\^"):
+                effective_text = effective_text[1:]  # Remove the backslash
+            elif effective_text.startswith("^"):
+                effective_text = effective_text[1:]
+                begin = True
+
+            # Check for escaped $ at the end
+            if len(effective_text) >= 2 and effective_text.endswith(r"\$"):
+                effective_text = (
+                    effective_text[:-2] + effective_text[-1]
+                )  # Remove the backslash
+            elif effective_text.endswith("$"):
+                effective_text = effective_text[:-1]
+                end = True
+            # Perform the checks
+            if begin:
+                eq = eq and other.text.startswith(effective_text)
+            if end:
+                eq = eq and other.text.endswith(effective_text)
+            if not begin and not end:
+                eq = eq and (effective_text in other.text)
         eq = eq and (self.font is None or self.font == other.font)
         eq = eq and (
             self.font_size is None or abs(self.font_size - other.font_size) <= 1e-4
