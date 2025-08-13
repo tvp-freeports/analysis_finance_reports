@@ -2,6 +2,7 @@
 
 import re
 from typing import TypeAlias
+import logging
 from freeports_analysis.formats_utils.pdf_filter import (
     standard_pdf_filtering,
     PdfLineSet,
@@ -29,6 +30,8 @@ from freeports_analysis.consts import Currency
 def pdf_filter(xml_root):
     raise NotImplementedError
 
+
+logger = logging.getLogger(__name__)
 
 TextBlockType: TypeAlias = EquityBondTextBlockType
 
@@ -82,7 +85,7 @@ def text_extract(pdf_blocks, targets):
                         )
 
         else:
-            print(a)
+            logger.error("Anomalous line -> %s", a)
             results.append(None)
     return results
 
