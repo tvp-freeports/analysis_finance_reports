@@ -13,7 +13,10 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     subfund_set=PdfLineSet(font_size=15.47555, area=(0, 80)),
     body_set=PdfLineSet(font_size=8.037657),
     currency_set=PdfLineSet(font_size=8.037657, text="valori espressi in"),
-    deselection_list=[PdfLineSet(text="TABELLA DEGLI INVESTIMENTI AL")],
+    deselection_list=[
+        PdfLineSet(text="TABELLA DEGLI INVESTIMENTI AL"),
+        PdfLineSet(text="^ "),
+    ],
 )
 def pdf_filter(xml_root):
     raise NotImplementedError
@@ -25,7 +28,6 @@ def pdf_filter(xml_root):
     perc_net_assets_pos=+5,
     acquisition_currency_pos=+2,
     acquisition_cost_pos=+3,
-    geometrical_indexes=False,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

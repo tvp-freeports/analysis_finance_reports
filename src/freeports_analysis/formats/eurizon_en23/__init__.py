@@ -54,7 +54,6 @@ def pdf_filter(xml_root) -> dict:
     perc_net_assets_pos=+4,
     acquisition_currency_pos=+1,
     acquisition_cost_pos=+2,
-    geometrical_indexes=False,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

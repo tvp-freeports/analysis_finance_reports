@@ -9,7 +9,7 @@ from ..conftest import data_dir, out_dir, xml_parser, targets, conf
 
 def generic_test_pdf_filter(fmt, page):
     pdf = Document(data_dir / fmt / "report.pdf")
-    xml_str = pdf[page].get_text("xml")
+    xml_str = pdf[page - 1].get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=xml_parser)
     module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     pdf_blks = []

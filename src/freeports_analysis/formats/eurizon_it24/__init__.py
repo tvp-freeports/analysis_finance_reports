@@ -13,6 +13,10 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
     header_set=PdfLineSet("TrebuchetMS,Bold", text="Elenco"),
     subfund_set=PdfLineSet("TrebuchetMS,Italic", area=(793, 803)),
     body_set=PdfLineSet("TrebuchetMS"),
+    deselection_list=[
+        PdfLineSet("TrebuchetMS", text="Totale"),
+        PdfLineSet("TrebuchetMS", text="Altri strumenti finanziari"),
+    ],
     currency_set=Currency.EUR,
 )
 def pdf_filter(xml_root) -> dict:
@@ -22,8 +26,7 @@ def pdf_filter(xml_root) -> dict:
 @standard_text_extraction(
     nominal_quantity_pos=+1,
     market_value_pos=+2,
-    perc_net_assets_pos=+4,
-    geometrical_indexes=False,
+    perc_net_assets_pos=+3,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError

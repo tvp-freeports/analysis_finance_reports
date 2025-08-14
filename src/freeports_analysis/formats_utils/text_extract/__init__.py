@@ -139,7 +139,9 @@ class PdfBlocksTable:
         self.pop(j)
 
 
-def standard_text_extraction_loop(geometrical_indexes=True, match_func=target_match):
+def standard_text_extraction_loop(
+    geometrical_indexes=True, merge_prev=False, match_func=target_match
+):
     """Decorator for standard text extraction loop.
 
     This decorator wrap the function provide in the usual loop that give a simplify
@@ -191,7 +193,10 @@ def standard_text_extraction_loop(geometrical_indexes=True, match_func=target_ma
                     if target_n != "" and match_func(content, target):
                         company_name = True
                         if company_name and split:
-                            pdf_blocks_table.merge(i + 1, i)
+                            if merge_prev:
+                                pdf_blocks_table.merge(i, i + 1)
+                            else:
+                                pdf_blocks_table.merge(i + 1, i)
                         txt_blk = f(
                             pdf_blocks_table,
                             i if not geometrical_indexes else (row, col),
@@ -238,6 +243,7 @@ def standard_text_extraction(
     acquisition_currency_pos: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
     geometrical_indexes=True,
+    merge_prev=False,
     match_func=target_match,
 ):
     """Decorator for defining standard text extraction logic
@@ -278,7 +284,7 @@ def standard_text_extraction(
         def add_metadata(blks: PdfBlocksTable, i: int | Tuple[int, int]) -> dict:
             return {}
 
-        @standard_text_extraction_loop(geometrical_indexes, match_func)
+        @standard_text_extraction_loop(geometrical_indexes, merge_prev, match_func)
         def text_extract(
             pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
         ) -> TextBlock:
