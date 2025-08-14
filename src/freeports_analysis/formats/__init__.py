@@ -277,22 +277,24 @@ def pdf_filter_exec(
     std_err_log.setFormatter(page_format_log)
     logger.addHandler(std_err_log)
 
-    for page_number, page in enumerate(batch_pages, start=i_batch_page + 1):
+    for page_number, page in enumerate(batch_pages, start=i_batch_page):
+        page_results = []
         page_format_log.page = page_number
         if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
             logger.info(_("Still filtering..."))
         try:
             for r in pdf_filter_func(page):
                 r.metadata["page"] = page_number
-                batch_results.append(r)
+                page_results.append(r)
         except Exception as e:
             logger.error("fatal error in pdf filter")
             raise e
+        batch_results.append(page_results)
     return batch_results
 
 
 def text_extract_exec(
-    pdf_blocks: List[PdfBlock],
+    pdf_blocks_batch: List[List[PdfBlock]],
     targets: List[str],
     text_extract_func: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
 ) -> List[TextBlock]:
@@ -314,15 +316,17 @@ def text_extract_exec(
     """
     txt_blocks = None
     try:
-        txt_blocks = text_extract_func(pdf_blocks, targets)
+        txt_blocks = [
+            text_extract_func(pdf_blocks, targets) for pdf_blocks in pdf_blocks_batch
+        ]
     except Exception as e:
-        logger.error("Invalid text extraction!!")
+        logger.error(_("Invalid text extraction!!"))
         raise e
     return txt_blocks
 
 
 def deserialize_exec(
-    text_blocks: List[TextBlock],
+    text_blocks_batch: List[List[TextBlock]],
     targets: List[str],
     deserialize_func: Callable[
         [TextBlock, List[str]], FinancialData | PromisesResolutionContext
@@ -333,7 +337,7 @@ def deserialize_exec(
 
     Args
     ----
-    text_blocks : List[TextBlock]
+    text_blocks : List[List[TextBlock]]
         TextBlock objects to process.
     targets : List[str]
         Targets companies to validate the object creation
@@ -347,7 +351,11 @@ def deserialize_exec(
         FinantialData classes containing the deserialized data or context
         for resolving deferred values
     """
-    return [deserialize_func(txtblk, targets) for txtblk in text_blocks]
+    return [
+        deserialize_func(txtblk, targets)
+        for (text_blocks) in text_blocks_batch
+        for (txtblk) in text_blocks
+    ]
 
 
 class ExpectedPdfBlockNotFound(Exception):

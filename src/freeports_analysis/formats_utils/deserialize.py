@@ -265,21 +265,21 @@ def standard_deserialization(
         def deserialize(blk: TextBlock, targets: List[str]) -> Bond | Equity:
             """Transform TextBlock metadata into a typed dictionary.
 
-            Parameters
-            ----------
-            blk : TextBlock
-                The text block containing metadata to deserialize
-            targets : List[str]
-                List of target companies used as validation when initializing
-                the financial data object
+                        Parameters
+                        ----------
+                        blk : TextBlock
+                            The text block containing metadata to deserialize
+                        targets : List[str]
+                            List of target companies used as validation when initializing
+                            the financial data object
 
-            Returns
-            -------
-            Bond | Equity
-                Finantial data deserialized from text block
+                        Returns
+                        -------
+            s                Finantial data deserialized from text block
             """
             if blk is None:
                 logger.error(_("Something wrong happened, text block is None..."))
+                return None
             md = blk.metadata
 
             def float_cast(x):
@@ -287,10 +287,10 @@ def standard_deserialization(
                     return float(to_int(x))
                 return to_float(x)
 
-            def int_cast(x):
+            def quantity_cast(x):
                 if quantity_interpret_float:
-                    return int(to_float(x))
-                return to_int(x)
+                    return to_float(x)
+                return float(to_int(x))
 
             try:
                 ac = (
@@ -307,15 +307,17 @@ def standard_deserialization(
                 pna = (
                     perc_to_float(md["% net assets"]) if "% net assets" in md else None
                 )
+                nq = quantity_cast(md["quantity"]) if "quantity" in md else None
+
                 args = {
                     "page": md["page"],
                     "targets": targets,
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
-                    "subfund": to_str(md["subfund"]),
-                    "nominal_quantity": int_cast(md["quantity"]),
+                    "subfund": to_str(md["subfund"]).upper(),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
+                    "nominal_quantity": nq,
                     "perc_net_assets": pna,
                     "acquisition_cost": ac,
                     "acquisition_currency": acu,
@@ -334,7 +336,7 @@ def standard_deserialization(
             except ValueError as e:
                 logger.error(_("Cast error in company %s"), md["company"])
                 logger.exception(str(e))
-                logger.warning(_("Skipping page"))
+                logger.warning(_("Skipping line"))
 
         return deserialize
 

@@ -3,7 +3,7 @@ from lxml import etree
 import copy
 
 
-def get_page(file_name: str, page: int, offset: int = 0):
+def get_page(file_name: str, page: int, offset: int = -1):
     pdf_file = pypdf.Document(file_name)
     parser = etree.XMLParser(recover=True)
     page_doc = pdf_file[page + offset]

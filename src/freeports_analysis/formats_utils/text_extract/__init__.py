@@ -15,7 +15,7 @@ Key components:
 from enum import Enum, auto
 import re
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
 from .match import target_match
@@ -40,7 +40,108 @@ class EquityBondTextBlockType(Enum):
     EQUITY_TARGET = auto()
 
 
-def standard_text_extraction_loop(match_func=target_match):
+class PdfBlocksTable:
+    def _get_table(self, pdf_blocks):
+        table = []
+        indexes = []
+        dict_table = {}
+        col_max = 0
+        for i, blk in enumerate(pdf_blocks):
+            row = blk.metadata["table-row"]
+            col = blk.metadata["table-col"]
+            if row not in dict_table:
+                dict_table[row] = {}
+            if col in dict_table[row]:
+                dict_table[row][col].append((i, blk))
+            else:
+                if col > col_max:
+                    col_max = col
+                dict_table[row][col] = [(i, blk)]
+        for row in sorted(dict_table.keys()):
+            cols = []
+            i_cols = []
+            for col in range(col_max + 1):
+                if col in dict_table[row]:
+                    idxs, blks = zip(*dict_table[row][col])
+                    cols.append(list(blks))
+                    i_cols.append(list(idxs))
+                else:
+                    cols.append([])
+                    i_cols.append([])
+            table.append(cols)
+            indexes.append(i_cols)
+        return indexes, table
+
+    def __init__(self, pdf_blocks):
+        self._blks = pdf_blocks.copy()
+        self._table_indexes, self._table = self._get_table(self._blks)
+
+    @property
+    def _rows(self):
+        return len(self._table)
+
+    @property
+    def _cols(self):
+        return max(map(len, self._table)) if self._rows > 0 else 0
+
+    def __getitem__(self, i):
+        if isinstance(i, tuple):
+            j, k = i
+            vals = self._table[j][k]
+            if len(vals) == 1:
+                return vals[0]
+            elif len(vals) == 0:
+                return None
+            else:
+                return vals
+        else:
+            return self._blks[i]
+
+    def __len__(self):
+        return len(self._blks)
+
+    @property
+    def shape(self):
+        return (self._rows, self._cols)
+
+    def pop(self, j):
+        blk = self._blks.pop(j)
+        col_del = blk.metadata["table-col"]
+        row_del = blk.metadata["table-row"]
+        for jdx, jdx_blk in enumerate(self._table_indexes[row_del][col_del]):
+            if jdx_blk == j:
+                self._table_indexes[row_del][col_del].pop(jdx)
+                self._table[row_del][col_del].pop(jdx)
+                self._table_indexes = [
+                    [
+                        [(i_ele) if i_ele < jdx_blk else (i_ele - 1) for i_ele in col]
+                        for col in row
+                    ]
+                    for row in self._table_indexes
+                ]
+                break
+        if all(not col for col in self._table_indexes[row_del]):
+            self._table_indexes.pop(row_del)
+            self._table.pop(row_del)
+            for blk in self._blks:
+                if blk.metadata["table-row"] > row_del:
+                    blk.metadata["table-row"] -= 1
+
+    def merge(self, j, i):
+        first, last = (i, j) if i < j else (j, i)
+        content = self._blks[first].content + self._blks[last].content
+        self._blks[i].content = content
+        col = self._blks[i].metadata["table-col"]
+        row = self._blks[i].metadata["table-row"]
+        for idx, idx_blk in enumerate(self._table_indexes[row][col]):
+            if idx_blk == i:
+                self._table[row][col][idx].content = content
+        self.pop(j)
+
+
+def standard_text_extraction_loop(
+    geometrical_indexes=True, merge_prev=False, match_func=target_match
+):
     """Decorator for standard text extraction loop.
 
     This decorator wrap the function provide in the usual loop that give a simplify
@@ -70,12 +171,14 @@ def standard_text_extraction_loop(match_func=target_match):
             i = 0
             if len(pdf_blocks) == 0:
                 return text_part_list
+            pdf_blocks_table = PdfBlocksTable(pdf_blocks)
             while True:
                 company_name = False
                 split = False
-                current_block = pdf_blocks[i]
-                next_block = pdf_blocks[i + 1]
+                current_block = pdf_blocks_table[i]
+                next_block = pdf_blocks_table[i + 1]
                 col = current_block.metadata["table-col"]
+                row = current_block.metadata["table-row"]
                 next_col = next_block.metadata["table-col"]
                 cell_width = current_block.metadata["is-max-width"]
 
@@ -90,22 +193,31 @@ def standard_text_extraction_loop(match_func=target_match):
                     if target_n != "" and match_func(content, target):
                         company_name = True
                         if company_name and split:
-                            pdf_blocks[i].content = content
-                            pdf_blocks.pop(i + 1)
-                        txt_blk = f(pdf_blocks, i)
+                            if merge_prev:
+                                pdf_blocks_table.merge(i, i + 1)
+                            else:
+                                pdf_blocks_table.merge(i + 1, i)
+                        txt_blk = f(
+                            pdf_blocks_table,
+                            i if not geometrical_indexes else (row, col),
+                        )
                         txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
                         break
                 i += 1
-                if i >= len(pdf_blocks) - 1:
+                if i >= len(pdf_blocks_table) - 1:
                     break
-            if i == len(pdf_blocks) - 1:
-                content = pdf_blocks[-1].content
+            if i == len(pdf_blocks_table) - 1:
+                content = pdf_blocks_table[-1].content
                 for target in targets:
                     target_n = normalize_string(target)
                     if target_n != "" and match_func(content, target):
-                        txt_blk = f(pdf_blocks, i)
+                        txt_blk = f(
+                            pdf_blocks_table,
+                            i if not geometrical_indexes else (row, col),
+                        )
+                        txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
             return text_part_list
@@ -125,11 +237,13 @@ perc_regexes = [r".*((\d+[\.,]\d+)\s*%).*", r".*((\d+[\.,]\d+)\s*).*"]
 
 
 def standard_text_extraction(
-    nominal_quantity_pos: int,
     market_value_pos: int,
-    perc_net_assets_pos: int,
+    nominal_quantity_pos: Optional[int] = None,
+    perc_net_assets_pos: Optional[int] = None,
     acquisition_currency_pos: Optional[int] = None,
     acquisition_cost_pos: Optional[int] = None,
+    geometrical_indexes=True,
+    merge_prev=False,
     match_func=target_match,
 ):
     """Decorator for defining standard text extraction logic
@@ -137,7 +251,7 @@ def standard_text_extraction(
 
     Parameters
     ----------
-    nominal_quantity_pos : int
+    nominal_quantity_pos : Optional[int], optional
         Relative position for nominal quantity metadata
     market_value_pos : int
         Relative position for market value metadata
@@ -167,56 +281,99 @@ def standard_text_extraction(
 
     def wrapper(f):
         @overwrite_if_implemented(f)
-        def add_metadata(blks: List[PdfBlock], i: int) -> dict:
+        def add_metadata(blks: PdfBlocksTable, i: int | Tuple[int, int]) -> dict:
             return {}
 
-        @standard_text_extraction_loop(match_func)
-        def text_extract(pdf_blocks: List[PdfBlock], i: int) -> TextBlock:
-            if nominal_quantity_pos * market_value_pos * perc_net_assets_pos == 0:
-                raise ValueError(_("All positions must be non-zero"))
-            if (
-                nominal_quantity_pos == market_value_pos
-                or nominal_quantity_pos == perc_net_assets_pos
-                or market_value_pos == perc_net_assets_pos
-            ):
-                raise ValueError(_("All positions should be different"))
+        @standard_text_extraction_loop(geometrical_indexes, merge_prev, match_func)
+        def text_extract(
+            pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
+        ) -> TextBlock:
+            if nominal_quantity_pos is not None and perc_net_assets_pos is not None:
+                if (
+                    nominal_quantity_pos == market_value_pos
+                    or nominal_quantity_pos == perc_net_assets_pos
+                    or market_value_pos == perc_net_assets_pos
+                ):
+                    raise ValueError(_("All positions should be different"))
+
+            def abs_idx(offset):
+                if isinstance(i, tuple):
+                    ro, co = (None, None)
+                    r, c = i
+                    if isinstance(offset, tuple):
+                        ro, co = offset
+                    else:
+                        nc = pdf_blocks_table.shape[1]
+                        co = (c + offset) % nc - c
+                        ro = (c + offset) // nc
+                    return (r + ro, c + co)
+                return i + offset
 
             metadata = {}
             try:
-                metadata["subfund"] = pdf_blocks[i].metadata["subfund"]
-                metadata["page"] = pdf_blocks[i].metadata["page"]
-                metadata["quantity"] = pdf_blocks[i + nominal_quantity_pos].content
-                metadata["market value"] = pdf_blocks[i + market_value_pos].content
-                curr = pdf_blocks[i].metadata["currency"]
+                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
+                metadata["page"] = pdf_blocks_table[i].metadata["page"]
+                metadata["market value"] = pdf_blocks_table[
+                    abs_idx(market_value_pos)
+                ].content
+
+                curr = pdf_blocks_table[i].metadata["currency"]
                 if isinstance(curr, Currency):
                     metadata["currency"] = curr
                 else:
                     currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+                    found = False
                     for curr_cand in currency_candidates:
                         try:
                             metadata["currency"] = Currency[curr_cand]
-                            continue
+                            found = True
+                            break
                         except KeyError:
                             pass
+                    if not found:
+                        curr = curr.upper()
+                        for c in Currency.__members__:
+                            re.findall(r"\b" + c + r"\b", curr)
+                            for curr_cand in currency_candidates:
+                                try:
+                                    metadata["currency"] = Currency[curr_cand]
+                                    break
+                                except KeyError:
+                                    pass
+
                 if perc_net_assets_pos is not None:
-                    metadata["% net assets"] = pdf_blocks[
-                        i + perc_net_assets_pos
+                    metadata["% net assets"] = pdf_blocks_table[
+                        abs_idx(perc_net_assets_pos)
+                    ].content
+
+                if nominal_quantity_pos is not None:
+                    metadata["quantity"] = pdf_blocks_table[
+                        abs_idx(nominal_quantity_pos)
                     ].content
 
                 if acquisition_currency_pos is not None:
-                    metadata["acquisition currency"] = pdf_blocks[
-                        i + acquisition_currency_pos
+                    metadata["acquisition currency"] = pdf_blocks_table[
+                        abs_idx(acquisition_currency_pos)
                     ].content
 
                 if acquisition_cost_pos is not None:
-                    metadata["acquisition cost"] = pdf_blocks[
-                        i + acquisition_cost_pos
+                    metadata["acquisition cost"] = pdf_blocks_table[
+                        abs_idx(acquisition_cost_pos)
                     ].content
-            except IndexError as e:
-                logger.error(str(e))
-                return None
 
-            content = pdf_blocks[i].content.replace("\n", "")
+            except IndexError as e:
+                logger.exception(str(e))
+                return None
+            except Exception as e:
+                if isinstance(pdf_blocks_table[i], PdfBlock):
+                    logger.error(_("Block:"))
+                    logger.exception(pdf_blocks_table[i])
+                elif len(pdf_blocks_table[i]) > 0:
+                    logger.error(_("First block:"))
+                    logger.exception(pdf_blocks_table[i][0])
+                raise e
+
+            content = pdf_blocks_table[i].content.replace("\n", "")
             instrument = EquityBondTextBlockType.EQUITY_TARGET
             for reg in perc_regexes:
                 interest_rate_match = re.match(reg, content, re.DOTALL)
@@ -231,8 +388,8 @@ def standard_text_extraction(
                     metadata["maturity"] = date_match[1]
                     break
 
-            metadata.update(add_metadata(pdf_blocks, i))
-            return TextBlock(instrument, metadata, pdf_blocks[i])
+            metadata.update(add_metadata(pdf_blocks_table, i))
+            return TextBlock(instrument, metadata, pdf_blocks_table[i])
 
         return text_extract
 

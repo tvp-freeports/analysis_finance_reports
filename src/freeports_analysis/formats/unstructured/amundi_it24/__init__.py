@@ -24,6 +24,7 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 
 
 @standard_pdf_filtering(
+    deselection_list=[PdfLineSet(font="TrebuchetMS", text="^ ")],
     header_set=PdfLineSet(font="TrebuchetMS-Bold", text="Titolo"),
     subfund_set=PdfLineSet(font="Arial-BoldItalicMT", area=YRange(None, 60)),
     body_set=PdfLineSet(font="TrebuchetMS"),
@@ -35,12 +36,16 @@ def pdf_filter(xml_root) -> dict:
 
 
 @standard_text_extraction(
-    nominal_quantity_pos=+1, market_value_pos=+4, perc_net_assets_pos=+5
+    nominal_quantity_pos=+1,
+    market_value_pos=+2,
+    perc_net_assets_pos=+5,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError
 
 
-@standard_deserialization(quantity_interpret_float=True)
+@standard_deserialization(
+    quantity_interpret_float=True, cost_and_value_interpret_int=False
+)
 def deserialize(text_block, targets):
     raise NotImplementedError

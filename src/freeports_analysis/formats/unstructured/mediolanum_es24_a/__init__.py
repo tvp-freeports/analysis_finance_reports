@@ -18,8 +18,9 @@ from .. import PdfBlock, TextBlock
 @standard_pdf_filtering(
     header_set=PdfLineSet("TimesNewRomanPSMT", text="n de la cartera"),
     subfund_set=PdfLineSet("TimesNewRomanPSMT", area=(60, 77)),
-    body_set=PdfLineSet("TimesNewRomanPSMT"),
+    body_set=PdfLineSet("TimesNewRomanPSMT", area=(None, 795)),
     currency_set=PdfLineSet("TimesNewRomanPSMT", 9, text="(expresado en"),
+    deselection_list=[PdfLineSet("TimesNewRomanPSMT", text="^ ")],
 )
 def pdf_filter(xml_root: etree.Element) -> dict:
     raise NotImplementedError

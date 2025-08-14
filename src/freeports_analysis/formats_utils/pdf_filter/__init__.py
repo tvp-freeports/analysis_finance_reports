@@ -267,6 +267,11 @@ def standard_pdf_filtering(
             table_col_positions = get_table_positions(
                 table_rows, algorithm_flags=_algorithm_flags, tolerance=tolerance
             )
+            table_row_positions = get_table_positions(
+                table_rows,
+                algorithm_flags=_algorithm_flags | TablePosAlgorithm.ROW,
+                tolerance=tolerance,
+            )
 
             table_cell_widths = [table_row.geometry.width for table_row in table_rows]
             max_width = max(table_cell_widths)
@@ -277,6 +282,7 @@ def standard_pdf_filtering(
                     OnePdfBlockType.RELEVANT_BLOCK,
                     {
                         **metadata,
+                        "table-row": table_row_positions[i],
                         "table-col": table_col_positions[i],
                         "is-max-width": is_max_width[i],
                     },

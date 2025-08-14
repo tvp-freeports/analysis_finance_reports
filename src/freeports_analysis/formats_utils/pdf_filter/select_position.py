@@ -84,9 +84,9 @@ def _area_intersection_algorithm(
     ruler_bounds = ruler_geometry[1]
     min_bound_t, max_bound_t = test_bounds
     min_bound_r, max_bound_r = ruler_bounds
-    return (
-        (min_bound_r - abs_tolerance) <= max_bound_t <= (max_bound_r + abs_tolerance)
-    ) or ((min_bound_r - abs_tolerance) <= min_bound_t <= (max_bound_r + abs_tolerance))
+    return (min_bound_r - abs_tolerance <= max_bound_t) and (
+        min_bound_t - abs_tolerance <= max_bound_r
+    )
 
 
 def _algorithm_table_pos(ruler_geometry, test_geometry, algorithm_flags, abs_tolerance):
@@ -147,7 +147,6 @@ def get_table_positions(
         # Select ruler for this axis
         ruler_idx, _ = choose(unindexed, key=lambda x: x[1])
         ruler_area = areas[ruler_idx]
-
         # Get ruler bounds and position
         ruler_bounds = ruler_area.x_bounds if return_col else ruler_area.y_bounds
         ruler_pos = ruler_area.c[0] if return_col else ruler_area.c[1]
