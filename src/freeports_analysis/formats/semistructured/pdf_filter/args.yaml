@@ -1,0 +1,48 @@
+AMUNDI-IT24:
+  deselection_list:
+    - font: TrebuchetMS
+      text: "^ "
+  header_set:
+    - font: TrebuchetMS-Bold
+      text: "Titolo"
+  body_set:
+    font: TrebuchetMS
+  subfund_set:
+    font: Arial-BoldItalicMT
+    area:
+      y_max: 60
+  currency: EUR
+  algorithm-flags:
+    - RULER_AREA
+
+ARCA-IT24:
+  header_set:
+    - font: TrebuchetMS-Bold
+      text: "Titoli"
+  body_set:
+    font: TrebuchetMS
+    area:
+      y_min: 83
+  subfund_set:
+    font: Calibri
+    area:
+      y_max: 60
+  currency: EUR
+
+EURIZON-IT24:
+  deselection_list:
+    - font: TrebuchetMS
+      text: "Totale"
+    - font: TrebuchetMS
+      text: "Altri strumenti finanziari"
+  header_set:
+    - font: TrebuchetMS,Bold
+      text: "Elenco"
+  body_set:
+    font: TrebuchetMS
+  subfund_set:
+    font: TrebuchetMS,Italic
+    area:
+      y_min: 793
+      y_max: 803
+  currency: EUR

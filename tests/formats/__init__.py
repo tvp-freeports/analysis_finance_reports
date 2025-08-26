@@ -4,16 +4,22 @@ import dill
 import pandas as pd
 from lxml import etree
 import freeports_analysis as fra
+from freeports_analysis.formats import (
+    get_pipelines,
+    get_pdf_filters,
+    get_text_extract,
+    get_deserialize,
+)
 from ..conftest import data_dir, out_dir, xml_parser, targets, conf
 
 
-def generic_test_pdf_filter(fmt, page):
+def generic_test_pdf_filter(fmt, pipeline_index, page):
     pdf = Document(data_dir / fmt / "report.pdf")
     xml_str = pdf[page - 1].get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=xml_parser)
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
     pdf_blks = []
-    for r in module.pdf_filter(xml_tree):
+    pdf_filter = get_pdf_filters()[pipeline_index]
+    for r in pdf_filter(xml_tree):
         r.metadata["page"] = page
         pdf_blks.append(r)
     # with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("wb") as f:
@@ -25,13 +31,13 @@ def generic_test_pdf_filter(fmt, page):
     assert pdf_blks == reference_pdf_blks
 
 
-def generic_test_text_extract(fmt, page):
+def generic_test_text_extract(fmt, pipeline_index, page):
     pdf_blks = None
     with (data_dir / fmt / f"pdf_blks-{page}.pkl").open("rb") as f:
         pdf_blks = dill.load(f)
 
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
-    txt_blks = module.text_extract(pdf_blks, targets)
+    text_extract = get_text_extract()[pipeline_index]
+    txt_blks = text_extract(pdf_blks, targets)
     # with (data_dir / fmt / f"txt_blks-{page}.pkl").open("wb") as f:
     #     dill.dump(txt_blks,f)
     reference_txt_blks = None
@@ -41,13 +47,13 @@ def generic_test_text_extract(fmt, page):
     assert txt_blks == reference_txt_blks
 
 
-def generic_test_deserialize(fmt, page):
+def generic_test_deserialize(fmt, pipeline_index, page):
     txt_blks = None
     with (data_dir / fmt / f"txt_blks-{page}.pkl").open("rb") as f:
         txt_blks = dill.load(f)
 
-    module = importlib.import_module(f"freeports_analysis.formats.{fmt.lower()}")
-    financial_data = [module.deserialize(blk, targets) for blk in txt_blks]
+    deserialize = get_deserialize(fmt)[pipeline_index]
+    financial_data = [deserialize(blk, targets) for blk in txt_blks]
     # with (data_dir / fmt / f"financial_data-{page}.pkl").open("wb") as f:
     #     dill.dump(financial_data,f)
     reference_financial_data = None
@@ -57,7 +63,23 @@ def generic_test_deserialize(fmt, page):
     assert financial_data == reference_financial_data
 
 
-def generic_test_pipeline(fmt):
+def generic_pdf_filter_pipes(fmt, page):
+    pass
+
+
+def generic_text_extract_pipes(fmt, page):
+    pass
+
+
+def generic_deserialize_pipes(fmt, page):
+    pass
+
+
+def generic_pipeline(fmt):
+    pass
+
+
+def generic_test_pipelines(fmt):
     conf["PDF"] = data_dir / fmt / "report.pdf"
     conf["FORMAT"] = fra.consts.PdfFormats.__members__[fmt]
     conf["OUT_CSV"] = out_dir / f"out-{fmt}.csv"

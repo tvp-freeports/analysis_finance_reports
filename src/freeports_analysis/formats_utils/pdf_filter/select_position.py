@@ -1,7 +1,9 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
-from typing import List
+from typing import List, Annotated
 from enum import Flag, Enum, auto
+from pydantic import BeforeValidator
+import pandas as pd
 
 from .pdf_parts import ExtractedPdfLine
 from .pdf_parts.position import XRange, YRange
@@ -54,6 +56,25 @@ class TablePosAlgorithm(Flag):
     BIG_RULE = auto()
     RULER_AREA = auto()
     TEST_POS = auto()
+
+    @classmethod
+    def from_dict(cls, v: str | list):
+        if pd.isna(v):
+            return None
+        if isinstance(v, list):
+            return sum(getattr(TablePosAlgorithm, flag) for flag in v)
+        if isinstance(v, str):
+            # Split "READ|WRITE" -> [TablePosAlgorithm.READ, TablePosAlgorithm.WRITE]
+            flags = [TablePosAlgorithm[flag.strip()] for flag in v.split("|")]
+            return sum(flags)  # Combina i flag con OR bitwise
+        raise ValueError(
+            "Flags should be specified with list or string concatenated by `|`"
+        )
+
+
+InputTablePosAlgorithm = Annotated[
+    TablePosAlgorithm, BeforeValidator(TablePosAlgorithm.from_dict)
+]
 
 
 class TablePosMeasureUnit(Enum):

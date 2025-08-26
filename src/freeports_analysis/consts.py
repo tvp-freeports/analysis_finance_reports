@@ -731,16 +731,3 @@ class Bond(FinancialData):
         eq = eq and self.maturity == other.maturity
         eq = eq and self.interest_rate == other._interest_rate
         return eq
-
-
-def _get_module(module_name: str):
-    try:
-        module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name.lower()}", package=__package__
-        )
-    except ImportError:
-        logger.error(
-            _("Module {} ({}) not found").format(module_name.lower(), module_name)
-        )
-        raise
-    return module

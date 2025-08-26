@@ -1,6 +1,7 @@
 """Definition of types for identify characteristic related with geometrical aspects of the line."""
 
-from typing import Tuple, TypeAlias
+from typing import Tuple, TypeAlias, Optional, Annotated
+from pydantic import BaseModel, PositiveFloat, model_validator, AfterValidator
 from .generic import Range
 
 
@@ -73,6 +74,23 @@ class YRange(Range):
 Coord: TypeAlias = Tuple[float, float]
 
 
+class InputArea(BaseModel):
+    x_min: Optional[PositiveFloat] = None
+    x_max: Optional[PositiveFloat] = None
+    y_min: Optional[PositiveFloat] = None
+    y_max: Optional[PositiveFloat] = None
+
+    @model_validator(mode="after")  # Dopo la validazione dei singoli campi
+    def validate_bounds(self):
+        if self.x_max is not None and self.x_min is not None:
+            if self.x_max <= self.x_min:
+                raise ValueError("x_max must be greater than x_min")
+        if self.y_max is not None and self.y_min is not None:
+            if self.y_max <= self.y_min:
+                raise ValueError("y_max must be greater than y_min")
+        return self
+
+
 class Area:
     """A class representing a 2D area defined by X and Y ranges.
 
@@ -91,6 +109,14 @@ class Area:
     height : float
         The height of the area (y_bounds.size).
     """
+
+    @classmethod
+    def from_dict(cls, data):
+        area = InputArea(**data)
+        return cls(
+            x_range=XRange(area.x_min, area.x_max),
+            y_range=YRange(area.y_min, area.y_max),
+        )
 
     def __init__(self, x_range: XRange, y_range: YRange):
         """Initialize the Area with X and Y ranges.
@@ -198,6 +224,9 @@ class Area:
         """
         return self.x_bounds in other.x_bounds and self.y_bounds in other.y_bounds
 
+    def _fmt_point(self, coor):
+        return "" if coor is None else f"{coor:.3f}"
+
     def __str__(self) -> str:
         """Return a string representation of the area.
 
@@ -209,7 +238,22 @@ class Area:
         string = ""
         (((x_tl, y_tl), (x_tr, y_tr)), ((x_bl, y_bl), (x_br, y_br))) = self.corners
         x, y = self.c
-        string += f"|({x_tl:.3f}, {y_tl:.3f})\t({x_tr:.3f}, {y_tr:.3f})\n"
-        string += f"|\t({x:.3f}, {y:.3f})\n"
-        string += f"|({x_bl:.3f}, {y_bl:.3f})\t({x_br:.3f}, {y_br:.3f})\n"
+        x_tl = self._fmt_point(x_tl)
+        y_tl = self._fmt_point(y_tl)
+        x_tr = self._fmt_point(x_tr)
+        y_tr = self._fmt_point(y_tr)
+
+        x_bl = self._fmt_point(x_bl)
+        y_bl = self._fmt_point(y_bl)
+        x_br = self._fmt_point(x_br)
+        y_br = self._fmt_point(y_br)
+
+        x = self._fmt_point(x)
+        y = self._fmt_point(y)
+        string += f"|({x_tl}, {y_tl})\t({x_tr}, {y_tr})\n"
+        string += f"|\t({x}, {y})\n"
+        string += f"|({x_bl}, {y_bl})\t({x_br}, {y_br})\n"
         return string
+
+
+AreaDict = Annotated[InputArea, AfterValidator(lambda x: Area.from_dict(x.dict()))]

@@ -1,0 +1,5 @@
+ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous
+EURIZON-EN21,,,,FALSE,,
+EURIZON-EN23,,,,FALSE,,
+ASTERIA-EN24,,,,,,TRUE
+DANSKEINVEST-EN24,,,,,,TRUE

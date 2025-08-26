@@ -8,7 +8,11 @@ from typing import List, Optional, TypeAlias, Callable
 from enum import Enum, auto
 import logging as log
 from lxml import etree
-from freeports_analysis.formats import PdfBlock, ExpectedPdfBlockNotFound, TextBlock
+from freeports_analysis.formats.commons import (
+    PdfBlock,
+    ExpectedPdfBlockNotFound,
+    TextBlock,
+)
 from freeports_analysis.i18n import _
 from .xml.font import get_lines_with_font, get_lines_with_txt_font
 from .select_position import get_table_positions, TablePosAlgorithm

@@ -1,11 +1,13 @@
 """Pdf xml parts in a friendly format (custom python classes)."""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Annotated
+import re
 from lxml import etree
+from pydantic import BaseModel, AfterValidator
 from freeports_analysis.i18n import _
 from .font import Font, FontSize
 from ..xml.position import get_bounds
-from .position import Area, XRange, YRange, Coord
+from .position import Area, XRange, YRange, Coord, AreaDict
 
 
 class PdfLine:
@@ -190,8 +192,67 @@ class ExtractedPdfLine(PdfLine):
         return self._blk
 
 
+class InputPdfLineSet(BaseModel):
+    text: Optional[str] = None
+    font: Optional[Font] = None
+    font_size: Optional[FontSize] = None
+    area: Optional[AreaDict] = None
+
+
+_line_set_font_regexp = r"(?P<font>[\w-]+)"
+_number_regexp = r"[0-9]+(\.[0-9]+)?"
+_line_set_fontsize_regexp = rf"\[(?P<font_size>{_number_regexp})\]"
+_range_regexp = rf"\(({_number_regexp})?:({_number_regexp})?\)"
+_line_set_area_regexp = (
+    rf"(?P<y_range>{_range_regexp})|\((?P<area>{_range_regexp}{_range_regexp})\)"
+)
+_line_set_text_regexp = '"(?P<text>.*)"'
+line_set_regexp = f"({_line_set_font_regexp})? ?"
+line_set_regexp += f"({_line_set_fontsize_regexp})? ?"
+line_set_regexp += f"({_line_set_area_regexp})? ?"
+line_set_regexp += f"({_line_set_text_regexp})?"
+_line_set_regexp = re.compile(line_set_regexp)
+
+
 class PdfLineSet(PdfLine):
     """Set of lines with some carateristic"""
+
+    @classmethod
+    def from_dict(cls, data):
+        ls = InputPdfLineSet(**data)
+        return cls(font=ls.font, font_size=ls.font_size, area=ls.area, text=ls.text)
+
+    @classmethod
+    def from_str(cls, string):
+        matched = _line_set_regexp.match(string).groupdict()
+        area = None
+        tmp_area = matched["area"]
+        tmp_range = matched["y_range"]
+
+        def _to_floats(x):
+            return (
+                (float(c) if c != "" else None)
+                for c in x.replace("(", "").replace(")", "").split(":")
+            )
+
+        if tmp_area is not None:
+            x_range, y_range = tmp_area.split(")(")
+            area = Area(
+                x_range=XRange(*_to_floats(x_range)),
+                y_range=YRange(*_to_floats(y_range)),
+            )
+        elif tmp_range is not None:
+            area = Area(
+                x_range=XRange(None, None), y_range=YRange(*_to_floats(tmp_range))
+            )
+
+        fs = matched["font_size"]
+        return cls(
+            font=matched["font"],
+            font_size=float(fs) if fs is not None else None,
+            area=area,
+            text=matched["text"],
+        )
 
     def __contains__(self, other: ExtractedPdfLine):
         eq = True
@@ -226,3 +287,8 @@ class PdfLineSet(PdfLine):
         )
         eq = eq and (self.geometry is None or self.geometry in other.geometry)
         return eq
+
+
+PdfLineSetDict = Annotated[
+    InputPdfLineSet, AfterValidator(lambda x: PdfLineSet.from_dict(x.dict()))
+]

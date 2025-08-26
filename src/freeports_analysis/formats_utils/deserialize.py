@@ -4,7 +4,7 @@ from logging import getLogger
 from typing import List, Callable, TypeAlias
 from datetime import date, datetime
 import re
-from freeports_analysis.formats import TextBlock
+from freeports_analysis.formats.commons import TextBlock
 from freeports_analysis.consts import Bond, Equity, Currency
 from freeports_analysis.i18n import _
 from .text_extract import EquityBondTextBlockType

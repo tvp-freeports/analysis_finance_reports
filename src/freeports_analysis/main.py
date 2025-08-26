@@ -27,7 +27,6 @@ from freeports_analysis import data
 from freeports_analysis import download as dw
 from freeports_analysis.consts import (
     PdfFormats,
-    _get_module,
     Equity,
     Currency,
     FinancialData,
@@ -40,6 +39,7 @@ from freeports_analysis.formats import (
     pdf_filter_exec,
     text_extract_exec,
     deserialize_exec,
+    get_pipelines,
 )
 from freeports_analysis.conf_parse import (
     apply_config,
@@ -71,7 +71,7 @@ def pipeline_batch(
     i_page_batch: int,
     n_pages: int,
     targets: List[str],
-    module_name: str,
+    format_name: str,
 ) -> List[FinancialData | PromisesResolutionContext]:
     """Apply the pipeline of actions in order to get financial data from PDF pages
 
@@ -85,8 +85,8 @@ def pipeline_batch(
         Total number of pages in the document
     targets : List[str]
         List of relevant company names to extract from the report
-    module_name : str
-        Name of the module containing format-specific parsing functions
+    format_name : str
+        Name of the format containing format-specific parsing functions
 
     Returns
     -------
@@ -101,21 +101,22 @@ def pipeline_batch(
     )
     parser = etree.XMLParser(recover=True)
     xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
-    module = _get_module(module_name)
-    logger.info(
-        _("Extracting relevant blocks of pdf from page %i to %i..."),
-        i_page_batch,
-        end_page_batch,
-    )
-
-    pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, module.pdf_filter)
-    logger.info(
-        _("Filtering relevant blocks of text from page %i to %i..."),
-        i_page_batch,
-        end_page_batch,
-    )
-    filtered_text = text_extract_exec(pdf_blocks, targets, module.text_extract)
-    results = deserialize_exec(filtered_text, targets, module.deserialize)
+    pipelines = get_pipelines(format_name)
+    results = []
+    for pdf_filter, text_extract, deserialize in pipelines:
+        logger.info(
+            _("Extracting relevant blocks of pdf from page %i to %i..."),
+            i_page_batch,
+            end_page_batch,
+        )
+        pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, pdf_filter)
+        logger.info(
+            _("Filtering relevant blocks of text from page %i to %i..."),
+            i_page_batch,
+            end_page_batch,
+        )
+        filtered_text = text_extract_exec(pdf_blocks, targets, text_extract)
+        results += deserialize_exec(filtered_text, targets, deserialize)
     return results
 
 
