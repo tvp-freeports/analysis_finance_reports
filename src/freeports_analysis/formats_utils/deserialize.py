@@ -310,7 +310,6 @@ def standard_deserialization(
                 nq = quantity_cast(md["quantity"]) if "quantity" in md else None
 
                 args = {
-                    "page": md["page"],
                     "targets": targets,
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),

@@ -103,23 +103,23 @@ def _get_segment(format_name, segment_name, pipes_mapping):
             continue
         if pipeline not in segment:
             segment[pipeline] = []
-            selected_args = None
-            try:
-                selected_args = args[algorithm_id]
-            except KeyError:
-                if pipeline == "":
-                    selected_args = args[format_name]
-                else:
-                    raise
-            arg = (
-                selected_args[len(segment[pipeline])]
-                if isinstance(selected_args, list)
-                else selected_args
-            )
-            selected_func = getattr(p, mapping[segment_name])
-            selected_input = getattr(p, mapping[input_segment])
-            func = selected_func(selected_input(**arg))(lambda xml_root: None)
-            segment[pipeline].append(func)
+        selected_args = None
+        try:
+            selected_args = args[algorithm_id]
+        except KeyError:
+            if pipeline == "":
+                selected_args = args[format_name]
+            else:
+                raise
+        arg = (
+            selected_args[len(segment[pipeline])]
+            if isinstance(selected_args, list)
+            else selected_args
+        )
+        selected_func = getattr(p, mapping[segment_name])
+        selected_input = getattr(p, mapping[input_segment])
+        func = selected_func(selected_input(**arg))(lambda xml_root: None)
+        segment[pipeline].append(func)
     return segment
 
 

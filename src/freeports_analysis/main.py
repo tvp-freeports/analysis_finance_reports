@@ -24,6 +24,7 @@ import pandas as pd
 from importlib_resources import files
 from freeports_analysis.i18n import _
 from freeports_analysis import data
+from freeports_analysis.data import get_target_companies
 from freeports_analysis import download as dw
 from freeports_analysis.consts import (
     PdfFormats,
@@ -102,21 +103,23 @@ def pipeline_batch(
     parser = etree.XMLParser(recover=True)
     xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
     pipelines = get_pipelines(format_name)
+
     results = []
-    for pdf_filter, text_extract, deserialize in pipelines:
+    for pipeline in pipelines:
+        (pdf_filter_funcs, text_extract_funcs, deserialize_funcs) = pipelines
         logger.info(
             _("Extracting relevant blocks of pdf from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, pdf_filter)
+        pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, pdf_filter_funcs)
         logger.info(
             _("Filtering relevant blocks of text from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        filtered_text = text_extract_exec(pdf_blocks, targets, text_extract)
-        results += deserialize_exec(filtered_text, targets, deserialize)
+        filtered_text = text_extract_exec(pdf_blocks, targets, text_extract_funcs)
+        results += deserialize_exec(filtered_text, deserialize_funcs)
     return results
 
 
@@ -169,7 +172,7 @@ def get_targets() -> List[str]:
         If the CSV file is empty or malformed.
     """
     targets = []
-    with files(data).joinpath("target.csv").open("r") as f:
+    with files(data).joinpath("companies.csv").open("r") as f:
         target_csv = csv.reader(f)
         targets = [row[0] for row in target_csv if row]  # Skip empty rows
         targets.pop(0)  # Remove header
@@ -269,7 +272,7 @@ def _main_job(config, n_workers):
     logger.debug(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug(_("End decoding pdf to xml!"))
-    targets = get_targets()
+    targets = get_target_companies(config["TARGET_LISTS"])
     logger.debug(_("First 5 targets: %s"), str(targets[: min(5, len(targets))]))
     n_pages = len(pdf_file_xml)
     batch_size = (n_pages + n_workers - 1) // n_workers

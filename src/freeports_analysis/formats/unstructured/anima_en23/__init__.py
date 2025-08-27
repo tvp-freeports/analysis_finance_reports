@@ -7,10 +7,8 @@ from freeports_analysis.formats_utils.pdf_filter import (
     standard_pdf_filtering,
 )
 from freeports_analysis.formats_utils.text_extract import (
-    standard_text_extraction,
     EquityBondTextBlockType,
 )
-from freeports_analysis.formats_utils.deserialize import standard_deserialization
 from freeports_analysis.formats_utils.pdf_filter.pdf_parts import (
     YRange,
     PdfLineSet,
@@ -23,7 +21,7 @@ from freeports_analysis.formats_utils.pdf_filter.xml.font import (
     get_lines_with_font,
 )
 from freeports_analysis.formats_utils.pdf_filter.xml.position import get_bounds
-from .. import PdfBlock
+from freeports_analysis.formats.commons import PdfBlock
 
 
 logger = log.getLogger(__name__)
@@ -86,17 +84,3 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
         raise NotImplementedError
 
     return filter_page(xml_root)
-
-
-@standard_text_extraction(
-    nominal_quantity_pos=-1,
-    market_value_pos=+1,
-    perc_net_assets_pos=+2,
-)
-def text_extract(pdf_blocks, targets):
-    raise NotImplementedError
-
-
-@standard_deserialization(True)
-def deserialize(pdf_block, targets):
-    raise NotImplementedError

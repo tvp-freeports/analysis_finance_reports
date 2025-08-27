@@ -312,7 +312,6 @@ def standard_text_extraction(
             metadata = {}
             try:
                 metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
-                metadata["page"] = pdf_blocks_table[i].metadata["page"]
                 metadata["market value"] = pdf_blocks_table[
                     abs_idx(market_value_pos)
                 ].content

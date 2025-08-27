@@ -85,6 +85,15 @@ def _create_parser() -> argparse.ArgumentParser:
         action="count",
         help=_("Decrease verbosity (default level: {})").format(verb),
     )
+    target_lists = DEFAULT_CONFIG["TARGET_LISTS"]
+    parser.add_argument(
+        "--target-list",
+        "-T",
+        type=str,
+        help=_("List to filter the companies of interest (default: {})").format(
+            target_lists
+        ),
+    )
     return parser
 
 

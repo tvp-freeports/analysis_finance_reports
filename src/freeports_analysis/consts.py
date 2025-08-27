@@ -311,8 +311,6 @@ class FinancialData(ABC):
     ----------
     page : int
         The page number where the financial data appears (must be positive).
-    targets: List[str]
-        The list of companies to search for, used as company validation
     company : str
         The identifier of the company or issuer.
     company_match : str
@@ -338,13 +336,10 @@ class FinancialData(ABC):
         If perc_net_assets is not between 0 and 1.
         If page is not a positive number.
         If company is not in targets.
-        If company is not in targets.
     """
 
     def __init__(
         self,
-        page: int,
-        targets: List[str],
         company: str,
         company_match: str,
         subfund: str | SubfundPromise,
@@ -355,15 +350,11 @@ class FinancialData(ABC):
         acquisition_cost: float | AcquisitionCostPromise = None,
         acquisition_currency: Currency | AcquisitionCurrencyPromise = None,
     ):
-        if not page > 0:
-            raise ValueError(_("page should be a positive number, not {}").format(page))
         if not isinstance(perc_net_assets, PercNetAssetsPromise):
             self._validate_perc_net_assets(perc_net_assets)
 
         self._company_match = company_match
-        self._validate_company(company, targets)
         self._company = company
-        self._page = page
         self._market_value = market_value
         self._currency = currency
         self._perc_net_assets = perc_net_assets
@@ -438,12 +429,6 @@ class FinancialData(ABC):
                 _("perc_net_assets must be between 0 and 1, not {}").format(
                     perc_net_assets
                 )
-            )
-
-    def _validate_company(self, company: str, targets: List[str]):
-        if company not in targets:
-            raise ValueError(
-                _("company should be between targets, not {}").format(company)
             )
 
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
@@ -611,8 +596,6 @@ class Bond(FinancialData):
 
     def __init__(
         self,
-        page: int,
-        targets: List[str],
         company: str,
         company_match: str,
         subfund: str,
@@ -629,10 +612,6 @@ class Bond(FinancialData):
 
         Parameters
         ----------
-        page : int
-            The page number where the bond appears.
-        targets: List[str]
-            The list of companies to search for, used as company validation
         company : str
             The id of the issuer of the bond.
         company_match : str
@@ -655,8 +634,6 @@ class Bond(FinancialData):
             Bond interest rate (0-1).
         """
         super().__init__(
-            page=page,
-            targets=targets,
             company=company,
             company_match=company_match,
             subfund=subfund,

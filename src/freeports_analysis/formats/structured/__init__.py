@@ -1,5 +1,4 @@
 from pathlib import Path
-import math
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats_utils.pdf_filter.pdf_parts import line_set_regexp
@@ -28,7 +27,7 @@ args_schema = pa.DataFrameSchema(
         "Subfund set": column_line_set,
         "Currency set": column_line_set,
         "Body set": column_line_set,
-        "Market value": pa.Column(pd.Int16Dtype),
+        "Market value": pa.Column(pd.Int16Dtype, nullable=True),
         "Quantity": pa.Column(pd.Int16Dtype, nullable=True),
         "% net assets": pa.Column(pd.Int16Dtype, nullable=True),
         "Acquisition cost": pa.Column(pd.Int16Dtype, nullable=True),
@@ -213,7 +212,7 @@ def get_pipes(format_name):
                 "deselection_list": [
                     PdfLineSet.from_str(s) for s in arg["Deselection set"]
                 ]
-                if not math.isnan(arg["Deselection set"])
+                if isinstance(arg["Deselection set"], list)
                 else [],
                 "algorithm_flags": TablePosAlgorithm.from_dict(arg["Algorithm flags"]),
                 "tolerance": arg["Tolerance"],

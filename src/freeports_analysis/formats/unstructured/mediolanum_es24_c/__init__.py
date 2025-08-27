@@ -13,7 +13,6 @@ from freeports_analysis.formats_utils.text_extract import (
     EquityBondTextBlockType,
     TextBlock,
 )
-from freeports_analysis.formats_utils.deserialize import standard_deserialization
 from freeports_analysis.consts import Currency
 
 
@@ -67,7 +66,6 @@ def text_extract(pdf_blocks, targets):
                 if target_n != "" and target_n in normalize_string(m.group("company")):
                     matched = m.groupdict()
                     md = {
-                        "page": company_blks[i].metadata["page"],
                         "currency": company_blks[i].metadata["currency"],
                         "subfund": company_blks[i].metadata["subfund"],
                         "company": target,
@@ -88,8 +86,3 @@ def text_extract(pdf_blocks, targets):
             logger.error("Anomalous line -> %s", a)
             results.append(None)
     return results
-
-
-@standard_deserialization(cost_and_value_interpret_int=False)
-def deserialize(text_block, targets):
-    raise NotImplementedError

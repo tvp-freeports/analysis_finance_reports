@@ -2,7 +2,7 @@
 
 from typing import List, Callable
 import logging as log
-from freeports_analysis.formats.unstructured import get_pipelines as get_unstructured
+from freeports_analysis.formats.unstructured import get_pipes as get_unstructured
 from freeports_analysis.formats.semistructured import get_pipes as get_semistructured
 from freeports_analysis.formats.structured import get_pipes as get_structured
 from freeports_analysis.consts import FinancialData, PromisesResolutionContext
@@ -49,11 +49,36 @@ class LogFormatterWithPage(log.Formatter):
         return string
 
 
+def _exec_segment(args_batch, funcs, error_msg, progress_tuple=None):
+    show_progress = False if progress_tuple is None else True
+    (n_pages, i_batch_page, progress_msg) = (
+        progress_tuple if show_progress else (None, None, None)
+    )
+    logger.propagate = False
+    std_err_log = log.StreamHandler()
+    page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
+    std_err_log.setFormatter(page_format_log)
+    logger.addHandler(std_err_log)
+    batch_results = {}
+    for page, arg in args_batch:
+        page_format_log.page = page
+        if show_progress and (
+            (page + i_batch_page) % (n_pages // min(10, n_pages)) == 0
+        ):
+            logger.info(progress_msg)
+        try:
+            batch_results[page] = [func(arg) for func in funcs]
+        except Exception as e:
+            logger.error(error_msg)
+            raise e
+    return batch_results
+
+
 def pdf_filter_exec(
     batch_pages: List[str],
     i_batch_page: int,
     n_pages: int,
-    pdf_filter_func: Callable[[List[str]], List[PdfBlock]],
+    pdf_filter_funcs: List[Callable[[List[str]], List[PdfBlock]]],
 ) -> List[PdfBlock]:
     """Processes a PDF document through a filter function to extract relevant blocks.
 
@@ -75,33 +100,20 @@ def pdf_filter_exec(
     List[PdfBlock]
         PdfBlock objects containing the filtered content.
     """
-    batch_results = []
-    logger.propagate = False
-    std_err_log = log.StreamHandler()
-    page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
-    std_err_log.setFormatter(page_format_log)
-    logger.addHandler(std_err_log)
 
-    for page_number, page in enumerate(batch_pages, start=i_batch_page):
-        page_results = []
-        page_format_log.page = page_number
-        if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
-            logger.info(_("Still filtering..."))
-        try:
-            for r in pdf_filter_func(page):
-                r.metadata["page"] = page_number
-                page_results.append(r)
-        except Exception as e:
-            logger.error("fatal error in pdf filter")
-            raise e
-        batch_results.append(page_results)
+    batch_results = _exec_segment(
+        enumerate(batch_pages, start=i_batch_page),
+        pdf_filter_funcs,
+        _("Fatal error in pdf filter"),
+        (n_pages, i_batch_page, _("Still filtering...")),
+    )
     return batch_results
 
 
 def text_extract_exec(
     pdf_blocks_batch: List[List[PdfBlock]],
     targets: List[str],
-    text_extract_func: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
+    text_extract_funcs: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
 ) -> List[TextBlock]:
     """Extracts text content from PDF blocks using a specified extraction function.
 
@@ -119,22 +131,22 @@ def text_extract_exec(
     List[TextBlock]
         TextBlock objects containing the extracted content.
     """
-    txt_blocks = None
-    try:
-        txt_blocks = [
-            text_extract_func(pdf_blocks, targets) for pdf_blocks in pdf_blocks_batch
-        ]
-    except Exception as e:
-        logger.error(_("Invalid text extraction!!"))
-        raise e
-    return txt_blocks
+    text_extract_funcs_with_targets = [
+        (lambda blks: text_extract(blks, targets))
+        for text_extract in text_extract_funcs
+    ]
+    batch_results = _exec_segment(
+        pdf_blocks_batch,
+        text_extract_funcs_with_targets,
+        _("Invalid text extraction!!"),
+    )
+    return batch_results
 
 
 def deserialize_exec(
     text_blocks_batch: List[List[TextBlock]],
-    targets: List[str],
-    deserialize_func: Callable[
-        [TextBlock, List[str]], FinancialData | PromisesResolutionContext
+    deserialize_funcs: List[
+        Callable[[TextBlock, List[str]], FinancialData | PromisesResolutionContext]
     ],
 ) -> List[FinancialData | PromisesResolutionContext]:
     """Converts TextBlocks into tabular data using a specified function that
@@ -156,31 +168,53 @@ def deserialize_exec(
         FinantialData classes containing the deserialized data or context
         for resolving deferred values
     """
-    return [
-        deserialize_func(txtblk, targets)
-        for (text_blocks) in text_blocks_batch
-        for (txtblk) in text_blocks
+    deserialize_funcs_blks = [
+        (lambda blks: [deserialize(blk) for blk in blks])
+        for deserialize in deserialize_funcs
     ]
+    batch_results = _exec_segment(
+        text_blocks_batch, deserialize_funcs_blks, _("Invalid deserialization!!")
+    )
+    return batch_results
 
 
 def get_pipelines(format_name):
-    pipelines = get_structured(format_name)
-    pipelines += get_semistructured(format_name)
-    pipelines += get_unstructured(format_name)
-    return pipelines
+    struct = get_structured(format_name)
+    semistruct = get_semistructured(format_name)
+    unstruct = get_unstructured(format_name)
 
+    # Combina i dizionari per categoria
+    categories = ["pdf_filters", "text_extract", "deserialize"]
+    combined = {}
 
-def get_pipes(format_name):
-    return tuple(zip(*get_pipelines(format_name)))
+    for i, category in enumerate(categories):
+        combined[category] = {**struct[i], **semistruct[i], **unstruct[i]}
 
+    # Verifica che i dizionari non siano vuoti
+    for category, data in combined.items():
+        if not data:
+            raise ValueError(f"Il dizionario dei {category} non può essere vuoto")
 
-def get_pdf_filters(format_name):
-    return get_pipes(format_name)[0]
+    # Ottieni tutte le chiavi uniche
+    all_keys = set(
+        key for category_data in combined.values() for key in category_data.keys()
+    )
 
+    # Crea il risultato finale con controlli
+    result = {}
+    for key in all_keys:
+        pdf_filters = combined["pdf_filters"].get(key, [])
+        text_extract = combined["text_extract"].get(key, [])
+        deserialize = combined["deserialize"].get(key, [])
 
-def get_text_extract(format_name):
-    return get_pipes(format_name)[1]
+        # Verifica che nessuna lista sia vuota
+        if not pdf_filters:
+            raise ValueError(f"Pipeline '{key}': pdf_filters non può essere vuoto")
+        if not text_extract:
+            raise ValueError(f"Pipeline '{key}': text_extract non può essere vuoto")
+        if not deserialize:
+            raise ValueError(f"Pipeline '{key}': deserialize non può essere vuoto")
 
+        result[key] = (pdf_filters, text_extract, deserialize)
 
-def get_deserialize(format_name):
-    return get_pipes(format_name)[2]
+    return result

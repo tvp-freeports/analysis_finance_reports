@@ -8,9 +8,11 @@ def _get_segment(segment_name, pipeline_modules):
     segment = {}
     for pipeline, module in pipeline_modules.items():
         try:
-            segment[pipeline] = [getattr(module, segment_name)]
-        except:
+            funcs = getattr(module, segment_name)
+            segment[pipeline] = funcs if isinstance(funcs, list) else [funcs]
+        except AttributeError:
             pass
+    return segment
 
 
 def get_pipes(format_name):
@@ -18,7 +20,8 @@ def get_pipes(format_name):
     modules = {}
     try:
         module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name}", package=__package__
+            f"freeports_analysis.formats.unstructured.{module_name}",
+            package=__package__,
         )
         named_pipelines = []
         try:
@@ -27,5 +30,9 @@ def get_pipes(format_name):
             pass
         modules = {pipe.__name__: pipe for pipe in named_pipelines}
         modules |= {"": module}
-    except ImportError:
-        return {}
+        pdf_filter_segment = _get_segment("pdf_filter", modules)
+        text_extract_segment = _get_segment("text_extract", modules)
+        deserialize_segment = _get_segment("deserialize", modules)
+        return pdf_filter_segment, text_extract_segment, deserialize_segment
+    except ModuleNotFoundError:
+        return {}, {}, {}

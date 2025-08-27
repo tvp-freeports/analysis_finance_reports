@@ -9,6 +9,7 @@ import logging as log
 from xdg import BaseDirectory
 import yaml
 
+from freeports_analysis.data import TARGET_LISTS
 from freeports_analysis.i18n import _
 
 from .consts import ENV_PREFIX, PdfFormats
@@ -128,6 +129,7 @@ DEFAULT_CONFIG = {
     "PDF": None,
     "FORMAT": None,
     "CONFIG_FILE": _find_config(),
+    "TARGET_LISTS": TARGET_LISTS,
 }
 
 
@@ -141,6 +143,7 @@ schema_yaml_config = {
     "out_path": ("OUT_CSV", Path),
     "save_pdf": ("SAVE_PDF", bool),
     "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
+    "target_lists": ("TARGET_LIST", list),
 }
 
 
@@ -170,6 +173,7 @@ schema_env_config = {
     f"{ENV_PREFIX}FORMAT": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     f"{ENV_PREFIX}PDF": ("PDF", Path),
     f"{ENV_PREFIX}CONFIG_FILE": ("CONFIG_FILE", Path),
+    f"{ENV_PREFIX}TARGET_LIST": ("TARGET_LISTS", str),
 }
 
 schema_job_csv_config = {
@@ -178,6 +182,7 @@ schema_job_csv_config = {
     "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     "pdf": ("PDF", Path),
     "prefix out": ("PREFIX_OUT", str),
+    "target list": ("TARGET_LISTS", str),
 }
 
 
