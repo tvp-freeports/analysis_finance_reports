@@ -37,7 +37,8 @@ single_page_tests = {
     "MEDIOLANUM_ES24_A": [40, 41],
     "MEDIOLANUM_ES24_B": [28],
     "MEDIOLANUM_ES24_C": [43],
-    "MEDIOLANUM_IT24": [439, 605, 554],
+    "MEDIOLANUM_IT24_A": [439, 605, 554],
+    "MEDIOLANUM_IT24_B": [56, 95],
     "DANSKEINVEST_EN24": [149],
 }
 
