@@ -25,8 +25,11 @@ AMUNDI_IT24:
 FIDEURAM_EN23:
  - https://www.fideuramassetmanagement.ie/
 
-MEDIOLANUM_IT24:
+MEDIOLANUM_IT24_A:
  - https://www.mediolanumgestionefondi.it/
+
+MEDIOLANUM_IT24_B:
+ - https://www.mediolanumgestionefondi.it/static-assets/documenti/file/it/2025/05/02//Relazione_di_gestione_annuale_al
 
 ARCA_IT24:
  - https://docs.arcafondi.it/

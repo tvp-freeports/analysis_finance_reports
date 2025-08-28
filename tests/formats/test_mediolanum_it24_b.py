@@ -8,7 +8,7 @@ from . import (
 )
 
 
-fmt = "MEDIOLANUM_IT24"
+fmt = "MEDIOLANUM_IT24_B"
 pages = single_page_tests[fmt]
 
 

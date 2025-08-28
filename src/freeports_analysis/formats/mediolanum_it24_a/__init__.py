@@ -1,4 +1,4 @@
-"""MEDIOLANUM_IT24 format submodule"""
+"""MEDIOLANUM_IT24_A format submodule"""
 
 from freeports_analysis.formats_utils.pdf_filter import (
     standard_pdf_filtering,
