@@ -2,19 +2,74 @@
 
 import os
 from enum import Enum, auto
-from typing import Tuple
+from typing import Tuple, Optional, Annotated, Union
 import re
 from pathlib import Path
 import logging as log
 from xdg import BaseDirectory
 import yaml
+from pydantic import (
+    BaseModel,
+    conint,
+    PositiveInt,
+    FilePath,
+    FileUrl,
+    AfterValidator,
+    BeforeValidator,
+)
 
 from freeports_analysis.data import TARGET_LISTS
+from freeports_analysis.formats_data import VALID_FORMATS
 from freeports_analysis.i18n import _
 
 from .consts import ENV_PREFIX, PdfFormats
 
 _logger = log.getLogger(__name__)
+
+Format = Annotated[str, AfterValidator(lambda x: x in VALID_FORMATS)]
+Lists = Annotated[list, BeforeValidator(lambda x: [x] if isinstance(x, str) else x)]
+
+
+def FreeportsConfig(BaseModel):
+    VERBOSITY: conint(ge=0, le=5) = 2
+    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
+    SEPARATE_OUT_FILES: bool = False
+    N_WORKERS: PositiveInt = (
+        os.process_cpu_count() if (os.name == "posix") else os.cpu_count()
+    )
+    BATCH: Optional[FilePath] = None
+    PREFIX_OUT: Optional[str] = None
+    OUT_CSV: FilePath = Path("/dev/stdout")
+    SAVE_PDF: bool = True
+    URL: Optional[FileUrl] = None
+    PDF: Optional[FilePath] = None
+    FORMAT: Format
+    CONFIG_FILE: FilePath = _find_config()
+    TARGET_LISTS: Lists
+
+
+# "VERBOSITY": 2,
+#     # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
+#     "SEPARATE_OUT_FILES": False,
+#     "N_WORKERS": os.process_cpu_count()
+#     if os.name == "posix"
+#     else os.cpu_count()
+#     if os.name == "nt"
+#     else None,
+#     "BATCH": None,
+#     "PREFIX_OUT": None,
+#     "OUT_CSV": Path("/dev/stdout")
+#     if os.name == "posix"
+#     else "CON"
+#     if os.name == "nt"
+#     else None,
+#     # `SAVE_PDF` default to `True` because command line args permits to set only to `False`
+#     "SAVE_PDF": True,
+#     "URL": None,
+#     "PDF": None,
+#     "FORMAT": None,
+#     "CONFIG_FILE": _find_config(),
+#     "TARGET_LISTS": TARGET_LISTS,
 
 
 def _local_config():

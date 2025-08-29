@@ -51,6 +51,7 @@ from freeports_analysis.conf_parse import (
     validate_conf,
     schema_job_csv_config,
 )
+from freeports_analysis.formats_data import url_to_format
 
 
 logger = log.getLogger(__package__)
@@ -186,13 +187,9 @@ def _get_document(config):
         logger.debug(_("Local PDF file used %s"), config["PDF"])
         pdf_file = pypdf.Document(config["PDF"])
     else:
-        for fmt in PdfFormats.__members__:
-            for reg in PdfFormats.__members__[fmt].value:
-                if bool(re.search(reg, config["URL"])):
-                    detected_format = PdfFormats.__members__[fmt]
-                    break
+        detected_format = url_to_format(config["URL"])
         log_string = _("Remote URL %s/%s used [detected %s format]")
-        logger.debug(log_string, config["URL"], config["PDF"], detected_format.name)
+        logger.debug(log_string, config["URL"], config["PDF"], detected_format)
         pdf_file = pypdf.Document(
             stream=dw.download_pdf(
                 config["URL"], config["PDF"] if config["SAVE_PDF"] else None

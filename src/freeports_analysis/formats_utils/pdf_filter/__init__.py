@@ -280,7 +280,8 @@ def standard_pdf_filtering(
             table_cell_widths = [table_row.geometry.width for table_row in table_rows]
             max_width = max(table_cell_widths)
             is_max_width = [width == max_width for width in table_cell_widths]
-
+            print(table_rows)
+            raise Exception
             return [
                 PdfBlock(
                     OnePdfBlockType.RELEVANT_BLOCK,

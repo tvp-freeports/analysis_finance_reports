@@ -55,11 +55,22 @@ url_mapping_schema = pa.DataFrameSchema(
     index=pa.Index(
         pd.StringDtype,
         name="Format name",
-        checks=[pa.Check(lambda x: x.isin(VALID_FORMATS), error=_("Invalid format"))],
+        checks=[pa.Check.isin(VALID_FORMATS)],
     ),
 )
 
 
-def get_url_mapping():
+def _get_url_mapping():
     df = pd.read_csv(data / "url_mapping.csv", index_col=["Format name"])
     return url_mapping_schema.validate(df)
+
+
+def get_url_mapping():
+    return _get_url_mapping().groupby(level="Format name").agg({"Url": list})
+
+
+def url_to_format(url):
+    mapping = _get_url_mapping()
+    mask = mapping["Url"].apply(lambda x: url.startswith(x))
+    detected_format = mapping[mask]["Url"].str.len().idxmax() if mask.any() else None
+    return detected_format
