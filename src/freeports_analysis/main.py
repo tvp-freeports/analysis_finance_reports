@@ -120,6 +120,7 @@ def pipeline_batch(
         )
         filtered_text = text_extract_exec(pdf_blocks, targets, text_extract_funcs)
         results += deserialize_exec(filtered_text, deserialize_funcs)
+        print(results)
     return results
 
 

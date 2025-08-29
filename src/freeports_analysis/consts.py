@@ -7,10 +7,10 @@ import datetime
 from enum import Enum, auto
 from typing import List, TypeAlias, Any, Optional
 import logging as log
-import importlib
-
 import yaml
 from importlib_resources import files
+from pydantic_core import CoreSchema, core_schema
+from pydantic import GetCoreSchemaHandler, TypeAdapter, BaseModel
 from freeports_analysis import data
 from freeports_analysis.i18n import _
 
@@ -149,7 +149,7 @@ PromisesResolutionMap: TypeAlias = dict
 PromisesResolutionContext: TypeAlias = dict
 
 
-class Promise:
+class Promise(str):
     """Base class for deferred value resolution in financial data processing.
     Implements a promise pattern where values can be resolved later from a mapping.
     Attributes
@@ -162,20 +162,6 @@ class Promise:
         Resolves the promised value from the given mapping.
     """
 
-    def __init__(self, ID: str):
-        """Initialize a Promise with the given lookup ID.
-        Parameters
-        ----------
-        ID : str
-            The key to use when resolving this promise from a mapping.
-        """
-        self._id = ID
-
-    @property
-    def id(self) -> str:
-        """str: The lookup key for this promise."""
-        return self._id
-
     def fulfill_with(self, mapping: PromisesResolutionMap) -> Any:
         """Resolve this promise's value from the given mapping.
         Parameters
@@ -187,11 +173,20 @@ class Promise:
         Any
             The resolved value from the mapping.
         """
-        return mapping[self.id]
+        return mapping[self]
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         """str: String representation showing promise class and ID."""
-        return f'{self.__class__.__name__}("{self.id}")'
+        return f'{self.__class__.__name__}("{str(self)}")'
+
+    def __format__(self, fmt) -> str:
+        return repr(self)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(cls, handler(str))
 
 
 class SubfundPromise(Promise):
