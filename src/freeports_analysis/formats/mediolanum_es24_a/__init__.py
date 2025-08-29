@@ -30,9 +30,12 @@ def _pdf_filter_one(xml_root: etree.Element) -> dict:
 @standard_pdf_filtering(
     header_set=PdfLineSet("TT91E2o00", text="n de la cartera"),
     subfund_set=PdfLineSet("TT91E2o00", area=(60, 77)),
-    body_set=PdfLineSet("TT91E2o00", area=(None, 795)),
-    currency_set=PdfLineSet("TT91E2o00", 9, text="(expresado en"),
-    deselection_list=[PdfLineSet("TT91E2o00", text="^ ")],
+    body_set=PdfLineSet("TT9162o00", area=(None, 795)),
+    currency_set=PdfLineSet("TT9182o00", 8.997417, text="(expresado en"),
+    deselection_list=[
+        PdfLineSet("TT9462o00", text="^ "),
+        PdfLineSet("TT9162o00", text="^ "),
+    ],
 )
 def _pdf_filter_two(xml_root: etree.Element) -> dict:
     raise NotImplementedError
