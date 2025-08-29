@@ -48,30 +48,6 @@ def FreeportsConfig(BaseModel):
     TARGET_LISTS: Lists
 
 
-# "VERBOSITY": 2,
-#     # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
-#     "SEPARATE_OUT_FILES": False,
-#     "N_WORKERS": os.process_cpu_count()
-#     if os.name == "posix"
-#     else os.cpu_count()
-#     if os.name == "nt"
-#     else None,
-#     "BATCH": None,
-#     "PREFIX_OUT": None,
-#     "OUT_CSV": Path("/dev/stdout")
-#     if os.name == "posix"
-#     else "CON"
-#     if os.name == "nt"
-#     else None,
-#     # `SAVE_PDF` default to `True` because command line args permits to set only to `False`
-#     "SAVE_PDF": True,
-#     "URL": None,
-#     "PDF": None,
-#     "FORMAT": None,
-#     "CONFIG_FILE": _find_config(),
-#     "TARGET_LISTS": TARGET_LISTS,
-
-
 def _local_config():
     # 1. Check local config file
     patterns = [
