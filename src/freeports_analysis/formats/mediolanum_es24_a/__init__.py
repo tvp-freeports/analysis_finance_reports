@@ -12,6 +12,7 @@ from freeports_analysis.formats_utils.text_extract import (
     EquityBondTextBlockType,
 )
 from freeports_analysis.formats_utils.deserialize import standard_deserialization
+from freeports_analysis.formats_utils.pdf_filter.xml.font import is_present_txt_font
 from .. import PdfBlock, TextBlock
 
 
@@ -22,8 +23,25 @@ from .. import PdfBlock, TextBlock
     currency_set=PdfLineSet("TimesNewRomanPSMT", 9, text="(expresado en"),
     deselection_list=[PdfLineSet("TimesNewRomanPSMT", text="^ ")],
 )
-def pdf_filter(xml_root: etree.Element) -> dict:
+def _pdf_filter_one(xml_root: etree.Element) -> dict:
     raise NotImplementedError
+
+
+@standard_pdf_filtering(
+    header_set=PdfLineSet("TT91E2o00", text="n de la cartera"),
+    subfund_set=PdfLineSet("TT91E2o00", area=(60, 77)),
+    body_set=PdfLineSet("TT91E2o00", area=(None, 795)),
+    currency_set=PdfLineSet("TT91E2o00", 9, text="(expresado en"),
+    deselection_list=[PdfLineSet("TT91E2o00", text="^ ")],
+)
+def _pdf_filter_two(xml_root: etree.Element) -> dict:
+    raise NotImplementedError
+
+
+def pdf_filter(xml_root: etree.Element) -> dict:
+    if is_present_txt_font(xml_root, "n de la cartera", "TimesNewRomanPSMT"):
+        return _pdf_filter_one(xml_root)
+    return _pdf_filter_two(xml_root)
 
 
 @standard_text_extraction(
