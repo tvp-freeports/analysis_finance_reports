@@ -9,7 +9,10 @@ from freeports_analysis.formats_utils.deserialize import standard_deserializatio
 
 
 @standard_pdf_filtering(
-    header_set=PdfLineSet(font_size=8.037657, text="Descrizione"),
+    header_set=[
+        PdfLineSet(font_size=8.037657, text="Descrizione"),
+        PdfLineSet(font="TT5CC2o00", text="TABELLA DEGLI INVESTIMENTI AL"),
+    ],
     subfund_set=PdfLineSet(font_size=15.47555, area=(0, 80)),
     body_set=PdfLineSet(font_size=8.037657),
     currency_set=PdfLineSet(font_size=8.037657, text="valori espressi in"),
