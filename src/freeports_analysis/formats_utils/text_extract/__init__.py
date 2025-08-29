@@ -201,8 +201,9 @@ def standard_text_extraction_loop(
                             pdf_blocks_table,
                             i if not geometrical_indexes else (row, col),
                         )
-                        txt_blk.metadata["company match"] = content
-                        txt_blk.metadata["company"] = target
+                        if txt_blk is not None:
+                            txt_blk.metadata["company match"] = content
+                            txt_blk.metadata["company"] = target
                         text_part_list.append(txt_blk)
                         break
                 i += 1
@@ -361,6 +362,9 @@ def standard_text_extraction(
                         abs_idx(acquisition_cost_pos)
                     ].content
 
+            except AttributeError as e:
+                logger.exception(str(e))
+                return None
             except IndexError as e:
                 logger.exception(str(e))
                 return None
