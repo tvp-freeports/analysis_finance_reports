@@ -3,7 +3,7 @@
 from typing import Optional, Tuple
 from lxml import etree
 from freeports_analysis.i18n import _
-from .font import Font, FontSize
+from .font import Font, FontSize, FontSizeRange
 from ..xml.position import get_bounds
 from .position import Area, XRange, YRange, Coord
 
@@ -221,8 +221,10 @@ class PdfLineSet(PdfLine):
             if not begin and not end:
                 eq = eq and (effective_text in other.text)
         eq = eq and (self.font is None or self.font == other.font)
-        eq = eq and (
-            self.font_size is None or abs(self.font_size - other.font_size) <= 1e-4
-        )
+        if self.font_size is not None:
+            if isinstance(self.font_size, FontSizeRange):
+                eq = eq and other.font_size in self.font_size
+            else:
+                eq = eq and abs(self.font_size - other.font_size) <= 1e-4
         eq = eq and (self.geometry is None or self.geometry in other.geometry)
         return eq
