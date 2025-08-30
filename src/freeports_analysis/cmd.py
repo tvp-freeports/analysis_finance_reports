@@ -12,6 +12,7 @@ from freeports_analysis.conf_parse import (
     PossibleLocationConfig,
     DEFAULT_CONFIG,
     DEFAULT_LOCATION_CONFIG,
+    FreeportsConfig,
     log_config,
     apply_config,
     get_config_file,
@@ -180,4 +181,5 @@ def cmd():
     log_level = (5 - config["VERBOSITY"]) * 10
     logger.setLevel(log_level)
     log_config(logger, config, config_location)
+    config = FreeportsConfig(**config)
     main(config)

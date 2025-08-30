@@ -26,12 +26,79 @@ from .consts import ENV_PREFIX, PdfFormats
 
 _logger = log.getLogger(__name__)
 
+
+def _str_to_bool(string: str) -> bool:
+    true_list = ["true", "yes", "on", "t", "y", "1"]
+    false_list = ["false", "no", "off", "f", "n", "0"]
+    string = string.strip().lower()
+    if string in true_list:
+        return True
+    if string in false_list:
+        return False
+
+    error_string = _("'{}' is not castable to `True` {} nor `False` {}").format(
+        string, true_list, false_list
+    )
+    raise ValueError(error_string)
+
+
 Format = Annotated[str, AfterValidator(lambda x: x in VALID_FORMATS)]
 Lists = Annotated[list, BeforeValidator(lambda x: [x] if isinstance(x, str) else x)]
+Verbosity = conint(ge=0, le=5)
+
+
+def FreeportsFileConfig(BaseModel):
+    verbosity: Optional[Verbosity] = None
+    separate_out: Optional[bool] = None
+    out_path: Optional[Path] = None
+    n_workers: Optional[PositiveInt] = None
+    batch_path: Optional[FilePath] = None
+    out_path: Optional[FilePath] = None
+    save_pdf: Optional[bool] = None
+    url: Optional[FileUrl] = None
+    pdf: Optional[FilePath] = None
+    format: Optional[Format] = None
+    target_lists: Optional[Lists] = None
+
+
+def FreeportsEnvConfig(BaseModel):
+    VERBOSITY: Optional[Verbosity] = None
+    SEPARATE_OUT: Optional[bool] = None
+    N_WORKERS: Optional[PositiveInt] = None
+    BATCH: Optional[FilePath] = None
+    OUT_CSV: Optional[FilePath] = None
+    SAVE_PDF: Optional[bool] = None
+    URL: Optional[FileUrl] = None
+    PDF: Optional[FilePath] = None
+    FORMAT: Optional[Format] = None
+    CONFIG_FILE: Optional[FilePath] = None
+    TARGET_LISTS: Optional[Lists] = None
+
+
+def FreeportsCmdConfig(BaseModel):
+    pass
+
+
+def FreeportsJobConfig(BaseModel):
+    VERBOSITY: Verbosity = 2
+    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
+    SEPARATE_OUT_FILES: bool = False
+    N_WORKERS: PositiveInt = (
+        os.process_cpu_count() if (os.name == "posix") else os.cpu_count()
+    )
+    BATCH: Optional[FilePath] = None
+    PREFIX_OUT: Optional[str] = None
+    OUT_CSV: FilePath = Path("/dev/stdout")
+    SAVE_PDF: bool = True
+    URL: Optional[FileUrl] = None
+    PDF: Optional[FilePath] = None
+    FORMAT: Format
+    CONFIG_FILE: FilePath = _find_config()
+    TARGET_LISTS: Lists
 
 
 def FreeportsConfig(BaseModel):
-    VERBOSITY: conint(ge=0, le=5) = 2
+    VERBOSITY: Verbosity = 2
     # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
     SEPARATE_OUT_FILES: bool = False
     N_WORKERS: PositiveInt = (
@@ -176,21 +243,6 @@ schema_yaml_config = {
     "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
     "target_lists": ("TARGET_LIST", list),
 }
-
-
-def _str_to_bool(string: str) -> bool:
-    true_list = ["true", "yes", "on", "t", "y", "1"]
-    false_list = ["false", "no", "off", "f", "n", "0"]
-    string = string.strip().lower()
-    if string in true_list:
-        return True
-    if string in false_list:
-        return False
-
-    error_string = _("'{}' is not castable to `True` {} nor `False` {}").format(
-        string, true_list, false_list
-    )
-    raise ValueError(error_string)
 
 
 schema_env_config = {
