@@ -24,7 +24,9 @@ from freeports_analysis.formats_utils.pdf_filter.pdf_parts.font import FontSizeR
     deselection_list=[
         PdfLineSet(text="TABELLA DEGLI INVESTIMENTI AL"),
         PdfLineSet(text="^ "),
+        PdfLineSet(text="^-"),
     ],
+    tolerance=0.1,
 )
 def pdf_filter(xml_root):
     raise NotImplementedError
@@ -33,9 +35,9 @@ def pdf_filter(xml_root):
 @standard_text_extraction(
     nominal_quantity_pos=+1,
     market_value_pos=+4,
-    perc_net_assets_pos=+5,
     acquisition_currency_pos=+2,
     acquisition_cost_pos=+3,
+    merge_prev=True,
 )
 def text_extract(pdf_blocks, targets):
     raise NotImplementedError
