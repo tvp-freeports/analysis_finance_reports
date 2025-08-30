@@ -15,38 +15,6 @@ AMUNDI-IT24:
     algorithm-flags:
       - RULER_AREA
 
-AMUNDI-IT24(prova):
-  - deselection_list:
-      - font: TrebuchetMS
-        text: "^ "
-    header_set:
-      - font: TrebuchetMS-Bold
-        text: "Titolo"
-    body_set:
-      font: TrebuchetMS
-    subfund_set:
-      font: Arial-BoldItalicMT
-      area:
-        y_max: 60
-    currency: EUR
-    algorithm-flags:
-      - RULER_AREA
-  - deselection_list:
-      - font: TrebuchetMS
-        text: "^ "
-    header_set:
-      - font: TrebuchetMS-Bold
-        text: "Titolosdaf"
-    body_set:
-      font: TrebuchetMS
-    subfund_set:
-      font: Arial-BoldItalicMT
-      area:
-        y_max: 60
-    currency: EUR
-    algorithm-flags:
-      - RULER_AREA
-
 ARCA-IT24:
   header_set:
     - font: TrebuchetMS-Bold
