@@ -4,13 +4,16 @@ should facilitate avoiding circular imports
 
 from abc import ABC, abstractmethod
 import datetime
-from enum import Enum, auto
-from typing import List, TypeAlias, Any, Optional
+import ast
+import operator
+from enum import Enum, auto, Flag
+from typing import Type, TypeAlias, Any, TypeVar, Annotated
 import logging as log
 import yaml
 from importlib_resources import files
+import pandas as pd
 from pydantic_core import CoreSchema, core_schema
-from pydantic import GetCoreSchemaHandler, TypeAdapter, BaseModel
+from pydantic import GetCoreSchemaHandler, TypeAdapter, BaseModel, BeforeValidator
 from freeports_analysis import data
 from freeports_analysis.i18n import _
 
@@ -25,7 +28,86 @@ STANDARD_LOG_FORMATTER_MP = log.Formatter(
     "%(levelname)s[%(process)d] %(name)s: %(message)s"
 )
 
-ENV_PREFIX = "AFINANCE_"
+
+PROGRAM_DESCRIPTION = _("""Analyze finance reports searching for investing in companies
+allegedly involved interantional law violations by third parties
+""")
+
+
+def flag_from_string(expression, cls):
+    BIN_OPS = {
+        ast.BitAnd: operator.and_,
+        ast.BitOr: operator.or_,
+        ast.BitXor: operator.xor,
+    }
+    UNARY_OPS = {ast.Invert: operator.invert}
+
+    def _from_ast(node, cls):
+        if isinstance(node, ast.Expression):
+            return _from_ast(node.body, cls)
+        elif isinstance(node, ast.BinOp):
+            left = node.left
+            right = node.right
+            op = type(node.op)
+            if op in BIN_OPS:
+                return BIN_OPS[op](_from_ast(left, cls), _from_ast(right, cls))
+            else:
+                raise ValueError(_("Binary operation {} not supported").format(op))
+        elif isinstance(node, ast.UnaryOp):
+            operand = node.operand
+            op = type(node.op)
+            if op in UNARY_OPS:
+                return UNARY_OPS[op](_from_ast(operand, cls))
+            else:
+                raise ValueError(_("Unary operation {} not supported").format(op))
+        elif isinstance(node, ast.Name):
+            name = node.id.upper()
+            if hasattr(cls, name):
+                return getattr(cls, name)
+            else:
+                raise ValueError(_("Invalid flag {}").format(name))
+        else:
+            raise ValueError(_("Unsupported AST node: {}").format(type(node)))
+
+    if isinstance(expression, list):
+        expression = " | ".join(expression)
+        return flag_from_string(expression, cls)
+    if pd.isna(expression):
+        return None
+    if isinstance(expression, str):
+        if expression.strip() == "":
+            return cls(0)
+        expression = ast.parse(expression, mode="eval")
+        return _from_ast(expression, cls)
+    raise ValueError(_("Flags should be specified with list or string expression"))
+
+
+T = TypeVar("T", bound=Flag)
+
+
+def InputFlags(flag_cls: Type[T]) -> type:
+    return Annotated[
+        flag_cls,
+        BeforeValidator(
+            lambda value: flag_from_string(value, flag_cls)
+            if not isinstance(value, flag_cls)
+            else value
+        ),
+    ]
+
+
+S = TypeVar("S", bound=Enum)
+
+
+def InputEnum(enum_cls: Type[S]) -> type:
+    return Annotated[
+        enum_cls,
+        BeforeValidator(
+            lambda string: enum_cls[string.strip().upper()]
+            if isinstance(string, str)
+            else string
+        ),
+    ]
 
 
 # Leggi il file YAML

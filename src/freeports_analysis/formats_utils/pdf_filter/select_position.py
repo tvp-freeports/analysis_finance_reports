@@ -5,6 +5,7 @@ from enum import Flag, Enum, auto
 from pydantic import BeforeValidator
 import pandas as pd
 
+from freeports_analysis.consts import flag_from_string, InputFlags
 from .pdf_parts import ExtractedPdfLine
 from .pdf_parts.position import XRange, YRange
 
@@ -59,22 +60,10 @@ class TablePosAlgorithm(Flag):
 
     @classmethod
     def from_dict(cls, v: str | list):
-        if pd.isna(v):
-            return None
-        if isinstance(v, list):
-            return sum(getattr(TablePosAlgorithm, flag) for flag in v)
-        if isinstance(v, str):
-            # Split "READ|WRITE" -> [TablePosAlgorithm.READ, TablePosAlgorithm.WRITE]
-            flags = [TablePosAlgorithm[flag.strip()] for flag in v.split("|")]
-            return sum(flags)  # Combina i flag con OR bitwise
-        raise ValueError(
-            "Flags should be specified with list or string concatenated by `|`"
-        )
+        flag_from_string(v, cls)
 
 
-InputTablePosAlgorithm = Annotated[
-    TablePosAlgorithm, BeforeValidator(TablePosAlgorithm.from_dict)
-]
+InputTablePosAlgorithm = InputFlags(TablePosAlgorithm)
 
 
 class TablePosMeasureUnit(Enum):

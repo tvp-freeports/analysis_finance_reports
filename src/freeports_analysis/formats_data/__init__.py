@@ -71,6 +71,6 @@ def get_url_mapping():
 
 def url_to_format(url):
     mapping = _get_url_mapping()
-    mask = mapping["Url"].apply(lambda x: url.startswith(x))
+    mask = mapping["Url"].apply(lambda x: str(url).startswith(x))
     detected_format = mapping[mask]["Url"].str.len().idxmax() if mask.any() else None
     return detected_format

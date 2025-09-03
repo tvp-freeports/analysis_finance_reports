@@ -43,12 +43,12 @@ from freeports_analysis.formats import (
     get_pipelines,
 )
 from freeports_analysis.conf_parse import (
-    apply_config,
     log_config,
-    get_config_file,
     DEFAULT_CONFIG,
-    DEFAULT_LOCATION_CONFIG,
-    validate_conf,
+    DEFAULT_CONFIG_LOCATION,
+    FreeportsEnvConfig,
+    FreeportsFileConfig,
+    FreeportsConfig,
     schema_job_csv_config,
 )
 from freeports_analysis.formats_data import url_to_format
@@ -106,8 +106,8 @@ def pipeline_batch(
     pipelines = get_pipelines(format_name)
 
     results = []
-    for pipeline in pipelines:
-        (pdf_filter_funcs, text_extract_funcs, deserialize_funcs) = pipelines
+    for pipeline_name, pipeline in pipelines.items():
+        (pdf_filter_funcs, text_extract_funcs, deserialize_funcs) = pipeline
         logger.info(
             _("Extracting relevant blocks of pdf from page %i to %i..."),
             i_page_batch,
@@ -182,24 +182,23 @@ def get_targets() -> List[str]:
 
 
 def _get_document(config):
-    detected_format = None
-    if config["URL"] is None or config["PDF"] is not None and config["PDF"].exists():
-        logger.debug(_("Local PDF file used %s"), config["PDF"])
+    if config["PDF"] is not None:
+        log_string = _("Local PDF file used %s [%s format]")
+        logger.debug(log_string, config["PDF"], config["FORMAT"])
         pdf_file = pypdf.Document(config["PDF"])
     else:
-        detected_format = url_to_format(config["URL"])
-        log_string = _("Remote URL %s/%s used [detected %s format]")
-        logger.debug(log_string, config["URL"], config["PDF"], detected_format)
+        log_string = _("Remote URL %s used [%s format]")
+        logger.debug(log_string, config["URL"], config["FORMAT"])
         pdf_file = pypdf.Document(
             stream=dw.download_pdf(
                 config["URL"], config["PDF"] if config["SAVE_PDF"] else None
             )
         )
-    return pdf_file, detected_format
+    return pdf_file
 
 
 def _output_file(config, results):
-    out_csv = config["OUT_CSV"]
+    out_csv = config["OUT_PATH"]
     out_dir = out_csv.parent
     compress = False
     remove_dir = False
@@ -231,7 +230,7 @@ def _output_file(config, results):
                 name_file = f"{prefix_out}-{format_pdf.name}.csv"
             df.to_csv(out_dir / name_file, index=False)
     else:
-        df.to_csv(config["OUT_CSV"], index=False)
+        df.to_csv(config["OUT_PATH"], index=False)
 
     if compress:
         with tarfile.open(out_csv, "w:gz") as tar:
@@ -240,32 +239,10 @@ def _output_file(config, results):
             shutil.rmtree(out_dir)
 
 
-def _update_format(config, detected_format):
-    if detected_format is None and config["FORMAT"] is None:
-        raise NoPDFormatDetected(
-            _("No format selected and url doesn't match know formats")
-        )
-    if (
-        detected_format is not None
-        and config["FORMAT"] is not None
-        and config["FORMAT"] != detected_format
-    ):
-        logger.warning(
-            _("Detected and selected formats don't match [det=%s sel=%s]"),
-            detected_format.name,
-            config["FORMAT"].name,
-        )
-
-    format_pdf = detected_format if config["FORMAT"] is None else config["FORMAT"]
-    logger.debug(_("Using %s format"), format_pdf.name)
-    return format_pdf
-
-
 def _main_job(config, n_workers):
-    validate_conf(config)
+    config = FreeportsConfig(**config).model_dump()
     logger.debug(_("Starting job with configuration %s"), str(config))
-    pdf_file, format_pdf = _get_document(config)
-    format_pdf = _update_format(config, format_pdf)
+    pdf_file = _get_document(config)
     prefix_out = config["PREFIX_OUT"]
     logger.debug(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
@@ -279,7 +256,7 @@ def _main_job(config, n_workers):
         start_idx = i * batch_size
         end_idx = min((i + 1) * batch_size, n_pages)
         batch_pages = pdf_file_xml[start_idx:end_idx]
-        batches.append((batch_pages, start_idx + 1, n_pages, targets, format_pdf.name))
+        batches.append((batch_pages, start_idx + 1, n_pages, targets, config["FORMAT"]))
 
     results_batches = None
     if n_workers > 1:
@@ -337,7 +314,7 @@ def main(config):
     """
     n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
     results = None
-    if config["BATCH"] is None:
+    if config["BATCH_FILE"] is None:
         results = [_main_job(config, n_workers)]
     else:
         config_jobs = batch_job_confs(config)
@@ -354,13 +331,22 @@ def main(config):
 
 
 if __name__ == "__main__":
-    current_config = DEFAULT_CONFIG
-    config_location = DEFAULT_LOCATION_CONFIG
-    LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
+    config = DEFAULT_CONFIG
+    config_location = DEFAULT_CONFIG_LOCATION
+    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
     log.basicConfig(level=LOG_LEVEL)
-    current_config, config_location = get_config_file(current_config, config_location)
-    current_config, config_location = apply_config(current_config, config_location)
-    LOG_LEVEL = (5 - current_config["VERBOSITY"]) * 10
+    config_env = FreeportsEnvConfig()
+    tmp_config, tmp_config_location = config_env.overwrite_config(
+        DEFAULT_CONFIG, DEFAULT_CONFIG_LOCATION
+    )
+    config_file_path = tmp_config["CONFIG_FILE"]
+    config_file = FreeportsFileConfig(config_file_path)
+    config, config_location = config_file.overwrite_config(
+        DEFAULT_CONFIG, DEFAULT_CONFIG_LOCATION
+    )
+    config, config_location = config_env.overwrite_config(config, config_location)
+
+    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
     log.getLogger().setLevel(LOG_LEVEL)
-    log_config(logger, current_config, config_location)
-    main(current_config)
+    log_config(logger, config, config_location)
+    main(config)

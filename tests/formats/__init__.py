@@ -79,9 +79,9 @@ def generic_pipeline(fmt):
 def generic_test_pipelines(fmt):
     conf["PDF"] = data_dir / fmt / "report.pdf"
     conf["FORMAT"] = fra.consts.PdfFormats.__members__[fmt]
-    conf["OUT_CSV"] = out_dir / f"out-{fmt}.csv"
+    conf["OUT_PATH"] = out_dir / f"out-{fmt}.csv"
     fra.main.main(conf)
-    out_csv = pd.read_csv(conf["OUT_CSV"], index_col=False)
+    out_csv = pd.read_csv(conf["OUT_PATH"], index_col=False)
     reference_csv = pd.read_csv(data_dir / fmt / "out.csv", index_col=False)
     pd.testing.assert_frame_equal(
         out_csv.sort_values(by=out_csv.columns.tolist()).reset_index(drop=True),

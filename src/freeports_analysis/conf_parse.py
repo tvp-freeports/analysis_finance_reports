@@ -1,8 +1,10 @@
 """Submodule containing all the utilities for validating and parsing the configuration"""
 
 import os
-from enum import Enum, auto
+from abc import ABC, abstractmethod
+from enum import Enum, auto, Flag
 from typing import Tuple, Optional, Annotated, Union
+import argparse
 import re
 from pathlib import Path
 import logging as log
@@ -13,16 +15,18 @@ from pydantic import (
     conint,
     PositiveInt,
     FilePath,
-    FileUrl,
+    HttpUrl,
     AfterValidator,
     BeforeValidator,
+    model_validator,
+    TypeAdapter,
 )
 
 from freeports_analysis.data import TARGET_LISTS
-from freeports_analysis.formats_data import VALID_FORMATS
+from freeports_analysis.formats_data import VALID_FORMATS, url_to_format
 from freeports_analysis.i18n import _
 
-from .consts import ENV_PREFIX, PdfFormats
+from .consts import PdfFormats, PROGRAM_DESCRIPTION, InputFlags, InputEnum
 
 _logger = log.getLogger(__name__)
 
@@ -42,244 +46,528 @@ def _str_to_bool(string: str) -> bool:
     raise ValueError(error_string)
 
 
-Format = Annotated[str, AfterValidator(lambda x: x in VALID_FORMATS)]
+def _format_validate(x):
+    if x not in VALID_FORMATS:
+        raise ValueError(
+            _("`{}` is not a valid format, valid formats are {}").format(
+                x, VALID_FORMATS
+            )
+        )
+    return x
+
+
+Format = Annotated[str, AfterValidator(_format_validate)]
 Lists = Annotated[list, BeforeValidator(lambda x: [x] if isinstance(x, str) else x)]
 Verbosity = conint(ge=0, le=5)
 
-
-def FreeportsFileConfig(BaseModel):
-    verbosity: Optional[Verbosity] = None
-    separate_out: Optional[bool] = None
-    out_path: Optional[Path] = None
-    n_workers: Optional[PositiveInt] = None
-    batch_path: Optional[FilePath] = None
-    out_path: Optional[FilePath] = None
-    save_pdf: Optional[bool] = None
-    url: Optional[FileUrl] = None
-    pdf: Optional[FilePath] = None
-    format: Optional[Format] = None
-    target_lists: Optional[Lists] = None
+_out_structure_both_modes = ["REGULAR", "SINGLE_FILE", "STRUCTURED"]
+_out_structure_normal_mode = []
+_out_structure_batch_mode = []
+OutStructureNormalMode = Enum(
+    "OutStructureNormalMode", _out_structure_both_modes + _out_structure_normal_mode
+)
+OutStructureBatchMode = Enum(
+    "OutStructureBatchMode", _out_structure_both_modes + _out_structure_batch_mode
+)
 
 
-def FreeportsEnvConfig(BaseModel):
+_out_flags_both_modes = ["COMPRESSED"]
+_out_flags_normal_mode = []
+_out_flags_batch_mode = ["SEPARATE_OUT_FILES"]
+OutFlagsNormalMode = Flag(
+    "OutFlagsNormalMode",
+    _out_flags_both_modes + _out_flags_normal_mode,
+)
+OutFlagsBatchMode = Flag(
+    "OutFlagsBatchMode",
+    _out_flags_both_modes + _out_flags_batch_mode,
+)
+
+OutProfile = Union[InputEnum(OutStructureNormalMode), InputEnum(OutStructureBatchMode)]
+OutFlags = Union[InputFlags(OutFlagsNormalMode), InputFlags(OutFlagsBatchMode)]
+
+
+class SelectorOutProfile:
+    @model_validator(mode="before")
+    @classmethod
+    def cast_to_right_type(cls, values):
+        batch_file = values.get("BATCH_FILE")
+        adapter_enum = TypeAdapter(InputEnum(OutStructureNormalMode))
+        adapter_flags = TypeAdapter(InputFlags(OutFlagsNormalMode))
+        if batch_file is not None:
+            adapter_enum = TypeAdapter(InputEnum(OutStructureBatchMode))
+            adapter_flags = TypeAdapter(InputFlags(OutFlagsBatchMode))
+        out_profile = values.get("OUT_PROFILE")
+        values["OUT_PROFILE"] = (
+            adapter_enum.validate_python(out_profile)
+            if out_profile is not None
+            else None
+        )
+        out_flags = values.get("OUT_FLAGS")
+        values["OUT_FLAGS"] = (
+            adapter_flags.validate_python(out_flags) if out_flags is not None else None
+        )
+        return values
+
+
+class PartialConfiguraiton(ABC):
+    @abstractmethod
+    def model_dump(self, *args, **kargs):
+        pass
+
+    def overwrite_config(self, config, config_location):
+        this_conf = self.model_dump()
+        for k, v in this_conf.items():
+            if v is not None:
+                config[k] = v
+                config_location[k] = self.__class__.__name__
+        return config, config_location
+
+
+class FreeportsFileConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
     VERBOSITY: Optional[Verbosity] = None
-    SEPARATE_OUT: Optional[bool] = None
+    OUT_PATH: Optional[Path] = None
+    OUT_PROFILE: Optional[OutProfile] = None
+    OUT_FLAGS: Optional[OutFlags] = None
     N_WORKERS: Optional[PositiveInt] = None
-    BATCH: Optional[FilePath] = None
-    OUT_CSV: Optional[FilePath] = None
+    BATCH_FILE: Optional[FilePath] = None
     SAVE_PDF: Optional[bool] = None
-    URL: Optional[FileUrl] = None
-    PDF: Optional[FilePath] = None
+    URL: Optional[HttpUrl] = None
+    PDF: Optional[Path] = None
+    FORMAT: Optional[Format] = None
+    TARGET_LISTS: Optional[Lists] = None
+
+    @classmethod
+    def _local_config(cls):
+        # 1. Check local config file
+        patterns = [
+            r"^\.?(config|conf)[-\._]?freeports\.ya?ml$",
+            r"^\.?freeports[-\._]?(config|conf)\.ya?ml$",
+        ]
+
+        for patter in patterns:
+            for file_name in os.listdir("."):
+                if not re.match(patter, file_name, re.IGNORECASE):
+                    continue
+                local_file = os.path.abspath(file_name)
+                if not os.path.isfile(local_file):
+                    continue
+                return Path(local_file)
+        return None
+
+    @classmethod
+    def _standard_config(cls):
+        config_dirs = []
+        # For Linux/Unix-like systems (including macOS)
+        # 2. Check XDG config directories for 'freeports.yaml' directly
+        if os.name == "posix":
+            # XDG config directories
+            config_dirs = BaseDirectory.load_config_paths("")
+
+        # For Windows systems
+        elif os.name == "nt":
+            # Local AppData (user-specific config)
+            local_appdata = os.environ.get("LOCALAPPDATA") or os.path.expanduser(
+                "~\\AppData\\Local"
+            )
+            config_dirs.append(local_appdata)
+
+            # ProgramData (system-wide config)
+            program_data = os.environ.get("PROGRAMDATA") or "C:\\ProgramData"
+            config_dirs.append(program_data)
+
+        for config_dir in config_dirs:
+            for file_name in ["freeports.yaml", "freeports.yml"]:
+                config_path = os.path.join(config_dir, file_name)
+                _logger.debug(
+                    _("Searching `xdg`/`Windows` compliant conf file: '%s'"),
+                    config_path,
+                )
+                if os.path.isfile(config_path):
+                    return Path(config_path)
+        return None
+
+    @classmethod
+    def _system_config(cls):
+        system_paths = []
+        if os.name == "posix":
+            # 3. Fallback to /etc/freeports.yaml
+            system_paths = ["/etc/freeports.yaml", "/etc/freeports.yml"]
+        elif os.name == "nt":
+            system_paths = [
+                os.path.join(
+                    os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yaml"
+                ),
+                os.path.join(
+                    os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yml"
+                ),
+            ]
+
+        for system_path in system_paths:
+            _logger.debug("Searching system wise conf file: '%s'", system_path)
+            if os.path.isfile(system_path):
+                return Path(system_path)
+        return None
+
+    @classmethod
+    def find_config(cls):
+        config_file = cls._local_config()
+        if config_file is not None:
+            _logger.debug(_("Found local conf file: '%s'"), config_file)
+            return config_file
+
+        config_file = cls._standard_config()
+        if config_file is not None:
+            _logger.debug(
+                _("Found `xdg`/`Windows` compliant conf file: '%s'"), config_file
+            )
+            return config_file
+
+        config_file = cls._system_config()
+        if config_file is not None:
+            _logger.debug(_("Found system wise conf file: '%s'"), config_file)
+            return config_file
+
+        # 4. Not found
+        _logger.debug(
+            _(
+                "Configuration not found in default location, `CONFIG_FILE` set to `None`"
+            )
+        )
+        return None
+
+    def __init__(self, config_file=None):
+        _map_names = {
+            "verbosity": "VERBOSITY",
+            "separate_out": "SEPARATE_OUT_FILES",
+            "out_path": "OPUT_PATH",
+            "n_workers": "N_WORKERS",
+            "batch_file": "BATCH_FILE",
+            "save_pdf": "SAVE_PDF",
+            "url": "URL",
+            "format": "FORMAT",
+            "target_lists": "TARGET_LISTS",
+            "out_profile": "OUT_PROFILE",
+            "out_flags": "OUT_FLAGS",
+        }
+        if config_file is None:
+            config_file = self.find_config()
+        if config_file is None:
+            super().__init__()
+            return
+        config_file = Path(config_file)
+        config_dict = yaml.safe_load(config_file.open("r", encoding="UTF-8"))
+        config_dict = {_map_names[k]: v for k, v in config_dict.items()}
+        super().__init__(**config_dict)
+
+
+DEFAULT_CONFIG = {
+    "PDF": None,
+    "URL": None,
+    "FORMAT": None,
+    "CONFIG_FILE": FreeportsFileConfig.find_config(),
+    "SAVE_PDF": True,
+    "TARGET_LISTS": TARGET_LISTS,
+    "VERBOSITY": 2,
+    "N_WORKERS": os.process_cpu_count() if (os.name == "posix") else os.cpu_count(),
+    "BATCH_FILE": None,
+    "PREFIX_OUT": None,
+    "OUT_PATH": Path("."),
+    "OUT_PROFILE": OutStructureNormalMode.REGULAR,
+    "OUT_FLAGS": OutFlagsNormalMode(0),
+}
+DEFAULT_CONFIG_LOCATION = {k: "FreeportsDefaultConfig" for k in DEFAULT_CONFIG}
+
+
+class FreeportsEnvConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
+    VERBOSITY: Optional[Verbosity] = None
+    N_WORKERS: Optional[PositiveInt] = None
+    BATCH_FILE: Optional[FilePath] = None
+    OUT_PATH: Optional[FilePath] = None
+    OUT_PROFILE: Optional[OutProfile] = None
+    OUT_FLAGS: Optional[OutFlags] = None
+    SAVE_PDF: Optional[bool] = None
+    URL: Optional[HttpUrl] = None
+    PDF: Optional[Path] = None
     FORMAT: Optional[Format] = None
     CONFIG_FILE: Optional[FilePath] = None
     TARGET_LISTS: Optional[Lists] = None
 
-
-def FreeportsCmdConfig(BaseModel):
-    pass
-
-
-def FreeportsJobConfig(BaseModel):
-    VERBOSITY: Verbosity = 2
-    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
-    SEPARATE_OUT_FILES: bool = False
-    N_WORKERS: PositiveInt = (
-        os.process_cpu_count() if (os.name == "posix") else os.cpu_count()
-    )
-    BATCH: Optional[FilePath] = None
-    PREFIX_OUT: Optional[str] = None
-    OUT_CSV: FilePath = Path("/dev/stdout")
-    SAVE_PDF: bool = True
-    URL: Optional[FileUrl] = None
-    PDF: Optional[FilePath] = None
-    FORMAT: Format
-    CONFIG_FILE: FilePath = _find_config()
-    TARGET_LISTS: Lists
+    def __init__(self):
+        ENV_PREFIX = "FREEPORTS_"
+        _map_names = {
+            f"{ENV_PREFIX}URL": "URL",
+            f"{ENV_PREFIX}VERBOSITY": "VERBOSITY",
+            f"{ENV_PREFIX}N_WORKERS": "N_WORKERS",
+            f"{ENV_PREFIX}BATCH_FILE": "BATCH_FILE",
+            f"{ENV_PREFIX}OUT_PATH": "OUT_PATH",
+            f"{ENV_PREFIX}OUT_PROFILE": "OUT_PROFILE",
+            f"{ENV_PREFIX}OUT_FLAGS": "OUT_FLAGS",
+            f"{ENV_PREFIX}SAVE_PDF": "SAVE_PDF",
+            f"{ENV_PREFIX}FORMAT": "FORMAT",
+            f"{ENV_PREFIX}PDF": "PDF",
+            f"{ENV_PREFIX}CONFIG_FILE": "CONFIG_FILE",
+            f"{ENV_PREFIX}TARGET_LIST": "TARGET_LISTS",
+        }
+        config_dict = {std_k: os.environ.get(k) for k, std_k in _map_names.items()}
+        super().__init__(**config_dict)
 
 
-def FreeportsConfig(BaseModel):
-    VERBOSITY: Verbosity = 2
-    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
-    SEPARATE_OUT_FILES: bool = False
-    N_WORKERS: PositiveInt = (
-        os.process_cpu_count() if (os.name == "posix") else os.cpu_count()
-    )
-    BATCH: Optional[FilePath] = None
-    PREFIX_OUT: Optional[str] = None
-    OUT_CSV: FilePath = Path("/dev/stdout")
-    SAVE_PDF: bool = True
-    URL: Optional[FileUrl] = None
-    PDF: Optional[FilePath] = None
-    FORMAT: Format
-    CONFIG_FILE: FilePath = _find_config()
-    TARGET_LISTS: Lists
+class FreeportsCmdConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
+    VERBOSITY: Optional[Verbosity] = None
+    OUT_PROFILE: Optional[OutProfile] = None
+    OUT_FLAGS: Optional[OutFlags] = None
+    OUT_PATH: Optional[Path] = None
+    N_WORKERS: Optional[PositiveInt] = None
+    BATCH_FILE: Optional[FilePath] = None
+    SAVE_PDF: Optional[bool] = None
+    URL: Optional[HttpUrl] = None
+    PDF: Optional[Path] = None
+    FORMAT: Optional[Format] = None
+    TARGET_LISTS: Optional[Lists] = None
 
-
-def _local_config():
-    # 1. Check local config file
-    patterns = [
-        r"^\.?(config|conf)[-\._]?freeports\.ya?ml$",
-        r"^\.?freeports[-\._]?(config|conf)\.ya?ml$",
-    ]
-
-    for patter in patterns:
-        for file_name in os.listdir("."):
-            if not re.match(patter, file_name, re.IGNORECASE):
-                continue
-            local_file = os.path.abspath(file_name)
-            if not os.path.isfile(local_file):
-                continue
-            return Path(local_file)
-    return None
-
-
-def _standard_config():
-    config_dirs = []
-    # For Linux/Unix-like systems (including macOS)
-    # 2. Check XDG config directories for 'freeports.yaml' directly
-    if os.name == "posix":
-        # XDG config directories
-        config_dirs = BaseDirectory.load_config_paths("")
-
-    # For Windows systems
-    elif os.name == "nt":
-        # Local AppData (user-specific config)
-        local_appdata = os.environ.get("LOCALAPPDATA") or os.path.expanduser(
-            "~\\AppData\\Local"
+    @classmethod
+    def create_parser(self):
+        parser = argparse.ArgumentParser(description=PROGRAM_DESCRIPTION)
+        # Argomenti obbligatori (stringhe)
+        parser.add_argument(
+            "--url", "-u", type=str, help=_("URL of the dir where to find the pdf")
         )
-        config_dirs.append(local_appdata)
+        parser.add_argument("--pdf", "-i", type=str, help=_("Name of the file"))
+        parser.add_argument(
+            "--batch",
+            "-b",
+            type=str,
+            help=_("Activate `BATCH MODE`, path of the batch file"),
+        )
+        help_str = _(
+            "# parallel workers in `BATCH MODE`, if num <= 0, it set to # cpu avalaibles"
+        )
+        parser.add_argument("--workers", "-j", type=int, help=help_str)
+        parser.add_argument("--format", "-f", type=str, help=_("PDF format"))
+        parser.add_argument(
+            "--no-download", action="store_true", help=_("Don't save file locally")
+        )
+        parser.add_argument(
+            "--separate-out", action="store_true", help=_("Separate output files")
+        )
+        parser.add_argument(
+            "--config", type=str, help=_("Custom configuration file location")
+        )
+        out_path = DEFAULT_CONFIG["OUT_PATH"]
+        parser.add_argument(
+            "--out",
+            "-o",
+            type=str,
+            help=_("Output file cvs (default path: '{}')").format(out_path),
+        )
+        verb = DEFAULT_CONFIG["VERBOSITY"]
+        parser.add_argument(
+            "-v",
+            action="count",
+            help=_("Increase verbosity (default level: {})").format(verb),
+        )
+        parser.add_argument(
+            "-q",
+            action="count",
+            help=_("Decrease verbosity (default level: {})").format(verb),
+        )
+        target_lists = DEFAULT_CONFIG["TARGET_LISTS"]
+        parser.add_argument(
+            "--target-list",
+            "-T",
+            type=str,
+            help=_("List to filter the companies of interest (default: {})").format(
+                target_lists
+            ),
+        )
+        parser.add_argument(
+            "--archive",
+            "-z",
+            action="store_true",
+            help=_("Create a `.tar.gz` archive of the output"),
+        )
+        parser.add_argument(
+            "--out-profile",
+            "-P",
+            type=str,
+            help=_("Specify the structure of the output dataset"),
+        )
+        return parser
 
-        # ProgramData (system-wide config)
-        program_data = os.environ.get("PROGRAMDATA") or "C:\\ProgramData"
-        config_dirs.append(program_data)
-
-    for config_dir in config_dirs:
-        for file_name in ["freeports.yaml", "freeports.yml"]:
-            config_path = os.path.join(config_dir, file_name)
-            _logger.debug(
-                _("Searching `xdg`/`Windows` compliant conf file: '%s'"), config_path
+    def __init__(self, args, default_verbosity):
+        args = vars(args)
+        _map_names = {
+            "url": "URL",
+            "pdf": "PDF",
+            "format": "FORMAT",
+            "out": "OUT_PATH",
+            "batch": "BATCH_FILE",
+            "workers": "N_WORKERS",
+            "out_profile": "OUT_PROFILE",
+            "target_list": "TARGET_LISTS",
+            "no_download": None,
+            "v": None,
+            "q": None,
+            "separate_out": None,
+            "archive": None,
+        }
+        config_dict = {
+            k_std: args[k] for k, k_std in _map_names.items() if k_std is not None
+        }
+        increase_verbosity = 0
+        if (args["v"] is not None) and (args["q"] is not None):
+            raise argparse.ArgumentTypeError(
+                _("Cannot increase and decrease verbosity!")
             )
-            if os.path.isfile(config_path):
-                return Path(config_path)
-    return None
+        elif args["v"] is not None:
+            increase_verbosity = args["v"]
+        elif args["q"] is not None:
+            increase_verbosity = args["q"]
+        config_dict["VERBOSITY"] = (
+            min(max(default_verbosity + increase_verbosity, 0), 5)
+            if increase_verbosity != 0
+            else None
+        )
+        config_dict["SAVE_PDF"] = False if args["no_download"] else None
+
+        config_dict["OUT_FLAGS"] = None
+        for k, v in {
+            "separate_out": "SEPARATE_OUT_FILES",
+            "archive": "COMPRESSED",
+        }.items():
+            if args[k]:
+                if config_dict["OUT_FLAGS"] is None:
+                    config_dict["OUT_FLAGS"] = v
+                else:
+                    config_dict["OUT_FLAGS"] += f" | {v}"
+        super().__init__(**config_dict)
 
 
-def _system_config():
-    system_paths = []
-    if os.name == "posix":
-        # 3. Fallback to /etc/freeports.yaml
-        system_paths = ["/etc/freeports.yaml", "/etc/freeports.yml"]
-    elif os.name == "nt":
-        system_paths = [
-            os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yaml"),
-            os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "freeports.yml"),
-        ]
+class FreeportsJobConfig(BaseModel):
+    PREFIX_OUT: Optional[str] = None
+    SAVE_PDF: bool = True
+    URL: Optional[HttpUrl] = None
+    PDF: Optional[Path] = None
+    FORMAT: Format
+    TARGET_LISTS: Lists
 
-    for system_path in system_paths:
-        _logger.debug("Searching system wise conf file: '%s'", system_path)
-        if os.path.isfile(system_path):
-            return Path(system_path)
-    return None
-
-
-def _find_config():
-    config_file = _local_config()
-    if config_file is not None:
-        _logger.debug(_("Found local conf file: '%s'"), config_file)
-        return config_file
-
-    config_file = _standard_config()
-    if config_file is not None:
-        _logger.debug(_("Found `xdg`/`Windows` compliant conf file: '%s'"), config_file)
-        return config_file
-
-    config_file = _system_config()
-    if config_file is not None:
-        _logger.debug(_("Found system wise conf file: '%s'"), config_file)
-        return config_file
-
-    # 4. Not found
-    _logger.debug(
-        _("Configuration not found in default location, `CONFIG_FILE` set to `None`")
-    )
-    return None
+    def __init__(self, row_dict):
+        _map_names = {
+            "url": "URL",
+            "save pdf": "SAVE_PDF",
+            "format": "FORMAT",
+            "pdf": "PDF",
+            "prefix out": "PREFIX_OUT",
+            "target list": "TARGET_LISTS",
+        }
+        config_dict = {_map_names[k.strip().lower()]: v for k, v in row_dict.items()}
+        super().__init__(**config_dict)
 
 
-DEFAULT_CONFIG = {
-    "VERBOSITY": 2,
-    # `SEPARATE_OUT_FILES` default to `False` because command line args only permits set `True`
-    "SEPARATE_OUT_FILES": False,
-    "N_WORKERS": os.process_cpu_count()
-    if os.name == "posix"
-    else os.cpu_count()
-    if os.name == "nt"
-    else None,
-    "BATCH": None,
-    "PREFIX_OUT": None,
-    "OUT_CSV": Path("/dev/stdout")
-    if os.name == "posix"
-    else "CON"
-    if os.name == "nt"
-    else None,
-    # `SAVE_PDF` default to `True` because command line args permits to set only to `False`
-    "SAVE_PDF": True,
-    "URL": None,
-    "PDF": None,
-    "FORMAT": None,
-    "CONFIG_FILE": _find_config(),
-    "TARGET_LISTS": TARGET_LISTS,
-}
+class FreeportsConfig(BaseModel):
+    VERBOSITY: Verbosity
+    N_WORKERS: PositiveInt
+    BATCH_FILE: Optional[FilePath] = None
+    SAVE_PDF: bool = True
+    URL: Optional[HttpUrl] = None
+    PDF: Optional[Path] = None
+    FORMAT: Optional[Format] = None
+    CONFIG_FILE: FilePath
+    TARGET_LISTS: Lists
+    PREFIX_OUT: Optional[str] = None
+    OUT_PROFILE: Union[OutStructureNormalMode, OutStructureBatchMode]
+    OUT_FLAGS: Union[OutFlagsNormalMode, OutFlagsBatchMode]
+    OUT_PATH: Path
+
+    @model_validator(mode="after")
+    def set_compress_flag(self):
+        type_out_flags = type(self.OUT_FLAGS)
+        if self.OUT_PATH.name.endswith(".tar.gz"):
+            self.OUT_FLAGS = self.OUT_FLAGS | type_out_flags.COMPRESSED
+            self.OUT_PATH = self.OUT_PATH.with_suffix("").with_suffix("")
+        return self
+
+    @model_validator(mode="after")
+    def detect_format(self):
+        if self.URL is not None:
+            detected_format = url_to_format(self.URL)
+            if self.FORMAT is None:
+                self.FORMAT = detected_format
+            elif self.FORMAT != detected_format:
+                _logger.warning(
+                    _("Selected format `%s` is different from detected one: %s"),
+                    self.FORMAT,
+                    detected_format,
+                )
+        if self.FORMAT is None:
+            raise ValueError(_("Format has to be specified or detected..."))
+        return self
+
+    @model_validator(mode="after")
+    def right_out_profile_type(self):
+        if self.BATCH_FILE is not None:
+            if not self.BATCH_FILE.exists():
+                raise ValueError(
+                    _("Insert valid batch file name not {}").format(self.BATCH_FILE)
+                )
+            if not (
+                isinstance(self.OUT_PROFILE, OutStructureBatchMode)
+                and isinstance(self.OUT_FLAGS, OutFlagsBatchMode)
+            ):
+                raise ValueError(_("Out profile and flags should be of the right type"))
+        else:
+            if not (
+                isinstance(self.OUT_PROFILE, OutStructureNormalMode)
+                and isinstance(self.OUT_FLAGS, OutFlagsNormalMode)
+            ):
+                raise ValueError(_("Out profile and flags should be of the right type"))
+        return self
+
+    @model_validator(mode="after")
+    def out_path_exists(self):
+        if not self.OUT_PATH.exists():
+            raise ValueError(
+                _("Out path is not valid because directory '{}' doesn't exists").format(
+                    out_path.parent
+                )
+            )
+        return self
+
+    @model_validator(mode="after")
+    def input_should_be_specified(self):
+        if self.URL is None and self.PDF is None:
+            string = _("You have to specify at least one input option: ")
+            string += _("the url or the resource, the pdf file path or both")
+            raise ValueError(string)
+        return self
+
+    @model_validator(mode="after")
+    def pdf_path_validation(self):
+        if self.PDF is None:
+            return self
+        if self.SAVE_PDF:
+            if self.PDF.name.endswith(".pdf"):
+                if not self.PDF.parent.exists():
+                    raise ValueError(_("PDF path not valid"))
+            else:
+                if self.PDF.exists():
+                    self.PDF = self.PDF / "report.pdf"
+                elif self.PDF.parent.exists():
+                    pass
+                else:
+                    raise ValueError(_("PDF path not valid"))
+            return self
+        if not self.PDF.exists():
+            if self.URL is None:
+                raise ValueError(_("Url don't specified and PDF not valid!!!"))
+            else:
+                _logger.warning("PDF is not valid, fallback to URL...")
+                self.PDF = None
+        return self
 
 
-schema_yaml_config = {
-    "verbosity": ("VERBOSITY", int),
-    "n_workers": ("N_WORKERS", int),
-    "pdf": ("PDF", Path),
-    "url": ("URL", str),
-    "batch_path": ("BATCH", Path),
-    "separate_out": ("SEPARATE_OUT_FILES", bool),
-    "out_path": ("OUT_CSV", Path),
-    "save_pdf": ("SAVE_PDF", bool),
-    "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
-    "target_lists": ("TARGET_LIST", list),
-}
-
-
-schema_env_config = {
-    f"{ENV_PREFIX}URL": ("URL", str),
-    f"{ENV_PREFIX}VERBOSITY": ("VERBOSITY", int),
-    f"{ENV_PREFIX}N_WORKERS": ("N_WORKERS", int),
-    f"{ENV_PREFIX}BATCH": ("BATCH", Path),
-    f"{ENV_PREFIX}SEPARATE_OUT": ("SEPARATE_OUT_FILES", _str_to_bool),
-    f"{ENV_PREFIX}OUT_CSV": ("OUT_CSV", Path),
-    f"{ENV_PREFIX}SAVE_PDF": ("SAVE_PDF", _str_to_bool),
-    f"{ENV_PREFIX}FORMAT": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
-    f"{ENV_PREFIX}PDF": ("PDF", Path),
-    f"{ENV_PREFIX}CONFIG_FILE": ("CONFIG_FILE", Path),
-    f"{ENV_PREFIX}TARGET_LIST": ("TARGET_LISTS", str),
-}
-
-schema_job_csv_config = {
-    "url": ("URL", str),
-    "save pdf": ("SAVE_PDF", _str_to_bool),
-    "format": ("FORMAT", lambda x: PdfFormats.__members__[x.strip()]),
-    "pdf": ("PDF", Path),
-    "prefix out": ("PREFIX_OUT", str),
-    "target list": ("TARGET_LISTS", str),
-}
-
-
-class PossibleLocationConfig(Enum):
-    """Rappresent from where the options can come from"""
-
-    DEFAULT = auto()
-    CONFIG_FILE = auto()
-    ENV_VAR = auto()
-    CMD_ARG = auto()
-    JOB_OVERWRITE = auto()
-
-
-DEFAULT_LOCATION_CONFIG = {k: PossibleLocationConfig.DEFAULT for k in DEFAULT_CONFIG}
+schema_job_csv_config = None
 
 
 def log_config(logger: log.Logger, config: dict, config_location: dict):
@@ -290,157 +578,17 @@ def log_config(logger: log.Logger, config: dict, config_location: dict):
     logger : log.Logger
         the logger that has to log
     """
-    logger.debug(
-        _("Resulting config: %s"),
-        {k: (v, config_location[k].name) for k, v in config.items()},
-    )
-
-
-def overwrite_with_config_file(
-    config: dict, config_location: dict
-) -> Tuple[dict, dict]:
-    """Overwrite configuration provided and update the dictionary containing
-    from where the configuration are loaded from accordingly, using the configuration file
-
-    Parameters
-    ----------
-    config : dict
-        configuration to overwrite
-    config_location : dict
-        location of configuration to update
-
-    Returns
-    -------
-    Tuple[dict,dict]
-        first `dict` is the new configuration, second is the updated location `dict`
-    """
-    yaml_from_file = None
-    config_file = config["CONFIG_FILE"]
-    if config_file is not None:
-        with config["CONFIG_FILE"].open("r", encoding="UTF-8") as f:
-            yaml_from_file = yaml.safe_load(f)
-        for key, v in yaml_from_file.items():
-            conf_name, cast = schema_yaml_config[key]
-            config[conf_name] = cast(v)
-            config_location[conf_name] = PossibleLocationConfig.CONFIG_FILE
-    return config, config_location
-
-
-def overwrite_with_env_vars(config: dict, config_location: dict) -> Tuple[dict, dict]:
-    """Overwrite configuration provided and update the dictionary containing
-    from where the configuration are loaded from accordingly, using environment variables
-
-    Parameters
-    ----------
-    config : dict
-        configuration to overwrite
-    config_location : dict
-        location of configuration to update
-
-    Returns
-    -------
-    Tuple[dict,dict]
-        first `dict` is the new configuration, second is the updated location `dict`
-    """
-    for key, (opt_name, cast) in schema_env_config.items():
-        v = os.environ.get(key)
-        if v is not None:
-            config[opt_name] = cast(v)
-            config_location[opt_name] = PossibleLocationConfig.ENV_VAR
-    return config, config_location
-
-
-def apply_config(config: dict, config_location: dict) -> Tuple[dict, dict]:
-    """Update configuration and `dict` rappresenting from where the configuration is loaded
-    using the configuration file and the environment variables
-
-    Parameters
-    ----------
-    config : dict
-        configuration to overwrite
-    config_location : dict
-        location of configuration to update
-
-    Returns
-    -------
-    Tuple[dict,dict]
-        first `dict` is the new configuration, second is the updated location `dict`
-    """
-    config, config_location = overwrite_with_config_file(config, config_location)
-    config, config_location = overwrite_with_env_vars(config, config_location)
-    return config, config_location
-
-
-def get_config_file(config: dict, config_location: dict) -> Tuple[dict, dict]:
-    """Overwrite the configuration and the `dict` that rappresent from where the configuration
-    is loaded on the `CONFIG_FILE` entry. This has to be parsed before overwriting all the other
-    options in order to set the correct configuration file to load
-
-    Parameters
-    ----------
-    config : dict
-        configuration to overwrite
-    config_location : dict
-        location of configuration to update
-
-    Returns
-    -------
-    Tuple[dict,dict]
-        first `dict` is the new configuration, second is the updated location `dict`
-    """
-    env_conf_file = os.environ.get(f"{ENV_PREFIX}CONFIG_FILE")
-    if env_conf_file is not None:
-        config["CONFIG_FILE"] = env_conf_file
-        config_location["CONFIG_FILE"] = PossibleLocationConfig.ENV_VAR
-    return config, config_location
-
-
-def validate_conf(config: dict):
-    """Function that validate the configuration provided
-
-    Parameters
-    ----------
-    config : dict
-        configuration to validate
-
-    Raises
-    ------
-    ValueError
-        verbosity must be in [0:5]
-    ValueError
-        at least one location for input file (from url or local filesystem) should be specified
-    ValueError
-        invalid out path
-    ValueError
-        invalid batch file path
-    ValueError
-        if in `BATCH MODE` out path has to be directory or `.tar.gz` archive
-    """
-    verb = config["VERBOSITY"]
-    if verb > 5 or verb < 0:
-        err_str = _("Verbosity must be between 0 and 5, resulting is {}").format(verb)
-        raise ValueError(err_str)
-    batch_path = config["BATCH"]
-    out_path = config["OUT_CSV"]
-    if config["URL"] is None and config["PDF"] is None:
-        string = _("You have to specify at least one input option: ")
-        string += _("the url or the resource, the pdf file path or both")
-        raise ValueError(string)
-    if not out_path.parent.exists():
-        raise ValueError(
-            _("Out path is not valid because directory '{}' doesn't exists").format(
-                out_path.parent
-            )
-        )
-    if batch_path is not None:
-        if not batch_path.exists() or not batch_path.is_file():
-            raise ValueError(_("Batch '{}' has to be existent file").format(batch_path))
-        if config["SEPARATE_OUT_FILES"]:
-            if "." in out_path.name and not out_path.name.endswith(".tar.gz"):
-                err_str = _(
-                    "Out file in `BATCH MODE` should be directory or `.tar.gz` file"
-                )
-                err_str += _(" if `SEPARATE_OUT_FILES` not set to '{}'").format(
-                    out_path
-                )
-                raise ValueError(err_str)
+    locations = {"DEFAULT": [], "CONFIG_FILE": [], "ENV_VAR": [], "CMD_ARG": []}
+    for k, v in config_location.items():
+        if v == "FreeportsDefaultConfig":
+            locations["DEFAULT"].append(k)
+        elif v == "FreeportsFileConfig":
+            locations["CONFIG_FILE"].append(k)
+        elif v == "FreeportsEnvConfig":
+            locations["ENV_VAR"].append(k)
+        elif v == "FreeportsCmdConfig":
+            locations["CMD_ARG"].append(k)
+        else:
+            raise ValueError(_("Unknown config location: {}").format(v))
+    logger.debug(_("Resulting config: %s"), {k: v for k, v in config.items()})
+    logger.debug(_("Resulting location: %s"), locations)
