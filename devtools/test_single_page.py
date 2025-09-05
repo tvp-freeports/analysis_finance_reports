@@ -1,6 +1,7 @@
 import pymupdf as pypdf
 from lxml import etree
 import copy
+from freeports_analysis.formats import get_pipelines
 
 
 def get_page(file_name: str, page: int, offset: int = -1):
@@ -39,3 +40,9 @@ def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
     _remove_tree_to_depth(etree_to_print, depth=0, max_depth=max_deeph)
     print(etree.tostring(etree_to_print, pretty_print=True).decode(), end="")
     del etree_to_print
+
+
+def select_function(fmt, index_segment, pipeline_name="", index=0):
+    pipeline = get_pipelines(fmt)[pipeline_name]
+    func = pipeline[index_segment][index]
+    return func

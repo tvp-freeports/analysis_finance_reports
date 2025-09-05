@@ -262,3 +262,7 @@ class ExpectedPdfBlockNotFound(Exception):
 
 class ExpectedTextBlockNotFound(Exception):
     """Raised when a required TextBlock is not found"""
+
+
+class PageParseFail(Exception):
+    """Raised when the alghoritm is unable to parse a page"""

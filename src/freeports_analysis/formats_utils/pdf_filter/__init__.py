@@ -11,6 +11,7 @@ from lxml import etree
 from freeports_analysis.formats.commons import (
     PdfBlock,
     ExpectedPdfBlockNotFound,
+    PageParseFail,
     TextBlock,
 )
 from freeports_analysis.i18n import _
@@ -155,8 +156,13 @@ def standard_extraction_currency(
             try:
                 currency = [line.text for line in lines if line in currency_set][0]
             except IndexError as exc:
-                print(list(map(lambda x: x.text, lines))[:10])
-                raise ExpectedPdfBlockNotFound(_("currency block  not found")) from exc
+                logger.error("Currency set:")
+                logger.error("\n%s", str(currency_set))
+                logger.error("First lines where:")
+                logger.error(
+                    "%s", str(list(map(lambda x: x.text, lines))[: min(10, len(lines))])
+                )
+                raise ExpectedPdfBlockNotFound(_("Currency block  not found")) from exc
 
             metadata["currency"] = currency
             return metadata
@@ -239,7 +245,7 @@ def standard_pdf_filtering(
             try:
                 metadata = page_metadata(xml_root)
             except ExpectedPdfBlockNotFound as e:
-                logger.warning(e)
+                raise PageParseFail(e)
 
             rows = []
             if body_set.font is not None:
@@ -280,8 +286,6 @@ def standard_pdf_filtering(
             table_cell_widths = [table_row.geometry.width for table_row in table_rows]
             max_width = max(table_cell_widths)
             is_max_width = [width == max_width for width in table_cell_widths]
-            print(table_rows)
-            raise Exception
             return [
                 PdfBlock(
                     OnePdfBlockType.RELEVANT_BLOCK,

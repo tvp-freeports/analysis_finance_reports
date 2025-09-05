@@ -1,4 +1,0 @@
-save_pdf: false
-verbosity: 5
-out_profile: REGULAR
-out_flags: COMPRESSED

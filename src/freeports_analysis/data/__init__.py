@@ -7,9 +7,15 @@ from freeports_analysis.i18n import _
 data = Path(__file__).parent
 
 
+def _stem_contained_in_name(df):
+    df["Name"]
+    df["Stem"]
+
+
 companies_schema = pa.DataFrameSchema(
     columns={
-        "Regexp": pa.Column(pd.StringDtype, nullable=True),
+        "Name": pa.Column(pd.StringDtype),
+        "Stem": pa.Column(pd.StringDtype, nullable=True),
     },
     # Creazione dell'indice composto durante la validazione
     coerce=True,  # Permette trasformazioni
@@ -23,7 +29,8 @@ companies_schema = pa.DataFrameSchema(
 
 
 def get_companies():
-    df = pd.read_csv(data / "companies.csv", index_col="Name")
+    df = pd.read_csv(data / "companies.csv")
+    df.set_index("Name", drop=False, inplace=True)
     return companies_schema.validate(df)
 
 

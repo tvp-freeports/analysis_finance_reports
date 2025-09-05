@@ -209,14 +209,17 @@ def get_pipes(format_name):
                 "subfund_set": PdfLineSet.from_str(arg["Subfund set"]),
                 "body_set": PdfLineSet.from_str(arg["Body set"]),
                 "currency_set": PdfLineSet.from_str(arg["Currency set"]),
-                "deselection_list": [
+            }
+            if not pd.isna(arg["Deselection set"]):
+                pdf_filter_args["deseleciton_list"] = [
                     PdfLineSet.from_str(s) for s in arg["Deselection set"]
                 ]
-                if isinstance(arg["Deselection set"], list)
-                else [],
-                "algorithm_flags": TablePosAlgorithm.from_dict(arg["Algorithm flags"]),
-                "tolerance": arg["Tolerance"],
-            }
+            if not pd.isna(arg["Algorithm flags"]):
+                pdf_filter_args["algorithm_flags"] = TablePosAlgorithm.from_dict(
+                    arg["Algorithm flags"]
+                )
+            if not pd.isna(arg["Tolerance"]):
+                pdf_filter_args["tolerance"] = arg["Tolerance"]
             pdf_filter = standard_pdf_filtering(**pdf_filter_args)(
                 lambda xml_root: None
             )

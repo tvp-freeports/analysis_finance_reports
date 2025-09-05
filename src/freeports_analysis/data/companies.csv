@@ -1,4 +1,4 @@
-Name,Regexp
+Name,Stem
 Airbnb,airbnb
 Alon Blue Square,
 Alstom,
@@ -16,7 +16,7 @@ Carrefour,
 Caterpillar,
 Cellcom Israel,
 Cemex,
-Cisco Systems,cisco (systems)?
+Cisco Systems,cisco
 CNH Industrial,
 Danya Cebus,
 Delek Group,
@@ -28,7 +28,7 @@ Expedia Group,
 Hamat Group,
 Heidelberg Materials,
 Hewlett Packard Enterprise,
-HikVision,hik ?vision
+HikVision,hik
 Hilan,
 Hyundai Heavy Industries,
 IBM,ibm
@@ -48,8 +48,8 @@ Shapir Engineering and Industry,
 Shikun & Binui,
 Shufersal,
 Siemens,
-Syensqo,coca-?cola (co\.?)?
-Coca-Cola Co,
+Syensqo,
+Coca-Cola Co,coca
 TKH Group,
 Tripadvisor,
 TUI Group,
