@@ -3,9 +3,9 @@ import inspect
 import yaml
 import pandera.pandas as pa
 import pandas as pd
-import freeports_analysis.formats.semistructured.pdf_filter as p
-import freeports_analysis.formats.semistructured.text_extract as t
-import freeports_analysis.formats.semistructured.deserialize as d
+import freeports_analysis.formats.algorithms.semistructured.pdf_filter as p
+import freeports_analysis.formats.algorithms.semistructured.text_extract as t
+import freeports_analysis.formats.algorithms.semistructured.deserialize as d
 from ..commons import index_format_pipe, create_index_format_name_pipe
 
 data = Path(__file__).parent

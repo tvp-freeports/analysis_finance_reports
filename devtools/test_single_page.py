@@ -1,7 +1,7 @@
 import pymupdf as pypdf
 from lxml import etree
 import copy
-from freeports_analysis.formats import get_pipelines
+from freeports_analysis.formats.algorithms.algorithms import get_pipelines
 
 
 def get_page(file_name: str, page: int, offset: int = -1):

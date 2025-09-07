@@ -1,8 +1,8 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSetDict
-from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats_utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSetDict
+from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
+from freeports_analysis.formats.utils.pdf_filter.select_position import (
     InputTablePosAlgorithm,
 )
 from freeports_analysis.consts import Currency

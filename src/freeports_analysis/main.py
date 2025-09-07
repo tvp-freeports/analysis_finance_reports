@@ -36,7 +36,7 @@ from freeports_analysis.consts import (
     STANDARD_LOG_FORMATTER,
     STANDARD_LOG_FORMATTER_MP,
 )
-from freeports_analysis.formats import (
+from freeports_analysis.formats.algorithms import (
     pdf_filter_exec,
     text_extract_exec,
     deserialize_exec,
@@ -51,7 +51,7 @@ from freeports_analysis.conf_parse import (
     FreeportsConfig,
     schema_job_csv_config,
 )
-from freeports_analysis.formats_data import url_to_format
+from freeports_analysis.formats.data import url_to_format
 
 
 logger = log.getLogger(__package__)

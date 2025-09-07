@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, model_validator
-from freeports_analysis.formats_utils.text_extract import standard_text_extraction
+from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 
 # class InputStandard(BaseModel):
 #     market_value: int

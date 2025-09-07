@@ -1,12 +1,12 @@
 from pathlib import Path
 import pandera.pandas as pa
 import pandas as pd
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import line_set_regexp
-from freeports_analysis.formats_utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats_utils.text_extract import standard_text_extraction
-from freeports_analysis.formats_utils.deserialize import standard_deserialization
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats_utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import line_set_regexp
+from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
+from freeports_analysis.formats.utils.text_extract import standard_text_extraction
+from freeports_analysis.formats.utils.deserialize import standard_deserialization
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
 from ..commons import create_index_format_name_pipe, index_format_pipe

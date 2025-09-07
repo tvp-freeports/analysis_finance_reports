@@ -4,7 +4,7 @@ import dill
 import pandas as pd
 from lxml import etree
 import freeports_analysis as fra
-from freeports_analysis.formats import (
+from freeports_analysis.formats.algorithms.algorithms import (
     get_pipelines,
     get_pdf_filters,
     get_text_extract,

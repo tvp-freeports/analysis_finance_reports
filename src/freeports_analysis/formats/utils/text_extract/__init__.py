@@ -17,9 +17,9 @@ import re
 import logging
 from typing import List, Optional, Tuple
 from freeports_analysis.i18n import _
-from freeports_analysis.formats.commons import TextBlock, PdfBlock
-from .match import target_match
-from .. import normalize_string, overwrite_if_implemented
+from freeports_analysis.formats import TextBlock, PdfBlock
+from .match import target_match, normalize_string
+from .. import overwrite_if_implemented
 from freeports_analysis.consts import Currency
 
 logger = logging.getLogger(__name__)

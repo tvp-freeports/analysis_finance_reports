@@ -3,13 +3,13 @@
 import re
 from typing import TypeAlias
 import logging
-from freeports_analysis.formats_utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_filter import (
     standard_pdf_filtering,
     PdfLineSet,
 )
-from freeports_analysis.formats_utils import normalize_string
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import XRange, YRange
-from freeports_analysis.formats_utils.text_extract import (
+from freeports_analysis.formats.utils import normalize_string
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import XRange, YRange
+from freeports_analysis.formats.utils.text_extract import (
     EquityBondTextBlockType,
     TextBlock,
 )

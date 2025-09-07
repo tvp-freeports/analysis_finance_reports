@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel
-from freeports_analysis.formats_utils.deserialize import standard_deserialization
+from freeports_analysis.formats.utils.deserialize import standard_deserialization
 
 # class InputStandard(BaseModel):
 #     cost_and_value_interpret_int: Optional[bool] = True

@@ -23,7 +23,7 @@ from pydantic import (
 )
 
 from freeports_analysis.data import TARGET_LISTS
-from freeports_analysis.formats_data import VALID_FORMATS, url_to_format
+from freeports_analysis.formats.data import VALID_FORMATS, url_to_format
 from freeports_analysis.i18n import _
 
 from .consts import PdfFormats, PROGRAM_DESCRIPTION, InputFlags, InputEnum

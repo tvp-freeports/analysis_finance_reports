@@ -1,13 +1,13 @@
 """MEDIOLANUM_IT24_B format submodule"""
 
-from freeports_analysis.formats_utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_filter import (
     standard_pdf_filtering,
     PdfLineSet,
 )
 from freeports_analysis.consts import Currency
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import XRange, YRange, Area
-from freeports_analysis.formats_utils.pdf_filter.xml.font import get_lines_with_txt_font
-from freeports_analysis.formats_utils.pdf_filter.xml.position import get_bounds
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import XRange, YRange, Area
+from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt_font
+from freeports_analysis.formats.utils.pdf_filter.xml.position import get_bounds
 
 
 def pdf_filter(xml_root):

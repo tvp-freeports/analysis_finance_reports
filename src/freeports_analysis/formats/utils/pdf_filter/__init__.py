@@ -8,7 +8,7 @@ from typing import List, Optional, TypeAlias, Callable
 from enum import Enum, auto
 import logging as log
 from lxml import etree
-from freeports_analysis.formats.commons import (
+from freeports_analysis.formats import (
     PdfBlock,
     ExpectedPdfBlockNotFound,
     PageParseFail,
