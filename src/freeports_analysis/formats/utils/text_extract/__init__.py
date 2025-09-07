@@ -7,7 +7,6 @@ This module provides functionality for:
 - Supporting different matching methods (exact, fuzzy, prefix-based)
 
 Key components:
-- Matching functions (target_match, target_fuzzy_match, target_prefix_match)
 - Decorators for text block type definition (one_txt_blk, EquityBondTextBlockType)
 - Standard text extraction functionality through standard_text_extraction decorator
 """
@@ -18,7 +17,7 @@ import logging
 from typing import List, Optional, Tuple
 from freeports_analysis.i18n import _
 from freeports_analysis.formats import TextBlock, PdfBlock
-from .match import target_match, normalize_string
+from .match import match_company, normalize_string
 from .. import overwrite_if_implemented
 from freeports_analysis.consts import Currency
 
@@ -139,9 +138,7 @@ class PdfBlocksTable:
         self.pop(j)
 
 
-def standard_text_extraction_loop(
-    geometrical_indexes=True, merge_prev=False, match_func=target_match
-):
+def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
     """Decorator for standard text extraction loop.
 
     This decorator wrap the function provide in the usual loop that give a simplify
@@ -187,39 +184,36 @@ def standard_text_extraction_loop(
                     split = True
                     if cell_width or (len(content) > 0 and " " == content[-1]):
                         content += next_block.content
-
-                for target in targets:
-                    target_n = normalize_string(target)
-                    if target_n != "" and match_func(content, target):
-                        company_name = True
-                        if company_name and split:
-                            if merge_prev:
-                                pdf_blocks_table.merge(i, i + 1)
-                            else:
-                                pdf_blocks_table.merge(i + 1, i)
-                        txt_blk = f(
-                            pdf_blocks_table,
-                            i if not geometrical_indexes else (row, col),
-                        )
-                        txt_blk.metadata["company match"] = content
-                        txt_blk.metadata["company"] = target
-                        text_part_list.append(txt_blk)
-                        break
+                company = match_company(content, targets)
+                if company is not None:
+                    company_name = True
+                    if company_name and split:
+                        if merge_prev:
+                            pdf_blocks_table.merge(i, i + 1)
+                        else:
+                            pdf_blocks_table.merge(i + 1, i)
+                    txt_blk = f(
+                        pdf_blocks_table,
+                        i if not geometrical_indexes else (row, col),
+                    )
+                    txt_blk.metadata["company match"] = content
+                    txt_blk.metadata["company"] = company
+                    text_part_list.append(txt_blk)
+                    break
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break
             if i == len(pdf_blocks_table) - 1:
                 content = pdf_blocks_table[-1].content
-                for target in targets:
-                    target_n = normalize_string(target)
-                    if target_n != "" and match_func(content, target):
-                        txt_blk = f(
-                            pdf_blocks_table,
-                            i if not geometrical_indexes else (row, col),
-                        )
-                        txt_blk.metadata["company match"] = content
-                        txt_blk.metadata["company"] = target
-                        text_part_list.append(txt_blk)
+                company = match_company(content, targets)
+                if company is not None:
+                    txt_blk = f(
+                        pdf_blocks_table,
+                        i if not geometrical_indexes else (row, col),
+                    )
+                    txt_blk.metadata["company match"] = content
+                    txt_blk.metadata["company"] = company
+                    text_part_list.append(txt_blk)
             return text_part_list
 
         return text_extract
@@ -244,7 +238,6 @@ def standard_text_extraction(
     acquisition_cost_pos: Optional[int] = None,
     geometrical_indexes=True,
     merge_prev=False,
-    match_func=target_match,
 ):
     """Decorator for defining standard text extraction logic
     from PDF blocks based on target matches.
@@ -261,8 +254,6 @@ def standard_text_extraction(
         Either relative position for currency metadata or Currency enum value, by default None
     acquisition_cost_pos : Optional[int], optional
         Relative position for acquisition cost metadata, by default None
-    match_func : callable, optional
-        Matching function to compare text against targets, by default target_match
 
     Returns
     -------
@@ -284,7 +275,7 @@ def standard_text_extraction(
         def add_metadata(blks: PdfBlocksTable, i: int | Tuple[int, int]) -> dict:
             return {}
 
-        @standard_text_extraction_loop(geometrical_indexes, merge_prev, match_func)
+        @standard_text_extraction_loop(geometrical_indexes, merge_prev)
         def text_extract(
             pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
         ) -> TextBlock:

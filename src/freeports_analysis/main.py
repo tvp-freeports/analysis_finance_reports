@@ -123,7 +123,7 @@ def pipeline_batch(
         )
         filtered_text = text_extract_exec(pdf_blocks, targets, text_extract_funcs)
         results += deserialize_exec(filtered_text, deserialize_funcs)
-        print(results)
+        # print(results)
     return results
 
 
@@ -154,33 +154,6 @@ def batch_job_confs(config: dict) -> List[dict]:
             for r in rows
         ]
     return result
-
-
-def get_targets() -> List[str]:
-    """Read target names from a CSV file and return them as a list.
-
-    Reads the first column of 'target.csv' (excluding header row) and returns
-    the values as a list of strings. The file is expected to be in the package's
-    data directory.
-
-    Returns
-    -------
-    List[str]
-        list of target names extracted from the CSV file.
-
-    Raises
-    ------
-    FileNotFoundError
-        If 'target.csv' doesn't exist in the data directory.
-    IndexError
-        If the CSV file is empty or malformed.
-    """
-    targets = []
-    with files(data).joinpath("companies.csv").open("r") as f:
-        target_csv = csv.reader(f)
-        targets = [row[0] for row in target_csv if row]  # Skip empty rows
-        targets.pop(0)  # Remove header
-    return targets
 
 
 def _get_document(config):

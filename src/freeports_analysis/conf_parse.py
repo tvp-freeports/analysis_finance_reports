@@ -526,10 +526,10 @@ class FreeportsConfig(BaseModel):
 
     @model_validator(mode="after")
     def out_path_exists(self):
-        if not self.OUT_PATH.exists():
+        if not self.OUT_PATH.parent.exists():
             raise ValueError(
                 _("Out path is not valid because directory '{}' doesn't exists").format(
-                    out_path.parent
+                    self.OUT_PATH.parent
                 )
             )
         return self

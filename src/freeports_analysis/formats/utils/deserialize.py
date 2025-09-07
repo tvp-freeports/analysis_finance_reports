@@ -5,7 +5,8 @@ from typing import List, Callable, TypeAlias
 from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock
-from freeports_analysis.consts import Bond, Equity, Currency
+from freeports_analysis.consts import Currency
+from freeports_analysis.output import Equity, Bond
 from freeports_analysis.i18n import _
 from .text_extract import EquityBondTextBlockType
 from . import normalize_word, overwrite_if_implemented, normalize_string
@@ -253,16 +254,14 @@ def standard_deserialization(
 
     def wrapper(f):
         @overwrite_if_implemented(f)
-        def default_other_txt_blk_deserializer(
-            blk: TextBlock, targets: List[str]
-        ) -> Bond | Equity:
+        def default_other_txt_blk_deserializer(blk: TextBlock) -> Bond | Equity:
             raise ValueError(
                 _("Expected bond or equity text blocks, found {}").format(
                     blk.type_block.__name__
                 )
             )
 
-        def deserialize(blk: TextBlock, targets: List[str]) -> Bond | Equity:
+        def deserialize(blk: TextBlock) -> Bond | Equity:
             """Transform TextBlock metadata into a typed dictionary.
 
                         Parameters
@@ -310,7 +309,6 @@ def standard_deserialization(
                 nq = quantity_cast(md["quantity"]) if "quantity" in md else None
 
                 args = {
-                    "targets": targets,
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
                     "subfund": to_str(md["subfund"]).upper(),
@@ -331,7 +329,7 @@ def standard_deserialization(
                         if "interest rate" in md
                         else None,
                     )
-                return default_other_txt_blk_deserializer(blk, targets)
+                return default_other_txt_blk_deserializer(blk)
             except ValueError as e:
                 logger.error(_("Cast error in company %s"), md["company"])
                 logger.exception(str(e))

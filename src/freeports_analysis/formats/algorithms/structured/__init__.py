@@ -228,15 +228,22 @@ def get_pipes(format_name):
             pdf_filter_segment[pipeline].append(pdf_filter)
 
         if pd.isna(arg["text_extract"]) or arg["text_extract"]:
-            text_extract_args = {
-                "market_value_pos": arg["Market value"],
-                "nominal_quantity_pos": arg["Quantity"],
-                "perc_net_assets_pos": arg["% net assets"],
-                "acquisition_currency_pos": arg["Acquisition currency"],
-                "acquisition_cost_pos": arg["Acquisition cost"],
-                "geometrical_indexes": arg["Geometrical indexing"],
-                "merge_prev": arg["Merge previous"],
-            }
+            text_extract_args = {"market_value_pos": arg["Market value"]}
+            if not pd.isna(arg["Geometrical indexing"]):
+                text_extract_args["geometrical_indexes"] = arg["Geometrical indexing"]
+            if not pd.isna(arg["Merge previous"]):
+                text_extract_args["merge_prev"] = arg["Merge previous"]
+            if not pd.isna(arg["Quantity"]):
+                text_extract_args["nominal_quantity_pos"] = arg["Quantity"]
+            if not pd.isna(arg["% net assets"]):
+                text_extract_args["perc_net_assets_pos"] = arg["% net assets"]
+            if not pd.isna(arg["Acquisition currency"]):
+                text_extract_args["acquisition_currency_pos"] = arg[
+                    "Acquisition currency"
+                ]
+            if not pd.isna(arg["Acquisition cost"]):
+                text_extract_args["acquisition_cost_pos"] = arg["Acquisition cost"]
+
             text_extract = standard_text_extraction(**text_extract_args)(
                 lambda blks, targets: None
             )
@@ -245,10 +252,16 @@ def get_pipes(format_name):
             text_extract_segment[pipeline].append(text_extract)
 
         if pd.isna(arg["deserialize"]) or arg["deserialize"]:
-            deserialize_args = {
-                "quantity_interpret_float": arg["Interpret quantity as float"],
-                "cost_and_value_interpret_int": arg["Interpret cost and value as int"],
-            }
+            deserialize_args = {}
+            if not pd.isna(arg["Interpret quantity as float"]):
+                deserialize_args["quantity_interpret_float"] = arg[
+                    "Interpret quantity as float"
+                ]
+            if not pd.isna(arg["Interpret cost and value as int"]):
+                deserialize_args["cost_and_value_interpret_int"] = arg[
+                    "Interpret cost and value as int"
+                ]
+
             deserialize = standard_deserialization(**deserialize_args)(
                 lambda blk, targets: None
             )
