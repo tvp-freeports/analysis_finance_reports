@@ -10,6 +10,8 @@ freeports\_analysis.formats\_utils.pdf\_filter.pdf\_parts
    .. autosummary::
    
       ExtractedPdfLine
+      PdfLine
+      PdfLineSet
    
 .. rubric:: Modules
 

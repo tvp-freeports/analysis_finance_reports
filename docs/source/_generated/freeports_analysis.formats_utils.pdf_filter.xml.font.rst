@@ -1,4 +1,4 @@
-freeports\_analysis.formats\_utils.pdf\_filter.xml.font
+﻿freeports\_analysis.formats\_utils.pdf\_filter.xml.font
 =======================================================
 
 .. automodule:: freeports_analysis.formats_utils.pdf_filter.xml.font
@@ -10,6 +10,9 @@ freeports\_analysis.formats\_utils.pdf\_filter.xml.font
    .. autosummary::
    
       get_lines_with_font
+      get_lines_with_font_size
+      get_lines_with_size
       get_lines_with_txt_font
+      is_present_font_size
       is_present_txt_font
    

@@ -42,6 +42,7 @@ def _pdf_filter_two(xml_root: etree.Element) -> dict:
 
 
 def pdf_filter(xml_root: etree.Element) -> dict:
+    """This pdf filter use two different implementation for two different page types"""
     if is_present_txt_font(xml_root, "n de la cartera", "TimesNewRomanPSMT"):
         return _pdf_filter_one(xml_root)
     return _pdf_filter_two(xml_root)

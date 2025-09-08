@@ -1,4 +1,4 @@
-freeports\_analysis.formats\_utils.text\_extract
+﻿freeports\_analysis.formats\_utils.text\_extract
 ================================================
 
 .. automodule:: freeports_analysis.formats_utils.text_extract
@@ -17,6 +17,7 @@ freeports\_analysis.formats\_utils.text\_extract
    .. autosummary::
    
       EquityBondTextBlockType
+      PdfBlocksTable
    
 .. rubric:: Modules
 

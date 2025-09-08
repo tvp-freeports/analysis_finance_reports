@@ -13,6 +13,7 @@ from freeports_analysis.formats_utils.pdf_filter.xml.position import get_bounds
 
 
 def pdf_filter(xml_root):
+    """This pdf filter calculate dynamically the sixe of the table using some bound text"""
     next_table = get_lines_with_txt_font(
         xml_root, "Strumenti finanziari quotati", "Helvetica-Bold"
     )
