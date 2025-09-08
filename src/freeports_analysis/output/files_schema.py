@@ -3,6 +3,7 @@ import datetime
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.data import COMPANIES
+from freeports_analysis.formats.data import VALID_FORMATS
 from freeports_analysis.consts import Currency
 from pydantic import BaseModel, confloat
 
@@ -36,11 +37,21 @@ investments_schema = pa.DataFrameSchema(
             checks=pa.Check.isin([e.value for e in Currency]),
             nullable=True,
         ),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
+        "Document": pa.Column(pd.StringDtype, required=False),
     },
     strict=True,
     coerce=True,
     index=pa.Index(
         pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
+    ),
+    checks=pa.Check(
+        lambda df: (
+            ("Format" in df and "Document" in df)
+            or ("Format" not in df and "Document" not in df)
+        )
     ),
 )
 

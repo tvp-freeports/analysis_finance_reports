@@ -21,10 +21,9 @@ import csv
 from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
-from importlib_resources import files
 from freeports_analysis.i18n import _
-from freeports_analysis import data
 from freeports_analysis.data import get_target_companies
+from freeports_analysis.output import transform_to_files_schema, write_files
 from freeports_analysis import download as dw
 from freeports_analysis.consts import (
     PdfFormats,
@@ -111,19 +110,23 @@ def pipeline_batch(
         if pipeline_name != "":
             logger.info(_("Selected named pipeline ({})").format(pipeline_name))
         logger.info(
-            _("Extracting relevant blocks of pdf from page %i to %i..."),
+            _("Filtering relevant blocks of pdf from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        pdf_blocks = pdf_filter_exec(xml_roots, i_page_batch, n_pages, pdf_filter_funcs)
+        pdf_blocks = pdf_filter_exec(i_page_batch, n_pages, xml_roots, pdf_filter_funcs)
         logger.info(
-            _("Filtering relevant blocks of text from page %i to %i..."),
+            _("Extracting relevant blocks of text from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        filtered_text = text_extract_exec(pdf_blocks, targets, text_extract_funcs)
-        results += deserialize_exec(filtered_text, deserialize_funcs)
-        # print(results)
+        filtered_text = text_extract_exec(
+            i_page_batch, n_pages, pdf_blocks, targets, text_extract_funcs
+        )
+        results += deserialize_exec(
+            i_page_batch, n_pages, filtered_text, deserialize_funcs
+        )
+
     return results
 
 
@@ -218,12 +221,11 @@ def _main_job(config, n_workers):
     config = FreeportsConfig(**config).model_dump()
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
-    prefix_out = config["PREFIX_OUT"]
     logger.debug(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug(_("End decoding pdf to xml!"))
     targets = get_target_companies(config["TARGET_LISTS"])
-    logger.debug(_("First 5 targets: %s"), str(targets[: min(5, len(targets))]))
+    logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
     n_pages = len(pdf_file_xml)
     batch_size = (n_pages + n_workers - 1) // n_workers
     batches = []
@@ -232,7 +234,6 @@ def _main_job(config, n_workers):
         end_idx = min((i + 1) * batch_size, n_pages)
         batch_pages = pdf_file_xml[start_idx:end_idx]
         batches.append((batch_pages, start_idx + 1, n_pages, targets, config["FORMAT"]))
-
     results_batches = None
     if n_workers > 1:
         stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
@@ -243,37 +244,22 @@ def _main_job(config, n_workers):
         results_batches = [pipeline_batch(*batches[0])]
     promises_resolution_map = {}
     results = []
-    for batch in results_batches:
-        for result in batch:
-            if isinstance(result, PromisesResolutionContext):
-                promises_resolution_map |= result
-            else:
-                results.append(result)
+    for results_batch in results_batches:
+        for results_page in results_batch:
+            extracted_data_page = []
+            for result in results_page:
+                if isinstance(result, PromisesResolutionContext):
+                    promises_resolution_map |= result
+                else:
+                    extracted_data_page.append(result)
+            results.append(extracted_data_page)
 
     flat_promises_map = flatten_promise_map(promises_resolution_map)
-    dict_results = []
-    error_msg = _("ERROR, SOMETHING WENT WRONG!!!!")
-    for result in results:
-        if result is not None:
-            result.fulfill_promises(flat_promises_map)
-            dict_results.append(result.to_dict())
-        else:
-            dict_results.append(
-                Equity(
-                    page=9999,
-                    targets=[error_msg],
-                    company=error_msg,
-                    company_match="",
-                    subfund=None,
-                    nominal_quantity=None,
-                    market_value=None,
-                    perc_net_assets=0.0,
-                    currency=Currency.EUR,
-                ).to_dict()
-            )
+    for i, results_page in enumerate(results):
+        for j in range(len(results_page)):
+            results[i][j].fulfill_promises(flat_promises_map)
 
-    df = pd.DataFrame(dict_results)
-    return df, format_pdf, prefix_out
+    return results, config["FORMAT"], config["PREFIX_OUT"]
 
 
 def main(config):
@@ -288,9 +274,9 @@ def main(config):
         decode the pdf, so it raises this exception
     """
     n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
-    results = None
+    results_documents = None
     if config["BATCH_FILE"] is None:
-        results = [_main_job(config, n_workers)]
+        results_documents = [_main_job(config, n_workers)]
     else:
         config_jobs = batch_job_confs(config)
         args = [(c, 1) for c in config_jobs]
@@ -300,9 +286,12 @@ def main(config):
                 results = p.starmap(_main_job, args)
             stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
         else:
-            results = [_main_job(*args[0])]
+            results_documents = [_main_job(*args[0])]
 
-    _output_file(config, results)
+    results = transform_to_files_schema(
+        results_documents, config["BATCH_FILE"] is not None
+    )
+    write_files(results, config["OUT_PATH"], config["OUT_PROFILE"], config["OUT_FLAGS"])
 
 
 if __name__ == "__main__":

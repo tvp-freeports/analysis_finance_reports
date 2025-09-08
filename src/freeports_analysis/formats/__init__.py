@@ -211,3 +211,11 @@ class ExpectedTextBlockNotFound(Exception):
 
 class PageParseFail(Exception):
     """Raised when the algorithm is unable to parse a page"""
+
+
+class LineParseFail(Exception):
+    """Raised when the algorithm is unable to parse a line"""
+
+
+class ExtractionFieldFail(Exception):
+    """Raised when the algorithm is unable to parse a field"""

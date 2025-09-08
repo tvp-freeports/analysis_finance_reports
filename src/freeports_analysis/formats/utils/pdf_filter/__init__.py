@@ -103,8 +103,14 @@ def standard_extraction_subfund(
             try:
                 subfund = [line.text for line in lines if line in subfund_set][0]
             except IndexError as exc:
+                logger.error("Subfund set:")
+                logger.error("\n%s", str(subfund_set))
+                logger.error("First lines where:")
+                logger.error(
+                    "%s", str(list(map(lambda x: x.text, lines))[: min(10, len(lines))])
+                )
                 raise ExpectedPdfBlockNotFound(
-                    _("subfund block on top of page not found")
+                    _("Subfund block on top of page not found")
                 ) from exc
             metadata = old_page_metadata(xml_root)
             metadata["subfund"] = subfund
@@ -245,7 +251,7 @@ def standard_pdf_filtering(
             try:
                 metadata = page_metadata(xml_root)
             except ExpectedPdfBlockNotFound as e:
-                raise PageParseFail(e)
+                raise PageParseFail(e) from e
 
             rows = []
             if body_set.font is not None:

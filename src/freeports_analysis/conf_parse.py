@@ -70,7 +70,6 @@ OutStructureBatchMode = Enum(
     "OutStructureBatchMode", _out_structure_both_modes + _out_structure_batch_mode
 )
 
-
 _out_flags_both_modes = ["COMPRESSED"]
 _out_flags_normal_mode = []
 _out_flags_batch_mode = ["SEPARATE_OUT_FILES"]
@@ -532,6 +531,13 @@ class FreeportsConfig(BaseModel):
                     self.OUT_PATH.parent
                 )
             )
+        return self
+
+    @model_validator(mode="after")
+    def out_path_single_file(self):
+        if self.OUT_PROFILE == OutStructureNormalMode.SINGLE_FILE:
+            if not self.OUT_PATH.name.endswith(".csv"):
+                self.OUT_PATH = self.OUT_PATH / "out.csv"
         return self
 
     @model_validator(mode="after")

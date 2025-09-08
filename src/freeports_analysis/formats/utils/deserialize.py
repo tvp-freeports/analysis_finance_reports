@@ -1,10 +1,10 @@
 """Utils for creating deserialize routines and functions"""
 
 from logging import getLogger
-from typing import List, Callable, TypeAlias
+from typing import Callable, TypeAlias
 from datetime import date, datetime
 import re
-from freeports_analysis.formats import TextBlock
+from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency
 from freeports_analysis.output import Equity, Bond
 from freeports_analysis.i18n import _
@@ -61,8 +61,9 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
         f = to_float(perc)
         return f / 100.0 if norm else f
     except ValueError as e:
-        logger.exception(_("Failed to convert percentage string '%s' to float"), perc)
-        raise e
+        raise ValueError(
+            _("Failed to convert percentage string '{}' to float").format(perc)
+        ) from e
 
 
 def _force_numeric(data: str) -> str:
@@ -264,21 +265,18 @@ def standard_deserialization(
         def deserialize(blk: TextBlock) -> Bond | Equity:
             """Transform TextBlock metadata into a typed dictionary.
 
-                        Parameters
-                        ----------
-                        blk : TextBlock
-                            The text block containing metadata to deserialize
-                        targets : List[str]
-                            List of target companies used as validation when initializing
-                            the financial data object
+            Parameters
+            ----------
+            blk : TextBlock
+                The text block containing metadata to deserialize
+            targets : List[str]
+                List of target companies used as validation when initializing
+                the financial data object
 
-                        Returns
-                        -------
-            s                Finantial data deserialized from text block
+            Returns
+            -------
+                Finantial data deserialized from text block
             """
-            if blk is None:
-                logger.error(_("Something wrong happened, text block is None..."))
-                return None
             md = blk.metadata
 
             def float_cast(x):
@@ -291,33 +289,31 @@ def standard_deserialization(
                     return to_float(x)
                 return float(to_int(x))
 
+            def try_cast(md, key, cast_func):
+                try:
+                    return cast_func(md[key]) if (key) in md else None
+                except ValueError:
+                    logger.error(
+                        _('Error casting "%s" (%s) in company %s'),
+                        key,
+                        str(md[key]),
+                        md["company"],
+                    )
+                    return None
+
             try:
-                ac = (
-                    float_cast(md["acquisition cost"])
-                    if "acquisition cost" in md
-                    else None
-                )
-
-                acu = (
-                    to_currency(md["acquisition currency"])
-                    if "acquisition currency" in md
-                    else None
-                )
-                pna = (
-                    perc_to_float(md["% net assets"]) if "% net assets" in md else None
-                )
-                nq = quantity_cast(md["quantity"]) if "quantity" in md else None
-
                 args = {
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
                     "subfund": to_str(md["subfund"]).upper(),
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
-                    "nominal_quantity": nq,
-                    "perc_net_assets": pna,
-                    "acquisition_cost": ac,
-                    "acquisition_currency": acu,
+                    "nominal_quantity": try_cast(md, "quantity", quantity_cast),
+                    "perc_net_assets": try_cast(md, "% net assets", perc_to_float),
+                    "acquisition_cost": try_cast(md, "acquisition cost", float_cast),
+                    "acquisition_currency": try_cast(
+                        md, "acquisition currency", to_currency
+                    ),
                 }
                 if blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
                     return Equity(**args)
@@ -332,8 +328,7 @@ def standard_deserialization(
                 return default_other_txt_blk_deserializer(blk)
             except ValueError as e:
                 logger.error(_("Cast error in company %s"), md["company"])
-                logger.exception(str(e))
-                logger.warning(_("Skipping line"))
+                raise LineParseFail(e) from e
 
         return deserialize
 

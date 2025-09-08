@@ -9,7 +9,9 @@ from freeports_analysis.formats.algorithms.semistructured import (
     get_pipes as get_semistructured,
 )
 from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
+from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
 from freeports_analysis.consts import FinancialData, PromisesResolutionContext
+from freeports_analysis.formats import LineParseFail
 from freeports_analysis.i18n import _
 from .. import PdfBlock, TextBlock
 
@@ -53,17 +55,17 @@ class LogFormatterWithPage(log.Formatter):
         return string
 
 
-def _exec_segment(args_batch, funcs, error_msg, progress_tuple=None):
-    show_progress = False if progress_tuple is None else True
-    (n_pages, i_batch_page, progress_msg) = (
-        progress_tuple if show_progress else (None, None, None)
-    )
+def _exec_segment(
+    i_batch_page, n_pages, args_batch, funcs, error_msg, progress_msg=None
+):
+    args_batch = enumerate(args_batch, start=i_batch_page)
+    show_progress = False if progress_msg is None else True
     logger.propagate = False
     std_err_log = log.StreamHandler()
     page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
     std_err_log.setFormatter(page_format_log)
     logger.addHandler(std_err_log)
-    batch_results = {}
+    batch_results = []
     for page, arg in args_batch:
         page_format_log.page = page
         if show_progress and (
@@ -71,17 +73,19 @@ def _exec_segment(args_batch, funcs, error_msg, progress_tuple=None):
         ):
             logger.info(progress_msg)
         try:
-            batch_results[page] = [func(arg) for func in funcs]
+            batch_results.append([r for func in funcs for r in func(arg)])
         except Exception as e:
+            logger.removeHandler(std_err_log)
             logger.error(error_msg)
             raise e
+    logger.removeHandler(std_err_log)
     return batch_results
 
 
 def pdf_filter_exec(
-    batch_pages: List[str],
     i_batch_page: int,
     n_pages: int,
+    batch_pages: List[str],
     pdf_filter_funcs: List[Callable[[List[str]], List[PdfBlock]]],
 ) -> List[PdfBlock]:
     """Processes a PDF document through a filter function to extract relevant blocks.
@@ -106,15 +110,19 @@ def pdf_filter_exec(
     """
 
     batch_results = _exec_segment(
-        enumerate(batch_pages, start=i_batch_page),
+        i_batch_page,
+        n_pages,
+        batch_pages,
         pdf_filter_funcs,
         _("Fatal error in pdf filter"),
-        (n_pages, i_batch_page, _("Still filtering...")),
+        _("Still filtering..."),
     )
     return batch_results
 
 
 def text_extract_exec(
+    i_batch_page: int,
+    n_pages: int,
     pdf_blocks_batch: List[List[PdfBlock]],
     targets: List[str],
     text_extract_funcs: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
@@ -135,19 +143,27 @@ def text_extract_exec(
     List[TextBlock]
         TextBlock objects containing the extracted content.
     """
+
+    def _add_targets_to_txt_extract(f):
+        return lambda blks: f(blks, dataframe_to_match(targets))
+
     text_extract_funcs_with_targets = [
-        (lambda blks: text_extract(blks, targets))
-        for text_extract in text_extract_funcs
+        _add_targets_to_txt_extract(text_extract) for text_extract in text_extract_funcs
     ]
     batch_results = _exec_segment(
+        i_batch_page,
+        n_pages,
         pdf_blocks_batch,
         text_extract_funcs_with_targets,
         _("Invalid text extraction!!"),
+        _("Still extracting..."),
     )
     return batch_results
 
 
 def deserialize_exec(
+    i_batch_page: int,
+    n_pages: int,
     text_blocks_batch: List[List[TextBlock]],
     deserialize_funcs: List[
         Callable[[TextBlock, List[str]], FinancialData | PromisesResolutionContext]
@@ -172,12 +188,29 @@ def deserialize_exec(
         FinantialData classes containing the deserialized data or context
         for resolving deferred values
     """
+
+    def _add_loop_to_deserialize(f):
+        def new_f(blks):
+            results = []
+            for blk in blks:
+                try:
+                    results.append(f(blk))
+                except LineParseFail as e:
+                    logger.error(e)
+                    logger.warning(_("Skipping line..."))
+            return results
+
+        return new_f
+
     deserialize_funcs_blks = [
-        (lambda blks: [deserialize(blk) for blk in blks])
-        for deserialize in deserialize_funcs
+        _add_loop_to_deserialize(deserialize) for deserialize in deserialize_funcs
     ]
     batch_results = _exec_segment(
-        text_blocks_batch, deserialize_funcs_blks, _("Invalid deserialization!!")
+        i_batch_page,
+        n_pages,
+        text_blocks_batch,
+        deserialize_funcs_blks,
+        _("Invalid deserialization!!"),
     )
     return batch_results
 

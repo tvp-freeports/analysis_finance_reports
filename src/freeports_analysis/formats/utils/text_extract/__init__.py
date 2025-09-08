@@ -16,8 +16,13 @@ import re
 import logging
 from typing import List, Optional, Tuple
 from freeports_analysis.i18n import _
-from freeports_analysis.formats import TextBlock, PdfBlock
-from .match import match_company, normalize_string
+from freeports_analysis.formats import (
+    TextBlock,
+    PdfBlock,
+    ExpectedTextBlockNotFound,
+    LineParseFail,
+)
+from .match import match_company
 from .. import overwrite_if_implemented
 from freeports_analysis.consts import Currency
 
@@ -300,12 +305,35 @@ def standard_text_extraction(
                     return (r + ro, c + co)
                 return i + offset
 
+            def try_extraction_of_field(metadata, pos, name, pdf_blocks_table):
+                if pos is not None:
+                    try:
+                        metadata[name] = pdf_blocks_table[abs_idx(pos)].content
+                    except KeyError:
+                        logger.error(
+                            _("Expected {} not found, replacing with None...").format(
+                                name
+                            )
+                        )
+                        metadata[name] = None
+                return metadata
+
             metadata = {}
             try:
                 metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
-                metadata["market value"] = pdf_blocks_table[
-                    abs_idx(market_value_pos)
-                ].content
+                try:
+                    metadata["market value"] = pdf_blocks_table[
+                        abs_idx(market_value_pos)
+                    ].content
+                except KeyError as e:
+                    logger.debug(_("Current metadata:\n%s"), str(metadata))
+                    logger.debug(
+                        _('Current content: "%s"'), pdf_blocks_table[i].content
+                    )
+                    logger.debug(
+                        _("Requested index: %s"), str(abs_idx(market_value_pos))
+                    )
+                    raise ExpectedTextBlockNotFound(_("Market value not found")) from e
 
                 curr = pdf_blocks_table[i].metadata["currency"]
                 if isinstance(curr, Currency):
@@ -327,40 +355,29 @@ def standard_text_extraction(
                             for curr_cand in currency_candidates:
                                 try:
                                     metadata["currency"] = Currency[curr_cand]
+                                    found = True
                                     break
                                 except KeyError:
                                     pass
+                    if not found:
+                        raise ExpectedTextBlockNotFound(
+                            _('Currency not found in string: "%s"'), curr
+                        )
 
-                if perc_net_assets_pos is not None:
-                    metadata["% net assets"] = pdf_blocks_table[
-                        abs_idx(perc_net_assets_pos)
-                    ].content
-
-                if nominal_quantity_pos is not None:
-                    metadata["quantity"] = pdf_blocks_table[
-                        abs_idx(nominal_quantity_pos)
-                    ].content
-
-                if acquisition_currency_pos is not None:
-                    metadata["acquisition currency"] = pdf_blocks_table[
-                        abs_idx(acquisition_currency_pos)
-                    ].content
-
-                if acquisition_cost_pos is not None:
-                    metadata["acquisition cost"] = pdf_blocks_table[
-                        abs_idx(acquisition_cost_pos)
-                    ].content
-
-            except IndexError as e:
-                logger.exception(str(e))
-                return None
-            except Exception as e:
+                for pos, name in [
+                    (perc_net_assets_pos, "% net assets"),
+                    (nominal_quantity_pos, "quantity"),
+                    (acquisition_currency_pos, "acquisition currency"),
+                    (acquisition_cost_pos, "acquisition cost"),
+                ]:
+                    metadata = try_extraction_of_field(
+                        metadata, pos, name, pdf_blocks_table
+                    )
+            except ExpectedTextBlockNotFound as e:
                 if isinstance(pdf_blocks_table[i], PdfBlock):
-                    logger.error(_("Block:"))
-                    logger.exception(pdf_blocks_table[i])
+                    logger.debug(_("Block: \n%s", str(pdf_blocks_table[i])))
                 elif len(pdf_blocks_table[i]) > 0:
-                    logger.error(_("First block:"))
-                    logger.exception(pdf_blocks_table[i][0])
+                    logger.debug(_("First block: \n%s"), str(pdf_blocks_table[i][0]))
                 raise e
 
             content = pdf_blocks_table[i].content.replace("\n", "")
