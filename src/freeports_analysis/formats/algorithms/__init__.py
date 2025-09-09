@@ -230,7 +230,7 @@ def get_pipelines(format_name):
     # Verifica che i dizionari non siano vuoti
     for category, data in combined.items():
         if not data:
-            raise ValueError(f"Il dizionario dei {category} non può essere vuoto")
+            raise ValueError(_("List of {category} cannot be empty"))
 
     # Ottieni tutte le chiavi uniche
     all_keys = set(

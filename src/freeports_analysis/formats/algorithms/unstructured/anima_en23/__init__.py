@@ -21,7 +21,7 @@ from freeports_analysis.formats.utils.pdf_filter.xml.font import (
     get_lines_with_font,
 )
 from freeports_analysis.formats.utils.pdf_filter.xml.position import get_bounds
-from freeports_analysis.formats.algorithms.commons import PdfBlock
+from freeports_analysis.formats.algorithms import PdfBlock
 
 
 logger = log.getLogger(__name__)

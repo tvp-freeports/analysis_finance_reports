@@ -20,7 +20,7 @@ def get_pipes(format_name):
     modules = {}
     try:
         module = importlib.import_module(
-            f"freeports_analysis.formats.unstructured.{module_name}",
+            f"{__name__}.{module_name}",
             package=__package__,
         )
         named_pipelines = []
