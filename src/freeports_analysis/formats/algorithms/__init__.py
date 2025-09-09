@@ -11,7 +11,7 @@ from freeports_analysis.formats.algorithms.semistructured import (
 from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
 from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
 from freeports_analysis.consts import FinancialData, PromisesResolutionContext
-from freeports_analysis.formats import LineParseFail
+from freeports_analysis.formats import LineParseFail, PageParseFail
 from freeports_analysis.i18n import _
 from .. import PdfBlock, TextBlock
 
@@ -74,6 +74,9 @@ def _exec_segment(
             logger.info(progress_msg)
         try:
             batch_results.append([r for func in funcs for r in func(arg)])
+        except PageParseFail as e:
+            logger.error(e)
+            logger.warning(_("Skipping page..."))
         except Exception as e:
             logger.removeHandler(std_err_log)
             logger.error(error_msg)
