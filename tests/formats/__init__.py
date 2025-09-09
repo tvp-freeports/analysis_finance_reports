@@ -20,12 +20,19 @@ def get_fmt_pipeline_name(path):
     current_path = Path(path)
     current_dir = current_path.parent
     file_name = current_path.stem
-    pipeline_name = ""
-    if file_name != "test":
-        pipeline_name = file_name.replace("test_", "")
     fmt = os.path.split(current_dir)[-1]
+    report_id = None
     if fmt not in VALID_FORMATS:
+        report_id = fmt
         fmt = os.path.split(current_dir.parent)[-1]
+    pipeline_name = ""
+    fmt_suffix = fmt.lower().replace("-", "_").replace(".", "_")
+    name_test = (
+        f"test_{fmt_suffix}" if report_id is None else f"test_{fmt_suffix}_{report_id}"
+    )
+    if file_name != name_test:
+        pipeline_name = file_name.replace(f"{name_test}_", "")
+
     return fmt, pipeline_name
 
 
