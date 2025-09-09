@@ -24,20 +24,22 @@ url_example_formats = {
 }
 
 single_page_tests = {
-    "ANIMA_EN23": [544],
-    "AMUNDI_EN24": [43],
-    "ASTERIA_EN24": [78],
-    "AMUNDI_IT24": [558],
-    "FIDEURAM_EN23": [51, 33],
-    "EURIZON_EN21": [97],
-    "MEDIOLANUM": [55],
-    "EURIZON_IT24": [29],
-    "ARCA_IT24": [20],
-    "EURIZON_EN23": [254],
-    "ASTERIA_EN23": [21, 26],
-    "MEDIOLANUM_ES24_A": [39, 40],
-    "MEDIOLANUM_IT24": [438, 604, 553],
-    "DANSKEINVEST_EN24": [148],
+    "ANIMA_EN23": [545],
+    "AMUNDI_EN24": [44],
+    "ASTERIA_EN24": [79],
+    "AMUNDI_IT24": [559],
+    "FIDEURAM_EN23": [52, 34],
+    "EURIZON_EN21": [98],
+    "EURIZON_IT24": [30],
+    "ARCA_IT24": [21],
+    "EURIZON_EN23": [255],
+    "ASTERIA_EN23": [22, 27],
+    "MEDIOLANUM_ES24_A": [40, 41],
+    "MEDIOLANUM_ES24_B": [28],
+    "MEDIOLANUM_ES24_C": [43],
+    "MEDIOLANUM_IT24_A": [439, 605, 554],
+    "MEDIOLANUM_IT24_B": [56, 95],
+    "DANSKEINVEST_EN24": [149],
 }
 
 xml_parser = etree.XMLParser(recover=True)

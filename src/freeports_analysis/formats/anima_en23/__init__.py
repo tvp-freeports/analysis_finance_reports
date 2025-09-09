@@ -1,4 +1,4 @@
-"""ANIMA _EN23 format submodule"""
+"""ANIMA_EN23 format submodule"""
 
 import logging as log
 from typing import List, TypeAlias
@@ -40,21 +40,12 @@ options = {
     ),
     "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=YRange(62, 82)),
 }
-long_pages_body_set = PdfLineSet("Helvetica-Light", area=YRange(103, 821))
-
-long_pages_currency_set = PdfLineSet(
-    "Helvetica-Bold", font_size=8.9802, area=Area(XRange(460, 500), YRange(95, 170))
-)
-
-
-@standard_pdf_filtering(
-    **options, body_set=long_pages_body_set, currency_set=long_pages_currency_set
-)
-def _filter_long_pages(xml_root) -> dict:
-    raise NotImplementedError
 
 
 def pdf_filter(xml_root) -> List[PdfBlock]:
+    """This pdf filter has the peculiarity of calculate dynamically the bounds of the table
+    taking as reference the position of some text
+    """
     fair_value_line = get_lines_with_txt_font(
         xml_root, "Fair Value", "Helvetica-Bold", exact_match=True
     )

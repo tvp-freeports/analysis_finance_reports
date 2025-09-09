@@ -5,7 +5,7 @@ should facilitate avoiding circular imports
 from abc import ABC, abstractmethod
 import datetime
 from enum import Enum, auto
-from typing import List, TypeAlias, Any
+from typing import List, TypeAlias, Any, Optional
 import logging as log
 import importlib
 
@@ -51,97 +51,98 @@ class Currency(Enum):
     Contains standard 3-letter ISO currency codes for major world currencies.
     """
 
-    USD = auto()
-    EUR = auto()
-    GBP = auto()
-    JPY = auto()
-    CNY = auto()
-    AUD = auto()
-    CAD = auto()
-    CHF = auto()
-    SEK = auto()
-    NOK = auto()
-    DKK = auto()
-    SGD = auto()
-    HKD = auto()
-    KRW = auto()
-    INR = auto()
-    BRL = auto()
-    MXN = auto()
-    RUB = auto()
-    ZAR = auto()
-    TRY = auto()
-    PLN = auto()
-    THB = auto()
-    IDR = auto()
-    MYR = auto()
-    PHP = auto()
-    ILS = auto()
-    AED = auto()
-    SAR = auto()
-    QAR = auto()
-    KWD = auto()
-    CLP = auto()
-    COP = auto()
-    PEN = auto()
-    ARS = auto()
-    VND = auto()
-    UAH = auto()
-    CZK = auto()
-    HUF = auto()
-    RON = auto()
-    HRK = auto()
-    BGN = auto()
-    ISK = auto()
-    NZD = auto()
+    USD = "USD"
+    EUR = "EUR"
+    EURO = "EUR"
+    GBP = "GBP"
+    JPY = "JPY"
+    CNY = "CNY"
+    AUD = "AUD"
+    CAD = "CAD"
+    CHF = "CHF"
+    SEK = "SEK"
+    NOK = "NOK"
+    DKK = "DKK"
+    SGD = "SGD"
+    HKD = "HKD"
+    KRW = "KRW"
+    INR = "INR"
+    BRL = "BRL"
+    MXN = "MXN"
+    RUB = "RUB"
+    ZAR = "ZAR"
+    TRY = "TRY"
+    PLN = "PLN"
+    THB = "THB"
+    IDR = "IDR"
+    MYR = "MYR"
+    PHP = "PHP"
+    ILS = "ILS"
+    AED = "AED"
+    SAR = "SAR"
+    QAR = "QAR"
+    KWD = "KWD"
+    CLP = "CLP"
+    COP = "COP"
+    PEN = "PEN"
+    ARS = "ARS"
+    VND = "VND"
+    UAH = "UAH"
+    CZK = "CZK"
+    HUF = "HUF"
+    RON = "RON"
+    HRK = "HRK"
+    BGN = "BGN"
+    ISK = "ISK"
+    NZD = "NZD"
 
     @property
     def symbol(self):
         return {
-            Currency.USD: "$",
-            Currency.EUR: "€",
-            Currency.GBP: "£",
-            Currency.JPY: "¥",
-            Currency.CNY: "¥",
-            Currency.AUD: "$",
-            Currency.CAD: "$",
-            Currency.CHF: "CHF",
-            Currency.SEK: "kr",
-            Currency.NOK: "kr",
-            Currency.DKK: "kr",
-            Currency.SGD: "$",
-            Currency.HKD: "$",
-            Currency.KRW: "₩",
-            Currency.INR: "₹",
-            Currency.BRL: "R$",
-            Currency.MXN: "$",
-            Currency.RUB: "₽",
-            Currency.ZAR: "R",
-            Currency.TRY: "₺",
-            Currency.PLN: "zł",
-            Currency.THB: "฿",
-            Currency.IDR: "Rp",
-            Currency.MYR: "RM",
-            Currency.PHP: "₱",
-            Currency.ILS: "₪",
-            Currency.AED: "د.إ",
-            Currency.SAR: "﷼",
-            Currency.QAR: "ر.ق",
-            Currency.KWD: "د.ك",
-            Currency.CLP: "$",
-            Currency.COP: "$",
-            Currency.PEN: "S/.",
-            Currency.ARS: "$",
-            Currency.VND: "₫",
-            Currency.UAH: "₴",
-            Currency.CZK: "Kč",
-            Currency.HUF: "Ft",
-            Currency.RON: "lei",
-            Currency.HRK: "kn",
-            Currency.BGN: "лв",
-            Currency.ISK: "kr",
-            Currency.NZD: "$",
-        }[self]
+            "USD": "$",
+            "EUR": "€",
+            "GBP": "£",
+            "JPY": "¥",
+            "CNY": "¥",
+            "AUD": "$",
+            "CAD": "$",
+            "CHF": "CHF",
+            "SEK": "kr",
+            "NOK": "kr",
+            "DKK": "kr",
+            "SGD": "$",
+            "HKD": "$",
+            "KRW": "₩",
+            "INR": "₹",
+            "BRL": "R$",
+            "MXN": "$",
+            "RUB": "₽",
+            "ZAR": "R",
+            "TRY": "₺",
+            "PLN": "zł",
+            "THB": "฿",
+            "IDR": "Rp",
+            "MYR": "RM",
+            "PHP": "₱",
+            "ILS": "₪",
+            "AED": "د.إ",
+            "SAR": "﷼",
+            "QAR": "ر.ق",
+            "KWD": "د.ك",
+            "CLP": "$",
+            "COP": "$",
+            "PEN": "S/.",
+            "ARS": "$",
+            "VND": "₫",
+            "UAH": "₴",
+            "CZK": "Kč",
+            "HUF": "Ft",
+            "RON": "lei",
+            "HRK": "kn",
+            "BGN": "лв",
+            "ISK": "kr",
+            "NZD": "$",
+        }[self.value]
 
 
 PromisesResolutionMap: TypeAlias = dict
@@ -347,7 +348,7 @@ class FinancialData(ABC):
         company: str,
         company_match: str,
         subfund: str | SubfundPromise,
-        nominal_quantity: int | NominalQuantityPromise,
+        nominal_quantity: float | NominalQuantityPromise,
         market_value: float | MarkedValuePromise,
         currency: Currency | CurrencyPromise,
         perc_net_assets: float | PercNetAssetsPromise = None,
@@ -422,7 +423,7 @@ class FinancialData(ABC):
         return self._subfund
 
     @property
-    def nominal_quantity(self) -> int:
+    def nominal_quantity(self) -> float:
         """int or None: The nominal quantity of the instrument, if applicable."""
         return self._nominal_quantity
 
@@ -509,6 +510,9 @@ class FinancialData(ABC):
 
     def _str_additional_infos(self) -> str:
         string = ""
+        if self.nominal_quantity is not None:
+            translated_field = _("Quantity")
+            string += f"\t\t{translated_field}:\t\t{int(self.nominal_quantity)}\n"
         if self.perc_net_assets is not None:
             translated_field = _("Percentage of net assets")
             string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
@@ -531,12 +535,16 @@ class FinancialData(ABC):
         translated_field = _("Currency")
         string += f"\t{translated_field}:\t{self.currency.name}\n"
         translated_field = _("Market value")
-        string += f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.value}"
+        string += (
+            f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.symbol}"
+        )
         if self.perc_net_assets is not None:
             translated_field = _("of net assets")
-            string += f"\t({self.perc_net_assets:.3%} {translated_field})\n"
-        translated_field = _("Quantity")
-        string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
+            string += f"\t({self.perc_net_assets:.3%} {translated_field})"
+        string += "\n"
+        if self.nominal_quantity is not None:
+            translated_field = _("Quantity")
+            string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
         translated_field = _("Additional infos")
         string += f"\t{translated_field}: {{"
         add_string = self._str_additional_infos()
@@ -546,15 +554,22 @@ class FinancialData(ABC):
         return string
 
     def __eq__(self, other) -> bool:
+        def _float_cmp(x, y):
+            return (
+                x is None
+                and y is None
+                or ((x is not None and y is not None) and (abs(x - y) < 1e-4))
+            )
+
         eq = True
         eq = eq and self.instrument == other.instrument
         eq = eq and self.page == other.page
         eq = eq and self.subfund == other.subfund
         eq = eq and self.currency == other.currency
-        eq = eq and self.market_value == other.market_value
-        eq = eq and self.perc_net_assets == other.perc_net_assets
-        eq = eq and self.nominal_quantity == other.nominal_quantity
-        eq = eq and self.acquisition_cost == other.acquisition_cost
+        eq = eq and _float_cmp(self.market_value, other.market_value)
+        eq = eq and _float_cmp(self.perc_net_assets, other.perc_net_assets)
+        eq = eq and _float_cmp(self.nominal_quantity, other.nominal_quantity)
+        eq = eq and _float_cmp(self.acquisition_cost, other.acquisition_cost)
         eq = eq and self.acquisition_currency == other._acquisition_currency
         eq = eq and self.company == other.company
         eq = eq and self.company_match == other.company_match
@@ -601,7 +616,7 @@ class Bond(FinancialData):
         company: str,
         company_match: str,
         subfund: str,
-        nominal_quantity: int,
+        nominal_quantity: float,
         market_value: float,
         currency: Currency,
         perc_net_assets: float = None,
@@ -724,9 +739,6 @@ def _get_module(module_name: str):
             f"freeports_analysis.formats.{module_name.lower()}", package=__package__
         )
     except ImportError:
-        logger.error(
-            _("Module {} ({}) not found").format(module_name.lower(), module_name)
-        )
         logger.error(
             _("Module {} ({}) not found").format(module_name.lower(), module_name)
         )
