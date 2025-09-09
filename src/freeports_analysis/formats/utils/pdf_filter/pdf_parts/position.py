@@ -256,4 +256,6 @@ class Area:
         return string
 
 
-AreaDict = Annotated[InputArea, AfterValidator(lambda x: Area.from_dict(x.dict()))]
+AreaDict = Annotated[
+    InputArea, AfterValidator(lambda x: Area.from_dict(x.model_dump()))
+]

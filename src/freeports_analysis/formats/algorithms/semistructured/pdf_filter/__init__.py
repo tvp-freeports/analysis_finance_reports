@@ -4,6 +4,7 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSetDict
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     InputTablePosAlgorithm,
+    TablePosAlgorithm,
 )
 from freeports_analysis.consts import Currency
 
@@ -14,7 +15,7 @@ class InputStandardCostCurr(BaseModel):
     body_set: PdfLineSetDict
     subfund_set: PdfLineSetDict
     currency: Currency
-    algorithm_flags: Optional[InputTablePosAlgorithm] = None
+    algorithm_flags: Optional[InputTablePosAlgorithm] = TablePosAlgorithm(0)
     tolerance: Optional[float] = 0.0
 
 

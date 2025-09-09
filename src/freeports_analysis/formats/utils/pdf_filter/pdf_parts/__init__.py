@@ -290,5 +290,5 @@ class PdfLineSet(PdfLine):
 
 
 PdfLineSetDict = Annotated[
-    InputPdfLineSet, AfterValidator(lambda x: PdfLineSet.from_dict(x.dict()))
+    InputPdfLineSet, AfterValidator(lambda x: PdfLineSet.from_dict(x.model_dump()))
 ]
