@@ -197,13 +197,17 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                             pdf_blocks_table.merge(i, i + 1)
                         else:
                             pdf_blocks_table.merge(i + 1, i)
-                    txt_blk = f(
-                        pdf_blocks_table,
-                        i if not geometrical_indexes else (row, col),
-                    )
-                    txt_blk.metadata["company match"] = content
-                    txt_blk.metadata["company"] = company
-                    text_part_list.append(txt_blk)
+                    try:
+                        txt_blk = f(
+                            pdf_blocks_table,
+                            i if not geometrical_indexes else (row, col),
+                        )
+                        txt_blk.metadata["company match"] = content
+                        txt_blk.metadata["company"] = company
+                        text_part_list.append(txt_blk)
+                    except ExpectedTextBlockNotFound as e:
+                        logger.error(e)
+                        logger.warning(_("Skipping line..."))
                     break
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
@@ -212,13 +216,17 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 content = pdf_blocks_table[-1].content
                 company = match_company(content, targets)
                 if company is not None:
-                    txt_blk = f(
-                        pdf_blocks_table,
-                        i if not geometrical_indexes else (row, col),
-                    )
-                    txt_blk.metadata["company match"] = content
-                    txt_blk.metadata["company"] = company
-                    text_part_list.append(txt_blk)
+                    try:
+                        txt_blk = f(
+                            pdf_blocks_table,
+                            i if not geometrical_indexes else (row, col),
+                        )
+                        txt_blk.metadata["company match"] = content
+                        txt_blk.metadata["company"] = company
+                        text_part_list.append(txt_blk)
+                    except ExpectedTextBlockNotFound as e:
+                        logger.error(e)
+                        logger.warning(_("Skipping line..."))
             return text_part_list
 
         return text_extract
@@ -325,7 +333,7 @@ def standard_text_extraction(
                     metadata["market value"] = pdf_blocks_table[
                         abs_idx(market_value_pos)
                     ].content
-                except KeyError as e:
+                except (KeyError, AttributeError) as e:
                     logger.debug(_("Current metadata:\n%s"), str(metadata))
                     logger.debug(
                         _('Current content: "%s"'), pdf_blocks_table[i].content
@@ -375,7 +383,7 @@ def standard_text_extraction(
                     )
             except ExpectedTextBlockNotFound as e:
                 if isinstance(pdf_blocks_table[i], PdfBlock):
-                    logger.debug(_("Block: \n%s", str(pdf_blocks_table[i])))
+                    logger.debug(_("Block: \n%s"), str(pdf_blocks_table[i]))
                 elif len(pdf_blocks_table[i]) > 0:
                     logger.debug(_("First block: \n%s"), str(pdf_blocks_table[i][0]))
                 raise e
