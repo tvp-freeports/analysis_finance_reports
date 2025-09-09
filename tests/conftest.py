@@ -1,10 +1,14 @@
 from pathlib import Path
 import shutil
 from lxml import etree
-from freeports_analysis.main import get_targets
+from freeports_analysis.data import get_target_companies, TARGET_LISTS
+from freeports_analysis.conf_parse import (
+    OutStructureNormalMode,
+    OutFlagsNormalMode,
+    FreeportsFileConfig,
+)
 
 out_dir = Path(__file__).parent / "output/"
-data_dir = Path(__file__).parent / "data/"
 
 try:
     shutil.rmtree(out_dir)
@@ -23,38 +27,21 @@ url_example_formats = {
     "ARCA_IT24": "https://docs.arcafondi.it/docs/getdoc/documenti/RENDICONTO_ANNUALE_IT0005419103.pdf",
 }
 
-single_page_tests = {
-    "ANIMA_EN23": [545],
-    "AMUNDI_EN24": [44],
-    "ASTERIA_EN24": [79],
-    "AMUNDI_IT24": [559],
-    "FIDEURAM_EN23": [52, 34],
-    "EURIZON_EN21": [98],
-    "EURIZON_IT24": [30],
-    "ARCA_IT24": [21],
-    "EURIZON_EN23": [255],
-    "ASTERIA_EN23": [22, 27],
-    "MEDIOLANUM_ES24_A": [40, 41],
-    "MEDIOLANUM_ES24_B": [28],
-    "MEDIOLANUM_ES24_C": [43],
-    "MEDIOLANUM_IT24_A": [439, 605, 554],
-    "MEDIOLANUM_IT24_B": [56, 95],
-    "DANSKEINVEST_EN24": [149],
-}
-
 xml_parser = etree.XMLParser(recover=True)
-targets = get_targets()
+targets = get_target_companies(TARGET_LISTS)
 
 conf = {
     "VERBOSITY": 2,
     "N_WORKERS": 1,
-    "BATCH": None,
-    "OUT_CSV": None,
+    "BATCH_FILE": None,
+    "OUT_PATH": None,
     "SAVE_PDF": False,
     "URL": None,
     "PDF": None,
     "FORMAT": None,
-    "CONFIG_FILE": None,
+    "CONFIG_FILE": FreeportsFileConfig.find_config(),
     "PREFIX_OUT": None,
-    "SEPARATE_OUT_FILES": None,
+    "TARGET_LISTS": TARGET_LISTS,
+    "OUT_PROFILE": OutStructureNormalMode.REGULAR,
+    "OUT_FLAGS": OutFlagsNormalMode(0),
 }

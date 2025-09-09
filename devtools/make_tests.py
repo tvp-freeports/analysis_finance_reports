@@ -1,5 +1,6 @@
-from page_layout import get_page
-from freeports_analysis.main import get_targets
+from test_single_page import get_page
+from freeports_analysis.data import get_target_companies, TARGET_LISTS
+from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
 import dill
 
 
@@ -14,31 +15,30 @@ def create_plk_one_page(
 ):
     page = get_page("report.pdf", page_n)
     blks = pdf_filter_func(page)
-    for blk in blks:
-        blk.metadata["page"] = page_n
-        if print_pdf_blks:
+    if print_pdf_blks:
+        for blk in blks:
             print(blk)
     else:
         print(f"Saved {len(blks)} pdf blocks...")
-    with open(f"pdf_blks-{page_n}.pkl", "wb") as f:
+    with open(f"{page_n}-pdf_blks.pkl", "wb") as f:
         dill.dump(blks, f)
-
-    blks = text_extract_func(blks, get_targets())
+    targets = get_target_companies(TARGET_LISTS)
+    blks = text_extract_func(blks, dataframe_to_match(targets))
     if print_txt_blks:
         for blk in blks:
             print(blk)
     else:
         print(f"Saved {len(blks)} text blocks...")
-    with open(f"txt_blks-{page_n}.pkl", "wb") as f:
+    with open(f"{page_n}-txt_blks.pkl", "wb") as f:
         dill.dump(blks, f)
 
     tab = []
     for blk in blks:
-        tab.append(deserialize_func(blk, get_targets()))
+        tab.append(deserialize_func(blk))
     if print_financial_data:
         for row in tab:
             print(row)
     else:
         print(f"Saved {len(blks)} financial data...")
-    with open(f"financial_data-{page_n}.pkl", "wb") as f:
+    with open(f"{page_n}-results.pkl", "wb") as f:
         dill.dump(tab, f)
