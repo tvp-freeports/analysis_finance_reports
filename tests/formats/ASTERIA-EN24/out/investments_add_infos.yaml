@@ -2,11 +2,38 @@
   interest_rate: 0.03375
   maturity: null
 4:
-  interest_rate: 0.0375
+  interest_rate: 0.03625
   maturity: null
 5:
-  interest_rate: 0.055999999999999994
+  interest_rate: 0.0525
   maturity: null
 6:
+  interest_rate: 0.053
+  maturity: null
+7:
+  interest_rate: 0.0375
+  maturity: null
+8:
+  interest_rate: 0.03875
+  maturity: null
+9:
+  interest_rate: 0.04
+  maturity: null
+10:
+  interest_rate: 0.03742
+  maturity: null
+11:
+  interest_rate: 0.0495
+  maturity: null
+12:
+  interest_rate: 0.055999999999999994
+  maturity: null
+13:
   interest_rate: 0.023
+  maturity: null
+14:
+  interest_rate: 0.0275
+  maturity: null
+15:
+  interest_rate: 0.054000000000000006
   maturity: null
