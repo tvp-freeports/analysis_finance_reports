@@ -1,0 +1,27 @@
+6:
+  interest_rate: 0.05868
+  maturity: null
+7:
+  interest_rate: 0.032549999999999996
+  maturity: '2032-01-21'
+8:
+  interest_rate: 0.055
+  maturity: '2027-07-15'
+9:
+  interest_rate: 0.09125
+  maturity: null
+26:
+  interest_rate: 0.014499999999999999
+  maturity: '2027-06-01'
+31:
+  interest_rate: 0.0175
+  maturity: '2026-04-01'
+32:
+  interest_rate: 0.02875
+  maturity: '2041-03-11'
+48:
+  interest_rate: 0.032549999999999996
+  maturity: '2032-01-21'
+49:
+  interest_rate: 0.05125
+  maturity: null
