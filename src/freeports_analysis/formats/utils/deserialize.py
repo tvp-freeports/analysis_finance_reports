@@ -195,7 +195,10 @@ def to_currency(data: str) -> Currency:
     data = normalize_word(data)
 
     data = data.upper()
-    return Currency[data]
+    try:
+        return Currency[data]
+    except KeyError as e:
+        raise ValueError from e
 
 
 def to_date(data: str) -> date:
@@ -290,8 +293,10 @@ def standard_deserialization(
                 return float(to_int(x))
 
             def try_cast(md, key, cast_func):
+                if key not in md or md[key] is None:
+                    return None
                 try:
-                    return cast_func(md[key]) if (key) in md else None
+                    return cast_func(md[key])
                 except ValueError:
                     logger.error(
                         _('Error casting "%s" (%s) in company %s'),

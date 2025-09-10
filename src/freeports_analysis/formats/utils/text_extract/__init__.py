@@ -328,7 +328,7 @@ def standard_text_extraction(
                 if pos is not None:
                     try:
                         metadata[name] = pdf_blocks_table[abs_idx(pos)].content
-                    except KeyError:
+                    except (KeyError, AttributeError):
                         logger.error(
                             _("Expected {} not found, replacing with None...").format(
                                 name
