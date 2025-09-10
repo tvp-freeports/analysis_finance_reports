@@ -210,8 +210,8 @@ def get_pipes(format_name):
                 "body_set": PdfLineSet.from_str(arg["Body set"]),
                 "currency_set": PdfLineSet.from_str(arg["Currency set"]),
             }
-            if not pd.isna(arg["Deselection set"]):
-                pdf_filter_args["deseleciton_list"] = [
+            if isinstance(arg["Deselection set"], list):
+                pdf_filter_args["deselection_list"] = [
                     PdfLineSet.from_str(s) for s in arg["Deselection set"]
                 ]
             if not pd.isna(arg["Algorithm flags"]):

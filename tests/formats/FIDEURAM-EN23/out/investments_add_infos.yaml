@@ -1,0 +1,9 @@
+1:
+  interest_rate: 0.07375
+  maturity: '2027-06-05'
+2:
+  interest_rate: 0.0395
+  maturity: '2025-05-23'
+11:
+  interest_rate: 0.0355
+  maturity: '2028-03-15'
