@@ -40,7 +40,7 @@ for char in TO_REMOVE:
 
 
 def normalize_string(string):
-    return " ".join(string.lower().translate(table).split())
+    return " ".join(string.lower().translate(table).split()).strip()
 
 
 def dataframe_to_match(target_companies):

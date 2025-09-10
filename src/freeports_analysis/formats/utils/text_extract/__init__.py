@@ -219,7 +219,6 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                     except ExpectedTextBlockNotFound as e:
                         logger.error(e)
                         logger.warning(_("Skipping line..."))
-                    break
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break

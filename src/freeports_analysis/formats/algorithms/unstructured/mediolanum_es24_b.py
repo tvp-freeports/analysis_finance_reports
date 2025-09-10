@@ -1,18 +1,18 @@
-"""MEDIOLLANUM_ES24_D format submodule"""
+"""MEDIOLLANUM_ES24_B format submodule"""
 
 from typing import List, TypeAlias
 from enum import auto, Enum
 from lxml import etree
-from freeports_analysis.formats_utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_filter import (
     standard_pdf_filtering,
 )
-from freeports_analysis.formats_utils.pdf_filter.xml.position import get_lines_contained
-from freeports_analysis.formats_utils.pdf_filter.xml.font import is_present_txt_font
-from freeports_analysis.formats_utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats_utils.text_extract import (
+from freeports_analysis.formats.utils.pdf_filter.xml.position import get_lines_contained
+from freeports_analysis.formats.utils.pdf_filter.xml.font import is_present_txt_font
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.text_extract import (
     standard_text_extraction,
 )
-from freeports_analysis.formats_utils.deserialize import standard_deserialization
+from freeports_analysis.formats.utils.deserialize import standard_deserialization
 from .. import PdfBlock, TextBlock
 from freeports_analysis.consts import (
     Promise,
