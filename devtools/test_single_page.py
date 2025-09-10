@@ -4,7 +4,7 @@ import copy
 from freeports_analysis.formats.algorithms import get_pipelines
 
 
-def get_page(file_name: str, page: int, offset: int = -1):
+def get_page_xml(file_name: str, page: int, offset: int = -1):
     pdf_file = pypdf.Document(file_name)
     parser = etree.XMLParser(recover=True)
     page_doc = pdf_file[page + offset]
@@ -25,6 +25,16 @@ def get_page_table(file_name: str, page: int, offset: int = 0):
     page_doc = pdf_file[page + offset]
     tabs = page_doc.find_tables()
     return tabs
+
+
+def get_page_dict(file_name: str, page: int, offset: int = 0):
+    pdf_file = pypdf.Document(file_name)
+    page_doc = pdf_file[page + offset]
+    page = page_doc.get_text("dict")
+    return page
+
+
+get_page = get_page_xml
 
 
 def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:

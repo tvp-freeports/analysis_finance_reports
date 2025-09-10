@@ -174,6 +174,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
             if len(pdf_blocks) == 0:
                 return text_part_list
             pdf_blocks_table = PdfBlocksTable(pdf_blocks)
+            n_cols = pdf_blocks_table.shape[1]
             while True:
                 company_name = False
                 split = False
@@ -182,13 +183,23 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 col = current_block.metadata["table-col"]
                 row = current_block.metadata["table-row"]
                 next_col = next_block.metadata["table-col"]
+                next_row = next_block.metadata["table-row"]
                 cell_width = current_block.metadata["is-max-width"]
 
                 content = current_block.content
                 if col == next_col:
-                    split = True
-                    if cell_width or (len(content) > 0 and " " == content[-1]):
-                        content += next_block.content
+                    split = False
+                    n_full_cols = 0
+                    for c in range(n_cols):
+                        if (
+                            pdf_blocks_table[(row if merge_prev else next_row, c)]
+                            is not None
+                        ):
+                            n_full_cols += 1
+                    if n_full_cols == 1:
+                        split = True
+                        if cell_width or (len(content) > 0 and " " == content[-1]):
+                            content += next_block.content
                 company = match_company(content, targets)
                 if company is not None:
                     company_name = True
@@ -328,7 +339,13 @@ def standard_text_extraction(
 
             metadata = {}
             try:
-                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
+                try:
+                    metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
+                except AttributeError as e:
+                    print(pdf_blocks_table[(i[0], i[1] - 1)])
+                    print(pdf_blocks_table[i], i)
+                    print(pdf_blocks_table[(i[0], i[1] + 1)])
+                    raise e
                 try:
                     metadata["market value"] = pdf_blocks_table[
                         abs_idx(market_value_pos)

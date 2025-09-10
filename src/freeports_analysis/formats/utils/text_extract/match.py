@@ -76,9 +76,7 @@ def match_company(text, target_companies):
         if any(bud in norm_text for bud in buds):
             matching_buds.append(idx)
     n_mbuds = len(matching_buds)
-    if n_mbuds == 1:
-        return matching_buds[0]
-    if n_mbuds > 1:
+    if n_mbuds > 0:
         for bud_idx in matching_buds:
             if any(regex.search(norm_text) for regex in regexs_dict[bud_idx]):
                 matching_regexs.append(bud_idx)
