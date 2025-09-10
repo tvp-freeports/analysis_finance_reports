@@ -1,4 +1,4 @@
-"""ANIMA _EN23 format submodule"""
+"""ANIMA_EN23 format submodule"""
 
 import logging as log
 from typing import List, TypeAlias
@@ -41,6 +41,9 @@ options = {
 
 
 def pdf_filter(xml_root) -> List[PdfBlock]:
+    """This pdf filter has the peculiarity of calculate dynamically the bounds of the table
+    taking as reference the position of some text
+    """
     fair_value_line = get_lines_with_txt_font(
         xml_root, "Fair Value", "Helvetica-Bold", exact_match=True
     )

@@ -23,13 +23,9 @@ import pymupdf as pypdf
 import pandas as pd
 from freeports_analysis.i18n import _
 from freeports_analysis.data import get_target_companies
-from freeports_analysis.output import transform_to_files_schema, write_files
+from freeports_analysis.output import transform_to_files_schema, write_files, Investment
 from freeports_analysis import download as dw
 from freeports_analysis.consts import (
-    PdfFormats,
-    Equity,
-    Currency,
-    FinancialData,
     PromisesResolutionContext,
     flatten_promise_map,
     STANDARD_LOG_FORMATTER,
@@ -50,7 +46,6 @@ from freeports_analysis.conf_parse import (
     FreeportsConfig,
     schema_job_csv_config,
 )
-from freeports_analysis.formats.data import url_to_format
 
 
 logger = log.getLogger(__package__)
@@ -73,7 +68,7 @@ def pipeline_batch(
     n_pages: int,
     targets: List[str],
     format_name: str,
-) -> List[FinancialData | PromisesResolutionContext]:
+) -> List[Investment | PromisesResolutionContext]:
     """Apply the pipeline of actions in order to get financial data from PDF pages
 
     Parameters

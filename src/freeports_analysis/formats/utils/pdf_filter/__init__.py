@@ -15,6 +15,7 @@ from freeports_analysis.formats import (
     TextBlock,
 )
 from freeports_analysis.i18n import _
+from freeports_analysis.consts import Promise
 from .xml.font import get_lines_with_font, get_lines_with_txt_font
 from .select_position import get_table_positions, TablePosAlgorithm
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
@@ -93,13 +94,15 @@ def standard_extraction_subfund(
     def decorator(old_page_metadata):
         def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
             xml_lines = None
-            if subfund_set.font is not None:
-                xml_lines = get_lines_with_font(xml_root, subfund_set.font)
-            else:
-                xml_lines = xml_root.findall(".//line")
-
-            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
             subfund = None
+            if isinstance(subfund_set, Promise):
+                subfund = subfund_set
+            else:
+                if subfund_set.font is not None:
+                    xml_lines = get_lines_with_font(xml_root, subfund_set.font)
+                else:
+                    xml_lines = xml_root.findall(".//line")
+                lines = [ExtractedPdfLine(blk) for blk in xml_lines]
             try:
                 subfund = [line.text for line in lines if line in subfund_set][0]
             except IndexError as exc:

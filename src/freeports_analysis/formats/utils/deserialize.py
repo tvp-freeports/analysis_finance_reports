@@ -5,7 +5,7 @@ from typing import Callable, TypeAlias
 from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
-from freeports_analysis.consts import Currency
+from freeports_analysis.consts import Currency, Promise
 from freeports_analysis.output import Equity, Bond
 from freeports_analysis.i18n import _
 from .text_extract import EquityBondTextBlockType
@@ -305,7 +305,9 @@ def standard_deserialization(
                 args = {
                     "company": to_str(md["company"]),
                     "company_match": to_str(md["company match"]),
-                    "subfund": to_str(md["subfund"]).upper(),
+                    "subfund": to_str(md["subfund"]).upper()
+                    if not isinstance(md["subfund"], Promise)
+                    else md["subfund"],
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
                     "nominal_quantity": try_cast(md, "quantity", quantity_cast),

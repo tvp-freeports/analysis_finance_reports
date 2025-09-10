@@ -16,8 +16,8 @@
    .. autosummary::
    
       AcquisitionCostPromise
+      AcquisitionCurrencyPromise
       Bond
-      CompanyPromise
       Currency
       CurrencyPromise
       Equity

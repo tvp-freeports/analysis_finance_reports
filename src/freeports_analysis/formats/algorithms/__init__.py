@@ -10,8 +10,9 @@ from freeports_analysis.formats.algorithms.semistructured import (
 )
 from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
 from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
-from freeports_analysis.consts import FinancialData, PromisesResolutionContext
+from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
+from freeports_analysis.output import Investment
 from freeports_analysis.i18n import _
 from .. import PdfBlock, TextBlock
 
@@ -169,9 +170,9 @@ def deserialize_exec(
     n_pages: int,
     text_blocks_batch: List[List[TextBlock]],
     deserialize_funcs: List[
-        Callable[[TextBlock, List[str]], FinancialData | PromisesResolutionContext]
+        Callable[[TextBlock, List[str]], Investment | PromisesResolutionContext]
     ],
-) -> List[FinancialData | PromisesResolutionContext]:
+) -> List[Investment | PromisesResolutionContext]:
     """Converts TextBlocks into tabular data using a specified function that
     from an expected formatting, return a python object.
 
