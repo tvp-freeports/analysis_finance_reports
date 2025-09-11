@@ -48,19 +48,19 @@ def try_convert_to_currency(value: str) -> Union[Currency, Promise]:
 
 
 Company = Annotated[str, AfterValidator(validate_company)]
-PromisedMarketValue = Union[PositiveFloat, PromiseStrict]
+PromisedMarketValue = Union[PromiseStrict, PositiveFloat]
 PromisedCurrency = Annotated[
-    Union[Currency, PromiseStrict],
+    Union[PromiseStrict, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedSubfund = Union[str, PromiseStrict]
-PromisedPercNetAsstes = Union[confloat(gt=0.0, lt=1.0), PromiseStrict]
-PromisedAcquisitionCost = Union[PositiveFloat, PromiseStrict]
+PromisedSubfund = Union[PromiseStrict, str]
+PromisedPercNetAsstes = Union[PromiseStrict, confloat(gt=0.0, lt=1.0)]
+PromisedAcquisitionCost = Union[PromiseStrict, PositiveFloat]
 PromisedAcquisitionCurrency = Annotated[
-    Union[Currency, PromiseStrict],
+    Union[PromiseStrict, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedInterestRate = Union[confloat(gt=0.0, lt=1.0), PromiseStrict]
+PromisedInterestRate = Union[PromiseStrict, confloat(gt=0.0, lt=1.0)]
 
 
 class Investment(BaseModel, ABC):
@@ -70,7 +70,7 @@ class Investment(BaseModel, ABC):
     subfund: PromisedSubfund
     nominal_quantity: Optional[PositiveFloat] = None
     market_value: PromisedMarketValue
-    currency: Optional[PromisedCurrency] = None
+    currency: PromisedCurrency
     perc_net_assets: Optional[PromisedPercNetAsstes] = None
     acquisition_cost: Optional[PromisedAcquisitionCost] = None
     acquisition_currency: Optional[PromisedAcquisitionCurrency] = None
@@ -134,7 +134,7 @@ class Investment(BaseModel, ABC):
         """
         for k, v in self.model_dump().items():
             if isinstance(v, Promise):
-                self[k] = v.fulfill_with(mapping)
+                setattr(self, k, v.fulfill_with(mapping))
 
 
 class Equity(Investment):

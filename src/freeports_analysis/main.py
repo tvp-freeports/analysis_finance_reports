@@ -248,7 +248,6 @@ def _main_job(config, n_workers):
                 else:
                     extracted_data_page.append(result)
             results.append(extracted_data_page)
-
     flat_promises_map = flatten_promise_map(promises_resolution_map)
     for i, results_page in enumerate(results):
         for j in range(len(results_page)):

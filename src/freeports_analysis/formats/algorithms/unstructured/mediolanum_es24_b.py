@@ -77,7 +77,7 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlo
     return standard_text_extract(pdf_blocks, targets)
 
 
-def deserialize(txt_blk: TextBlock, targets: List[str]):
+def deserialize(txt_blk: TextBlock):
     if txt_blk is None:
         return None
     if txt_blk.type_block == TextBlockType.SUBFUND:
@@ -86,10 +86,10 @@ def deserialize(txt_blk: TextBlock, targets: List[str]):
         )
 
     @standard_deserialization()
-    def std_deserialize(txt_blk: TextBlock, targets: List[str]):
+    def std_deserialize(txt_blk: TextBlock):
         raise NotImplementedError
 
-    blk = std_deserialize(txt_blk, targets)
+    blk = std_deserialize(txt_blk)
     if blk is not None:
-        blk._market_value = blk._market_value * 1000
+        blk.market_value = blk.market_value * 1000
     return blk
