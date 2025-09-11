@@ -2,8 +2,8 @@
 
 import os
 from abc import ABC, abstractmethod
-from enum import Enum, auto, Flag
-from typing import Tuple, Optional, Annotated, Union
+from enum import Enum, Flag
+from typing import Optional, Annotated, Union
 import argparse
 import re
 from pathlib import Path
@@ -26,7 +26,7 @@ from freeports_analysis.data import TARGET_LISTS
 from freeports_analysis.formats.data import VALID_FORMATS, url_to_format
 from freeports_analysis.i18n import _
 
-from .consts import PdfFormats, PROGRAM_DESCRIPTION, InputFlags, InputEnum
+from .consts import PROGRAM_DESCRIPTION, InputFlags, InputEnum
 
 _logger = log.getLogger(__name__)
 
