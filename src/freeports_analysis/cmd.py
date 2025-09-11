@@ -1,12 +1,9 @@
 """Contains all the functions related to command line use of the `freeport` script"""
 
-import argparse
 import logging as log
-from pathlib import Path
-from typing import Tuple
 
 
-from freeports_analysis.consts import PdfFormats, STANDARD_LOG_FORMATTER
+from freeports_analysis.consts import STANDARD_LOG_FORMATTER
 from freeports_analysis.i18n import _
 from freeports_analysis.conf_parse import (
     DEFAULT_CONFIG_LOCATION,
