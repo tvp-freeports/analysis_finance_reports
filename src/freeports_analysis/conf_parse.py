@@ -109,7 +109,7 @@ class SelectorOutProfile:
         return values
 
 
-class PartialConfiguraiton(ABC):
+class ParitalConfiguration(ABC):
     @abstractmethod
     def model_dump(self, *args, **kargs):
         pass
@@ -123,7 +123,7 @@ class PartialConfiguraiton(ABC):
         return config, config_location
 
 
-class FreeportsFileConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
+class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     VERBOSITY: Optional[Verbosity] = None
     OUT_PATH: Optional[Path] = None
     OUT_PROFILE: Optional[OutProfile] = None
@@ -278,7 +278,7 @@ DEFAULT_CONFIG = {
 DEFAULT_CONFIG_LOCATION = {k: "FreeportsDefaultConfig" for k in DEFAULT_CONFIG}
 
 
-class FreeportsEnvConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
+class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     VERBOSITY: Optional[Verbosity] = None
     N_WORKERS: Optional[PositiveInt] = None
     BATCH_FILE: Optional[FilePath] = None
@@ -312,7 +312,7 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
         super().__init__(**config_dict)
 
 
-class FreeportsCmdConfig(BaseModel, SelectorOutProfile, PartialConfiguraiton):
+class FreeportsCmdConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     VERBOSITY: Optional[Verbosity] = None
     OUT_PROFILE: Optional[OutProfile] = None
     OUT_FLAGS: Optional[OutFlags] = None
