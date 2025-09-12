@@ -1,5 +1,5 @@
 import pytest
-from tests.formats import (
+from tests.formats.algorithms import (
     generic_test_pdf_filter,
     generic_test_text_extract,
     generic_test_deserialize,
