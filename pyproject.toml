@@ -71,6 +71,10 @@ markers = [
 filterwarnings = [
     'ignore:builtin type .* has no __module__ attribute:DeprecationWarning'
 ]
+python_files = ["test_*","test.py"]
+addopts = [
+    "--import-mode=importlib",
+]
 
 [tool.pylint."TYPECHECK"]
 extension-pkg-allow-list = ["lxml.etree"]

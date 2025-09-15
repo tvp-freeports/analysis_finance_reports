@@ -36,9 +36,6 @@ def validate_company(value: str) -> str:
     return value
 
 
-PromiseStrict = Annotated[Promise, Strict()]
-
-
 def try_convert_to_currency(value: str) -> Union[Currency, Promise]:
     """Prova a convertire in Currency, altrimenti lascia come Promise"""
     if isinstance(value, Promise):
@@ -48,23 +45,26 @@ def try_convert_to_currency(value: str) -> Union[Currency, Promise]:
 
 
 Company = Annotated[str, AfterValidator(validate_company)]
-PromisedMarketValue = Union[PromiseStrict, PositiveFloat]
+PromisedMarketValue = Union[Promise, PositiveFloat]
 PromisedCurrency = Annotated[
-    Union[PromiseStrict, Currency],
+    Union[Promise, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedSubfund = Union[PromiseStrict, str]
-PromisedPercNetAsstes = Union[PromiseStrict, confloat(gt=0.0, lt=1.0)]
-PromisedAcquisitionCost = Union[PromiseStrict, PositiveFloat]
+PromisedSubfund = Union[Promise, str]
+PromisedPercNetAsstes = Union[Promise, confloat(gt=0.0, lt=1.0)]
+PromisedAcquisitionCost = Union[Promise, PositiveFloat]
 PromisedAcquisitionCurrency = Annotated[
-    Union[PromiseStrict, Currency],
+    Union[Promise, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedInterestRate = Union[PromiseStrict, confloat(gt=0.0, lt=1.0)]
+PromisedInterestRate = Union[Promise, confloat(gt=0.0, lt=1.0)]
 
 
 class Investment(BaseModel, ABC):
-    model_config = ConfigDict(validate_assignment=True)
+    model_config = ConfigDict(
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+    )
     company: Company
     company_match: str
     subfund: PromisedSubfund

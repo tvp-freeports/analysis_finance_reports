@@ -221,7 +221,7 @@ PromisesResolutionMap: TypeAlias = dict
 PromisesResolutionContext: TypeAlias = dict
 
 
-class Promise(str):
+class Promise:
     """Base class for deferred value resolution in financial data processing.
     Implements a promise pattern where values can be resolved later from a mapping.
     Attributes
@@ -234,6 +234,9 @@ class Promise(str):
         Resolves the promised value from the given mapping.
     """
 
+    def __init__(self, ID):
+        self._id = str(ID)
+
     def fulfill_with(self, mapping: PromisesResolutionMap) -> Any:
         """Resolve this promise's value from the given mapping.
         Parameters
@@ -244,8 +247,15 @@ class Promise(str):
         -------
         Any
             The resolved value from the mapping.
+
         """
-        return mapping[self]
+        try:
+            return mapping[self]
+        except KeyError:
+            return mapping[str(self)]
+
+    def __str__(self) -> str:
+        return self._id
 
     def __repr__(self) -> str:
         """str: String representation showing promise class and ID."""
@@ -254,11 +264,11 @@ class Promise(str):
     def __format__(self, fmt) -> str:
         return repr(self)
 
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        return core_schema.no_info_after_validator_function(cls, handler(str))
+    # @classmethod
+    # def __get_pydantic_core_schema__(
+    #     cls, source_type: Any, handler: GetCoreSchemaHandler
+    # ) -> CoreSchema:
+    #     return core_schema.no_info_after_validator_function(cls, handler(str))
 
 
 class CircularPromisesChain(Exception):
