@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>freeports_analysis.conf_parse &mdash; freeports_analysis 0.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47de8214"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="freeports_analysis.consts" href="freeports_analysis.consts.html" />
+    <link rel="prev" title="freeports_analysis.cmd" href="freeports_analysis.cmd.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            freeports_analysis
+              <img src="https://www.freeports.org/assets/logo/square.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/quickstart.html">Quickstart guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/command.html">Command reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.conf_parse</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsCmdConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsCmdConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsEnvConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsEnvConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsFileConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsFileConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsJobConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsJobConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsBatchMode"><code class="docutils literal notranslate"><span class="pre">OutFlagsBatchMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsNormalMode"><code class="docutils literal notranslate"><span class="pre">OutFlagsNormalMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureBatchMode"><code class="docutils literal notranslate"><span class="pre">OutStructureBatchMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureNormalMode"><code class="docutils literal notranslate"><span class="pre">OutStructureNormalMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration"><code class="docutils literal notranslate"><span class="pre">ParitalConfiguration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.log_config"><code class="docutils literal notranslate"><span class="pre">log_config()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribute.html">How to contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validation/index.html">How the data is validated</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">Developer documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">freeports_analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../API.html">Package reference</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.conf_parse</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_generated/freeports_analysis.conf_parse.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-freeports_analysis.conf_parse">
+<span id="freeports-analysis-conf-parse"></span><h1>freeports_analysis.conf_parse<a class="headerlink" href="#module-freeports_analysis.conf_parse" title="Link to this heading"></a></h1>
+<p>Submodule containing all the utilities for validating and parsing the configuration</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.log_config" title="freeports_analysis.conf_parse.log_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_config</span></code></a>(logger, config, config_location)</p></td>
+<td><p>Log with debug priority the configuration provided</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsCmdConfig" title="freeports_analysis.conf_parse.FreeportsCmdConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsCmdConfig</span></code></a>(args, default_verbosity)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsConfig</span></code></a>(*, VERBOSITY, None, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsEnvConfig" title="freeports_analysis.conf_parse.FreeportsEnvConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsEnvConfig</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsFileConfig" title="freeports_analysis.conf_parse.FreeportsFileConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsFileConfig</span></code></a>([config_file])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsJobConfig" title="freeports_analysis.conf_parse.FreeportsJobConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsJobConfig</span></code></a>(row_dict)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsBatchMode" title="freeports_analysis.conf_parse.OutFlagsBatchMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutFlagsBatchMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsNormalMode" title="freeports_analysis.conf_parse.OutFlagsNormalMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutFlagsNormalMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureBatchMode" title="freeports_analysis.conf_parse.OutStructureBatchMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutStructureBatchMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureNormalMode" title="freeports_analysis.conf_parse.OutStructureNormalMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutStructureNormalMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration" title="freeports_analysis.conf_parse.ParitalConfiguration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParitalConfiguration</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">SelectorOutProfile</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsCmdConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_verbosity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">VERBOSITY:</span> <span class="pre">~typing.Annotated[int,</span> <span class="pre">None,</span> <span class="pre">~annotated_types.Interval(gt=None,</span> <span class="pre">ge=0,</span> <span class="pre">lt=None,</span> <span class="pre">le=5),</span> <span class="pre">None],</span> <span class="pre">N_WORKERS:</span> <span class="pre">~typing.Annotated[int,</span> <span class="pre">~annotated_types.Gt(gt=0)],</span> <span class="pre">BATCH_FILE:</span> <span class="pre">~typing.Annotated[~pathlib.Path,</span> <span class="pre">~pydantic.types.PathType(path_type=file)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">SAVE_PDF:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">URL:</span> <span class="pre">~pydantic.networks.HttpUrl</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">PDF:</span> <span class="pre">~pathlib.Path</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">FORMAT:</span> <span class="pre">~typing.Annotated[str,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.conf_parse._format_validate)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">CONFIG_FILE:</span> <span class="pre">~typing.Annotated[~pathlib.Path,</span> <span class="pre">~pydantic.types.PathType(path_type=file)],</span> <span class="pre">TARGET_LISTS:</span> <span class="pre">~typing.Annotated[list,</span> <span class="pre">~pydantic.functional_validators.BeforeValidator(func=~freeports_analysis.conf_parse.&lt;lambda&gt;,</span> <span class="pre">json_schema_input_type=PydanticUndefined)],</span> <span class="pre">PREFIX_OUT:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">OUT_PROFILE:</span> <span class="pre">~freeports_analysis.conf_parse.OutStructureNormalMode</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.conf_parse.OutStructureBatchMode,</span> <span class="pre">OUT_FLAGS:</span> <span class="pre">~freeports_analysis.conf_parse.OutFlagsNormalMode</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.conf_parse.OutFlagsBatchMode,</span> <span class="pre">OUT_PATH:</span> <span class="pre">~pathlib.Path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsEnvConfig</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsFileConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsJobConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig" title="Link to this definition"></a></dt>
+<dd><dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutFlagsBatchMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutFlagsBatchMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutFlagsBatchMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutFlagsNormalMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutFlagsNormalMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutFlagsNormalMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutStructureBatchMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutStructureBatchMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutStructureBatchMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutStructureNormalMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutStructureNormalMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutStructureNormalMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.ParitalConfiguration">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">ParitalConfiguration</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.ParitalConfiguration" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.log_config">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">log_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_location</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.log_config" title="Link to this definition"></a></dt>
+<dd><p>Log with debug priority the configuration provided</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>logger</strong> (<em>log.Logger</em>) – the logger that has to log</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="freeports_analysis.cmd.html" class="btn btn-neutral float-left" title="freeports_analysis.cmd" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.consts.html" class="btn btn-neutral float-right" title="freeports_analysis.consts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Oreste Sciacqualegni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
