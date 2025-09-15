@@ -249,10 +249,7 @@ class Promise:
             The resolved value from the mapping.
 
         """
-        try:
-            return mapping[self]
-        except KeyError:
-            return mapping[str(self)]
+        return mapping[str(self)]
 
     def __str__(self) -> str:
         return self._id
@@ -260,6 +257,9 @@ class Promise:
     def __repr__(self) -> str:
         """str: String representation showing promise class and ID."""
         return f'{self.__class__.__name__}("{str(self)}")'
+
+    def __eq__(self, other) -> bool:
+        return self._id == other._id
 
     def __format__(self, fmt) -> str:
         return repr(self)
