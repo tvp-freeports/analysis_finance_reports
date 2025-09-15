@@ -5,24 +5,3 @@
    :members:
    
    
-   .. rubric:: Functions
-
-   .. autosummary::
-   
-      standard_text_extraction
-      standard_text_extraction_loop
-   
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      EquityBondTextBlockType
-      PdfBlocksTable
-   
-.. rubric:: Modules
-
-.. autosummary::
-   :toctree:
-   :recursive:
-
-   match

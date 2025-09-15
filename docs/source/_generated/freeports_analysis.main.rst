@@ -10,7 +10,6 @@ freeports\_analysis.main
    .. autosummary::
    
       batch_job_confs
-      get_targets
       main
       pipeline_batch
    

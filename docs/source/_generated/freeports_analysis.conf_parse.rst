@@ -9,16 +9,21 @@ freeports\_analysis.conf\_parse
 
    .. autosummary::
    
-      apply_config
-      get_config_file
       log_config
-      overwrite_with_config_file
-      overwrite_with_env_vars
-      validate_conf
    
    .. rubric:: Classes
 
    .. autosummary::
    
-      PossibleLocationConfig
+      FreeportsCmdConfig
+      FreeportsConfig
+      FreeportsEnvConfig
+      FreeportsFileConfig
+      FreeportsJobConfig
+      OutFlagsBatchMode
+      OutFlagsNormalMode
+      OutStructureBatchMode
+      OutStructureNormalMode
+      ParitalConfiguration
+      SelectorOutProfile
    

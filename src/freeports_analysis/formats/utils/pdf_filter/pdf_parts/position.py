@@ -75,12 +75,27 @@ Coord: TypeAlias = Tuple[float, float]
 
 
 class InputArea(BaseModel):
+    """Validated Area initially input by the user
+
+    Parameters
+    ----------
+    BaseModel
+        pydantic BaseModel
+
+    Raises
+    ------
+    ValueError
+        improper x range
+    ValueError
+        improper y range
+    """
+
     x_min: Optional[PositiveFloat] = None
     x_max: Optional[PositiveFloat] = None
     y_min: Optional[PositiveFloat] = None
     y_max: Optional[PositiveFloat] = None
 
-    @model_validator(mode="after")  # Dopo la validazione dei singoli campi
+    @model_validator(mode="after")
     def validate_bounds(self):
         if self.x_max is not None and self.x_min is not None:
             if self.x_max <= self.x_min:

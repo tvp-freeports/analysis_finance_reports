@@ -1,4 +1,4 @@
-﻿freeports\_analysis.consts
+freeports\_analysis.consts
 ==========================
 
 .. automodule:: freeports_analysis.consts
@@ -9,28 +9,18 @@
 
    .. autosummary::
    
+      InputEnum
+      InputFlags
+      flag_from_string
       flatten_promise_map
    
    .. rubric:: Classes
 
    .. autosummary::
    
-      AcquisitionCostPromise
-      AcquisitionCurrencyPromise
-      Bond
       Currency
-      CurrencyPromise
-      Equity
-      FinancialData
       FinancialInstrument
-      InterestRatePromise
-      MarkedValuePromise
-      MaturityPromise
-      NominalQuantityPromise
-      PdfFormats
-      PercNetAssetsPromise
       Promise
-      SubfundPromise
    
    .. rubric:: Exceptions
 
