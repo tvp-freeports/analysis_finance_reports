@@ -4,7 +4,7 @@ from lxml import etree
 from freeports_analysis.i18n import _
 
 
-def _str_blocks(blk: "PdfBlock" | "TextBlock") -> str:
+def _str_blocks(blk: "PdfBlock | TextBlock") -> str:
     """Basic function to format both PdfBlock and TextBlock
     for string rappresentation
 
@@ -30,7 +30,7 @@ def _str_blocks(blk: "PdfBlock" | "TextBlock") -> str:
     return text
 
 
-def _eq_blocks(a: "PdfBlock" | "TextBlock", b: "PdfBlock" | "TextBlock") -> bool:
+def _eq_blocks(a: "PdfBlock | TextBlock", b: "PdfBlock | TextBlock") -> bool:
     """Verifies if two TextBlocks or two PdfBlocks are equal
 
     Parameters
