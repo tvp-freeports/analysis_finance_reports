@@ -2,9 +2,10 @@ from typing import Optional, List
 from enum import Enum
 from lxml import etree
 from freeports_analysis.i18n import _
+from __future__ import annotations
 
 
-def _str_blocks(blk) -> str:
+def _str_blocks(blk: PdfBlock | TextBlock) -> str:
     """Basic function to format both PdfBlock and TextBlock
     for string rappresentation
 
@@ -30,7 +31,21 @@ def _str_blocks(blk) -> str:
     return text
 
 
-def _eq_blocks(a, b) -> bool:
+def _eq_blocks(a: PdfBlock | TextBlock, b: PdfBlock | TextBlock) -> bool:
+    """Verifies if two TextBlocks or two PdfBlocks are equal
+
+    Parameters
+    ----------
+    a : PdfBlock | TextBlock
+        The first block
+    b : PdfBlock | TextBlock
+        The second block
+
+    Returns
+    -------
+    bool
+        True if equal, False otherwise
+    """
     equal = True
     equal = equal and a.type_block == b.type_block
     equal = equal and a.metadata == b.metadata
@@ -82,7 +97,7 @@ class PdfBlock:
             text += "\n"
         return text
 
-    def __eq__(self, other):
+    def __eq__(self, other: PdfBlock) -> bool:
         """Compares two PdfBlock instances for equality.
 
         Parameters
@@ -183,7 +198,7 @@ class TextBlock:
         """
         return _str_blocks(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: TextBlock) -> bool:
         """Compares two TextBlock instances for equality.
 
         Args

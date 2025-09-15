@@ -32,6 +32,7 @@ _logger = log.getLogger(__name__)
 
 
 def _str_to_bool(string: str) -> bool:
+    """Function used to convert a string consisting of a True/False value to a boolean"""
     true_list = ["true", "yes", "on", "t", "y", "1"]
     false_list = ["false", "no", "off", "f", "n", "0"]
     string = string.strip().lower()
@@ -46,14 +47,16 @@ def _str_to_bool(string: str) -> bool:
     raise ValueError(error_string)
 
 
-def _format_validate(x):
-    if x not in VALID_FORMATS:
+def _format_validate(format: str) -> str:
+    """Functions that checks if a format is present in the list, returns it if it is,
+    raises an error if it isn't"""
+    if format not in VALID_FORMATS:
         raise ValueError(
             _("`{}` is not a valid format, valid formats are {}").format(
-                x, VALID_FORMATS
+                format, VALID_FORMATS
             )
         )
-    return x
+    return format
 
 
 Format = Annotated[str, AfterValidator(_format_validate)]
