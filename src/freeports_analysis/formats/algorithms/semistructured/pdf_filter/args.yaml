@@ -46,3 +46,18 @@ EURIZON-IT24:
       y_min: 793
       y_max: 803
   currency: EUR
+
+FIDEURAM-IT24:
+  header_set:
+    - font: Tahoma,Bold
+      text: "Titolo"
+    - font: Tahoma,Bold
+      text: "Controvalore"
+  body_set:
+    font: Tahoma
+    font_size: 6.96
+  subfund_set:
+    font: Arial,Bold
+    area:
+      y_max: 73
+  currency: "EUR"

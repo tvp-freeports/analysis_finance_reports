@@ -219,7 +219,7 @@ def deserialize_exec(
     return batch_results
 
 
-def get_pipelines(format_name):
+def get_pipelines(format_name, allow_partial_pipelines=False):
     struct = get_structured(format_name)
     semistruct = get_semistructured(format_name)
     unstruct = get_unstructured(format_name)
@@ -233,8 +233,8 @@ def get_pipelines(format_name):
 
     # Verifica che i dizionari non siano vuoti
     for category, data in combined.items():
-        if not data:
-            raise ValueError(_("List of {category} cannot be empty"))
+        if not data and not allow_partial_pipelines:
+            raise ValueError(_("List of {} cannot be empty").format(category))
 
     # Ottieni tutte le chiavi uniche
     all_keys = set(
@@ -249,12 +249,13 @@ def get_pipelines(format_name):
         deserialize = combined["deserialize"].get(key, [])
 
         # Verifica che nessuna lista sia vuota
-        if not pdf_filters:
-            raise ValueError(f"Pipeline '{key}': pdf_filters non può essere vuoto")
-        if not text_extract:
-            raise ValueError(f"Pipeline '{key}': text_extract non può essere vuoto")
-        if not deserialize:
-            raise ValueError(f"Pipeline '{key}': deserialize non può essere vuoto")
+        if not allow_partial_pipelines:
+            if not pdf_filters:
+                raise ValueError(f"Pipeline '{key}': pdf_filters non può essere vuoto")
+            if not text_extract:
+                raise ValueError(f"Pipeline '{key}': text_extract non può essere vuoto")
+            if not deserialize:
+                raise ValueError(f"Pipeline '{key}': deserialize non può essere vuoto")
 
         result[key] = (pdf_filters, text_extract, deserialize)
 
