@@ -154,7 +154,7 @@ def batch_job_confs(config: dict) -> List[dict]:
     return result
 
 
-def _get_document(config):
+def _get_document(config: dict):
     if config["PDF"] is not None:
         log_string = _("Local PDF file used %s [%s format]")
         logger.debug(log_string, config["PDF"], config["FORMAT"])
@@ -212,7 +212,7 @@ def _output_file(config, results):
             shutil.rmtree(out_dir)
 
 
-def _main_job(config, n_workers):
+def _main_job(config, n_workers: int):
     config = FreeportsConfig(**config).model_dump()
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)

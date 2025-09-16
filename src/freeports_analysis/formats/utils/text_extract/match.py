@@ -2,6 +2,7 @@
 
 import re
 from freeports_analysis.i18n import _
+import pandas as pd
 
 translation_table = {
     "é": "e",
@@ -39,11 +40,24 @@ for char in TO_REMOVE:
     table[ord(char)] = None
 
 
-def normalize_string(string):
+def normalize_string(string: str) -> str:
+    """normalizes a string by making it lowercase and removing accents
+
+    Parameters
+    ----------
+    string : str
+        original string
+
+    Returns
+    -------
+    str
+        normalized string
+    """
     return " ".join(string.lower().translate(table).split()).strip()
 
 
-def dataframe_to_match(target_companies):
+# To be continued (hinting and docstringing)
+def dataframe_to_match(target_companies: pd.DataFrame) -> tuple[list, dict]:
     df = target_companies.copy()
     df["Regexs"] = df["Regexs"].apply(
         lambda rs: [re.compile(r, re.IGNORECASE | re.DOTALL) for r in rs]

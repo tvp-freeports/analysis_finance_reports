@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+freeports\_analysis.formats.utils.deserialize
+=======
 ﻿freeports\_analysis.formats.utils.deserialize
+>>>>>>> refs/remotes/origin/dev
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils.deserialize

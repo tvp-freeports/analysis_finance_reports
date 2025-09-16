@@ -9,7 +9,24 @@ from freeports_analysis.formats.utils.text_extract.match import normalize_string
 data = Path(__file__).parent
 
 
-def _stem_contained_in_name(df):
+def _stem_contained_in_name(df: pd.DataFrame) -> bool:
+    """Checks if the main BUD is included inside the company name
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame of companies
+
+    Returns
+    -------
+    bool
+        True if included
+
+    Raises
+    ------
+    ValueError
+        Raises error if main BUD not included in company name
+    """
     mask = df["Bud"].notna()
 
     # Applica il controllo solo dove Bud non è nullo
@@ -25,7 +42,24 @@ def _stem_contained_in_name(df):
     return True
 
 
-def _regex_match_name(df):
+def _regex_match_name(df: pd.DataFrame) -> bool:
+    """Checks if the main regex is included inside the company name
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame of companies
+
+    Returns
+    -------
+    bool
+        True if included
+
+    Raises
+    ------
+    ValueError
+        _descripRaises error if main regex not included in company nametion_
+    """
     mask = df["Regex"].notna()
 
     valid_rows = df[mask]
@@ -39,6 +73,7 @@ def _regex_match_name(df):
     return True
 
 
+# Structure of the dataframe to validate the companies list everytime it is imported
 companies_schema = pa.DataFrameSchema(
     columns={
         "Name": pa.Column(
@@ -52,8 +87,7 @@ companies_schema = pa.DataFrameSchema(
         ),
         "Regex": pa.Column(pd.StringDtype, nullable=True),
     },
-    # Creazione dell'indice composto durante la validazione
-    coerce=True,  # Permette trasformazioni
+    coerce=True,
     strict=True,
     index=pa.Index(
         pd.StringDtype,
@@ -64,16 +98,25 @@ companies_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies():
+def get_companies() -> pd.DataFrame:
+    """Function called to get the list of companies contained in companies.csv
+    while validating the structure through companies_schema
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of companies
+    """
     df = pd.read_csv(data / "companies.csv")
     df.set_index("Name", drop=False, inplace=True)
     df["Name"] = df["Name"].apply(normalize_string)
     return companies_schema.validate(df)
 
 
+# A list containing the companies
 COMPANIES = get_companies().index.to_list()
 
-
+# Structure of the dataframe to validate the additional regex table
 companies_additional_regexs_schema = pa.DataFrameSchema(
     columns={"Regex": pa.Column(pd.StringDtype)},
     coerce=True,
@@ -86,13 +129,22 @@ companies_additional_regexs_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies_additional_regexs():
+def get_companies_additional_regexs() -> pd.DataFrame:
+    """Function called to get the additional regex contained in companies_additional_regexs.csv
+    while validating the structure through companies_additional_regexs_schema
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of additional regex
+    """
     df = pd.read_csv(
         data / "companies_additional_regexs.csv", index_col=["Company name"]
     )
     return companies_additional_regexs_schema.validate(df)
 
 
+# Structure of the dataframe to validate the lists table
 lists_schema = pa.DataFrameSchema(
     columns={
         "Institution": pa.Column(pd.StringDtype),
@@ -103,6 +155,7 @@ lists_schema = pa.DataFrameSchema(
     index=pa.Index(pd.StringDtype, name="Name", unique=True),
 )
 
+# Structure of the dataframe to validate the additional buds table
 companies_additional_buds_schema = pa.DataFrameSchema(
     columns={
         "Bud": pa.Column(
@@ -120,18 +173,36 @@ companies_additional_buds_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies_additional_buds():
+def get_companies_additional_buds() -> pd.DataFrame:
+    """Function called to get the additional buds contained in companies_additional_buds.csv
+    while validating the structure through companies_additional_buds_schema
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of additional buds
+    """
     df = pd.read_csv(data / "companies_additional_buds.csv", index_col=["Company name"])
     return companies_additional_buds_schema.validate(df)
 
 
-def get_lists():
+def get_lists() -> pd.DataFrame:
+    """Function called to get the additional lists contained in lists.csv
+    while validating the structure through lists_schema
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of additional lists
+    """
     df = pd.read_csv(data / "lists.csv", index_col="Name")
     return lists_schema.validate(df)
 
 
+# A list containing the company lists
 TARGET_LISTS = get_lists().index.to_list()
 
+# Structure of the dataframe to validate the company_to_lists table
 company_to_list_schema = pa.DataFrameSchema(
     columns={
         "List name": pa.Column(
@@ -158,7 +229,14 @@ company_to_list_schema = pa.DataFrameSchema(
 )
 
 
-def get_company_to_list():
+def get_company_to_list() -> pd.DataFrame:
+    """Function called to get a DataFrame matching the companies and the lists they are included in
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of companies and lists
+    """
     df = pd.read_csv(
         data / "company_to_list.csv", index_col=["List name", "Company name"]
     )
@@ -166,6 +244,7 @@ def get_company_to_list():
     return company_to_list_schema.validate(df)
 
 
+# Structure of the dataframe to validate the markets table
 markets_schema = pa.DataFrameSchema(
     columns={},
     coerce=True,
@@ -174,14 +253,22 @@ markets_schema = pa.DataFrameSchema(
 )
 
 
-def get_markets():
+def get_markets() -> pd.DataFrame:
+    """Function called to get a DataFrame of the possible markets
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of markets
+    """
     df = pd.read_csv(data / "markets.csv", index_col="Name")
     return markets_schema.validate(df)
 
 
+# A list containing the markets
 MARKETS = get_markets().index.to_list()
 
-
+# Structure of the dataframe to validate the tickers table
 tickers_schema = pa.DataFrameSchema(
     columns={
         "Symbol": pa.Column(
@@ -207,12 +294,26 @@ tickers_schema = pa.DataFrameSchema(
 )
 
 
-def get_tickers():
+def get_tickers() -> pd.DataFrame:
+    """Function called to get a DataFrame matching the companies names and the markets they are included in
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame of companies and markets
+    """
     df = pd.read_csv(data / "tickers.csv", index_col=["Market name", "Company name"])
     return tickers_schema.validate(df)
 
 
-def get_companies_data():
+def get_companies_data() -> pd.DataFrame:
+    """Function called to get a DataFrame containing all the relevant companies data
+
+    Returns
+    -------
+    pd.DataFrame
+        The full DataFrame
+    """
     companies = get_companies()
     company_to_list = get_company_to_list()
     tickers = get_tickers()
@@ -270,7 +371,20 @@ def get_companies_data():
     return results
 
 
-def get_target_companies(target_lists):
+def get_target_companies(target_lists: list | str) -> pd.DataFrame:
+    """Function called to get a DataFrame containing the data of all the companies
+    included in a certain list
+
+    Parameters
+    ----------
+    target_lists : list | str
+        The required list name (or lists names)
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame with the required data
+    """
     if isinstance(target_lists, str):
         target_lists = [target_lists]
     df = get_companies_data()

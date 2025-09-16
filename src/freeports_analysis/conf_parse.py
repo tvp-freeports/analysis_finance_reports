@@ -32,7 +32,22 @@ _logger = log.getLogger(__name__)
 
 
 def _str_to_bool(string: str) -> bool:
-    """Function used to convert a string consisting of a True/False value to a boolean"""
+    """Function used to convert a string consisting of a True/False value to a boolean
+    Parameters
+    ----------
+    string : str
+        The original string
+
+    Returns
+    -------
+    bool
+        The resulting Boolean
+
+    Raises
+    ------
+    ValueError
+        Raises error if the format is unrecognizable
+    """
     true_list = ["true", "yes", "on", "t", "y", "1"]
     false_list = ["false", "no", "off", "f", "n", "0"]
     string = string.strip().lower()
@@ -48,8 +63,23 @@ def _str_to_bool(string: str) -> bool:
 
 
 def _format_validate(format: str) -> str:
-    """Functions that checks if a format is present in the list, returns it if it is,
-    raises an error if it isn't"""
+    """Functions that checks if a format is present in the formats list, returns it if it is,
+    raises an error if it isnt'.
+    Parameters
+    ----------
+    format : str
+        The format name
+
+    Returns
+    -------
+    str
+        The format name if correct.
+
+    Raises
+    ------
+    ValueError
+        not a correct format, prints the complete lisr
+    """
     if format not in VALID_FORMATS:
         raise ValueError(
             _("`{}` is not a valid format, valid formats are {}").format(

@@ -4,119 +4,233 @@ Undocumented Python objects
 Statistics
 ----------
 
-+----------------------------------------------------------------+----------+--------------+
-| Module                                                         | Coverage | Undocumented |
-+================================================================+==========+==============+
-| freeports_analysis                                             | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.cmd                                         | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.conf_parse                                  | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.consts                                      | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.download                                    | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats                                     | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.amundi_en24                         | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.amundi_it24                         | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.anima_en23                          | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.arca_it24                           | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.asteria_en23                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.asteria_en24                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.danskeinvest_en24                   | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.eurizon_en21                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.eurizon_en23                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.eurizon_it24                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.fideuram_en23                       | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_es24_a                   | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_es24_b                   | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_es24_c                   | 0.00%    | 1            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_es24_d                   | 0.00%    | 3            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_it24_a                   | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.mediolanum_it24_b                   | 0.00%    | 1            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils                               | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.deserialize                   | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter                    | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.pdf_parts          | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.pdf_parts.font     | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.pdf_parts.generic  | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.pdf_parts.position | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.select_font        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.select_position    | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.xml                | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.xml.font           | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.xml.position       | 83.33%   | 1            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.text_extract                  | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.text_extract.match            | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.i18n                                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| freeports_analysis.main                                        | 100.00%  | 0            |
-+----------------------------------------------------------------+----------+--------------+
-| TOTAL                                                          | 90.91%   | 6            |
-+----------------------------------------------------------------+----------+--------------+
++-----------------------------------------------------------------------+----------+--------------+
+| Module                                                                | Coverage | Undocumented |
++=======================================================================+==========+==============+
+| freeports_analysis                                                    | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.cmd                                                | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.conf_parse                                         | 8.33%    | 11           |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.consts                                             | 40.00%   | 3            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.data                                               | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.download                                           | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats                                            | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms                                 | 80.00%   | 1            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.commons                         | 0.00%    | 4            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.semistructured                  | 0.00%    | 2            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.semistructured.deserialize      | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.semistructured.pdf_filter       | 0.00%    | 1            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.semistructured.pdf_filter.funcs | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.semistructured.text_extract     | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.structured                      | 0.00%    | 8            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.unstructured                    | 0.00%    | 1            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.unstructured.anima_en23         | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_a  | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b  | 0.00%    | 3            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.algorithms.unstructured.mediolanum_it24_b  | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.data                                       | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils                                      | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.deserialize                          | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter                           | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.pdf_parts                 | 0.00%    | 2            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.pdf_parts.font            | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.pdf_parts.generic         | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.pdf_parts.position        | 0.00%    | 2            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.select_font               | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.select_position           | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.xml                       | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.xml.font                  | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.pdf_filter.xml.position              | 83.33%   | 1            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.text_extract                         | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats.utils.text_extract.match                   | 0.00%    | 3            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats_utils                                      | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats_utils.pdf_filter                           | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats_utils.pdf_filter.pdf_parts                 | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats_utils.pdf_filter.xml                       | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.formats_utils.text_extract                         | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.i18n                                               | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.main                                               | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.output                                             | 40.00%   | 3            |
++-----------------------------------------------------------------------+----------+--------------+
+| freeports_analysis.output.files_schema                                | 100.00%  | 0            |
++-----------------------------------------------------------------------+----------+--------------+
+| TOTAL                                                                 | 57.55%   | 45           |
++-----------------------------------------------------------------------+----------+--------------+
 
-freeports_analysis.formats.mediolanum_es24_c
---------------------------------------------
+freeports_analysis.conf_parse
+-----------------------------
+
+Classes:
+ * FreeportsCmdConfig -- missing methods:
+
+   - create_parser
+ * FreeportsConfig -- missing methods:
+
+   - detect_format
+   - input_should_be_specified
+   - out_path_exists
+   - out_path_single_file
+   - pdf_path_validation
+   - right_out_profile_type
+   - set_compress_flag
+ * FreeportsFileConfig -- missing methods:
+
+   - find_config
+ * ParitalConfiguration -- missing methods:
+
+   - model_dump
+   - overwrite_config
+ * SelectorOutProfile
+
+freeports_analysis.consts
+-------------------------
 
 Functions:
- * text_extract
+ * InputEnum
+ * InputFlags
+ * flag_from_string
 
-freeports_analysis.formats.mediolanum_es24_d
---------------------------------------------
+freeports_analysis.formats.algorithms
+-------------------------------------
+
+Functions:
+ * get_pipelines
+
+freeports_analysis.formats.algorithms.commons
+---------------------------------------------
+
+Functions:
+ * add_format_name_index
+ * add_pipe_name
+ * create_index_format_name_pipe
+ * set_index_format_name_pipe
+
+freeports_analysis.formats.algorithms.semistructured
+----------------------------------------------------
+
+Functions:
+ * get_formats_mapping
+ * get_pipes
+
+freeports_analysis.formats.algorithms.semistructured.pdf_filter
+---------------------------------------------------------------
+
+Functions:
+ * standard_cost_curr
+
+freeports_analysis.formats.algorithms.structured
+------------------------------------------------
+
+Functions:
+ * get_additional_args
+ * get_additional_headers
+ * get_args
+ * get_deselection_lists
+ * get_partial_pipes
+ * get_pipes
+ * get_structured_formats
+ * validate_partial_pipes
+
+freeports_analysis.formats.algorithms.unstructured
+--------------------------------------------------
+
+Functions:
+ * get_pipes
+
+freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b
+--------------------------------------------------------------------
 
 Functions:
  * deserialize
  * pdf_filter
  * text_extract
 
-freeports_analysis.formats.mediolanum_it24_b
---------------------------------------------
+freeports_analysis.formats.utils.pdf_filter.pdf_parts
+-----------------------------------------------------
 
-Functions:
- * pdf_filter
+Classes:
+ * PdfLineSet -- missing methods:
 
-freeports_analysis.formats_utils.pdf_filter.xml.position
+   - from_dict
+   - from_str
+
+freeports_analysis.formats.utils.pdf_filter.pdf_parts.position
+--------------------------------------------------------------
+
+Classes:
+ * Area -- missing methods:
+
+   - from_dict
+ * InputArea -- missing methods:
+
+   - validate_bounds
+
+freeports_analysis.formats.utils.pdf_filter.xml.position
 --------------------------------------------------------
 
 Functions:
  * get_lines_contained
 
-freeports_analysis.formats_utils.text_extract
+freeports_analysis.formats.utils.text_extract
 ---------------------------------------------
 
 Classes:
  * PdfBlocksTable
+
+freeports_analysis.formats.utils.text_extract.match
+---------------------------------------------------
+
+Functions:
+ * dataframe_to_match
+ * match_company
+ * normalize_string
+
+freeports_analysis.output
+-------------------------
+
+Functions:
+ * transform_to_files_schema
+ * validate_company
+ * write_files
 
