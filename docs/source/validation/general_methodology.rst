@@ -195,6 +195,7 @@ Utilities for the developers
 * ``ungrant <files> [with {any|<methodology>}]``
 * ``check-grants {<files> | with <methodology>}``
 * ``update <subcommand>``
+  
   * ``files | file``
   * ``version``
   * ``methodology``
