@@ -55,6 +55,8 @@
 <li class="toctree-l2 current"><a class="reference internal" href="index.html#the-general-approach">The general approach</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">General methodology</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#validation-documents">Validation documents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utilities-for-the-users">Utilities for the users</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utilities-for-the-developers">Utilities for the developers</a></li>
 </ul>
 </li>
 </ul>
@@ -164,7 +166,13 @@ and it has a certain structure:</p>
 <span class="nt">sig</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;crittographic signature of the document&gt;</span>
 </pre></div>
 </div>
-<p>The first section is the <code class="docutils literal notranslate"><span class="pre">who</span></code> section that contains information about the contributor
+<p>The first parameters its <code class="docutils literal notranslate"><span class="pre">version</span></code> and it rappresent to which version of the <strong>general methodology</strong>
+the file refears to. It is linked to a specific way of interpreting the entries and to their meaning.
+It is equal to the <code class="docutils literal notranslate"><span class="pre">SHA256</span></code> hash of the source file of the general methodology documentation page (the hash of
+the <code class="docutils literal notranslate"><span class="pre">.rst</span></code> file that generated this page that you are reading). If the content of this page changes, the hash
+change accordingly and all the documents that were referring to that specific version of the general methodology
+get invalidated.</p>
+<p>The first informative section is the <code class="docutils literal notranslate"><span class="pre">who</span></code> section that contains information about the contributor
 that is accountable or responable of having followed a certain protocol. This section is composed by</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: is the complete name of who own the document and who is responable for its content;
@@ -206,8 +214,65 @@ the <code class="docutils literal notranslate"><span class="pre">.yaml</span></c
 </pre></div>
 </div>
 </div>
-<p>Specifically two commands <code class="docutils literal notranslate"><span class="pre">who-grants</span></code> and <code class="docutils literal notranslate"><span class="pre">granted-by</span></code> that are copmelementary and respectively
-they take in input</p>
+</section>
+<section id="utilities-for-the-users">
+<h2>Utilities for the users<a class="headerlink" href="#utilities-for-the-users" title="Link to this heading"></a></h2>
+<p>In the validation directory are present three different useful scripts:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">who-grants</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">granted-by</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">granted-with</span></code></p></li>
+</ul>
+<p>that are copmelementary and respectively they take in input:</p>
+<ul class="simple">
+<li><p>a file in the assertions or test results directory</p></li>
+<li><p>a complete name, email or pubkey-id of a specific contributor</p></li>
+<li><p>a specific methodology present in the <code class="docutils literal notranslate"><span class="pre">docs/source/validation/methodologies/</span></code>,
+lowered, with the <code class="docutils literal notranslate"><span class="pre">_</span></code> characters replaced with spaces, without the <code class="docutils literal notranslate"><span class="pre">.rst</span></code>
+file exstension (like the entries <code class="docutils literal notranslate"><span class="pre">name</span></code> of the <code class="docutils literal notranslate"><span class="pre">methodologies</span></code> section in
+the validation documents)</p></li>
+</ul>
+<p>they output respectively:</p>
+<ul class="simple">
+<li><p>the list of the the contributors that grants that file</p>
+<ul>
+<li><p>grouped by the different methodologies</p></li>
+<li><p>grouped by the different contributors <em>(default)</em></p></li>
+</ul>
+</li>
+<li><p>the list of the files granted by the contributor</p>
+<ul>
+<li><p>grouped by the different files</p></li>
+<li><p>grouped by the different methodologies <em>(default)</em></p></li>
+</ul>
+</li>
+<li><p>the list of the files covered by a certain methodology</p>
+<ul>
+<li><p>grouped by the contributor that covered the files</p></li>
+<li><p>grouped by the different files <em>(default)</em></p></li>
+</ul>
+</li>
+</ul>
+<p>for selecting a specific grouping output it can be specified respectively:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-f</span></code> for grouping by file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code> for grouping by contributor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-m</span></code> for grouping by methodology</p></li>
+</ul>
+</section>
+<section id="utilities-for-the-developers">
+<h2>Utilities for the developers<a class="headerlink" href="#utilities-for-the-developers" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">grant</span> <span class="pre">&lt;files&gt;</span> <span class="pre">[with</span> <span class="pre">&lt;methodology&gt;]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ungrant</span> <span class="pre">&lt;files&gt;</span> <span class="pre">[with</span> <span class="pre">{any|&lt;methodology&gt;}]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">check-grants</span> <span class="pre">{&lt;files&gt;</span> <span class="pre">|</span> <span class="pre">with</span> <span class="pre">&lt;methodology&gt;}</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">update</span> <span class="pre">&lt;subcommand&gt;</span></code>
+* <code class="docutils literal notranslate"><span class="pre">files</span> <span class="pre">|</span> <span class="pre">file</span></code>
+* <code class="docutils literal notranslate"><span class="pre">version</span></code>
+* <code class="docutils literal notranslate"><span class="pre">methodology</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sign</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create-grant-document</span></code></p></li>
+</ul>
 </section>
 </section>
 

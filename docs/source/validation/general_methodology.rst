@@ -92,7 +92,14 @@ and it has a certain structure:
         .
     sig: <crittographic signature of the document>
 
-The first section is the ``who`` section that contains information about the contributor
+The first parameters its ``version`` and it rappresent to which version of the **general methodology**
+the file refears to. It is linked to a specific way of interpreting the entries and to their meaning.
+It is equal to the ``SHA256`` hash of the source file of the general methodology documentation page (the hash of 
+the ``.rst`` file that generated this page that you are reading). If the content of this page changes, the hash
+change accordingly and all the documents that were referring to that specific version of the general methodology
+get invalidated.
+
+The first informative section is the ``who`` section that contains information about the contributor
 that is accountable or responable of having followed a certain protocol. This section is composed by
 
 * ``name``: is the complete name of who own the document and who is responable for its content;
@@ -119,6 +126,7 @@ For each methodologies are associated some files composed by a ``path`` that sho
 directory or the ``tests`` directory depending if the covered file is a **test result** or an **assertion**.
 
 .. danger::
+
   Naming a test result or an assertion in the same manner would conduct to ambiguity so it is not considered valid,
   the user that write the methodology should be responable for checking that this possibility never happens.
   If it will happens the hope is that from the methodology used is clear the class of the file cocovered.
@@ -136,6 +144,60 @@ the ``.yaml`` file stripped from meaningless white spaces and with the mapping e
 
     yq -y -S 'del(.sig)' <yaml-document-path>
 
+***********************
+Utilities for the users
+***********************
 
-Specifically two commands ``who-grants`` and ``granted-by`` that are copmelementary and respectively
-they take in input 
+In the validation directory are present three different useful scripts:
+
+* ``who-grants``
+* ``granted-by`` 
+* ``granted-with``
+
+that are copmelementary and respectively they take in input:
+
+* a file in the assertions or test results directory
+* a complete name, email or pubkey-id of a specific contributor
+* a specific methodology present in the ``docs/source/validation/methodologies/``,
+  lowered, with the ``_`` characters replaced with spaces, without the ``.rst``
+  file exstension (like the entries ``name`` of the ``methodologies`` section in
+  the validation documents)
+
+they output respectively:
+
+* the list of the the contributors that grants that file
+
+  * grouped by the different methodologies
+  * grouped by the different contributors *(default)*
+
+* the list of the files granted by the contributor
+
+  * grouped by the different files
+  * grouped by the different methodologies *(default)*
+
+* the list of the files covered by a certain methodology
+
+  * grouped by the contributor that covered the files
+  * grouped by the different files *(default)*
+
+for selecting a specific grouping output it can be specified respectively:
+
+* ``-f`` for grouping by file
+* ``-c`` for grouping by contributor
+* ``-m`` for grouping by methodology
+
+
+****************************
+Utilities for the developers
+****************************
+
+* ``grant <files> [with <methodology>]``
+* ``ungrant <files> [with {any|<methodology>}]``
+* ``check-grants {<files> | with <methodology>}``
+* ``update <subcommand>``
+  * ``files | file``
+  * ``version``
+  * ``methodology``
+
+* ``sign``
+* ``create-grant-document``

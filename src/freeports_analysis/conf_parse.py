@@ -505,7 +505,7 @@ class FreeportsConfig(BaseModel):
     URL: Optional[HttpUrl] = None
     PDF: Optional[Path] = None
     FORMAT: Optional[Format] = None
-    CONFIG_FILE: FilePath
+    CONFIG_FILE: Optional[FilePath] = None
     TARGET_LISTS: Lists
     PREFIX_OUT: Optional[str] = None
     OUT_PROFILE: Union[OutStructureNormalMode, OutStructureBatchMode]
