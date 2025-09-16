@@ -373,7 +373,7 @@ def get_companies_data() -> pd.DataFrame:
 
 def get_target_companies(target_lists: list | str) -> pd.DataFrame:
     """Function called to get a DataFrame containing the data of all the companies
-    included in a certain list
+    included in a certain list / certain lists
 
     Parameters
     ----------

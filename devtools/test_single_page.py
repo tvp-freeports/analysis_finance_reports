@@ -53,6 +53,6 @@ def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
 
 
 def select_function(fmt, index_segment, pipeline_name="", index=0):
-    pipeline = get_pipelines(fmt)[pipeline_name]
+    pipeline = get_pipelines(fmt, allow_partial_pipelines=True)[pipeline_name]
     func = pipeline[index_segment][index]
     return func
