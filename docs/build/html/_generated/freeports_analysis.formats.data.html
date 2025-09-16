@@ -113,17 +113,63 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_formats</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.get_formats" title="freeports_analysis.formats.data.get_formats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_formats</span></code></a>()</p></td>
+<td><p>Function called to get the list of formats contained in formats.csv while validating the structure through format_schema</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_url_mapping</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.get_url_mapping" title="freeports_analysis.formats.data.get_url_mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_url_mapping</span></code></a>()</p></td>
+<td><p>Function that returns a dataframe linking the unique format names to a list of urls</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">url_to_format</span></code>(url)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.url_to_format" title="freeports_analysis.formats.data.url_to_format"><code class="xref py py-obj docutils literal notranslate"><span class="pre">url_to_format</span></code></a>(url)</p></td>
+<td><p>Function used to associate a single url to a single format name</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.data.get_formats">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">get_formats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.get_formats" title="Link to this definition"></a></dt>
+<dd><p>Function called to get the list of formats contained in formats.csv
+while validating the structure through format_schema</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame of formats</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.data.get_url_mapping">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">get_url_mapping</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.get_url_mapping" title="Link to this definition"></a></dt>
+<dd><p>Function that returns a dataframe linking the unique format names to a list of urls</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame of format names and urls</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.data.url_to_format">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">url_to_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.url_to_format" title="Link to this definition"></a></dt>
+<dd><p>Function used to associate a single url to a single format name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – string containing the url</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>format name or None if the url is invalid</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

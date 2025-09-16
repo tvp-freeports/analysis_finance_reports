@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-freeports\_analysis.data
-=======
 ﻿freeports\_analysis.data
->>>>>>> refs/remotes/origin/dev
 ========================
 
 .. automodule:: freeports_analysis.data

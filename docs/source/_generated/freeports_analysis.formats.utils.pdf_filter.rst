@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-freeports\_analysis.formats.utils.pdf\_filter
-=======
 ﻿freeports\_analysis.formats.utils.pdf\_filter
->>>>>>> refs/remotes/origin/dev
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils.pdf_filter

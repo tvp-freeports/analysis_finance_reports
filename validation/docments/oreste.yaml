@@ -1,33 +1,34 @@
-sig: |
-  alkjdsflajflasjd
-  akjdsflkskjfdkja
-  fajsdkflasjfa483
-  43989fjsakfjalsd
+version: e26f94d2de37690876a73eabe63fafe9b0c9616003b439f73e2029eeac318ec3
 
+sig:
+  "alkjdsflajflasjd\
+  akjdsflkskjfdkja\
+  fajsdkflasjfa483\
+  43989fjsakfjalsd"
+  
 
 who:
   name: Oreste Sciaqualegni
   email: orestesciaqualegni@tutanota.com
   pubkey-id: 0x12345678
-  key-server: fjdaskdfjla
 
-methodology:
+methodologies:
   - name: basic check
     sha256: 08432085248ipoidg98ads09
   - name: 5 random companies
     sha256: 08432085248ipoidg98ads09
-  - name:
-    sha256: 
 
 data:
   - methodology: human check
-    - path: pdf_blks-246.pkl
-      sha256: fasdklka78978
-    - path: txt_blks-45.pkl
-      sha256: kfdlasjdaf
-    - path: txt_blks.pkl 
-      sha256: 24532345jhklhj
+    files:
+      - path: pdf_blks-246.pkl
+        sha256: fasdklka78978
+      - path: txt_blks-45.pkl
+        sha256: kfdlasjdaf
+      - path: txt_blks.pkl 
+        sha256: 24532345jhklhj
   - methodology: automatic check
-    - path: financial_data-56.pkl
-      sha256: 523k54jhk2
+    files:
+      - path: financial_data-56.pkl
+        sha256: 523k54jhk2
 

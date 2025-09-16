@@ -1,3 +1,7 @@
+// WARNING:
+// This file is hashed and referred in `docs/source/validation/general_methodology.rst`
+// so any change to it can result in an invalidation into the mechanism to grant trust.
+// DON'T CHANGE IF YOU ARE NOT SURE OF THE CONSEQUENCES!!
 pipeline {
     agent any
 

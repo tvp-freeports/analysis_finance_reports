@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-freeports\_analysis.formats.algorithms
-=======
 ﻿freeports\_analysis.formats.algorithms
->>>>>>> refs/remotes/origin/dev
 ======================================
 
 .. automodule:: freeports_analysis.formats.algorithms
