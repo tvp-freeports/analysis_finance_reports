@@ -12,10 +12,12 @@ who:
   key-server: fjdaskdfjla
 
 methodology:
-  - name: human check
+  - name: basic check
     sha256: 08432085248ipoidg98ads09
-  - name: automatic check
+  - name: 5 random companies
     sha256: 08432085248ipoidg98ads09
+  - name:
+    sha256: 
 
 data:
   - methodology: human check

@@ -15,4 +15,9 @@
 General methodology
 ===================
 
-The 
+In the repository there is one directory dedicated to the tests, this directory is called ``tests``.
+Another directory is dedicated to the accountability and is the one that contain information on the
+protocols used to grant the functioning of the software and it is called ``validation```.
+
+We develop different tests for granting the accuracy of our program, but some of them require some kind
+of protocol in order to grant their trust
