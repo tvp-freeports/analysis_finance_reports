@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source lib/utils
+
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <keyid>"
     exit 1
@@ -17,21 +19,26 @@ if [ -z "$user_id" ]; then
 fi
 
 # Extract name and email
-VERSION=$(sha256sum ../docs/source/validation/general_methodology.rst | awk '{print $1}')
+VERSION=$(get_version_methodology)
 NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
 EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
 
 out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-
+out_path="${DOCUMENT_DIR}/${out_file_name}.yaml"
+if [ -f "${out_path}" ]; then
+    echo "File \"${out_path}\" already present, refuse to overwrite" 1>&2
+    echo "Delete the file before creating a new one" 1>&2
+    exit 1
+fi
 
 concrete_yaml(){
     yq \
     ".version=\"${VERSION}\" | .who.name=\"${NAME}\" | .who.email=\"${EMAIL}\" | .who.pubkey_id=\"${KEYID}\"" \
-    lib/document.template.yaml -y
+    "${LIB_DIR}/document.template.yaml" -y
 }
 
 
-if (concrete_yaml | check-jsonschema --schemafile lib/document.schema.json --default-filetype yaml - ); then
-    concrete_yaml > "documents/${out_file_name}.yaml"
+if (concrete_yaml | check-jsonschema --schemafile "${LIB_DIR}/document.schema.json" --default-filetype yaml - 1> /dev/null); then
+    concrete_yaml > "${out_path}"
 fi
  

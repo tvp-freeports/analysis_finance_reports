@@ -1,0 +1,16 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+ASSERT_DIR="${REPO_ROOT}/docs/source/validation/assertions"
+TEST_DIR="${REPO_ROOT}/tests"
+DOCUMENT_DIR="${REPO_ROOT}/validation/documents"
+LIB_DIR="${REPO_ROOT}/validation/lib"
+
+normalize_methodology_name(){
+    echo "$1" | tr '_' ' ' | tr '[:upper:]' '[:lower:]'
+}
+
+get_version_methodology(){
+    sha256sum ../docs/source/validation/general_methodology.rst | awk '{print $1}'
+}
+
