@@ -100,7 +100,10 @@
             }
         },
         "sig": {
-            "$ref": "#/$defs/gpgSignature",
+            "anyOf": [
+                {"$ref": "#/$defs/gpgSignature"},
+                {"type": null}
+            ],
             "description": "GPG armored detached signature as produced by: gpg2 --armor --detach-sign --output - <normalized-document>"
         }
     },
