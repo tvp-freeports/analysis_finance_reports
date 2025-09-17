@@ -23,6 +23,15 @@ EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
 
 out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
 
-yq \
-".version=\"${VERSION}\" | .who.name=\"${NAME}\" | .who.email=\"${EMAIL}\" | .who.pubkey_id=\"${KEYID}\"" \
-lib/document.template.yaml -y > "documents/${out_file_name}.yaml"
+
+concrete_yaml(){
+    yq \
+    ".version=\"${VERSION}\" | .who.name=\"${NAME}\" | .who.email=\"${EMAIL}\" | .who.pubkey_id=\"${KEYID}\"" \
+    lib/document.template.yaml -y
+}
+
+
+if (concrete_yaml | check-jsonschema --schemafile lib/document.schema.json --default-filetype yaml - ); then
+    concrete_yaml > "documents/${out_file_name}.yaml"
+fi
+ 

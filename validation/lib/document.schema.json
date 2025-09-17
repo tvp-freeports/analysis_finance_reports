@@ -21,6 +21,7 @@
             "pattern": "^[0-9A-F]{40}$"
         }
     },
+    "additionalProperties": false,
     "properties": {
         "version": {
             "$ref": "#/$defs/sha256Pattern",
