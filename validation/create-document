@@ -1,2 +1,28 @@
 #!/bin/bash
 
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <keyid>"
+    exit 1
+fi
+
+KEYID="$1"
+
+# Get UID information and parse it
+
+user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
+
+if [ -z "$user_id" ]; then
+    echo "Error: Key '$KEYID' not found or has no UID"
+    exit 1
+fi
+
+# Extract name and email
+VERSION=$(sha256sum ../docs/source/validation/general_methodology.rst | awk '{print $1}')
+NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
+EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
+
+out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+
+yq \
+".version=\"${VERSION}\" | .who.name=\"${NAME}\" | .who.email=\"${EMAIL}\" | .who.pubkey_id=\"${KEYID}\"" \
+lib/document.template.yaml -y > "documents/${out_file_name}.yaml"

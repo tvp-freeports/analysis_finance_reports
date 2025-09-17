@@ -18,7 +18,7 @@
         "pgpKeyId": {
             "type": "string",
             "description": "PGP public key ID as used by gpg2 command (long format)",
-            "pattern": "^[0-9A-F]{16}$"
+            "pattern": "^[0-9A-F]{40}$"
         }
     },
     "properties": {
@@ -29,7 +29,7 @@
         "who": {
             "type": "object",
             "description": "Personal information of the contributor who owns the document",
-            "required": ["name", "email", "pubkey-id"],
+            "required": ["name", "email", "pubkey_id"],
             "properties": {
                 "name": {
                     "type": "string",
@@ -40,7 +40,7 @@
                     "format": "email",
                     "description": "Email address of the contributor"
                 },
-                "pubkey-id": {
+                "pubkey_id": {
                     "$ref": "#/$defs/pgpKeyId",
                     "description": "PGP public key ID (16 hex digits) as used by gpg2 --list-keys --keyid-format LONG"
                 }
@@ -49,7 +49,7 @@
         "methodologies": {
             "type": "array",
             "description": "List of specific methodologies used to grant trust",
-            "minItems": 1,
+            "minItems": 0,
             "uniqueItems": true,
             "items": {
                 "type": "object",
@@ -102,7 +102,7 @@
         "sig": {
             "anyOf": [
                 {"$ref": "#/$defs/gpgSignature"},
-                {"type": null}
+                {"type": "null"}
             ],
             "description": "GPG armored detached signature as produced by: gpg2 --armor --detach-sign --output - <normalized-document>"
         }
@@ -123,11 +123,19 @@
                     "properties": {
                         "methodology": {
                             "enum": {
-                                "$data": "0/methodologies/name"
+                                "$data": "/methodologies/name"
                             }
                         }
                     }
                 }
+            }
+        }
+    },
+    "else": {
+        "properties": {
+            "data": {
+                "type": "array",
+                "maxItems": 0
             }
         }
     }
