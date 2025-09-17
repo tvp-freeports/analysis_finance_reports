@@ -4,7 +4,7 @@
     "title": "Validation Document",
     "description": "A validation document for granting protocol usage in specific contexts",
     "type": "object",
-    "required": ["version", "who", "methodologies", "data", "sig"],
+    "required": ["version", "who", "methodologies", "data", "sign"],
     "$defs": {
         "sha256Pattern": {
             "type": "string",
@@ -99,7 +99,7 @@
                 }
             }
         },
-        "sig": {
+        "sign": {
             "anyOf": [
                 {"$ref": "#/$defs/gpgSignature"},
                 {"type": "null"}
@@ -122,9 +122,11 @@
                 "items": {
                     "properties": {
                         "methodology": {
-                            "enum": {
-                                "$data": "/methodologies/name"
-                            }
+                            "enum": [
+                                {
+                                    "$data": "/methodologies/name"
+                                }
+                            ]
                         }
                     }
                 }
