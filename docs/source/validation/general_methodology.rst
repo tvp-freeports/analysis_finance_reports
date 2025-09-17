@@ -200,5 +200,5 @@ Utilities for the developers
   * ``version``
   * ``methodology``
 
-* ``sign``
-* ``create-grant-document``
+* ``sign-document``
+* ``create-document``
