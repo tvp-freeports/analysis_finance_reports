@@ -35,7 +35,7 @@ Statistics
 +-----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.algorithms.semistructured.text_extract     | 100.00%  | 0            |
 +-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.algorithms.structured                      | 0.00%    | 8            |
+| freeports_analysis.formats.algorithms.structured                      | 62.50%   | 3            |
 +-----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.algorithms.unstructured                    | 0.00%    | 1            |
 +-----------------------------------------------------------------------+----------+--------------+
@@ -75,17 +75,7 @@ Statistics
 +-----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.utils.text_extract                         | 100.00%  | 0            |
 +-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.text_extract.match                   | 0.00%    | 3            |
-+-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils                                      | 100.00%  | 0            |
-+-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter                           | 100.00%  | 0            |
-+-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.pdf_parts                 | 100.00%  | 0            |
-+-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.pdf_filter.xml                       | 100.00%  | 0            |
-+-----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats_utils.text_extract                         | 100.00%  | 0            |
+| freeports_analysis.formats.utils.text_extract.match                   | 33.33%   | 2            |
 +-----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.i18n                                               | 100.00%  | 0            |
 +-----------------------------------------------------------------------+----------+--------------+
@@ -95,7 +85,7 @@ Statistics
 +-----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.output.files_schema                                | 100.00%  | 0            |
 +-----------------------------------------------------------------------+----------+--------------+
-| TOTAL                                                                 | 57.55%   | 45           |
+| TOTAL                                                                 | 63.21%   | 39           |
 +-----------------------------------------------------------------------+----------+--------------+
 
 freeports_analysis.conf_parse
@@ -163,11 +153,6 @@ freeports_analysis.formats.algorithms.structured
 ------------------------------------------------
 
 Functions:
- * get_additional_args
- * get_additional_headers
- * get_args
- * get_deselection_lists
- * get_partial_pipes
  * get_pipes
  * get_structured_formats
  * validate_partial_pipes
@@ -224,7 +209,6 @@ freeports_analysis.formats.utils.text_extract.match
 Functions:
  * dataframe_to_match
  * match_company
- * normalize_string
 
 freeports_analysis.output
 -------------------------
