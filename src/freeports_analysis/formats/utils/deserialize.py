@@ -222,6 +222,7 @@ def to_date(data: str) -> date:
     data = normalize_word(data)
     formats = [
         "%Y-%m-%d",  # 2025-07-02
+        "%Y/%m/%d",  # 2025/07/02
         "%d/%m/%Y",  # 02/07/2025
         "%d/%m/%y",  # 02/07/25
         "%m-%d-%Y",  # 07-02-2025
