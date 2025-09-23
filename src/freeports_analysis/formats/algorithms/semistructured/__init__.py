@@ -123,7 +123,7 @@ def _get_segment(format_name, segment_name, pipes_mapping):
     return segment
 
 
-def get_pipes(format_name):
+def get_pipes(format_name: str):
     pipes_mapping = []
     try:
         selected_row = get_formats_mapping().loc[format_name]

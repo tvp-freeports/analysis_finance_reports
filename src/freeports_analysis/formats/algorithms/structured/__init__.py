@@ -39,7 +39,14 @@ args_schema = pa.DataFrameSchema(
 )
 
 
-def get_args():
+def get_args() -> pd.DataFrame:
+    """Gets and validates the args table
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame
+    """
     df = pd.read_csv(data / "args.csv")
     df = create_index_format_name_pipe(df)
     return args_schema.validate(df)
@@ -67,7 +74,14 @@ additional_args_schema = pa.DataFrameSchema(
 )
 
 
-def get_additional_args():
+def get_additional_args() -> pd.DataFrame:
+    """Gets and validates the additional args table
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame
+    """
     df = pd.read_csv(data / "additional_args.csv", index_col=["ID"])
     return additional_args_schema.validate(df)
 
@@ -77,7 +91,14 @@ additional_headers_schema = pa.DataFrameSchema(
 )
 
 
-def get_additional_headers():
+def get_additional_headers() -> pd.DataFrame:
+    """Gets and validates the additional headers table
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame
+    """
     df = pd.read_csv(data / "additional_headers.csv", index_col=["ID"])
     return additional_headers_schema.validate(df)
 
@@ -87,7 +108,14 @@ deselection_list_schema = pa.DataFrameSchema(
 )
 
 
-def get_deselection_lists():
+def get_deselection_lists() -> pd.DataFrame:
+    """Gets and validates the deselection list table
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame
+    """
     df = pd.read_csv(data / "deselection_lists.csv", index_col=["ID"])
     return deselection_list_schema.validate(df)
 
@@ -104,7 +132,14 @@ partial_pipes_schema = pa.DataFrameSchema(
 )
 
 
-def get_partial_pipes():
+def get_partial_pipes() -> pd.DataFrame:
+    """Gets and validates the partial pipes table
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated DataFrame
+    """
     df = pd.read_csv(data / "partial_pipes.csv", index_col=["ID"])
     return partial_pipes_schema.validate(df)
 

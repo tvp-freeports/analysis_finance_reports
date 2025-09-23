@@ -219,7 +219,7 @@ def deserialize_exec(
     return batch_results
 
 
-def get_pipelines(format_name, allow_partial_pipelines=False):
+def get_pipelines(format_name: str, allow_partial_pipelines: bool = False):
     struct = get_structured(format_name)
     semistruct = get_semistructured(format_name)
     unstruct = get_unstructured(format_name)

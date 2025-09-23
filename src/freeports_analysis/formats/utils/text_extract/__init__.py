@@ -375,7 +375,7 @@ def standard_text_extraction(
                     if not found:
                         curr = curr.upper()
                         for c in Currency.__members__:
-                            re.findall(r"\b" + c + r"\b", curr)
+                            currency_candidates = re.findall(r"\b" + c + r"\b", curr)
                             for curr_cand in currency_candidates:
                                 try:
                                     metadata["currency"] = Currency[curr_cand]

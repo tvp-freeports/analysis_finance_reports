@@ -7,7 +7,7 @@ from pydantic import BaseModel, AfterValidator
 from freeports_analysis.i18n import _
 from .font import Font, FontSize, FontSizeRange
 from ..xml.position import get_bounds
-from .position import Area, XRange, YRange, Coord, AreaDict
+from .position import Area, XRange, YRange, Coord, InputArea, AreaDict
 
 
 class PdfLine:
@@ -199,7 +199,7 @@ class InputPdfLineSet(BaseModel):
     area: Optional[AreaDict] = None
 
 
-_line_set_font_regexp = r"(?P<font>[\w-]+)"
+_line_set_font_regexp = r"(?P<font>[\w\-,]+)"
 _number_regexp = r"[0-9]+(\.[0-9]+)?"
 _line_set_fontsize_regexp = rf"\[(?P<font_size>{_number_regexp})\]"
 _range_regexp = rf"\(({_number_regexp})?:({_number_regexp})?\)"
