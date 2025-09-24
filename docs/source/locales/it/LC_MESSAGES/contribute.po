@@ -149,10 +149,10 @@ msgstr "Contribuzione al sito web"
 msgid ""
 "It is possible to contribute to the `official website <https://"
 "www.freeports.org>`_ of the project from the specific `GitHub repository "
-"<https://github.com/GVoreste/analysis_finance_reports_website>`_."
+"<https://github.com/tvp-freeports/analysis_finance_reports_website>`_."
 msgstr ""
 "E' possibile contribuire al `sito ufficiale <https://www.freeports.org>`_ del "
-"progetto dal `repositorio GitHub <https://github.com/GVoreste/"
+"progetto dal `repositorio GitHub <https://github.com/tvp-freeports/"
 "analysis_finance_reports_website>`_ specifico."
 
 #: ../../source/contribute.rst:71

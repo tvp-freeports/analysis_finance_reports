@@ -15,4 +15,4 @@ For any remaining question or just to contact us feel free to join our **TODO** 
 
 # Contribution for the website
 
-It is possible to contribute to the source of the [*website*](https://www.freeports.org) of the project from the [**GitHub repository**](https://github.com/GVoreste/analysis_finance_reports_website).
+It is possible to contribute to the source of the [*website*](https://www.freeports.org) of the project from the [**GitHub repository**](https://github.com/tvp-freeports/analysis_finance_reports_website).
