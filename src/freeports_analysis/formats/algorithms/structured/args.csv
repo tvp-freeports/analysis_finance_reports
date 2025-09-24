@@ -17,3 +17,4 @@ MEDIOLANUM-IT24.B,,,,,2,1,3,,
 FIDEURAM-IT24,,,,,1,4,5,,
 ANIMA_SGR-IT24,"Lato,Bold ""Titoli """,Lato((245:)(:38)),"Lato,Bold ""Controvalore in """,Lato[6.960005],3,2,4,,1
 FINECO-EN23.B,"ArialNarrow-Bold ""Nominal """,ArialNarrow-Bold(:90),ArialNarrow-Bold((480:497)(149:159)),ArialNarrow[8],3,-1,4,2,1
+FINECO-EN23.A,"TimesNewRoman,Bold ""Domicile""","TimesNewRoman,Bold(112:125)","TimesNewRoman,Bold((420:460)(159.5:171))",TimesNewRoman[10.02],2,-1,3,,
