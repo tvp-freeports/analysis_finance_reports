@@ -113,7 +113,7 @@ msgid "Contribution to the website"
 msgstr ""
 
 #: ../../source/contribute.rst:65
-msgid "It is possible to contribute to the `official website <https://www.freeports.org>`_ of the project from the specific `GitHub repository <https://github.com/GVoreste/analysis_finance_reports_website>`_."
+msgid "It is possible to contribute to the `official website <https://www.freeports.org>`_ of the project from the specific `GitHub repository <https://github.com/tvp-freeports/analysis_finance_reports_website>`_."
 msgstr ""
 
 #: ../../source/contribute.rst:71

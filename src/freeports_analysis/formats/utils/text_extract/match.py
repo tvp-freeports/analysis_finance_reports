@@ -1,8 +1,8 @@
 """Functions for different target matching algorithms"""
 
 import re
-from freeports_analysis.i18n import _
 import pandas as pd
+from freeports_analysis.i18n import _
 
 translation_table = {
     "é": "e",

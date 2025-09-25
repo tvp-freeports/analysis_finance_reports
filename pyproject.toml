@@ -36,7 +36,7 @@ keywords = [
 ]
 
 [project.urls]
-github = "https://github.com/GVoreste/analysis_finance_reports"
+github = "https://github.com/tvp-freeports/analysis_finance_reports"
 documentation = "https://docs.freeports.org"
 homepage = "https://www.freeports.org"
 
