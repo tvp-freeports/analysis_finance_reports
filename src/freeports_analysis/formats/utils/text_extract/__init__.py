@@ -250,7 +250,7 @@ date_regexes = [
     r".*(\d{2}[/\-.]\d{2}[/\-.]\d{2}).*",
     r".*\s(\d{2}[/\-]\d{2})\s.*",
 ]
-perc_regexes = [r".*((\d+[\.,]\d+)\s*%).*", r".*((\d+[\.,]\d+)\s*).*"]
+perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s*).*"]
 
 
 def standard_text_extraction(

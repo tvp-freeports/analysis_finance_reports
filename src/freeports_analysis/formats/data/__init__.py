@@ -6,7 +6,7 @@ from typing import Optional
 
 data = Path(__file__).parent
 
-format_name_regexp = r".+\-[A-Z]{2}\d{2}(\.[^\.]+)?"
+format_name_regexp = r".+\-[A-Z]{2}\d{2}(/[A-Z]{2,3})?(\.[^\.]+)?"
 
 # Structure of the dataframe to validate the list of formats everytime it is imported
 formats_schema = pa.DataFrameSchema(
@@ -14,6 +14,7 @@ formats_schema = pa.DataFrameSchema(
         "Name": pa.Column(pd.StringDtype),
         "Locale": pa.Column(pd.StringDtype),
         "Year": pa.Column(pd.Int16Dtype),
+        "Country": pa.Column(pd.StringDtype, nullable=True),
         "Version": pa.Column(pd.StringDtype, nullable=True),
     },
     coerce=True,
@@ -48,6 +49,7 @@ def get_formats() -> pd.DataFrame:
             + "-"
             + x["Locale"]
             + x["Year"].astype(str).str[-2:]
+            + x["Country"].apply(lambda v: f"/{v}" if pd.notna(v) and v != "" else "")
             + x["Version"].apply(lambda v: f".{v}" if pd.notna(v) and v != "" else "")
         )
     )
