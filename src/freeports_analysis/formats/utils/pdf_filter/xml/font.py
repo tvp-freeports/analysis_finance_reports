@@ -64,6 +64,17 @@ def get_lines_with_txt_font(
     return blks if all_elem else blks[0] if len(blks) > 0 else None
 
 
+def get_lines_with_txt(
+    blk: etree.Element,
+    txt: str,
+    all_elem: bool = False,
+    exact_match: bool = False,
+) -> List[etree.Element]:
+    match_text = f"@text='{txt}'" if exact_match else f"contains(@text,'{txt}')"
+    blks = blk.xpath(f"./descendant-or-self::line[{match_text}]")
+    return blks if all_elem else blks[0] if len(blks) > 0 else None
+
+
 def get_lines_with_font(
     blk: etree.Element, font: Union[str, List[str]]
 ) -> List[etree.Element]:
