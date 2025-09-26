@@ -223,7 +223,7 @@ class PdfLineSet(PdfLine):
         return cls(
             font=ls.font,
             font_size=ls.font_size,
-            area=Area.from_dict(ls.area.model_dump()),
+            area=Area.from_dict(ls.area.model_dump()) if ls.area is not None else None,
             text=ls.text,
         )
 
