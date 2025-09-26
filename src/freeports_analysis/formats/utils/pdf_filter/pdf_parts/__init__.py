@@ -7,7 +7,7 @@ from pydantic import BaseModel, AfterValidator
 from freeports_analysis.i18n import _
 from .font import Font, FontSize, FontSizeRange
 from ..xml.position import get_bounds
-from .position import Area, XRange, YRange, Coord, InputArea, AreaDict
+from .position import Area, XRange, YRange, Coord, Area, InputArea
 
 
 class PdfLine:
@@ -196,7 +196,7 @@ class InputPdfLineSet(BaseModel):
     text: Optional[str] = None
     font: Optional[Font] = None
     font_size: Optional[FontSize] = None
-    area: Optional[AreaDict] = None
+    area: Optional[InputArea] = None
 
 
 _line_set_font_regexp = r"(?P<font>[\w\-,]+)"
@@ -220,7 +220,12 @@ class PdfLineSet(PdfLine):
     @classmethod
     def from_dict(cls, data):
         ls = InputPdfLineSet(**data)
-        return cls(font=ls.font, font_size=ls.font_size, area=ls.area, text=ls.text)
+        return cls(
+            font=ls.font,
+            font_size=ls.font_size,
+            area=Area.from_dict(ls.area.model_dump()),
+            text=ls.text,
+        )
 
     @classmethod
     def from_str(cls, string):
@@ -289,8 +294,3 @@ class PdfLineSet(PdfLine):
                 eq = eq and abs(self.font_size - other.font_size) <= 1e-4
         eq = eq and (self.geometry is None or self.geometry in other.geometry)
         return eq
-
-
-PdfLineSetDict = Annotated[
-    InputPdfLineSet, AfterValidator(lambda x: PdfLineSet.from_dict(x.model_dump()))
-]

@@ -1,7 +1,13 @@
 """Definition of types for identify characteristic related with geometrical aspects of the line."""
 
 from typing import Tuple, TypeAlias, Optional, Annotated
-from pydantic import BaseModel, PositiveFloat, model_validator, AfterValidator
+from pydantic import (
+    BaseModel,
+    PositiveFloat,
+    model_validator,
+    AfterValidator,
+    model_serializer,
+)
 from .generic import Range
 
 
@@ -269,8 +275,3 @@ class Area:
         string += f"|\t({x}, {y})\n"
         string += f"|({x_bl}, {y_bl})\t({x_br}, {y_br})\n"
         return string
-
-
-AreaDict = Annotated[
-    InputArea, AfterValidator(lambda x: Area.from_dict(x.model_dump()))
-]
