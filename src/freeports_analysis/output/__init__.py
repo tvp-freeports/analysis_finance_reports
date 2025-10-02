@@ -190,6 +190,8 @@ def transform_to_files_schema(result_documents, batch_mode):
                     d = {k: v for k, v in d.items() if k not in infos}
                 investments.append(d)
     df_investments = pd.DataFrame.from_dict(investments)
+    if df_investments.shape[0] == 0:
+        return {"investments": df_investments, "additional_infos": add_infos}
     df_investments.set_index("ID", inplace=True)
     df_investments.rename(
         columns={
