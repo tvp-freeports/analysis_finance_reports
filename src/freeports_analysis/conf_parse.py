@@ -482,7 +482,7 @@ class FreeportsJobConfig(BaseModel, ParitalConfiguration):
     URL: Optional[HttpUrl] = None
     PDF: Optional[Path] = None
     FORMAT: Format
-    TARGET_LISTS: Lists
+    TARGET_LISTS: Optional[Lists] = None
 
     def __init__(self, row_dict):
         _map_names = {
