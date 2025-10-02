@@ -199,7 +199,7 @@ class InputPdfLineSet(BaseModel):
     area: Optional[InputArea] = None
 
 
-_line_set_font_regexp = r"(?P<font>[\w\-,]+)"
+_line_set_font_regexp = r"(?P<font>[\w\-, ]+)"
 _number_regexp = r"[0-9]+(\.[0-9]+)?"
 _line_set_fontsize_regexp = rf"\[(?P<font_size>{_number_regexp})\]"
 _range_regexp = rf"\(({_number_regexp})?:({_number_regexp})?\)"
@@ -253,7 +253,7 @@ class PdfLineSet(PdfLine):
 
         fs = matched["font_size"]
         return cls(
-            font=matched["font"],
+            font=matched["font"].strip(),
             font_size=float(fs) if fs is not None else None,
             area=area,
             text=matched["text"],
