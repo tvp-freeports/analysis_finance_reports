@@ -476,7 +476,7 @@ class FreeportsCmdConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         super().__init__(**config_dict)
 
 
-class FreeportsJobConfig(BaseModel):
+class FreeportsJobConfig(BaseModel, ParitalConfiguration):
     PREFIX_OUT: Optional[str] = None
     SAVE_PDF: bool = True
     URL: Optional[HttpUrl] = None

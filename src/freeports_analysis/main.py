@@ -44,7 +44,7 @@ from freeports_analysis.conf_parse import (
     FreeportsEnvConfig,
     FreeportsFileConfig,
     FreeportsConfig,
-    schema_job_csv_config,
+    FreeportsJobConfig,
 )
 
 
@@ -140,17 +140,15 @@ def batch_job_confs(config: dict) -> List[dict]:
         list of configurations
     """
     rows = None
-    with config["BATCH"].open(newline="", encoding="UTF-8") as csvfile:
+    with config["BATCH_FILE"].open(newline="", encoding="UTF-8") as csvfile:
         rows = csv.DictReader(csvfile)
-        result = [
-            config
-            | {
-                k: cast(v)
-                for h, v in r.items()
-                for k, cast in [schema_job_csv_config[h.strip().lower()]]
-            }
-            for r in rows
-        ]
+        result = []
+        for row in rows:
+            job_config = FreeportsJobConfig(row)
+            result.append(
+                job_config.overwrite_config(config, DEFAULT_CONFIG_LOCATION)[0]
+            )
+
     return result
 
 
@@ -176,7 +174,7 @@ def _output_file(config, results):
     compress = False
     remove_dir = False
     df = None
-    if config["BATCH"] is not None:
+    if config["BATCH_FILE"] is not None:
         if config["SEPARATE_OUT_FILES"]:
             out_dir = out_csv
             if out_csv.name.endswith(".tar.gz"):
