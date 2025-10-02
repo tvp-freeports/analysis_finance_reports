@@ -345,7 +345,7 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         super().__init__(**config_dict)
 
 
-class FreeportsCmdConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
+class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
     VERBOSITY: Optional[Verbosity] = None
     OUT_PROFILE: Optional[OutProfile] = None
     OUT_FLAGS: Optional[OutFlags] = None
@@ -476,7 +476,7 @@ class FreeportsCmdConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         super().__init__(**config_dict)
 
 
-class FreeportsJobConfig(BaseModel, ParitalConfiguration):
+class FreeportsJobConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     PREFIX_OUT: Optional[str] = None
     SAVE_PDF: bool = True
     URL: Optional[HttpUrl] = None
@@ -497,7 +497,7 @@ class FreeportsJobConfig(BaseModel, ParitalConfiguration):
         super().__init__(**config_dict)
 
 
-class FreeportsConfig(BaseModel):
+class FreeportsConfig(BaseModel, SelectorOutProfile):
     VERBOSITY: Verbosity
     N_WORKERS: PositiveInt
     BATCH_FILE: Optional[FilePath] = None
@@ -547,12 +547,16 @@ class FreeportsConfig(BaseModel):
                 isinstance(self.OUT_PROFILE, OutStructureBatchMode)
                 and isinstance(self.OUT_FLAGS, OutFlagsBatchMode)
             ):
+                print(type(self.OUT_PROFILE))
+                print(type(self.OUT_FLAGS))
+                print("enic")
                 raise ValueError(_("Out profile and flags should be of the right type"))
         else:
             if not (
                 isinstance(self.OUT_PROFILE, OutStructureNormalMode)
                 and isinstance(self.OUT_FLAGS, OutFlagsNormalMode)
             ):
+                print("enic lum")
                 raise ValueError(_("Out profile and flags should be of the right type"))
         return self
 
