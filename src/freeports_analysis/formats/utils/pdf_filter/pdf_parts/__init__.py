@@ -252,8 +252,11 @@ class PdfLineSet(PdfLine):
             )
 
         fs = matched["font_size"]
+        temp_font = matched["font"]
+        if temp_font != None:
+            temp_font = temp_font.strip()
         return cls(
-            font=matched["font"].strip(),
+            font=temp_font,
             font_size=float(fs) if fs is not None else None,
             area=area,
             text=matched["text"],
