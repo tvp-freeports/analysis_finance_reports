@@ -233,6 +233,7 @@ def standard_pdf_filtering(
             if not isinstance(header_set, list):
                 header_set = [header_set]
             for hs in header_set:
+                hs = hs.contextualize(xml_root)
                 if hs.font is not None and len(hs.font) == 1:
                     if hs.text is not None and hs.text.is_simple:
                         rows = get_lines_with_txt_font(
@@ -266,14 +267,9 @@ def standard_pdf_filtering(
             else:
                 rows = xml_root.findall(".//line")
             rows = [ExtractedPdfLine(r) for r in rows]
-
-            table_rows = [row for row in rows if row in body_set]
             for deselection_set in deselection_list:
-                table_rows = [
-                    table_row
-                    for table_row in table_rows
-                    if (table_row not in deselection_set)
-                ]
+                body_set = body_set / deselection_set
+            table_rows = [row for row in rows if row in body_set]
             if isinstance(_algorithm_flags, list):
                 all_flags = [
                     TablePosAlgorithm.ROW,
