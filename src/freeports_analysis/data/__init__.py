@@ -41,6 +41,8 @@ def _stem_contained_in_name(df: pd.DataFrame) -> bool:
             axis=1,
         )
         if not check_mask.all():
+            logger.error(_("Invalid principal buds"))
+            logger.error(str(valid_rows[~check_mask]))
             raise ValueError(_("Principal bud has to be contained in complete name"))
     return True
 
@@ -72,7 +74,7 @@ def _regex_match_name(df: pd.DataFrame) -> bool:
             lambda row: re.match(row["Regex"], normalize_string(row["Name"])), axis=1
         )
         if not check_mask.all():
-            invalid_rows=valid_rows[~check_mask]
+            invalid_rows = valid_rows[~check_mask]
             logger.error(_("Regex not matching name for rows:"))
             logger.error(str(invalid_rows))
             raise ValueError(_("Principal bud has to be contained in complete name"))
