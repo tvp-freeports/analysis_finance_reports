@@ -169,10 +169,24 @@ line_set_regexp += f"({_line_set_text_regexp})?"
 _line_set_regexp = re.compile(line_set_regexp)
 
 
+def _pdf_line_set_aggregator(attribute):
+    def wrapper(agg_func):
+        def new_agg(value, lines, xml_root):
+            value = value.contextualize(xml_root)
+            inputs = [getattr(l, attribute) for l in lines if l in value]
+            return agg_func(inputs)
+
+        return new_agg
+
+    return wrapper
+
+
+@_pdf_line_set_aggregator("font")
 def _default_font_agg(fonts):
     return FontSet(*fonts)
 
 
+@_pdf_line_set_aggregator("font_size")
 def _default_font_size_agg(font_sizes):
     if len(font_sizes) == 1:
         fs = font_sizes[0]
@@ -180,11 +194,13 @@ def _default_font_size_agg(font_sizes):
     return FontSizeSet.from_range(min(*font_sizes), max(*font_sizes))
 
 
+@_pdf_line_set_aggregator("text")
 def _default_text_agg(texts):
     return TextSet(*[f"^{t}$" for t in texts])
 
 
-def _default_area_agg(areas):
+@_pdf_line_set_aggregator("area")
+def _pdflineset_area_agg(areas):
     if len(areas) == 1:
         y_max = areas[0].bounds[1]
         return box(-1e6, -1e6, 1e6, y_max)
@@ -250,6 +266,35 @@ def _default_area_agg(areas):
     bounds = [a.bounds for a in areas]
     x_mins, y_mins, x_maxs, y_maxs = tuple(zip(*bounds))
     return box(min(*x_maxs), min(*y_maxs), max(*x_mins), max(*y_mins))
+
+
+def _default_area_agg(value, lines, xml_root):
+    concrete_values = {"x_min": None, "x_max": None, "y_min": None, "y_max": None}
+    for k in concrete_values.keys():
+        vl = value[k]
+        if isinstace(vl, PdfLineSet):
+            vl = vl.contextualize(xml_root)
+            bounds = [l.area.bounds for l in lines if l in vl]
+            bounds_t = tuple(zip(*bounds))
+            vl = {
+                "x_min": min(*bounds_t[2]),
+                "y_min": min(*bounds_t[3]),
+                "x_max": max(*bounds_t[0]),
+                "y_max": max(*bounds_t[1]),
+            }[k]
+        concrete_values[k] = vl
+    return box(
+        concrete_values["x_min"],
+        concrete_values["y_min"],
+        concrete_values["x_max"],
+        concrete_values["y_max"],
+    )
+
+
+_font_aggregators = [(PdfLineSet, _default_font_agg)]
+_font_size_aggregators = [(PdfLineSet, _default_font_size_agg)]
+_text_aggregators = [(PdfLineSet, _default_text_agg)]
+_area_aggregators = [(dict, _default_area_agg), (PdfLineSet, _pdflineset_area_agg)]
 
 
 class PdfLineSet:
@@ -436,20 +481,34 @@ class PdfLineSet:
             font=self.font, font_size=self.font_size, area=self.area, text=self.text
         )
         lines = [ExtractedPdfLine(el) for el in xml_root.findall(".//line")]
-        if isinstance(concrete.font, PdfLineSet):
-            concrete_pdf_line_set = concrete.font.contextualize(xml_root)
-            fonts = [l.font for l in lines if l in concrete_pdf_line_set]
-            concrete._font = font_agg_func(fonts)
-        if isinstance(concrete.font_size, PdfLineSet):
-            concrete_pdf_line_set = concrete.font_size.contextualize(xml_root)
-            font_sizes = [l.font_size for l in lines if l in concrete_pdf_line_set]
-            concrete._font_size = font_size_agg_func(font_sizes)
-        if isinstance(concrete.text, PdfLineSet):
-            concrete_pdf_line_set = concrete.text.contextualize(xml_root)
-            texts = [l.text for l in lines if l in concrete_pdf_line_set]
-            concrete._text = text_agg_func(texts)
-        if isinstance(concrete.area, PdfLineSet):
-            concrete_pdf_line_set = concrete.area.contextualize(xml_root)
-            areas = [l.area for l in lines if l in concrete_pdf_line_set]
-            concrete._area = area_agg_func(areas)
+
+        def _contextualize(t, value, aggregators, lines, xml_root):
+            handled = isinstance(value, t)
+            if handled:
+                return value
+            for condition, agg_func in aggregators:
+                if isinstance(condition, type):
+                    handled = isinstance(value, condition)
+                else:
+                    handled = condition(value)
+                if handled:
+                    return agg_func(value, lines, xml_root)
+            raise ValueError(
+                _("Not possible aggregate to {} from {}:\n{}").format(
+                    t, type(value), value
+                )
+            )
+
+        concrete._font = _contextualize(
+            Font, concrete.font, _font_aggregators, lines, xml_root
+        )
+        concrete._font_size = _contextualize(
+            FontSizeSet, concrete.font_size, _font_size_aggregators, lines, xml_root
+        )
+        concrete._text = _contextualize(
+            TextSet, concrete.text, _text_aggregators, lines, xml_root
+        )
+        concrete._area = _contextualize(
+            Polygon, concrete.area, _area_aggregators, lines, xml_root
+        )
         return concrete
