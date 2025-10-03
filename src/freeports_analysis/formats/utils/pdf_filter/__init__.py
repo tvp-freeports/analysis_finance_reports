@@ -233,13 +233,16 @@ def standard_pdf_filtering(
             if not isinstance(header_set, list):
                 header_set = [header_set]
             for hs in header_set:
-                if hs.font is not None:
-                    if hs.text is not None:
+                if hs.font is not None and len(hs.font) == 1:
+                    if hs.text is not None and hs.text.is_simple:
                         rows = get_lines_with_txt_font(
-                            xml_root, hs.text, hs.font, all_elem=True
+                            xml_root,
+                            list(hs.text._left)[0],
+                            list(hs.font)[0],
+                            all_elem=True,
                         )
                     else:
-                        rows = get_lines_with_font(xml_root, hs.font)
+                        rows = get_lines_with_font(xml_root, list(hs.font)[0])
                 else:
                     rows = xml_root.findall(".//line")
                 lines = [ExtractedPdfLine(line) for line in rows]
@@ -293,7 +296,11 @@ def standard_pdf_filtering(
                 tolerance=tolerance,
             )
 
-            table_cell_widths = [table_row.geometry.width for table_row in table_rows]
+            def _width(area):
+                xmin, ymin, xmax, ymax = area.bounds
+                return xmax - xmin
+
+            table_cell_widths = [_width(table_row.area) for table_row in table_rows]
             max_width = max(table_cell_widths)
             is_max_width = [width == max_width for width in table_cell_widths]
             return [

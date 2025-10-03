@@ -69,17 +69,14 @@ def print_pdf_line_sets(page, strings, mode="structured"):
             ExtractedPdfLine(ln) for ln in get_lines_with_txt(page, txt, all_elem=True)
         ]
         ls = [
-            PdfLineSet(
-                font=el.font, font_size=el.font_size, text=el.text, area=el.geometry
-            )
+            PdfLineSet(font=el.font, font_size=el.font_size, text=el.text, area=el.area)
             for el in exl
         ]
         if not first_string:
             print("-----------------------------")
         first_string = False
         for ln in ls:
-            x_min, x_max = ln.geometry.x_bounds
-            y_min, y_max = ln.geometry.y_bounds
+            x_min, y_min, x_max, y_max = ln.area.bounds
             if mode in "structured":
                 area = f"(({x_min}:{x_max})({y_min}:{y_max}))"
                 print(f'{ln.font}[{ln.font_size}]{area} "{ln.text}"')
