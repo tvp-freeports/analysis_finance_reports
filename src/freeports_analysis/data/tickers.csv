@@ -7,7 +7,7 @@ Alstom SA,ALO,primary
 Alstom SA,ALSO,secondary
 Alstom SA,ALSMY,secondary
 Amazon,AMZN,primary
-Amir Ltd,AMRK,primary
+Amir Marketing and Investments in Agriculture,AMRK,primary
 Angel Bakeries Ltd,ANGL,primary
 Mærsk,MAERAC,primary
 Ashtrom Group,ASHG,primary
@@ -25,20 +25,20 @@ Booking,BKNGm,secondary
 Booking,BKNG34,secondary
 BP Plc,BP,primary
 Bright Dairy & Food Ltd,600597,primary
-C. Mer Industries,CMER,primary
+C Mer Industries,CMER,primary
 Carlsberg Group,CARLb,primary
 Carlsberg Group,CARLa,secondary
 Carlsberg Group,CABGY,secondary
-Carrefour S.A,CA,primary
-Carrefour S.A,CARR,secondary
-Carrefour S.A,CRRFY,secondary
+Carrefour,CA,primary
+Carrefour,CARR,secondary
+Carrefour,CRRFY,secondary
 Caterpillar,CAT,primary
 Cellcom Israel,CEL,primary
 Cemex,CX,primary
 Chevron,CVX,primary
 Cisco Systems,CSCO,primary
-CAF S.A,CAF,primary
-Danya Cebus Ltd,DNYA,primary
+Costrucciones y Auxiliar de Ferrocarriles SA,CAF,primary
+Danya Cebus,DNYA,primary
 Delek Group,DLEKG,primary
 Delek Group,DELKY,secondary
 Delta Galil Industries,DELG,primary
@@ -54,9 +54,9 @@ Electra Group,ELTR,primary
 Electra Group,ETRZF,secondary
 Expedia,EXPE,primary
 Expedia,EXGR34,secondary
-Export IC Ltd,EXPO,primary
-FANUC Corp.,6954,primary
-FANUC Corp.,FANUY,secondary
+Export Investment Company Ltd,EXPO,primary
+FANUC Corp,6954,primary
+FANUC Corp,FANUY,secondary
 First International Bank of Israel,FIBI,primary
 First International Bank of Israel,FBKIF,secondary
 Glencore,GLEN,primary
@@ -76,7 +76,7 @@ ICL Group,ICL,primary
 Israel Discount Bank,DSCT,primary
 Israel Discount Bank,ISDAY,secondary
 Israel Discount Bank,ISDAF,secondary
-Kardan N.V,KRNV,primary
+Kardan NV,KRNV,primary
 Leonardo,LDO,primary
 Leonardo,FINMY,secondary
 Lockeed Martin,LMT,primary
