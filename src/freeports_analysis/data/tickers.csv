@@ -9,7 +9,7 @@ Alstom SA,ALSMY,secondary
 Amazon,AMZN,primary
 Amir Marketing and Investments in Agriculture,AMRK,primary
 Angel Bakeries Ltd,ANGL,primary
-Mærsk,MAERAC,primary
+AP Møller Mærsk,MAERAC,primary
 Ashtrom Group,ASHG,primary
 Bank Hapoalim,POLI,primary
 Bank Hapoalim,BKH,secondary
@@ -20,9 +20,9 @@ Bank Leumi,BLMIF,secondary
 Bank of Jerusalem,JBNK,primary
 Bezeq Corp.,BEZQ,primary
 Bezeq Corp.,BZQI,secondary
-Booking,BKNG,primary
-Booking,BKNGm,secondary
-Booking,BKNG34,secondary
+Booking Holdings,BKNG,primary
+Booking Holdings,BKNGm,secondary
+Booking Holdings,BKNG34,secondary
 BP Plc,BP,primary
 Bright Dairy & Food Ltd,600597,primary
 C Mer Industries,CMER,primary
@@ -45,10 +45,10 @@ Delta Galil Industries,DELG,primary
 Delta Galil Industries,DELTF,primary
 Delta Israel Brands,DLTI,primary
 Dor Alon Energy Ltd.,DRAL,primary
-eDreams,EDRE,primary
-eDreams,EDRE,secondary
-eDreams,EDEMY,secondary
-eDreams,EDDRF,secondary
+eDreams ODIGEO,EDRE,primary
+eDreams ODIGEO,EDRE,secondary
+eDreams ODIGEO,EDEMY,secondary
+eDreams ODIGEO,EDDRF,secondary
 Elbit Systems,ESLT,primary
 Electra Group,ELTR,primary
 Electra Group,ETRZF,secondary
@@ -65,13 +65,13 @@ Hamat Group,HAMAT,primary
 Hamat Group,MCBMF,secondary
 Heidelberg Materials,HEI,primary
 Heidelberg Materials,HDLMY,secondary
-Hewlett Packard,HPE,primary
-Hikvision Digital Technology,(00)2413,primary
+Hewlett Packard Enterprise,HPE,primary
+Hangzhou Hikvision Digital Technology Co,(00)2413,primary
 Hilan Ltd,HALN,primary
 Hilan Ltd,HLTEF,secondary
 HD Hyundai,267250,primary
 HD Hyundai,HYMTF,secondary
-IBM,IBM,primary
+International Business Machines,IBM,primary
 ICL Group,ICL,primary
 Israel Discount Bank,DSCT,primary
 Israel Discount Bank,ISDAY,secondary
@@ -79,14 +79,14 @@ Israel Discount Bank,ISDAF,secondary
 Kardan NV,KRNV,primary
 Leonardo,LDO,primary
 Leonardo,FINMY,secondary
-Lockeed Martin,LMT,primary
+Lockheed Martin,LMT,primary
 Matrix IT Ltd,MTRX,primary
 Matrix IT Ltd,RMTHF,secondary
 Microsoft,MSFT,primary
 Mivne Ltd,MVNE,primary
 Mizrahi Tefahot Bank,MZTF,primary
 Mizrahi Tefahot Bank,MZTFF,secondary
-Mordechai Ltd,AVIV,primary
+Mordechai Aviv Tassiot Beniyah,AVIV,primary
 Motorola Solutions,MSI,primary
 Motorola Solutions,MSIm,secondary
 Motorola Solutions,M1SI34,secondary
@@ -96,14 +96,14 @@ Palantir Technologies,PLTR,primary
 Partner Communication Company,PNTR,primary
 Paz Retail and Energy Ltd,PAZ,primary
 Paz Retail and Energy Ltd,PZZPF,secondary
-Petrobras,PBR,primary
-Rami Levy Chain Stores,RMLI,primary
-Rami Levy Chain Stores,RLEVF,secondary
-Re/Max Israel,RMAX,primary
-Shapir EI Ltd,SPEN,primary
+Petróleo Brasileiro,PBR,primary
+Rami Levy Chain Stores Hashikma Marketing,RMLI,primary
+Rami Levy Chain Stores Hashikma Marketing,RLEVF,secondary
+Remax Israel,RMAX,primary
+Shapir Engineering and Industry,SPEN,primary
 Shikun & Binui Ltd,SKBN,primary
-Shufersal Ltd,SAE,primary
-Shufersal Ltd,SHUFF,secondary
+Shufersal,SAE,primary
+Shufersal,SHUFF,secondary
 Siemens AG,SIE,primary
 Syensqo SA,SYENS,primary
 The Coca-Cola Company,KO,primary
@@ -112,13 +112,13 @@ TripAdvisor,TRIP,primary
 TripAdvisor,TRIPm,secondary
 TripAdvisor,T1RI34,secondary
 TUI AG,TUI,primary
-Villar International Ltd,VILR,primary
+Villar International,VILR,primary
 Vinci SA,DG,primary
-Volvo Car Corp.,VOLV,primary
-Volvo Car Corp.,VLVLY,secondary
-WSP Global Inc,WSP,primary
-ZMH Ltd,ZMH,primary
-NewMedEnergy LP,NWMD,primary
-NewMedEnergy LP,DKDRF,secondary
-HD Hyundai Infracore Co.,42670,primary
-Ashdod refinery Ltd.,ARF,primary
+Volvo Car Corp,VOLV,primary
+Volvo Car Corp,VLVLY,secondary
+WSP Global,WSP,primary
+ZMH Hammerman,ZMH,primary
+NewMedEnergy Limited Partnership,NWMD,primary
+NewMedEnergy Limited Partnership,DKDRF,secondary
+HD Hyundai Infracore,42670,primary
+Ashdod refinery,ARF,primary
