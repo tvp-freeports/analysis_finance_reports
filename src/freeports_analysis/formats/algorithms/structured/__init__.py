@@ -255,6 +255,8 @@ def get_pipes(format_name):
                 )
             if not pd.isna(arg["Tolerance"]):
                 pdf_filter_args["tolerance"] = arg["Tolerance"]
+            # print(pdf_filter_args)
+            # raise Exception
             pdf_filter = standard_pdf_filtering(**pdf_filter_args)(
                 lambda xml_root: None
             )

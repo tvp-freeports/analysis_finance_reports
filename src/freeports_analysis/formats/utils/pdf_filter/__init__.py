@@ -221,6 +221,8 @@ def standard_pdf_filtering(
     Callable[[PdfFilterFunc], PdfFilterFunc]
         A decorator that applies the standardized PDF filter.
     """
+    for deselection_set in deselection_list:
+        body_set = body_set / deselection_set
 
     def decorator(f):
         @standard_extraction_subfund(subfund_set)
@@ -232,8 +234,8 @@ def standard_pdf_filtering(
         def _is_header(xml_root, header_set) -> bool:
             if not isinstance(header_set, list):
                 header_set = [header_set]
-            for hs in header_set:
-                hs = hs.contextualize(xml_root)
+            for hsa in header_set:
+                hs = hsa.contextualize(xml_root)
                 if hs.font is not None and len(hs.font) == 1:
                     if hs.text is not None and hs.text.is_simple:
                         rows = get_lines_with_txt_font(
@@ -267,8 +269,6 @@ def standard_pdf_filtering(
             else:
                 rows = xml_root.findall(".//line")
             rows = [ExtractedPdfLine(r) for r in rows]
-            for deselection_set in deselection_list:
-                body_set = body_set / deselection_set
             table_rows = [row for row in rows if row in body_set]
             if isinstance(_algorithm_flags, list):
                 all_flags = [

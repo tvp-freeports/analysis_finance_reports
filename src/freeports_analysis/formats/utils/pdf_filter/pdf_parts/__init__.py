@@ -225,7 +225,9 @@ class PdfLineSet:
         fs = matched["font_size"]
         fs = float(fs) if fs is not None else None
         return cls(
-            font=FontSet(matched["font"]) if matched["font"] is not None else None,
+            font=FontSet(matched["font"].strip())
+            if matched["font"] is not None
+            else None,
             font_size=FontSizeSet.from_range(fs - 1e-3, fs + 1e-3)
             if fs is not None
             else None,
@@ -347,6 +349,8 @@ class PdfLineSet:
         lines = [ExtractedPdfLine(el) for el in xml_root.findall(".//line")]
 
         def _contextualize(t, value, aggregators, lines, xml_root):
+            if value is None:
+                return None
             handled = isinstance(value, t)
             if handled:
                 return value
@@ -368,7 +372,7 @@ class PdfLineSet:
         text_aggregators = _text_aggregators
         area_aggregators = _area_aggregators
         concrete._font = _contextualize(
-            Font, concrete.font, font_aggregators, lines, xml_root
+            FontSet, concrete.font, font_aggregators, lines, xml_root
         )
         concrete._font_size = _contextualize(
             FontSizeSet, concrete.font_size, font_size_aggregators, lines, xml_root
