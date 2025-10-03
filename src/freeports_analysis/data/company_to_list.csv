@@ -25,11 +25,11 @@ OHCHR,Delek Group
 OHCHR,Delta Galil Industries
 OHCHR,Delta Israel Brands
 OHCHR,Dor Alon Energy Ltd.
-OHCHR,eDreams
+OHCHR,eDreams ODIGEO
 OHCHR,Egged Transportation Ltd
 OHCHR,Egis Group
 OHCHR,Electra Group
-OHCHR,EPR Energy Systems
+OHCHR,Electricity Production and Renewable Energy Systems Ltd
 OHCHR,Expedia
 OHCHR,Export Investment Company Ltd
 OHCHR,Extal
@@ -53,7 +53,7 @@ OHCHR,Mercantile Discount Bank
 OHCHR,Mivne Ltd
 OHCHR,Mizrahi Tefahot Bank
 OHCHR,Modi’in Ezrachi Group
-OHCHR,Mordechai Ltd
+OHCHR,Mordechai Aviv Tassiot Beniyah
 OHCHR,Motorola Solutions
 OHCHR,Naaman Group
 OHCHR,Natoon Group
@@ -62,81 +62,81 @@ OHCHR,Ofertex Industries
 OHCHR,Opodo Ltd
 OHCHR,Partner Communication Company
 OHCHR,Paz Retail and Energy Ltd
-OHCHR,Pelephone Communications Ltd
+OHCHR,Pelephone Communications
 OHCHR,Proffimat Ltd
-OHCHR,Rami Levy Chain Stores
-OHCHR,Rami Levy Hashikma MC Ltd
-OHCHR,Re/Max Israel
-OHCHR,Shalgal Food Ltd
-OHCHR,Shapir EI Ltd
-OHCHR,Shufersal Ltd
-OHCHR,Sonol Israel Ltd
-OHCHR,Superbus Ltd
+OHCHR,Rami Levy Chain Stores Hashikma Marketing
+OHCHR,Rami Levy Hashikma
+OHCHR,Remax Israel
+OHCHR,Shalgal Food
+OHCHR,Shapir Engineering and Industry
+OHCHR,Shufersal
+OHCHR,Sonol Israel
+OHCHR,Superbus
 OHCHR,Supergum Industries
 OHCHR,TripAdvisor
-OHCHR,Twitoplast Ltd
-OHCHR,Unikowsky Maoz Ltd
-OHCHR,Villar International Ltd
-OHCHR,Zakai Ltd
+OHCHR,Twitoplast
+OHCHR,Unikowsky Maoz
+OHCHR,Villar International
+OHCHR,Zakai Agriculture Know-how and inputs
 OHCHR,ZF Development and Construction
-OHCHR,ZMH Ltd
-OHCHR,Zriha Ltd
+OHCHR,ZMH Hammerman
+OHCHR,Zriha Hlavin Industries
 OHCHR,Bombardier Transportation Israel
 OHCHR,Hot Telecommunications Systems
 OHCHR,Hot Mobile Ltd
 OHCHR,Ashtrom Industries Ltd
 OHCHR,Booking.com
-OHCHR,NewMedEnergy LP
+OHCHR,NewMedEnergy Limited Partnership
 OHCHR,Egis Rail SA
-OHCHR,Electra Afikim Ltd
-OHCHR,Amos Ltd
-OHCHR,Lipski Ltd
+OHCHR,Electra Afikim
+OHCHR,Amos Hadar Properties and Investments
+OHCHR,Lipski Installation and Sanitation
 OHCHR,Tahal Group
-OHCHR,Kavim Ltd
+OHCHR,Kavim Public Transportation
 OHCHR,Motorola Solutions Israel
-OHCHR,Beit Haarchiv Ltd
-OHCHR,Merkavim Ltd
-OHCHR,Archivists Ltd
-OHCHR,Mayer Ltd
+OHCHR,Beit Haarchiv
+OHCHR,Merkavim Transportation Technologies
+OHCHR,Archivists
+OHCHR,Mayer Davidov Garages
 UNSR_OPT,Airbnb
 UNSR_OPT,Alphabet
 UNSR_OPT,Amazon
-UNSR_OPT,Mærsk
-UNSR_OPT,Booking
+UNSR_OPT,AP Møller Mærsk
+UNSR_OPT,Booking Holdings
 UNSR_OPT,BP Plc
 UNSR_OPT,Bright Food Group
 UNSR_OPT,Caterpillar
 UNSR_OPT,Chevron
-UNSR_OPT,CAF S.A
+UNSR_OPT,Costrucciones y Auxiliar de Ferrocarriles SA
 UNSR_OPT,Delek Group
 UNSR_OPT,Drummond Company
 UNSR_OPT,Elbit Systems
 UNSR_OPT,FANUC Corp
 UNSR_OPT,Glencore
 UNSR_OPT,Heidelberg Materials
-UNSR_OPT,Hewlett Packard
+UNSR_OPT,Hewlett Packard Enterprise
 UNSR_OPT,HD Hyundai
-UNSR_OPT,IBM
+UNSR_OPT,International Business Machines
 UNSR_OPT,Israel Aereospace Industries
 UNSR_OPT,Keller Williams Reality
 UNSR_OPT,Keren Kayemeth LeIsrael
 UNSR_OPT,Leonardo
-UNSR_OPT,Lockeed Martin
+UNSR_OPT,Lockheed Martin
 UNSR_OPT,Mekorot Water Company
 UNSR_OPT,Microsoft
 UNSR_OPT,NSO Group Technologies
 UNSR_OPT,Orbia Corp.
 UNSR_OPT,Palantir Technologies
 UNSR_OPT,Paz Retail and Energy Ltd
-UNSR_OPT,Petrobras
-UNSR_OPT,Caisse de dépôt et placement du Québec
-UNSR_OPT,Volvo Car Corp.
+UNSR_OPT,Petróleo Brasileiro
+UNSR_OPT,The Caisse de dépôt et placement du Québec
+UNSR_OPT,Volvo Car Corp
 UNSR_OPT,Booking.com
-UNSR_OPT,NewMedEnergy LP
-UNSR_OPT,Hanson Ltd
-UNSR_OPT,HD Hyundai Infracore Co.
+UNSR_OPT,NewMedEnergy Limited Partnership
+UNSR_OPT,Hanson Israel Ltd
+UNSR_OPT,HD Hyundai Infracore
 UNSR_OPT,KW Israel
-UNSR_OPT,Netafim Ltd
+UNSR_OPT,Netafim
 DBIO,Airbnb
 DBIO,Alon Blue Square
 DBIO,Alstom SA
@@ -145,7 +145,7 @@ DBIO,Axel Springer
 DBIO,Bank Hapoalim
 DBIO,Bank Leumi
 DBIO,Bezeq Corp.
-DBIO,Booking
+DBIO,Booking Holdings
 DBIO,Bright Dairy & Food Ltd
 DBIO,Carlsberg Group
 DBIO,Carrefour
@@ -158,17 +158,17 @@ DBIO,Costrucciones y Auxiliar de Ferrocarriles SA
 DBIO,Danya Cebus
 DBIO,Delek Group
 DBIO,Delta Galil Industries
-DBIO,eDreams
+DBIO,eDreams ODIGEO
 DBIO,Elbit Systems
 DBIO,Electra Group
 DBIO,Expedia
 DBIO,Hamat Group
 DBIO,Heidelberg Materials
-DBIO,Hewlett Packard
-DBIO,Hikvision Digital Technology
+DBIO,Hewlett Packard Enterprise
+DBIO,Hangzhou Hikvision Digital Technology Co
 DBIO,Hilan Ltd
 DBIO,HD Hyundai
-DBIO,IBM
+DBIO,International Business Machines
 DBIO,ICL Group
 DBIO,Israel Discount Bank
 DBIO,Traton S.E
@@ -179,35 +179,35 @@ DBIO,Motorola Solutions
 DBIO,Orbia Corp.
 DBIO,Partner Communication Company
 DBIO,Paz Retail and Energy Ltd
-DBIO,Re/Max Israel
-DBIO,Shapir EI Ltd
+DBIO,Remax Israel
+DBIO,Shapir Engineering and Industry
 DBIO,Shikun & Binui Ltd
-DBIO,Shufersal Ltd
+DBIO,Shufersal
 DBIO,Siemens AG
 DBIO,Syensqo SA
 DBIO,The Coca-Cola Company
 DBIO,TKH Group
 DBIO,TripAdvisor
 DBIO,TUI AG
-DBIO,Villar International Ltd
+DBIO,Villar International
 DBIO,Vinci SA
-DBIO,Volvo Car Corp.
-DBIO,WSP Global Inc
+DBIO,Volvo Car Corp
+DBIO,WSP Global
 DBIO,Bombardier Transportation Israel
 DBIO,Hot Telecommunications Systems
 DBIO,Hot Mobile Ltd
 DBIO,Booking.com
-DBIO,Tnuva Ltd
-DBIO,NewMedEnergy LP
-DBIO,Electra Afikim Ltd
-DBIO,Lipski Ltd
-DBIO,Hanson Ltd
-DBIO,HD Hyundai Infracore Co.
+DBIO,Tnuva Central Cooperative for the Marketing of Agricultural Produce in Israel
+DBIO,NewMedEnergy Limited Partnership
+DBIO,Electra Afikim
+DBIO,Lipski Installation and Sanitation
+DBIO,Hanson Israel Ltd
+DBIO,HD Hyundai Infracore
 DBIO,MAN Truck & Bus SE
 DBIO,Motorola Solutions Israel
-DBIO,Netafim Ltd
-DBIO,Ashdod refinery Ltd.
-DBIO,Beit Haarchiv Ltd
-DBIO,Archivists Ltd
+DBIO,Netafim
+DBIO,Ashdod refinery
+DBIO,Beit Haarchiv
+DBIO,Archivists
 TEST,Apple
 TEST,NVIDIA
