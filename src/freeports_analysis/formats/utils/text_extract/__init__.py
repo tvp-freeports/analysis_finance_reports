@@ -418,7 +418,6 @@ def standard_text_extraction(
                     instrument = EquityBondTextBlockType.BOND_TARGET
                     metadata["maturity"] = date_match[1]
                     break
-
             metadata.update(add_metadata(pdf_blocks_table, i))
             return TextBlock(instrument, metadata, pdf_blocks_table[i])
 
