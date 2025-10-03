@@ -280,7 +280,7 @@ MARKETS = get_markets().index.to_list()
 tickers_schema = pa.DataFrameSchema(
     columns={
         "Symbol": pa.Column(
-            pd.StringDtype, checks=pa.Check(lambda x: x.str.match("^[A-Z]{2,5}$"))
+            pd.StringDtype, checks=pa.Check(lambda x: x.str.match("^[A-Z]{2,6}$"))
         )
     },
     coerce=True,

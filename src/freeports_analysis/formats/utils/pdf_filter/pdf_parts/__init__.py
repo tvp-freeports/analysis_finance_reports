@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Annotated
 import re
 from functools import reduce
 from lxml import etree
-from pydantic import BaseModel, AfterValidator
+from pydantic import BaseModel, AfterValidator, PositiveFloat
 from freeports_analysis.i18n import _
 from .font import Font, FontSize, FontSizeSet, FontSet, TextSet
 from ..xml.position import get_bounds
@@ -147,11 +147,10 @@ class ExtractedPdfLine(PdfLine):
 
 
 class InputPdfLineSet(BaseModel):
-    pass
-    # text: Optional[InputTextSet] = None
-    # font: Optional[FontSet] = None
-    # font_size: Optional[InputFontSizeSet] = None
-    # area: Optional[InputArea] = None
+    text: Optional[str] = None
+    font: Optional[str] = None
+    font_size: Optional[PositiveFloat] = None
+    area: Optional[InputArea] = None
 
 
 _line_set_font_regexp = r"(?P<font>[\w\-, ]+)"
