@@ -58,4 +58,4 @@ investments_schema = pa.DataFrameSchema(
 
 class BondAdditionalInfos(BaseModel):
     maturity: Optional[datetime.date]
-    interest_rate: Optional[confloat(gt=0.0, lt=1.0)]
+    interest_rate: Optional[confloat(ge=0.0, lt=1.0)]

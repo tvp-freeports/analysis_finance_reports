@@ -51,13 +51,13 @@ PromisedCurrency = Annotated[
     BeforeValidator(try_convert_to_currency),
 ]
 PromisedSubfund = Union[Promise, str]
-PromisedPercNetAsstes = Union[Promise, confloat(gt=0.0, lt=1.0)]
+PromisedPercNetAsstes = Union[Promise, confloat(ge=0.0, lt=1.0)]
 PromisedAcquisitionCost = Union[Promise, PositiveFloat]
 PromisedAcquisitionCurrency = Annotated[
     Union[Promise, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedInterestRate = Union[Promise, confloat(gt=0.0, lt=1.0)]
+PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
 
 
 class Investment(BaseModel, ABC):

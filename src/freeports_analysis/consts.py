@@ -188,6 +188,7 @@ class Currency(Enum):
     BGN = "BGN"
     ISK = "ISK"
     NZD = "NZD"
+    EGP = "EGP"
 
     @property
     def symbol(self):
@@ -222,6 +223,7 @@ class Currency(Enum):
             "SAR": "﷼",
             "QAR": "ر.ق",
             "KWD": "د.ك",
+            "EGP": "ج.م",
             "CLP": "$",
             "COP": "$",
             "PEN": "S/.",

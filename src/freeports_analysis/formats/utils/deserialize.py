@@ -307,6 +307,7 @@ def standard_deserialization(
                         str(md[key]),
                         md["company"],
                     )
+                    logger.error(str(md))
                     return None
 
             try:
