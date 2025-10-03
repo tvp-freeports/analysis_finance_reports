@@ -1,10 +1,13 @@
 from pathlib import Path
 import datetime
 import re
+import logging as log
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
 from freeports_analysis.formats.utils.text_extract.match import normalize_string
+
+logger = log.getLogger()
 
 data = Path(__file__).parent
 
@@ -69,6 +72,9 @@ def _regex_match_name(df: pd.DataFrame) -> bool:
             lambda row: re.match(row["Regex"], normalize_string(row["Name"])), axis=1
         )
         if not check_mask.all():
+            invalid_rows=valid_rows[~check_mask]
+            logger.error(_("Regex not matching name for rows:"))
+            logger.error(str(invalid_rows))
             raise ValueError(_("Principal bud has to be contained in complete name"))
     return True
 

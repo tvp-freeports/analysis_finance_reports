@@ -4,7 +4,8 @@ import re
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.text_extract import PdfBlocksTable
 
-market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+\.[0-9]{2}) ")
+market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")
+# non sono sicuro di come ho riscritto questa regex e a cosa servivano le parentesi
 
 
 @standard_text_extraction(
