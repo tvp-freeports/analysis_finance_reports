@@ -1,6 +1,2 @@
 Company name,Regex
-Airbnb,airbnb
-Cisco Systems,cisco (systems)?
-HikVision,hik ?vision
-IBM,ibm
-Coca-Cola Co,coca-?cola (co\.?)?
+The Coca-Cola Company,coca-?cola (co\.?)?
