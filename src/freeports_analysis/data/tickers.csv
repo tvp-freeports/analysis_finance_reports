@@ -1,7 +1,7 @@
 Company name,Symbol,Market name
 Airbnb,ABNB,primary
-Airbnb,ABNBm,secondary
-Airbnb,AIRB34,secondary
+Airbnb,ABNB,secondary
+Airbnb,AIRB,secondary
 Alphabet,GOOGL,primary
 Alstom SA,ALO,primary
 Alstom SA,ALSO,secondary
@@ -21,13 +21,12 @@ Bank of Jerusalem,JBNK,primary
 Bezeq Corp.,BEZQ,primary
 Bezeq Corp.,BZQI,secondary
 Booking Holdings,BKNG,primary
-Booking Holdings,BKNGm,secondary
-Booking Holdings,BKNG34,secondary
+Booking Holdings,BKNG,secondary
+Booking Holdings,BKNG,secondary
 BP Plc,BP,primary
-Bright Dairy & Food Ltd,600597,primary
 C Mer Industries,CMER,primary
-Carlsberg Group,CARLb,primary
-Carlsberg Group,CARLa,secondary
+Carlsberg Group,CARL,primary
+Carlsberg Group,CARL,secondary
 Carlsberg Group,CABGY,secondary
 Carrefour,CA,primary
 Carrefour,CARR,secondary
@@ -53,9 +52,8 @@ Elbit Systems,ESLT,primary
 Electra Group,ELTR,primary
 Electra Group,ETRZF,secondary
 Expedia,EXPE,primary
-Expedia,EXGR34,secondary
+Expedia,EXGR,secondary
 Export Investment Company Ltd,EXPO,primary
-FANUC Corp,6954,primary
 FANUC Corp,FANUY,secondary
 First International Bank of Israel,FIBI,primary
 First International Bank of Israel,FBKIF,secondary
@@ -66,10 +64,8 @@ Hamat Group,MCBMF,secondary
 Heidelberg Materials,HEI,primary
 Heidelberg Materials,HDLMY,secondary
 Hewlett Packard Enterprise,HPE,primary
-Hangzhou Hikvision Digital Technology Co,(00)2413,primary
 Hilan Ltd,HALN,primary
 Hilan Ltd,HLTEF,secondary
-HD Hyundai,267250,primary
 HD Hyundai,HYMTF,secondary
 International Business Machines,IBM,primary
 ICL Group,ICL,primary
@@ -88,8 +84,8 @@ Mizrahi Tefahot Bank,MZTF,primary
 Mizrahi Tefahot Bank,MZTFF,secondary
 Mordechai Aviv Tassiot Beniyah,AVIV,primary
 Motorola Solutions,MSI,primary
-Motorola Solutions,MSIm,secondary
-Motorola Solutions,M1SI34,secondary
+Motorola Solutions,MSI,secondary
+Motorola Solutions,M1SI,secondary
 Orbia Corp.,ORBIA,primary
 Orbia Corp.,MXCHY,secondary
 Palantir Technologies,PLTR,primary
@@ -109,8 +105,7 @@ Syensqo SA,SYENS,primary
 The Coca-Cola Company,KO,primary
 TKH Group,TWEKA,primary
 TripAdvisor,TRIP,primary
-TripAdvisor,TRIPm,secondary
-TripAdvisor,T1RI34,secondary
+TripAdvisor,TRIP,secondary
 TUI AG,TUI,primary
 Villar International,VILR,primary
 Vinci SA,DG,primary
@@ -120,5 +115,4 @@ WSP Global,WSP,primary
 ZMH Hammerman,ZMH,primary
 NewMedEnergy Limited Partnership,NWMD,primary
 NewMedEnergy Limited Partnership,DKDRF,secondary
-HD Hyundai Infracore,42670,primary
 Ashdod refinery,ARF,primary
