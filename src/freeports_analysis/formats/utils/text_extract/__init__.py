@@ -190,15 +190,19 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 if col == next_col:
                     split = False
                     n_full_cols = 0
+                    empty_adj = 0
                     for c in range(n_cols):
                         if (
                             pdf_blocks_table[(row if merge_prev else next_row, c)]
                             is not None
                         ):
                             n_full_cols += 1
-                    if n_full_cols == 1:
+                        else:
+                            if c == col - 1 or c == col + 1:
+                                empty_adj += 1
+                    if n_full_cols == 1 or empty_adj == 2:
                         split = True
-                        if cell_width or (len(content) > 0 and " " == content[-1]):
+                        if cell_width or (len(content) > 0 and content[-1] in " \n"):
                             content += next_block.content
                 company = match_company(content, targets)
                 if company is not None:

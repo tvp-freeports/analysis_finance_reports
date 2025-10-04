@@ -79,8 +79,8 @@ def _exec_segment(
             logger.error(e)
             logger.warning(_("Skipping page..."))
         except Exception as e:
-            logger.removeHandler(std_err_log)
             logger.error(error_msg)
+            logger.removeHandler(std_err_log)
             raise e
     logger.removeHandler(std_err_log)
     return batch_results

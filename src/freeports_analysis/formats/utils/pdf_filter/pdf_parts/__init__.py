@@ -469,10 +469,20 @@ class PdfLineSet:
             x_range, y_range = tmp_area.split(")(")
             x_min, x_max = _to_floats(x_range)
             y_min, y_max = _to_floats(y_range)
-            area = box(x_min, y_min, x_max, y_max)
+            area = box(
+                x_min if x_min is not None else -1e6,
+                y_min if y_min is not None else -1e6,
+                x_max if x_max is not None else +1e6,
+                y_max if y_max is not None else +1e6,
+            )
         elif tmp_range is not None:
             y_min, y_max = _to_floats(tmp_range)
-            area = box(-1e6, y_min, 1e6, y_max)
+            area = box(
+                -1e6,
+                y_min if y_min is not None else -1e6,
+                1e6,
+                y_max if y_max is not None else +1e6,
+            )
         fs = matched["font_size"]
         fs = float(fs) if fs is not None else None
         return cls(

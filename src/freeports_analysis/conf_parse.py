@@ -547,16 +547,12 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
                 isinstance(self.OUT_PROFILE, OutStructureBatchMode)
                 and isinstance(self.OUT_FLAGS, OutFlagsBatchMode)
             ):
-                print(type(self.OUT_PROFILE))
-                print(type(self.OUT_FLAGS))
-                print("enic")
                 raise ValueError(_("Out profile and flags should be of the right type"))
         else:
             if not (
                 isinstance(self.OUT_PROFILE, OutStructureNormalMode)
                 and isinstance(self.OUT_FLAGS, OutFlagsNormalMode)
             ):
-                print("enic lum")
                 raise ValueError(_("Out profile and flags should be of the right type"))
         return self
 
