@@ -98,8 +98,8 @@ def standard_extraction_subfund(
             if isinstance(subfund_set, Promise):
                 subfund = subfund_set
             else:
-                if subfund_set.font is not None:
-                    xml_lines = get_lines_with_font(xml_root, subfund_set.font)
+                if subfund_set.is_simple and subfund_set._left.font is not None:
+                    xml_lines = get_lines_with_font(xml_root, subfund_set._left.font)
                 else:
                     xml_lines = xml_root.findall(".//line")
                 lines = [ExtractedPdfLine(blk) for blk in xml_lines]
@@ -156,8 +156,8 @@ def standard_extraction_currency(
                 return metadata
 
             xml_lines = None
-            if currency_set.font is not None:
-                xml_lines = get_lines_with_font(xml_root, currency_set.font)
+            if currency_set.is_simple and currency_set._left.font is not None:
+                xml_lines = get_lines_with_font(xml_root, currency_set._left.font)
             else:
                 xml_lines = xml_root.findall(".//line")
 
@@ -236,16 +236,20 @@ def standard_pdf_filtering(
                 header_set = [header_set]
             for hsa in header_set:
                 hs = hsa.contextualize(xml_root)
-                if hs.font is not None and len(hs.font) == 1:
-                    if hs.text is not None and hs.text.is_simple:
+                if (
+                    hs.is_simple
+                    and hs._left.font is not None
+                    and len(hs._left.font) == 1
+                ):
+                    if hs._left.text is not None and hs._left.text.is_simple:
                         rows = get_lines_with_txt_font(
                             xml_root,
-                            list(hs.text._left)[0],
-                            list(hs.font)[0],
+                            list(hs._left.text._left)[0],
+                            list(hs._left.font)[0],
                             all_elem=True,
                         )
                     else:
-                        rows = get_lines_with_font(xml_root, list(hs.font)[0])
+                        rows = get_lines_with_font(xml_root, list(hs._left.font)[0])
                 else:
                     rows = xml_root.findall(".//line")
                 lines = [ExtractedPdfLine(line) for line in rows]
@@ -264,8 +268,12 @@ def standard_pdf_filtering(
                 raise PageParseFail(e) from e
 
             rows = []
-            if body_set.font is not None:
-                rows = get_lines_with_font(xml_root, body_set.font)
+            if (
+                (body_set.is_simple)
+                and (body_set._left.font is not None)
+                and len(body_set._left.font) == 1
+            ):
+                rows = get_lines_with_font(xml_root, list(body_set._left.font)[0])
             else:
                 rows = xml_root.findall(".//line")
             rows = [ExtractedPdfLine(r) for r in rows]

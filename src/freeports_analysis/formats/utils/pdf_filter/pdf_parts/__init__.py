@@ -2,6 +2,8 @@
 
 from typing import Optional, Tuple, Annotated
 import re
+import ast
+from operator import or_, and_, sub, truediv
 from functools import reduce
 from lxml import etree
 from pydantic import BaseModel, AfterValidator, PositiveFloat
@@ -168,7 +170,17 @@ line_set_regexp += f"({_line_set_text_regexp})?"
 _line_set_regexp = re.compile(line_set_regexp)
 
 
-class PdfLineSet:
+def _op_over_none(op, v1, v2):
+    if v1 is not None and v2 is not None:
+        return op(v1, v2)
+    if v1 is not None:
+        return v1
+    if v2 is not None:
+        return v2
+    return None
+
+
+class _FlattenPdfLineSet:
     def __init__(
         self,
         font: Optional[FontSet] = None,
@@ -181,6 +193,245 @@ class PdfLineSet:
         self._area = area
         self._text = text
 
+    @property
+    def font(self) -> FontSet:
+        """Get the font used in the line.
+
+        Returns
+        -------
+        Font
+            The font used in the line.
+        """
+        return self._font
+
+    @property
+    def font_size(self) -> FontSizeSet:
+        """Get the text size used in the line.
+
+        Returns
+        -------
+        FontSize
+            The text size used in the line.
+        """
+        return self._font_size
+
+    @property
+    def text(self) -> TextSet:
+        """Get the text used in the line.
+
+        Returns
+        -------
+        str
+            The text used in the line.
+        """
+        return self._text
+
+    @property
+    def area(self) -> Polygon:
+        return self._area
+
+    def __contains__(self, other: ExtractedPdfLine):
+        if self.font is not None:
+            if other.font not in self.font:
+                return False
+        if self.font_size is not None:
+            if other.font_size not in self.font_size:
+                return False
+        if self.area is not None:
+            if not self.area.contains(other.area):
+                return False
+        if self.text is not None:
+            if other.text not in self.text:
+                return False
+        return True
+
+    def __repr__(self):
+        string = f"{self.__class__.__name__}:\n"
+        font = "{}"
+        if self.font is not None:
+            font = (
+                f"{set(self.font)}" if isinstance(self.font, FontSet) else "<font_ref>"
+            )
+        fs = "[]"
+        if self.font_size is not None:
+            fs = (
+                f"{Interval(self.font_size)}"
+                if isinstance(self.font_size, FontSizeSet)
+                else "<font_size_ref>"
+            )
+        area = f"{self.area}" if isinstance(self.area, Polygon) else "<area_ref>"
+        text = f"{self.text}" if isinstance(self.text, TextSet) else "<text_ref>"
+        string += f"\t{font} {fs}\n"
+        if self.text is not None:
+            string += f"\t{text}\n"
+        if self.area is not None:
+            string += f"\t{area}\n"
+        return string
+
+    def contextualize(self, xml_root):
+        concrete = _FlattenPdfLineSet(
+            font=self.font, font_size=self.font_size, area=self.area, text=self.text
+        )
+        lines = [ExtractedPdfLine(el) for el in xml_root.findall(".//line")]
+
+        def _contextualize(t, value, aggregators, lines, xml_root):
+            if value is None:
+                return None
+            handled = isinstance(value, t)
+            if handled:
+                return value
+            for condition, agg_func in aggregators:
+                if isinstance(condition, type):
+                    handled = isinstance(value, condition)
+                else:
+                    handled = condition(value)
+                if handled:
+                    return agg_func(value, lines, xml_root)
+            raise ValueError(
+                _("Not possible aggregate to {} from {}:\n{}").format(
+                    t, type(value), value
+                )
+            )
+
+        font_aggregators = _font_aggregators
+        font_size_aggregators = _font_size_aggregators
+        text_aggregators = _text_aggregators
+        area_aggregators = _area_aggregators
+        concrete._font = _contextualize(
+            FontSet, concrete.font, font_aggregators, lines, xml_root
+        )
+        concrete._font_size = _contextualize(
+            FontSizeSet, concrete.font_size, font_size_aggregators, lines, xml_root
+        )
+        concrete._text = _contextualize(
+            TextSet, concrete.text, text_aggregators, lines, xml_root
+        )
+        concrete._area = _contextualize(
+            Polygon, concrete.area, area_aggregators, lines, xml_root
+        )
+        return concrete
+
+
+class PdfLineSet:
+    def __init__(
+        self,
+        font: Optional[FontSet] = None,
+        font_size: Optional[FontSizeSet] = None,
+        area: Optional[Polygon | Tuple[float, float]] = None,
+        text: Optional[TextSet] = None,
+    ):
+        self._left = _FlattenPdfLineSet(
+            font=font, font_size=font_size, area=area, text=text
+        )
+        self._right = None
+
+    @property
+    def is_simple(self):
+        return isinstance(self._left, _FlattenPdfLineSet) and self._right is None
+
+    @property
+    def one_d(self):
+        if not self.is_simple:
+            return False
+        dim = 0
+        for d in ["font", "font_size", "area", "text"]:
+            if getattr(self._left, d) is not None:
+                dim += 1
+            if dim > 1:
+                return False
+        return True
+
+    def __or__(self, other):
+        newset = PdfLineSet()
+        if self.is_simple and other.one_d:
+            newset._left._font = _op_over_none(or_, self._left.font, other.font)
+            newset._left._font_size = _op_over_none(
+                or_, self._left.font_size, other._left.font_size
+            )
+            newset._left._area = _op_over_none(or_, self._left.area, other._left.area)
+            newset._left._text = _op_over_none(or_, self._left.text, other._left.text)
+            return newset
+        newset._left = self
+        newset._right = (ast.Or, other)
+        return newset
+
+    def __and__(self, other):
+        newset = PdfLineSet()
+        if self.is_simple and other.one_d:
+            newset._left._font = _op_over_none(and_, self._left.font, other._left.font)
+            newset._left._font_size = _op_over_none(
+                and_, self._left.font_size, other._left.font_size
+            )
+            newset._left._area = _op_over_none(and_, self._left.area, other._left.area)
+            newset._left._text = _op_over_none(and_, self._left.text, other._left.text)
+            return newset
+        newset._left = self
+        newset._right = (ast.And, other)
+        return newset
+
+    def __truediv__(self, other):
+        newset = PdfLineSet()
+        if self.is_simple and other.one_d:
+            newset._left._font = _op_over_none(sub, self._left.font, other._left.font)
+            newset._left._font_size = _op_over_none(
+                sub, self._left.font_size, other._left.font_size
+            )
+            newset._left._area = _op_over_none(sub, self._left.area, other._left.area)
+            newset._left._text = _op_over_none(
+                truediv, self._left.text, other._left.text
+            )
+            return newset
+        newset._left = self
+        newset._right = (ast.Div, other)
+        return newset
+
+    def __sum__(self, other):
+        return self | other
+
+    def __sub__(self, other):
+        return self / other
+
+    def __repr__(self):
+        BIN_OPS = {
+            ast.And: "AND",
+            ast.Or: "OR",
+            ast.Div: "BESIDES",
+        }
+        if isinstance(self._left, _FlattenPdfLineSet):
+            left_string = (f"{repr(self._left)}").replace(
+                self._left.__class__.__name__, self.__class__.__name__
+            )
+        else:
+            left_string = f"{repr(self._left)}"
+
+        if self._right is not None:
+            op, right = self._right
+            if right._right is not None:
+                right_string = "-----------------------------------\n"
+                right_string += repr(right)
+                right_string += "-----------------------------------"
+            else:
+                right_string = repr(right)
+
+            string = f"{left_string}\n\t{BIN_OPS[op]}\n{right_string}"
+        else:
+            string = left_string
+        return string
+
+    def __contains__(self, other):
+        BIN_OPS = {
+            ast.And: lambda v1, v2: v1 and v2,
+            ast.Or: lambda v1, v2: v1 or v2,
+            ast.Div: lambda v1, v2: v1 and not v2,
+        }
+        in_right = False
+        in_set = other in self._left
+        if not in_set or self._right is None:
+            return in_set
+        else:
+            op, right = self._right
+            return BIN_OPS[op](in_set, other in right)
+
     @classmethod
     def from_dict(cls, data):
         ls = InputPdfLineSet(**data)
@@ -191,10 +442,10 @@ class PdfLineSet:
             if ls.font_size is not None
             else None,
             area=box(
-                input_area["x_min"],
-                input_area["y_min"],
-                input_area["x_max"],
-                input_area["y_max"],
+                input_area["x_min"] if input_area["x_min"] is not None else -1e6,
+                input_area["y_min"] if input_area["y_min"] is not None else -1e6,
+                input_area["x_max"] if input_area["x_max"] is not None else +1e6,
+                input_area["y_max"] if input_area["y_max"] is not None else +1e6,
             )
             if input_area is not None
             else None,
@@ -235,154 +486,12 @@ class PdfLineSet:
             text=TextSet(matched["text"]) if matched["text"] is not None else None,
         )
 
-    def __contains__(self, other: ExtractedPdfLine):
-        if self.font is not None:
-            if other.font not in self.font:
-                return False
-        if self.font_size is not None:
-            if other.font_size not in self.font_size:
-                return False
-        if self.area is not None:
-            if not self.area.contains(other.area):
-                return False
-        if self.text is not None:
-            if other.text not in self.text:
-                return False
-        return True
-
-    def __or__(self, other):
-        return PdfLineSet(
-            font=self.font | other.font,
-            font_size=self.font_size | other.font_size,
-            area=self.area | other.area,
-            text=self.text | other.text,
-        )
-
-    def __and__(self, other):
-        return PdfLineSet(
-            font=self.font & other.font,
-            font_size=self.font_size & other.font_size,
-            area=self.area & other.area,
-            text=self.text & other.text,
-        )
-
-    def __truediv__(self, other):
-        return PdfLineSet(
-            font=self.font - other.font,
-            font_size=self.font_size - other.font_size,
-            area=self.area - other.area,
-            text=self.text / other.text,
-        )
-
-    def __sum__(self, other):
-        return self | other
-
-    def __sub__(self, other):
-        return self / other
-
-    @property
-    def font(self) -> FontSet:
-        """Get the font used in the line.
-
-        Returns
-        -------
-        Font
-            The font used in the line.
-        """
-        return self._font
-
-    @property
-    def font_size(self) -> FontSizeSet:
-        """Get the text size used in the line.
-
-        Returns
-        -------
-        FontSize
-            The text size used in the line.
-        """
-        return self._font_size
-
-    @property
-    def text(self) -> TextSet:
-        """Get the text used in the line.
-
-        Returns
-        -------
-        str
-            The text used in the line.
-        """
-        return self._text
-
-    @property
-    def area(self) -> Polygon:
-        return self._area
-
-    def __repr__(self):
-        string = f"{self.__class__.__name__}:\n"
-        font = "{}"
-        if self.font is not None:
-            font = (
-                f"{set(self.font)}"
-                if not isinstance(self.font, PdfLineSet)
-                else "<font_ref>"
-            )
-        fs = "[]"
-        if self.font_size is not None:
-            fs = (
-                f"{Interval(self.font_size)}"
-                if not isinstance(self.font_size, PdfLineSet)
-                else "<font_size_ref>"
-            )
-        area = f"{self.area}" if not isinstance(self.area, PdfLineSet) else "<area_ref>"
-        text = f"{self.text}" if not isinstance(self.text, PdfLineSet) else "<text_ref>"
-        string += f"\t{font} {fs}\n"
-        if self.text is not None:
-            string += f"\t{text}\n"
-        if self.area is not None:
-            string += f"\t{area}\n"
-        return string
-
     def contextualize(self, xml_root):
-        concrete = PdfLineSet(
-            font=self.font, font_size=self.font_size, area=self.area, text=self.text
-        )
-        lines = [ExtractedPdfLine(el) for el in xml_root.findall(".//line")]
-
-        def _contextualize(t, value, aggregators, lines, xml_root):
-            if value is None:
-                return None
-            handled = isinstance(value, t)
-            if handled:
-                return value
-            for condition, agg_func in aggregators:
-                if isinstance(condition, type):
-                    handled = isinstance(value, condition)
-                else:
-                    handled = condition(value)
-                if handled:
-                    return agg_func(value, lines, xml_root)
-            raise ValueError(
-                _("Not possible aggregate to {} from {}:\n{}").format(
-                    t, type(value), value
-                )
-            )
-
-        font_aggregators = _font_aggregators
-        font_size_aggregators = _font_size_aggregators
-        text_aggregators = _text_aggregators
-        area_aggregators = _area_aggregators
-        concrete._font = _contextualize(
-            FontSet, concrete.font, font_aggregators, lines, xml_root
-        )
-        concrete._font_size = _contextualize(
-            FontSizeSet, concrete.font_size, font_size_aggregators, lines, xml_root
-        )
-        concrete._text = _contextualize(
-            TextSet, concrete.text, text_aggregators, lines, xml_root
-        )
-        concrete._area = _contextualize(
-            Polygon, concrete.area, area_aggregators, lines, xml_root
-        )
+        concrete = PdfLineSet()
+        concrete._left = self._left.contextualize(xml_root)
+        if self._right is not None:
+            op, right = self._right
+            concrete._right = (op, right.contextualize(xml_root))
         return concrete
 
 
