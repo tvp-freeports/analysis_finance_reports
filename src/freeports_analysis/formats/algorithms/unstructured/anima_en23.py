@@ -2,6 +2,7 @@
 
 import logging as log
 from typing import List, TypeAlias
+from shapely import box
 from freeports_analysis.formats.utils.pdf_filter import (
     OnePdfBlockType,
     standard_pdf_filtering,
@@ -36,7 +37,7 @@ options = {
         "Helvetica-Bold",
         text="Holdings",
     ),
-    "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=YRange(62, 82)),
+    "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=(62, 82)),
 }
 
 
@@ -56,15 +57,19 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
     currency_set = PdfLineSet(
         "Helvetica-Bold",
         font_size=8.9802,
-        area=Area(
-            XRange(x0 - w_enlarge / 2, x1 + w_enlarge / 2),
-            YRange(y0 + y_offset, y1 + y_offset + h_enlarge),
+        area=box(
+            x0 - w_enlarge / 2,
+            y0 + y_offset,
+            x1 + w_enlarge / 2,
+            y1 + y_offset + h_enlarge,
         ),
     )
     skeleton = get_lines_with_font(xml_root, "Helvetica-Bold")
     skeleton_lines = [ExtractedPdfLine(line) for line in skeleton]
     tables = [
-        line for line in skeleton_lines if line in PdfLineSet(area=XRange(None, 105))
+        line
+        for line in skeleton_lines
+        if line in PdfLineSet(area=box(-1e6, -1e6, 105, 1e6))
     ]
     if len(tables) == 0:
         return []
@@ -72,14 +77,14 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
         area = None
     else:
         if tables[-1].text == "Holdings":
-            y0 = tables[-1].geometry.y_bounds.y0
-            y1 = None
+            y0 = tables[-1].area.bounds[1]
+            y1 = -1e6
         else:
             for i, table in enumerate(tables):
                 if table.text == "Holdings":
-                    y0 = table.geometry.y_bounds.y0
-                    y1 = tables[i + 1].geometry.y_bounds.y0
-        area = YRange(y0, y1)
+                    y0 = table.area.bounds[1]
+                    y1 = tables[i + 1].area.bounds[1]
+        area = box(-1e6, y0, 1e6, y1)
     body_set = PdfLineSet("Helvetica-Light", area=area)
 
     @standard_pdf_filtering(**options, body_set=body_set, currency_set=currency_set)

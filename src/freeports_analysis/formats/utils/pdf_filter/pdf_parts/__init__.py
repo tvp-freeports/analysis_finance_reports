@@ -320,6 +320,19 @@ class PdfLineSet:
         area: Optional[Polygon | Tuple[float, float]] = None,
         text: Optional[TextSet] = None,
     ):
+        if isinstance(area, tuple):
+            if isinstance(area[0], tuple):
+                ((xmin, xmax), (ymin, ymax)) = area
+                area = box(xmin, ymin, xmax, ymax)
+            else:
+                ymin, ymax = area
+                area = box(-1e6, ymin, 1e6, ymax)
+        if isinstance(font, str):
+            font = FontSet(font)
+        if isinstance(font_size, float):
+            font_size = FontSizeSet.from_range(font_size - 1e-4, font_size + 1e-4)
+        if isinstance(text, str):
+            text = TextSet(text)
         self._left = _FlattenPdfLineSet(
             font=font, font_size=font_size, area=area, text=text
         )
