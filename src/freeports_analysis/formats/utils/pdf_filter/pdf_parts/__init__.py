@@ -341,6 +341,25 @@ class PdfLineSet:
                 return False
         return True
 
+    def disjoint(self, other):
+        if not self.is_simple or not other.is_simple:
+            return None
+        sbj = self._left
+        obj = other._left
+        if not sbj.font.isdisjoint(obj.font):
+            return False
+        if sbj.font_size.overlap(obj.font_size):
+            return False
+        if sbj.area.intersect(obj.area):
+            return False
+        if not sbj.text.is_simple or not obj.text.is_simple:
+            return None
+        stxt = sbj.text._left
+        otxt = obj.text._left
+        if not stxt.disjoint(otxt):
+            return False
+        return True
+
     def __or__(self, other):
         newset = PdfLineSet()
         if self.is_simple and other.one_d:

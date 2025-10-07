@@ -14,6 +14,7 @@ AMUNDI-IT24:
     currency: EUR
     algorithm-flags:
       - RULER_AREA
+    tolerance: 1.0
 
 ARCA-IT24:
   header_set:

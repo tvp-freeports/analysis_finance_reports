@@ -297,7 +297,6 @@ def standard_pdf_filtering(
             table_row_positions = get_table_positions(
                 table_rows,
                 algorithm_flags=_algorithm_flags | TablePosAlgorithm.ROW,
-                tolerance=tolerance,
             )
 
             def _width(area):
