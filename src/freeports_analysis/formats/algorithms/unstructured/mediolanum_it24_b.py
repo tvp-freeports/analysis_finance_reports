@@ -5,7 +5,6 @@ from freeports_analysis.formats.utils.pdf_filter import (
     PdfLineSet,
 )
 from freeports_analysis.consts import Currency
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import XRange, YRange, Area
 from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt_font
 from freeports_analysis.formats.utils.pdf_filter.xml.position import get_bounds
 
@@ -28,11 +27,11 @@ def pdf_filter(xml_root):
         ],
         subfund_set=PdfLineSet(
             font="Helvetica",
-            area=Area(x_range=XRange(150, None), y_range=YRange(67, 76)),
+            area=((150, None), (67, 76)),
         ),
         body_set=PdfLineSet(
             font="Helvetica",
-            area=Area(x_range=XRange(None, None), y_range=YRange(100, body_low_limit)),
+            area=(100, body_low_limit),
         ),
         currency_set=Currency.EUR,
         deselection_list=[PdfLineSet(text="^ ")],
