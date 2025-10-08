@@ -19,6 +19,16 @@ class FontSet(set):
         return f"{super().__repr__()}"
 
 
+class AllFonts(FontSet):
+    def __repr__(self):
+        return f"{super().__repr__()}".replace("()", "({...})").replace(
+            self.__class__.__name__, "FontSet"
+        )
+
+    def __contains__(self, font):
+        return True
+
+
 class FontSize(float):
     """A class rappresenting a font"""
 

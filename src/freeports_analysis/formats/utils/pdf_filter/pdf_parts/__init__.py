@@ -8,7 +8,7 @@ from functools import reduce
 from lxml import etree
 from pydantic import BaseModel, AfterValidator, PositiveFloat
 from freeports_analysis.i18n import _
-from .font import Font, FontSize, FontSizeSet, FontSet, TextSet
+from .font import Font, FontSize, FontSizeSet, FontSet, TextSet, AllFonts
 from ..xml.position import get_bounds
 from shapely import Polygon, box
 from portion.interval import Interval
@@ -323,13 +323,25 @@ class PdfLineSet:
         if isinstance(area, tuple):
             if isinstance(area[0], tuple):
                 ((xmin, xmax), (ymin, ymax)) = area
+                if xmin is None:
+                    xmin = -1e6
+                if ymin is None:
+                    ymin = -1e6
+                if xmax is None:
+                    xmax = +1e6
+                if ymax is None:
+                    ymax = +1e6
                 area = box(xmin, ymin, xmax, ymax)
             else:
                 ymin, ymax = area
+                if ymin is None:
+                    ymin = -1e6
+                if ymax is None:
+                    ymax = +1e6
                 area = box(-1e6, ymin, 1e6, ymax)
         if isinstance(font, str):
             font = FontSet(font)
-        if isinstance(font_size, float):
+        if isinstance(font_size, float) or isinstance(font_size, int):
             font_size = FontSizeSet.from_range(font_size - 1e-4, font_size + 1e-4)
         if isinstance(text, str):
             text = TextSet(text)
@@ -404,14 +416,22 @@ class PdfLineSet:
     def __truediv__(self, other):
         newset = PdfLineSet()
         if self.is_simple and other.one_d:
-            newset._left._font = _op_over_none(sub, self._left.font, other._left.font)
-            newset._left._font_size = _op_over_none(
-                sub, self._left.font_size, other._left.font_size
-            )
-            newset._left._area = _op_over_none(sub, self._left.area, other._left.area)
-            newset._left._text = _op_over_none(
-                truediv, self._left.text, other._left.text
-            )
+            sf, of = self._left.font, other._left.font
+            sfs, ofs = self._left.font_size, other._left.font_size
+            st, ot = self._left.text, other._left.text
+            sa, oa = self._left.area, other._left.area
+            if sf is None and of is not None:
+                sf = AllFonts()
+            if sfs is None and ofs is not None:
+                sf = FontSizeSet.from_range(1e-6, 1e6)
+            if st is None and ot is not None:
+                st = TextSet("")
+            if sa is None and oa is not None:
+                sa = box(-1e6, -1e6, 1e6, 1e6)
+            newset._left._font = _op_over_none(sub, sf, of)
+            newset._left._font_size = _op_over_none(sub, sfs, ofs)
+            newset._left._area = _op_over_none(sub, sa, oa)
+            newset._left._text = _op_over_none(truediv, st, ot)
             return newset
         newset._left = self
         newset._right = (ast.Div, other)
@@ -556,6 +576,7 @@ def _default_font_agg(fonts):
 
 @_pdf_line_set_aggregator("font_size")
 def _default_font_size_agg(font_sizes):
+    print("NICOTINICO", font_sizes)
     if len(font_sizes) == 1:
         fs = font_sizes[0]
         font_sizes = [fs - 1e-4, fs + 1e-4]

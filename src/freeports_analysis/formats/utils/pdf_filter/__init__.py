@@ -98,16 +98,17 @@ def standard_extraction_subfund(
             if isinstance(subfund_set, Promise):
                 subfund = subfund_set
             else:
-                if subfund_set.is_simple and subfund_set._left.font is not None:
-                    xml_lines = get_lines_with_font(xml_root, subfund_set._left.font)
+                subfund_set_c = subfund_set.contextualize(xml_root)
+                if subfund_set_c.is_simple and subfund_set_c._left.font is not None:
+                    xml_lines = get_lines_with_font(xml_root, subfund_set_c._left.font)
                 else:
                     xml_lines = xml_root.findall(".//line")
                 lines = [ExtractedPdfLine(blk) for blk in xml_lines]
                 try:
-                    subfund = [line.text for line in lines if line in subfund_set][0]
+                    subfund = [line.text for line in lines if line in subfund_set_c][0]
                 except IndexError as exc:
                     logger.error("Subfund set:")
-                    logger.error("\n%s", str(subfund_set))
+                    logger.error("\n%s", str(subfund_set_c))
                     logger.error("First lines where:")
                     logger.error(
                         "%s",
@@ -156,18 +157,19 @@ def standard_extraction_currency(
                 return metadata
 
             xml_lines = None
-            if currency_set.is_simple and currency_set._left.font is not None:
-                xml_lines = get_lines_with_font(xml_root, currency_set._left.font)
+            currency_set_c = currency_set.contextualize(xml_root)
+            if currency_set_c.is_simple and currency_set_c._left.font is not None:
+                xml_lines = get_lines_with_font(xml_root, currency_set_c._left.font)
             else:
                 xml_lines = xml_root.findall(".//line")
 
             lines = [ExtractedPdfLine(blk) for blk in xml_lines]
             currency = None
             try:
-                currency = [line.text for line in lines if line in currency_set][0]
+                currency = [line.text for line in lines if line in currency_set_c][0]
             except IndexError as exc:
                 logger.error("Currency set:")
-                logger.error("\n%s", str(currency_set))
+                logger.error("\n%s", str(currency_set_c))
                 logger.error("First lines where:")
                 logger.error(
                     "%s", str(list(map(lambda x: x.text, lines))[: min(10, len(lines))])
@@ -260,6 +262,7 @@ def standard_pdf_filtering(
 
         @filter_page_if(lambda x: _is_header(x, header_set))
         def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+            body_set_c = body_set.contextualize(xml_root)
             _algorithm_flags = algorithm_flags
             metadata = {}
             try:
@@ -269,15 +272,15 @@ def standard_pdf_filtering(
 
             rows = []
             if (
-                (body_set.is_simple)
-                and (body_set._left.font is not None)
-                and len(body_set._left.font) == 1
+                (body_set_c.is_simple)
+                and (body_set_c._left.font is not None)
+                and len(body_set_c._left.font) == 1
             ):
-                rows = get_lines_with_font(xml_root, list(body_set._left.font)[0])
+                rows = get_lines_with_font(xml_root, list(body_set_c._left.font)[0])
             else:
                 rows = xml_root.findall(".//line")
             rows = [ExtractedPdfLine(r) for r in rows]
-            table_rows = [row for row in rows if row in body_set]
+            table_rows = [row for row in rows if row in body_set_c]
             if isinstance(_algorithm_flags, list):
                 all_flags = [
                     TablePosAlgorithm.ROW,
