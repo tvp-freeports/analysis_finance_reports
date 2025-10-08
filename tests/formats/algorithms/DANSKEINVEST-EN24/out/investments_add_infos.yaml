@@ -1,24 +1,18 @@
 3:
-  interest_rate: 0.04
-  maturity: null
+  interest_rate: 0.0587
+  maturity: '2064-12-31'
 4:
-  interest_rate: 0.0587
-  maturity: null
-5:
   interest_rate: 0.041299999999999996
-  maturity: null
-6:
+  maturity: '2028-10-12'
+5:
   interest_rate: 0.0375
-  maturity: null
-7:
+  maturity: '2031-06-11'
+6:
   interest_rate: 0.0325
-  maturity: null
-8:
+  maturity: '2032-11-21'
+7:
   interest_rate: 0.045
-  maturity: null
-12:
+  maturity: '2031-11-15'
+11:
   interest_rate: 0.0587
-  maturity: null
-13:
-  interest_rate: 0.0425
-  maturity: null
+  maturity: '2064-12-31'

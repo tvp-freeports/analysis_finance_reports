@@ -76,14 +76,18 @@ def print_pdf_line_sets(page, strings, mode="structured"):
             print("-----------------------------")
         first_string = False
         for ln in ls:
+            ln = ln._left
             x_min, y_min, x_max, y_max = ln.area.bounds
+            txt = list(ln.text._left)[0]
+            fs = (ln.font_size.upper + ln.font_size.lower) / 2
+            font = list(ln.font)[0]
             if mode in "structured":
                 area = f"(({x_min}:{x_max})({y_min}:{y_max}))"
-                print(f'{ln.font}[{ln.font_size}]{area} "{ln.text}"')
+                print(f'{font}[{fs}]{area} "{txt}"')
             elif mode in "semistructured":
-                print(f"font: {ln.font}")
-                print(f"text: {ln.text}")
-                print(f"font_size: {ln.font_size}")
+                print(f"font: {font}")
+                print(f"text: {txt}")
+                print(f"font_size: {fs}")
                 print("area:")
                 print(f"\tx_min: {x_min}")
                 print(f"\tx_max: {x_max}")
@@ -91,9 +95,9 @@ def print_pdf_line_sets(page, strings, mode="structured"):
                 print(f"\ty_max: {y_max}")
             else:
                 print("PdfLineSet(")
-                print(f'\tfont="{ln.font}"')
-                print(f'\ttext="{ln.text}"')
-                print(f'\tfont_size="{ln.font_size}"')
+                print(f'\tfont="{font}"')
+                print(f'\ttext="{txt}"')
+                print(f'\tfont_size="{fs}"')
                 print("\tarea=Area(")
                 print(f"\t\tx_bound=XRange({x_min},{x_max}),")
                 print(f"\t\ty_bound=YRange({y_min},{y_max})")
