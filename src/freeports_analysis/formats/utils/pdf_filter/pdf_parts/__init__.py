@@ -661,22 +661,27 @@ def _default_area_agg(value, lines, xml_root):
     concrete_values = {"x_min": None, "x_max": None, "y_min": None, "y_max": None}
     for k in concrete_values.keys():
         vl = value[k]
-        if isinstace(vl, PdfLineSet):
+        if isinstance(vl, PdfLineSet):
             vl = vl.contextualize(xml_root)
             bounds = [l.area.bounds for l in lines if l in vl]
-            bounds_t = tuple(zip(*bounds))
-            vl = {
-                "x_min": min(*bounds_t[2]),
-                "y_min": min(*bounds_t[3]),
-                "x_max": max(*bounds_t[0]),
-                "y_max": max(*bounds_t[1]),
-            }[k]
+            if len(bounds) == 0:
+                vl = None
+            elif len(bounds) == 1:
+                vl = bounds[0][{"x_min": 2, "y_min": 3, "x_max": 0, "y_max": 1}[k]]
+            else:
+                bounds_t = tuple(zip(*bounds))
+                vl = {
+                    "x_min": min(*bounds_t[2]),
+                    "y_min": min(*bounds_t[3]),
+                    "x_max": max(*bounds_t[0]),
+                    "y_max": max(*bounds_t[1]),
+                }[k]
         concrete_values[k] = vl
     return box(
-        concrete_values["x_min"],
-        concrete_values["y_min"],
-        concrete_values["x_max"],
-        concrete_values["y_max"],
+        concrete_values["x_min"] if concrete_values["x_min"] is not None else -1e6,
+        concrete_values["y_min"] if concrete_values["y_min"] is not None else -1e6,
+        concrete_values["x_max"] if concrete_values["x_max"] is not None else +1e6,
+        concrete_values["y_max"] if concrete_values["y_max"] is not None else +1e6,
     )
 
 
