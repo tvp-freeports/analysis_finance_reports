@@ -17,7 +17,11 @@ def _get_segment(segment_name, pipeline_modules):
 
 def get_pipes(format_name):
     module_name = (
-        format_name.lower().replace("-", "_").replace(".", "_").replace("/", "_")
+        format_name.lower()
+        .replace("-", "_")
+        .replace(".", "_")
+        .replace("[", "_")
+        .replace("]", "")
     )
     modules = {}
     try:

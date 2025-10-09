@@ -680,7 +680,31 @@ def _default_area_agg(value, lines, xml_root):
     )
 
 
+def _relative_area_agg(value, lines, xml_root):
+    ref = None
+    x = 0.0
+    y = 0.0
+    w = 1.0
+    h = 1.0
+    if len(value) == 2:
+        ref, (x, y) = value
+    elif len(value) == 3:
+        ref, (x, y), (w, h) = value
+    else:
+        raise ValueError(_("Wrong number of arguent in tuple aggregation"))
+    ref = ref.contextualize(xml_root)
+    ref_concrete = [l for l in lines if l in ref][0]
+    x0, y0, x1, y1 = ref_concrete.area.bounds
+    w0 = x1 - x0
+    h0 = y1 - y0
+    return box(x0 + x * w0, y0 + y * h0, x0 + (w + x) * w0, y0 + (h + y) * h0)
+
+
 _font_aggregators = [(PdfLineSet, _default_font_agg)]
 _font_size_aggregators = [(PdfLineSet, _default_font_size_agg)]
 _text_aggregators = [(PdfLineSet, _default_text_agg)]
-_area_aggregators = [(dict, _default_area_agg), (PdfLineSet, _pdflineset_area_agg)]
+_area_aggregators = [
+    (dict, _default_area_agg),
+    (tuple, _relative_area_agg),
+    (PdfLineSet, _pdflineset_area_agg),
+]
