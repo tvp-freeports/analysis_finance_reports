@@ -31,8 +31,8 @@ translation_table = {
     "œ": "oe",
     "æ": "ae",
 }
-TO_SEP = ".,/-"
-TO_REMOVE = "!?{}[]()\"'/"
+TO_SEP = ",/-"
+TO_REMOVE = "!?{}[]()\"'/."
 table = str.maketrans(translation_table)
 for char in TO_SEP:
     table[ord(char)] = " "
