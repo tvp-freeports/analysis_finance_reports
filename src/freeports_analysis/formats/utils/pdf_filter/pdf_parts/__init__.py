@@ -332,7 +332,11 @@ class PdfLineSet:
                 if ymax is None:
                     ymax = +1e6
                 area = box(xmin, ymin, xmax, ymax)
-            elif isinstance(area[0], tuple) or isinstance(area[0], int):
+            elif (
+                isinstance(area[0], float)
+                or isinstance(area[0], int)
+                or area[0] is None
+            ):
                 ymin, ymax = area
                 if ymin is None:
                     ymin = -1e6
