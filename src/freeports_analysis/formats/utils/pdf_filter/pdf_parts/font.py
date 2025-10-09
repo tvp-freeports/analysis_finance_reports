@@ -35,7 +35,7 @@ class FontSize(float):
     def __new__(cls, value):
         if value not in [inf, -inf]:
             value = super().__new__(cls, value)
-            if value <= 0:
+            if value < 0:
                 raise ValueError(_("FontSize cannot be negative"))
         return value
 

@@ -281,6 +281,10 @@ def standard_pdf_filtering(
                 rows = xml_root.findall(".//line")
             rows = [ExtractedPdfLine(r) for r in rows]
             table_rows = [row for row in rows if row in body_set_c]
+            # Check if the whole table is empty
+            if table_rows == []:
+                return []
+
             if isinstance(_algorithm_flags, list):
                 all_flags = [
                     TablePosAlgorithm.ROW,
