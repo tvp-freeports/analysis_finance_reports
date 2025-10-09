@@ -332,7 +332,7 @@ class PdfLineSet:
                 if ymax is None:
                     ymax = +1e6
                 area = box(xmin, ymin, xmax, ymax)
-            else:
+            elif isinstance(area[0], tuple) or isinstance(area[0], int):
                 ymin, ymax = area
                 if ymin is None:
                     ymin = -1e6
@@ -478,7 +478,7 @@ class PdfLineSet:
         }
         in_right = False
         in_set = other in self._left
-        if not in_set or self._right is None:
+        if self._right is None:
             return in_set
         else:
             op, right = self._right
@@ -576,7 +576,6 @@ def _default_font_agg(fonts):
 
 @_pdf_line_set_aggregator("font_size")
 def _default_font_size_agg(font_sizes):
-    print("NICOTINICO", font_sizes)
     if len(font_sizes) == 1:
         fs = font_sizes[0]
         font_sizes = [fs - 1e-4, fs + 1e-4]
