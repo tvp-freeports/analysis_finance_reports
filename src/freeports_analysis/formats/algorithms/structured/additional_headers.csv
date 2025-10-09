@@ -2,6 +2,6 @@ ID,Header set
 EURIZON-EN23,"Frutiger-Light ""Nominal /"""
 CARNE-EN23,"Arial-BoldMT ""Currency"""
 ANIMA_SGR-IT24.A,"Lato,Bold ""Divisa """
-FINECO-EN23[IR],"TimesNewRoman,Bold ""Shares/"""
+FINECO-EN23<IR>,"TimesNewRoman,Bold ""Shares/"""
 UBS-EN23,"Frutiger45LightBold ""Nominal """
 MEDIOLANUM-IT24.A,"""Valutazione """

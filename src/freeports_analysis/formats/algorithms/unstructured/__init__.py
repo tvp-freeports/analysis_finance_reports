@@ -20,8 +20,8 @@ def get_pipes(format_name):
         format_name.lower()
         .replace("-", "_")
         .replace(".", "_")
-        .replace("[", "_")
-        .replace("]", "")
+        .replace("<", "_")
+        .replace(">", "")
     )
     modules = {}
     try:
