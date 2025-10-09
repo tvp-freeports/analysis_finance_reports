@@ -49,7 +49,7 @@ def get_formats() -> pd.DataFrame:
             + "-"
             + x["Locale"]
             + x["Year"].astype(str).str[-2:]
-            + x["Country"].apply(lambda v: f"/{v}" if pd.notna(v) and v != "" else "")
+            + x["Country"].apply(lambda v: f"[{v}]" if pd.notna(v) and v != "" else "")
             + x["Version"].apply(lambda v: f".{v}" if pd.notna(v) and v != "" else "")
         )
     )
