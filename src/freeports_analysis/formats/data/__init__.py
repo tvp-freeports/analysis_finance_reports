@@ -6,7 +6,7 @@ from typing import Optional
 
 data = Path(__file__).parent
 
-format_name_regexp = r".+\-[A-Z]{2}\d{2}(/[A-Z]{2,3})?(\.[^\.]+)?"
+format_name_regexp = r".+\-[A-Z]{2}\d{2}(\[[A-Z]{2,3}\])?(\.[^\.]+)?"
 
 # Structure of the dataframe to validate the list of formats everytime it is imported
 formats_schema = pa.DataFrameSchema(
