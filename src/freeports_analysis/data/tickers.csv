@@ -1,4 +1,5 @@
 Company name,Symbol,Market name
+AP Møller Mærsk,MAERAC,primary
 Airbnb,ABNB,primary
 Airbnb,ABNB,secondary
 Airbnb,AIRB,secondary
@@ -8,8 +9,7 @@ Alstom SA,ALSO,secondary
 Alstom SA,ALSMY,secondary
 Amazon,AMZN,primary
 Amir Marketing and Investments in Agriculture,AMRK,primary
-Angel Bakeries Ltd,ANGL,primary
-AP Møller Mærsk,MAERAC,primary
+Ashdod refinery,ARF,primary
 Ashtrom Group,ASHG,primary
 Bank Hapoalim,POLI,primary
 Bank Hapoalim,BKH,secondary
@@ -23,12 +23,10 @@ Bezeq Corp.,BZQI,secondary
 Booking Holdings,BKNG,primary
 Booking Holdings,BKNG,secondary
 Booking Holdings,BKNG,secondary
-BP Plc,BP,primary
 C Mer Industries,CMER,primary
 Carlsberg Group,CARL,primary
 Carlsberg Group,CARL,secondary
 Carlsberg Group,CABGY,secondary
-Carrefour,CA,primary
 Carrefour,CARR,secondary
 Carrefour,CRRFY,secondary
 Caterpillar,CAT,primary
@@ -36,7 +34,7 @@ Cellcom Israel,CEL,primary
 Cemex,CX,primary
 Chevron,CVX,primary
 Cisco Systems,CSCO,primary
-Costrucciones y Auxiliar de Ferrocarriles SA,CAF,primary
+Construcciones y Auxiliar de Ferrocarriles SA,CAF,primary
 Danya Cebus,DNYA,primary
 Delek Group,DLEKG,primary
 Delek Group,DELKY,secondary
@@ -61,14 +59,14 @@ Glencore,GLEN,primary
 Glencore,GLNCY,secondary
 Hamat Group,HAMAT,primary
 Hamat Group,MCBMF,secondary
+HD Hyundai,HYMTF,secondary
 Heidelberg Materials,HEI,primary
 Heidelberg Materials,HDLMY,secondary
 Hewlett Packard Enterprise,HPE,primary
 Hilan Ltd,HALN,primary
 Hilan Ltd,HLTEF,secondary
-HD Hyundai,HYMTF,secondary
-International Business Machines,IBM,primary
 ICL Group,ICL,primary
+International Business Machines,IBM,primary
 Israel Discount Bank,DSCT,primary
 Israel Discount Bank,ISDAY,secondary
 Israel Discount Bank,ISDAF,secondary
@@ -85,6 +83,8 @@ Mizrahi Tefahot Bank,MZTFF,secondary
 Mordechai Aviv Tassiot Beniyah,AVIV,primary
 Motorola Solutions,MSI,primary
 Motorola Solutions,MSI,secondary
+NewMedEnergy Limited Partnership,NWMD,primary
+NewMedEnergy Limited Partnership,DKDRF,secondary
 Orbia Corp.,ORBIA,primary
 Orbia Corp.,MXCHY,secondary
 Palantir Technologies,PLTR,primary
@@ -95,6 +95,7 @@ Petróleo Brasileiro,PBR,primary
 Rami Levy Chain Stores Hashikma Marketing,RMLI,primary
 Rami Levy Chain Stores Hashikma Marketing,RLEVF,secondary
 Remax Israel,RMAX,primary
+Angel Bakeries Ltd,ANGL,primary
 Shapir Engineering and Industry,SPEN,primary
 Shikun & Binui Ltd,SKBN,primary
 Shufersal,SAE,primary
@@ -112,6 +113,3 @@ Volvo Car Corp,VOLV,primary
 Volvo Car Corp,VLVLY,secondary
 WSP Global,WSP,primary
 ZMH Hammerman,ZMH,primary
-NewMedEnergy Limited Partnership,NWMD,primary
-NewMedEnergy Limited Partnership,DKDRF,secondary
-Ashdod refinery,ARF,primary
