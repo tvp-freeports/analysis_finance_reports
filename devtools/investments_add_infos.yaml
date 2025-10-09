@@ -1,0 +1,57 @@
+1:
+  interest_rate: 1.0e-05
+  maturity: null
+2:
+  interest_rate: 0.0001
+  maturity: null
+4:
+  interest_rate: 1.25e-07
+  maturity: null
+5:
+  interest_rate: 1.0e-05
+  maturity: null
+8:
+  interest_rate: 1.25e-05
+  maturity: null
+9:
+  interest_rate: 8.3e-08
+  maturity: null
+10:
+  interest_rate: 0.025
+  maturity: null
+14:
+  interest_rate: 0.0001
+  maturity: null
+16:
+  interest_rate: 0.0025
+  maturity: null
+17:
+  interest_rate: 1.0e-05
+  maturity: null
+18:
+  interest_rate: 0.0001
+  maturity: null
+20:
+  interest_rate: 0.0075
+  maturity: null
+21:
+  interest_rate: 1.0e-05
+  maturity: null
+22:
+  interest_rate: 1.25e-07
+  maturity: null
+23:
+  interest_rate: 1.0e-05
+  maturity: null
+24:
+  interest_rate: 0.043230000000000005
+  maturity: '2035-05-12'
+25:
+  interest_rate: 0.03625
+  maturity: null
+26:
+  interest_rate: 0.0375
+  maturity: '2030-01-15'
+27:
+  interest_rate: 0.05
+  maturity: '2028-04-16'
