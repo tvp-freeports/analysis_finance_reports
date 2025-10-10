@@ -279,7 +279,6 @@ def main(config):
             stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
         else:
             results_documents = [_main_job(*args[0])]
-
     results = transform_to_files_schema(
         results_documents, config["BATCH_FILE"] is not None
     )
