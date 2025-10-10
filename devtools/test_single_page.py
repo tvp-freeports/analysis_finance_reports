@@ -4,6 +4,7 @@ import copy
 from freeports_analysis.formats.algorithms import get_pipelines
 from freeports_analysis.formats.utils.pdf_filter import PdfLineSet, ExtractedPdfLine
 from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt
+from collections.abc import Callable
 
 
 def get_page_xml(file_name: str, page: int, offset: int = -1):
@@ -40,6 +41,21 @@ get_page = get_page_xml
 
 
 def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
+    """Print the content of a page until a certain depth
+
+    Parameters
+    ----------
+    xml_tree : etree.Element
+        page to be analized
+    max_deeph : int, optional
+        depth of the printed xml_tree:
+        0: page margins and parameters
+        1: blocks boxes coordinates
+        2: line boxes coordinates and text
+        3: text parameters (font, size)
+        4: characters coordinates and parameters
+        by default 0
+    """
     etree_to_print = copy.deepcopy(xml_tree)
 
     def _remove_tree_to_depth(elem: etree.Element, depth: int = 0, max_depth: int = 0):
@@ -54,7 +70,31 @@ def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
     del etree_to_print
 
 
-def select_function(fmt, index_segment, pipeline_name="", index=0):
+# what is the pipeline index?
+def select_function(
+    fmt: str, index_segment: int, pipeline_name: str = "", index: int = 0
+) -> Callable:
+    """select an already written function to filter/extract/deserialize a specific format document
+
+    Parameters
+    ----------
+    fmt : str
+        the pdf format needed
+    index_segment : int
+        the function needed:
+        1: pdf_filter
+        2: text extract
+        3: deserialize
+    pipeline_name : str, optional
+        the pipeline needed (if present), by default ""
+    index : int, optional
+        pipeline index, by default 0
+
+    Returns
+    -------
+    function
+        the selected function
+    """
     pipeline = get_pipelines(fmt, allow_partial_pipelines=True)[pipeline_name]
     func = pipeline[index_segment][index]
     return func
