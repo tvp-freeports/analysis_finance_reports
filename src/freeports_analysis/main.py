@@ -293,11 +293,10 @@ def main(config):
         if n_workers > 1:
             HANDLER_STDERR.setFormatter(FORMATTER_SOURCE_MP)
             with Pool(n_workers) as p:
-                results = p.starmap(_main_job, args)
+                results_documents = p.starmap(_main_job, args)
             HANDLER_STDERR.setFormatter(FORMATTER_SOURCE)
         else:
             results_documents = [_main_job(*args[0])]
-
     results = transform_to_files_schema(
         results_documents, config["BATCH_FILE"] is not None
     )

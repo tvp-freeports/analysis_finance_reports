@@ -20,7 +20,7 @@ Archivists,,
 Ariel Properties Group,ariel properties,\bariel properties\b
 Ashdod refinery,ashdod,\bashdod\b
 Ashtrom Group,ashtrom,\bashtrom\b
-Ashtrom Industries Ltd,ashtrom,\bashtrom\b
+Ashtrom Industries,ashtrom,\bashtrom\b
 Ashtrom Residential Development,ashtrom residential,\bashtrom residential\b
 Axel Springer,axel,\baxel\b
 B. Gaon Holdings,b gaon,\bb gaon\b
@@ -33,7 +33,7 @@ Development Company",bar amana,\bbar amana\b
 Baran Group,baran,\bbaran\b
 Bardarian Brothers,bardarian,\bbardarian\b
 Beit Haarchiv,beit,\bbeit\b
-Bezeq Corp.,bezeq,\bbezeq\b
+Bezeq Corp,bezeq,\bbezeq\b
 Bombardier Transportation Israel,bombardier transportation,\bbombardier transportation\b
 Boneich Construction Development & Investments,boneich,\bboneich\b
 Booking Holdings,booking,\bbooking\b
@@ -47,7 +47,7 @@ Caliber 3,caliber,\bcaliber\b
 Carlsberg Group,carlsberg,\bcarlsberg\b
 Carrefour,,
 Caterpillar,,
-Cellcom Israel,,
+Cellcom Israel,cellcom,\bcellcom\b
 Cemex,,
 Cherriessa,,
 Chevron,,
@@ -55,7 +55,7 @@ Chish Nofei Israel Ltd,chish nofei,\bchish nofei\b
 Cim Lustigman Development and Construction,cim lustigman,\bcim lustigman\b
 Cisco Systems,cisco,cisco ?s[yi]stems?
 CityBook Services,citybook,\bcitybook\b
-CNH Industrial,cnh i,\bcnh i\b
+CNH Industrial,,
 Comasco Ltd,comasco,\bcomasco\b
 Construcciones y Auxiliar de Ferrocarriles SA,construcciones y auxiliar,\bconstrucciones y auxiliar\b
 DBS Satellite Service,satellite service,\bsatellite service\b
@@ -120,7 +120,7 @@ Israel Railways Corporation,israel railways,\bisrael railways\b
 Italek Ltd,italek,\bitalek\b
 JC Bamford Excavators,bamford excavators,\bbamford excavators\b
 Kardan NV,kardan,\bkardan\b
-Kass,kass,\bkass\b
+Kass,,\b\b
 Kavim Public Transportation,kavim,\bkavim\b
 Keller Williams Reality,keller williams,\bkeller williams\b
 Keren Kayemeth LeIsrael,keren kayemeth,\bkeren kayemeth\b
@@ -198,7 +198,7 @@ Shikun & Binui Ltd,shikun,\bshikun\b
 Shlomo Cohen Construction Company,shlomo,\bshlomo\b
 Shoham Engineering and Development,shoham,\bshoham\b
 Shufersal,,
-Siemens AG,siemens,\bsiemens\b
+Siemens,,\bsiemens\b
 Sociedad Espanola De Montajes Industriales,sociedad espanola,\bsociedad espanola\b
 Sonol Israel,sonol,\bsonol\b
 Steconfer,,
@@ -229,3 +229,7 @@ Zakai Agriculture Know-how and inputs,zakai,\bzakai\b
 ZF Development and Construction,zf development,\bzf development\b
 ZMH Hammerman,zmh,\bzmh\b
 Zriha Hlavin Industries,zriha,\bzriha\b
+Israel Government International,,
+Israel Government,,
+Italy btps,,
+Blackrock,,

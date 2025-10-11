@@ -18,8 +18,8 @@ Bank Hapoalim,BKHPY,secondary
 Bank Leumi,LUMI,primary
 Bank Leumi,BLMIF,secondary
 Bank of Jerusalem,JBNK,primary
-Bezeq Corp.,BEZQ,primary
-Bezeq Corp.,BZQI,secondary
+Bezeq Corp,BEZQ,primary
+Bezeq Corp,BZQI,secondary
 Booking Holdings,BKNG,primary
 Booking Holdings,BKNG,secondary
 Booking Holdings,BKNG,secondary
@@ -100,7 +100,7 @@ Shapir Engineering and Industry,SPEN,primary
 Shikun & Binui Ltd,SKBN,primary
 Shufersal,SAE,primary
 Shufersal,SHUFF,secondary
-Siemens AG,SIE,primary
+Siemens,SIE,primary
 Syensqo SA,SYENS,primary
 The Coca-Cola Company,KO,primary
 TKH Group,TWEKA,primary

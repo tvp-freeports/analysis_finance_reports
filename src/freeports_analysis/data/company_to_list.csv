@@ -13,7 +13,7 @@ OHCHR25,Amot Investments
 OHCHR25,Anglo Saxon Real Estate Agency
 OHCHR25,Archivists
 OHCHR25,Ashtrom Group
-OHCHR25,Ashtrom Industries Ltd
+OHCHR25,Ashtrom Industries
 OHCHR25,Ashtrom Residential Development
 OHCHR25,B. Gaon Holdings
 OHCHR25,Bank Hapoalim
@@ -25,7 +25,7 @@ OHCHR25,"Barad Earthworks, Development and Roadworks"
 OHCHR25,Baran Group
 OHCHR25,Bardarian Brothers
 OHCHR25,Beit Haarchiv
-OHCHR25,Bezeq Corp.
+OHCHR25,Bezeq Corp
 OHCHR25,Bombardier Transportation Israel
 OHCHR25,Boneich Construction Development & Investments
 OHCHR25,Booking Holdings
@@ -177,12 +177,12 @@ OHCHR23,Amos Hadar Properties and Investments
 OHCHR23,Archivists
 OHCHR23,Ariel Properties Group
 OHCHR23,Ashtrom Group
-OHCHR23,Ashtrom Industries Ltd
+OHCHR23,Ashtrom Industries
 OHCHR23,Bank Hapoalim
 OHCHR23,Bank Leumi
 OHCHR23,Bank of Jerusalem
 OHCHR23,Beit Haarchiv
-OHCHR23,Bezeq Corp.
+OHCHR23,Bezeq Corp
 OHCHR23,Bombardier Transportation Israel
 OHCHR23,Booking Holdings
 OHCHR23,Booking.com
@@ -315,7 +315,7 @@ DBIO,Axel Springer
 DBIO,Bank Hapoalim
 DBIO,Bank Leumi
 DBIO,Beit Haarchiv
-DBIO,Bezeq Corp.
+DBIO,Bezeq Corp
 DBIO,Bombardier Transportation Israel
 DBIO,Booking Holdings
 DBIO,Booking.com
@@ -365,7 +365,7 @@ DBIO,Remax Israel
 DBIO,Shapir Engineering and Industry
 DBIO,Shikun & Binui Ltd
 DBIO,Shufersal
-DBIO,Siemens AG
+DBIO,Siemens
 DBIO,Syensqo SA
 DBIO,The Coca-Cola Company
 DBIO,TKH Group
@@ -377,5 +377,60 @@ DBIO,Villar International
 DBIO,Vinci SA
 DBIO,Volvo Car Corp
 DBIO,WSP Global
+TEST,AP Møller Mærsk
+TEST,Airbnb
+TEST,Alphabet
+TEST,Altice International
+TEST,Amazon
 TEST,Apple
+TEST,Ashtrom Group
+TEST,Ashtrom Industries
+TEST,Ashtrom Residential Development
+TEST,Booking Holdings
+TEST,Booking.com
+TEST,BP Plc
+TEST,Bright Food Group
+TEST,Carlsberg Group
+TEST,Carrefour
+TEST,Caterpillar
+TEST,Chevron
+TEST,Cisco Systems
+TEST,CNH Industrial
+TEST,Construcciones y Auxiliar de Ferrocarriles SA
+TEST,Delek Group
+TEST,Drummond Company
+TEST,eDreams ODIGEO
+TEST,Elbit Systems
+TEST,Expedia
+TEST,FANUC Corp
+TEST,Glencore
+TEST,Hanson Israel Ltd
+TEST,HD Hyundai
+TEST,HD Hyundai Infracore
+TEST,Heidelberg Materials
+TEST,Hewlett Packard Enterprise
+TEST,International Business Machines
+TEST,Israel Aereospace Industries
+TEST,Keller Williams Reality
+TEST,Keren Kayemeth LeIsrael
+TEST,KW Israel
+TEST,Leonardo
+TEST,Lockheed Martin
+TEST,Mekorot Water Company
+TEST,Microsoft
+TEST,Motorola Solutions
+TEST,Netafim
+TEST,NewMedEnergy Limited Partnership
+TEST,NSO Group Technologies
 TEST,NVIDIA
+TEST,Orbia Corp.
+TEST,Palantir Technologies
+TEST,Paz Retail and Energy Ltd
+TEST,Petróleo Brasileiro
+TEST,Siemens
+TEST,The Caisse de dépôt et placement du Québec
+TEST,Volvo Car Corp
+TEST,Israel Government International
+TEST,Israel Government
+TEST,Italy btps
+TEST,Blackrock
