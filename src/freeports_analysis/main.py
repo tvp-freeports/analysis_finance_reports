@@ -275,7 +275,7 @@ def main(config):
         if n_workers > 1:
             stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
             with Pool(n_workers) as p:
-                results = p.starmap(_main_job, args)
+                results_documents = p.starmap(_main_job, args)
             stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
         else:
             results_documents = [_main_job(*args[0])]
