@@ -104,10 +104,11 @@ def standard_extraction_subfund(
                 try:
                     subfund = [line.text for line in lines if line in subfund_set_c][0]
                 except IndexError as exc:
-                    logger.error("Subfund set:")
-                    logger.error("\n%s", str(subfund_set_c))
-                    logger.error("First lines where:")
-                    logger.error(
+                    logger.error(exc)
+                    logger.debug("Subfund set:")
+                    logger.debug(str(subfund_set_c))
+                    logger.debug("First lines where:")
+                    logger.debug(
                         "%s",
                         str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
                     )
@@ -165,11 +166,13 @@ def standard_extraction_currency(
             try:
                 currency = [line.text for line in lines if line in currency_set_c][0]
             except IndexError as exc:
-                logger.error("Currency set:")
-                logger.error("\n%s", str(currency_set_c))
-                logger.error("First lines where:")
-                logger.error(
-                    "%s", str(list(map(lambda x: x.text, lines))[: min(10, len(lines))])
+                logger.error(exc)
+                logger.debug("Currency set:")
+                logger.debug(str(subfund_set_c))
+                logger.debug("First lines where:")
+                logger.debug(
+                    "%s",
+                    str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
                 )
                 raise ExpectedPdfBlockNotFound(_("Currency block  not found")) from exc
 
