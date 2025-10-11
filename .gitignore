@@ -2,7 +2,7 @@ venv/
 *.pdf
 *.csv
 **/*.csv
-out/
+/out/
 src/**/*.pdf
 dist/
 docs/build/doctrees/

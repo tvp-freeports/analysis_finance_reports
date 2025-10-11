@@ -120,3 +120,12 @@ def generic_test_pipelines(path):
         (current_dir / "out" / "investments_add_infos.yaml").open("r")
     )
     assert out_dict == reference_dict
+
+    log = pd.read_csv(conf["OUT_PATH"] / ".log.csv", index_col=False)
+    reference_log = pd.read_csv(current_dir / "out" / ".log.csv", index_col=False)
+    pd.testing.assert_frame_equal(
+        log.sort_values(by=log.columns.tolist()).reset_index(drop=True),
+        reference_log.sort_values(by=reference_log.columns.tolist()).reset_index(
+            drop=True
+        ),
+    )

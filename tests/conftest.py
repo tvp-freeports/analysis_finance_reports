@@ -30,7 +30,7 @@ url_example_formats = {
 }
 
 xml_parser = etree.XMLParser(recover=True)
-targets = get_target_companies(TARGET_LISTS)
+targets = get_target_companies(["TEST"])
 
 conf = {
     "VERBOSITY": 2,
@@ -43,7 +43,7 @@ conf = {
     "FORMAT": None,
     "CONFIG_FILE": FreeportsFileConfig.find_config(),
     "PREFIX_OUT": None,
-    "TARGET_LISTS": TARGET_LISTS,
+    "TARGET_LISTS": ["TEST"],
     "OUT_PROFILE": OutStructureNormalMode.REGULAR,
     "OUT_FLAGS": OutFlagsNormalMode(0),
 }
