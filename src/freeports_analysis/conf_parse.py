@@ -149,11 +149,13 @@ class ParitalConfiguration(ABC):
 
     def overwrite_config(self, config, config_location):
         this_conf = self.model_dump()
+        new_conf = {k: v for k, v in config.items()}
+        new_conf_location = {k: v for k, v in config_location.items()}
         for k, v in this_conf.items():
             if v is not None:
-                config[k] = v
-                config_location[k] = self.__class__.__name__
-        return config, config_location
+                new_conf[k] = v
+                new_conf_location[k] = self.__class__.__name__
+        return new_conf, new_conf_location
 
 
 class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):

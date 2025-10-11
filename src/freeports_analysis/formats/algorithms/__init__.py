@@ -14,9 +14,11 @@ from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
 from freeports_analysis.output import Investment
 from freeports_analysis.i18n import _
+from freeports_analysis.logging import AddPageFilter
 from .. import PdfBlock, TextBlock
 
-logger = log.getLogger(__name__)
+logger_source = log.getLogger(__name__)
+logger = log.getLogger("freeports_analysis.formats.utils")
 
 
 class LogFormatterWithPage(log.Formatter):
@@ -59,30 +61,28 @@ class LogFormatterWithPage(log.Formatter):
 def _exec_segment(
     i_batch_page, n_pages, args_batch, funcs, error_msg, progress_msg=None
 ):
+    _filters = logger.handlers[0].filters
+    PAGE_FILTER = None
+    for f in _filters:
+        if isinstance(f, AddPageFilter):
+            PAGE_FILTER = f
+            break
     args_batch = enumerate(args_batch, start=i_batch_page)
     show_progress = False if progress_msg is None else True
-    logger.propagate = False
-    std_err_log = log.StreamHandler()
-    page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
-    std_err_log.setFormatter(page_format_log)
-    logger.addHandler(std_err_log)
     batch_results = []
     for page, arg in args_batch:
-        page_format_log.page = page
+        PAGE_FILTER.page = page + i_batch_page
         if show_progress and (
             (page + i_batch_page) % (n_pages // min(10, n_pages)) == 0
         ):
-            logger.info(progress_msg)
+            logger.info(f"page {(page + i_batch_page)}, " + progress_msg)
         try:
             batch_results.append([r for func in funcs for r in func(arg)])
         except PageParseFail as e:
-            logger.error(e)
-            logger.warning(_("Skipping page..."))
-        except Exception as e:
-            logger.error(error_msg)
-            logger.removeHandler(std_err_log)
-            raise e
-    logger.removeHandler(std_err_log)
+            logger_source.error(e)
+            logger.warning(
+                _("Skipping page..."),
+            )
     return batch_results
 
 

@@ -25,12 +25,7 @@ from freeports_analysis.i18n import _
 from freeports_analysis.data import get_target_companies
 from freeports_analysis.output import transform_to_files_schema, write_files, Investment
 from freeports_analysis import download as dw
-from freeports_analysis.consts import (
-    PromisesResolutionContext,
-    flatten_promise_map,
-    STANDARD_LOG_FORMATTER,
-    STANDARD_LOG_FORMATTER_MP,
-)
+from freeports_analysis.consts import PromisesResolutionContext, flatten_promise_map
 from freeports_analysis.formats.algorithms import (
     pdf_filter_exec,
     text_extract_exec,
@@ -46,13 +41,17 @@ from freeports_analysis.conf_parse import (
     FreeportsConfig,
     FreeportsJobConfig,
 )
+from freeports_analysis.logging import (
+    FORMATTER_SOURCE_MP,
+    FORMATTER_SOURCE,
+    HANDLER_STDERR,
+    AddPageFilter,
+    AddReportFilter,
+    CsvFormatter,
+)
 
 
 logger = log.getLogger(__package__)
-logger.propagate = False
-stderr_log = log.StreamHandler()
-stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
-logger.addHandler(stderr_log)
 
 
 class NoPDFormatDetected(Exception):
@@ -148,7 +147,6 @@ def batch_job_confs(config: dict) -> List[dict]:
             result.append(
                 job_config.overwrite_config(config, DEFAULT_CONFIG_LOCATION)[0]
             )
-
     return result
 
 
@@ -212,6 +210,26 @@ def _output_file(config, results):
 
 def _main_job(config, n_workers: int):
     config = FreeportsConfig(**config).model_dump()
+    config["OUT_PATH"].mkdir(exist_ok=True)
+    log_file = config["OUT_PATH"] / ".log.csv"
+    with log_file.open("w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        header = ["Page", "Matched Company", "Company", "Field name", "Message"]
+        if config["BATCH_FILE"] is not None:
+            header = ["Report"] + header
+        writer.writerow(header)
+    HANDLER_CSV = log.FileHandler(log_file, mode="a")
+    CSV_FORMATTER = CsvFormatter(config["BATCH_FILE"] is not None)
+    PAGE_FILTER = AddPageFilter()
+    REPORT_FILTER = AddReportFilter()
+    HANDLER_CSV.addFilter(REPORT_FILTER)
+    HANDLER_CSV.addFilter(PAGE_FILTER)
+    HANDLER_CSV.setFormatter(CSV_FORMATTER)
+    HANDLER_CSV.setLevel(log.WARNING)
+    REPORT_FILTER.report = config["PREFIX_OUT"]
+    logging_table = log.getLogger("freeports_analysis.formats.utils")
+    logging_table.addHandler(HANDLER_CSV)
+
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
     logger.debug(_("Starting decoding pdf to xml..."))
@@ -229,10 +247,10 @@ def _main_job(config, n_workers: int):
         batches.append((batch_pages, start_idx + 1, n_pages, targets, config["FORMAT"]))
     results_batches = None
     if n_workers > 1:
-        stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
+        HANDLER_STDERR.setFormatter(FORMATTER_SOURCE_MP)
         with Pool(processes=n_workers) as pool:
             results_batches = pool.starmap(pipeline_batch, batches)
-        stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
+        HANDLER_STDERR.setFormatter(FORMATTER_SOURCE)
     else:
         results_batches = [pipeline_batch(*batches[0])]
     promises_resolution_map = {}
@@ -273,10 +291,10 @@ def main(config):
         config_jobs = batch_job_confs(config)
         args = [(c, 1) for c in config_jobs]
         if n_workers > 1:
-            stderr_log.setFormatter(STANDARD_LOG_FORMATTER_MP)
+            HANDLER_STDERR.setFormatter(FORMATTER_SOURCE_MP)
             with Pool(n_workers) as p:
                 results = p.starmap(_main_job, args)
-            stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
+            HANDLER_STDERR.setFormatter(FORMATTER_SOURCE)
         else:
             results_documents = [_main_job(*args[0])]
 

@@ -22,9 +22,6 @@ from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
 from freeports_analysis.consts import Currency
 
-logger = log.getLogger(__name__)
-
-
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 FilterCondition: TypeAlias = Callable[[etree.Element], bool]
 PdfFilterFunc: TypeAlias = Callable[[etree.Element], List[TextBlock]]
