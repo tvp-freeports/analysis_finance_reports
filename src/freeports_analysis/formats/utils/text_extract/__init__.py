@@ -221,8 +221,14 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
-                        logger.error(e)
-                        logger.warning(_("Skipping line..."))
+                        logger.error(
+                            e, extra={"company": company, "matched_company": content}
+                        )
+                        logger.warning(
+                            _("Skipping line..."),
+                            extra={"company": company, "matched_company": content},
+                        )
+                        raise Exception
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break
@@ -342,71 +348,69 @@ def standard_text_extraction(
 
             metadata = {}
             try:
-                try:
-                    metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
-                except AttributeError as e:
-                    print(pdf_blocks_table[(i[0], i[1] - 1)])
-                    print(pdf_blocks_table[i], i)
-                    print(pdf_blocks_table[(i[0], i[1] + 1)])
-                    raise e
-                try:
-                    metadata["market value"] = pdf_blocks_table[
-                        abs_idx(market_value_pos)
-                    ].content
-                except (KeyError, AttributeError) as e:
-                    logger.debug(_("Current metadata:\n%s"), str(metadata))
-                    logger.debug(
-                        _('Current content: "%s"'), pdf_blocks_table[i].content
-                    )
-                    logger.debug(
-                        _("Requested index: %s"), str(abs_idx(market_value_pos))
-                    )
-                    raise ExpectedTextBlockNotFound(_("Market value not found")) from e
+                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
+            except AttributeError as e:
+                logger.error(e)
+                debug_msg = ""
+                debug_msg += _("Line next to it (on row {}):\n").format(i[0])
+                debug_msg += _("Column {}:\n").format(i[1] - 1)
+                debug_msg += str(pdf_blocks_table[(i[0], i[1] - 1)])
+                debug_msg += _("\nMatching column:\n")
+                debug_msg += str(pdf_blocks_table[i])
+                debug_msg += _("\nColumn {}:\n").format(i[1] + 1)
+                debug_msg += str(pdf_blocks_table[(i[0], i[1] + 1)])
+                logger.debug(debug_msg)
+                raise ExpectedTextBlockNotFound(
+                    _("Matching text block not found")
+                ) from e
+            try:
+                metadata["market value"] = pdf_blocks_table[
+                    abs_idx(market_value_pos)
+                ].content
+            except (KeyError, AttributeError) as e:
+                logger.debug(_("Current metadata:\n%s"), str(metadata))
+                logger.debug(_('Current content: "%s"'), pdf_blocks_table[i].content)
+                logger.debug(_("Requested index: %s"), str(abs_idx(market_value_pos)))
+                raise ExpectedTextBlockNotFound(_("Market value not found")) from e
 
-                curr = pdf_blocks_table[i].metadata["currency"]
-                if isinstance(curr, Currency):
-                    metadata["currency"] = curr
-                else:
-                    currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
-                    found = False
-                    for curr_cand in currency_candidates:
-                        try:
-                            metadata["currency"] = Currency[curr_cand]
-                            found = True
-                            break
-                        except KeyError:
-                            pass
-                    if not found:
-                        curr = curr.upper()
-                        for c in Currency.__members__:
-                            currency_candidates = re.findall(r"\b" + c + r"\b", curr)
-                            for curr_cand in currency_candidates:
-                                try:
-                                    metadata["currency"] = Currency[curr_cand]
-                                    found = True
-                                    break
-                                except KeyError:
-                                    pass
-                    if not found:
-                        raise ExpectedTextBlockNotFound(
-                            _('Currency not found in string: "%s"'), curr
-                        )
-
-                for pos, name in [
-                    (perc_net_assets_pos, "% net assets"),
-                    (nominal_quantity_pos, "quantity"),
-                    (acquisition_currency_pos, "acquisition currency"),
-                    (acquisition_cost_pos, "acquisition cost"),
-                ]:
-                    metadata = try_extraction_of_field(
-                        metadata, pos, name, pdf_blocks_table
+            curr = pdf_blocks_table[i].metadata["currency"]
+            if isinstance(curr, Currency):
+                metadata["currency"] = curr
+            else:
+                currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+                found = False
+                for curr_cand in currency_candidates:
+                    try:
+                        metadata["currency"] = Currency[curr_cand]
+                        found = True
+                        break
+                    except KeyError:
+                        pass
+                if not found:
+                    curr = curr.upper()
+                    for c in Currency.__members__:
+                        currency_candidates = re.findall(r"\b" + c + r"\b", curr)
+                        for curr_cand in currency_candidates:
+                            try:
+                                metadata["currency"] = Currency[curr_cand]
+                                found = True
+                                break
+                            except KeyError:
+                                pass
+                if not found:
+                    raise ExpectedTextBlockNotFound(
+                        _('Currency not found in string: "%s"'), curr
                     )
-            except ExpectedTextBlockNotFound as e:
-                if isinstance(pdf_blocks_table[i], PdfBlock):
-                    logger.debug(_("Block: \n%s"), str(pdf_blocks_table[i]))
-                elif len(pdf_blocks_table[i]) > 0:
-                    logger.debug(_("First block: \n%s"), str(pdf_blocks_table[i][0]))
-                raise e
+
+            for pos, name in [
+                (perc_net_assets_pos, "% net assets"),
+                (nominal_quantity_pos, "quantity"),
+                (acquisition_currency_pos, "acquisition currency"),
+                (acquisition_cost_pos, "acquisition cost"),
+            ]:
+                metadata = try_extraction_of_field(
+                    metadata, pos, name, pdf_blocks_table
+                )
 
             content = pdf_blocks_table[i].content.replace("\n", "")
             instrument = EquityBondTextBlockType.EQUITY_TARGET

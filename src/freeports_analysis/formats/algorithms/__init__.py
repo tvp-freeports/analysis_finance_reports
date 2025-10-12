@@ -71,11 +71,11 @@ def _exec_segment(
     show_progress = False if progress_msg is None else True
     batch_results = []
     for page, arg in args_batch:
-        PAGE_FILTER.page = page + i_batch_page
+        PAGE_FILTER.page = (page + i_batch_page) - 1
         if show_progress and (
             (page + i_batch_page) % (n_pages // min(10, n_pages)) == 0
         ):
-            logger.info(f"page {(page + i_batch_page)}, " + progress_msg)
+            logger.info(f"page {(page + i_batch_page) - 1}, " + progress_msg)
         try:
             batch_results.append([r for func in funcs for r in func(arg)])
         except PageParseFail as e:
