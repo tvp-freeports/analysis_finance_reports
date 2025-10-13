@@ -236,7 +236,7 @@ def _main_job(config, n_workers: int):
     LOG_CONTEXTUAL_INFOS.report = config["PREFIX_OUT"]
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
-    logger.debug(_("Starting decoding pdf to xml..."))
+    logger.info(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug(_("End decoding pdf to xml!"))
     targets = get_target_companies(config["TARGET_LISTS"])
