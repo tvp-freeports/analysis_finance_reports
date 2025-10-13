@@ -222,13 +222,23 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
                         logger.error(
-                            e, extra={"company": company, "matched_company": content}
+                            e,
+                            extra={
+                                "company": company,
+                                "company_match": content,
+                                "row": row,
+                                "col": col,
+                            },
                         )
                         logger.warning(
                             _("Skipping line..."),
-                            extra={"company": company, "matched_company": content},
+                            extra={
+                                "company": company,
+                                "company_match": content,
+                                "row": row,
+                                "col": col,
+                            },
                         )
-                        raise Exception
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break

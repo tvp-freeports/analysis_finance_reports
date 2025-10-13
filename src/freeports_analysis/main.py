@@ -43,6 +43,7 @@ from freeports_analysis.conf_parse import (
 )
 from freeports_analysis.logging import (
     LOG_CONTEXTUAL_INFOS,
+    LOG_ADAPT_INVESTMENT_INFOS,
     LOGGING_TABLE,
     CsvFormatter,
 )
@@ -211,12 +212,21 @@ def _main_job(config, n_workers: int):
     log_file = config["OUT_PATH"] / ".log.csv"
     with log_file.open("w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
-        header = ["Page", "Matched Company", "Company", "Field name", "Message"]
+        header = [
+            "Page",
+            "Matched Company",
+            "Company",
+            "Field name",
+            "Row",
+            "Column",
+            "Message",
+        ]
         if config["BATCH_FILE"] is not None:
             header = ["Report"] + header
         writer.writerow(header)
     HANDLER_CSV = log.FileHandler(log_file, mode="a")
     CSV_FORMATTER = CsvFormatter()
+    HANDLER_CSV.addFilter(LOG_ADAPT_INVESTMENT_INFOS)
     HANDLER_CSV.addFilter(LOG_CONTEXTUAL_INFOS)
     HANDLER_CSV.setFormatter(CSV_FORMATTER)
     HANDLER_CSV.setLevel(log.WARNING)
@@ -226,7 +236,7 @@ def _main_job(config, n_workers: int):
     LOG_CONTEXTUAL_INFOS.report = config["PREFIX_OUT"]
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
-    logger.debug(_("Starting decoding pdf to xml..."))
+    logger.info(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug(_("End decoding pdf to xml!"))
     targets = get_target_companies(config["TARGET_LISTS"])

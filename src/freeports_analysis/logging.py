@@ -89,9 +89,9 @@ class CsvFormatter(logging.Formatter):
         company = ""
         company_match = ""
         if log_record.vertical_ref is not None:
-            vertical_ref = log_record.vertical_ref.split()
-            company = vertical_ref[-1]
-            company_match = " ".join(vertical_ref[:-1])
+            vertical_ref = log_record.vertical_ref.split("[")
+            company = vertical_ref[-1].replace("]", "").strip()
+            company_match = " ".join(vertical_ref[:-1]).strip().replace("\n", "\\n")
         fields = {
             "page": log_record.page if log_record.page is not None else "",
             "company_match": company_match,
@@ -99,18 +99,22 @@ class CsvFormatter(logging.Formatter):
             "field_name": log_record.horizontal_ref
             if log_record.horizontal_ref is not None
             else "",
+            "row": log_record.c1 if log_record.c1 is not None else "",
+            "col": log_record.c2 if log_record.c2 is not None else "",
             "message": log_record.getMessage(),
         }
         if log_record._batch_mode:
             fields = {
                 "report": log_record.report if log_record.report is not None else ""
             } | fields
-        return (
-            pd.DataFrame([fields])
-            .to_csv(header=False, index=False)
-            .strip()
-            .replace("\n", "\\n")
-        )
+        return pd.DataFrame([fields]).to_csv(header=False, index=False).strip()
+
+
+def _set_if_not_exists(a, b, field):
+    try:
+        getattr(b, field)
+    except AttributeError:
+        setattr(b, field, getattr(a, field))
 
 
 class AddContextualInfos(logging.Filter):
@@ -126,13 +130,6 @@ class AddContextualInfos(logging.Filter):
     def filter(self, log_record):
         log_record._mproc = self.mproc
         log_record._batch_mode = self.batch_mode
-
-        def _set_if_not_exists(a, b, field):
-            try:
-                getattr(b, field)
-            except AttributeError:
-                setattr(b, field, getattr(a, field))
-
         for field in ["page", "report", "vertical_ref", "horizontal_ref", "c1", "c2"]:
             _set_if_not_exists(self, log_record, field)
         return log_record
@@ -140,6 +137,29 @@ class AddContextualInfos(logging.Filter):
 
 LOG_CONTEXTUAL_INFOS = AddContextualInfos()
 
+
+class AdaptStandardInvesmentInfos(logging.Filter):
+    company = None
+    company_match = None
+    field = None
+    row = None
+    col = None
+
+    def filter(self, log_record):
+        for field in ["company", "company_match", "field", "row", "col"]:
+            _set_if_not_exists(self, log_record, field)
+        company = log_record.company if log_record.company is not None else ""
+        company_match = (
+            log_record.company_match if log_record.company_match is not None else ""
+        )
+        log_record.vertical_ref = f"{log_record.company} [{log_record.company_match}]"
+        log_record.horizontal_ref = log_record.field
+        log_record.c1 = log_record.row
+        log_record.c2 = log_record.col
+        return log_record
+
+
+LOG_ADAPT_INVESTMENT_INFOS = AdaptStandardInvesmentInfos()
 
 HANDLER_STDERR = logging.StreamHandler()
 HANDLER_STDERR.addFilter(LOG_CONTEXTUAL_INFOS)
