@@ -1,12 +1,27 @@
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet, TextSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
+    FontSet,
+    TextSet,
+    FontSizeSet,
+)
 
 header_set = [
     PdfLineSet.from_str('TimesNewRoman,Bold "Domicile"'),
     PdfLineSet.from_str('TimesNewRoman,Bold "Shares/"'),
 ]
-subfund_set = PdfLineSet.from_str("TimesNewRoman,Bold(112:136)")
+subfund_set = PdfLineSet(
+    font="TimesNewRoman,Bold",
+    font_size=FontSizeSet.from_range(9.95, 10.03),
+    area={
+        "x_min": None,
+        "x_max": None,
+        "y_min": PdfLineSet(
+            font="TimesNewRoman,Bold", text="Condensed Schedule of Investments"
+        ),
+        "y_max": PdfLineSet(font="TimesNewRoman,Bold", text="Domicile"),
+    },
+)
 currency_set = PdfLineSet(
     font="TimesNewRoman,Bold",
     area=(
@@ -18,7 +33,7 @@ currency_set = PdfLineSet(
 body_set = (
     PdfLineSet(
         font=FontSet("TimesNewRoman", "TimesNewRoman,Bold"),
-        font_size=10.02,
+        font_size=FontSizeSet.from_range(9.95, 10.03),
         area={
             "x_min": 135,
             "x_max": None,
