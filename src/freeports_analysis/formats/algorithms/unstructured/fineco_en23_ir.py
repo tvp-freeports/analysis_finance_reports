@@ -1,6 +1,6 @@
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet, TextSet
 
 header_set = [
     PdfLineSet.from_str('TimesNewRoman,Bold "Domicile"'),
@@ -15,11 +15,21 @@ currency_set = PdfLineSet(
         (1.2, 1.2),
     ),
 )
-body_set = PdfLineSet(
-    font=FontSet("TimesNewRoman", "TimesNewRoman,Bold"),
-    font_size=10.02,
-    area=((150, None), (185, 780)),
-) - PdfLineSet(text="-$")
+body_set = (
+    PdfLineSet(
+        font=FontSet("TimesNewRoman", "TimesNewRoman,Bold"),
+        font_size=10.02,
+        area={
+            "x_min": 135,
+            "x_max": None,
+            "y_min": 185,
+            "y_max": PdfLineSet(
+                text=TextSet("SWAPS", "FORWARDS", "FUTURES"), font="TimesNewRoman,Bold"
+            ),
+        },
+    )
+    - PdfLineSet(text="-$")
+) & PdfLineSet(area=(None, 750))
 
 
 @standard_pdf_filtering(

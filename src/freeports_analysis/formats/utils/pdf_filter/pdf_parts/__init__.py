@@ -311,6 +311,18 @@ class _FlattenPdfLineSet:
         )
         return concrete
 
+    @property
+    def is_concrete(self):
+        if self._font is not None and not isinstance(self._font, FontSet):
+            return False
+        if self._font_size is not None and not isinstance(self._font_size, FontSizeSet):
+            return False
+        if self._text is not None and not isinstance(self._text, TextSet):
+            return False
+        if self._area is not None and not isinstance(self._area, Polygon):
+            return False
+        return True
+
 
 class PdfLineSet:
     def __init__(
@@ -359,6 +371,17 @@ class PdfLineSet:
         return isinstance(self._left, _FlattenPdfLineSet) and self._right is None
 
     @property
+    def is_concrete(self):
+        l_concrete = self._left.is_concrete
+        r_concrete = None
+        if self._right is None or not l_concrete:
+            return l_concrete
+        if self._right is not None:
+            right = self._right[1]
+            r_concrete = right.is_concrete
+        return l_concrete and r_concrete
+
+    @property
     def one_d(self):
         if not self.is_simple:
             return False
@@ -391,7 +414,7 @@ class PdfLineSet:
 
     def __or__(self, other):
         newset = PdfLineSet()
-        if self.is_simple and other.one_d:
+        if self.is_simple and self.is_concrete and other.one_d and other.is_concrete:
             newset._left._font = _op_over_none(or_, self._left.font, other.font)
             newset._left._font_size = _op_over_none(
                 or_, self._left.font_size, other._left.font_size
@@ -405,7 +428,7 @@ class PdfLineSet:
 
     def __and__(self, other):
         newset = PdfLineSet()
-        if self.is_simple and other.one_d:
+        if self.is_simple and other.one_d and self.is_concrete and other.is_concrete:
             newset._left._font = _op_over_none(and_, self._left.font, other._left.font)
             newset._left._font_size = _op_over_none(
                 and_, self._left.font_size, other._left.font_size
@@ -419,7 +442,7 @@ class PdfLineSet:
 
     def __truediv__(self, other):
         newset = PdfLineSet()
-        if self.is_simple and other.one_d:
+        if self.is_simple and other.one_d and self.is_concrete and other.is_concrete:
             sf, of = self._left.font, other._left.font
             sfs, ofs = self._left.font_size, other._left.font_size
             st, ot = self._left.text, other._left.text
@@ -674,10 +697,10 @@ def _default_area_agg(value, lines, xml_root):
             else:
                 bounds_t = tuple(zip(*bounds))
                 vl = {
-                    "x_min": min(*bounds_t[2]),
-                    "y_min": min(*bounds_t[3]),
-                    "x_max": max(*bounds_t[0]),
-                    "y_max": max(*bounds_t[1]),
+                    "x_min": max(*bounds_t[2]),
+                    "y_min": max(*bounds_t[3]),
+                    "x_max": min(*bounds_t[0]),
+                    "y_max": min(*bounds_t[1]),
                 }[k]
         concrete_values[k] = vl
     return box(
