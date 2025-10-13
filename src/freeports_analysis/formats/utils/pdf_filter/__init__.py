@@ -194,6 +194,8 @@ def standard_pdf_filtering(
     deselection_list: Optional[List[PdfLineSet]] = [],
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
+    row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
+    row_tolerance: float = 0.0,
 ) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
     """Decorator factory for creating PDF filters with standardized processing.
 
@@ -266,6 +268,7 @@ def standard_pdf_filtering(
         def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
             body_set_c = body_set.contextualize(xml_root)
             _algorithm_flags = algorithm_flags
+            _row_algorithm_flags = row_algorithm_flags
             metadata = {}
             try:
                 metadata = page_metadata(xml_root)
@@ -299,13 +302,26 @@ def standard_pdf_filtering(
                     if enabled:
                         algo |= flag
                 _algorithm_flags = algo
+            if isinstance(_row_algorithm_flags, list):
+                all_flags = [
+                    TablePosAlgorithm.ROW,
+                    TablePosAlgorithm.BIG_RULE,
+                    TablePosAlgorithm.RULER_AREA,
+                    TablePosAlgorithm.TEST_POS,
+                ]
+                algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+                for flag, enabled in zip(all_flags, _row_algorithm_flags):
+                    if enabled:
+                        algo |= flag
+                _row_algorithm_flags = algo
 
             table_col_positions = get_table_positions(
                 table_rows, algorithm_flags=_algorithm_flags, tolerance=tolerance
             )
             table_row_positions = get_table_positions(
                 table_rows,
-                algorithm_flags=_algorithm_flags | TablePosAlgorithm.ROW,
+                algorithm_flags=_row_algorithm_flags | TablePosAlgorithm.ROW,
+                tolerance=row_tolerance,
             )
 
             def _width(area):

@@ -20,6 +20,8 @@ class InputStandardCostCurr(BaseModel):
     currency: Currency
     algorithm_flags: Optional[InputTablePosAlgorithm] = TablePosAlgorithm(0)
     tolerance: Optional[float] = 0.0
+    row_algorithm_flags: Optional[InputTablePosAlgorithm] = TablePosAlgorithm(0)
+    row_tolerance: Optional[float] = 0.0
 
 
 def standard_cost_curr(arg: InputStandardCostCurr):
@@ -33,4 +35,6 @@ def standard_cost_curr(arg: InputStandardCostCurr):
         body_set=PdfLineSet.from_dict(arg.body_set.model_dump()),
         algorithm_flags=arg.algorithm_flags,
         tolerance=arg.tolerance,
+        row_algorithm_flags=arg.row_algorithm_flags,
+        row_tolerance=arg.row_tolerance,
     )

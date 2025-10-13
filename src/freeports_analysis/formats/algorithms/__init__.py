@@ -65,7 +65,7 @@ def _exec_segment(
     show_progress = False if progress_msg is None else True
     batch_results = []
     for page, arg in args_batch:
-        LOG_CONTEXTUAL_INFOS.page = (page + i_batch_page) - 1
+        LOG_CONTEXTUAL_INFOS.page = page
         if show_progress and (
             (page + i_batch_page) % (n_pages // min(10, n_pages)) == 0
         ):

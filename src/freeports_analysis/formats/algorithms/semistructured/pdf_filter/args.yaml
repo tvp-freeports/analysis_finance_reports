@@ -12,9 +12,10 @@ AMUNDI-IT24:
       area:
         y_max: 60
     currency: EUR
-    algorithm-flags:
-      - RULER_AREA
+    # algorithm-flags:
+    #   - RULER_AREA
     tolerance: 1.0
+    row_tolerance: 0.5
 
 EURIZON-IT24:
   deselection_list:
