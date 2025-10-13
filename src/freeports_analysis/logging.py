@@ -94,8 +94,8 @@ class CsvFormatter(logging.Formatter):
             company_match = " ".join(vertical_ref[:-1]).strip().replace("\n", "\\n")
         fields = {
             "page": log_record.page if log_record.page is not None else "",
-            "company_match": company_match,
-            "company": company,
+            "company_match": company_match if company_match is not None else "",
+            "company": company if company is not None else "",
             "field_name": log_record.horizontal_ref
             if log_record.horizontal_ref is not None
             else "",

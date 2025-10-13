@@ -348,10 +348,13 @@ def standard_text_extraction(
                     try:
                         metadata[name] = pdf_blocks_table[abs_idx(pos)].content
                     except (KeyError, AttributeError):
+                        row = None
+                        col = None
+                        if isinstance(abs_idx(pos), tuple):
+                            row, col = abs_idx(pos)
                         logger.error(
-                            _("Expected {} not found, replacing with None...").format(
-                                name
-                            )
+                            _("Expected field not found, replacing with None..."),
+                            extra={"col": col, "row": row, "field": name},
                         )
                         metadata[name] = None
                 return metadata
