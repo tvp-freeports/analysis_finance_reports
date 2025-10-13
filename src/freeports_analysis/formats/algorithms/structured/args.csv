@@ -21,5 +21,5 @@ FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,ArialNarrow-Bold(:90),ArialNarro
 FINECO-EN23@IR,,,,,1,-1,2,,
 ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",ArialNarrow-Bold(:75),"ArialNarrow-Bold(:75) ""(in """,ArialNarrow[7],,,,,
 KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",ArialNarrow-Bold(:75),"ArialNarrow-Bold[12] ""(in """,ArialNarrow[6],,,,,
-UBS-EN23,"Frutiger45LightBold ""Description """,Frutiger45Light(756:764.5),"Frutiger45LightBold ""Valuation in """,Frutiger45Light[5],2,1,3,,-1
+UBS-EN23,"Frutiger45LightBold ""Description """,Frutiger45Light(730:770),"Frutiger45LightBold ""Valuation in """,Frutiger45Light[5],2,1,3,,-1
 ANIMA_SGR-IT24.B,,,,,3,2,4,,1

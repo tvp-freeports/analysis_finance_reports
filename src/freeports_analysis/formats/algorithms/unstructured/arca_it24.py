@@ -1,31 +1,23 @@
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
 
 header_set = [
-    PdfLineSet.from_str('Lato,Bold "Titoli "'),
-    PdfLineSet.from_str('Lato,Bold "Divisa "'),
+    PdfLineSet.from_str('TrebuchetMS-Bold "Titoli"'),
 ]
 subfund_set = PdfLineSet(
-    font="Lato",
-    font_size=7.92,
-    area={
-        "x_min": PdfLineSet(
-            font="Lato", text="di Gestione del Risparmio", font_size=7.92
-        ),
-        "x_max": None,
-        "y_min": None,
-        "y_max": PdfLineSet(font="Lato,Bold", text="Titoli"),
-    },
+    font=FontSet("Calibri", "Lato-Regular"),
+    area={"x_min": None, "x_max": None, "y_min": None, "y_max": 60},
 )
-currency_set = PdfLineSet.from_str('Lato,Bold "Controvalore in "')
+currency_set = "EUR"
 body_set = PdfLineSet(
-    font="Lato",
+    font="TrebuchetMS",
     font_size=6.96,
     area={
         "x_min": None,
         "x_max": None,
         "y_min": PdfLineSet(
-            font="Lato",
+            font="Lato-Regular",
             text="Elenco analitico dei principali strumenti finanziari detenuti dal Fondo",
             font_size=12,
         ),

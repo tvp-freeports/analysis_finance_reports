@@ -16,20 +16,6 @@ AMUNDI-IT24:
       - RULER_AREA
     tolerance: 1.0
 
-ARCA-IT24:
-  header_set:
-    - font: TrebuchetMS-Bold
-      text: "Titoli"
-  body_set:
-    font: TrebuchetMS
-    area:
-      y_min: 83
-  subfund_set:
-    font: Calibri
-    area:
-      y_max: 60
-  currency: EUR
-
 EURIZON-IT24:
   deselection_list:
     - font: TrebuchetMS
