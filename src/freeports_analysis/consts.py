@@ -19,14 +19,6 @@ from freeports_analysis.i18n import _
 
 
 logger = log.getLogger(__name__)
-STANDARD_LOG_FORMATTER = log.Formatter("%(levelname)s %(name)s: %(message)s")
-STANDARD_LOG_FORMATTER_MP = log.Formatter(
-    "%(levelname)s[%(process)d] %(name)s: %(message)s"
-)
-STANDARD_LOG_FORMATTER = log.Formatter("%(levelname)s %(name)s: %(message)s")
-STANDARD_LOG_FORMATTER_MP = log.Formatter(
-    "%(levelname)s[%(process)d] %(name)s: %(message)s"
-)
 
 
 PROGRAM_DESCRIPTION = _("""Analyze finance reports searching for investing in companies

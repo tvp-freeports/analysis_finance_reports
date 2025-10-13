@@ -2,8 +2,6 @@
 
 import logging as log
 
-
-from freeports_analysis.consts import STANDARD_LOG_FORMATTER
 from freeports_analysis.i18n import _
 from freeports_analysis.conf_parse import (
     DEFAULT_CONFIG_LOCATION,
@@ -13,20 +11,23 @@ from freeports_analysis.conf_parse import (
     FreeportsCmdConfig,
     log_config,
 )
+from freeports_analysis.logging import (
+    HANDLER_STDERR,
+    LOG_CONTEXTUAL_INFOS,
+    DevDebugFormatter,
+)
 from freeports_analysis.main import main
-
-
-logger = log.getLogger()
-stderr_log = log.StreamHandler()
-stderr_log.setLevel(log.DEBUG)
-stderr_log.setFormatter(STANDARD_LOG_FORMATTER)
-logger.addHandler(stderr_log)
 
 
 def cmd():
     """Command called when launching `freeports` from terminal,
     it calls the `main` function.
     """
+    rootlogger = log.getLogger()
+    logger = log.getLogger(__package__ + ".cmd")
+    logger.addHandler(HANDLER_STDERR)
+    logger.propagate = False
+
     config = DEFAULT_CONFIG
     config_location = DEFAULT_CONFIG_LOCATION
     log_level = (5 - config["VERBOSITY"]) * 10
@@ -49,6 +50,14 @@ def cmd():
     config, config_location = config_env.overwrite_config(config, config_location)
     config, config_location = config_cmd.overwrite_config(config, config_location)
     log_level = (5 - config["VERBOSITY"]) * 10
-    logger.setLevel(log_level)
+    if log_level <= log.DEBUG:
+        HANDLER_DEVDEBUG = log.FileHandler("freeports.log", "w")
+        HANDLER_DEVDEBUG.addFilter(LOG_CONTEXTUAL_INFOS)
+        HANDLER_DEVDEBUG.setFormatter(DevDebugFormatter())
+        rootlogger.addHandler(HANDLER_DEVDEBUG)
+    rootlogger.setLevel(log_level)
     log_config(logger, config, config_location)
+
+    logger.removeHandler(HANDLER_STDERR)
+    logger.propagate = True
     main(config)

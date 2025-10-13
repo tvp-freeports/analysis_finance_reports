@@ -42,16 +42,13 @@ from freeports_analysis.conf_parse import (
     FreeportsJobConfig,
 )
 from freeports_analysis.logging import (
-    FORMATTER_SOURCE_MP,
-    FORMATTER_SOURCE,
-    HANDLER_STDERR,
-    AddPageFilter,
-    AddReportFilter,
+    LOG_CONTEXTUAL_INFOS,
+    LOGGING_TABLE,
     CsvFormatter,
 )
 
 
-logger = log.getLogger(__package__)
+logger = log.getLogger()
 
 
 class NoPDFormatDetected(Exception):
@@ -219,17 +216,14 @@ def _main_job(config, n_workers: int):
             header = ["Report"] + header
         writer.writerow(header)
     HANDLER_CSV = log.FileHandler(log_file, mode="a")
-    CSV_FORMATTER = CsvFormatter(config["BATCH_FILE"] is not None)
-    PAGE_FILTER = AddPageFilter()
-    REPORT_FILTER = AddReportFilter()
-    HANDLER_CSV.addFilter(REPORT_FILTER)
-    HANDLER_CSV.addFilter(PAGE_FILTER)
+    CSV_FORMATTER = CsvFormatter()
+    HANDLER_CSV.addFilter(LOG_CONTEXTUAL_INFOS)
     HANDLER_CSV.setFormatter(CSV_FORMATTER)
     HANDLER_CSV.setLevel(log.WARNING)
-    REPORT_FILTER.report = config["PREFIX_OUT"]
-    logging_table = log.getLogger("freeports_analysis.formats.utils")
-    logging_table.addHandler(HANDLER_CSV)
-
+    format_utils = log.getLogger(__package__ + ".formats.utils")
+    format_utils.addHandler(HANDLER_CSV)
+    LOGGING_TABLE.addHandler(HANDLER_CSV)
+    LOG_CONTEXTUAL_INFOS.report = config["PREFIX_OUT"]
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
     logger.debug(_("Starting decoding pdf to xml..."))
@@ -247,10 +241,10 @@ def _main_job(config, n_workers: int):
         batches.append((batch_pages, start_idx + 1, n_pages, targets, config["FORMAT"]))
     results_batches = None
     if n_workers > 1:
-        HANDLER_STDERR.setFormatter(FORMATTER_SOURCE_MP)
+        LOG_CONTEXTUAL_INFOS.mproc = True
         with Pool(processes=n_workers) as pool:
             results_batches = pool.starmap(pipeline_batch, batches)
-        HANDLER_STDERR.setFormatter(FORMATTER_SOURCE)
+        LOG_CONTEXTUAL_INFOS.mproc = False
     else:
         results_batches = [pipeline_batch(*batches[0])]
     promises_resolution_map = {}
@@ -288,13 +282,14 @@ def main(config):
     if config["BATCH_FILE"] is None:
         results_documents = [_main_job(config, n_workers)]
     else:
+        LOG_CONTEXTUAL_INFOS.batch_mode = True
         config_jobs = batch_job_confs(config)
         args = [(c, 1) for c in config_jobs]
         if n_workers > 1:
-            HANDLER_STDERR.setFormatter(FORMATTER_SOURCE_MP)
+            LOG_CONTEXTUAL_INFOS.mproc = True
             with Pool(n_workers) as p:
                 results_documents = p.starmap(_main_job, args)
-            HANDLER_STDERR.setFormatter(FORMATTER_SOURCE)
+            LOG_CONTEXTUAL_INFOS.mproc = False
         else:
             results_documents = [_main_job(*args[0])]
     results = transform_to_files_schema(
@@ -320,6 +315,11 @@ if __name__ == "__main__":
     config, config_location = config_env.overwrite_config(config, config_location)
 
     LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
-    log.getLogger().setLevel(LOG_LEVEL)
+    if LOG_LEVEL <= log.DEBUG:
+        HANDLER_DEVDEBUG = log.FileHandler("freeports.log", "w")
+        HANDLER_DEVDEBUG.addFilter(LOG_CONTEXTUAL_INFOS)
+        HANDLER_DEVDEBUG.setFormatter(DevDebugFormatter())
+        logger.addHandler(HANDLER_DEVDEBUG)
+    logger.setLevel(LOG_LEVEL)
     log_config(logger, config, config_location)
     main(config)
