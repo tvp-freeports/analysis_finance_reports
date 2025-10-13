@@ -6,7 +6,7 @@ based on XML elements, fonts, and positional data.
 
 from typing import List, Optional, TypeAlias, Callable
 from enum import Enum, auto
-import logging as log
+import logging
 from lxml import etree
 from freeports_analysis.formats import (
     PdfBlock,
@@ -25,6 +25,8 @@ from freeports_analysis.consts import Currency
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 FilterCondition: TypeAlias = Callable[[etree.Element], bool]
 PdfFilterFunc: TypeAlias = Callable[[etree.Element], List[TextBlock]]
+
+logger = logging.getLogger(__name__)
 
 
 class OnePdfBlockType(Enum):
