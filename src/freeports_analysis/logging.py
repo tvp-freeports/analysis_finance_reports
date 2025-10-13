@@ -25,11 +25,11 @@ class DevDebugFormatter(logging.Formatter):
         coordinates = (
             "\t[" if log_record.c2 is not None or log_record.c1 is not None else ""
         )
-        coordinates += "c1=%(c1)d" if log_record.c1 is not None else ""
+        coordinates += "c1={log_record.c1}" if log_record.c1 is not None else ""
         coordinates += (
             "," if log_record.c2 is not None and log_record.c1 is not None else ""
         )
-        coordinates += "c2=%(c2)d" if log_record.c2 is not None else ""
+        coordinates += "c2={log_record.c2}" if log_record.c2 is not None else ""
         coordinates += (
             "]" if log_record.c2 is not None or log_record.c1 is not None else ""
         )
@@ -92,6 +92,10 @@ class CsvFormatter(logging.Formatter):
             vertical_ref = log_record.vertical_ref.split("[")
             company = vertical_ref[-1].replace("]", "").strip()
             company_match = " ".join(vertical_ref[:-1]).strip().replace("\n", "\\n")
+            if company == "":
+                company = None
+            if company_match == "":
+                company_match = None
         fields = {
             "page": log_record.page if log_record.page is not None else "",
             "company_match": company_match if company_match is not None else "",
@@ -152,7 +156,7 @@ class AdaptStandardInvesmentInfos(logging.Filter):
         company_match = (
             log_record.company_match if log_record.company_match is not None else ""
         )
-        log_record.vertical_ref = f"{log_record.company} [{log_record.company_match}]"
+        log_record.vertical_ref = f"{company} [{company_match}]"
         log_record.horizontal_ref = log_record.field
         log_record.c1 = log_record.row
         log_record.c2 = log_record.col

@@ -16,6 +16,7 @@ import re
 import logging
 from typing import List, Optional, Tuple
 from freeports_analysis.i18n import _
+from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports_analysis.formats import (
     TextBlock,
     PdfBlock,
@@ -212,6 +213,10 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                             pdf_blocks_table.merge(i, i + 1)
                         else:
                             pdf_blocks_table.merge(i + 1, i)
+                    LOG_ADAPT_INVESTMENT_INFOS.company = company
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = content
+                    LOG_ADAPT_INVESTMENT_INFOS.row = row
+                    LOG_ADAPT_INVESTMENT_INFOS.col = col
                     try:
                         txt_blk = f(
                             pdf_blocks_table,
@@ -221,24 +226,8 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
-                        logger.error(
-                            e,
-                            extra={
-                                "company": company,
-                                "company_match": content,
-                                "row": row,
-                                "col": col,
-                            },
-                        )
-                        logger.warning(
-                            _("Skipping line..."),
-                            extra={
-                                "company": company,
-                                "company_match": content,
-                                "row": row,
-                                "col": col,
-                            },
-                        )
+                        logger.error(e)
+                        logger.warning(_("Skipping line..."))
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break
