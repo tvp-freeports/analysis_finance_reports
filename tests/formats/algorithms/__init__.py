@@ -47,7 +47,7 @@ def generic_test_pdf_filter(page, path):
     fmt, pipeline_name = get_fmt_pipeline_name(path)
     pdf_filters = get_segment(fmt, pipeline_name, 0)
     pdf_blks = [blk for pdf_filter in pdf_filters for blk in pdf_filter(xml_tree)]
-    # dill.dump(pdf_blks,(current_dir / "pages" / f"{page}-pdf_blks.pkl").open("wb"))
+    dill.dump(pdf_blks, (current_dir / "pages" / f"{page}-pdf_blks.pkl").open("wb"))
     reference_pdf_blks = None
     with (current_dir / "pages" / f"{page}-pdf_blks.pkl").open("rb") as f:
         reference_pdf_blks = dill.load(f)
@@ -67,7 +67,7 @@ def generic_test_text_extract(page, path):
     txt_blks = [
         blk for text_extract in text_extracts for blk in text_extract(pdf_blks, trgs)
     ]
-    # dill.dump(txt_blks,(current_dir / "pages" / f"{page}-txt_blks.pkl").open("wb"))
+    dill.dump(txt_blks, (current_dir / "pages" / f"{page}-txt_blks.pkl").open("wb"))
     reference_txt_blks = None
     with (current_dir / "pages" / f"{page}-txt_blks.pkl").open("rb") as f:
         reference_txt_blks = dill.load(f)
@@ -86,7 +86,7 @@ def generic_test_deserialize(page, path):
     results = [
         deserialize(txt_blk) for deserialize in deserializes for txt_blk in txt_blks
     ]
-    # dill.dump(results,(current_dir / "pages" / f"{page}-results.pkl").open("wb"))
+    dill.dump(results, (current_dir / "pages" / f"{page}-results.pkl").open("wb"))
     reference_results = None
     with (current_dir / "pages" / f"{page}-results.pkl").open("rb") as f:
         reference_results = dill.load(f)

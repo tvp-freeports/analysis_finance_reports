@@ -1,0 +1,57 @@
+1:
+  interest_rate: null
+  maturity: '2024-12-01'
+2:
+  interest_rate: null
+  maturity: '2024-09-01'
+3:
+  interest_rate: null
+  maturity: '2024-12-01'
+4:
+  interest_rate: null
+  maturity: '2024-09-01'
+5:
+  interest_rate: null
+  maturity: '2025-08-15'
+6:
+  interest_rate: null
+  maturity: '2024-12-01'
+7:
+  interest_rate: null
+  maturity: '2025-11-15'
+8:
+  interest_rate: null
+  maturity: '2025-03-28'
+9:
+  interest_rate: null
+  maturity: '2025-08-15'
+10:
+  interest_rate: null
+  maturity: '2025-07-01'
+11:
+  interest_rate: null
+  maturity: '2024-12-01'
+12:
+  interest_rate: null
+  maturity: '2025-03-28'
+13:
+  interest_rate: null
+  maturity: '2024-09-01'
+14:
+  interest_rate: null
+  maturity: '2025-06-01'
+15:
+  interest_rate: null
+  maturity: '2026-07-15'
+16:
+  interest_rate: null
+  maturity: '2025-11-15'
+17:
+  interest_rate: null
+  maturity: '2025-03-28'
+18:
+  interest_rate: null
+  maturity: '2024-09-01'
+19:
+  interest_rate: null
+  maturity: '2024-11-15'
