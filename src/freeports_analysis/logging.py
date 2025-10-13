@@ -91,7 +91,7 @@ class CsvFormatter(logging.Formatter):
         if log_record.vertical_ref is not None:
             vertical_ref = log_record.vertical_ref.split("[")
             company = vertical_ref[-1].replace("]", "").strip()
-            company_match = " ".join(vertical_ref[:-1]).strip().replace("\n", "\\n")
+            company_match = " ".join(vertical_ref[:-1]).strip()
             if company == "":
                 company = None
             if company_match == "":
@@ -111,7 +111,12 @@ class CsvFormatter(logging.Formatter):
             fields = {
                 "report": log_record.report if log_record.report is not None else ""
             } | fields
-        return pd.DataFrame([fields]).to_csv(header=False, index=False).strip()
+        return (
+            pd.DataFrame([fields])
+            .to_csv(header=False, index=False)
+            .strip()
+            .replace("\n", "\\n")
+        )
 
 
 def _set_if_not_exists(a, b, field):
