@@ -302,12 +302,12 @@ def standard_deserialization(
                     return cast_func(md[key])
                 except ValueError:
                     logger.error(
-                        _('Error casting "%s" (%s) in company %s'),
-                        key,
-                        str(md[key]),
-                        md["company"],
+                        _("Error casting, found: %s"),
+                        str(md[key]).replace("\n", "\\n"),
+                        extra={"field": key},
                     )
-                    logger.error(str(md))
+                    logger.warning(_("Skipping field"))
+                    logger.debug(str(md))
                     return None
 
             try:

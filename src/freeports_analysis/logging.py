@@ -161,7 +161,9 @@ class AdaptStandardInvesmentInfos(logging.Filter):
         company_match = (
             log_record.company_match if log_record.company_match is not None else ""
         )
-        log_record.vertical_ref = f"{company} [{company_match}]"
+        log_record.vertical_ref = (
+            f"{company} [{company_match.replace('\n', '\\n').strip()}]"
+        )
         log_record.horizontal_ref = log_record.field
         log_record.c1 = log_record.row
         log_record.c2 = log_record.col
