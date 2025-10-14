@@ -1,31 +1,31 @@
 Page,Matched Company,Company,Field name,Row,Column,Message
-252,Volvo Car Corp,Volvo Car AB\n,,38,0,Trying to cast to number but found '–' - forcing cast
-252,Volvo Car Corp,Volvo Car AB\n,% net assets,38,0,"Error casting, found: –\n"
-252,Volvo Car Corp,Volvo Car AB\n,,38,0,Skipping field
-253,Volvo Car Corp,Volvo Car AB\n,,38,0,Trying to cast to number but found '–' - forcing cast
-253,Volvo Car Corp,Volvo Car AB\n,% net assets,38,0,"Error casting, found: –\n"
-253,Volvo Car Corp,Volvo Car AB\n,,38,0,Skipping field
-254,Volvo Car Corp,Volvo Car AB\n,,38,0,Trying to cast to number but found '–' - forcing cast
-254,Volvo Car Corp,Volvo Car AB\n,% net assets,38,0,"Error casting, found: –\n"
-254,Volvo Car Corp,Volvo Car AB\n,,38,0,Skipping field
-259,Volvo Car Corp,Volvo Car AB\n,,38,0,Trying to cast to number but found '–' - forcing cast
-259,Volvo Car Corp,Volvo Car AB\n,% net assets,38,0,"Error casting, found: –\n"
-259,Volvo Car Corp,Volvo Car AB\n,,38,0,Skipping field
-198,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-198,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-198,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
-199,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-199,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-199,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
-200,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-200,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-200,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
-227,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-227,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-227,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
-228,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-228,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-228,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
-229,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Trying to cast to number but found '–' - forcing cast
-229,Palantir Technologies,"Palantir Technologies, Inc.\n",% net assets,7,0,"Error casting, found: –\n"
-229,Palantir Technologies,"Palantir Technologies, Inc.\n",,7,0,Skipping field
+252,Carlsberg Group,Carlsberg A/S\n,% net assets,38,0,Trying to cast to number but found '–' - forcing cast
+252,Carlsberg Group,Carlsberg A/S\n,% net assets,38,0,"Error casting, found: –\n"
+252,Carlsberg Group,Carlsberg A/S\n,% net assets,38,0,Skipping field
+253,Carrefour,Carrefour SA\n,% net assets,38,0,Trying to cast to number but found '–' - forcing cast
+253,Carrefour,Carrefour SA\n,% net assets,38,0,"Error casting, found: –\n"
+253,Carrefour,Carrefour SA\n,% net assets,38,0,Skipping field
+254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,38,0,Trying to cast to number but found '–' - forcing cast
+254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,38,0,"Error casting, found: –\n"
+254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,38,0,Skipping field
+259,CNH Industrial,CNH Industrial NV\n,% net assets,38,0,Trying to cast to number but found '–' - forcing cast
+259,CNH Industrial,CNH Industrial NV\n,% net assets,38,0,"Error casting, found: –\n"
+259,CNH Industrial,CNH Industrial NV\n,% net assets,38,0,Skipping field
+198,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+198,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,"Error casting, found: –\n"
+198,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,Skipping field
+199,Carrefour,Carrefour SA\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+199,Carrefour,Carrefour SA\n,% net assets,7,0,"Error casting, found: –\n"
+199,Carrefour,Carrefour SA\n,% net assets,7,0,Skipping field
+200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,7,0,"Error casting, found: –\n"
+200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,7,0,Skipping field
+227,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+227,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,"Error casting, found: –\n"
+227,Carlsberg Group,Carlsberg A/S\n,% net assets,7,0,Skipping field
+228,Siemens,Siemens Energy AG\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+228,Siemens,Siemens Energy AG\n,% net assets,7,0,"Error casting, found: –\n"
+228,Siemens,Siemens Energy AG\n,% net assets,7,0,Skipping field
+229,Leonardo,Leonardo SpA\n,% net assets,7,0,Trying to cast to number but found '–' - forcing cast
+229,Leonardo,Leonardo SpA\n,% net assets,7,0,"Error casting, found: –\n"
+229,Leonardo,Leonardo SpA\n,% net assets,7,0,Skipping field
