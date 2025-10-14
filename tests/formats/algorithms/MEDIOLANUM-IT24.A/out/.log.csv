@@ -1,0 +1,7 @@
+Page,Matched Company,Company,Field name,Row,Column,Message
+658,Expedia,Expedia Group Inc \n,% net assets,47,0,Trying to cast to number but found '-' - forcing cast
+658,Expedia,Expedia Group Inc \n,% net assets,47,0,"Error casting, found: - \n"
+658,Expedia,Expedia Group Inc \n,% net assets,47,0,Skipping field
+704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,47,0,Trying to cast to number but found '-' - forcing cast
+704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,47,0,"Error casting, found: - \n"
+704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,47,0,Skipping field

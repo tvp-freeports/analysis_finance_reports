@@ -226,7 +226,8 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
-                        logger.error(e)
+                        LOG_ADAPT_INVESTMENT_INFOS.row = None
+                        LOG_ADAPT_INVESTMENT_INFOS.col = None
                         logger.warning(_("Skipping line..."))
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
@@ -244,7 +245,6 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
-                        logger.error(e)
                         logger.warning(_("Skipping line..."))
             return text_part_list
 
@@ -370,10 +370,11 @@ def standard_text_extraction(
                     abs_idx(market_value_pos)
                 ].content
             except (KeyError, AttributeError) as e:
+                logger.error("Field not found", extra={"field": "Market value"})
                 logger.debug(_("Current metadata:\n%s"), str(metadata))
                 logger.debug(_('Current content: "%s"'), pdf_blocks_table[i].content)
                 logger.debug(_("Requested index: %s"), str(abs_idx(market_value_pos)))
-                raise ExpectedTextBlockNotFound(_("Market value not found")) from e
+                raise ExpectedTextBlockNotFound from e
 
             curr = pdf_blocks_table[i].metadata["currency"]
             if isinstance(curr, Currency):

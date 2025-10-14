@@ -8,6 +8,7 @@ from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency, Promise
 from freeports_analysis.output import Equity, Bond
 from freeports_analysis.i18n import _
+from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from .text_extract import EquityBondTextBlockType
 from . import normalize_word, overwrite_if_implemented, normalize_string
 
@@ -296,6 +297,7 @@ def standard_deserialization(
                 return float(to_int(x))
 
             def try_cast(md, key, cast_func):
+                LOG_ADAPT_INVESTMENT_INFOS.field = key
                 if key not in md or md[key] is None:
                     return None
                 try:
@@ -304,12 +306,13 @@ def standard_deserialization(
                     logger.error(
                         _("Error casting, found: %s"),
                         str(md[key]).replace("\n", "\\n"),
-                        extra={"field": key},
                     )
                     logger.warning(_("Skipping field"))
                     logger.debug(str(md))
                     return None
 
+            LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
+            LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
             try:
                 args = {
                     "company": to_str(md["company"]),
@@ -338,7 +341,7 @@ def standard_deserialization(
                     )
                 return default_other_txt_blk_deserializer(blk)
             except ValueError as e:
-                logger.error(_("Cast error in company %s"), md["company"])
+                logger.error(_("Cast error"))
                 raise LineParseFail(e) from e
 
         return deserialize
