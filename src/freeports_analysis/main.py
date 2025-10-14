@@ -208,22 +208,7 @@ def _output_file(config, results):
 
 def _main_job(config, n_workers: int):
     config = FreeportsConfig(**config).model_dump()
-    config["OUT_PATH"].mkdir(exist_ok=True)
     log_file = config["OUT_PATH"] / ".log.csv"
-    with log_file.open("w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        header = [
-            "Page",
-            "Matched Company",
-            "Company",
-            "Field name",
-            "Row",
-            "Column",
-            "Message",
-        ]
-        if config["BATCH_FILE"] is not None:
-            header = ["Report"] + header
-        writer.writerow(header)
     HANDLER_CSV = log.FileHandler(log_file, mode="a")
     CSV_FORMATTER = CsvFormatter()
     HANDLER_CSV.addFilter(LOG_ADAPT_INVESTMENT_INFOS)
@@ -272,7 +257,8 @@ def _main_job(config, n_workers: int):
     for i, results_page in enumerate(results):
         for j in range(len(results_page)):
             results[i][j].fulfill_promises(flat_promises_map)
-
+    format_utils.removeHandler(HANDLER_CSV)
+    LOGGING_TABLE.removeHandler(HANDLER_CSV)
     return results, config["FORMAT"], config["PREFIX_OUT"]
 
 
@@ -287,7 +273,25 @@ def main(config):
         or not associated with any format the program cannot choose a way to
         decode the pdf, so it raises this exception
     """
+
     n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
+    config["OUT_PATH"].mkdir(exist_ok=True)
+    log_file = config["OUT_PATH"] / ".log.csv"
+    with log_file.open("w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        header = [
+            "Page",
+            "Matched Company",
+            "Company",
+            "Field name",
+            "Row",
+            "Column",
+            "Message",
+        ]
+        if config["BATCH_FILE"] is not None:
+            header = ["Report"] + header
+        writer.writerow(header)
+
     results_documents = None
     if config["BATCH_FILE"] is None:
         results_documents = [_main_job(config, n_workers)]
@@ -301,7 +305,9 @@ def main(config):
                 results_documents = p.starmap(_main_job, args)
             LOG_CONTEXTUAL_INFOS.mproc = False
         else:
-            results_documents = [_main_job(*args[0])]
+            results_documents = []
+            for arg in args:
+                results_documents.append(_main_job(*arg))
     results = transform_to_files_schema(
         results_documents, config["BATCH_FILE"] is not None
     )

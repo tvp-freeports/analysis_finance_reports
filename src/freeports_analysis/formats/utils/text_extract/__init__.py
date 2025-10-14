@@ -176,7 +176,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 return text_part_list
             pdf_blocks_table = PdfBlocksTable(pdf_blocks)
             n_cols = pdf_blocks_table.shape[1]
-            while True:
+            while True and i < len(pdf_blocks_table) - 1:
                 company_name = False
                 split = False
                 current_block = pdf_blocks_table[i]
