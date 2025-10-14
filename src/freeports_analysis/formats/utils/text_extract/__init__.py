@@ -228,6 +228,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                     except ExpectedTextBlockNotFound as e:
                         LOG_ADAPT_INVESTMENT_INFOS.row = None
                         LOG_ADAPT_INVESTMENT_INFOS.col = None
+                        LOG_ADAPT_INVESTMENT_INFOS.field = None
                         logger.warning(_("Skipping line..."))
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
@@ -245,6 +246,9 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound as e:
+                        LOG_ADAPT_INVESTMENT_INFOS.row = None
+                        LOG_ADAPT_INVESTMENT_INFOS.col = None
+                        LOG_ADAPT_INVESTMENT_INFOS.field = None
                         logger.warning(_("Skipping line..."))
             return text_part_list
 
