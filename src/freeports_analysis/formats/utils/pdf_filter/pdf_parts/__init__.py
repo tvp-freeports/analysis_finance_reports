@@ -12,7 +12,7 @@ from .font import Font, FontSize, FontSizeSet, FontSet, TextSet, AllFonts
 from ..xml.position import get_bounds
 from shapely import Polygon, box
 from portion.interval import Interval
-from .position import Area, XRange, YRange, Coord, Area, InputArea
+from .position import InputArea
 from ..xml import xpath_queries as xpath
 
 
