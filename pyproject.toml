@@ -76,6 +76,9 @@ filterwarnings = [
 python_files = ["test_*","test.py"]
 addopts = [
     "--import-mode=importlib",
+    "--benchmark-autosave",
+    "--benchmark-min-time=1",
+    "--benchmark-max-time=10",
 ]
 
 [tool.pylint."TYPECHECK"]

@@ -12,8 +12,8 @@ SHORT_DOCS_NAME = "S"
 LONG_DOCS_NAME = "L"
 TIMESTAMP = datetime.datetime.now().strftime("%y-%m-%d_%H:%M:%S")
 
-n_long = 5
-n_short = 10
+n_long = 1
+n_short = 1
 
 l_docs = random.sample(conf.long_documents, n_long)
 s_docs = random.sample(conf.short_documents, n_short)
@@ -22,7 +22,7 @@ print("Long documents used for profiling:")
 for d in l_docs:
     print(f"\t{d}")
 print("Short documents used for profiling:")
-_s_docs = s_docs
+_s_docs = [s for s in s_docs]
 if len(s_docs) % 2 == 1:
     _s_docs.append("")
 for d1, d2 in zip(_s_docs[::2], _s_docs[1::2]):

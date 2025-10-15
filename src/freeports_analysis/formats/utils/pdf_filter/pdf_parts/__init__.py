@@ -13,6 +13,7 @@ from ..xml.position import get_bounds
 from shapely import Polygon, box
 from portion.interval import Interval
 from .position import Area, XRange, YRange, Coord, Area, InputArea
+from ..xml import xpath_queries as xpath
 
 
 class PdfLine:
@@ -129,9 +130,9 @@ class ExtractedPdfLine(PdfLine):
         """
         bounds = get_bounds(blk)
         super().__init__(
-            text=blk.xpath("./@text")[0],
-            font=Font(blk.xpath(".//font/@name")[0]),
-            font_size=FontSize(blk.xpath(".//font/@size")[0]),
+            text=xpath.text(blk),
+            font=Font(xpath.font_name(blk)),
+            font_size=FontSize(xpath.font_size(blk)),
             area=box(bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]),
         )
         self._blk = blk

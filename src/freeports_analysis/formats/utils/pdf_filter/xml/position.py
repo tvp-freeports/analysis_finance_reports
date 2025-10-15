@@ -7,6 +7,7 @@ extracting coordinates, and calculating dimensions of PDF content blocks.
 
 from typing import Optional, Tuple
 from lxml import etree
+from . import xpath_queries as xpath
 
 
 def is_contained(
@@ -65,11 +66,8 @@ def get_bounds(blk: etree.Element) -> list | None:
         A list containing two tuples representing horizontal (x0, x1) and vertical (y0, y1) bounds.
         Returns None if no 'bbox' attribute is found.
     """
-    bbox = blk.xpath(".//@bbox")
-    if not bbox:
-        return None
-
-    coords = [float(c) for c in bbox[0].split()]
+    bbox = xpath.bbox(blk)
+    coords = [float(c) for c in bbox.split()]
     coords = ((coords[0], coords[2]), (coords[1], coords[3]))
     return coords
 
@@ -90,11 +88,8 @@ def get_position(blk: etree.Element, mean: bool) -> list | None:
         Returns None if no 'bbox' attribute is found.
     """
 
-    bbox = blk.xpath(".//@bbox")
-    if not bbox:
-        return None
-
-    coords = [float(c) for c in bbox[0].split()]  # x0, y0, x1, y1
+    bbox = xpath.bbox(blk)
+    coords = [float(c) for c in bbox.split()]  # x0, y0, x1, y1
 
     if mean:
         x_center = (coords[0] + coords[2]) / 2
@@ -162,5 +157,5 @@ def get_lines_contained(
     x_range: Optional[Tuple[float, float]] = None,
     y_range: Optional[Tuple[float, float]] = None,
 ):
-    lines = blk.findall(".//line")
+    lines = xpath.lines(blk)
     return [ln for ln in lines if is_contained(ln, x_range, y_range)]
