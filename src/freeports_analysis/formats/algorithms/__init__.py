@@ -141,9 +141,10 @@ def text_extract_exec(
     List[TextBlock]
         TextBlock objects containing the extracted content.
     """
+    matches = dataframe_to_match(targets)
 
     def _add_targets_to_txt_extract(f):
-        return lambda blks: f(blks, dataframe_to_match(targets))
+        return lambda blks: f(blks, matches)
 
     text_extract_funcs_with_targets = [
         _add_targets_to_txt_extract(text_extract) for text_extract in text_extract_funcs
