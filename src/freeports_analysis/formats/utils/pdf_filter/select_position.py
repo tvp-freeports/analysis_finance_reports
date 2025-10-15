@@ -7,49 +7,6 @@ import pandas as pd
 
 from freeports_analysis.consts import flag_from_string, InputFlags
 from .pdf_parts import ExtractedPdfLine
-from .pdf_parts.position import XRange, YRange
-
-
-def select_inside(
-    lines: List[ExtractedPdfLine], bounds: XRange | YRange
-) -> List[ExtractedPdfLine]:
-    """Select only lines inside a range
-
-    Parameters
-    ----------
-    lines : List[ExtractedPdfLine]
-        lines to filter
-    bounds : XRange | YRange
-        area to filter from
-
-    Returns
-    -------
-    List[ExtractedPdfLine]
-        lines inside `bounds`
-    """
-    coord = 0 if isinstance(bounds, XRange) else 1
-    return [line for line in lines if line.c[coord] in bounds]
-
-
-def select_outside(
-    lines: List[ExtractedPdfLine], bounds: XRange | YRange
-) -> List[ExtractedPdfLine]:
-    """Select only lines outside a range
-
-    Parameters
-    ----------
-    lines : List[ExtractedPdfLine]
-        lines to filter
-    bounds : XRange | YRange
-        area to filter from
-
-    Returns
-    -------
-    List[ExtractedPdfLine]
-        lines outside `bounds`
-    """
-    coord = 0 if isinstance(bounds, XRange) else 1
-    return [line for line in lines if line.c[coord] not in bounds]
 
 
 class TablePosAlgorithm(Flag):
