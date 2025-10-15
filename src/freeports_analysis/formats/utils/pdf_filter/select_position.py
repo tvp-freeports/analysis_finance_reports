@@ -124,7 +124,7 @@ def get_table_positions(
     ----------
     return_columns : bool
         Whether to return column indexes (True) or row indexes (False)
-    areas : list of Area
+    areas : list of Poligons
         List of areas representing table cells
     small_rule : bool
         Whether to use smallest (True) or largest (False) dimension for rulers

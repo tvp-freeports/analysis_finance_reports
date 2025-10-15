@@ -30,7 +30,7 @@ class PdfLine:
         The font of the line
     font_size : Optional[FontSize]
         The text size of the line
-    area : Optional[Area]
+    area : Optional[Polygon]
         The area in which the line is contained
 
     """
@@ -55,12 +55,12 @@ class PdfLine:
         self._area = area
 
     @property
-    def area(self) -> Area:
+    def area(self) -> Polygon:
         """Get the geometric properties of the line.
 
         Returns
         -------
-        Area
+        Polygon
             The area representing the line's bounds.
         """
         return self._area

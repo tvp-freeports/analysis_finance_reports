@@ -11,10 +11,7 @@ from freeports_analysis.formats.utils.text_extract import (
     EquityBondTextBlockType,
 )
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
-    YRange,
     PdfLineSet,
-    XRange,
-    Area,
     ExtractedPdfLine,
 )
 from freeports_analysis.formats.utils.pdf_filter.xml.font import (
