@@ -141,59 +141,58 @@ def get_table_positions(
     areas = [line.area for line in lines]
     font_sizes = [line.font_size for line in lines]
     rulers = []
-
-    def _x_bounds(a):
-        xmin, ymin, xmax, ymax = a.bounds
-        return xmin, xmax
-
-    def _y_bounds(a):
-        xmin, ymin, xmax, ymax = a.bounds
-        return ymin, ymax
-
-    def _width(a):
-        xmin, ymin, xmax, ymax = a.bounds
-        return xmax - xmin
-
-    def _height(a):
-        xmin, ymin, xmax, ymax = a.bounds
-        return ymax - ymin
-
     # Choose min/max function based on small_rule
     choose = max if TablePosAlgorithm.BIG_RULE in algorithm_flags else min
     return_col = TablePosAlgorithm.ROW not in algorithm_flags
+
+    def _get_geometrical_horizontal_infos(a):
+        xmin, ymin, xmax, ymax = a.bounds
+        width = xmax - xmin
+        x_center = (xmin + xmax) / 2
+        return (xmin, xmax), width, x_center
+
+    def _get_geometrical_vertical_infos(a):
+        xmin, ymin, xmax, ymax = a.bounds
+        height = ymax - ymin
+        y_center = (ymin + ymax) / 2
+        return (ymin, ymax), height, y_center
+
+    geometrical_infos = list(
+        map(
+            _get_geometrical_horizontal_infos
+            if return_col
+            else _get_geometrical_vertical_infos,
+            areas,
+        )
+    )
+
     while None in indexes:
         curr_idx = len(rulers)
         # Get unindexed areas
         unindexed = [
-            (i, _width(area) if return_col else _height(area))
+            (i, geometrical_infos[i][1])
             for i, area in enumerate(areas)
             if indexes[i] is None
         ]
 
         # Select ruler for this axis
         ruler_idx, _ = choose(unindexed, key=lambda x: x[1])
-        ruler_area = areas[ruler_idx]
         # Get ruler bounds and position
-        ruler_bounds = _x_bounds(ruler_area) if return_col else _y_bounds(ruler_area)
-        ruler_pos = ruler_area.centroid.x if return_col else ruler_area.centroid.y
+        ruler_bounds, _, ruler_pos = geometrical_infos[ruler_idx]
         rulers.append((curr_idx, ruler_pos))
 
         # Classify areas
-
         ruler_geometry = (ruler_pos, ruler_bounds)
         for i, table_pos in enumerate(indexes):
             if table_pos is not None:
                 continue
-            test_bounds = _x_bounds(areas[i]) if return_col else _y_bounds(areas[i])
-            test_pos = areas[i].centroid.x if return_col else areas[i].centroid.y
+            (test_bounds, test_area, test_pos) = geometrical_infos[i]
             test_geometry = (test_pos, test_bounds)
             effective_tolerance = 0
             if tolerance_mu == TablePosMeasureUnit.PT:
                 effective_tolerance = tolerance
             elif tolerance_mu == TablePosMeasureUnit.PERC:
-                effective_tolerance = (
-                    tolerance * _width(areas[i]) if return_col else _height(areas[i])
-                )
+                effective_tolerance = tolerance * test_area
             elif tolerance_mu == TablePosMeasureUnit.EM:
                 effective_tolerance = tolerance * font_sizes[i]
 
