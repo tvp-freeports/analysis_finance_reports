@@ -181,6 +181,7 @@ class Currency(Enum):
     ISK = "ISK"
     NZD = "NZD"
     EGP = "EGP"
+    TWD = "TWD"
 
     @property
     def symbol(self):
@@ -229,6 +230,7 @@ class Currency(Enum):
             "BGN": "лв",
             "ISK": "kr",
             "NZD": "$",
+            "TWD": "$",
         }[self.value]
 
 

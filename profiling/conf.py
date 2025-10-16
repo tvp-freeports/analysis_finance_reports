@@ -19,7 +19,8 @@ long_documents = [
     "ANIMA-EN23",
     "FINECO-EN23@IR",
     "MEDIOLANUM-IT24.A",
-    "EURIZON-EN23",
+    "EURIZON-EN23.A",
+    "EURIZON-EN23.B",
     "DANSKEINVEST-EN24",
 ]
 short_documents = [

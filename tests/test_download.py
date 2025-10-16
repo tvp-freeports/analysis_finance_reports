@@ -12,7 +12,7 @@ def test_download_pdf_URL_NOT_FOUND():
 
 @pytest.mark.online_tests
 def test_download_pdf_200_OK_NO_SAVE():
-    fmt = "EURIZON-EN23"
+    fmt = "EURIZON-EN23.A"
     pdf = dw.download_pdf(url_example_formats[fmt])
     pdf_reference = root_dir / "formats" / "algorithms" / fmt / "report.pdf"
     assert pdf.getvalue() == pdf_reference.read_bytes()

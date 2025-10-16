@@ -30,7 +30,9 @@ investments_schema = pa.DataFrameSchema(
             pd.Float32Dtype, checks=pa.Check.in_range(0.0, 1.0), nullable=True
         ),
         "Acquisition cost": pa.Column(
-            pd.Float32Dtype, checks=pa.Check.greater_than(0), nullable=True
+            pd.Float32Dtype,
+            checks=pa.Check.greater_than_or_equal_to(0.0),
+            nullable=True,
         ),
         "Acquisition currency": pa.Column(
             pd.StringDtype,
