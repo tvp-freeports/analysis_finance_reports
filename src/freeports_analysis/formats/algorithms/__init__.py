@@ -14,7 +14,7 @@ from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
 from freeports_analysis.output import Investment
 from freeports_analysis.i18n import _
-from freeports_analysis.logging import LOG_CONTEXTUAL_INFOS
+from freeports_analysis.logging import LOG_CONTEXTUAL_INFOS, LOG_ADAPT_INVESTMENT_INFOS
 from .. import PdfBlock, TextBlock
 
 logger_source = log.getLogger(__name__)
