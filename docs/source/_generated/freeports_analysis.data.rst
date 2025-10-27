@@ -1,4 +1,4 @@
-﻿freeports\_analysis.data
+freeports\_analysis.data
 ========================
 
 .. automodule:: freeports_analysis.data

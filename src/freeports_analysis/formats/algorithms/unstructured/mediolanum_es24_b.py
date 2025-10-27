@@ -1,6 +1,10 @@
-"""MEDIOLLANUM_ES24_B format submodule"""
+"""MEDIOLANUM_ES24_B format submodule.
 
-from typing import List, TypeAlias
+This module provides processing functions for the MEDIOLANUM_ES24_B format,
+which handles Spanish financial documents with specific layout characteristics.
+"""
+
+from typing import List, Optional, Any
 from enum import auto, Enum
 from lxml import etree
 from freeports_analysis.formats.utils.pdf_filter import (
@@ -22,17 +26,41 @@ from freeports_analysis.consts import (
 
 
 class PdfBlockType(Enum):
+    """Types of PDF blocks for MEDIOLANUM_ES24_B format."""
+
     RELEVANT_BLOCK = auto()
     SUBFUND = auto()
 
 
 class TextBlockType(Enum):
+    """Types of text blocks for MEDIOLANUM_ES24_B format."""
+
     BOND_TARGET = auto()
     EQUITY_TARGET = auto()
     SUBFUND = auto()
 
 
-def pdf_filter(xml_root: etree.Element) -> dict:
+def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+    """Filter PDF content for MEDIOLANUM_ES24_B format.
+
+    This function processes XML content from PDF to extract relevant blocks,
+    handling both subfund information and standard financial data.
+
+    Parameters
+    ----------
+    xml_root : etree.Element
+        Root element of the PDF XML content
+
+    Returns
+    -------
+    List[PdfBlock]
+        List of extracted PDF blocks with their types and metadata
+
+    Notes
+    -----
+    The function first checks for specific Spanish regulatory markers (CNMV),
+    then falls back to standard PDF filtering for financial data extraction.
+    """
     if is_present_txt_font(
         xml_root, "Registro CNMV:", "Helvetica-Bold"
     ) and is_present_txt_font(xml_root, "Grupo Gestora:", "Helvetica-Bold"):
@@ -57,6 +85,25 @@ def pdf_filter(xml_root: etree.Element) -> dict:
 
 
 def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlock]:
+    """Extract text content from PDF blocks for MEDIOLANUM_ES24_B format.
+
+    Parameters
+    ----------
+    pdf_blocks : List[PdfBlock]
+        List of PDF blocks to extract text from
+    targets : List[str]
+        List of target identifiers for text extraction
+
+    Returns
+    -------
+    List[TextBlock]
+        List of extracted text blocks with their types and metadata
+
+    Notes
+    -----
+    Handles both subfund information extraction and standard financial
+    data extraction with specific column positions.
+    """
     if len(pdf_blocks) == 1 and pdf_blocks[0].type_block == PdfBlockType.SUBFUND:
         return [
             TextBlock(
@@ -77,7 +124,24 @@ def text_extract(pdf_blocks: List[PdfBlock], targets: List[str]) -> List[TextBlo
     return standard_text_extract(pdf_blocks, targets)
 
 
-def deserialize(txt_blk: TextBlock):
+def deserialize(txt_blk: Optional[TextBlock]) -> Optional[Any]:
+    """Deserialize text blocks into structured data for MEDIOLANUM_ES24_B format.
+
+    Parameters
+    ----------
+    txt_blk : Optional[TextBlock]
+        Text block to deserialize, or None
+
+    Returns
+    -------
+    Optional[Any]
+        Deserialized data object or None if input is None
+
+    Notes
+    -----
+    Handles subfund context resolution and applies specific scaling
+    to market values (multiplies by 1000).
+    """
     if txt_blk is None:
         return None
     if txt_blk.type_block == TextBlockType.SUBFUND:

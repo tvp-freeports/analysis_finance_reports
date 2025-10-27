@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -112,11 +113,14 @@
              
   <section id="module-freeports_analysis.formats.algorithms.semistructured.pdf_filter">
 <span id="freeports-analysis-formats-algorithms-semistructured-pdf-filter"></span><h1>freeports_analysis.formats.algorithms.semistructured.pdf_filter<a class="headerlink" href="#module-freeports_analysis.formats.algorithms.semistructured.pdf_filter" title="Link to this heading"></a></h1>
+<p>PDF filtering algorithms for semi-structured document processing.</p>
+<p>This module provides PDF filtering functions specifically designed for
+semi-structured documents, including cost and currency extraction.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_cost_curr</span></code>(arg)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.standard_cost_curr" title="freeports_analysis.formats.algorithms.semistructured.pdf_filter.standard_cost_curr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_cost_curr</span></code></a>(arg)</p></td>
+<td><p>Apply standard PDF filtering for cost and currency extraction.</p></td>
 </tr>
 </tbody>
 </table>
@@ -124,19 +128,143 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr" title="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputStandardCostCurr</span></code></a>(*, deselection_list, ...)</p></td>
-<td><p></p></td>
+<td><p>Input parameters for standard cost and currency PDF filtering.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.semistructured.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">InputStandardCostCurr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">deselection_list:</span> <span class="pre">~typing.List[~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.formats.utils.pdf_filter.pdf_parts.&lt;lambda&gt;)]]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">[],</span> <span class="pre">header_set:</span> <span class="pre">~typing.List[~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.formats.utils.pdf_filter.pdf_parts.&lt;lambda&gt;)]],</span> <span class="pre">body_set:</span> <span class="pre">~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.formats.utils.pdf_filter.pdf_parts.&lt;lambda&gt;)],</span> <span class="pre">subfund_set:</span> <span class="pre">~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.formats.utils.pdf_filter.pdf_parts.&lt;lambda&gt;)],</span> <span class="pre">currency:</span> <span class="pre">~freeports_analysis.consts.Currency,</span> <span class="pre">algorithm_flags:</span> <span class="pre">~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm,</span> <span class="pre">~pydantic.functional_validators.BeforeValidator(func=~freeports_analysis.consts.InputFlags.&lt;locals&gt;.&lt;lambda&gt;,</span> <span class="pre">json_schema_input_type=PydanticUndefined)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">0.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr" title="Link to this definition"></a></dt>
-<dd><dl class="py attribute">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.semistructured.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">InputStandardCostCurr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">deselection_list:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">[],</span> <span class="pre">header_set:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet],</span> <span class="pre">body_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">subfund_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet,</span> <span class="pre">currency:</span> <span class="pre">~freeports_analysis.consts.Currency,</span> <span class="pre">algorithm_flags:</span> <span class="pre">~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm,</span> <span class="pre">~pydantic.functional_validators.BeforeValidator(func=~freeports_analysis.consts.input_flags.&lt;locals&gt;.&lt;lambda&gt;,</span> <span class="pre">json_schema_input_type=PydanticUndefined)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">0.0,</span> <span class="pre">row_algorithm_flags:</span> <span class="pre">~typing.Annotated[~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm,</span> <span class="pre">~pydantic.functional_validators.BeforeValidator(func=~freeports_analysis.consts.input_flags.&lt;locals&gt;.&lt;lambda&gt;,</span> <span class="pre">json_schema_input_type=PydanticUndefined)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">row_tolerance:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">0.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr" title="Link to this definition"></a></dt>
+<dd><p>Input parameters for standard cost and currency PDF filtering.</p>
+<p>This class defines the configuration for filtering PDF content to extract
+cost and currency information from semi-structured documents.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.deselection_list">
+<span class="sig-name descname"><span class="pre">deselection_list</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.deselection_list" title="Link to this definition"></a></dt>
+<dd><p>List of line sets to exclude from processing, by default []</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet">InputPdfLineSet</a>]], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.header_set">
+<span class="sig-name descname"><span class="pre">header_set</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.header_set" title="Link to this definition"></a></dt>
+<dd><p>Line sets representing document headers</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet">InputPdfLineSet</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.body_set">
+<span class="sig-name descname"><span class="pre">body_set</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.body_set" title="Link to this definition"></a></dt>
+<dd><p>Line set representing the main body content</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet">InputPdfLineSet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.subfund_set">
+<span class="sig-name descname"><span class="pre">subfund_set</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.subfund_set" title="Link to this definition"></a></dt>
+<dd><p>Line set representing subfund information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet">InputPdfLineSet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.currency">
+<span class="sig-name descname"><span class="pre">currency</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.currency" title="Link to this definition"></a></dt>
+<dd><p>Currency type to filter for</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Currency" title="freeports_analysis.consts.Currency">Currency</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.algorithm_flags">
+<span class="sig-name descname"><span class="pre">algorithm_flags</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.algorithm_flags" title="Link to this definition"></a></dt>
+<dd><p>Algorithm flags for table position detection, by default TablePosAlgorithm(0)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[InputTablePosAlgorithm], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.tolerance">
+<span class="sig-name descname"><span class="pre">tolerance</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.tolerance" title="Link to this definition"></a></dt>
+<dd><p>Tolerance value for position matching, by default 0.0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[float], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.row_algorithm_flags">
+<span class="sig-name descname"><span class="pre">row_algorithm_flags</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.row_algorithm_flags" title="Link to this definition"></a></dt>
+<dd><p>Algorithm flags for row position detection, by default TablePosAlgorithm(0)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[InputTablePosAlgorithm], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.row_tolerance">
+<span class="sig-name descname"><span class="pre">row_tolerance</span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.row_tolerance" title="Link to this definition"></a></dt>
+<dd><p>Tolerance value for row position matching, by default 0.0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[float], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.model_config">
 <span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr.model_config" title="Link to this definition"></a></dt>
 <dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.semistructured.pdf_filter.standard_cost_curr">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.semistructured.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">standard_cost_curr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr" title="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr"><span class="pre">InputStandardCostCurr</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.standard_cost_curr" title="Link to this definition"></a></dt>
+<dd><p>Apply standard PDF filtering for cost and currency extraction.</p>
+<p>This function processes PDF content to extract cost and currency information
+using configured line sets and filtering parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>arg</strong> (<a class="reference internal" href="#freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr" title="freeports_analysis.formats.algorithms.semistructured.pdf_filter.InputStandardCostCurr"><em>InputStandardCostCurr</em></a>) – Configuration parameters for the filtering operation</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A filtering function that can be applied to XML content</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable[[Any], Any]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function converts input line sets to internal representations and
+applies the standard PDF filtering algorithm with the specified parameters.</p>
 </dd></dl>
 
 <p class="rubric">Modules</p>

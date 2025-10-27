@@ -23,8 +23,24 @@ from .. import overwrite_if_implemented
 from freeports_analysis.consts import Currency
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
+"""Type alias for metadata update functions.
+
+Functions that extract additional metadata from XML elements and return
+metadata dictionaries for PDF blocks.
+"""
+
 FilterCondition: TypeAlias = Callable[[etree.Element], bool]
+"""Type alias for filter condition functions.
+
+Predicate functions that determine whether a PDF filter should be applied
+to a given XML element.
+"""
+
 PdfFilterFunc: TypeAlias = Callable[[etree.Element], List[TextBlock]]
+"""Type alias for PDF filter functions.
+
+Functions that process XML elements and return lists of relevant PDF blocks.
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +74,12 @@ def filter_page_if(
     -------
     Callable[[PdfFilterFunc], PdfFilterFunc]
         A decorator that conditionally applies the PDF filter.
+
+    Notes
+    -----
+    This decorator is useful for creating filters that should only run on
+    specific types of pages (e.g., pages containing certain headers or
+    specific layout elements).
     """
 
     def wrapper(pdf_filter: PdfFilterFunc) -> PdfFilterFunc:
@@ -199,33 +221,74 @@ def standard_pdf_filtering(
 ) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
     """Decorator factory for creating PDF filters with standardized processing.
 
-    Creates a filter that:
-    1. Processes pages containing the specified header text in the specified header font.
-    2. Extracts lines with the specified body font as relevant blocks.
-    3. Extracts subfund text within a specified range or height.
-    4. Allows customization of page metadata and block types.
+    This decorator factory creates a comprehensive PDF processing pipeline that:
+    - Identifies relevant pages based on header criteria
+    - Extracts structured data from tabular content
+    - Handles subfund and currency information
+    - Applies geometric analysis for table detection
+    - Supports deselection of unwanted content
 
     Parameters
     ----------
-    header_txt : str
-        The text that must be present in the header to process the page.
-    header_font : Font
-        The font used by the header text.
-    subfund_height : YRange
-        The vertical range or height for subfund extraction.
-    subfund_font : Font
-        The font used by the subfund text.
-    body_font : Union[str, List[str]]
-        The font or list of fonts used by the body text to extract as relevant blocks.
-    y_range : Optional[Tuple[Optional[float | Tuple[str, str]], Optional[float | Tuple[str, str]]]
-        The vertical range for filtering lines, by default None.
-    deselection_list : Optional[Tuple[str, Font]], optional
-        A list of text and font pairs to exclude from extraction, by default None.
+    header_set : PdfLineSet | List[PdfLineSet]
+        Criteria for identifying page headers. Can be a single set or list of sets
+        for multiple header conditions. Pages must match all header criteria.
+    subfund_set : PdfLineSet
+        Criteria for extracting subfund information from the page.
+    body_set : PdfLineSet
+        Criteria for identifying the main body content (tabular data).
+    currency_set : PdfLineSet | Currency | str
+        Source of currency information. Can be:
+        - PdfLineSet: Extract currency from page content
+        - Currency: Use fixed currency value
+        - str: Currency code (e.g., "USD")
+    deselection_list : Optional[List[PdfLineSet]], optional
+        List of criteria for content to exclude from extraction.
+        Default is empty list.
+    algorithm_flags : List | TablePosAlgorithm, optional
+        Algorithm flags for column position detection.
+        Default is TablePosAlgorithm(0) - no special flags.
+    tolerance : float, optional
+        Tolerance for column position matching.
+        Default is 0.0.
+    row_algorithm_flags : List | TablePosAlgorithm, optional
+        Algorithm flags for row position detection.
+        Default is TablePosAlgorithm(0) - no special flags.
+    row_tolerance : float, optional
+        Tolerance for row position matching.
+        Default is 0.0.
 
     Returns
     -------
     Callable[[PdfFilterFunc], PdfFilterFunc]
-        A decorator that applies the standardized PDF filter.
+        A decorator that applies the standardized PDF filter processing.
+
+    Notes
+    -----
+    The created filter performs the following operations:
+    1. **Header Detection**: Checks if page contains specified header(s)
+    2. **Subfund Extraction**: Extracts subfund information from specified area
+    3. **Currency Extraction**: Determines currency for financial data
+    4. **Body Content Filtering**: Identifies relevant tabular content
+    5. **Table Structure Analysis**: Detects rows and columns using geometric algorithms
+    6. **Deselection**: Removes unwanted content based on deselection criteria
+    7. **Metadata Enrichment**: Adds table position information to blocks
+
+    The algorithm supports complex table layouts through configurable
+    position detection algorithms and tolerance settings.
+
+    Examples
+    --------
+    >>> @standard_pdf_filtering(
+    ...     header_set=PdfLineSet(font="Arial-Bold", text="PORTFOLIO HOLDINGS"),
+    ...     subfund_set=PdfLineSet(font="Arial", area=((0, 100), (700, 750))),
+    ...     body_set=PdfLineSet(font="Arial", font_size=10),
+    ...     currency_set="USD",
+    ...     deselection_list=[PdfLineSet(text="TOTAL")]
+    ... )
+    >>> def my_pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+    ...     # Custom page metadata extraction
+    ...     return {}
     """
     for deselection_set in deselection_list:
         body_set = body_set / deselection_set

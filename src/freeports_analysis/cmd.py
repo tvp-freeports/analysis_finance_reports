@@ -1,8 +1,7 @@
-"""Contains all the functions related to command line use of the `freeport` script"""
+"""Contains all functions related to command line use of the `freeport` script."""
 
 import logging as log
 
-from freeports_analysis.i18n import _
 from freeports_analysis.conf_parse import (
     DEFAULT_CONFIG_LOCATION,
     DEFAULT_CONFIG,
@@ -19,9 +18,29 @@ from freeports_analysis.logging import (
 from freeports_analysis.main import main
 
 
-def cmd():
-    """Command called when launching `freeports` from terminal,
-    it calls the `main` function.
+def cmd() -> None:
+    """Command line entry point for the freeports script.
+
+    This function is called when launching `freeports` from the terminal.
+    It handles configuration parsing from multiple sources (command line,
+    environment variables, configuration files) and calls the main function.
+
+    Raises
+    ------
+    argparse.ArgumentError
+        If command line arguments are invalid or conflicting
+    FileNotFoundError
+        If specified configuration files are not found
+    ValueError
+        If configuration values are invalid
+
+    Notes
+    -----
+    The configuration is loaded in the following order of precedence:
+    1. Command line arguments (highest priority)
+    2. Environment variables
+    3. Configuration files
+    4. Default values (lowest priority)
     """
     rootlogger = log.getLogger()
     logger = log.getLogger(__package__ + ".cmd")
@@ -51,10 +70,10 @@ def cmd():
     config, config_location = config_cmd.overwrite_config(config, config_location)
     log_level = (5 - config["VERBOSITY"]) * 10
     if log_level <= log.DEBUG:
-        HANDLER_DEVDEBUG = log.FileHandler("freeports.log", "w")
-        HANDLER_DEVDEBUG.addFilter(LOG_CONTEXTUAL_INFOS)
-        HANDLER_DEVDEBUG.setFormatter(DevDebugFormatter())
-        rootlogger.addHandler(HANDLER_DEVDEBUG)
+        handler_devdebug = log.FileHandler("freeports.log", "w")
+        handler_devdebug.addFilter(LOG_CONTEXTUAL_INFOS)
+        handler_devdebug.setFormatter(DevDebugFormatter())
+        rootlogger.addHandler(handler_devdebug)
     rootlogger.setLevel(log_level)
     log_config(logger, config, config_location)
 

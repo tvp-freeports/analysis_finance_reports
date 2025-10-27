@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -111,35 +112,169 @@
              
   <section id="module-freeports_analysis.formats.algorithms.structured">
 <span id="freeports-analysis-formats-algorithms-structured"></span><h1>freeports_analysis.formats.algorithms.structured<a class="headerlink" href="#module-freeports_analysis.formats.algorithms.structured" title="Link to this heading"></a></h1>
+<p>Structured algorithm pipeline management.</p>
+<p>This module handles the loading and configuration of structured
+PDF processing algorithms for formats with well-defined layouts
+and consistent data structures.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_additional_args</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_additional_args" title="freeports_analysis.formats.algorithms.structured.get_additional_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_additional_args</span></code></a>()</p></td>
+<td><p>Gets and validates the additional args table</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_additional_headers</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_additional_headers" title="freeports_analysis.formats.algorithms.structured.get_additional_headers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_additional_headers</span></code></a>()</p></td>
+<td><p>Gets and validates the additional headers table</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_args</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_args" title="freeports_analysis.formats.algorithms.structured.get_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_args</span></code></a>()</p></td>
+<td><p>Gets and validates the args table</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_deselection_lists</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_deselection_lists" title="freeports_analysis.formats.algorithms.structured.get_deselection_lists"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_deselection_lists</span></code></a>()</p></td>
+<td><p>Gets and validates the deselection list table</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_partial_pipes</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_partial_pipes" title="freeports_analysis.formats.algorithms.structured.get_partial_pipes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_partial_pipes</span></code></a>()</p></td>
+<td><p>Gets and validates the partial pipes table</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pipes</span></code>(format_name)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_pipes" title="freeports_analysis.formats.algorithms.structured.get_pipes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pipes</span></code></a>(format_name)</p></td>
+<td><p>Get processing pipelines for a specific structured format.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_structured_formats</span></code>()</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.get_structured_formats" title="freeports_analysis.formats.algorithms.structured.get_structured_formats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_structured_formats</span></code></a>()</p></td>
+<td><p>Get complete structured formats configuration with all parameters.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_partial_pipes</span></code>(segment, columns)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.structured.validate_partial_pipes" title="freeports_analysis.formats.algorithms.structured.validate_partial_pipes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_partial_pipes</span></code></a>(segment, columns)</p></td>
+<td><p>Create a validation function for partial pipeline configurations.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_additional_args">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_additional_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_additional_args" title="Link to this definition"></a></dt>
+<dd><p>Gets and validates the additional args table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_additional_headers">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_additional_headers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_additional_headers" title="Link to this definition"></a></dt>
+<dd><p>Gets and validates the additional headers table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_args">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_args" title="Link to this definition"></a></dt>
+<dd><p>Gets and validates the args table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_deselection_lists">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_deselection_lists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_deselection_lists" title="Link to this definition"></a></dt>
+<dd><p>Gets and validates the deselection list table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_partial_pipes">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_partial_pipes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_partial_pipes" title="Link to this definition"></a></dt>
+<dd><p>Gets and validates the partial pipes table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Validated DataFrame</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_pipes">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_pipes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_pipes" title="Link to this definition"></a></dt>
+<dd><p>Get processing pipelines for a specific structured format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>format_name</strong> (<em>str</em>) – Name of the format to get pipelines for</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+Each dictionary maps pipeline names to lists of processing functions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Returns empty dictionaries if the format name is not found in the mapping.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.get_structured_formats">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">get_structured_formats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.get_structured_formats" title="Link to this definition"></a></dt>
+<dd><p>Get complete structured formats configuration with all parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame containing all structured format configurations</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function combines multiple configuration tables into a single
+comprehensive DataFrame with all parameters needed for structured
+PDF processing algorithms.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.structured.validate_partial_pipes">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.structured.</span></span><span class="sig-name descname"><span class="pre">validate_partial_pipes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Series</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.structured.validate_partial_pipes" title="Link to this definition"></a></dt>
+<dd><p>Create a validation function for partial pipeline configurations.</p>
+<p>This function generates a validator that ensures when a pipeline segment
+is disabled, the corresponding configuration columns are also empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>segment</strong> (<em>str</em>) – Name of the pipeline segment (‘pdf_filter’, ‘text_extract’, or ‘deserialize’)</p></li>
+<li><p><strong>columns</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of column names that should be empty when the segment is disabled</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Validation function that returns a boolean Series indicating valid rows</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable[[pd.DataFrame], pd.Series]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

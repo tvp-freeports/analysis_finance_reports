@@ -39,8 +39,28 @@ options = {
 
 
 def pdf_filter(xml_root) -> List[PdfBlock]:
-    """This pdf filter has the peculiarity of calculate dynamically the bounds of the table
-    taking as reference the position of some text
+    """PDF filter for ANIMA_EN23 format with dynamic table bounds calculation.
+
+    This PDF filter dynamically calculates the bounds of the table by
+    using the position of "Fair Value" text as a reference point.
+
+    Parameters
+    ----------
+    xml_root : etree.Element
+        XML root element of the PDF page
+
+    Returns
+    -------
+    List[PdfBlock]
+        List of PDF blocks extracted from the page
+
+    Notes
+    -----
+    The filter:
+    - Locates "Fair Value" text to determine table position
+    - Dynamically calculates currency set bounds
+    - Identifies table areas based on font patterns
+    - Uses standard PDF filtering with calculated parameters
     """
     fair_value_line = get_lines_with_txt_font(
         xml_root, "Fair Value", "Helvetica-Bold", exact_match=True

@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="freeports_analysis.output" href="freeports_analysis.output.html" />
-    <link rel="prev" title="freeports_analysis.i18n" href="freeports_analysis.i18n.html" /> 
+    <link rel="prev" title="freeports_analysis.logging" href="freeports_analysis.logging.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.main</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected"><code class="docutils literal notranslate"><span class="pre">NoPDFormatDetected</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.main.batch_job_confs"><code class="docutils literal notranslate"><span class="pre">batch_job_confs()</span></code></a></li>
@@ -103,25 +104,24 @@
              
   <section id="module-freeports_analysis.main">
 <span id="freeports-analysis-main"></span><h1>freeports_analysis.main<a class="headerlink" href="#module-freeports_analysis.main" title="Link to this heading"></a></h1>
-<p>This module is the one that contains the function called in order to decode the information
-from the pdf and to save the <cite>csv</cite> file. This file is also the source code to be launched
-(providing the options with a configuration file or with <cite>env variables</cite>) to mimic the behaviour of
-from the pdf and to save the <cite>csv</cite> file. This file is also the source code to be launched
-(providing the options with a configuration file or with <cite>env variables</cite>) to mimic the behaviour of
-the command from commandline (to use the package as a script).</p>
+<p>This module contains the main function used to extract information from PDF files
+and save the results as CSV files. This file also serves as the source code to be
+launched (providing options via configuration file or environment variables) to mimic
+command line behavior. The logic distinguishes between the main function in this file
+and the command line entry point by handling configuration parsing.</p>
 <p class="rubric">Example</p>
 <p><code class="docutils literal notranslate"><span class="pre">`python</span> <span class="pre">main.py`</span></code></p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.batch_job_confs" title="freeports_analysis.main.batch_job_confs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_job_confs</span></code></a>(config)</p></td>
-<td><p>Create a list of configurations overwritten after reading a batch file with job contextual options</p></td>
+<td><p>Create a list of configurations by reading a batch file with job contextual options.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.main.main" title="freeports_analysis.main.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>(config)</p></td>
-<td><p>Main function that expect the configuration to be already provided (for example with arguments on command line or with <cite>env variables</cite>)</p></td>
+<td><p>Main function for PDF processing and data extraction.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.pipeline_batch" title="freeports_analysis.main.pipeline_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pipeline_batch</span></code></a>(batch_pages, i_page_batch, ...)</p></td>
-<td><p>Apply the pipeline of actions in order to get financial data from PDF pages</p></td>
+<td><p>Apply the pipeline of actions to extract financial data from PDF pages.</p></td>
 </tr>
 </tbody>
 </table>
@@ -129,61 +129,84 @@ the command from commandline (to use the package as a script).</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected" title="freeports_analysis.main.NoPDFormatDetected"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NoPDFormatDetected</span></code></a></p></td>
-<td><p>Exception that should rise when the script is not capable of detecting a PDF format to use to decode the report, and no explicit format is specified</p></td>
+<td><p>Exception raised when the script cannot detect a PDF format to decode the report.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.main.NoPDFormatDetected">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">NoPDFormatDetected</span></span><a class="headerlink" href="#freeports_analysis.main.NoPDFormatDetected" title="Link to this definition"></a></dt>
-<dd><p>Exception that should rise when the script is not
-capable of detecting a PDF format to use to decode the
-report, and no explicit format is specified</p>
+<dd><p>Exception raised when the script cannot detect a PDF format to decode the report.</p>
+<p>This exception is raised when no explicit format is specified and the program
+cannot automatically determine the appropriate format for decoding the PDF.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.batch_job_confs">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">batch_job_confs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.batch_job_confs" title="Link to this definition"></a></dt>
-<dd><p>Create a list of configurations overwritten after reading
-a batch file with job contextual options</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">batch_job_confs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.batch_job_confs" title="Link to this definition"></a></dt>
+<dd><p>Create a list of configurations by reading a batch file with job contextual options.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>config</strong> (<em>dict</em>) – configuration to overwrite</p>
+<dd class="field-odd"><p><strong>config</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Base configuration to be overwritten with batch file options</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>list of configurations</p>
+<dd class="field-even"><p>List of configurations, one for each row in the batch file</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[dict]</p>
+<dd class="field-odd"><p>List[Dict[str, Any]]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>FileNotFoundError</strong> – If the batch file does not exist</p></li>
+<li><p><strong>csv.Error</strong> – If the batch file has invalid CSV format</p></li>
+</ul>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The batch file should be a CSV file with columns corresponding to
+configuration keys that can override the base configuration.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.main">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.main.main" title="Link to this definition"></a></dt>
-<dd><p>Main function that expect the configuration to be already provided
-(for example with arguments on command line or with <cite>env variables</cite>)</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.main.main" title="Link to this definition"></a></dt>
+<dd><p>Main function for PDF processing and data extraction.</p>
+<p>Expects configuration to be already provided (via command line arguments,
+environment variables, or configuration files).</p>
 <dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected" title="freeports_analysis.main.NoPDFormatDetected"><strong>NoPDFormatDetected</strong></a> – if no explicit format is provided and an url is not provided
-    or not associated with any format the program cannot choose a way to
-    decode the pdf, so it raises this exception</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Configuration dictionary containing all processing parameters</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#freeports_analysis.main.NoPDFormatDetected" title="freeports_analysis.main.NoPDFormatDetected"><strong>NoPDFormatDetected</strong></a> – If no explicit format is provided and the program cannot automatically
+    determine the appropriate format for decoding the PDF</p></li>
+<li><p><strong>FileNotFoundError</strong> – If required input files or directories are not found</p></li>
+<li><p><strong>ValueError</strong> – If configuration contains invalid values</p></li>
+</ul>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This function orchestrates the complete PDF processing workflow:
+1. Configuration validation and setup
+2. Log file initialization
+3. Batch or single job processing
+4. Parallel execution with multiprocessing
+5. Output file generation
+6. Result transformation and writing</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.main.pipeline_batch">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">pipeline_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_pages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_page_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Investment" title="freeports_analysis.output.Investment"><span class="pre">Investment</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.pipeline_batch" title="Link to this definition"></a></dt>
-<dd><p>Apply the pipeline of actions in order to get financial data from PDF pages</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.main.</span></span><span class="sig-name descname"><span class="pre">pipeline_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_pages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_page_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Investment" title="freeports_analysis.output.Investment"><span class="pre">Investment</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Promise" title="freeports_analysis.consts.Promise"><span class="pre">Promise</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.main.pipeline_batch" title="Link to this definition"></a></dt>
+<dd><p>Apply the pipeline of actions to extract financial data from PDF pages.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch_pages</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of XML strings representing PDF pages to process</p></li>
 <li><p><strong>i_page_batch</strong> (<em>int</em>) – Starting page number of this batch (1-based index)</p></li>
 <li><p><strong>n_pages</strong> (<em>int</em>) – Total number of pages in the document</p></li>
-<li><p><strong>targets</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of relevant company names to extract from the report</p></li>
+<li><p><strong>targets</strong> (<em>pd.DataFrame</em>) – Table containing information of relevant companies to extract from the report</p></li>
 <li><p><strong>format_name</strong> (<em>str</em>) – Name of the format containing format-specific parsing functions</p></li>
 </ul>
 </dd>
@@ -191,7 +214,7 @@ a batch file with job contextual options</p>
 <dd class="field-even"><p>List of extracted financial data objects or promise resolution contexts</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[FinancialData | PromisesResolutionContext]</p>
+<dd class="field-odd"><p>List[Union[<a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Investment" title="freeports_analysis.output.Investment">Investment</a>, PromisesResolutionContext]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -202,7 +225,7 @@ a batch file with job contextual options</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.i18n.html" class="btn btn-neutral float-left" title="freeports_analysis.i18n" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.logging.html" class="btn btn-neutral float-left" title="freeports_analysis.logging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="freeports_analysis.output.html" class="btn btn-neutral float-right" title="freeports_analysis.output" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -3,7 +3,7 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum, Flag
-from typing import Optional, Annotated, Union
+from typing import Optional, Annotated, Union, Any, Tuple, Dict, List
 import argparse
 import re
 from pathlib import Path
@@ -26,27 +26,38 @@ from freeports_analysis.data import TARGET_LISTS
 from freeports_analysis.formats.data import VALID_FORMATS, url_to_format
 from freeports_analysis.i18n import _
 
-from .consts import PROGRAM_DESCRIPTION, InputFlags, InputEnum
+from .consts import PROGRAM_DESCRIPTION, input_flags, input_enum
 
 _logger = log.getLogger(__name__)
 
 
 def _str_to_bool(string: str) -> bool:
-    """Function used to convert a string consisting of a True/False value to a boolean
+    """Convert a string representation of boolean values to actual boolean.
+
     Parameters
     ----------
     string : str
-        The original string
+        String representation of boolean value. Accepts various common
+        representations like 'true', 'false', 'yes', 'no', '1', '0', etc.
 
     Returns
     -------
     bool
-        The resulting Boolean
+        Boolean value corresponding to the input string
 
     Raises
     ------
     ValueError
-        Raises error if the format is unrecognizable
+        If the string cannot be recognized as a valid boolean representation
+
+    Examples
+    --------
+    >>> _str_to_bool('true')
+    True
+    >>> _str_to_bool('no')
+    False
+    >>> _str_to_bool('1')
+    True
     """
     true_list = ["true", "yes", "on", "t", "y", "1"]
     false_list = ["false", "no", "off", "f", "n", "0"]
@@ -63,22 +74,27 @@ def _str_to_bool(string: str) -> bool:
 
 
 def _format_validate(format: str) -> str:
-    """Functions that checks if a format is present in the formats list, returns it if it is,
-    raises an error if it isnt'.
+    """Validate that a format name exists in the list of supported formats.
+
     Parameters
     ----------
     format : str
-        The format name
+        Name of the format to validate
 
     Returns
     -------
     str
-        The format name if correct.
+        The validated format name if it exists in supported formats
 
     Raises
     ------
     ValueError
-        not a correct format, prints the complete lisr
+        If the format is not found in the list of valid formats
+
+    Notes
+    -----
+    This function is used by Pydantic validators to ensure only supported
+    PDF processing formats are accepted in configuration.
     """
     if format not in VALID_FORMATS:
         raise ValueError(
@@ -90,7 +106,9 @@ def _format_validate(format: str) -> str:
 
 
 Format = Annotated[str, AfterValidator(_format_validate)]
-Lists = Annotated[list, BeforeValidator(lambda x: [x] if isinstance(x, str) else x)]
+Lists = Annotated[
+    List[str], BeforeValidator(lambda x: [x] if isinstance(x, str) else x)
+]
 Verbosity = conint(ge=0, le=5)
 
 _out_structure_both_modes = ["REGULAR", "SINGLE_FILE", "STRUCTURED"]
@@ -115,20 +133,51 @@ OutFlagsBatchMode = Flag(
     _out_flags_both_modes + _out_flags_batch_mode,
 )
 
-OutProfile = Union[InputEnum(OutStructureNormalMode), InputEnum(OutStructureBatchMode)]
-OutFlags = Union[InputFlags(OutFlagsNormalMode), InputFlags(OutFlagsBatchMode)]
+OutProfile = Union[
+    input_enum(OutStructureNormalMode), input_enum(OutStructureBatchMode)
+]
+OutFlags = Union[input_flags(OutFlagsNormalMode), input_flags(OutFlagsBatchMode)]
 
 
 class SelectorOutProfile:
+    """Mixin class for Pydantic models to handle output profile and flags type casting.
+
+    This class provides validation logic to ensure output profiles and flags
+    are cast to the appropriate type based on whether batch mode is active.
+
+    Attributes
+    ----------
+    None
+        This is a mixin class that adds validation behavior
+    """
+
     @model_validator(mode="before")
     @classmethod
-    def cast_to_right_type(cls, values):
+    def cast_to_right_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Cast output profile and flags to the correct type based on processing mode.
+
+        Parameters
+        ----------
+        values : Dict[str, Any]
+            Dictionary of input values to validate and cast
+
+        Returns
+        -------
+        Dict[str, Any]
+            Validated dictionary with properly typed output profile and flags
+
+        Notes
+        -----
+        This validator automatically detects whether batch mode is active
+        (based on presence of BATCH_FILE) and casts OUT_PROFILE and OUT_FLAGS
+        to the appropriate enum/flag types for that mode.
+        """
         batch_file = values.get("BATCH_FILE")
-        adapter_enum = TypeAdapter(InputEnum(OutStructureNormalMode))
-        adapter_flags = TypeAdapter(InputFlags(OutFlagsNormalMode))
+        adapter_enum = TypeAdapter(input_enum(OutStructureNormalMode))
+        adapter_flags = TypeAdapter(input_flags(OutFlagsNormalMode))
         if batch_file is not None:
-            adapter_enum = TypeAdapter(InputEnum(OutStructureBatchMode))
-            adapter_flags = TypeAdapter(InputFlags(OutFlagsBatchMode))
+            adapter_enum = TypeAdapter(input_enum(OutStructureBatchMode))
+            adapter_flags = TypeAdapter(input_flags(OutFlagsBatchMode))
         out_profile = values.get("OUT_PROFILE")
         values["OUT_PROFILE"] = (
             adapter_enum.validate_python(out_profile)
@@ -143,11 +192,58 @@ class SelectorOutProfile:
 
 
 class ParitalConfiguration(ABC):
+    """Abstract base class for partial configuration sources.
+
+    This class represents a configuration source that provides partial
+    configuration values, used to overwrite the main configuration dictionary
+    and track the source of each configuration value.
+
+    Attributes
+    ----------
+    None
+        This is an abstract base class
+    """
+
     @abstractmethod
-    def model_dump(self, *args, **kargs):
+    def model_dump(self, *args: Any, **kargs: Any) -> Dict[str, Any]:
+        """Serialize the partial configuration to a dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary containing the configuration values from this source
+
+        Notes
+        -----
+        This method is typically implemented by Pydantic models that inherit
+        from this class, providing automatic serialization of model fields.
+        """
         pass
 
-    def overwrite_config(self, config, config_location):
+    def overwrite_config(
+        self, config: Dict[str, Any], config_location: Dict[str, str]
+    ) -> Tuple[Dict[str, Any], Dict[str, str]]:
+        """Overwrite configuration with values from this partial configuration source.
+
+        Parameters
+        ----------
+        config : Dict[str, Any]
+            Current configuration dictionary to be updated
+        config_location : Dict[str, str]
+            Current configuration location tracking dictionary
+
+        Returns
+        -------
+        Tuple[Dict[str, Any], Dict[str, str]]
+            Tuple containing:
+            - Updated configuration dictionary with overwritten values
+            - Updated location dictionary tracking source of each value
+
+        Notes
+        -----
+        Only non-None values from this configuration source will overwrite
+        existing values in the configuration dictionary.
+        """
         this_conf = self.model_dump()
         new_conf = {k: v for k, v in config.items()}
         new_conf_location = {k: v for k, v in config_location.items()}
@@ -159,6 +255,37 @@ class ParitalConfiguration(ABC):
 
 
 class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
+    """Represents the configuration portion loaded from a specific configuration file.
+
+    This class handles the parsing and validation of configuration settings
+    from YAML configuration files located in various standard locations.
+
+    Attributes
+    ----------
+    VERBOSITY : Optional[Verbosity]
+        The verbosity level for logging output
+    OUT_PATH : Optional[Path]
+        The output directory path for generated files
+    OUT_PROFILE : Optional[OutProfile]
+        The output structure profile (normal or batch mode)
+    OUT_FLAGS : Optional[OutFlags]
+        Additional output flags and options
+    N_WORKERS : Optional[PositiveInt]
+        Number of parallel workers for processing
+    BATCH_FILE : Optional[FilePath]
+        Path to batch file for batch processing mode
+    SAVE_PDF : Optional[bool]
+        Whether to save downloaded PDF files locally
+    URL : Optional[HttpUrl]
+        URL pointing to PDF resources
+    PDF : Optional[Path]
+        Local path to PDF file for processing
+    FORMAT : Optional[Format]
+        Format specification for PDF parsing
+    TARGET_LISTS : Optional[Lists]
+        Lists of target companies to filter during analysis
+    """
+
     VERBOSITY: Optional[Verbosity] = None
     OUT_PATH: Optional[Path] = None
     OUT_PROFILE: Optional[OutProfile] = None
@@ -172,7 +299,22 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     TARGET_LISTS: Optional[Lists] = None
 
     @classmethod
-    def _local_config(cls):
+    def _local_config(cls) -> Optional[Path]:
+        """Search for configuration files in the current working directory.
+
+        Returns
+        -------
+        Optional[Path]
+            Path to local configuration file if found, None otherwise
+
+        Notes
+        -----
+        Searches for files matching patterns like:
+        - '.config-freeports.yaml'
+        - 'config-freeports.yml'
+        - 'freeports-config.yaml'
+        - etc.
+        """
         # 1. Check local config file
         patterns = [
             r"^\.?(config|conf)[-\._]?freeports\.ya?ml$",
@@ -190,7 +332,20 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         return None
 
     @classmethod
-    def _standard_config(cls):
+    def _standard_config(cls) -> Optional[Path]:
+        """Search for configuration in standard user configuration directories.
+
+        Returns
+        -------
+        Optional[Path]
+            Path to standard configuration file if found, None otherwise
+
+        Notes
+        -----
+        On POSIX systems (Linux/macOS), searches XDG config directories.
+        On Windows, searches Local AppData and ProgramData directories.
+        Looks for 'freeports.yaml' or 'freeports.yml' files.
+        """
         config_dirs = []
         # For Linux/Unix-like systems (including macOS)
         # 2. Check XDG config directories for 'freeports.yaml' directly
@@ -222,7 +377,19 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         return None
 
     @classmethod
-    def _system_config(cls):
+    def _system_config(cls) -> Optional[Path]:
+        """Search for configuration in system-wide standard locations.
+
+        Returns
+        -------
+        Optional[Path]
+            Path to system configuration file if found, None otherwise
+
+        Notes
+        -----
+        On POSIX systems, searches /etc/freeports.yaml and /etc/freeports.yml.
+        On Windows, searches Windows system directory.
+        """
         system_paths = []
         if os.name == "posix":
             # 3. Fallback to /etc/freeports.yaml
@@ -244,7 +411,23 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         return None
 
     @classmethod
-    def find_config(cls):
+    def find_config(cls) -> Optional[Path]:
+        """Find configuration file by searching in standard locations.
+
+        Returns
+        -------
+        Optional[Path]
+            Path to configuration file if found, None otherwise
+
+        Notes
+        -----
+        Searches locations in the following order:
+        1. Current working directory (various naming patterns)
+        2. User configuration directories (XDG on POSIX, AppData on Windows)
+        3. System-wide directories (/etc on POSIX, Windows system directory)
+
+        Returns the first configuration file found in this search order.
+        """
         config_file = cls._local_config()
         if config_file is not None:
             _logger.debug(_("Found local conf file: '%s'"), config_file)
@@ -270,7 +453,14 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         )
         return None
 
-    def __init__(self, config_file=None):
+    def __init__(self, config_file: Optional[Path] = None):
+        """Initialize FreeportsFileConfig by loading configuration from file.
+
+        Parameters
+        ----------
+        config_file : Optional[Path], optional
+            Path to configuration file, if None will search for default locations
+        """
         _map_names = {
             "verbosity": "VERBOSITY",
             "separate_out": "SEPARATE_OUT_FILES",
@@ -314,6 +504,36 @@ DEFAULT_CONFIG_LOCATION = {k: "FreeportsDefaultConfig" for k in DEFAULT_CONFIG}
 
 
 class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
+    """Represents configuration loaded from environment variables.
+
+    Attributes
+    ----------
+    VERBOSITY : Optional[Verbosity]
+        The verbosity level for logging output
+    N_WORKERS : Optional[PositiveInt]
+        Number of parallel workers for processing
+    BATCH_FILE : Optional[FilePath]
+        Path to batch file for batch processing mode
+    OUT_PATH : Optional[FilePath]
+        The output directory path for generated files
+    OUT_PROFILE : Optional[OutProfile]
+        The output structure profile (normal or batch mode)
+    OUT_FLAGS : Optional[OutFlags]
+        Additional output flags and options
+    SAVE_PDF : Optional[bool]
+        Whether to save downloaded PDF files locally
+    URL : Optional[HttpUrl]
+        URL pointing to PDF resources
+    PDF : Optional[Path]
+        Local path to PDF file for processing
+    FORMAT : Optional[Format]
+        Format specification for PDF parsing
+    CONFIG_FILE : Optional[FilePath]
+        Path to custom configuration file
+    TARGET_LISTS : Optional[Lists]
+        Lists of target companies to filter during analysis
+    """
+
     VERBOSITY: Optional[Verbosity] = None
     N_WORKERS: Optional[PositiveInt] = None
     BATCH_FILE: Optional[FilePath] = None
@@ -328,6 +548,7 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     TARGET_LISTS: Optional[Lists] = None
 
     def __init__(self):
+        """Initialize FreeportsEnvConfig by loading configuration from environment variables."""
         ENV_PREFIX = "FREEPORTS_"
         _map_names = {
             f"{ENV_PREFIX}URL": "URL",
@@ -348,6 +569,34 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
 
 
 class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
+    """Represents configuration loaded from command line arguments.
+
+    Attributes
+    ----------
+    VERBOSITY : Optional[Verbosity]
+        The verbosity level for logging output
+    OUT_PROFILE : Optional[OutProfile]
+        The output structure profile (normal or batch mode)
+    OUT_FLAGS : Optional[OutFlags]
+        Additional output flags and options
+    OUT_PATH : Optional[Path]
+        The output directory path for generated files
+    N_WORKERS : Optional[PositiveInt]
+        Number of parallel workers for processing
+    BATCH_FILE : Optional[FilePath]
+        Path to batch file for batch processing mode
+    SAVE_PDF : Optional[bool]
+        Whether to save downloaded PDF files locally
+    URL : Optional[HttpUrl]
+        URL pointing to PDF resources
+    PDF : Optional[Path]
+        Local path to PDF file for processing
+    FORMAT : Optional[Format]
+        Format specification for PDF parsing
+    TARGET_LISTS : Optional[Lists]
+        Lists of target companies to filter during analysis
+    """
+
     VERBOSITY: Optional[Verbosity] = None
     OUT_PROFILE: Optional[OutProfile] = None
     OUT_FLAGS: Optional[OutFlags] = None
@@ -361,7 +610,14 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
     TARGET_LISTS: Optional[Lists] = None
 
     @classmethod
-    def create_parser(self):
+    def create_parser(cls) -> argparse.ArgumentParser:
+        """Create and configure the command line argument parser.
+
+        Returns
+        -------
+        argparse.ArgumentParser
+            Configured argument parser for command line interface
+        """
         parser = argparse.ArgumentParser(description=PROGRAM_DESCRIPTION)
         # Argomenti obbligatori (stringhe)
         parser.add_argument(
@@ -429,7 +685,16 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
         )
         return parser
 
-    def __init__(self, args, default_verbosity):
+    def __init__(self, args: argparse.Namespace, default_verbosity: int):
+        """Initialize FreeportsCmdConfig by parsing command line arguments.
+
+        Parameters
+        ----------
+        args : argparse.Namespace
+            Parsed command line arguments
+        default_verbosity : int
+            Default verbosity level to use as baseline
+        """
         args = vars(args)
         _map_names = {
             "url": "URL",
@@ -479,6 +744,24 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
 
 
 class FreeportsJobConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
+    """Represents configuration for individual jobs in batch processing mode.
+
+    Attributes
+    ----------
+    PREFIX_OUT : Optional[str]
+        Prefix for output files
+    SAVE_PDF : bool
+        Whether to save downloaded PDF files locally
+    URL : Optional[HttpUrl]
+        URL pointing to PDF resources
+    PDF : Optional[Path]
+        Local path to PDF file for processing
+    FORMAT : Format
+        Format specification for PDF parsing
+    TARGET_LISTS : Optional[Lists]
+        Lists of target companies to filter during analysis
+    """
+
     PREFIX_OUT: Optional[str] = None
     SAVE_PDF: bool = True
     URL: Optional[HttpUrl] = None
@@ -486,7 +769,14 @@ class FreeportsJobConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     FORMAT: Format
     TARGET_LISTS: Optional[Lists] = None
 
-    def __init__(self, row_dict):
+    def __init__(self, row_dict: Dict[str, Any]):
+        """Initialize FreeportsJobConfig from a row dictionary.
+
+        Parameters
+        ----------
+        row_dict : Dict[str, Any]
+            Dictionary containing job configuration data
+        """
         _map_names = {
             "url": "URL",
             "save pdf": "SAVE_PDF",
@@ -500,6 +790,41 @@ class FreeportsJobConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
 
 
 class FreeportsConfig(BaseModel, SelectorOutProfile):
+    """Main configuration class that combines all configuration sources.
+
+    This class represents the final validated configuration after merging
+    defaults, file config, environment variables, and command line arguments.
+
+    Attributes
+    ----------
+    VERBOSITY : Verbosity
+        The verbosity level for logging output
+    N_WORKERS : PositiveInt
+        Number of parallel workers for processing
+    BATCH_FILE : Optional[FilePath]
+        Path to batch file for batch processing mode
+    SAVE_PDF : bool
+        Whether to save downloaded PDF files locally
+    URL : Optional[HttpUrl]
+        URL pointing to PDF resources
+    PDF : Optional[Path]
+        Local path to PDF file for processing
+    FORMAT : Optional[Format]
+        Format specification for PDF parsing
+    CONFIG_FILE : Optional[FilePath]
+        Path to custom configuration file
+    TARGET_LISTS : Lists
+        Lists of target companies to filter during analysis
+    PREFIX_OUT : Optional[str]
+        Prefix for output files
+    OUT_PROFILE : Union[OutStructureNormalMode, OutStructureBatchMode]
+        The output structure profile (normal or batch mode)
+    OUT_FLAGS : Union[OutFlagsNormalMode, OutFlagsBatchMode]
+        Additional output flags and options
+    OUT_PATH : Path
+        The output directory path for generated files
+    """
+
     VERBOSITY: Verbosity
     N_WORKERS: PositiveInt
     BATCH_FILE: Optional[FilePath] = None
@@ -515,7 +840,14 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
     OUT_PATH: Path
 
     @model_validator(mode="after")
-    def set_compress_flag(self):
+    def set_compress_flag(self) -> "FreeportsConfig":
+        """Set COMPRESSED flag if output path ends with .tar.gz.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+        """
         type_out_flags = type(self.OUT_FLAGS)
         if self.OUT_PATH.name.endswith(".tar.gz"):
             self.OUT_FLAGS = self.OUT_FLAGS | type_out_flags.COMPRESSED
@@ -523,7 +855,19 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
     @model_validator(mode="after")
-    def detect_format(self):
+    def detect_format(self) -> "FreeportsConfig":
+        """Detect format from URL if not explicitly specified.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+
+        Raises
+        ------
+        ValueError
+            If format cannot be detected or specified
+        """
         if self.URL is not None:
             detected_format = url_to_format(self.URL)
             if self.FORMAT is None:
@@ -539,7 +883,19 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
     @model_validator(mode="after")
-    def right_out_profile_type(self):
+    def right_out_profile_type(self) -> "FreeportsConfig":
+        """Validate that output profile and flags match the processing mode.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+
+        Raises
+        ------
+        ValueError
+            If output profile/flags don't match the processing mode
+        """
         if self.BATCH_FILE is not None:
             if not self.BATCH_FILE.exists():
                 raise ValueError(
@@ -559,7 +915,19 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
     @model_validator(mode="after")
-    def out_path_exists(self):
+    def out_path_exists(self) -> "FreeportsConfig":
+        """Validate that the output path parent directory exists.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+
+        Raises
+        ------
+        ValueError
+            If output path parent directory doesn't exist
+        """
         if not self.OUT_PATH.parent.exists():
             raise ValueError(
                 _("Out path is not valid because directory '{}' doesn't exists").format(
@@ -569,14 +937,33 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
     @model_validator(mode="after")
-    def out_path_single_file(self):
+    def out_path_single_file(self) -> "FreeportsConfig":
+        """Ensure output path has .csv extension for SINGLE_FILE mode.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+        """
         if self.OUT_PROFILE == OutStructureNormalMode.SINGLE_FILE:
             if not self.OUT_PATH.name.endswith(".csv"):
                 self.OUT_PATH = self.OUT_PATH / "out.csv"
         return self
 
     @model_validator(mode="after")
-    def input_should_be_specified(self):
+    def input_should_be_specified(self) -> "FreeportsConfig":
+        """Validate that at least one input source is specified.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+
+        Raises
+        ------
+        ValueError
+            If neither URL nor PDF input is specified
+        """
         if self.URL is None and self.PDF is None:
             string = _("You have to specify at least one input option: ")
             string += _("the url or the resource, the pdf file path or both")
@@ -584,7 +971,19 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
     @model_validator(mode="after")
-    def pdf_path_validation(self):
+    def pdf_path_validation(self) -> "FreeportsConfig":
+        """Validate PDF path and handle SAVE_PDF logic.
+
+        Returns
+        -------
+        FreeportsConfig
+            The updated configuration instance
+
+        Raises
+        ------
+        ValueError
+            If PDF path is invalid and no URL is specified
+        """
         if self.PDF is None:
             return self
         if self.SAVE_PDF:
@@ -608,16 +1007,19 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         return self
 
 
-schema_job_csv_config = None
-
-
-def log_config(logger: log.Logger, config: dict, config_location: dict):
-    """Log with debug priority the configuration provided
+def log_config(
+    logger: log.Logger, config: Dict[str, Any], config_location: Dict[str, str]
+) -> None:
+    """Log with debug priority the configuration provided.
 
     Parameters
     ----------
     logger : log.Logger
         the logger that has to log
+    config : Dict[str, Any]
+        The configuration dictionary to log
+    config_location : Dict[str, str]
+        Dictionary mapping configuration keys to their source locations
     """
     locations = {"DEFAULT": [], "CONFIG_FILE": [], "ENV_VAR": [], "CMD_ARG": []}
     for k, v in config_location.items():

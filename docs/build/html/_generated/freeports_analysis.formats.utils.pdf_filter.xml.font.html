@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -121,18 +122,21 @@
 <td><p>Return all the lines with certain font(s) in a tree</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_font_size" title="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_font_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_font_size</span></code></a>(blk, txt, size[, ...])</p></td>
-<td><p>Get lines with a certain txt and size</p></td>
+<td><p>Get lines with a certain text and font size.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_size" title="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_size</span></code></a>(blk, size)</p></td>
 <td><p>Return all the lines with a specific font size in a tree.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font" title="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_txt_font</span></code></a>(blk, txt, font[, ...])</p></td>
-<td><p>Get lines with a certain txt and font</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt" title="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_txt</span></code></a>(blk, txt[, all_elem, ...])</p></td>
+<td><p>Get lines containing specified text from XML tree.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_font_size" title="freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_font_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_font_size</span></code></a>(blk, txt, size)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font" title="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lines_with_txt_font</span></code></a>(blk, txt, font[, ...])</p></td>
+<td><p>Get lines with a certain text and font.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_font_size" title="freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_font_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_font_size</span></code></a>(blk, txt, size)</p></td>
 <td><p>Return if a certain pdf block with a specific text and size is present in the tree</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_txt_font" title="freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_txt_font" title="freeports_analysis.formats.utils.pdf_filter.xml.font.is_present_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_present_txt_font</span></code></a>(blk, txt, font)</p></td>
 <td><p>Return if a certain pdf block with a specific text and font is present in the tree</p></td>
 </tr>
 </tbody>
@@ -159,23 +163,26 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_font_size">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.xml.font.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_font_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Element</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_font_size" title="Link to this definition"></a></dt>
-<dd><p>Get lines with a certain txt and size</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.xml.font.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_font_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Element</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_font_size" title="Link to this definition"></a></dt>
+<dd><p>Get lines with a certain text and font size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>blk</strong> (<em>etree.Element</em>) – xml tree structure</p></li>
-<li><p><strong>txt</strong> (<em>str</em>) – text to search for</p></li>
-<li><p><strong>size</strong> (<em>str</em>) – size to search for</p></li>
-<li><p><strong>all_elem</strong> (<em>bool</em><em>, </em><em>optional</em>) – if <cite>True</cite> return a list with all matches, if <cite>False</cite> just the first
-as a scalar element</p></li>
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML tree structure to search</p></li>
+<li><p><strong>txt</strong> (<em>str</em>) – Text to search for</p></li>
+<li><p><strong>size</strong> (<em>str</em>) – Font size to search for</p></li>
+<li><p><strong>all_elem</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, return all matching elements as a list.
+If False, return only the first matching element.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>matching lines</p>
+<dd class="field-even"><p>Matching line elements. Returns:
+- List if all_elem=True
+- Single element if all_elem=False and matches found
+- None if all_elem=False and no matches found</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[etree.Element] | etree.Element</p>
+<dd class="field-odd"><p>List[etree.Element] | etree.Element | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -201,26 +208,56 @@ as a scalar element</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.xml.font.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exact_match</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Element</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font" title="Link to this definition"></a></dt>
-<dd><p>Get lines with a certain txt and font</p>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.xml.font.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exact_match</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Element</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt" title="Link to this definition"></a></dt>
+<dd><p>Get lines containing specified text from XML tree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>blk</strong> (<em>etree.Element</em>) – xml tree structure</p></li>
-<li><p><strong>txt</strong> (<em>str</em>) – text to search for</p></li>
-<li><p><strong>font</strong> (<em>str</em>) – font to search for</p></li>
-<li><p><strong>all_elem</strong> (<em>bool</em><em>, </em><em>optional</em>) – if <cite>True</cite> return a list with all matches, if <cite>False</cite> just the first
-as a scalar element</p></li>
-<li><p><strong>exact_match</strong> (<em>bool</em><em>, </em><em>optional</em>) – if <cite>False</cite> check if substring is contained in text, if <cite>True</cite> it check
-against the whole string</p></li>
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML tree structure to search</p></li>
+<li><p><strong>txt</strong> (<em>str</em>) – Text to search for</p></li>
+<li><p><strong>all_elem</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, return all matching elements as a list.
+If False, return only the first matching element.</p></li>
+<li><p><strong>exact_match</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, perform exact string matching.
+If False, perform substring matching.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>matching lines</p>
+<dd class="field-even"><p>Matching line elements. Returns:
+- List if all_elem=True
+- Single element if all_elem=False and matches found
+- None if all_elem=False and no matches found</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[etree.Element] | etree.Element</p>
+<dd class="field-odd"><p>List[etree.Element] | etree.Element | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.xml.font.</span></span><span class="sig-name descname"><span class="pre">get_lines_with_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_elem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exact_match</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Element</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.xml.font.get_lines_with_txt_font" title="Link to this definition"></a></dt>
+<dd><p>Get lines with a certain text and font.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blk</strong> (<em>etree.Element</em>) – XML tree structure to search</p></li>
+<li><p><strong>txt</strong> (<em>str</em>) – Text to search for</p></li>
+<li><p><strong>font</strong> (<em>str</em>) – Font to search for</p></li>
+<li><p><strong>all_elem</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, return all matching elements as a list.
+If False, return only the first matching element.</p></li>
+<li><p><strong>exact_match</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, perform exact string matching.
+If False, perform substring matching.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matching line elements. Returns:
+- List if all_elem=True
+- Single element if all_elem=False and matches found
+- None if all_elem=False and no matches found</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[etree.Element] | etree.Element | None</p>
 </dd>
 </dl>
 </dd></dl>

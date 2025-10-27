@@ -1,9 +1,17 @@
-﻿freeports\_analysis.formats.utils.pdf\_filter
+freeports\_analysis.formats.utils.pdf\_filter
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils.pdf_filter
    :members:
    
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      UpdateMetadataFunc
+      FilterCondition
+      PdfFilterFunc
    
    .. rubric:: Functions
 

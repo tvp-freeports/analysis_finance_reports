@@ -21,5 +21,4 @@ freeports\_analysis.formats.utils.pdf\_filter.pdf\_parts
    :recursive:
 
    font
-   generic
    position

@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.main" href="freeports_analysis.main.html" />
+    <link rel="next" title="freeports_analysis.logging" href="freeports_analysis.logging.html" />
     <link rel="prev" title="freeports_analysis.formats.utils.text_extract.match" href="freeports_analysis.formats.utils.text_extract.match.html" /> 
 </head>
 
@@ -57,7 +57,14 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.i18n</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.i18n</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.i18n.LOC"><code class="docutils literal notranslate"><span class="pre">LOC</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.i18n.lang"><code class="docutils literal notranslate"><span class="pre">lang</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.i18n.TRANSLATION"><code class="docutils literal notranslate"><span class="pre">TRANSLATION</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.i18n._"><code class="docutils literal notranslate"><span class="pre">_</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -97,7 +104,54 @@
              
   <section id="module-freeports_analysis.i18n">
 <span id="freeports-analysis-i18n"></span><h1>freeports_analysis.i18n<a class="headerlink" href="#module-freeports_analysis.i18n" title="Link to this heading"></a></h1>
-<p>Module that detect the locale and implement the translation of the messages</p>
+<p>Internationalization module for locale detection and message translation.</p>
+<p>This module handles locale detection and provides translation functionality
+for the application. It supports both POSIX and Windows systems and falls
+back to English if no suitable locale is found.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.i18n.LOC">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.i18n.</span></span><span class="sig-name descname"><span class="pre">LOC</span></span><a class="headerlink" href="#freeports_analysis.i18n.LOC" title="Link to this definition"></a></dt>
+<dd><p>Detected locale identifier</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.i18n.lang">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.i18n.</span></span><span class="sig-name descname"><span class="pre">lang</span></span><a class="headerlink" href="#freeports_analysis.i18n.lang" title="Link to this definition"></a></dt>
+<dd><p>Language code extracted from locale</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.i18n.TRANSLATION">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.i18n.</span></span><span class="sig-name descname"><span class="pre">TRANSLATION</span></span><a class="headerlink" href="#freeports_analysis.i18n.TRANSLATION" title="Link to this definition"></a></dt>
+<dd><p>Translation object for the detected locale</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[gettext.NullTranslations]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.i18n._">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.i18n.</span></span><span class="sig-name descname"><span class="pre">_</span></span><a class="headerlink" href="#freeports_analysis.i18n._" title="Link to this definition"></a></dt>
+<dd><p>Translation function for message strings</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable[[str], str]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -105,7 +159,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="freeports_analysis.formats.utils.text_extract.match.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.text_extract.match" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.main.html" class="btn btn-neutral float-right" title="freeports_analysis.main" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.logging.html" class="btn btn-neutral float-right" title="freeports_analysis.logging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

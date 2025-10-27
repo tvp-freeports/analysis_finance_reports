@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats.algorithms
+freeports\_analysis.formats.algorithms
 ======================================
 
 .. automodule:: freeports_analysis.formats.algorithms

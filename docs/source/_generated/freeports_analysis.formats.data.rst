@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats.data
+freeports\_analysis.formats.data
 ================================
 
 .. automodule:: freeports_analysis.formats.data

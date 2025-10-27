@@ -1,14 +1,20 @@
+"""Data management for PDF format definitions and URL mappings.
+
+This module handles the loading and validation of format definitions and
+URL-to-format mappings used in document processing.
+"""
+
 from pathlib import Path
+from typing import Optional, List
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
-from typing import Optional
 
 data = Path(__file__).parent
 
 format_name_regexp = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\.]+)?"
 
-# Structure of the dataframe to validate the list of formats everytime it is imported
+# Schema for validating the list of formats
 formats_schema = pa.DataFrameSchema(
     columns={
         "Name": pa.Column(pd.StringDtype),
@@ -34,13 +40,22 @@ formats_schema = pa.DataFrameSchema(
 
 
 def get_formats() -> pd.DataFrame:
-    """Function called to get the list of formats contained in formats.csv
-    while validating the structure through format_schema
+    """Load and validate the list of formats from formats.csv.
 
     Returns
     -------
-    DataFrame
-        Validated DataFrame of formats
+    pd.DataFrame
+        Validated DataFrame of formats with 'Format name' as index
+
+    Raises
+    ------
+    pa.errors.SchemaError
+        If the format data does not conform to the expected schema
+
+    Notes
+    -----
+    Format names are constructed as: Name-LocaleYear[Country][Version]
+    For example: 'Amundi-IT23' or 'Eurizon-IT24@IT.v2'
     """
     df = pd.read_csv(data / "formats.csv")
     df = df.assign(
@@ -58,10 +73,10 @@ def get_formats() -> pd.DataFrame:
     return formats_schema.validate(df)
 
 
-# A list containing the formats
-VALID_FORMATS = get_formats().index.tolist()
+# List containing all valid format names
+VALID_FORMATS: List[str] = get_formats().index.tolist()
 
-# Structure of the dataframe to validate the url mapping everytime it is imported
+# Schema for validating URL mappings
 url_mapping_schema = pa.DataFrameSchema(
     {"Url": pa.Column(str)},
     coerce=True,
@@ -75,40 +90,56 @@ url_mapping_schema = pa.DataFrameSchema(
 
 
 def _get_url_mapping() -> pd.DataFrame:
-    """Function that returns a dataframe linking every url to the format name associated
+    """Load and validate URL mappings from url_mapping.csv.
 
     Returns
     -------
-    DataFrame
-        DataFrame of format names and urls
+    pd.DataFrame
+        DataFrame of format names and URLs with 'Format name' as index
+
+    Raises
+    ------
+    pa.errors.SchemaError
+        If the URL mapping data does not conform to the expected schema
     """
     df = pd.read_csv(data / "url_mapping.csv", index_col=["Format name"])
     return url_mapping_schema.validate(df)
 
 
 def get_url_mapping() -> pd.DataFrame:
-    """Function that returns a dataframe linking the unique format names to a list of urls
+    """Get URL mappings grouped by format name.
 
     Returns
     -------
-    DataFrame
-        DataFrame of format names and urls
+    pd.DataFrame
+        DataFrame with format names as index and lists of URLs as values
+
+    Notes
+    -----
+    The returned DataFrame aggregates all URLs associated with each format
+    name into lists, allowing multiple URLs to map to the same format.
     """
     return _get_url_mapping().groupby(level="Format name").agg({"Url": list})
 
 
 def url_to_format(url: str) -> Optional[str]:
-    """Function used to associate a single url to a single format name
+    """Associate a URL with a format name.
 
     Parameters
     ----------
     url : str
-        string containing the url
+        URL to match against known format URLs
 
     Returns
     -------
     Optional[str]
-        format name or None if the url is invalid
+        Format name if a match is found, None otherwise
+
+    Notes
+    -----
+    This function uses prefix matching to determine the format - it selects
+    the format with the longest matching URL prefix. This allows for more
+    specific URLs to override more general ones.
     """
     mapping = _get_url_mapping()
     mask = mapping["Url"].apply(lambda x: str(url).startswith(x))

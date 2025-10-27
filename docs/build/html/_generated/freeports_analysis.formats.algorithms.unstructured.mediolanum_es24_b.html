@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -112,18 +113,20 @@
              
   <section id="module-freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b">
 <span id="freeports-analysis-formats-algorithms-unstructured-mediolanum-es24-b"></span><h1>freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b<a class="headerlink" href="#module-freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b" title="Link to this heading"></a></h1>
-<p>MEDIOLLANUM_ES24_B format submodule</p>
+<p>MEDIOLANUM_ES24_B format submodule.</p>
+<p>This module provides processing functions for the MEDIOLANUM_ES24_B format,
+which handles Spanish financial documents with specific layout characteristics.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize</span></code>(txt_blk)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.deserialize" title="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.deserialize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deserialize</span></code></a>(txt_blk)</p></td>
+<td><p>Deserialize text blocks into structured data for MEDIOLANUM_ES24_B format.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter</span></code>(xml_root)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.pdf_filter" title="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.pdf_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_filter</span></code></a>(xml_root)</p></td>
+<td><p>Filter PDF content for MEDIOLANUM_ES24_B format.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract</span></code>(pdf_blocks, targets)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.text_extract" title="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.text_extract"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_extract</span></code></a>(pdf_blocks, targets)</p></td>
+<td><p>Extract text content from PDF blocks for MEDIOLANUM_ES24_B format.</p></td>
 </tr>
 </tbody>
 </table>
@@ -131,22 +134,89 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.PdfBlockType" title="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.PdfBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Types of PDF blocks for MEDIOLANUM_ES24_B format.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.TextBlockType" title="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.TextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextBlockType</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Types of text blocks for MEDIOLANUM_ES24_B format.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.PdfBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.</span></span><span class="sig-name descname"><span class="pre">PdfBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.PdfBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Types of PDF blocks for MEDIOLANUM_ES24_B format.</p>
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.TextBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.</span></span><span class="sig-name descname"><span class="pre">TextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.TextBlockType" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Types of text blocks for MEDIOLANUM_ES24_B format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.deserialize">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.</span></span><span class="sig-name descname"><span class="pre">deserialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt_blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.deserialize" title="Link to this definition"></a></dt>
+<dd><p>Deserialize text blocks into structured data for MEDIOLANUM_ES24_B format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>txt_blk</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><em>TextBlock</em></a><em>]</em>) – Text block to deserialize, or None</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Deserialized data object or None if input is None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Any]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Handles subfund context resolution and applies specific scaling
+to market values (multiplies by 1000).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.pdf_filter">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.</span></span><span class="sig-name descname"><span class="pre">pdf_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xml_root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.pdf_filter" title="Link to this definition"></a></dt>
+<dd><p>Filter PDF content for MEDIOLANUM_ES24_B format.</p>
+<p>This function processes XML content from PDF to extract relevant blocks,
+handling both subfund information and standard financial data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>xml_root</strong> (<em>etree.Element</em>) – Root element of the PDF XML content</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of extracted PDF blocks with their types and metadata</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock">PdfBlock</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function first checks for specific Spanish regulatory markers (CNMV),
+then falls back to standard PDF filtering for financial data extraction.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.text_extract">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.</span></span><span class="sig-name descname"><span class="pre">text_extract</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><span class="pre">PdfBlock</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.unstructured.mediolanum_es24_b.text_extract" title="Link to this definition"></a></dt>
+<dd><p>Extract text content from PDF blocks for MEDIOLANUM_ES24_B format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pdf_blocks</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><em>PdfBlock</em></a><em>]</em>) – List of PDF blocks to extract text from</p></li>
+<li><p><strong>targets</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of target identifiers for text extraction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of extracted text blocks with their types and metadata</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock">TextBlock</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Handles both subfund information extraction and standard financial
+data extraction with specific column positions.</p>
+</dd></dl>
 
 </section>
 

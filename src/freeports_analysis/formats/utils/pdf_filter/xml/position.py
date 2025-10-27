@@ -5,7 +5,7 @@ that contain bounding box information. It includes utilities for checking spatia
 extracting coordinates, and calculating dimensions of PDF content blocks.
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from lxml import etree
 from . import xpath_queries as xpath
 
@@ -156,6 +156,23 @@ def get_lines_contained(
     blk: etree.Element,
     x_range: Optional[Tuple[float, float]] = None,
     y_range: Optional[Tuple[float, float]] = None,
-):
+) -> List[etree.Element]:
+    """Get all line elements contained within specified spatial ranges.
+
+    Parameters
+    ----------
+    blk : etree.Element
+        XML element representing the root or container to search
+    x_range : Optional[Tuple[float, float]], optional
+        Horizontal range (min_x, max_x) to filter lines
+    y_range : Optional[Tuple[float, float]], optional
+        Vertical range (min_y, max_y) to filter lines
+
+    Returns
+    -------
+    List[etree.Element]
+        List of line elements whose bounding boxes are fully contained
+        within the specified ranges
+    """
     lines = xpath.lines(blk)
     return [ln for ln in lines if is_contained(ln, x_range, y_range)]

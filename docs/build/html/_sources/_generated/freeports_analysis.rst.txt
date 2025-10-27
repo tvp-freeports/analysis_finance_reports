@@ -18,5 +18,6 @@
    download
    formats
    i18n
+   logging
    main
    output

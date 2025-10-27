@@ -61,6 +61,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -100,36 +101,40 @@
              
   <section id="module-freeports_analysis.download">
 <span id="freeports-analysis-download"></span><h1>freeports_analysis.download<a class="headerlink" href="#module-freeports_analysis.download" title="Link to this heading"></a></h1>
-<p>Functions to download pdf from internet and for scraping</p>
+<p>Functions for downloading PDF files from the internet and web scraping.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.download.download_pdf" title="freeports_analysis.download.download_pdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_pdf</span></code></a>(url[, pdf])</p></td>
-<td><p>Function to download pdf file from url</p></td>
+<td><p>Download PDF file from URL and optionally save to local filesystem.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.download.download_pdf">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.download.</span></span><span class="sig-name descname"><span class="pre">download_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">BytesIO</span></span></span><a class="headerlink" href="#freeports_analysis.download.download_pdf" title="Link to this definition"></a></dt>
-<dd><p>Function to download pdf file from url</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.download.</span></span><span class="sig-name descname"><span class="pre">download_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">BytesIO</span></span></span><a class="headerlink" href="#freeports_analysis.download.download_pdf" title="Link to this definition"></a></dt>
+<dd><p>Download PDF file from URL and optionally save to local filesystem.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>url</strong> (<em>str</em>) – unique resource identifier on internet</p></li>
-<li><p><strong>pdf</strong> (<em>str</em>) – path of the file where to save the file in filesystem</p></li>
+<li><p><strong>url</strong> (<em>str</em>) – Unique resource identifier on internet pointing to PDF file</p></li>
+<li><p><strong>pdf</strong> (<em>Optional</em><em>[</em><em>Path</em><em>]</em><em>, </em><em>optional</em>) – Path where to save the PDF in filesystem, by default None</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>output byte stream with input output operation like file</p>
+<dd class="field-even"><p>Byte stream with input/output operations like a file object</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>BytesIO</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>Exception</strong> – if the code returned from the http get call is an error code, an exception occurs</p>
+<dd class="field-even"><p><strong>requests.RequestException</strong> – If the HTTP GET call fails or returns an error status code</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>If <cite>pdf</cite> is provided, the downloaded PDF will be saved to that path
+in addition to being returned as a BytesIO stream. The function uses
+a 10-second timeout for the HTTP request.</p>
 </dd></dl>
 
 </section>

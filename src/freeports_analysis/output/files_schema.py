@@ -1,4 +1,11 @@
-from typing import Optional
+"""Data schema definitions for financial investment data validation.
+
+This module defines the data schemas used to validate and structure financial
+investment data extracted from PDF documents. It includes DataFrame schemas
+for tabular data and Pydantic models for structured data validation.
+"""
+
+from typing import Optional, List
 import datetime
 import pandera.pandas as pa
 import pandas as pd
@@ -8,8 +15,10 @@ from freeports_analysis.consts import Currency
 from pydantic import BaseModel, confloat
 
 
-list_of_instruments = ["EQUITY", "BOND"]
+# List of valid financial instrument types
+list_of_instruments: List[str] = ["EQUITY", "BOND"]
 
+# Schema for validating investments DataFrame
 investments_schema = pa.DataFrameSchema(
     {
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
@@ -59,5 +68,24 @@ investments_schema = pa.DataFrameSchema(
 
 
 class BondAdditionalInfos(BaseModel):
+    """Additional information specific to bond investments.
+
+    This model captures bond-specific attributes that are not part of the
+    core investment data structure.
+
+    Attributes
+    ----------
+    maturity : Optional[datetime.date]
+        The date when the bond reaches maturity and principal is repaid
+    interest_rate : Optional[confloat(ge=0.0, lt=1.0)]
+        The annual interest rate as a decimal value between 0.0 and 1.0
+
+    Notes
+    -----
+    This model is used to store bond-specific information separately from
+    the main investment data structure, allowing for cleaner separation
+    between common investment attributes and bond-specific ones.
+    """
+
     maturity: Optional[datetime.date]
     interest_rate: Optional[confloat(ge=0.0, lt=1.0)]

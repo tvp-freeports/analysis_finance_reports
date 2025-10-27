@@ -1,4 +1,12 @@
+"""Structured algorithm pipeline management.
+
+This module handles the loading and configuration of structured
+PDF processing algorithms for formats with well-defined layouts
+and consistent data structures.
+"""
+
 from pathlib import Path
+from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import line_set_regexp
@@ -144,8 +152,29 @@ def get_partial_pipes() -> pd.DataFrame:
     return partial_pipes_schema.validate(df)
 
 
-def validate_partial_pipes(segment, columns):
-    def validate_columns(args):
+def validate_partial_pipes(
+    segment: str, columns: List[str]
+) -> Callable[[pd.DataFrame], pd.Series]:
+    """Create a validation function for partial pipeline configurations.
+
+    This function generates a validator that ensures when a pipeline segment
+    is disabled, the corresponding configuration columns are also empty.
+
+    Parameters
+    ----------
+    segment : str
+        Name of the pipeline segment ('pdf_filter', 'text_extract', or 'deserialize')
+    columns : List[str]
+        List of column names that should be empty when the segment is disabled
+
+    Returns
+    -------
+    Callable[[pd.DataFrame], pd.Series]
+        Validation function that returns a boolean Series indicating valid rows
+    """
+
+    def validate_columns(args: pd.DataFrame) -> pd.Series:
+        """Validate that disabled segments don't have associated configuration."""
         columns_not_empty = False
         for col in columns:
             columns_not_empty = columns_not_empty | ~args[col].isna()
@@ -195,7 +224,20 @@ structured_formats_schema = pa.DataFrameSchema(
 )
 
 
-def get_structured_formats():
+def get_structured_formats() -> pd.DataFrame:
+    """Get complete structured formats configuration with all parameters.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing all structured format configurations
+
+    Notes
+    -----
+    This function combines multiple configuration tables into a single
+    comprehensive DataFrame with all parameters needed for structured
+    PDF processing algorithms.
+    """
     args = get_args()
     add_args = get_additional_args()
     add_headers = get_additional_headers()
@@ -224,8 +266,29 @@ def get_structured_formats():
     return structured_formats_schema.validate(result)
 
 
-def get_pipes(format_name):
-    args = []
+def get_pipes(
+    format_name: str,
+) -> Tuple[
+    Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
+]:
+    """Get processing pipelines for a specific structured format.
+
+    Parameters
+    ----------
+    format_name : str
+        Name of the format to get pipelines for
+
+    Returns
+    -------
+    Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
+        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Each dictionary maps pipeline names to lists of processing functions.
+
+    Notes
+    -----
+    Returns empty dictionaries if the format name is not found in the mapping.
+    """
+    args: List[Tuple[str, pd.Series]] = []
     try:
         selected_row = get_structured_formats().loc[format_name]
         args = [
@@ -234,10 +297,12 @@ def get_pipes(format_name):
         ]
     except KeyError:
         pass
-    pdf_filter_segment = {}
-    text_extract_segment = {}
-    deserialize_segment = {}
+    pdf_filter_segment: Dict[str, List[Callable]] = {}
+    text_extract_segment: Dict[str, List[Callable]] = {}
+    deserialize_segment: Dict[str, List[Callable]] = {}
+
     for pipeline, arg in args:
+        # PDF Filter segment
         if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
             pdf_filter_args = {
                 "header_set": [PdfLineSet.from_str(s) for s in arg["Header sets"]],
@@ -262,6 +327,7 @@ def get_pipes(format_name):
                 pdf_filter_segment[pipeline] = []
             pdf_filter_segment[pipeline].append(pdf_filter)
 
+        # Text Extract segment
         if pd.isna(arg["text_extract"]) or arg["text_extract"]:
             text_extract_args = {"market_value_pos": arg["Market value"]}
             if not pd.isna(arg["Geometrical indexing"]):
@@ -286,6 +352,7 @@ def get_pipes(format_name):
                 text_extract_segment[pipeline] = []
             text_extract_segment[pipeline].append(text_extract)
 
+        # Deserialize segment
         if pd.isna(arg["deserialize"]) or arg["deserialize"]:
             deserialize_args = {}
             if not pd.isna(arg["Interpret quantity as float"]):

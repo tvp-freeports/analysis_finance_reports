@@ -1,0 +1,477 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>freeports_analysis.logging &mdash; freeports_analysis 0.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47de8214"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="freeports_analysis.main" href="freeports_analysis.main.html" />
+    <link rel="prev" title="freeports_analysis.i18n" href="freeports_analysis.i18n.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            freeports_analysis
+              <img src="https://www.freeports.org/assets/logo/square.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/quickstart.html">Quickstart guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/command.html">Command reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.logging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos"><code class="docutils literal notranslate"><span class="pre">AdaptStandardInvesmentInfos</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.AddContextualInfos"><code class="docutils literal notranslate"><span class="pre">AddContextualInfos</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.CsvFormatter"><code class="docutils literal notranslate"><span class="pre">CsvFormatter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.DevDebugFormatter"><code class="docutils literal notranslate"><span class="pre">DevDebugFormatter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.StderrFormatter"><code class="docutils literal notranslate"><span class="pre">StderrFormatter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribute.html">How to contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validation/index.html">How the data is validated</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">Developer documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">freeports_analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../API.html">Package reference</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.logging</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_generated/freeports_analysis.logging.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-freeports_analysis.logging">
+<span id="freeports-analysis-logging"></span><h1>freeports_analysis.logging<a class="headerlink" href="#module-freeports_analysis.logging" title="Link to this heading"></a></h1>
+<p>Module containing useful definitions for program logging configuration.</p>
+<p>This module provides custom logging formatters, filters, and configuration
+for the standard <cite>logging</cite> Python package, tailored for PDF processing and
+financial data extraction workflows.</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos" title="freeports_analysis.logging.AdaptStandardInvesmentInfos"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AdaptStandardInvesmentInfos</span></code></a>([name])</p></td>
+<td><p>Filter that adds algorithm-specific investment information to LogRecords.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.logging.AddContextualInfos" title="freeports_analysis.logging.AddContextualInfos"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddContextualInfos</span></code></a>([name])</p></td>
+<td><p>Filter that adds contextual state information to LogRecords.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.logging.CsvFormatter" title="freeports_analysis.logging.CsvFormatter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CsvFormatter</span></code></a>([fmt, datefmt, style, ...])</p></td>
+<td><p>Formatter for CSV file logging with PDF document position information.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.logging.DevDebugFormatter" title="freeports_analysis.logging.DevDebugFormatter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DevDebugFormatter</span></code></a>([fmt, datefmt, style, ...])</p></td>
+<td><p>Formatter class for comprehensive debug logging with full location information.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.logging.StderrFormatter" title="freeports_analysis.logging.StderrFormatter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StderrFormatter</span></code></a>([fmt, datefmt, style, ...])</p></td>
+<td><p>Formatter class for concise single-line logging suitable for live streams like stderr.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">AdaptStandardInvesmentInfos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos" title="Link to this definition"></a></dt>
+<dd><p>Filter that adds algorithm-specific investment information to LogRecords.</p>
+<p>This filter adds information specific to the standard PDF processing algorithms
+(<cite>standard_pdf_filtering</cite>, <cite>standard_text_extracting</cite>, <cite>standard_deserialization</cite>)
+and converts it to a less algorithm-dependent format suitable for the
+<cite>AddContextualInfos</cite> filter.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.company">
+<span class="sig-name descname"><span class="pre">company</span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.company" title="Link to this definition"></a></dt>
+<dd><p>The company being parsed as recognized by the algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.company_match">
+<span class="sig-name descname"><span class="pre">company_match</span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.company_match" title="Link to this definition"></a></dt>
+<dd><p>The company being parsed as written in the PDF document</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.field">
+<span class="sig-name descname"><span class="pre">field</span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.field" title="Link to this definition"></a></dt>
+<dd><p>The field being parsed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.row">
+<span class="sig-name descname"><span class="pre">row</span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.row" title="Link to this definition"></a></dt>
+<dd><p>The row number in the body table (investment table)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.col">
+<span class="sig-name descname"><span class="pre">col</span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.col" title="Link to this definition"></a></dt>
+<dd><p>The column number in the body table</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.filter" title="Link to this definition"></a></dt>
+<dd><p>Add investment-specific information and convert to contextual format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with investment information</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The enriched log record with investment context</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>logging.LogRecord</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">AddContextualInfos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos" title="Link to this definition"></a></dt>
+<dd><p>Filter that adds contextual state information to LogRecords.</p>
+<p>This filter maintains state about the processing context and adds this
+information to log records for better traceability and debugging.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.mproc">
+<span class="sig-name descname"><span class="pre">mproc</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.mproc" title="Link to this definition"></a></dt>
+<dd><p>If True, indicates multiprocess mode (requires PID identification)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.batch_mode">
+<span class="sig-name descname"><span class="pre">batch_mode</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.batch_mode" title="Link to this definition"></a></dt>
+<dd><p>If True, indicates batch processing mode (requires report identification)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.page">
+<span class="sig-name descname"><span class="pre">page</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.page" title="Link to this definition"></a></dt>
+<dd><p>The PDF page number being parsed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.report">
+<span class="sig-name descname"><span class="pre">report</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.report" title="Link to this definition"></a></dt>
+<dd><p>The identifier of the specific PDF report (uses PREFIX_OUT)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.vertical_ref">
+<span class="sig-name descname"><span class="pre">vertical_ref</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.vertical_ref" title="Link to this definition"></a></dt>
+<dd><p>Textual hint for vertical position in page (e.g., company name)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.horizontal_ref">
+<span class="sig-name descname"><span class="pre">horizontal_ref</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.horizontal_ref" title="Link to this definition"></a></dt>
+<dd><p>Textual hint for horizontal position in page</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.c1">
+<span class="sig-name descname"><span class="pre">c1</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.c1" title="Link to this definition"></a></dt>
+<dd><p>First coordinate for precise position identification</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Union[float, int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.c2">
+<span class="sig-name descname"><span class="pre">c2</span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.c2" title="Link to this definition"></a></dt>
+<dd><p>Second coordinate for precise position identification</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Union[float, int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.filter" title="Link to this definition"></a></dt>
+<dd><p>Add contextual information from filter state to the LogRecord.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with contextual information</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The enriched log record with contextual information</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>logging.LogRecord</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.logging.CsvFormatter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">CsvFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datefmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.logging.CsvFormatter" title="Link to this definition"></a></dt>
+<dd><p>Formatter for CSV file logging with PDF document position information.</p>
+<p>This formatter produces CSV-formatted log entries containing information
+primarily related to PDF document positions, making it suitable for user
+review rather than developer debugging.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.CsvFormatter.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#freeports_analysis.logging.CsvFormatter.None" title="Link to this definition"></a></dt>
+<dd><p>Inherits all attributes from logging.Formatter</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.logging.CsvFormatter.format">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.CsvFormatter.format" title="Link to this definition"></a></dt>
+<dd><p>Format the log record as CSV with PDF position information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>CSV-formatted log entry</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The CSV output includes fields for:
+- Page number
+- Company matching information
+- Company name
+- Field name
+- Row and column coordinates
+- Log message
+- Report identifier (in batch mode)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.logging.DevDebugFormatter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">DevDebugFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datefmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.logging.DevDebugFormatter" title="Link to this definition"></a></dt>
+<dd><p>Formatter class for comprehensive debug logging with full location information.</p>
+<p>This formatter is useful for debugging purposes as it provides detailed
+information about code location and PDF document position.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.DevDebugFormatter.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#freeports_analysis.logging.DevDebugFormatter.None" title="Link to this definition"></a></dt>
+<dd><p>Inherits all attributes from logging.Formatter</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.logging.DevDebugFormatter.format">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.DevDebugFormatter.format" title="Link to this definition"></a></dt>
+<dd><p>Format log record with full information on code and PDF document location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Formatted debug message with comprehensive location information</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The formatted output includes:
+- Process ID (if multiprocessing)
+- Log level and source location (function, line, file)
+- Report and page context
+- PDF document coordinates and position references
+- The actual log message</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.logging.StderrFormatter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">StderrFormatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datefmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.logging.StderrFormatter" title="Link to this definition"></a></dt>
+<dd><p>Formatter class for concise single-line logging suitable for live streams like stderr.</p>
+<p>This formatter produces compact log messages ideal for real-time monitoring
+and command-line output.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.logging.StderrFormatter.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#freeports_analysis.logging.StderrFormatter.None" title="Link to this definition"></a></dt>
+<dd><p>Inherits all attributes from logging.Formatter</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.logging.StderrFormatter.format">
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.StderrFormatter.format" title="Link to this definition"></a></dt>
+<dd><p>Format the log as a concise one-line message for live stream display.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Compact formatted log message</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The formatted output includes minimal context:
+- Process ID (if multiprocessing)
+- Log level
+- Report and page context (if available)
+- Position references (if available)
+- The actual log message</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="freeports_analysis.i18n.html" class="btn btn-neutral float-left" title="freeports_analysis.i18n" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.main.html" class="btn btn-neutral float-right" title="freeports_analysis.main" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Oreste Sciacqualegni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

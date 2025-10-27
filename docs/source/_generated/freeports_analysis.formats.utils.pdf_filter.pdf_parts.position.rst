@@ -9,8 +9,5 @@ freeports\_analysis.formats.utils.pdf\_filter.pdf\_parts.position
 
    .. autosummary::
    
-      Area
       InputArea
-      XRange
-      YRange
    

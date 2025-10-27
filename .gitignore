@@ -24,3 +24,4 @@ conf*freeports.yaml
 conf*freeports.yml
 freeports.log
 .benchmarks
+.continue

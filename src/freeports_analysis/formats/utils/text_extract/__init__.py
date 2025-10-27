@@ -46,7 +46,64 @@ class EquityBondTextBlockType(Enum):
 
 
 class PdfBlocksTable:
+    """Represents a table structure of PDF blocks organized by row and column.
+
+    This class provides a tabular view of PDF blocks based on their
+    row and column metadata, enabling efficient access and manipulation
+    of blocks in a grid-like structure. It transforms a flat list of
+    PDF blocks into a 2D table structure for easier navigation and
+    manipulation of tabular data extracted from PDF documents.
+
+    Parameters
+    ----------
+    pdf_blocks : List[PdfBlock]
+        A list of PDF blocks that should have 'table-row' and 'table-col'
+        metadata indicating their position in the table structure.
+
+    Attributes
+    ----------
+    _blks : List[PdfBlock]
+        Original list of PDF blocks
+    _table_indexes : List[List[List[int]]]
+        Index mapping from table coordinates to block indices
+    _table : List[List[List[PdfBlock]]]
+        Table structure containing PDF blocks organized by row and column
+
+    Notes
+    -----
+    - The table structure allows for sparse tables (empty cells)
+    - Multiple blocks can occupy the same cell (represented as lists)
+    - Row and column indices start from 0
+    - The shape property provides table dimensions
+
+    Examples
+    --------
+    >>> # Assuming blocks have table-row and table-col metadata
+    >>> table = PdfBlocksTable(pdf_blocks)
+    >>> print(f"Table shape: {table.shape}")
+    Table shape: (5, 3)  # 5 rows, 3 columns
+    >>>
+    >>> # Access a specific cell
+    >>> cell_content = table[2, 1]  # Row 2, Column 1
+    >>>
+    >>> # Iterate through all blocks
+    >>> for block in table:
+    ...     process_block(block)
+    """
+
     def _get_table(self, pdf_blocks):
+        """Convert flat list of PDF blocks into a table structure.
+
+        Parameters
+        ----------
+        pdf_blocks : List[PdfBlock]
+            List of PDF blocks with table-row and table-col metadata
+
+        Returns
+        -------
+        Tuple[List[List[List[int]]], List[List[List[PdfBlock]]]]
+            Tuple containing index mapping and table structure
+        """
         table = []
         indexes = []
         dict_table = {}
@@ -78,18 +135,51 @@ class PdfBlocksTable:
         return indexes, table
 
     def __init__(self, pdf_blocks):
+        """Initialize PdfBlocksTable with PDF blocks.
+
+        Parameters
+        ----------
+        pdf_blocks : List[PdfBlock]
+            List of PDF blocks to organize into table structure
+        """
         self._blks = pdf_blocks.copy()
         self._table_indexes, self._table = self._get_table(self._blks)
 
     @property
     def _rows(self):
+        """Number of rows in the table.
+
+        Returns
+        -------
+        int
+            Number of rows
+        """
         return len(self._table)
 
     @property
     def _cols(self):
+        """Number of columns in the table.
+
+        Returns
+        -------
+        int
+            Number of columns
+        """
         return max(map(len, self._table)) if self._rows > 0 else 0
 
     def __getitem__(self, i):
+        """Get block(s) by index or coordinates.
+
+        Parameters
+        ----------
+        i : Union[int, Tuple[int, int]]
+            Either a linear index or (row, column) tuple
+
+        Returns
+        -------
+        Union[PdfBlock, List[PdfBlock], None]
+            Single block, list of blocks, or None if not found
+        """
         if isinstance(i, tuple):
             j, k = i
             vals = self._table[j][k]
@@ -103,13 +193,39 @@ class PdfBlocksTable:
             return self._blks[i]
 
     def __len__(self):
+        """Number of blocks in the table.
+
+        Returns
+        -------
+        int
+            Total number of PDF blocks
+        """
         return len(self._blks)
 
     @property
     def shape(self):
+        """Table dimensions.
+
+        Returns
+        -------
+        Tuple[int, int]
+            (number of rows, number of columns)
+        """
         return (self._rows, self._cols)
 
     def pop(self, j):
+        """Remove a block from the table by index.
+
+        Parameters
+        ----------
+        j : int
+            Index of the block to remove
+
+        Notes
+        -----
+        Updates the table structure and adjusts row numbers for blocks
+        that come after the removed row.
+        """
         blk = self._blks.pop(j)
         col_del = blk.metadata["table-col"]
         row_del = blk.metadata["table-row"]
@@ -133,6 +249,20 @@ class PdfBlocksTable:
                     blk.metadata["table-row"] -= 1
 
     def merge(self, j, i):
+        """Merge two blocks by combining their content.
+
+        Parameters
+        ----------
+        j : int
+            Index of first block to merge
+        i : int
+            Index of second block to merge
+
+        Notes
+        -----
+        The content of both blocks is concatenated and stored in the
+        block with the lower index. The higher-indexed block is removed.
+        """
         first, last = (i, j) if i < j else (j, i)
         content = self._blks[first].content + self._blks[last].content
         self._blks[i].content = content
@@ -147,23 +277,35 @@ class PdfBlocksTable:
 def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
     """Decorator for standard text extraction loop.
 
-    This decorator wrap the function provide in the usual loop that give a simplify
+    This decorator wraps the function provided in the usual loop that gives a simplified
     and higher level context to the decorated `text_extraction` function.
-    Specifically it expect that in the metadata of each `PdfBlock` is present
-    an indicator of which column it is located graphycally in the main table of the
-    pdf page (it suppose that the data was tabular in some way) `table-col`.
-    The loop:
-    - Take each block and concat the content with the subsequent if
+    Specifically it expects that in the metadata of each `PdfBlock` is present
+    an indicator of which column it is located graphically in the main table of the
+    PDF page (it assumes that the data was tabular in some way) `table-col`.
+
+    Parameters
+    ----------
+    geometrical_indexes : bool, optional
+        Whether to use (row, column) coordinates instead of linear indices, by default True
+    merge_prev : bool, optional
+        Whether to merge with previous block instead of next block, by default False
+
+    Returns
+    -------
+    Callable
+        Decorator that wraps text extraction functions with standard processing logic
+
+    Notes
+    -----
+    The loop performs the following steps:
+    - Takes each block and concatenates the content with the subsequent if
       they are on the same column.
-    - Use `match_func` to see if one between the target provided to the
-      extraction function match with the content  of the block.
-    - If it does it overwrite the list of `PdfBlock` to persist the concatenation
-      of the block with is subsequent.
-    - Add `company` metadata with the match
-    - It create a `TextBlock` addint the metadata provided by the wrapped function.
-      The wrapped function take as parameters the block list and the index
-      of the matched block. It takes the modified list with merged content
-      for block in the same column that matches the target.
+    - Uses `match_func` to see if one between the target provided to the
+      extraction function matches with the content of the block.
+    - If it does, it overwrites the list of `PdfBlock` to persist the concatenation
+      of the block with its subsequent.
+    - Adds `company` metadata with the match
+    - Creates a `TextBlock` adding the metadata provided by the wrapped function.
     """
 
     def decorator(f):
@@ -323,7 +465,21 @@ def standard_text_extraction(
                 ):
                     raise ValueError(_("All positions should be different"))
 
-            def abs_idx(offset):
+            def abs_idx(offset: int | Tuple[int, int]) -> int | Tuple[int, int]:
+                """Convert relative offset to absolute index in PDF blocks table.
+
+                Parameters
+                ----------
+                offset : int | Tuple[int, int]
+                    Relative offset from current position. Can be:
+                    - int: linear offset in flattened table
+                    - Tuple[int, int]: (row_offset, column_offset) in 2D table
+
+                Returns
+                -------
+                int | Tuple[int, int]
+                    Absolute index in the table structure
+                """
                 if isinstance(i, tuple):
                     ro, co = (None, None)
                     r, c = i
@@ -336,7 +492,30 @@ def standard_text_extraction(
                     return (r + ro, c + co)
                 return i + offset
 
-            def try_extraction_of_field(metadata, pos, name, pdf_blocks_table):
+            def try_extraction_of_field(
+                metadata: dict,
+                pos: int | Tuple[int, int] | None,
+                name: str,
+                pdf_blocks_table: PdfBlocksTable,
+            ) -> dict:
+                """Attempt to extract field content from PDF blocks table.
+
+                Parameters
+                ----------
+                metadata : dict
+                    Metadata dictionary to update
+                pos : int | Tuple[int, int] | None
+                    Position of the field in the table
+                name : str
+                    Name of the field to extract
+                pdf_blocks_table : PdfBlocksTable
+                    Table structure containing PDF blocks
+
+                Returns
+                -------
+                dict
+                    Updated metadata dictionary
+                """
                 if pos is not None:
                     try:
                         metadata[name] = pdf_blocks_table[abs_idx(pos)].content

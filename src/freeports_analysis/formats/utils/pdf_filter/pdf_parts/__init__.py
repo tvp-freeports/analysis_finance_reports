@@ -1,6 +1,35 @@
-"""Pdf xml parts in a friendly format (custom python classes)."""
+"""PDF XML parts in a friendly format (custom Python classes).
 
-from typing import Optional, Tuple, Annotated
+This module provides a high-level interface for working with PDF document elements
+by wrapping raw XML structures into Python objects with intuitive properties and
+methods. The main classes include:
+
+- `PdfLine`: Base class representing a PDF line with font, size, and area properties
+- `ExtractedPdfLine`: Concrete implementation that extracts data from XML elements
+- `PdfLineSet`: Complex set operations for filtering PDF lines based on multiple criteria
+
+These classes enable sophisticated PDF document analysis by providing:
+- Geometric operations (area containment, position filtering)
+- Typographic filtering (font, size matching)
+- Text content matching with regex support
+- Set operations (union, intersection, difference)
+- Contextualization based on actual PDF content
+
+Examples
+--------
+>>> # Create a PDF line set filtering for specific font and area
+>>> line_set = PdfLineSet(font="Arial", area=((0, 100), (0, 200)))
+>>> # Check if a line matches the criteria
+>>> line in line_set
+True
+
+Notes
+-----
+The module uses Shapely for geometric operations and lxml for XML processing.
+All coordinates are in PDF points (1/72 inch).
+"""
+
+from typing import Optional, Tuple, Annotated, Callable, Any
 import re
 import ast
 from operator import or_, and_, sub, truediv
@@ -17,22 +46,49 @@ from ..xml import xpath_queries as xpath
 
 
 class PdfLine:
-    """A class representing a PDF line.
+    """A class representing a PDF line with geometric and typographic properties.
 
     This class provides a friendly interface to access geometric properties,
-    font information, and text size of a line in a PDF document.
+    font information, and text size of a line in a PDF document. It serves as
+    the base class for PDF line representations and provides common functionality
+    for all PDF line types.
 
     Parameters
     ----------
     text : Optional[str]
-        The text content of the line
+        The text content of the line. If None, indicates the line has no text content.
     font : Optional[Font]
-        The font of the line
+        The font used in the line. If None, font information is not available.
     font_size : Optional[FontSize]
-        The text size of the line
+        The text size of the line in points. If None, size information is not available.
     area : Optional[Polygon]
-        The area in which the line is contained
+        The geometric area (bounding box) in which the line is contained.
+        If None, geometric information is not available.
 
+    Attributes
+    ----------
+    area : Polygon
+        Read-only property returning the line's bounding box area
+    font : Font
+        Read-only property returning the line's font
+    font_size : FontSize
+        Read-only property returning the line's font size
+    text : str
+        Read-only property returning the line's text content
+
+    Notes
+    -----
+    - All coordinates are in PDF points (1/72 inch)
+    - The area is represented as a Shapely Polygon for geometric operations
+    - Font and font_size are specialized types that support set operations
+
+    Examples
+    --------
+    >>> line = PdfLine(text="Hello World", font="Arial", font_size=12.0)
+    >>> print(line.font)
+    Arial
+    >>> print(line.area)
+    POLYGON ((0 0, 100 0, 100 12, 0 12, 0 0))
     """
 
     def __init__(
@@ -120,13 +176,64 @@ class PdfLine:
 
 
 class ExtractedPdfLine(PdfLine):
+    """Concrete PDF line implementation that extracts data from XML elements.
+
+    This class extends PdfLine by automatically extracting line properties
+    from XML elements representing PDF content. It provides the bridge between
+    raw PDF XML data and the high-level PdfLine interface.
+
+    Parameters
+    ----------
+    blk : etree.Element
+        The XML element containing PDF line data. Expected to have:
+        - A 'bbox' attribute with bounding box coordinates
+        - Font information in child elements
+        - Text content in attributes
+
+    Attributes
+    ----------
+    xml_blk : etree.Element
+        Read-only property returning the original XML element
+
+    Raises
+    ------
+    ValueError
+        If the XML element does not contain required attributes
+
+    Notes
+    -----
+    - The XML element is expected to follow PDF XML structure conventions
+    - Bounding box coordinates are parsed from the 'bbox' attribute
+    - Font information is extracted from child <font> elements
+    - Text content is extracted from the 'text' attribute
+
+    Examples
+    --------
+    >>> # Assuming xml_element is a valid PDF XML line element
+    >>> line = ExtractedPdfLine(xml_element)
+    >>> print(f"Text: {line.text}, Font: {line.font}, Size: {line.font_size}")
+    Text: Sample Text, Font: Arial, Size: 12.0
+    """
+
     def __init__(self, blk: etree.Element):
         """Initialize the ExtractedPdfLine from an XML element.
 
         Parameters
         ----------
         blk : etree.Element
-            The XML element containing the line data.
+            The XML element containing the line data. Must have:
+            - 'bbox' attribute with format "x0 y0 x1 y1"
+            - Font information accessible via xpath queries
+            - Text content in 'text' attribute
+
+        Notes
+        -----
+        The initialization process:
+        1. Extracts bounding box coordinates and creates Polygon
+        2. Extracts font name and creates Font object
+        3. Extracts font size and creates FontSize object
+        4. Extracts text content
+        5. Stores reference to original XML element
         """
         bounds = get_bounds(blk)
         super().__init__(
@@ -145,6 +252,11 @@ class ExtractedPdfLine(PdfLine):
         -------
         etree.Element
             The original XML element containing the line data.
+
+        Notes
+        -----
+        This property provides access to the raw XML data for advanced
+        operations that require direct XML manipulation.
         """
         return self._blk
 
@@ -171,7 +283,24 @@ line_set_regexp += f"({_line_set_text_regexp})?"
 _line_set_regexp = re.compile(line_set_regexp)
 
 
-def _op_over_none(op, v1, v2):
+def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
+    """Apply operation to values, handling None cases gracefully.
+
+    Parameters
+    ----------
+    op : Callable
+        Binary operation to apply
+    v1 : Any
+        First operand
+    v2 : Any
+        Second operand
+
+    Returns
+    -------
+    Any
+        Result of operation, or the non-None value if only one is provided,
+        or None if both are None
+    """
     if v1 is not None and v2 is not None:
         return op(v1, v2)
     if v1 is not None:
@@ -326,6 +455,62 @@ class _FlattenPdfLineSet:
 
 
 class PdfLineSet:
+    """A set-like container for filtering PDF lines based on multiple criteria.
+
+    This class provides sophisticated filtering capabilities for PDF lines using
+    geometric, typographic, and textual criteria. It supports complex set operations
+    (union, intersection, difference) and can be contextualized based on actual
+    PDF content.
+
+    Parameters
+    ----------
+    font : Optional[FontSet], optional
+        Font criteria for filtering. Can be a single font name or FontSet.
+        If None, no font filtering is applied.
+    font_size : Optional[FontSizeSet], optional
+        Font size criteria for filtering. Can be a single size or size range.
+        If None, no size filtering is applied.
+    area : Optional[Polygon | Tuple[float, float]], optional
+        Geometric area criteria. Can be:
+        - Polygon: Exact geometric area
+        - Tuple[Tuple[float, float], Tuple[float, float]]: ((xmin, xmax), (ymin, ymax))
+        - Tuple[float, float]: (ymin, ymax) with x-range unbounded
+        If None, no area filtering is applied.
+    text : Optional[TextSet], optional
+        Text content criteria. Can be exact text, regex patterns, or TextSet.
+        If None, no text filtering is applied.
+
+    Attributes
+    ----------
+    is_simple : bool
+        True if the set represents a simple (non-compound) filter
+    is_concrete : bool
+        True if all criteria are concrete (not references to other sets)
+    one_d : bool
+        True if the set filters on exactly one dimension
+
+    Notes
+    -----
+    - The class uses a binary tree structure internally to represent complex filters
+    - Set operations (|, &, /) create new compound sets
+    - Contextualization resolves references based on actual PDF content
+    - The class supports both simple and complex filtering scenarios
+
+    Examples
+    --------
+    >>> # Simple filter for Arial font in specific area
+    >>> line_set = PdfLineSet(font="Arial", area=((0, 100), (0, 200)))
+    >>>
+    >>> # Complex filter using set operations
+    >>> header_set = PdfLineSet(font="Arial-Bold", font_size=14)
+    >>> body_set = PdfLineSet(font="Arial", font_size=10)
+    >>> combined_set = header_set | body_set
+    >>>
+    >>> # Check if a line matches the criteria
+    >>> line in combined_set
+    True
+    """
+
     def __init__(
         self,
         font: Optional[FontSet] = None,
@@ -333,8 +518,10 @@ class PdfLineSet:
         area: Optional[Polygon | Tuple[float, float]] = None,
         text: Optional[TextSet] = None,
     ):
+        # Convert area tuples to proper Polygon objects
         if isinstance(area, tuple):
             if isinstance(area[0], tuple):
+                # Full bounding box: ((xmin, xmax), (ymin, ymax))
                 ((xmin, xmax), (ymin, ymax)) = area
                 if xmin is None:
                     xmin = -1e6
@@ -350,25 +537,43 @@ class PdfLineSet:
                 or isinstance(area[0], int)
                 or area[0] is None
             ):
+                # Vertical range only: (ymin, ymax)
                 ymin, ymax = area
                 if ymin is None:
                     ymin = -1e6
                 if ymax is None:
                     ymax = +1e6
                 area = box(-1e6, ymin, 1e6, ymax)
+
+        # Convert string inputs to proper typed objects
         if isinstance(font, str):
             font = FontSet(font)
         if isinstance(font_size, float) or isinstance(font_size, int):
             font_size = FontSizeSet.from_range(font_size - 1e-4, font_size + 1e-4)
         if isinstance(text, str):
             text = TextSet(text)
+
+        # Initialize the internal representation
         self._left = _FlattenPdfLineSet(
             font=font, font_size=font_size, area=area, text=text
         )
         self._right = None
 
     @property
-    def is_simple(self):
+    def is_simple(self) -> bool:
+        """Check if this is a simple (non-compound) PDF line set.
+
+        Returns
+        -------
+        bool
+            True if the set represents a simple filter with no compound operations,
+            False if it's a compound set created by set operations.
+
+        Notes
+        -----
+        Simple sets have a direct _FlattenPdfLineSet as _left and no _right.
+        Compound sets have binary operations stored in _right.
+        """
         return isinstance(self._left, _FlattenPdfLineSet) and self._right is None
 
     @property
@@ -413,9 +618,34 @@ class PdfLineSet:
             return False
         return True
 
-    def __or__(self, other):
+    def __or__(self, other: "PdfLineSet") -> "PdfLineSet":
+        """Create the union of two PDF line sets (set operation).
+
+        Parameters
+        ----------
+        other : PdfLineSet
+            The other PDF line set to combine with this one
+
+        Returns
+        -------
+        PdfLineSet
+            A new PDF line set representing the union of both sets
+
+        Notes
+        -----
+        - If both sets are simple and concrete, performs direct union
+        - Otherwise creates a compound set with OR operation
+        - The union includes lines that match either set's criteria
+
+        Examples
+        --------
+        >>> set1 = PdfLineSet(font="Arial")
+        >>> set2 = PdfLineSet(font_size=12)
+        >>> union_set = set1 | set2  # Lines with Arial font OR size 12
+        """
         newset = PdfLineSet()
         if self.is_simple and self.is_concrete and other.one_d and other.is_concrete:
+            # Direct union for simple, concrete sets
             newset._left._font = _op_over_none(or_, self._left.font, other.font)
             newset._left._font_size = _op_over_none(
                 or_, self._left.font_size, other._left.font_size
@@ -423,13 +653,39 @@ class PdfLineSet:
             newset._left._area = _op_over_none(or_, self._left.area, other._left.area)
             newset._left._text = _op_over_none(or_, self._left.text, other._left.text)
             return newset
+        # Create compound set for complex cases
         newset._left = self
         newset._right = (ast.Or, other)
         return newset
 
-    def __and__(self, other):
+    def __and__(self, other: "PdfLineSet") -> "PdfLineSet":
+        """Create the intersection of two PDF line sets (set operation).
+
+        Parameters
+        ----------
+        other : PdfLineSet
+            The other PDF line set to intersect with this one
+
+        Returns
+        -------
+        PdfLineSet
+            A new PDF line set representing the intersection of both sets
+
+        Notes
+        -----
+        - If both sets are simple and concrete, performs direct intersection
+        - Otherwise creates a compound set with AND operation
+        - The intersection includes only lines that match both sets' criteria
+
+        Examples
+        --------
+        >>> set1 = PdfLineSet(font="Arial")
+        >>> set2 = PdfLineSet(font_size=12)
+        >>> intersection_set = set1 & set2  # Lines with Arial font AND size 12
+        """
         newset = PdfLineSet()
         if self.is_simple and other.one_d and self.is_concrete and other.is_concrete:
+            # Direct intersection for simple, concrete sets
             newset._left._font = _op_over_none(and_, self._left.font, other._left.font)
             newset._left._font_size = _op_over_none(
                 and_, self._left.font_size, other._left.font_size
@@ -437,17 +693,46 @@ class PdfLineSet:
             newset._left._area = _op_over_none(and_, self._left.area, other._left.area)
             newset._left._text = _op_over_none(and_, self._left.text, other._left.text)
             return newset
+        # Create compound set for complex cases
         newset._left = self
         newset._right = (ast.And, other)
         return newset
 
-    def __truediv__(self, other):
+    def __truediv__(self, other: "PdfLineSet") -> "PdfLineSet":
+        """Create the difference between two PDF line sets (set operation).
+
+        Parameters
+        ----------
+        other : PdfLineSet
+            The PDF line set to subtract from this one
+
+        Returns
+        -------
+        PdfLineSet
+            A new PDF line set representing lines in this set but not in the other
+
+        Notes
+        -----
+        - If both sets are simple and concrete, performs direct difference
+        - Otherwise creates a compound set with DIV operation
+        - The difference includes lines that match this set but not the other
+        - For text sets, uses truediv operation which handles regex patterns
+
+        Examples
+        --------
+        >>> set1 = PdfLineSet(font="Arial")
+        >>> set2 = PdfLineSet(font_size=12)
+        >>> difference_set = set1 / set2  # Lines with Arial font but NOT size 12
+        """
         newset = PdfLineSet()
         if self.is_simple and other.one_d and self.is_concrete and other.is_concrete:
+            # Direct difference for simple, concrete sets
             sf, of = self._left.font, other._left.font
             sfs, ofs = self._left.font_size, other._left.font_size
             st, ot = self._left.text, other._left.text
             sa, oa = self._left.area, other._left.area
+
+            # Handle None cases by creating universal sets
             if sf is None and of is not None:
                 sf = AllFonts()
             if sfs is None and ofs is not None:
@@ -456,11 +741,14 @@ class PdfLineSet:
                 st = TextSet("")
             if sa is None and oa is not None:
                 sa = box(-1e6, -1e6, 1e6, 1e6)
+
+            # Perform set difference operations
             newset._left._font = _op_over_none(sub, sf, of)
             newset._left._font_size = _op_over_none(sub, sfs, ofs)
             newset._left._area = _op_over_none(sub, sa, oa)
             newset._left._text = _op_over_none(truediv, st, ot)
             return newset
+        # Create compound set for complex cases
         newset._left = self
         newset._right = (ast.Div, other)
         return newset

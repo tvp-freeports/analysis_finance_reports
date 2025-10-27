@@ -57,7 +57,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.CircularPromisesChain"><code class="docutils literal notranslate"><span class="pre">CircularPromisesChain</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.Currency"><code class="docutils literal notranslate"><span class="pre">Currency</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.FinancialInstrument"><code class="docutils literal notranslate"><span class="pre">FinancialInstrument</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_enum"><code class="docutils literal notranslate"><span class="pre">input_enum()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_flags"><code class="docutils literal notranslate"><span class="pre">input_flags()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.Promise"><code class="docutils literal notranslate"><span class="pre">Promise</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionContext"><code class="docutils literal notranslate"><span class="pre">PromisesResolutionContext</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionMap"><code class="docutils literal notranslate"><span class="pre">PromisesResolutionMap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flag_from_string"><code class="docutils literal notranslate"><span class="pre">flag_from_string()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flag_to_string"><code class="docutils literal notranslate"><span class="pre">flag_to_string()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flatten_promise_map"><code class="docutils literal notranslate"><span class="pre">flatten_promise_map()</span></code></a></li>
 </ul>
 </li>
@@ -65,6 +71,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -104,21 +111,36 @@
              
   <section id="module-freeports_analysis.consts">
 <span id="freeports-analysis-consts"></span><h1>freeports_analysis.consts<a class="headerlink" href="#module-freeports_analysis.consts" title="Link to this heading"></a></h1>
-<p>Provide basic constant and types used by all submodules,
-should facilitate avoiding circular imports</p>
+<p>Provides basic constants and types used by all submodules.</p>
+<p>This module facilitates avoiding circular imports by providing shared
+constants, types, and utility functions for the entire codebase.</p>
+<p class="rubric">Module Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionMap" title="freeports_analysis.consts.PromisesResolutionMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PromisesResolutionMap</span></code></a></p></td>
+<td><p>Type alias for promise resolution mapping.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionContext" title="freeports_analysis.consts.PromisesResolutionContext"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PromisesResolutionContext</span></code></a></p></td>
+<td><p>Type alias for promise resolution context.</p></td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputEnum</span></code>(enum_cls)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_enum" title="freeports_analysis.consts.input_enum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_enum</span></code></a>(enum_cls)</p></td>
+<td><p>Create an annotated type for Enum input validation.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputFlags</span></code>(flag_cls)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_flags" title="freeports_analysis.consts.input_flags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_flags</span></code></a>(flag_cls)</p></td>
+<td><p>Create an annotated type for Flag input validation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flag_from_string</span></code>(expression, cls)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.flag_from_string" title="freeports_analysis.consts.flag_from_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flag_from_string</span></code></a>(expression, cls)</p></td>
+<td><p>Convert a string expression to a Flag object.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.flatten_promise_map" title="freeports_analysis.consts.flatten_promise_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_promise_map</span></code></a>(mapping)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.flag_to_string" title="freeports_analysis.consts.flag_to_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flag_to_string</span></code></a>(flags)</p></td>
+<td><p>Convert a Flag object to a string representation using bitwise OR syntax.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.flatten_promise_map" title="freeports_analysis.consts.flatten_promise_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_promise_map</span></code></a>(mapping)</p></td>
 <td><p>Flatten a mapping containing Promise objects by resolving all references.</p></td>
 </tr>
 </tbody>
@@ -148,8 +170,8 @@ should facilitate avoiding circular imports</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.consts.CircularPromisesChain">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">CircularPromisesChain</span></span><a class="headerlink" href="#freeports_analysis.consts.CircularPromisesChain" title="Link to this definition"></a></dt>
-<dd><p>Exception raised when a circular dependency is detected in promise resolution.
-This occurs when a promise chain references itself either directly or indirectly,
+<dd><p>Exception raised when a circular dependency is detected in promise resolution.</p>
+<p>This occurs when a promise chain references itself either directly or indirectly,
 creating an infinite loop that cannot be resolved.</p>
 </dd></dl>
 
@@ -158,6 +180,20 @@ creating an infinite loop that cannot be resolved.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">Currency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.consts.Currency" title="Link to this definition"></a></dt>
 <dd><p>Enumeration of supported currency codes.</p>
 <p>Contains standard 3-letter ISO currency codes for major world currencies.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="freeports_analysis.consts.Currency.symbol">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">symbol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#freeports_analysis.consts.Currency.symbol" title="Link to this definition"></a></dt>
+<dd><p>Get the currency symbol for this currency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The currency symbol</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -166,20 +202,56 @@ creating an infinite loop that cannot be resolved.</p>
 <dd><p>Enumeration of financial instrument types.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.input_enum">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_enum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">S</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_enum" title="Link to this definition"></a></dt>
+<dd><p>Create an annotated type for Enum input validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enum_cls</strong> (<em>Type</em><em>[</em><em>S</em><em>]</em>) – The Enum class to validate against</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Annotated type for Pydantic validation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.input_flags">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flag_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_flags" title="Link to this definition"></a></dt>
+<dd><p>Create an annotated type for Flag input validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>flag_cls</strong> (<em>Type</em><em>[</em><em>T</em><em>]</em>) – The Flag class to validate against</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Annotated type for Pydantic validation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.consts.Promise">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">Promise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ID</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.consts.Promise" title="Link to this definition"></a></dt>
-<dd><p>Base class for deferred value resolution in financial data processing.
-Implements a promise pattern where values can be resolved later from a mapping.
-.. attribute:: id</p>
-<blockquote>
-<div><p>The key used to lookup the promised value in the resolution mapping.</p>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">Promise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.consts.Promise" title="Link to this definition"></a></dt>
+<dd><p>Base class for deferred value resolution in financial data processing.</p>
+<p>Implements a promise pattern where values can be resolved later from a mapping.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.consts.Promise._id">
+<span class="sig-name descname"><span class="pre">_id</span></span><a class="headerlink" href="#freeports_analysis.consts.Promise._id" title="Link to this definition"></a></dt>
+<dd><p>The unique identifier for this promise</p>
 <dl class="field-list simple">
-<dt class="field-odd">type<span class="colon">:</span></dt>
+<dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
-</div></blockquote>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.consts.Promise.fulfill_with">
 <span class="sig-name descname"><span class="pre">fulfill_with</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PromisesResolutionMap</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#freeports_analysis.consts.Promise.fulfill_with" title="Link to this definition"></a></dt>
@@ -188,42 +260,104 @@ Implements a promise pattern where values can be resolved later from a mapping.
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">fulfill_with</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
-<dd><p>Resolve this promise’s value from the given mapping.
-:param mapping: Dictionary containing values to resolve promises from.
-:type mapping: PromisesResolutionMap</p>
+<span class="sig-name descname"><span class="pre">fulfill_with</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Resolve this promise’s value from the given mapping.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The resolved value from the mapping.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mapping</strong> (<em>PromisesResolutionMap</em>) – Dictionary containing values to resolve promises from</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Any</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resolved value from the mapping</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Any</p>
 </dd>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="freeports_analysis.consts.PromisesResolutionContext">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">PromisesResolutionContext</span></span><a class="headerlink" href="#freeports_analysis.consts.PromisesResolutionContext" title="Link to this definition"></a></dt>
+<dd><p>Type alias for promise resolution context.</p>
+<p>A dictionary containing promises and their dependencies during resolution.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <a class="reference internal" href="#freeports_analysis.consts.Promise" title="freeports_analysis.consts.Promise"><code class="xref py py-class docutils literal notranslate"><span class="pre">Promise</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>]</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="freeports_analysis.consts.PromisesResolutionMap">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">PromisesResolutionMap</span></span><a class="headerlink" href="#freeports_analysis.consts.PromisesResolutionMap" title="Link to this definition"></a></dt>
+<dd><p>Type alias for promise resolution mapping.</p>
+<p>A dictionary mapping promise IDs to their resolved values.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.flag_from_string">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flag_from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Flag</span></span></span><a class="headerlink" href="#freeports_analysis.consts.flag_from_string" title="Link to this definition"></a></dt>
+<dd><p>Convert a string expression to a Flag object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>expression</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>str</em><em>, </em><em>list</em><em>]</em><em>]</em>) – String expression or list of flag names to convert</p></li>
+<li><p><strong>cls</strong> (<em>Type</em><em>[</em><em>Flag</em><em>]</em>) – The Flag class to instantiate</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flag object created from the expression</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Flag</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the expression contains unsupported operations or invalid flag names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.flag_to_string">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flag_to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Flag</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.consts.flag_to_string" title="Link to this definition"></a></dt>
+<dd><p>Convert a Flag object to a string representation using bitwise OR syntax.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>flags</strong> (<em>Flag</em>) – The flag object to convert to string</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>String representation of flags using ‘|’ as separator</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.consts.flatten_promise_map">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flatten_promise_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#freeports_analysis.consts.flatten_promise_map" title="Link to this definition"></a></dt>
-<dd><p>Flatten a mapping containing Promise objects by resolving all references.
-Processes a dictionary that may contain Promise objects, resolving each promise
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flatten_promise_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.consts.flatten_promise_map" title="Link to this definition"></a></dt>
+<dd><p>Flatten a mapping containing Promise objects by resolving all references.</p>
+<p>Processes a dictionary that may contain Promise objects, resolving each promise
 by looking up its value in the mapping until all values are concrete (non-Promise).
-Detects and prevents circular references that would cause infinite resolution loops.
-:param mapping: Dictionary containing both direct values and Promise objects to be resolved.
-:type mapping: PromisesResolutionMap</p>
+Detects and prevents circular references that would cause infinite resolution loops.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A new dictionary with all Promise objects resolved to their final values.</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mapping</strong> (<em>PromisesResolutionMap</em>) – Dictionary containing both direct values and Promise objects to be resolved</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>PromisesResolutionMap</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new dictionary with all Promise objects resolved to their final values</p>
 </dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.consts.CircularPromisesChain" title="freeports_analysis.consts.CircularPromisesChain"><strong>CircularPromisesChain</strong></a> – If a circular reference is detected in the promise resolution chain.</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PromisesResolutionMap</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.consts.CircularPromisesChain" title="freeports_analysis.consts.CircularPromisesChain"><strong>CircularPromisesChain</strong></a> – If a circular reference is detected in the promise resolution chain</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This function implements a depth-first resolution algorithm that follows
+promise chains until concrete values are found. It maintains a resolution
+history to detect and prevent infinite loops from circular dependencies.</p>
 </dd></dl>
 
 </section>

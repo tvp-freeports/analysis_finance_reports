@@ -1,22 +1,27 @@
-from typing import Optional, List
+"""Core data structures and exceptions for PDF document processing.
+
+This module defines the fundamental data structures (PdfBlock, TextBlock) and
+exception classes used throughout the document processing pipeline.
+"""
+
+from typing import Optional, List, Union
 from enum import Enum
 from lxml import etree
 from freeports_analysis.i18n import _
 
 
-def _str_blocks(blk: "PdfBlock | TextBlock") -> str:
-    """Basic function to format both PdfBlock and TextBlock
-    for string rappresentation
+def _str_blocks(blk: Union["PdfBlock", "TextBlock"]) -> str:
+    """Format PdfBlock or TextBlock for string representation.
 
     Parameters
     ----------
-    blk : PdfBlock | TextBlock
-        block to format
+    blk : Union[PdfBlock, TextBlock]
+        Block to format
 
     Returns
     -------
     str
-        formatted version
+        Formatted string representation
     """
     type_translated = _("({} type)").format(blk.type_block.name)
     metadata_translated = _("metadata")
@@ -30,20 +35,22 @@ def _str_blocks(blk: "PdfBlock | TextBlock") -> str:
     return text
 
 
-def _eq_blocks(a: "PdfBlock | TextBlock", b: "PdfBlock | TextBlock") -> bool:
-    """Verifies if two TextBlocks or two PdfBlocks are equal
+def _eq_blocks(
+    a: Union["PdfBlock", "TextBlock"], b: Union["PdfBlock", "TextBlock"]
+) -> bool:
+    """Compare two TextBlocks or PdfBlocks for equality.
 
     Parameters
     ----------
-    a : PdfBlock | TextBlock
-        The first block
-    b : PdfBlock | TextBlock
-        The second block
+    a : Union[PdfBlock, TextBlock]
+        First block to compare
+    b : Union[PdfBlock, TextBlock]
+        Second block to compare
 
     Returns
     -------
     bool
-        True if equal, False otherwise
+        True if blocks are equal, False otherwise
     """
     equal = True
     equal = equal and a.type_block == b.type_block
@@ -53,17 +60,16 @@ def _eq_blocks(a: "PdfBlock | TextBlock", b: "PdfBlock | TextBlock") -> bool:
 
 
 class PdfBlock:
-    """Represents a PDF content block with data to be extracted or relevant
-    for subsequent filtering stages.
+    """Represents a PDF content block with data to be extracted or relevant for filtering.
 
     Attributes
     ----------
     type_block : Enum
-        The type of the PDF block.
+        The type of the PDF block
     metadata : Optional[dict]
-        Additional metadata associated with the block.
+        Additional metadata associated with the block
     content : Optional[str]
-        The textual content extracted from the block.
+        The textual content extracted from the block
     """
 
     type_block: Enum
@@ -71,17 +77,17 @@ class PdfBlock:
     content: Optional[str]
 
     def _text_form_element(self, ele: etree.Element) -> str:
-        """Extracts text content from an XML element representing a PDF block.
+        """Extract text content from an XML element representing a PDF block.
 
-        Args
-        ----
+        Parameters
+        ----------
         ele : etree.Element
-            The XML element to extract text from.
+            XML element to extract text from
 
         Returns
         -------
         str
-            The extracted text content.
+            Extracted text content
         """
         text = ""
         if ele.tag == "line":
@@ -97,37 +103,36 @@ class PdfBlock:
         return text
 
     def __eq__(self, other: "PdfBlock") -> bool:
-        """Compares two PdfBlock instances for equality.
+        """Compare two PdfBlock instances for equality.
 
         Parameters
         ----------
         other : PdfBlock
-            The other PdfBlock to compare with.
+            Other PdfBlock to compare with
 
         Returns
         -------
         bool
-            True if the blocks are equal, False otherwise.
+            True if blocks are equal, False otherwise
         """
-        equal = _eq_blocks(self, other)
-        return equal
+        return _eq_blocks(self, other)
 
     def __init__(
         self,
         type_block: Enum,
         metadata: dict,
-        xml_ele: etree.Element | List[etree.Element],
+        xml_ele: Union[etree.Element, List[etree.Element]],
     ):
-        """Initializes a PdfBlock instance.
+        """Initialize a PdfBlock instance.
 
         Parameters
         ----------
         type_block : Enum
-            The type of the PDF block.
+            Type of the PDF block
         metadata : dict
-            Additional metadata for the block.
-        xml_ele : etree.Element | List[etree.Element]
-            The XML element(s) containing the block's content.
+            Additional metadata for the block
+        xml_ele : Union[etree.Element, List[etree.Element]]
+            XML element(s) containing the block's content
         """
         self.type_block = type_block
         self.metadata = metadata
@@ -140,12 +145,12 @@ class PdfBlock:
         self.content = txt
 
     def __str__(self) -> str:
-        """Returns a string representation of the PdfBlock.
+        """Return string representation of the PdfBlock.
 
         Returns
         -------
         str
-            The string representation.
+            String representation
         """
         return _str_blocks(self)
 
@@ -156,13 +161,13 @@ class TextBlock:
     Attributes
     ----------
     type_block : Enum
-        The type of the text block.
+        Type of the text block
     metadata : dict
-        Additional metadata associated with the block.
+        Additional metadata associated with the block
     content : str
-        The textual content of the block.
+        Textual content of the block
     pdf_block : PdfBlock
-        The original PdfBlock this text was derived from.
+        Original PdfBlock this text was derived from
     """
 
     type_block: Enum
@@ -171,16 +176,16 @@ class TextBlock:
     pdf_block: PdfBlock
 
     def __init__(self, type_block: Enum, metadata: dict, pdf_block: PdfBlock):
-        """Initializes a TextBlock instance.
+        """Initialize a TextBlock instance.
 
         Parameters
         ----------
         type_block : Enum
-            The type of the text block.
+            Type of the text block
         metadata : dict
-            Additional metadata for the block.
+            Additional metadata for the block
         pdf_block : PdfBlock
-            The source PdfBlock.
+            Source PdfBlock
         """
         self.type_block = type_block
         self.metadata = metadata
@@ -188,27 +193,27 @@ class TextBlock:
         self.content = pdf_block.content
 
     def __str__(self) -> str:
-        """Returns a string representation of the TextBlock.
+        """Return string representation of the TextBlock.
 
         Returns
         -------
         str
-            The string representation.
+            String representation
         """
         return _str_blocks(self)
 
     def __eq__(self, other: "TextBlock") -> bool:
-        """Compares two TextBlock instances for equality.
+        """Compare two TextBlock instances for equality.
 
-        Args
-        ----
+        Parameters
+        ----------
         other : TextBlock
-            The other TextBlock to compare with.
+            Other TextBlock to compare with
 
         Returns
         -------
         bool
-            True if the blocks are equal, False otherwise.
+            True if blocks are equal, False otherwise
         """
         equal = _eq_blocks(self, other)
         equal = equal and self.pdf_block == other.pdf_block
@@ -216,20 +221,20 @@ class TextBlock:
 
 
 class ExpectedPdfBlockNotFound(Exception):
-    """Raised when a required PdfBlock is not found"""
+    """Raised when a required PdfBlock is not found during processing."""
 
 
 class ExpectedTextBlockNotFound(Exception):
-    """Raised when a required TextBlock is not found"""
+    """Raised when a required TextBlock is not found during processing."""
 
 
 class PageParseFail(Exception):
-    """Raised when the algorithm is unable to parse a page"""
+    """Raised when the algorithm is unable to parse a page."""
 
 
 class LineParseFail(Exception):
-    """Raised when the algorithm is unable to parse a line"""
+    """Raised when the algorithm is unable to parse a line."""
 
 
 class ExtractionFieldFail(Exception):
-    """Raised when the algorithm is unable to parse a field"""
+    """Raised when the algorithm is unable to parse a field."""

@@ -10,8 +10,6 @@ freeports\_analysis.formats.utils.pdf\_filter.select\_position
    .. autosummary::
    
       get_table_positions
-      select_inside
-      select_outside
    
    .. rubric:: Classes
 

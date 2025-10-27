@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -110,64 +111,79 @@
              
   <section id="module-freeports_analysis.formats.data">
 <span id="freeports-analysis-formats-data"></span><h1>freeports_analysis.formats.data<a class="headerlink" href="#module-freeports_analysis.formats.data" title="Link to this heading"></a></h1>
+<p>Data management for PDF format definitions and URL mappings.</p>
+<p>This module handles the loading and validation of format definitions and
+URL-to-format mappings used in document processing.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.get_formats" title="freeports_analysis.formats.data.get_formats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_formats</span></code></a>()</p></td>
-<td><p>Function called to get the list of formats contained in formats.csv while validating the structure through format_schema</p></td>
+<td><p>Load and validate the list of formats from formats.csv.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.get_url_mapping" title="freeports_analysis.formats.data.get_url_mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_url_mapping</span></code></a>()</p></td>
-<td><p>Function that returns a dataframe linking the unique format names to a list of urls</p></td>
+<td><p>Get URL mappings grouped by format name.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.data.url_to_format" title="freeports_analysis.formats.data.url_to_format"><code class="xref py py-obj docutils literal notranslate"><span class="pre">url_to_format</span></code></a>(url)</p></td>
-<td><p>Function used to associate a single url to a single format name</p></td>
+<td><p>Associate a URL with a format name.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.data.get_formats">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">get_formats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.get_formats" title="Link to this definition"></a></dt>
-<dd><p>Function called to get the list of formats contained in formats.csv
-while validating the structure through format_schema</p>
+<dd><p>Load and validate the list of formats from formats.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of formats</p>
+<dd class="field-odd"><p>Validated DataFrame of formats with ‘Format name’ as index</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame</p>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pa.errors.SchemaError</strong> – If the format data does not conform to the expected schema</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>Format names are constructed as: Name-LocaleYear[Country][Version]
+For example: ‘Amundi-IT23’ or <a class="reference external" href="mailto:'Eurizon-IT24&#37;&#52;&#48;IT&#46;v2">‘Eurizon-IT24<span>&#64;</span>IT<span>&#46;</span>v2</a>’</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.data.get_url_mapping">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">get_url_mapping</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.get_url_mapping" title="Link to this definition"></a></dt>
-<dd><p>Function that returns a dataframe linking the unique format names to a list of urls</p>
+<dd><p>Get URL mappings grouped by format name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>DataFrame of format names and urls</p>
+<dd class="field-odd"><p>DataFrame with format names as index and lists of URLs as values</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame</p>
+<dd class="field-even"><p>pd.DataFrame</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The returned DataFrame aggregates all URLs associated with each format
+name into lists, allowing multiple URLs to map to the same format.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.data.url_to_format">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">url_to_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#freeports_analysis.formats.data.url_to_format" title="Link to this definition"></a></dt>
-<dd><p>Function used to associate a single url to a single format name</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.data.</span></span><span class="sig-name descname"><span class="pre">url_to_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.data.url_to_format" title="Link to this definition"></a></dt>
+<dd><p>Associate a URL with a format name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – string containing the url</p>
+<dd class="field-odd"><p><strong>url</strong> (<em>str</em>) – URL to match against known format URLs</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>format name or None if the url is invalid</p>
+<dd class="field-even"><p>Format name if a match is found, None otherwise</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[str]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This function uses prefix matching to determine the format - it selects
+the format with the longest matching URL prefix. This allows for more
+specific URLs to override more general ones.</p>
 </dd></dl>
 
 </section>

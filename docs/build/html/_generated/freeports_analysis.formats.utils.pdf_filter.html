@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -114,6 +115,20 @@
 <p>Utilities for writing <cite>pdf_filter</cite> functions.</p>
 <p>This module provides decorators and utilities for filtering and processing PDF content
 based on XML elements, fonts, and positional data.</p>
+<p class="rubric">Module Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.UpdateMetadataFunc" title="freeports_analysis.formats.utils.pdf_filter.UpdateMetadataFunc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UpdateMetadataFunc</span></code></a></p></td>
+<td><p>Type alias for metadata update functions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.FilterCondition" title="freeports_analysis.formats.utils.pdf_filter.FilterCondition"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FilterCondition</span></code></a></p></td>
+<td><p>Type alias for filter condition functions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.PdfFilterFunc" title="freeports_analysis.formats.utils.pdf_filter.PdfFilterFunc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfFilterFunc</span></code></a></p></td>
+<td><p>Type alias for PDF filter functions.</p></td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -139,6 +154,15 @@ based on XML elements, fonts, and positional data.</p>
 </tr>
 </tbody>
 </table>
+<dl class="py data">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.FilterCondition">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">FilterCondition</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.FilterCondition" title="Link to this definition"></a></dt>
+<dd><p>Type alias for filter condition functions.</p>
+<p>Predicate functions that determine whether a PDF filter should be applied
+to a given XML element.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>]</p>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.OnePdfBlockType">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">OnePdfBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.OnePdfBlockType" title="Link to this definition"></a></dt>
@@ -154,6 +178,23 @@ based on XML elements, fonts, and positional data.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.PdfFilterFunc">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">PdfFilterFunc</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.PdfFilterFunc" title="Link to this definition"></a></dt>
+<dd><p>Type alias for PDF filter functions.</p>
+<p>Functions that process XML elements and return lists of relevant PDF blocks.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextBlock</span></code></a>]]</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.UpdateMetadataFunc">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">UpdateMetadataFunc</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.UpdateMetadataFunc" title="Link to this definition"></a></dt>
+<dd><p>Type alias for metadata update functions.</p>
+<p>Functions that extract additional metadata from XML elements and return
+metadata dictionaries for PDF blocks.</p>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</p>
 </dd></dl>
 
 <dl class="py function">
@@ -173,6 +214,10 @@ specified condition evaluates to True for the given XML root element.</p>
 <dd class="field-odd"><p>Callable[[PdfFilterFunc], PdfFilterFunc]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This decorator is useful for creating filters that should only run on
+specific types of pages (e.g., pages containing certain headers or
+specific layout elements).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -203,7 +248,7 @@ the currency and storing it in the metadata.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>subfund_height</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><em>YRange</em></a>) – The vertical range in which the subfund text is expected.</p></li>
+<li><p><strong>subfund_height</strong> (<em>YRange</em>) – The vertical range in which the subfund text is expected.</p></li>
 <li><p><strong>subfund_font</strong> (<em>str</em>) – The font used by the subfund text.</p></li>
 </ul>
 </dd>
@@ -218,42 +263,78 @@ the currency and storing it in the metadata.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.standard_pdf_filtering">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">standard_pdf_filtering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">header_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet</span> <span class="pre">|</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet],</span> <span class="pre">subfund_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet,</span> <span class="pre">body_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet,</span> <span class="pre">currency_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.consts.Currency</span> <span class="pre">|</span> <span class="pre">str,</span> <span class="pre">deselection_list:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">[],</span> <span class="pre">algorithm_flags:</span> <span class="pre">~typing.List</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.standard_pdf_filtering" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.</span></span><span class="sig-name descname"><span class="pre">standard_pdf_filtering</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">header_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet</span> <span class="pre">|</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet],</span> <span class="pre">subfund_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet,</span> <span class="pre">body_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet,</span> <span class="pre">currency_set:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.consts.Currency</span> <span class="pre">|</span> <span class="pre">str,</span> <span class="pre">deselection_list:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">[],</span> <span class="pre">algorithm_flags:</span> <span class="pre">~typing.List</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0,</span> <span class="pre">row_algorithm_flags:</span> <span class="pre">~typing.List</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">row_tolerance:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.standard_pdf_filtering" title="Link to this definition"></a></dt>
 <dd><p>Decorator factory for creating PDF filters with standardized processing.</p>
-<p>Creates a filter that:
-1. Processes pages containing the specified header text in the specified header font.
-2. Extracts lines with the specified body font as relevant blocks.
-3. Extracts subfund text within a specified range or height.
-4. Allows customization of page metadata and block types.</p>
+<p>This decorator factory creates a comprehensive PDF processing pipeline that:
+- Identifies relevant pages based on header criteria
+- Extracts structured data from tabular content
+- Handles subfund and currency information
+- Applies geometric analysis for table detection
+- Supports deselection of unwanted content</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>header_txt</strong> (<em>str</em>) – The text that must be present in the header to process the page.</p></li>
-<li><p><strong>header_font</strong> (<em>Font</em>) – The font used by the header text.</p></li>
-<li><p><strong>subfund_height</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><em>YRange</em></a>) – The vertical range or height for subfund extraction.</p></li>
-<li><p><strong>subfund_font</strong> (<em>Font</em>) – The font used by the subfund text.</p></li>
-<li><p><strong>body_font</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – The font or list of fonts used by the body text to extract as relevant blocks.</p></li>
-<li><p><strong>y_range</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>Optional</em><em>[</em><em>float</em><em> | </em><em>Tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>]</em><em>, </em><em>Optional</em><em>[</em><em>float</em><em> | </em><em>Tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>]</em><em>]</em>) – The vertical range for filtering lines, by default None.</p></li>
-<li><p><strong>deselection_list</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>str</em><em>, </em><em>Font</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – A list of text and font pairs to exclude from extraction, by default None.</p></li>
+<li><p><strong>header_set</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a><em> | </em><em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a><em>]</em>) – Criteria for identifying page headers. Can be a single set or list of sets
+for multiple header conditions. Pages must match all header criteria.</p></li>
+<li><p><strong>subfund_set</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a>) – Criteria for extracting subfund information from the page.</p></li>
+<li><p><strong>body_set</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a>) – Criteria for identifying the main body content (tabular data).</p></li>
+<li><p><strong>currency_set</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a><em> | </em><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Currency" title="freeports_analysis.consts.Currency"><em>Currency</em></a><em> | </em><em>str</em>) – Source of currency information. Can be:
+- PdfLineSet: Extract currency from page content
+- Currency: Use fixed currency value
+- str: Currency code (e.g., “USD”)</p></li>
+<li><p><strong>deselection_list</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><em>PdfLineSet</em></a><em>]</em><em>]</em><em>, </em><em>optional</em>) – List of criteria for content to exclude from extraction.
+Default is empty list.</p></li>
+<li><p><strong>algorithm_flags</strong> (<em>List</em><em> | </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.select_position.html#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><em>TablePosAlgorithm</em></a><em>, </em><em>optional</em>) – Algorithm flags for column position detection.
+Default is TablePosAlgorithm(0) - no special flags.</p></li>
+<li><p><strong>tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for column position matching.
+Default is 0.0.</p></li>
+<li><p><strong>row_algorithm_flags</strong> (<em>List</em><em> | </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.select_position.html#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><em>TablePosAlgorithm</em></a><em>, </em><em>optional</em>) – Algorithm flags for row position detection.
+Default is TablePosAlgorithm(0) - no special flags.</p></li>
+<li><p><strong>row_tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance for row position matching.
+Default is 0.0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A decorator that applies the standardized PDF filter.</p>
+<dd class="field-even"><p>A decorator that applies the standardized PDF filter processing.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable[[PdfFilterFunc], PdfFilterFunc]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The created filter performs the following operations:
+1. <strong>Header Detection</strong>: Checks if page contains specified header(s)
+2. <strong>Subfund Extraction</strong>: Extracts subfund information from specified area
+3. <strong>Currency Extraction</strong>: Determines currency for financial data
+4. <strong>Body Content Filtering</strong>: Identifies relevant tabular content
+5. <strong>Table Structure Analysis</strong>: Detects rows and columns using geometric algorithms
+6. <strong>Deselection</strong>: Removes unwanted content based on deselection criteria
+7. <strong>Metadata Enrichment</strong>: Adds table position information to blocks</p>
+<p>The algorithm supports complex table layouts through configurable
+position detection algorithms and tolerance settings.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@standard_pdf_filtering</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">header_set</span><span class="o">=</span><span class="n">PdfLineSet</span><span class="p">(</span><span class="n">font</span><span class="o">=</span><span class="s2">&quot;Arial-Bold&quot;</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s2">&quot;PORTFOLIO HOLDINGS&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">subfund_set</span><span class="o">=</span><span class="n">PdfLineSet</span><span class="p">(</span><span class="n">font</span><span class="o">=</span><span class="s2">&quot;Arial&quot;</span><span class="p">,</span> <span class="n">area</span><span class="o">=</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="p">(</span><span class="mi">700</span><span class="p">,</span> <span class="mi">750</span><span class="p">))),</span>
+<span class="gp">... </span>    <span class="n">body_set</span><span class="o">=</span><span class="n">PdfLineSet</span><span class="p">(</span><span class="n">font</span><span class="o">=</span><span class="s2">&quot;Arial&quot;</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">currency_set</span><span class="o">=</span><span class="s2">&quot;USD&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">deselection_list</span><span class="o">=</span><span class="p">[</span><span class="n">PdfLineSet</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">&quot;TOTAL&quot;</span><span class="p">)]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">my_pdf_filter</span><span class="p">(</span><span class="n">xml_root</span><span class="p">:</span> <span class="n">etree</span><span class="o">.</span><span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">PdfBlock</span><span class="p">]:</span>
+<span class="gp">... </span>    <span class="c1"># Custom page metadata extraction</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="p">{}</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#module-freeports_analysis.formats.utils.pdf_filter.pdf_parts" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pdf_parts</span></code></a></p></td>
-<td><p>Pdf xml parts in a friendly format (custom python classes).</p></td>
+<td><p>PDF XML parts in a friendly format (custom Python classes).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.select_font.html#module-freeports_analysis.formats.utils.pdf_filter.select_font" title="freeports_analysis.formats.utils.pdf_filter.select_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_font</span></code></a></p></td>
-<td><p>Utilities for selecting or deselecting lines based of font and text information</p></td>
+<td><p>Font-based selection utilities for PDF text filtering.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.select_position.html#module-freeports_analysis.formats.utils.pdf_filter.select_position" title="freeports_analysis.formats.utils.pdf_filter.select_position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_position</span></code></a></p></td>
 <td><p>Utilities for selecting or deselecting lines or getting infos based of geometrical information</p></td>

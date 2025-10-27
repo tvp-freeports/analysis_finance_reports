@@ -61,6 +61,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -100,20 +101,37 @@
              
   <section id="module-freeports_analysis.cmd">
 <span id="freeports-analysis-cmd"></span><h1>freeports_analysis.cmd<a class="headerlink" href="#module-freeports_analysis.cmd" title="Link to this heading"></a></h1>
-<p>Contains all the functions related to command line use of the <cite>freeport</cite> script</p>
+<p>Contains all functions related to command line use of the <cite>freeport</cite> script.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.cmd.cmd" title="freeports_analysis.cmd.cmd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cmd</span></code></a>()</p></td>
-<td><p>Command called when launching <cite>freeports</cite> from terminal, it calls the <cite>main</cite> function.</p></td>
+<td><p>Command line entry point for the freeports script.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.cmd.cmd">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.cmd.</span></span><span class="sig-name descname"><span class="pre">cmd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.cmd.cmd" title="Link to this definition"></a></dt>
-<dd><p>Command called when launching <cite>freeports</cite> from terminal,
-it calls the <cite>main</cite> function.</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.cmd.</span></span><span class="sig-name descname"><span class="pre">cmd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.cmd.cmd" title="Link to this definition"></a></dt>
+<dd><p>Command line entry point for the freeports script.</p>
+<p>This function is called when launching <cite>freeports</cite> from the terminal.
+It handles configuration parsing from multiple sources (command line,
+environment variables, configuration files) and calls the main function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>argparse.ArgumentError</strong> – If command line arguments are invalid or conflicting</p></li>
+<li><p><strong>FileNotFoundError</strong> – If specified configuration files are not found</p></li>
+<li><p><strong>ValueError</strong> – If configuration values are invalid</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The configuration is loaded in the following order of precedence:
+1. Command line arguments (highest priority)
+2. Environment variables
+3. Configuration files
+4. Default values (lowest priority)</p>
 </dd></dl>
 
 </section>

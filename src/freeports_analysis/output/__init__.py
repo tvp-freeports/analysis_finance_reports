@@ -1,3 +1,10 @@
+"""Output module for financial data processing and file generation.
+
+This module handles the transformation, serialization, and output of financial
+investment data extracted from PDF documents. It provides classes for representing
+financial instruments and functions for writing data in various output formats.
+"""
+
 from abc import ABC
 import datetime
 from enum import Enum, auto
@@ -6,7 +13,7 @@ import gzip
 import shutil
 import os
 from pathlib import Path
-from typing import Optional, Annotated, Union
+from typing import Optional, Annotated, Union, Dict, Any, List, Tuple
 import yaml
 from pydantic import (
     BaseModel,
@@ -31,19 +38,62 @@ from .files_schema import investments_schema, BondAdditionalInfos
 
 
 def validate_company(value: str) -> str:
+    """Validate that a company name exists in the predefined companies list.
+
+    Parameters
+    ----------
+    value : str
+        The company name to validate
+
+    Returns
+    -------
+    str
+        The validated company name
+
+    Raises
+    ------
+    ValueError
+        If the company name is not found in the COMPANIES list
+
+    Notes
+    -----
+    This function is used as a Pydantic validator to ensure that only
+    companies from the predefined list are accepted in financial data models.
+    """
     if value not in COMPANIES:
-        raise ValueError(f"Color must be one of {COMPANIES}, got '{value}'")
+        raise ValueError(f"Company must be one of {COMPANIES}, got '{value}'")
     return value
 
 
-def try_convert_to_currency(value: str) -> Union[Currency, Promise]:
-    """Prova a convertire in Currency, altrimenti lascia come Promise"""
+def try_convert_to_currency(value: Union[str, Promise]) -> Union[Currency, Promise]:
+    """Attempt to convert a string to Currency, preserving Promise objects.
+
+    Parameters
+    ----------
+    value : Union[str, Promise]
+        The value to convert - either a currency string or Promise object
+
+    Returns
+    -------
+    Union[Currency, Promise]
+        Currency enum if conversion successful, otherwise original Promise
+
+    Raises
+    ------
+    KeyError
+        If the currency string is not a valid Currency enum member
+
+    Notes
+    -----
+    This function is used as a Pydantic validator to handle both concrete
+    currency values and Promise objects that will be resolved later.
+    """
     if isinstance(value, Promise):
         return value
-
     return Currency(value)
 
 
+# Type aliases for financial data with promise support
 Company = Annotated[str, AfterValidator(validate_company)]
 PromisedMarketValue = Union[Promise, PositiveFloat]
 PromisedCurrency = Annotated[
@@ -61,6 +111,40 @@ PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
 
 
 class Investment(BaseModel, ABC):
+    """Abstract base class representing a financial investment.
+
+    This class serves as the foundation for different types of financial
+    instruments, providing common attributes and validation logic.
+
+    Attributes
+    ----------
+    company : Company
+        Validated company name from predefined list
+    company_match : str
+        Original company name as matched in the source document
+    subfund : PromisedSubfund
+        Subfund identifier, may be a Promise for deferred resolution
+    nominal_quantity : Optional[PositiveFloat]
+        Number of units/shares held
+    market_value : PromisedMarketValue
+        Current market value of the investment
+    currency : PromisedCurrency
+        Currency of the market value
+    perc_net_assets : Optional[PromisedPercNetAsstes]
+        Percentage of total net assets represented by this investment
+    acquisition_cost : Optional[PromisedAcquisitionCost]
+        Original acquisition cost
+    acquisition_currency : Optional[PromisedAcquisitionCurrency]
+        Currency of the acquisition cost
+
+    Notes
+    -----
+    This class uses Pydantic for data validation and supports Promise objects
+    for deferred value resolution. All currency values are validated against
+    the Currency enum, and company names are validated against the predefined
+    companies list.
+    """
+
     model_config = ConfigDict(
         validate_assignment=True,
         arbitrary_types_allowed=True,
@@ -76,6 +160,13 @@ class Investment(BaseModel, ABC):
     acquisition_currency: Optional[PromisedAcquisitionCurrency] = None
 
     def __str__(self) -> str:
+        """Generate a formatted string representation of the investment.
+
+        Returns
+        -------
+        str
+            Formatted multi-line string with investment details
+        """
         string = f"{self.__class__.__name__}:\n"
         translated_field = _("Subfund")
         string += f"\t{translated_field}:\t{self.subfund}\n"
@@ -130,7 +221,9 @@ class Investment(BaseModel, ABC):
         Notes
         -----
         For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment.
+        the resolved values will be validated before assignment. This method
+        iterates through all model attributes and resolves any Promise objects
+        found, updating the instance in place.
         """
         for k, v in self.model_dump().items():
             if isinstance(v, Promise):
@@ -138,14 +231,39 @@ class Investment(BaseModel, ABC):
 
 
 class Equity(Investment):
+    """Represents an equity investment (stocks, shares)."""
+
     pass
 
 
 class Bond(Investment):
+    """Represents a bond investment with maturity and interest rate.
+
+    Attributes
+    ----------
+    maturity : Optional[datetime.date]
+        Bond maturity date when principal is repaid
+    interest_rate : Optional[PromisedInterestRate]
+        Annual interest rate as a decimal value (e.g., 0.05 for 5%)
+
+    Notes
+    -----
+    Bond investments represent debt securities that pay periodic interest
+    and return the principal at maturity. The interest rate is stored as
+    a decimal value (e.g., 0.05 represents 5% annual interest).
+    """
+
     maturity: Optional[datetime.date] = None
     interest_rate: Optional[PromisedInterestRate] = None
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Generate a formatted string representation of the bond investment.
+
+        Returns
+        -------
+        str
+            Formatted multi-line string with bond details including maturity and interest rate
+        """
         add_infos = False
         string = super().__str__()
         translated_field = _("Additional infos")
@@ -167,9 +285,36 @@ class Bond(Investment):
         return string
 
 
-def transform_to_files_schema(result_documents, batch_mode):
-    add_infos = {}
-    investments = []
+def transform_to_files_schema(
+    result_documents: List[Tuple[List[List[Investment]], str, Optional[str]]],
+    batch_mode: bool,
+) -> Dict[str, Any]:
+    """Transform investment results into structured data for file output.
+
+    Parameters
+    ----------
+    result_documents : List[Tuple[List[List[Investment]], str, Optional[str]]]
+        List of document results containing investment data, format info, and prefixes
+    batch_mode : bool
+        Whether processing is in batch mode (affects output structure)
+
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary containing:
+        - 'investments': DataFrame with investment data
+        - 'additional_infos': Dictionary with bond-specific information
+
+    Notes
+    -----
+    This function processes investment data from multiple documents and pages,
+    transforming it into a format suitable for file output. In batch mode,
+    additional metadata (format and document identifier) is included.
+    Bond-specific information (maturity, interest rate) is separated from
+    the main investment data structure.
+    """
+    add_infos: Dict[int, Dict[str, Any]] = {}
+    investments: List[Dict[str, Any]] = []
     _id = 1
     for result_pages, format_name, prefix_out in result_documents:
         for page, result_page in enumerate(result_pages, start=1):
@@ -213,11 +358,24 @@ def transform_to_files_schema(result_documents, batch_mode):
 
 
 def _write_structured(
-    structured_data,
-    unstructured_data,
-    data_name,
-    out_dir,
-):
+    structured_data: pd.DataFrame,
+    unstructured_data: Dict[int, Dict[str, Any]],
+    data_name: str,
+    out_dir: Path,
+) -> None:
+    """Write structured data to a directory with separate files for table and metadata.
+
+    Parameters
+    ----------
+    structured_data : pd.DataFrame
+        Tabular data to write as CSV
+    unstructured_data : Dict[int, Dict[str, Any]]
+        Additional metadata to write as YAML
+    data_name : str
+        Name for the output directory and files
+    out_dir : Path
+        Parent directory where the structured output will be created
+    """
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / data_name
     out_path.mkdir(exist_ok=True)
@@ -228,7 +386,25 @@ def _write_structured(
     )
 
 
-def _write_regular(data, structured_mapping, unstructured_mapping, out_dir):
+def _write_regular(
+    data: Dict[str, Any],
+    structured_mapping: Dict[str, str],
+    unstructured_mapping: Dict[str, str],
+    out_dir: Path,
+) -> None:
+    """Write data in regular format with separate files for different data types.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Dictionary containing data to write
+    structured_mapping : Dict[str, str]
+        Mapping from data keys to output CSV filenames
+    unstructured_mapping : Dict[str, str]
+        Mapping from data keys to output YAML filenames
+    out_dir : Path
+        Directory where files will be written
+    """
     out_dir.mkdir(exist_ok=True)
     for data_name, file_name in structured_mapping.items():
         data[data_name].to_csv(out_dir / file_name)
@@ -236,7 +412,16 @@ def _write_regular(data, structured_mapping, unstructured_mapping, out_dir):
         yaml.dump(data[data_name], (out_dir / file_name).open("w"))
 
 
-def _write_single_file(data, file_path):
+def _write_single_file(data: Dict[str, Any], file_path: Path) -> None:
+    """Write all investment data to a single CSV file.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Dictionary containing investments and additional info
+    file_path : Path
+        Path to the output CSV file
+    """
     instruments = data["investments"].copy()
     bond_ids = instruments[instruments["Financial instrument"] == "BOND"].index
     info_dict = data["additional_infos"]
@@ -250,7 +435,39 @@ def _write_single_file(data, file_path):
     instruments.to_csv(file_path)
 
 
-def write_files(data, out_path, profile, flags):
+def write_files(
+    data: Dict[str, Any],
+    out_path: Union[str, Path],
+    profile: Union[OutStructureNormalMode, OutStructureBatchMode],
+    flags: Union[OutFlagsNormalMode, OutFlagsBatchMode],
+) -> None:
+    """Write financial data to files according to specified output profile and flags.
+
+    Parameters
+    ----------
+    data : Dict[str, Any]
+        Dictionary containing investment data to write
+    out_path : Union[str, Path]
+        Output directory or file path
+    profile : Union[OutStructureNormalMode, OutStructureBatchMode]
+        Output structure profile determining file organization
+    flags : Union[OutFlagsNormalMode, OutFlagsBatchMode]
+        Output flags controlling compression and other options
+
+    Raises
+    ------
+    ValueError
+        If the specified profile is not recognized
+
+    Notes
+    -----
+    Supported output profiles:
+    - REGULAR: Separate CSV and YAML files for investments and additional info
+    - SINGLE_FILE: All data combined into a single CSV file
+    - STRUCTURED: Directory-based structure with table and metadata files
+
+    Compression flags create tar.gz archives for directories or gzip for single files.
+    """
     out_path = Path(out_path)
     profiles_cls = OutStructureNormalMode
     flags_cls = OutFlagsNormalMode

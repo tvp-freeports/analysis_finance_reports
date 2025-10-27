@@ -1,4 +1,8 @@
-"""Utilities for selecting or deselecting lines based of font and text information"""
+"""Font-based selection utilities for PDF text filtering.
+
+This module provides functions for filtering PDF text elements based on
+font properties and text content combinations.
+"""
 
 from typing import List, Tuple
 from .pdf_parts.font import Font
@@ -8,19 +12,22 @@ from .pdf_parts import ExtractedPdfLine
 def deselect_txt_font(
     lines: List[ExtractedPdfLine], deselection_list: List[Tuple[str, Font]]
 ) -> List[ExtractedPdfLine]:
-    """Deselect text with a certain font and text combination
+    """Filter out lines matching specific text-font combinations.
+
+    Removes PDF lines that match any of the specified text and font pairs
+    from the deselection list.
 
     Parameters
     ----------
     lines : List[ExtractedPdfLine]
-        list to filter
+        List of PDF text lines to filter
     deselection_list : List[Tuple[str, Font]]
-        list of text and font to search for
+        List of (text, font) pairs to exclude from results
 
     Returns
     -------
     List[ExtractedPdfLine]
-        filtered list
+        Filtered list of PDF lines excluding deselected combinations
     """
     return [
         line

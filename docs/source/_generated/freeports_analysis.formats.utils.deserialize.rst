@@ -1,4 +1,4 @@
-﻿freeports\_analysis.formats.utils.deserialize
+freeports\_analysis.formats.utils.deserialize
 =============================================
 
 .. automodule:: freeports_analysis.formats.utils.deserialize

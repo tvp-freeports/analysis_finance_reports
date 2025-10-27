@@ -1,6 +1,14 @@
-"""Module common to each format, it contains the definitions used by all the formats"""
+"""Core algorithms module for PDF document processing pipelines.
 
-from typing import List, Callable
+This module provides the main execution functions for the three-stage processing pipeline:
+1. PDF filtering - extract relevant blocks from PDF XML
+2. Text extraction - convert PDF blocks to text blocks with company matching
+3. Deserialization - convert text blocks to structured financial data
+
+The module also handles pipeline composition and execution coordination.
+"""
+
+from typing import List, Callable, Dict, Tuple, Union, Any, Optional
 import logging as log
 from freeports_analysis.formats.algorithms.unstructured import (
     get_pipes as get_unstructured,
@@ -22,48 +30,98 @@ logger = log.getLogger("freeports_analysis.formats.utils")
 
 
 class LogFormatterWithPage(log.Formatter):
-    """Formatter that inherit the behaviour from
-    another formatter given in input, but insert into it
-    an attrinbute that rappresent the page number of the pdf report
+    """Log formatter that adds page number context to log messages.
+
+    This formatter wraps an existing formatter and inserts page number
+    information into formatted log records.
+
+    Attributes
+    ----------
+    _parent_fmt : log.Formatter
+        The original formatter to wrap
+    page : Optional[int]
+        Current page number for context
     """
 
     def __init__(self, old_formatter: log.Formatter):
-        """Initialize the LogFormatterWithPage taking another formatter
-        as reference to modify
+        """Initialize the LogFormatterWithPage with a reference formatter.
 
         Parameters
         ----------
-        old_formatter : logging.Formatter
-            the formatter to take as reference
+        old_formatter : log.Formatter
+            The formatter to use as a base for formatting
+
+        Notes
+        -----
+        The page number is dynamically inserted into log messages
+        by replacing colons with page context information.
         """
         super().__init__()
         self._parent_fmt = old_formatter
-        self.page = None
+        self.page: Optional[int] = None
 
     def format(self, record: log.LogRecord) -> str:
-        """Method used to get the rappresentation of the report.
-        overwrite the inherited one
+        """Format a log record with page number context.
 
         Parameters
         ----------
-        record : logging.LogRecord
-            the record to format
+        record : log.LogRecord
+            The log record to format
 
         Returns
         -------
         str
-            formatted version of the record
+            Formatted log message with page number inserted
         """
         string = self._parent_fmt.format(record).replace(":", f"{{pag. {self.page}}}:")
         return string
 
 
 def _exec_segment(
-    i_batch_page, n_pages, args_batch, funcs, error_msg, progress_msg=None
-):
+    i_batch_page: int,
+    n_pages: int,
+    args_batch: List[Any],
+    funcs: List[Callable],
+    error_msg: str,
+    progress_msg: Optional[str] = None,
+) -> List[List[Any]]:
+    """Execute a segment of processing functions with error handling and progress reporting.
+
+    Parameters
+    ----------
+    i_batch_page : int
+        Starting page index for this batch
+    n_pages : int
+        Total number of pages in the document
+    args_batch : List[Any]
+        List of arguments to pass to the functions
+    funcs : List[Callable]
+        List of functions to execute
+    error_msg : str
+        Error message to log on failure
+    progress_msg : Optional[str]
+        Progress message to log periodically
+
+    Returns
+    -------
+    List[List[Any]]
+        Combined results from all function executions
+
+    Raises
+    ------
+    PageParseFail
+        If a page cannot be parsed (logged as warning, page is skipped)
+
+    Notes
+    -----
+    This function handles the execution of processing functions for a batch
+    of pages, providing progress reporting and error handling. Pages that
+    fail to parse are skipped with a warning, allowing processing to continue.
+    """
     args_batch = enumerate(args_batch, start=i_batch_page)
-    show_progress = False if progress_msg is None else True
-    batch_results = []
+    show_progress = progress_msg is not None
+    batch_results: List[List[Any]] = []
+
     for page, arg in args_batch:
         LOG_CONTEXTUAL_INFOS.page = page
         if show_progress and (
@@ -74,9 +132,7 @@ def _exec_segment(
             batch_results.append([r for func in funcs for r in func(arg)])
         except PageParseFail as e:
             logger_source.error(e)
-            logger.warning(
-                _("Skipping page..."),
-            )
+            logger.warning(_("Skipping page..."))
     return batch_results
 
 
@@ -84,29 +140,26 @@ def pdf_filter_exec(
     i_batch_page: int,
     n_pages: int,
     batch_pages: List[str],
-    pdf_filter_funcs: List[Callable[[List[str]], List[PdfBlock]]],
-) -> List[PdfBlock]:
-    """Processes a PDF document through a filter function to extract relevant blocks.
+    pdf_filter_funcs: List[Callable[[str], List[PdfBlock]]],
+) -> List[List[PdfBlock]]:
+    """Execute PDF filtering functions to extract relevant blocks from PDF XML.
 
-    Args
-    ----
-
-    document : List[str]
-        The PDF document to process as a list of xml pages.
+    Parameters
+    ----------
     i_batch_page : int
-        Starting page of the batch processed by the instance of `pdf_filter_exec` function,
-        used for informative purposes
+        Starting page index for this batch
     n_pages : int
-        Total number of pages in the document, used for informative purposes.
-    pdf_filter_func : Callable[[List[str]], List[PdfBlock]]
-        A function that takes an XML element and returns a list of relevant PdfBlock.
+        Total number of pages in the document
+    batch_pages : List[str]
+        List of XML page strings to process
+    pdf_filter_funcs : List[Callable[[str], List[PdfBlock]]]
+        List of functions that extract PdfBlocks from XML
 
     Returns
     -------
-    List[PdfBlock]
-        PdfBlock objects containing the filtered content.
+    List[List[PdfBlock]]
+        List of PdfBlock lists, one per page
     """
-
     batch_results = _exec_segment(
         i_batch_page,
         n_pages,
@@ -123,27 +176,31 @@ def text_extract_exec(
     n_pages: int,
     pdf_blocks_batch: List[List[PdfBlock]],
     targets: List[str],
-    text_extract_funcs: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
-) -> List[TextBlock]:
-    """Extracts text content from PDF blocks using a specified extraction function.
+    text_extract_funcs: List[Callable[[List[PdfBlock], Any], List[TextBlock]]],
+) -> List[List[TextBlock]]:
+    """Execute text extraction functions to convert PdfBlocks to TextBlocks with company matching.
 
-    Args
-    ----
-    pdf_blocks : List[PdfBlock]
-        PdfBlock objects to process.
+    Parameters
+    ----------
+    i_batch_page : int
+        Starting page index for this batch
+    n_pages : int
+        Total number of pages in the document
+    pdf_blocks_batch : List[List[PdfBlock]]
+        Batch of PdfBlock lists to process
     targets : List[str]
-        Target companies identified for extraction.
-    text_extract_func : Callable[[List[PdfBlock], List[str]], List[TextBlock]]
-        Function that processes PdfBlocks and targets into TextBlocks.
+        Target companies for matching
+    text_extract_funcs : List[Callable[[List[PdfBlock], Any], List[TextBlock]]]
+        List of text extraction functions
 
     Returns
     -------
-    List[TextBlock]
-        TextBlock objects containing the extracted content.
+    List[List[TextBlock]]
+        List of TextBlock lists, one per page
     """
     matches = dataframe_to_match(targets)
 
-    def _add_targets_to_txt_extract(f):
+    def _add_targets_to_txt_extract(f: Callable) -> Callable:
         return lambda blks: f(blks, matches)
 
     text_extract_funcs_with_targets = [
@@ -165,32 +222,33 @@ def deserialize_exec(
     n_pages: int,
     text_blocks_batch: List[List[TextBlock]],
     deserialize_funcs: List[
-        Callable[[TextBlock, List[str]], Investment | PromisesResolutionContext]
+        Callable[[TextBlock], Union[Investment, PromisesResolutionContext]]
     ],
-) -> List[Investment | PromisesResolutionContext]:
-    """Converts TextBlocks into tabular data using a specified function that
-    from an expected formatting, return a python object.
+) -> List[List[Union[Investment, PromisesResolutionContext]]]:
+    """Execute deserialization functions to convert TextBlocks to financial data objects.
 
-    Args
-    ----
-    text_blocks : List[List[TextBlock]]
-        TextBlock objects to process.
-    targets : List[str]
-        Targets companies to validate the object creation
-    deserialize_func : Callable[[TextBlock, List[str]], FinancialData | PromisesResolutionContext]
-        Function that converts a TextBlock into a finantial data class or into
-        a bit of context for resolving deferred values
+    Parameters
+    ----------
+    i_batch_page : int
+        Starting page index for this batch
+    n_pages : int
+        Total number of pages in the document
+    text_blocks_batch : List[List[TextBlock]]
+        Batch of TextBlock lists to process
+    deserialize_funcs : List[Callable[[TextBlock], Union[Investment, PromisesResolutionContext]]]
+        List of deserialization functions
 
     Returns
     -------
-    List[FinancialData | PromisesResolutionContext]
-        FinantialData classes containing the deserialized data or context
-        for resolving deferred values
+    List[List[Union[Investment, PromisesResolutionContext]]]
+        List of financial data objects or promise contexts
     """
 
-    def _add_loop_to_deserialize(f):
-        def new_f(blks):
-            results = []
+    def _add_loop_to_deserialize(f: Callable) -> Callable:
+        def new_f(
+            blks: List[TextBlock],
+        ) -> List[Union[Investment, PromisesResolutionContext]]:
+            results: List[Union[Investment, PromisesResolutionContext]] = []
             for blk in blks:
                 try:
                     results.append(f(blk))
@@ -217,43 +275,76 @@ def deserialize_exec(
     return batch_results
 
 
-def get_pipelines(format_name: str, allow_partial_pipelines: bool = False):
+def get_pipelines(
+    format_name: str, allow_partial_pipelines: bool = False
+) -> Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]:
+    """Get processing pipelines for a specific format.
+
+    Combines structured, semi-structured, and unstructured pipelines for the given format.
+
+    Parameters
+    ----------
+    format_name : str
+        Name of the format to get pipelines for
+    allow_partial_pipelines : bool
+        Whether to allow pipelines with missing components
+
+    Returns
+    -------
+    Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]
+        Dictionary mapping pipeline names to (pdf_filters, text_extract, deserialize) tuples
+
+    Raises
+    ------
+    ValueError
+        If required pipeline components are missing and allow_partial_pipelines is False
+
+    Notes
+    -----
+    Each pipeline consists of three components:
+    - pdf_filters: Functions that extract relevant blocks from PDF XML
+    - text_extract: Functions that convert PDF blocks to text blocks with company matching
+    - deserialize: Functions that convert text blocks to structured financial data
+
+    The function combines pipelines from structured, semi-structured, and unstructured
+    processing approaches to provide comprehensive format support.
+    """
     struct = get_structured(format_name)
     semistruct = get_semistructured(format_name)
     unstruct = get_unstructured(format_name)
 
-    # Combina i dizionari per categoria
+    # Combine dictionaries by category
     categories = ["pdf_filters", "text_extract", "deserialize"]
-    combined = {}
+    combined: Dict[str, Dict[str, List[Callable]]] = {}
 
     for i, category in enumerate(categories):
         combined[category] = {**struct[i], **semistruct[i], **unstruct[i]}
 
-    # Verifica che i dizionari non siano vuoti
+    # Verify dictionaries are not empty
     for category, data in combined.items():
         if not data and not allow_partial_pipelines:
             raise ValueError(_("List of {} cannot be empty").format(category))
 
-    # Ottieni tutte le chiavi uniche
+    # Get all unique keys
     all_keys = set(
         key for category_data in combined.values() for key in category_data.keys()
     )
 
-    # Crea il risultato finale con controlli
-    result = {}
+    # Create final result with validation
+    result: Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]] = {}
     for key in all_keys:
         pdf_filters = combined["pdf_filters"].get(key, [])
         text_extract = combined["text_extract"].get(key, [])
         deserialize = combined["deserialize"].get(key, [])
 
-        # Verifica che nessuna lista sia vuota
+        # Verify no list is empty
         if not allow_partial_pipelines:
             if not pdf_filters:
-                raise ValueError(f"Pipeline '{key}': pdf_filters non può essere vuoto")
+                raise ValueError(f"Pipeline '{key}': pdf_filters cannot be empty")
             if not text_extract:
-                raise ValueError(f"Pipeline '{key}': text_extract non può essere vuoto")
+                raise ValueError(f"Pipeline '{key}': text_extract cannot be empty")
             if not deserialize:
-                raise ValueError(f"Pipeline '{key}': deserialize non può essere vuoto")
+                raise ValueError(f"Pipeline '{key}': deserialize cannot be empty")
 
         result[key] = (pdf_filters, text_extract, deserialize)
 

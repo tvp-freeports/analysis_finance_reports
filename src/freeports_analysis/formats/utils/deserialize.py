@@ -43,6 +43,15 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
     ------
     ValueError
         If the string cannot be converted to a float after processing
+
+    Examples
+    --------
+    >>> perc_to_float("5.5%")
+    0.055
+    >>> perc_to_float("25,5", norm=False)
+    25.5
+    >>> perc_to_float("10 %")
+    0.1
     """
     perc = normalize_word(perc)
 
@@ -97,6 +106,14 @@ def to_float(data: str) -> float:
     ------
     ValueError
         the resulting processed string cannot be casted to `float`
+
+    Notes
+    -----
+    This function handles various numeric formats including:
+    - Thousand separators (e.g., "1.000.000" -> 1000000.0)
+    - Decimal separators (both '.' and ',')
+    - Mixed separators (e.g., "1,000.50" -> 1000.5)
+    - Whitespace around numbers
     """
     data = normalize_word(data)
     data = _force_numeric(data)
@@ -131,6 +148,15 @@ def to_int(data: str) -> int:
     ------
     ValueError
         the resulting processed string cannot be casted to `int`
+
+    Notes
+    -----
+    This function handles integer formats including:
+    - Thousand separators (e.g., "1.000" -> 1000)
+    - Whitespace around numbers
+    - Decimal points with zero mantissa (e.g., "100.0" -> 100)
+
+    Raises ValueError if the number has a non-zero mantissa.
     """
     data = normalize_word(data)
     data = _force_numeric(data)
@@ -190,6 +216,12 @@ def to_currency(data: str) -> Currency:
     ------
     KeyError
         If the string doesn't match any Currency enum member
+
+    Notes
+    -----
+    The input string is normalized to uppercase before matching against
+    the Currency enum members. Both 3-letter ISO codes and common names
+    are supported (e.g., "EUR" and "EURO" both map to Currency.EUR).
     """
     if isinstance(data, Currency):
         return data
@@ -219,6 +251,16 @@ def to_date(data: str) -> date:
     ------
     ValueError
         If the string doesn't match any of the supported date formats
+
+    Notes
+    -----
+    The function tries multiple date formats in order:
+    - ISO format (YYYY-MM-DD, YYYY/MM/DD)
+    - European format (DD/MM/YYYY, DD.MM.YYYY)
+    - US format (MM-DD-YYYY)
+    - Short formats (DD/MM/YY, MM/YY)
+
+    The first matching format is used for parsing.
     """
     data = normalize_word(data)
     formats = [
@@ -241,23 +283,62 @@ def to_date(data: str) -> date:
 
 
 def standard_deserialization(
-    cost_and_value_interpret_int=True, quantity_interpret_float=False
+    cost_and_value_interpret_int: bool = True, quantity_interpret_float: bool = False
 ) -> Callable[[DeserializeFunc], DeserializeFunc]:
     """Decorator factory that creates a deserializer function for TextBlock metadata.
 
-    The resulting decorator transforms a TextBlock's metadata into a financial data object.
+    This decorator factory creates a standardized deserialization pipeline that
+    transforms TextBlock metadata into structured financial data objects (Equity or Bond).
+    It handles the complete conversion process including type validation, error handling,
+    and financial instrument type detection.
 
     Parameters
     ----------
-    cost_and_value_interpret_int : bool
-        interpret market value and acquisition cost column as int before casting to float
-    quantity_interpret_float : bool
-        interpret quantity column as int before casting to int
+    cost_and_value_interpret_int : bool, optional
+        If True, interpret market value and acquisition cost as integers before
+        casting to float. This is useful for handling numbers with thousand separators.
+        Default is True.
+    quantity_interpret_float : bool, optional
+        If True, interpret quantity column as float before casting to int.
+        This handles decimal quantities that should be rounded to integers.
+        Default is False.
 
     Returns
     -------
-    Callable[[DeserializeFunc],DeserializeFunc]
-        Decorator to wrap the deserializer functions
+    Callable[[DeserializeFunc], DeserializeFunc]
+        A decorator that wraps deserializer functions with standardized processing
+
+    Notes
+    -----
+    This decorator provides a comprehensive deserialization pipeline that:
+    - Converts text metadata to appropriate Python types
+    - Handles international number formats (commas, dots, spaces)
+    - Supports multiple date formats
+    - Detects financial instrument type (Equity vs Bond)
+    - Provides graceful error handling with detailed logging
+    - Supports Promise objects for deferred value resolution
+    - Validates company names against target lists
+
+    The deserialization process extracts the following fields:
+    - company: Normalized company name
+    - company_match: Original matched text
+    - subfund: Subfund identifier
+    - market_value: Numeric market value
+    - currency: Currency enum
+    - nominal_quantity: Quantity as integer
+    - perc_net_assets: Percentage as float
+    - acquisition_cost: Acquisition cost as float
+    - acquisition_currency: Acquisition currency enum
+    - maturity: For bonds only
+    - interest_rate: For bonds only
+
+    Examples
+    --------
+    >>> @standard_deserialization()
+    >>> def my_deserializer(blk: TextBlock) -> Equity | Bond:
+    >>>     # Custom deserialization logic can be added here
+    >>>     # The standard processing is applied automatically
+    >>>     pass
     """
 
     def wrapper(f):

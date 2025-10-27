@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -109,11 +110,14 @@
              
   <section id="module-freeports_analysis.formats">
 <span id="freeports-analysis-formats"></span><h1>freeports_analysis.formats<a class="headerlink" href="#module-freeports_analysis.formats" title="Link to this heading"></a></h1>
+<p>Core data structures and exceptions for PDF document processing.</p>
+<p>This module defines the fundamental data structures (PdfBlock, TextBlock) and
+exception classes used throughout the document processing pipeline.</p>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfBlock</span></code></a>(type_block, metadata, xml_ele)</p></td>
-<td><p>Represents a PDF content block with data to be extracted or relevant for subsequent filtering stages.</p></td>
+<td><p>Represents a PDF content block with data to be extracted or relevant for filtering.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextBlock</span></code></a>(type_block, metadata, pdf_block)</p></td>
 <td><p>Represents a processed text block derived from a PdfBlock.</p></td>
@@ -124,61 +128,60 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.ExpectedPdfBlockNotFound" title="freeports_analysis.formats.ExpectedPdfBlockNotFound"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpectedPdfBlockNotFound</span></code></a></p></td>
-<td><p>Raised when a required PdfBlock is not found</p></td>
+<td><p>Raised when a required PdfBlock is not found during processing.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.ExpectedTextBlockNotFound" title="freeports_analysis.formats.ExpectedTextBlockNotFound"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpectedTextBlockNotFound</span></code></a></p></td>
-<td><p>Raised when a required TextBlock is not found</p></td>
+<td><p>Raised when a required TextBlock is not found during processing.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.ExtractionFieldFail" title="freeports_analysis.formats.ExtractionFieldFail"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExtractionFieldFail</span></code></a></p></td>
-<td><p>Raised when the algorithm is unable to parse a field</p></td>
+<td><p>Raised when the algorithm is unable to parse a field.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.LineParseFail" title="freeports_analysis.formats.LineParseFail"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LineParseFail</span></code></a></p></td>
-<td><p>Raised when the algorithm is unable to parse a line</p></td>
+<td><p>Raised when the algorithm is unable to parse a line.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.PageParseFail" title="freeports_analysis.formats.PageParseFail"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PageParseFail</span></code></a></p></td>
-<td><p>Raised when the algorithm is unable to parse a page</p></td>
+<td><p>Raised when the algorithm is unable to parse a page.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.formats.ExpectedPdfBlockNotFound">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">ExpectedPdfBlockNotFound</span></span><a class="headerlink" href="#freeports_analysis.formats.ExpectedPdfBlockNotFound" title="Link to this definition"></a></dt>
-<dd><p>Raised when a required PdfBlock is not found</p>
+<dd><p>Raised when a required PdfBlock is not found during processing.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.formats.ExpectedTextBlockNotFound">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">ExpectedTextBlockNotFound</span></span><a class="headerlink" href="#freeports_analysis.formats.ExpectedTextBlockNotFound" title="Link to this definition"></a></dt>
-<dd><p>Raised when a required TextBlock is not found</p>
+<dd><p>Raised when a required TextBlock is not found during processing.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.formats.ExtractionFieldFail">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">ExtractionFieldFail</span></span><a class="headerlink" href="#freeports_analysis.formats.ExtractionFieldFail" title="Link to this definition"></a></dt>
-<dd><p>Raised when the algorithm is unable to parse a field</p>
+<dd><p>Raised when the algorithm is unable to parse a field.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.formats.LineParseFail">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">LineParseFail</span></span><a class="headerlink" href="#freeports_analysis.formats.LineParseFail" title="Link to this definition"></a></dt>
-<dd><p>Raised when the algorithm is unable to parse a line</p>
+<dd><p>Raised when the algorithm is unable to parse a line.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PageParseFail">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">PageParseFail</span></span><a class="headerlink" href="#freeports_analysis.formats.PageParseFail" title="Link to this definition"></a></dt>
-<dd><p>Raised when the algorithm is unable to parse a page</p>
+<dd><p>Raised when the algorithm is unable to parse a page.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.</span></span><span class="sig-name descname"><span class="pre">PdfBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Enum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xml_ele</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Element</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock" title="Link to this definition"></a></dt>
-<dd><p>Represents a PDF content block with data to be extracted or relevant
-for subsequent filtering stages.</p>
+<dd><p>Represents a PDF content block with data to be extracted or relevant for filtering.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.type_block">
 <span class="sig-name descname"><span class="pre">type_block</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.type_block" title="Link to this definition"></a></dt>
-<dd><p>The type of the PDF block.</p>
+<dd><p>The type of the PDF block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Enum</p>
@@ -189,7 +192,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.metadata">
 <span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.metadata" title="Link to this definition"></a></dt>
-<dd><p>Additional metadata associated with the block.</p>
+<dd><p>Additional metadata associated with the block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[dict]</p>
@@ -200,7 +203,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.PdfBlock.content">
 <span class="sig-name descname"><span class="pre">content</span></span><a class="headerlink" href="#freeports_analysis.formats.PdfBlock.content" title="Link to this definition"></a></dt>
-<dd><p>The textual content extracted from the block.</p>
+<dd><p>The textual content extracted from the block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[str]</p>
@@ -217,7 +220,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.type_block">
 <span class="sig-name descname"><span class="pre">type_block</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.type_block" title="Link to this definition"></a></dt>
-<dd><p>The type of the text block.</p>
+<dd><p>Type of the text block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Enum</p>
@@ -228,7 +231,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.metadata">
 <span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.metadata" title="Link to this definition"></a></dt>
-<dd><p>Additional metadata associated with the block.</p>
+<dd><p>Additional metadata associated with the block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
@@ -239,7 +242,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.content">
 <span class="sig-name descname"><span class="pre">content</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.content" title="Link to this definition"></a></dt>
-<dd><p>The textual content of the block.</p>
+<dd><p>Textual content of the block</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
@@ -250,7 +253,7 @@ for subsequent filtering stages.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="freeports_analysis.formats.TextBlock.pdf_block">
 <span class="sig-name descname"><span class="pre">pdf_block</span></span><a class="headerlink" href="#freeports_analysis.formats.TextBlock.pdf_block" title="Link to this definition"></a></dt>
-<dd><p>The original PdfBlock this text was derived from.</p>
+<dd><p>Original PdfBlock this text was derived from</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock">PdfBlock</a></p>
@@ -264,10 +267,10 @@ for subsequent filtering stages.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.algorithms.html#module-freeports_analysis.formats.algorithms" title="freeports_analysis.formats.algorithms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">algorithms</span></code></a></p></td>
-<td><p>Module common to each format, it contains the definitions used by all the formats</p></td>
+<td><p>Core algorithms module for PDF document processing pipelines.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.data.html#module-freeports_analysis.formats.data" title="freeports_analysis.formats.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Data management for PDF format definitions and URL mappings.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.html#module-freeports_analysis.formats.utils" title="freeports_analysis.formats.utils"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code></a></p></td>
 <td><p>Utilities of general interest common to all formats and that can be used for creating <cite>pdf_filter</cite> or <cite>text_extract</cite> or <cite>deserialize</cite> functions</p></td>

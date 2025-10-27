@@ -1,4 +1,4 @@
-﻿freeports\_analysis.download
+freeports\_analysis.download
 ============================
 
 .. automodule:: freeports_analysis.download

@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -169,27 +170,72 @@ If False, returns the raw numeric value from the string</p></li>
 <dd class="field-even"><p><strong>ValueError</strong> – If the string cannot be converted to a float after processing</p>
 </dd>
 </dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">perc_to_float</span><span class="p">(</span><span class="s2">&quot;5.5%&quot;</span><span class="p">)</span>
+<span class="go">0.055</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">perc_to_float</span><span class="p">(</span><span class="s2">&quot;25,5&quot;</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">25.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">perc_to_float</span><span class="p">(</span><span class="s2">&quot;10 %&quot;</span><span class="p">)</span>
+<span class="go">0.1</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.deserialize.standard_deserialization">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.deserialize.</span></span><span class="sig-name descname"><span class="pre">standard_deserialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cost_and_value_interpret_int</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantity_interpret_float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Equity" title="freeports_analysis.output.Equity"><span class="pre">Equity</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Bond" title="freeports_analysis.output.Bond"><span class="pre">Bond</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Equity" title="freeports_analysis.output.Equity"><span class="pre">Equity</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Bond" title="freeports_analysis.output.Bond"><span class="pre">Bond</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.deserialize.standard_deserialization" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.deserialize.</span></span><span class="sig-name descname"><span class="pre">standard_deserialization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cost_and_value_interpret_int</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantity_interpret_float</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Equity" title="freeports_analysis.output.Equity"><span class="pre">Equity</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Bond" title="freeports_analysis.output.Bond"><span class="pre">Bond</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock" title="freeports_analysis.formats.TextBlock"><span class="pre">TextBlock</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Equity" title="freeports_analysis.output.Equity"><span class="pre">Equity</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.output.html#freeports_analysis.output.Bond" title="freeports_analysis.output.Bond"><span class="pre">Bond</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.deserialize.standard_deserialization" title="Link to this definition"></a></dt>
 <dd><p>Decorator factory that creates a deserializer function for TextBlock metadata.</p>
-<p>The resulting decorator transforms a TextBlock’s metadata into a financial data object.</p>
+<p>This decorator factory creates a standardized deserialization pipeline that
+transforms TextBlock metadata into structured financial data objects (Equity or Bond).
+It handles the complete conversion process including type validation, error handling,
+and financial instrument type detection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>cost_and_value_interpret_int</strong> (<em>bool</em>) – interpret market value and acquisition cost column as int before casting to float</p></li>
-<li><p><strong>quantity_interpret_float</strong> (<em>bool</em>) – interpret quantity column as int before casting to int</p></li>
+<li><p><strong>cost_and_value_interpret_int</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, interpret market value and acquisition cost as integers before
+casting to float. This is useful for handling numbers with thousand separators.
+Default is True.</p></li>
+<li><p><strong>quantity_interpret_float</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, interpret quantity column as float before casting to int.
+This handles decimal quantities that should be rounded to integers.
+Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Decorator to wrap the deserializer functions</p>
+<dd class="field-even"><p>A decorator that wraps deserializer functions with standardized processing</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Callable[[DeserializeFunc],DeserializeFunc]</p>
+<dd class="field-odd"><p>Callable[[DeserializeFunc], DeserializeFunc]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This decorator provides a comprehensive deserialization pipeline that:
+- Converts text metadata to appropriate Python types
+- Handles international number formats (commas, dots, spaces)
+- Supports multiple date formats
+- Detects financial instrument type (Equity vs Bond)
+- Provides graceful error handling with detailed logging
+- Supports Promise objects for deferred value resolution
+- Validates company names against target lists</p>
+<p>The deserialization process extracts the following fields:
+- company: Normalized company name
+- company_match: Original matched text
+- subfund: Subfund identifier
+- market_value: Numeric market value
+- currency: Currency enum
+- nominal_quantity: Quantity as integer
+- perc_net_assets: Percentage as float
+- acquisition_cost: Acquisition cost as float
+- acquisition_currency: Acquisition currency enum
+- maturity: For bonds only
+- interest_rate: For bonds only</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@standard_deserialization</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">my_deserializer</span><span class="p">(</span><span class="n">blk</span><span class="p">:</span> <span class="n">TextBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Equity</span> <span class="o">|</span> <span class="n">Bond</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># Custom deserialization logic can be added here</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="c1"># The standard processing is applied automatically</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">pass</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -210,6 +256,10 @@ If False, returns the raw numeric value from the string</p></li>
 <dd class="field-even"><p><strong>KeyError</strong> – If the string doesn’t match any Currency enum member</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The input string is normalized to uppercase before matching against
+the Currency enum members. Both 3-letter ISO codes and common names
+are supported (e.g., “EUR” and “EURO” both map to Currency.EUR).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -230,6 +280,13 @@ If False, returns the raw numeric value from the string</p></li>
 <dd class="field-even"><p><strong>ValueError</strong> – If the string doesn’t match any of the supported date formats</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The function tries multiple date formats in order:
+- ISO format (YYYY-MM-DD, YYYY/MM/DD)
+- European format (DD/MM/YYYY, DD.MM.YYYY)
+- US format (MM-DD-YYYY)
+- Short formats (DD/MM/YY, MM/YY)</p>
+<p>The first matching format is used for parsing.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -252,6 +309,12 @@ thousand separators.</p>
 <dd class="field-even"><p><strong>ValueError</strong> – the resulting processed string cannot be casted to <cite>float</cite></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This function handles various numeric formats including:
+- Thousand separators (e.g., “1.000.000” -&gt; 1000000.0)
+- Decimal separators (both ‘.’ and ‘,’)
+- Mixed separators (e.g., “1,000.50” -&gt; 1000.5)
+- Whitespace around numbers</p>
 </dd></dl>
 
 <dl class="py function">
@@ -273,6 +336,12 @@ namely it remove dots or commas and spaces around the string</p>
 <dd class="field-even"><p><strong>ValueError</strong> – the resulting processed string cannot be casted to <cite>int</cite></p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This function handles integer formats including:
+- Thousand separators (e.g., “1.000” -&gt; 1000)
+- Whitespace around numbers
+- Decimal points with zero mantissa (e.g., “100.0” -&gt; 100)</p>
+<p>Raises ValueError if the number has a non-zero mantissa.</p>
 </dd></dl>
 
 <dl class="py function">

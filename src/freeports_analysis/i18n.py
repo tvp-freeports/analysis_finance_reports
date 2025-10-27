@@ -1,4 +1,20 @@
-"""Module that detect the locale and implement the translation of the messages"""
+"""Internationalization module for locale detection and message translation.
+
+This module handles locale detection and provides translation functionality
+for the application. It supports both POSIX and Windows systems and falls
+back to English if no suitable locale is found.
+
+Attributes
+----------
+LOC : Optional[str]
+    Detected locale identifier
+lang : str
+    Language code extracted from locale
+TRANSLATION : Optional[gettext.NullTranslations]
+    Translation object for the detected locale
+_ : Callable[[str], str]
+    Translation function for message strings
+"""
 
 import os
 import locale
@@ -8,9 +24,9 @@ import gettext
 from importlib_resources import files
 
 LOC = None
-if os.system == "posix":
+if os.name == "posix":
     LOC = locale.getlocale()[0]
-elif os.system == "nt":
+elif os.name == "nt":
     LOC = locale.getlocale()[0][:2].lower()
 
 if LOC is None:

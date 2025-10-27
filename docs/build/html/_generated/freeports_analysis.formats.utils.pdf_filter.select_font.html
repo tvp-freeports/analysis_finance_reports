@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -112,28 +113,32 @@
              
   <section id="module-freeports_analysis.formats.utils.pdf_filter.select_font">
 <span id="freeports-analysis-formats-utils-pdf-filter-select-font"></span><h1>freeports_analysis.formats.utils.pdf_filter.select_font<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_filter.select_font" title="Link to this heading"></a></h1>
-<p>Utilities for selecting or deselecting lines based of font and text information</p>
+<p>Font-based selection utilities for PDF text filtering.</p>
+<p>This module provides functions for filtering PDF text elements based on
+font properties and text content combinations.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font" title="freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deselect_txt_font</span></code></a>(lines, deselection_list)</p></td>
-<td><p>Deselect text with a certain font and text combination</p></td>
+<td><p>Filter out lines matching specific text-font combinations.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_font.</span></span><span class="sig-name descname"><span class="pre">deselect_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deselection_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font" title="Link to this definition"></a></dt>
-<dd><p>Deselect text with a certain font and text combination</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_font.</span></span><span class="sig-name descname"><span class="pre">deselect_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deselection_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><span class="pre">Font</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font" title="Link to this definition"></a></dt>
+<dd><p>Filter out lines matching specific text-font combinations.</p>
+<p>Removes PDF lines that match any of the specified text and font pairs
+from the deselection list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – list to filter</p></li>
-<li><p><strong>deselection_list</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>str</em><em>, </em><em>Font</em><em>]</em><em>]</em>) – list of text and font to search for</p></li>
+<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to filter</p></li>
+<li><p><strong>deselection_list</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><em>Font</em></a><em>]</em><em>]</em>) – List of (text, font) pairs to exclude from results</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>filtered list</p>
+<dd class="field-even"><p>Filtered list of PDF lines excluding deselected combinations</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine">ExtractedPdfLine</a>]</p>

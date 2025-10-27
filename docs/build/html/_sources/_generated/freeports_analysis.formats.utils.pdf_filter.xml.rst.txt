@@ -13,3 +13,4 @@ freeports\_analysis.formats.utils.pdf\_filter.xml
 
    font
    position
+   xpath_queries

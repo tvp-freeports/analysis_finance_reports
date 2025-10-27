@@ -5,13 +5,21 @@ freeports\_analysis.consts
    :members:
    
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      PromisesResolutionMap
+      PromisesResolutionContext
+   
    .. rubric:: Functions
 
    .. autosummary::
    
-      InputEnum
-      InputFlags
+      input_enum
+      input_flags
       flag_from_string
+      flag_to_string
       flatten_promise_map
    
    .. rubric:: Classes

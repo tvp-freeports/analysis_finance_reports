@@ -34,28 +34,31 @@ def get_lines_with_txt_font(
     font: str,
     all_elem: bool = False,
     exact_match: bool = False,
-) -> List[etree.Element] | etree.Element:
-    """Get lines with a certain txt and font
+) -> List[etree.Element] | etree.Element | None:
+    """Get lines with a certain text and font.
 
     Parameters
     ----------
     blk : etree.Element
-        xml tree structure
+        XML tree structure to search
     txt : str
-        text to search for
+        Text to search for
     font : str
-        font to search for
+        Font to search for
     all_elem : bool, optional
-        if `True` return a list with all matches, if `False` just the first
-        as a scalar element
+        If True, return all matching elements as a list.
+        If False, return only the first matching element.
     exact_match: bool, optional
-        if `False` check if substring is contained in text, if `True` it check
-        against the whole string
+        If True, perform exact string matching.
+        If False, perform substring matching.
 
     Returns
     -------
-    List[etree.Element] | etree.Element
-        matching lines
+    List[etree.Element] | etree.Element | None
+        Matching line elements. Returns:
+        - List if all_elem=True
+        - Single element if all_elem=False and matches found
+        - None if all_elem=False and no matches found
     """
     match_text = f"@text='{txt}'" if exact_match else f"contains(@text,'{txt}')"
     blks = blk.xpath(
@@ -69,7 +72,30 @@ def get_lines_with_txt(
     txt: str,
     all_elem: bool = False,
     exact_match: bool = False,
-) -> List[etree.Element]:
+) -> List[etree.Element] | etree.Element | None:
+    """Get lines containing specified text from XML tree.
+
+    Parameters
+    ----------
+    blk : etree.Element
+        XML tree structure to search
+    txt : str
+        Text to search for
+    all_elem : bool, optional
+        If True, return all matching elements as a list.
+        If False, return only the first matching element.
+    exact_match : bool, optional
+        If True, perform exact string matching.
+        If False, perform substring matching.
+
+    Returns
+    -------
+    List[etree.Element] | etree.Element | None
+        Matching line elements. Returns:
+        - List if all_elem=True
+        - Single element if all_elem=False and matches found
+        - None if all_elem=False and no matches found
+    """
     match_text = f"@text='{txt}'" if exact_match else f"contains(@text,'{txt}')"
     blks = blk.xpath(f"./descendant-or-self::line[{match_text}]")
     return blks if all_elem else blks[0] if len(blks) > 0 else None
@@ -129,25 +155,28 @@ def get_lines_with_size(blk: etree.Element, size: str) -> List[etree.Element]:
 
 def get_lines_with_font_size(
     blk: etree.Element, txt: str, size: str, all_elem: bool = False
-) -> List[etree.Element] | etree.Element:
-    """Get lines with a certain txt and size
+) -> List[etree.Element] | etree.Element | None:
+    """Get lines with a certain text and font size.
 
     Parameters
     ----------
     blk : etree.Element
-        xml tree structure
+        XML tree structure to search
     txt : str
-        text to search for
+        Text to search for
     size : str
-        size to search for
+        Font size to search for
     all_elem : bool, optional
-        if `True` return a list with all matches, if `False` just the first
-        as a scalar element
+        If True, return all matching elements as a list.
+        If False, return only the first matching element.
 
     Returns
     -------
-    List[etree.Element] | etree.Element
-        matching lines
+    List[etree.Element] | etree.Element | None
+        Matching line elements. Returns:
+        - List if all_elem=True
+        - Single element if all_elem=False and matches found
+        - None if all_elem=False and no matches found
     """
     blks = blk.xpath(
         f"./descendant-or-self::line[contains(@text,'{txt}') and font[@size='{size}']]"

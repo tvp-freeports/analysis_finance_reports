@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -111,23 +112,113 @@
              
   <section id="module-freeports_analysis.formats.algorithms.commons">
 <span id="freeports-analysis-formats-algorithms-commons"></span><h1>freeports_analysis.formats.algorithms.commons<a class="headerlink" href="#module-freeports_analysis.formats.algorithms.commons" title="Link to this heading"></a></h1>
+<p>Common utilities and data structures for algorithm pipeline management.</p>
+<p>This module provides shared functionality for handling format and pipeline
+identifiers, including validation schemas and index manipulation utilities.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_format_name_index</span></code>(df)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.commons.add_format_name_index" title="freeports_analysis.formats.algorithms.commons.add_format_name_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_format_name_index</span></code></a>(df)</p></td>
+<td><p>Extract format name from ID column and add as separate column.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_pipe_name</span></code>(df)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.commons.add_pipe_name" title="freeports_analysis.formats.algorithms.commons.add_pipe_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_pipe_name</span></code></a>(df)</p></td>
+<td><p>Extract pipe name from ID column and add as separate column.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_index_format_name_pipe</span></code>(df)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.commons.create_index_format_name_pipe" title="freeports_analysis.formats.algorithms.commons.create_index_format_name_pipe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_index_format_name_pipe</span></code></a>(df)</p></td>
+<td><p>Create complete format-pipe-name index from ID column.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_index_format_name_pipe</span></code>(df)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.algorithms.commons.set_index_format_name_pipe" title="freeports_analysis.formats.algorithms.commons.set_index_format_name_pipe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_index_format_name_pipe</span></code></a>(df)</p></td>
+<td><p>Set multi-index using Format name, Pipe name, and ID columns.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.commons.add_format_name_index">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.commons.</span></span><span class="sig-name descname"><span class="pre">add_format_name_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.commons.add_format_name_index" title="Link to this definition"></a></dt>
+<dd><p>Extract format name from ID column and add as separate column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing algorithm IDs in ‘ID’ column</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with added ‘Format name’ column</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The format name is extracted by removing any pipeline suffix from the ID.
+For example, ‘Amundi-IT23’ becomes ‘Amundi-IT23’ and ‘Amundi-IT23(pipeline1)’
+also becomes ‘Amundi-IT23’.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.commons.add_pipe_name">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.commons.</span></span><span class="sig-name descname"><span class="pre">add_pipe_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.commons.add_pipe_name" title="Link to this definition"></a></dt>
+<dd><p>Extract pipe name from ID column and add as separate column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing algorithm IDs in ‘ID’ column</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with added ‘Pipe name’ column</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The pipe name is extracted from the pipeline suffix in parentheses.
+For example, ‘Amundi-IT23(pipeline1)’ becomes ‘pipeline1’, while
+‘Amundi-IT23’ without a pipeline suffix becomes NaN.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.commons.create_index_format_name_pipe">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.commons.</span></span><span class="sig-name descname"><span class="pre">create_index_format_name_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.commons.create_index_format_name_pipe" title="Link to this definition"></a></dt>
+<dd><p>Create complete format-pipe-name index from ID column.</p>
+<p>This is a convenience function that combines:
+1. Extracting format name from ID
+2. Extracting pipe name from ID
+3. Setting the multi-index</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing algorithm IDs in ‘ID’ column</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with multi-index set to (Format name, Pipe name, ID)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function provides a complete pipeline for converting algorithm IDs
+into a structured multi-index format suitable for algorithm lookup and
+management. It handles both formats with and without pipeline names.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.algorithms.commons.set_index_format_name_pipe">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.algorithms.commons.</span></span><span class="sig-name descname"><span class="pre">set_index_format_name_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.formats.algorithms.commons.set_index_format_name_pipe" title="Link to this definition"></a></dt>
+<dd><p>Set multi-index using Format name, Pipe name, and ID columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with ‘Format name’, ‘Pipe name’, and ‘ID’ columns</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataFrame with multi-index set to (Format name, Pipe name, ID)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This creates a hierarchical index that allows efficient lookup of
+algorithms by format name, pipeline name, and algorithm ID.</p>
+</dd></dl>
+
 </section>
 
 

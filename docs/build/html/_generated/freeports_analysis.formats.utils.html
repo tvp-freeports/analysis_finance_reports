@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -116,7 +117,7 @@ for creating <cite>pdf_filter</cite> or <cite>text_extract</cite> or <cite>deser
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.default_if_not_implemented" title="freeports_analysis.formats.utils.default_if_not_implemented"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_if_not_implemented</span></code></a>(default_func)</p></td>
-<td><p>Replace the decorated function with a default given as argument of the decorator if the decorated function raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p></td>
+<td><p>Decorator to provide a default implementation when primary function fails.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.normalize_string" title="freeports_analysis.formats.utils.normalize_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_string</span></code></a>(string[, lower])</p></td>
 <td><p>Normalize a string by: 1.</p></td>
@@ -125,26 +126,31 @@ for creating <cite>pdf_filter</cite> or <cite>text_extract</cite> or <cite>deser
 <td><p>Normalize a word by: 1.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.overwrite_if_implemented" title="freeports_analysis.formats.utils.overwrite_if_implemented"><code class="xref py py-obj docutils literal notranslate"><span class="pre">overwrite_if_implemented</span></code></a>(primary_func)</p></td>
-<td><p>Replace the decorated default function with a function given as argument of the decorator if that function do not raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p></td>
+<td><p>Decorator to override default implementation with primary implementation.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.default_if_not_implemented">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.</span></span><span class="sig-name descname"><span class="pre">default_if_not_implemented</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">P</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">R</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">P</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">R</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.default_if_not_implemented" title="Link to this definition"></a></dt>
-<dd><p>Replace the decorated function with a default given as argument of the decorator
-if the decorated function raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p>
+<dd><p>Decorator to provide a default implementation when primary function fails.</p>
+<p>Replace the decorated function with a default given as argument of the decorator
+if the decorated function raises <cite>NotImplementedError</cite> or returns <cite>None</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>default_func</strong> (<em>Callable</em><em>[</em><em>P</em><em>,</em><em>R</em><em>]</em>) – default function</p>
+<dd class="field-odd"><p><strong>default_func</strong> (<em>Callable</em><em>[</em><em>P</em><em>,</em><em>R</em><em>]</em>) – Default function to use when primary function is not implemented</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the default function if the deorated function is overwritten, if not the decorated function</p>
+<dd class="field-even"><p>Wrapped function that falls back to default implementation when needed</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable[P,R]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This decorator is useful for creating extensible function hierarchies where
+subclasses can override specific functionality while falling back to default
+implementations when not overridden.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -196,20 +202,25 @@ if the decorated function raise a <cite>NotImplementedError</cite> or return <ci
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.overwrite_if_implemented">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.</span></span><span class="sig-name descname"><span class="pre">overwrite_if_implemented</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">primary_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">P</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">R</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">P</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">R</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.overwrite_if_implemented" title="Link to this definition"></a></dt>
-<dd><p>Replace the decorated default function with a function given as argument of the decorator
-if that function do not raise a <cite>NotImplementedError</cite> or return <cite>None</cite></p>
+<dd><p>Decorator to override default implementation with primary implementation.</p>
+<p>Replace the decorated default function with a function given as argument of the decorator
+if that function does not raise a <cite>NotImplementedError</cite> or return <cite>None</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>primary_func</strong> (<em>Callable</em><em>[</em><em>P</em><em>,</em><em>R</em><em>]</em>) – implementation of a function</p>
+<dd class="field-odd"><p><strong>primary_func</strong> (<em>Callable</em><em>[</em><em>P</em><em>,</em><em>R</em><em>]</em>) – Primary implementation of a function that should override the default</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the function given as argument of the decorator if implemented,
-otherwise the decorated default</p>
+<dd class="field-even"><p>Wrapped function that uses primary implementation when available,
+otherwise falls back to default implementation</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable[P,R]</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>This is the inverse of <cite>default_if_not_implemented</cite> and is useful when
+you want to provide a primary implementation that should override a
+default implementation when available.</p>
 </dd></dl>
 
 <p class="rubric">Modules</p>

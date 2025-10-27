@@ -1,7 +1,15 @@
+"""Data module for loading and validating company and financial data.
+
+This module provides functions to load various CSV data files containing
+company information, target lists, markets, and tickers, with schema
+validation to ensure data integrity.
+"""
+
 from pathlib import Path
 import datetime
 import re
 import logging as log
+from typing import List, Union
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
@@ -13,7 +21,7 @@ data = Path(__file__).parent
 
 
 def _stem_contained_in_name(df: pd.DataFrame) -> bool:
-    """Checks if the main BUD is included inside the company name
+    """Check if the main BUD is included inside the company name.
 
     Parameters
     ----------
@@ -23,16 +31,16 @@ def _stem_contained_in_name(df: pd.DataFrame) -> bool:
     Returns
     -------
     bool
-        True if included
+        True if all BUDs are contained in their respective company names
 
     Raises
     ------
     ValueError
-        Raises error if main BUD not included in company name
+        If any principal BUD is not contained in the company name
     """
     mask = df["Bud"].notna()
 
-    # Applica il controllo solo dove Bud non è nullo
+    # Apply check only where Bud is not null
     valid_rows = df[mask]
 
     if not valid_rows.empty:
@@ -48,7 +56,7 @@ def _stem_contained_in_name(df: pd.DataFrame) -> bool:
 
 
 def _regex_match_name(df: pd.DataFrame) -> bool:
-    """Checks if the main regex is included inside the company name
+    """Check if the main regex matches the company name.
 
     Parameters
     ----------
@@ -58,12 +66,12 @@ def _regex_match_name(df: pd.DataFrame) -> bool:
     Returns
     -------
     bool
-        True if included
+        True if all regex patterns match their respective company names
 
     Raises
     ------
     ValueError
-        _descripRaises error if main regex not included in company nametion_
+        If any regex pattern does not match the company name
     """
     mask = df["Regex"].notna()
 
@@ -107,13 +115,12 @@ companies_schema = pa.DataFrameSchema(
 
 
 def get_companies() -> pd.DataFrame:
-    """Function called to get the list of companies contained in companies.csv
-    while validating the structure through companies_schema
+    """Load and validate the list of companies from companies.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of companies
+        Validated DataFrame of companies with normalized names
     """
     df = pd.read_csv(data / "companies.csv")
     df.set_index("Name", drop=False, inplace=True)
@@ -138,13 +145,12 @@ companies_additional_regexs_schema = pa.DataFrameSchema(
 
 
 def get_companies_additional_regexs() -> pd.DataFrame:
-    """Function called to get the additional regex contained in companies_additional_regexs.csv
-    while validating the structure through companies_additional_regexs_schema
+    """Load and validate additional regex patterns from companies_additional_regexs.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of additional regex
+        Validated DataFrame of additional regex patterns
     """
     df = pd.read_csv(
         data / "companies_additional_regexs.csv", index_col=["Company name"]
@@ -182,26 +188,24 @@ companies_additional_buds_schema = pa.DataFrameSchema(
 
 
 def get_companies_additional_buds() -> pd.DataFrame:
-    """Function called to get the additional buds contained in companies_additional_buds.csv
-    while validating the structure through companies_additional_buds_schema
+    """Load and validate additional BUDs from companies_additional_buds.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of additional buds
+        Validated DataFrame of additional BUDs
     """
     df = pd.read_csv(data / "companies_additional_buds.csv", index_col=["Company name"])
     return companies_additional_buds_schema.validate(df)
 
 
 def get_lists() -> pd.DataFrame:
-    """Function called to get the additional lists contained in lists.csv
-    while validating the structure through lists_schema
+    """Load and validate target lists from lists.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of additional lists
+        Validated DataFrame of target lists
     """
     df = pd.read_csv(data / "lists.csv", index_col="Name")
     return lists_schema.validate(df)
@@ -238,12 +242,12 @@ company_to_list_schema = pa.DataFrameSchema(
 
 
 def get_company_to_list() -> pd.DataFrame:
-    """Function called to get a DataFrame matching the companies and the lists they are included in
+    """Load and validate company-to-list mappings from company_to_list.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of companies and lists
+        Validated DataFrame mapping companies to their target lists
     """
     df = pd.read_csv(
         data / "company_to_list.csv", index_col=["List name", "Company name"]
@@ -262,7 +266,7 @@ markets_schema = pa.DataFrameSchema(
 
 
 def get_markets() -> pd.DataFrame:
-    """Function called to get a DataFrame of the possible markets
+    """Load and validate market information from markets.csv.
 
     Returns
     -------
@@ -303,24 +307,24 @@ tickers_schema = pa.DataFrameSchema(
 
 
 def get_tickers() -> pd.DataFrame:
-    """Function called to get a DataFrame matching the companies names and the markets they are included in
+    """Load and validate ticker information from tickers.csv.
 
     Returns
     -------
     pd.DataFrame
-        Validated DataFrame of companies and markets
+        Validated DataFrame mapping companies to their market symbols
     """
     df = pd.read_csv(data / "tickers.csv", index_col=["Market name", "Company name"])
     return tickers_schema.validate(df)
 
 
 def get_companies_data() -> pd.DataFrame:
-    """Function called to get a DataFrame containing all the relevant companies data
+    """Load and combine all company-related data into a comprehensive DataFrame.
 
     Returns
     -------
     pd.DataFrame
-        The full DataFrame
+        Combined DataFrame containing companies, lists, tickers, BUDs, and regex patterns
     """
     companies = get_companies()
     company_to_list = get_company_to_list()
@@ -379,19 +383,24 @@ def get_companies_data() -> pd.DataFrame:
     return results
 
 
-def get_target_companies(target_lists: list | str) -> pd.DataFrame:
-    """Function called to get a DataFrame containing the data of all the companies
-    included in a certain list / certain lists
+def get_target_companies(target_lists: Union[List[str], str]) -> pd.DataFrame:
+    """Filter companies data to include only those in specified target lists.
 
     Parameters
     ----------
-    target_lists : list | str
-        The required list name (or lists names)
+    target_lists : Union[List[str], str]
+        The required list name or list of list names
 
     Returns
     -------
     pd.DataFrame
-        The DataFrame with the required data
+        Filtered DataFrame containing only companies from the specified lists
+
+    Notes
+    -----
+    The returned DataFrame includes all company information but excludes
+    the 'List names' column since it's used for filtering. Companies are
+    included if they belong to any of the specified target lists.
     """
     if isinstance(target_lists, str):
         target_lists = [target_lists]

@@ -1,11 +1,11 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
-from typing import List, Annotated
+from typing import List, Annotated, Tuple
 from enum import Flag, Enum, auto
 from pydantic import BeforeValidator
 import pandas as pd
 
-from freeports_analysis.consts import flag_from_string, InputFlags
+from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
 
 
@@ -20,7 +20,7 @@ class TablePosAlgorithm(Flag):
         flag_from_string(v, cls)
 
 
-InputTablePosAlgorithm = InputFlags(TablePosAlgorithm)
+InputTablePosAlgorithm = input_flags(TablePosAlgorithm)
 
 
 class TablePosMeasureUnit(Enum):
@@ -30,8 +30,29 @@ class TablePosMeasureUnit(Enum):
 
 
 def _area_position_algorithm(
-    ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
-):
+    ruler_geometry: Tuple[float, Tuple[float, float]],
+    test_geometry: Tuple[float, Tuple[float, float]],
+    algorithm_flags: TablePosAlgorithm,
+    abs_tolerance: float,
+) -> bool:
+    """Determine if test geometry matches ruler geometry using position-based algorithm.
+
+    Parameters
+    ----------
+    ruler_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the ruler element
+    test_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the test element
+    algorithm_flags : TablePosAlgorithm
+        Flags controlling the matching algorithm
+    abs_tolerance : float
+        Absolute tolerance for position matching
+
+    Returns
+    -------
+    bool
+        True if test geometry matches ruler geometry within tolerance
+    """
     test_pos, test_bounds = test_geometry
     ruler_pos, ruler_bounds = ruler_geometry
     if TablePosAlgorithm.RULER_AREA in algorithm_flags:
@@ -45,8 +66,29 @@ def _area_position_algorithm(
 
 
 def _area_intersection_algorithm(
-    ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
-):
+    ruler_geometry: Tuple[float, Tuple[float, float]],
+    test_geometry: Tuple[float, Tuple[float, float]],
+    algorithm_flags: TablePosAlgorithm,
+    abs_tolerance: float,
+) -> bool:
+    """Determine if test geometry intersects ruler geometry using area-based algorithm.
+
+    Parameters
+    ----------
+    ruler_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the ruler element
+    test_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the test element
+    algorithm_flags : TablePosAlgorithm
+        Flags controlling the matching algorithm
+    abs_tolerance : float
+        Absolute tolerance for boundary matching
+
+    Returns
+    -------
+    bool
+        True if test geometry intersects ruler geometry within tolerance
+    """
     test_bounds = test_geometry[1]
     ruler_bounds = ruler_geometry[1]
     min_bound_t, max_bound_t = test_bounds
@@ -56,7 +98,30 @@ def _area_intersection_algorithm(
     )
 
 
-def _algorithm_table_pos(ruler_geometry, test_geometry, algorithm_flags, abs_tolerance):
+def _algorithm_table_pos(
+    ruler_geometry: Tuple[float, Tuple[float, float]],
+    test_geometry: Tuple[float, Tuple[float, float]],
+    algorithm_flags: TablePosAlgorithm,
+    abs_tolerance: float,
+) -> bool:
+    """Main algorithm selector for table position matching.
+
+    Parameters
+    ----------
+    ruler_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the ruler element
+    test_geometry : Tuple[float, Tuple[float, float]]
+        (position, (min_bound, max_bound)) of the test element
+    algorithm_flags : TablePosAlgorithm
+        Flags controlling which algorithm to use
+    abs_tolerance : float
+        Absolute tolerance for matching
+
+    Returns
+    -------
+    bool
+        True if test geometry matches ruler geometry according to selected algorithm
+    """
     if (TablePosAlgorithm.RULER_AREA in algorithm_flags) and (
         TablePosAlgorithm.TEST_POS not in algorithm_flags
     ):
@@ -79,19 +144,27 @@ def get_table_positions(
 
     Parameters
     ----------
-    return_columns : bool
-        Whether to return column indexes (True) or row indexes (False)
-    areas : list of Poligons
-        List of areas representing table cells
-    small_rule : bool
-        Whether to use smallest (True) or largest (False) dimension for rulers
-    use_ruler_pos : bool
-        Whether to use ruler position (True) or bounds (False) for classification
+    lines : List[ExtractedPdfLine]
+        List of PDF text lines to analyze
+    algorithm_flags : TablePosAlgorithm, optional
+        Algorithm flags controlling position calculation behavior, by default TablePosAlgorithm(0)
+    tolerance : float, optional
+        Tolerance value for position matching, by default 0
+    tolerance_mu : TablePosMeasureUnit, optional
+        Tolerance measurement unit, by default TablePosMeasureUnit.EM
 
     Returns
     -------
-    list of int
-        A list of indexes corresponding to each area
+    List[int]
+        A list of indexes corresponding to each line's position in the table
+
+    Notes
+    -----
+    The algorithm:
+    - Determines whether to calculate row or column indexes based on algorithm flags
+    - Uses rulers (largest or smallest areas) as reference points
+    - Applies tolerance-based matching for position classification
+    - Sorts and maps positions to create consistent indexes
     """
     # Initialize indexes
     indexes = [None for _ in lines]

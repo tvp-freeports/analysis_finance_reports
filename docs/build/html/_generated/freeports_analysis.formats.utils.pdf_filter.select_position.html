@@ -70,6 +70,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -119,12 +120,6 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions" title="freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_positions</span></code></a>(lines[, ...])</p></td>
 <td><p>Compute either row or column indexes for areas in a tabular layout.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.select_inside" title="freeports_analysis.formats.utils.pdf_filter.select_position.select_inside"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_inside</span></code></a>(lines, bounds)</p></td>
-<td><p>Select only lines inside a range</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.select_outside" title="freeports_analysis.formats.utils.pdf_filter.select_position.select_outside"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_outside</span></code></a>(lines, bounds)</p></td>
-<td><p>Select only lines outside a range</p></td>
-</tr>
 </tbody>
 </table>
 <p class="rubric">Classes</p>
@@ -155,59 +150,25 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>return_columns</strong> (<em>bool</em>) – Whether to return column indexes (True) or row indexes (False)</p></li>
-<li><p><strong>areas</strong> (<em>list</em><em> of </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.Area" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.Area"><em>Area</em></a>) – List of areas representing table cells</p></li>
-<li><p><strong>small_rule</strong> (<em>bool</em>) – Whether to use smallest (True) or largest (False) dimension for rulers</p></li>
-<li><p><strong>use_ruler_pos</strong> (<em>bool</em>) – Whether to use ruler position (True) or bounds (False) for classification</p></li>
+<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to analyze</p></li>
+<li><p><strong>algorithm_flags</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><em>TablePosAlgorithm</em></a><em>, </em><em>optional</em>) – Algorithm flags controlling position calculation behavior, by default TablePosAlgorithm(0)</p></li>
+<li><p><strong>tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance value for position matching, by default 0</p></li>
+<li><p><strong>tolerance_mu</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit"><em>TablePosMeasureUnit</em></a><em>, </em><em>optional</em>) – Tolerance measurement unit, by default TablePosMeasureUnit.EM</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A list of indexes corresponding to each area</p>
+<dd class="field-even"><p>A list of indexes corresponding to each line’s position in the table</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list of int</p>
+<dd class="field-odd"><p>List[int]</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.select_inside">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">select_inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange"><span class="pre">XRange</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><span class="pre">YRange</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.select_inside" title="Link to this definition"></a></dt>
-<dd><p>Select only lines inside a range</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – lines to filter</p></li>
-<li><p><strong>bounds</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange"><em>XRange</em></a><em> | </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><em>YRange</em></a>) – area to filter from</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>lines inside <cite>bounds</cite></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine">ExtractedPdfLine</a>]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.select_outside">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">select_outside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange"><span class="pre">XRange</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><span class="pre">YRange</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.select_outside" title="Link to this definition"></a></dt>
-<dd><p>Select only lines outside a range</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – lines to filter</p></li>
-<li><p><strong>bounds</strong> (<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.XRange"><em>XRange</em></a><em> | </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.YRange"><em>YRange</em></a>) – area to filter from</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>lines outside <cite>bounds</cite></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine">ExtractedPdfLine</a>]</p>
-</dd>
-</dl>
+<p class="rubric">Notes</p>
+<p>The algorithm:
+- Determines whether to calculate row or column indexes based on algorithm flags
+- Uses rulers (largest or smallest areas) as reference points
+- Applies tolerance-based matching for position classification
+- Sorts and maps positions to create consistent indexes</p>
 </dd></dl>
 
 </section>

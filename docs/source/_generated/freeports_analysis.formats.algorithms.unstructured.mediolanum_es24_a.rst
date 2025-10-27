@@ -5,9 +5,3 @@ freeports\_analysis.formats.algorithms.unstructured.mediolanum\_es24\_a
    :members:
    
    
-   .. rubric:: Functions
-
-   .. autosummary::
-   
-      pdf_filter
-   

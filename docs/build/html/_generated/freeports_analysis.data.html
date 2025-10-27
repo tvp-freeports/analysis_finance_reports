@@ -69,6 +69,7 @@
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
 </ul>
@@ -108,46 +109,49 @@
              
   <section id="module-freeports_analysis.data">
 <span id="freeports-analysis-data"></span><h1>freeports_analysis.data<a class="headerlink" href="#module-freeports_analysis.data" title="Link to this heading"></a></h1>
+<p>Data module for loading and validating company and financial data.</p>
+<p>This module provides functions to load various CSV data files containing
+company information, target lists, markets, and tickers, with schema
+validation to ensure data integrity.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.data.get_companies" title="freeports_analysis.data.get_companies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_companies</span></code></a>()</p></td>
-<td><p>Function called to get the list of companies contained in companies.csv while validating the structure through companies_schema</p></td>
+<td><p>Load and validate the list of companies from companies.csv.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.data.get_companies_additional_buds" title="freeports_analysis.data.get_companies_additional_buds"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_companies_additional_buds</span></code></a>()</p></td>
-<td><p>Function called to get the additional buds contained in companies_additional_buds.csv while validating the structure through companies_additional_buds_schema</p></td>
+<td><p>Load and validate additional BUDs from companies_additional_buds.csv.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.data.get_companies_additional_regexs" title="freeports_analysis.data.get_companies_additional_regexs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_companies_additional_regexs</span></code></a>()</p></td>
-<td><p>Function called to get the additional regex contained in companies_additional_regexs.csv while validating the structure through companies_additional_regexs_schema</p></td>
+<td><p>Load and validate additional regex patterns from companies_additional_regexs.csv.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.data.get_companies_data" title="freeports_analysis.data.get_companies_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_companies_data</span></code></a>()</p></td>
-<td><p>Function called to get a DataFrame containing all the relevant companies data</p></td>
+<td><p>Load and combine all company-related data into a comprehensive DataFrame.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.data.get_company_to_list" title="freeports_analysis.data.get_company_to_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_company_to_list</span></code></a>()</p></td>
-<td><p>Function called to get a DataFrame matching the companies and the lists they are included in</p></td>
+<td><p>Load and validate company-to-list mappings from company_to_list.csv.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.data.get_lists" title="freeports_analysis.data.get_lists"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lists</span></code></a>()</p></td>
-<td><p>Function called to get the additional lists contained in lists.csv while validating the structure through lists_schema</p></td>
+<td><p>Load and validate target lists from lists.csv.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.data.get_markets" title="freeports_analysis.data.get_markets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_markets</span></code></a>()</p></td>
-<td><p>Function called to get a DataFrame of the possible markets</p></td>
+<td><p>Load and validate market information from markets.csv.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.data.get_target_companies" title="freeports_analysis.data.get_target_companies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_target_companies</span></code></a>(target_lists)</p></td>
-<td><p>Function called to get a DataFrame containing the data of all the companies included in a certain list / certain lists</p></td>
+<td><p>Filter companies data to include only those in specified target lists.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.data.get_tickers" title="freeports_analysis.data.get_tickers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tickers</span></code></a>()</p></td>
-<td><p>Function called to get a DataFrame matching the companies names and the markets they are included in</p></td>
+<td><p>Load and validate ticker information from tickers.csv.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_companies">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_companies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_companies" title="Link to this definition"></a></dt>
-<dd><p>Function called to get the list of companies contained in companies.csv
-while validating the structure through companies_schema</p>
+<dd><p>Load and validate the list of companies from companies.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of companies</p>
+<dd class="field-odd"><p>Validated DataFrame of companies with normalized names</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -158,11 +162,10 @@ while validating the structure through companies_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_companies_additional_buds">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_companies_additional_buds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_companies_additional_buds" title="Link to this definition"></a></dt>
-<dd><p>Function called to get the additional buds contained in companies_additional_buds.csv
-while validating the structure through companies_additional_buds_schema</p>
+<dd><p>Load and validate additional BUDs from companies_additional_buds.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of additional buds</p>
+<dd class="field-odd"><p>Validated DataFrame of additional BUDs</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -173,11 +176,10 @@ while validating the structure through companies_additional_buds_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_companies_additional_regexs">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_companies_additional_regexs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_companies_additional_regexs" title="Link to this definition"></a></dt>
-<dd><p>Function called to get the additional regex contained in companies_additional_regexs.csv
-while validating the structure through companies_additional_regexs_schema</p>
+<dd><p>Load and validate additional regex patterns from companies_additional_regexs.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of additional regex</p>
+<dd class="field-odd"><p>Validated DataFrame of additional regex patterns</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -188,10 +190,10 @@ while validating the structure through companies_additional_regexs_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_companies_data">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_companies_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_companies_data" title="Link to this definition"></a></dt>
-<dd><p>Function called to get a DataFrame containing all the relevant companies data</p>
+<dd><p>Load and combine all company-related data into a comprehensive DataFrame.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The full DataFrame</p>
+<dd class="field-odd"><p>Combined DataFrame containing companies, lists, tickers, BUDs, and regex patterns</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -202,10 +204,10 @@ while validating the structure through companies_additional_regexs_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_company_to_list">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_company_to_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_company_to_list" title="Link to this definition"></a></dt>
-<dd><p>Function called to get a DataFrame matching the companies and the lists they are included in</p>
+<dd><p>Load and validate company-to-list mappings from company_to_list.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of companies and lists</p>
+<dd class="field-odd"><p>Validated DataFrame mapping companies to their target lists</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -216,11 +218,10 @@ while validating the structure through companies_additional_regexs_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_lists">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_lists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_lists" title="Link to this definition"></a></dt>
-<dd><p>Function called to get the additional lists contained in lists.csv
-while validating the structure through lists_schema</p>
+<dd><p>Load and validate target lists from lists.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of additional lists</p>
+<dd class="field-odd"><p>Validated DataFrame of target lists</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>
@@ -231,7 +232,7 @@ while validating the structure through lists_schema</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_markets">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_markets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_markets" title="Link to this definition"></a></dt>
-<dd><p>Function called to get a DataFrame of the possible markets</p>
+<dd><p>Load and validate market information from markets.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Validated DataFrame of markets</p>
@@ -244,29 +245,32 @@ while validating the structure through lists_schema</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_target_companies">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_target_companies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_lists</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_target_companies" title="Link to this definition"></a></dt>
-<dd><p>Function called to get a DataFrame containing the data of all the companies
-included in a certain list / certain lists</p>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_target_companies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_lists</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_target_companies" title="Link to this definition"></a></dt>
+<dd><p>Filter companies data to include only those in specified target lists.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>target_lists</strong> (<em>list</em><em> | </em><em>str</em>) – The required list name (or lists names)</p>
+<dd class="field-odd"><p><strong>target_lists</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>str</em><em>]</em>) – The required list name or list of list names</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The DataFrame with the required data</p>
+<dd class="field-even"><p>Filtered DataFrame containing only companies from the specified lists</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The returned DataFrame includes all company information but excludes
+the ‘List names’ column since it’s used for filtering. Companies are
+included if they belong to any of the specified target lists.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.data.get_tickers">
 <span class="sig-prename descclassname"><span class="pre">freeports_analysis.data.</span></span><span class="sig-name descname"><span class="pre">get_tickers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#freeports_analysis.data.get_tickers" title="Link to this definition"></a></dt>
-<dd><p>Function called to get a DataFrame matching the companies names and the markets they are included in</p>
+<dd><p>Load and validate ticker information from tickers.csv.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Validated DataFrame of companies and markets</p>
+<dd class="field-odd"><p>Validated DataFrame mapping companies to their market symbols</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>pd.DataFrame</p>

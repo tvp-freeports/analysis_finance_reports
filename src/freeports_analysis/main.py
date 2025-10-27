@@ -1,9 +1,8 @@
-"""This module is the one that contains the function called in order to decode the information
-from the pdf and to save the `csv` file. This file is also the source code to be launched
-(providing the options with a configuration file or with `env variables`) to mimic the behaviour of
-from the pdf and to save the `csv` file. This file is also the source code to be launched
-(providing the options with a configuration file or with `env variables`) to mimic the behaviour of
-the command from commandline (to use the package as a script).
+"""This module contains the main function used to extract information from PDF files
+and save the results as CSV files. This file also serves as the source code to be
+launched (providing options via configuration file or environment variables) to mimic
+command line behavior. The logic distinguishes between the main function in this file
+and the command line entry point by handling configuration parsing.
 
 Example:
     ```python main.py```
@@ -11,11 +10,10 @@ Example:
 """
 
 import os
-import re
 import tarfile
 import shutil
 import logging as log
-from typing import List
+from typing import List, Tuple, Optional, Union, Dict, Any
 from multiprocessing import Pool
 import csv
 from lxml import etree
@@ -46,6 +44,7 @@ from freeports_analysis.logging import (
     LOG_ADAPT_INVESTMENT_INFOS,
     LOGGING_TABLE,
     CsvFormatter,
+    DevDebugFormatter,
 )
 
 
@@ -53,9 +52,10 @@ logger = log.getLogger()
 
 
 class NoPDFormatDetected(Exception):
-    """Exception that should rise when the script is not
-    capable of detecting a PDF format to use to decode the
-    report, and no explicit format is specified
+    """Exception raised when the script cannot detect a PDF format to decode the report.
+
+    This exception is raised when no explicit format is specified and the program
+    cannot automatically determine the appropriate format for decoding the PDF.
     """
 
 
@@ -63,10 +63,10 @@ def pipeline_batch(
     batch_pages: List[str],
     i_page_batch: int,
     n_pages: int,
-    targets: List[str],
+    targets: pd.DataFrame,
     format_name: str,
-) -> List[Investment | PromisesResolutionContext]:
-    """Apply the pipeline of actions in order to get financial data from PDF pages
+) -> List[Union[Investment, PromisesResolutionContext]]:
+    """Apply the pipeline of actions to extract financial data from PDF pages.
 
     Parameters
     ----------
@@ -76,14 +76,14 @@ def pipeline_batch(
         Starting page number of this batch (1-based index)
     n_pages : int
         Total number of pages in the document
-    targets : List[str]
-        List of relevant company names to extract from the report
+    targets : pd.DataFrame
+        Table containing information of relevant companies to extract from the report
     format_name : str
         Name of the format containing format-specific parsing functions
 
     Returns
     -------
-    List[FinancialData | PromisesResolutionContext]
+    List[Union[Investment, PromisesResolutionContext]]
         List of extracted financial data objects or promise resolution contexts
     """
     end_page_batch = i_page_batch + len(batch_pages)
@@ -122,56 +122,109 @@ def pipeline_batch(
     return results
 
 
-def batch_job_confs(config: dict) -> List[dict]:
-    """Create a list of configurations overwritten after reading
-    a batch file with job contextual options
+def batch_job_confs(job_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Create a list of configurations by reading a batch file with job contextual options.
 
     Parameters
     ----------
-    config : dict
-        configuration to overwrite
+    job_config : Dict[str, Any]
+        Base configuration to be overwritten with batch file options
 
     Returns
     -------
-    List[dict]
-        list of configurations
+    List[Dict[str, Any]]
+        List of configurations, one for each row in the batch file
+
+    Raises
+    ------
+    FileNotFoundError
+        If the batch file does not exist
+    csv.Error
+        If the batch file has invalid CSV format
+
+    Notes
+    -----
+    The batch file should be a CSV file with columns corresponding to
+    configuration keys that can override the base configuration.
     """
     rows = None
-    with config["BATCH_FILE"].open(newline="", encoding="UTF-8") as csvfile:
+    with job_config["BATCH_FILE"].open(newline="", encoding="UTF-8") as csvfile:
         rows = csv.DictReader(csvfile)
         result = []
         for row in rows:
-            job_config = FreeportsJobConfig(row)
+            job_config_instance = FreeportsJobConfig(row)
             result.append(
-                job_config.overwrite_config(config, DEFAULT_CONFIG_LOCATION)[0]
+                job_config_instance.overwrite_config(
+                    job_config, DEFAULT_CONFIG_LOCATION
+                )[0]
             )
     return result
 
 
-def _get_document(config: dict):
-    if config["PDF"] is not None:
+def _get_document(document_config: Dict[str, Any]) -> pypdf.Document:
+    """Get the PDF document from local filesystem or by downloading from URL.
+
+    Parameters
+    ----------
+    document_config : Dict[str, Any]
+        Configuration dictionary containing PDF source information
+
+    Returns
+    -------
+    pymupdf.Document
+        PDF document object
+
+    Raises
+    ------
+    Exception
+        If PDF download fails or file cannot be opened
+
+    Notes
+    -----
+    The function prioritizes local PDF files over remote URLs if both are specified.
+    """
+    if document_config["PDF"] is not None:
         log_string = _("Local PDF file used %s [%s format]")
-        logger.debug(log_string, config["PDF"], config["FORMAT"])
-        pdf_file = pypdf.Document(config["PDF"])
+        logger.debug(log_string, document_config["PDF"], document_config["FORMAT"])
+        pdf_file = pypdf.Document(document_config["PDF"])
     else:
         log_string = _("Remote URL %s used [%s format]")
-        logger.debug(log_string, config["URL"], config["FORMAT"])
+        logger.debug(log_string, document_config["URL"], document_config["FORMAT"])
         pdf_file = pypdf.Document(
             stream=dw.download_pdf(
-                config["URL"], config["PDF"] if config["SAVE_PDF"] else None
+                document_config["URL"],
+                document_config["PDF"] if document_config["SAVE_PDF"] else None,
             )
         )
     return pdf_file
 
 
-def _output_file(config, results):
-    out_csv = config["OUT_PATH"]
+def _output_file(
+    output_config: Dict[str, Any],
+    results: List[Tuple[pd.DataFrame, str, Optional[str]]],
+) -> None:
+    """Write output files based on configuration and processing results.
+
+    Parameters
+    ----------
+    output_config : Dict[str, Any]
+        Configuration dictionary containing output settings
+    results : List[Tuple[pd.DataFrame, str, Optional[str]]]
+        List of tuples containing (dataframe, format_name, prefix) for each result
+
+    Notes
+    -----
+    Handles both single file output and batch processing with optional compression.
+    Creates tar.gz archives when compression is enabled and separates files
+    when batch processing with separate output files flag.
+    """
+    out_csv = output_config["OUT_PATH"]
     out_dir = out_csv.parent
     compress = False
     remove_dir = False
     df = None
-    if config["BATCH_FILE"] is not None:
-        if config["SEPARATE_OUT_FILES"]:
+    if output_config["BATCH_FILE"] is not None:
+        if output_config["SEPARATE_OUT_FILES"]:
             out_dir = out_csv
             if out_csv.name.endswith(".tar.gz"):
                 compress = True
@@ -197,7 +250,7 @@ def _output_file(config, results):
                 name_file = f"{prefix_out}-{format_pdf.name}.csv"
             df.to_csv(out_dir / name_file, index=False)
     else:
-        df.to_csv(config["OUT_PATH"], index=False)
+        df.to_csv(output_config["OUT_PATH"], index=False)
 
     if compress:
         with tarfile.open(out_csv, "w:gz") as tar:
@@ -206,18 +259,47 @@ def _output_file(config, results):
             shutil.rmtree(out_dir)
 
 
-def _main_job(config, n_workers: int):
-    config = FreeportsConfig(**config).model_dump()
+def _main_job(
+    main_job_config: Dict[str, Any], n_workers: int
+) -> Tuple[List[List[Investment]], str, Optional[str]]:
+    """Execute a single job for PDF processing and data extraction.
+
+    Parameters
+    ----------
+    main_job_config : Dict[str, Any]
+        Configuration dictionary for the job
+    n_workers : int
+        Number of worker processes to use for parallel processing
+
+    Returns
+    -------
+    Tuple[List[List[Investment]], str, Optional[str]]
+        Tuple containing (results, format_name, prefix) for the processed job
+        where:
+        - results: List of investment lists (one per page)
+        - format_name: Name of the format used for processing
+        - prefix: Optional prefix for output file naming
+
+    Notes
+    -----
+    This function handles the complete PDF processing pipeline including:
+    - PDF document retrieval
+    - XML conversion
+    - Target company filtering
+    - Parallel processing of page batches
+    - Promise resolution for deferred values
+    """
+    config = FreeportsConfig(**main_job_config).model_dump()
     log_file = config["OUT_PATH"] / ".log.csv"
-    HANDLER_CSV = log.FileHandler(log_file, mode="a")
-    CSV_FORMATTER = CsvFormatter()
-    HANDLER_CSV.addFilter(LOG_ADAPT_INVESTMENT_INFOS)
-    HANDLER_CSV.addFilter(LOG_CONTEXTUAL_INFOS)
-    HANDLER_CSV.setFormatter(CSV_FORMATTER)
-    HANDLER_CSV.setLevel(log.WARNING)
+    handler_csv = log.FileHandler(log_file, mode="a")
+    csv_formatter = CsvFormatter()
+    handler_csv.addFilter(LOG_ADAPT_INVESTMENT_INFOS)
+    handler_csv.addFilter(LOG_CONTEXTUAL_INFOS)
+    handler_csv.setFormatter(csv_formatter)
+    handler_csv.setLevel(log.WARNING)
     format_utils = log.getLogger(__package__ + ".formats.utils")
-    format_utils.addHandler(HANDLER_CSV)
-    LOGGING_TABLE.addHandler(HANDLER_CSV)
+    format_utils.addHandler(handler_csv)
+    LOGGING_TABLE.addHandler(handler_csv)
     LOG_CONTEXTUAL_INFOS.report = config["PREFIX_OUT"]
     logger.debug(_("Starting job with configuration %s"), str(config))
     pdf_file = _get_document(config)
@@ -248,7 +330,7 @@ def _main_job(config, n_workers: int):
         for results_page in results_batch:
             extracted_data_page = []
             for result in results_page:
-                if isinstance(result, PromisesResolutionContext):
+                if isinstance(result, dict):
                     promises_resolution_map |= result
                 else:
                     extracted_data_page.append(result)
@@ -257,26 +339,47 @@ def _main_job(config, n_workers: int):
     for i, results_page in enumerate(results):
         for j in range(len(results_page)):
             results[i][j].fulfill_promises(flat_promises_map)
-    format_utils.removeHandler(HANDLER_CSV)
-    LOGGING_TABLE.removeHandler(HANDLER_CSV)
+    format_utils.removeHandler(handler_csv)
+    LOGGING_TABLE.removeHandler(handler_csv)
     return results, config["FORMAT"], config["PREFIX_OUT"]
 
 
-def main(config):
-    """Main function that expect the configuration to be already provided
-    (for example with arguments on command line or with `env variables`)
+def main(main_config: Dict[str, Any]) -> None:
+    """Main function for PDF processing and data extraction.
+
+    Expects configuration to be already provided (via command line arguments,
+    environment variables, or configuration files).
+
+    Parameters
+    ----------
+    main_config : Dict[str, Any]
+        Configuration dictionary containing all processing parameters
 
     Raises
     ------
     NoPDFormatDetected
-        if no explicit format is provided and an url is not provided
-        or not associated with any format the program cannot choose a way to
-        decode the pdf, so it raises this exception
-    """
+        If no explicit format is provided and the program cannot automatically
+        determine the appropriate format for decoding the PDF
+    FileNotFoundError
+        If required input files or directories are not found
+    ValueError
+        If configuration contains invalid values
 
-    n_workers = config["N_WORKERS"] if config["N_WORKERS"] > 0 else os.cpu_count()
-    config["OUT_PATH"].mkdir(exist_ok=True)
-    log_file = config["OUT_PATH"] / ".log.csv"
+    Notes
+    -----
+    This function orchestrates the complete PDF processing workflow:
+    1. Configuration validation and setup
+    2. Log file initialization
+    3. Batch or single job processing
+    4. Parallel execution with multiprocessing
+    5. Output file generation
+    6. Result transformation and writing
+    """
+    n_workers = (
+        main_config["N_WORKERS"] if main_config["N_WORKERS"] > 0 else os.cpu_count()
+    )
+    main_config["OUT_PATH"].mkdir(exist_ok=True)
+    log_file = main_config["OUT_PATH"] / ".log.csv"
     with log_file.open("w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         header = [
@@ -288,16 +391,16 @@ def main(config):
             "Column",
             "Message",
         ]
-        if config["BATCH_FILE"] is not None:
+        if main_config["BATCH_FILE"] is not None:
             header = ["Report"] + header
         writer.writerow(header)
 
     results_documents = None
-    if config["BATCH_FILE"] is None:
-        results_documents = [_main_job(config, n_workers)]
+    if main_config["BATCH_FILE"] is None:
+        results_documents = [_main_job(main_config, n_workers)]
     else:
         LOG_CONTEXTUAL_INFOS.batch_mode = True
-        config_jobs = batch_job_confs(config)
+        config_jobs = batch_job_confs(main_config)
         args = [(c, 1) for c in config_jobs]
         if n_workers > 1:
             LOG_CONTEXTUAL_INFOS.mproc = True
@@ -309,16 +412,22 @@ def main(config):
             for arg in args:
                 results_documents.append(_main_job(*arg))
     results = transform_to_files_schema(
-        results_documents, config["BATCH_FILE"] is not None
+        results_documents, main_config["BATCH_FILE"] is not None
     )
-    write_files(results, config["OUT_PATH"], config["OUT_PROFILE"], config["OUT_FLAGS"])
+    write_files(
+        results,
+        main_config["OUT_PATH"],
+        main_config["OUT_PROFILE"],
+        main_config["OUT_FLAGS"],
+    )
 
 
 if __name__ == "__main__":
+    """Command line entry point for the PDF processing application."""
     config = DEFAULT_CONFIG
     config_location = DEFAULT_CONFIG_LOCATION
-    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
-    log.basicConfig(level=LOG_LEVEL)
+    log_level = (5 - config["VERBOSITY"]) * 10
+    log.basicConfig(level=log_level)
     config_env = FreeportsEnvConfig()
     tmp_config, tmp_config_location = config_env.overwrite_config(
         DEFAULT_CONFIG, DEFAULT_CONFIG_LOCATION
@@ -330,12 +439,12 @@ if __name__ == "__main__":
     )
     config, config_location = config_env.overwrite_config(config, config_location)
 
-    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
-    if LOG_LEVEL <= log.DEBUG:
-        HANDLER_DEVDEBUG = log.FileHandler("freeports.log", "w")
-        HANDLER_DEVDEBUG.addFilter(LOG_CONTEXTUAL_INFOS)
-        HANDLER_DEVDEBUG.setFormatter(DevDebugFormatter())
-        logger.addHandler(HANDLER_DEVDEBUG)
-    logger.setLevel(LOG_LEVEL)
+    log_level = (5 - config["VERBOSITY"]) * 10
+    if log_level <= log.DEBUG:
+        handler_devdebug = log.FileHandler("freeports.log", "w")
+        handler_devdebug.addFilter(LOG_CONTEXTUAL_INFOS)
+        handler_devdebug.setFormatter(DevDebugFormatter())
+        logger.addHandler(handler_devdebug)
+    logger.setLevel(log_level)
     log_config(logger, config, config_location)
     main(config)
