@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import line_set_regexp
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
@@ -25,7 +25,7 @@ data = Path(__file__).parent
 column_line_set = pa.Column(
     pd.StringDtype,
     checks=[
-        pa.Check(lambda x: x.str.match(f"^{line_set_regexp}$")),
+        pa.Check(lambda x: x.str.match(f"^{LINE_SET_REGEXP}$")),
     ],
     nullable=True,
 )
