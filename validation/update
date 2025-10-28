@@ -42,15 +42,16 @@ if [ -z "$PERSONAL_DOC" ]; then
     exit 1
 fi
 
+# Validate document signature before making changes
+if ! validate_document_signature "$PERSONAL_DOC"; then
+    echo "Operation cancelled due to invalid signature"
+    exit 1
+fi
+
 # Function to update file hash in document
 update_file_hash() {
     local file_path="$1"
     local methodology="$2"
-    
-    # Get absolute path and check if file exists
-    if [[ "$file_path" != /* ]]; then
-        file_path="$REPO_ROOT/$file_path"
-    fi
     
     if [ ! -f "$file_path" ]; then
         echo "Error: File '$file_path' does not exist"
@@ -199,4 +200,5 @@ esac
 
 echo ""
 echo "Update operation completed. Document updated: $PERSONAL_DOC"
-echo "Remember to sign the document with 'sign-document' to make changes valid"
+echo "Updating signature..."
+"$REPO_ROOT/validation/sign-document" --update

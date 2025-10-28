@@ -27,6 +27,27 @@ get_version_methodology(){
 }
 
 
+# Function to validate document signature
+validate_document_signature() {
+    local doc_path="$1"
+    
+    # Check if signature exists
+    local existing_sig
+    existing_sig=$(yq -r '.sign' "$doc_path")
+    if [ "$existing_sig" = "null" ] || [ -z "$existing_sig" ]; then
+        # No signature found, this is acceptable
+        return 0
+    fi
+    
+    # Verify the signature
+    if yq -y -S 'del(.sign)' "$doc_path" | gpg --verify <(yq -r '.sign' "$doc_path" | base64 -d) - >/dev/null 2>&1; then
+        return 0
+    else
+        echo "Error: Invalid signature in document"
+        return 1
+    fi
+}
+
 # Extract name and email
 export NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
 export EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')

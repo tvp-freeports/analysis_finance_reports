@@ -3,6 +3,22 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 source "${REPO_ROOT}/validation/lib/utils"
 
+UPDATE_MODE=false
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case $1 in
+        --update)
+            UPDATE_MODE=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--update]"
+            exit 1
+            ;;
+    esac
+done
 if [ -z "$PERSONAL_DOC" ]; then
     echo "Error: No validation document found for current user"
     echo "Run create-document first to create your validation document"
@@ -19,9 +35,17 @@ echo "Signing validation document: $(basename "$PERSONAL_DOC")"
 # Check if signature already exists and is not null
 existing_sig=$(yq -r '.sign' "$PERSONAL_DOC")
 if [ "$existing_sig" != "null" ] && [ -n "$existing_sig" ]; then
-    echo "Error: Signature already exists in document"
-    echo "Operation cancelled"
-    exit 0
+    if [ "$UPDATE_MODE" = false ]; then
+        echo "Error: Signature already exists in document"
+        echo "Use --update option to update the existing signature"
+        exit 1
+    else
+        echo "Updating existing signature..."
+    fi
+else
+    if [ "$UPDATE_MODE" = true ]; then
+        echo "Warning: No existing signature found, creating new signature"
+    fi
 fi
 
 # Get normalized content and sign it directly using process substitution
@@ -36,7 +60,11 @@ fi
 # Update the document with the signature
 yq -i ".sign = \"$signature\"" -y "$PERSONAL_DOC"
 
-echo "✅ Document signed successfully"
+if [ "$UPDATE_MODE" = true ]; then
+    echo "✅ Document signature updated successfully"
+else
+    echo "✅ Document signed successfully"
+fi
 echo "Signature stored in: $PERSONAL_DOC"
 
 # Verify the signature
@@ -48,3 +76,4 @@ else
     echo "❌ Signature verification failed"
     exit 1
 fi
+

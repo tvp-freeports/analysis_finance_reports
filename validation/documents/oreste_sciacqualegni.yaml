@@ -7,7 +7,7 @@ methodologies:
   - name: human check
     sha256: d171b314cb7b9d0bfe6df8114f003c54a67039e42121b310719e0be5cf459889
   - name: basic check
-    sha256: ff64984e570536e3eadec22ff714ca9aa47213f4ee5e265d4428a4d5a9b680e0
+    sha256: 060655f0f677f82c27e0d9395b9fbe415529d8dd672f6ca36a7dc1cfbda835c6
 data:
   - methodology: human check
     files:
@@ -15,8 +15,8 @@ data:
         sha256: 9287dd11454fd49930b3e8fb53367cf63e8bd1e6ad3cabb827980c0610e13c5f
   - methodology: basic check
     files:
-      - path: tests/formats/algorithms/AMUNDI-EN24/out/investments.csv
-        sha256: 9287dd11454fd49930b3e8fb53367cf63e8bd1e6ad3cabb827980c0610e13c5f
       - path: tests/formats/algorithms/AMUNDI-EN24/out/investments_add_infos.yaml
         sha256: f505b61096574230228e7996b0dcd4fb481742d6716ae0731297d403fd59e4ec
-sign: LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KCmlIVUVBQllLQUIwV0lRVG1HODNJK0JyV3kxVSsxWUFlZkZaRS9mVGpCQVVDYVFFUGVnQUtDUkFlZkZaRS9mVGoKQkVRRkFRRGhYdkUyUlBKYkRtNFhmem5QMVFCTE5EVjI5Wk54UXhYVVRDZ1d1K2NDQndFQXEydDJzMXVMcDBoSApVV0xMbTQ2Y2VIU21aSUYzZVFGYVhjZklZSTB1eWdnPQo9d01jYQotLS0tLUVORCBQR1AgU0lHTkFUVVJFLS0tLS0K
+      - path: tests/formats/algorithms/AMUNDI-EN24/out/investments.csv
+        sha256: 9287dd11454fd49930b3e8fb53367cf63e8bd1e6ad3cabb827980c0610e13c5f
+sign: LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KCmlIVUVBQllLQUIwV0lRVG1HODNJK0JyV3kxVSsxWUFlZkZaRS9mVGpCQVVDYVFFNGxRQUtDUkFlZkZaRS9mVGoKQkJhSkFQd1Bub1FnTXE5eFFqOUJmZHhjcTRnYThDQzFQNFFjaStaWTY3VVp0V05DTVFEL1I3amVlRWltL2ZQMgoreERJRE5lbnQ4R2FhZzc3cmlmaVZGbzdvY2dLQ0FNPQo9UDUwZgotLS0tLUVORCBQR1AgU0lHTkFUVVJFLS0tLS0K

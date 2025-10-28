@@ -32,6 +32,14 @@ if [ -z "$PERSONAL_DOC" ]; then
     exit 1
 fi
 
+
+# Validate document signature before making changes
+if ! validate_document_signature "$PERSONAL_DOC"; then
+    echo "Operation cancelled due to invalid signature"
+    exit 1
+fi
+
+
 # Normalize methodology name if specified
 if [ -n "$METHODOLOGY" ]; then
     METHODOLOGY=$(normalize_methodology_name "$METHODOLOGY")
@@ -115,7 +123,8 @@ if [ ${#FILES[@]} -gt 0 ] && [ -n "$METHODOLOGY" ]; then
     done
     
     echo "Ungrant operation completed. Document updated: $PERSONAL_DOC"
-    echo "Remember to sign the document with 'sign-document' to make changes valid"
+    echo "Updating signature..."
+    "$REPO_ROOT/validation/sign-document" --update
     exit 0
 fi
 
