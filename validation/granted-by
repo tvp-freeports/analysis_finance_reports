@@ -1,1 +1,104 @@
 #!/bin/bash
+
+source lib/utils
+
+# Default grouping by methodology
+GROUP_BY="methodology"
+
+# Parse command line options
+while getopts "fc" opt; do
+    case $opt in
+        f) GROUP_BY="file" ;;
+        c) GROUP_BY="contributor" ;;
+        *) echo "Usage: $0 [-f] [-c] <contributor_identifier>"
+           echo "  -f: Group by file"
+           echo "  -c: Group by contributor"
+           echo "  Default: Group by methodology"
+           exit 1
+           ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 [-f] [-c] <contributor_identifier>"
+    exit 1
+fi
+
+IDENTIFIER="$1"
+
+echo "Files granted by: $IDENTIFIER"
+echo "============================="
+
+# Find matching validation documents
+MATCHING_DOCS=()
+for doc in "$DOCUMENT_DIR"/*.yaml; do
+    if [ ! -f "$doc" ]; then
+        continue
+    fi
+    
+    DOC_NAME=$(basename "$doc" .yaml)
+    CONTRIBUTOR_NAME=$(yq '.who.name' "$doc")
+    CONTRIBUTOR_EMAIL=$(yq '.who.email' "$doc")
+    CONTRIBUTOR_KEYID=$(yq '.who.pubkey_id' "$doc")
+    
+    # Check if identifier matches name, email, or keyid
+    if [[ "$CONTRIBUTOR_NAME" == *"$IDENTIFIER"* ]] || \
+       [[ "$CONTRIBUTOR_EMAIL" == *"$IDENTIFIER"* ]] || \
+       [[ "$CONTRIBUTOR_KEYID" == *"$IDENTIFIER"* ]]; then
+        MATCHING_DOCS+=("$doc")
+    fi
+done
+
+if [ ${#MATCHING_DOCS[@]} -eq 0 ]; then
+    echo "No matching contributors found for: $IDENTIFIER"
+    exit 1
+fi
+
+# Process each matching document
+for doc in "${MATCHING_DOCS[@]}"; do
+    CONTRIBUTOR_NAME=$(yq '.who.name' "$doc")
+    
+    echo "Contributor: $CONTRIBUTOR_NAME"
+    echo "Document: $(basename "$doc")"
+    echo ""
+    
+    # Process each methodology section
+    METHODOLOGY_COUNT=$(yq '.data | length' "$doc")
+    for ((i=0; i<METHODOLOGY_COUNT; i++)); do
+        METHODOLOGY=$(yq ".data[$i].methodology" "$doc")
+        FILES_COUNT=$(yq ".data[$i].files | length" "$doc")
+        
+        if [ $FILES_COUNT -gt 0 ]; then
+            case $GROUP_BY in
+                "methodology")
+                    echo "  Methodology: $METHODOLOGY"
+                    for ((j=0; j<FILES_COUNT; j++)); do
+                        FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                        FILE_SHA256=$(yq ".data[$i].files[$j].sha256" "$doc")
+                        echo "    - $FILE_PATH (SHA256: ${FILE_SHA256:0:16}...)"
+                    done
+                    echo ""
+                    ;;
+                "file")
+                    for ((j=0; j<FILES_COUNT; j++)); do
+                        FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                        FILE_SHA256=$(yq ".data[$i].files[$j].sha256" "$doc")
+                        echo "  File: $FILE_PATH"
+                        echo "    Methodology: $METHODOLOGY"
+                        echo "    SHA256: ${FILE_SHA256:0:16}..."
+                        echo ""
+                    done
+                    ;;
+                "contributor")
+                    for ((j=0; j<FILES_COUNT; j++)); do
+                        FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                        echo "  - $FILE_PATH ($METHODOLOGY)"
+                    done
+                    ;;
+            esac
+        fi
+    done
+    echo "----------------------------------------"
+    echo ""
+done

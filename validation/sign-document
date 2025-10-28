@@ -1,1 +1,42 @@
 #!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
+
+if [ -z "$PERSONAL_DOC" ]; then
+    echo "Error: No validation document found for current user"
+    echo "Run create-document first to create your validation document"
+    exit 1
+fi
+
+if [ ! -f "$PERSONAL_DOC" ]; then
+    echo "Error: Validation document '$PERSONAL_DOC' does not exist"
+    exit 1
+fi
+
+echo "Signing validation document: $(basename "$PERSONAL_DOC")"
+
+# Get normalized content and sign it directly using process substitution
+echo "Signing with key: $KEYID"
+signature=$(yq -y -S 'del(.sign)' "$PERSONAL_DOC" | gpg --detach-sign --armor --default-key "$KEYID" - 2>/dev/null | base64 -w 0)
+
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to sign document"
+    exit 1
+fi
+
+# Update the document with the signature
+yq -i ".sign = \"$signature\"" -y "$PERSONAL_DOC"
+
+echo "✅ Document signed successfully"
+echo "Signature stored in: $PERSONAL_DOC"
+
+# Verify the signature
+echo ""
+echo "Verifying signature..."
+if yq -y -S 'del(.sign)' "$PERSONAL_DOC" | gpg --verify <(yq -r '.sign' "$PERSONAL_DOC" | base64 -d) - >/dev/null 2>&1; then
+    echo "✅ Signature verification successful"
+else
+    echo "❌ Signature verification failed"
+    exit 1
+fi

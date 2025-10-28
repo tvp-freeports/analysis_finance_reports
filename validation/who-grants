@@ -1,1 +1,85 @@
 #!/bin/bash
+
+source lib/utils
+
+# Default grouping by contributor
+GROUP_BY="contributor"
+
+# Parse command line options
+while getopts "fm" opt; do
+    case $opt in
+        f) GROUP_BY="file" ;;
+        m) GROUP_BY="methodology" ;;
+        *) echo "Usage: $0 [-f] [-m] <file_path>"
+           echo "  -f: Group by file"
+           echo "  -m: Group by methodology"
+           echo "  Default: Group by contributor"
+           exit 1
+           ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 [-f] [-m] <file_path>"
+    exit 1
+fi
+
+FILE_PATH="$1"
+FILE_SHA256=$(sha256sum "$FILE_PATH" | awk '{print $1}')
+
+echo "Grants for file: $FILE_PATH (SHA256: $FILE_SHA256)"
+echo "=================================================="
+
+# Find all validation documents
+for doc in "$DOCUMENT_DIR"/*.yaml; do
+    if [ ! -f "$doc" ]; then
+        continue
+    fi
+    
+    # Extract document info
+    DOC_NAME=$(basename "$doc" .yaml)
+    CONTRIBUTOR_NAME=$(yq '.who.name' "$doc")
+    
+    # Check if file is granted in this document
+    GRANTED=false
+    METHODOLOGIES=""
+    
+    # Check each methodology section
+    METHODOLOGY_COUNT=$(yq '.data | length' "$doc")
+    for ((i=0; i<METHODOLOGY_COUNT; i++)); do
+        METHODOLOGY=$(yq ".data[$i].methodology" "$doc")
+        FILES_COUNT=$(yq ".data[$i].files | length" "$doc")
+        
+        for ((j=0; j<FILES_COUNT; j++)); do
+            GRANTED_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+            GRANTED_SHA256=$(yq ".data[$i].files[$j].sha256" "$doc")
+            
+            if [ "$GRANTED_PATH" = "$FILE_PATH" ] && [ "$GRANTED_SHA256" = "$FILE_SHA256" ]; then
+                GRANTED=true
+                METHODOLOGIES="$METHODOLOGIES$METHODOLOGY, "
+            fi
+        done
+    done
+    
+    if [ "$GRANTED" = true ]; then
+        METHODOLOGIES=$(echo "$METHODOLOGIES" | sed 's/, $//')
+        case $GROUP_BY in
+            "contributor")
+                echo "Contributor: $CONTRIBUTOR_NAME"
+                echo "  Methodologies: $METHODOLOGIES"
+                echo ""
+                ;;
+            "methodology")
+                # Group by methodology - we'll collect and print later
+                echo "$METHODOLOGIES|$CONTRIBUTOR_NAME"
+                ;;
+            "file")
+                echo "File: $FILE_PATH"
+                echo "  Granted by: $CONTRIBUTOR_NAME"
+                echo "  Methodologies: $METHODOLOGIES"
+                echo ""
+                ;;
+        esac
+    fi
+done

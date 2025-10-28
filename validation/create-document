@@ -1,32 +1,10 @@
 #!/bin/bash
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
 
-source lib/utils
-
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <keyid>"
-    exit 1
-fi
-
-KEYID="$1"
-
-# Get UID information and parse it
-
-user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
-
-if [ -z "$user_id" ]; then
-    echo "Error: Key '$KEYID' not found or has no UID"
-    exit 1
-fi
-
-# Extract name and email
 VERSION=$(get_version_methodology)
-NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
-EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
-
-out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-out_path="${DOCUMENT_DIR}/${out_file_name}.yaml"
-if [ -f "${out_path}" ]; then
-    echo "File \"${out_path}\" already present, refuse to overwrite" 1>&2
+if [ -f "${PERSONAL_DOC}" ]; then
+    echo "File \"${PERSONAL_DOC}\" already present, refuse to overwrite" 1>&2
     echo "Delete the file before creating a new one" 1>&2
     exit 1
 fi
@@ -39,6 +17,6 @@ concrete_yaml(){
 
 
 if (concrete_yaml | check-jsonschema --schemafile "${LIB_DIR}/document.schema.json" --default-filetype yaml - 1> /dev/null); then
-    concrete_yaml > "${out_path}"
+    concrete_yaml > "${PERSONAL_DOC}"
 fi
  

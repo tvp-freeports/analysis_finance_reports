@@ -1,1 +1,82 @@
 #!/bin/bash
+
+source lib/utils
+
+# Default grouping by file
+GROUP_BY="file"
+
+# Parse command line options
+while getopts "cm" opt; do
+    case $opt in
+        c) GROUP_BY="contributor" ;;
+        m) GROUP_BY="methodology" ;;
+        *) echo "Usage: $0 [-c] [-m] <methodology_name>"
+           echo "  -c: Group by contributor"
+           echo "  -m: Group by methodology"
+           echo "  Default: Group by file"
+           exit 1
+           ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 [-c] [-m] <methodology_name>"
+    exit 1
+fi
+
+METHODOLOGY_NAME="$1"
+NORMALIZED_METHODOLOGY=$(normalize_methodology_name "$METHODOLOGY_NAME")
+
+echo "Files granted with methodology: $NORMALIZED_METHODOLOGY"
+echo "======================================================"
+
+# Find all validation documents
+for doc in "$DOCUMENT_DIR"/*.yaml; do
+    if [ ! -f "$doc" ]; then
+        continue
+    fi
+    
+    CONTRIBUTOR_NAME=$(yq '.who.name' "$doc")
+    
+    # Check each methodology section
+    METHODOLOGY_COUNT=$(yq '.data | length' "$doc")
+    for ((i=0; i<METHODOLOGY_COUNT; i++)); do
+        METHODOLOGY=$(yq ".data[$i].methodology" "$doc")
+        NORMALIZED_CURRENT=$(normalize_methodology_name "$METHODOLOGY")
+        
+        if [ "$NORMALIZED_CURRENT" = "$NORMALIZED_METHODOLOGY" ]; then
+            FILES_COUNT=$(yq ".data[$i].files | length" "$doc")
+            
+            if [ $FILES_COUNT -gt 0 ]; then
+                case $GROUP_BY in
+                    "file")
+                        echo "Contributor: $CONTRIBUTOR_NAME"
+                        for ((j=0; j<FILES_COUNT; j++)); do
+                            FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                            FILE_SHA256=$(yq ".data[$i].files[$j].sha256" "$doc")
+                            echo "  - $FILE_PATH (SHA256: ${FILE_SHA256:0:16}...)"
+                        done
+                        echo ""
+                        ;;
+                    "contributor")
+                        # Just collect for later output
+                        for ((j=0; j<FILES_COUNT; j++)); do
+                            FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                            echo "$CONTRIBUTOR_NAME|$FILE_PATH"
+                        done
+                        ;;
+                    "methodology")
+                        for ((j=0; j<FILES_COUNT; j++)); do
+                            FILE_PATH=$(yq ".data[$i].files[$j].path" "$doc")
+                            echo "Methodology: $NORMALIZED_METHODOLOGY"
+                            echo "  File: $FILE_PATH"
+                            echo "  Contributor: $CONTRIBUTOR_NAME"
+                            echo ""
+                        done
+                        ;;
+                esac
+            fi
+        fi
+    done
+done
