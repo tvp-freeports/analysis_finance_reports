@@ -1,3 +1,9 @@
+"""Deserializing algorithms for semi-structured document processing.
+
+This module provides deserializing functions specifically designed for
+semi-structured documents.
+"""
+
 from typing import Optional
 from pydantic import BaseModel
 from freeports_analysis.formats.utils.deserialize import standard_deserialization

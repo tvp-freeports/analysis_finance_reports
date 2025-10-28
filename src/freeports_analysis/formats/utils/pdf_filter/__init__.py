@@ -16,11 +16,11 @@ from freeports_analysis.formats import (
 )
 from freeports_analysis.i18n import _
 from freeports_analysis.consts import Promise
+from freeports_analysis.consts import Currency
 from .xml.font import get_lines_with_font, get_lines_with_txt_font
 from .select_position import get_table_positions, TablePosAlgorithm
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
-from freeports_analysis.consts import Currency
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 """Type alias for metadata update functions.
@@ -174,7 +174,7 @@ def standard_extraction_currency(
             if isinstance(currency_set, str):
                 metadata["currency"] = Currency[currency_set]
                 return metadata
-            elif isinstance(currency_set, Currency):
+            if isinstance(currency_set, Currency):
                 metadata["currency"] = currency_set
                 return metadata
 
@@ -192,7 +192,7 @@ def standard_extraction_currency(
             except IndexError as exc:
                 logger.error(exc)
                 logger.debug("Currency set:")
-                logger.debug(str(subfund_set_c))
+                logger.debug(str(currency_set_c))
                 logger.debug("First lines where:")
                 logger.debug(
                     "%s",
@@ -213,7 +213,7 @@ def standard_pdf_filtering(
     subfund_set: PdfLineSet,
     body_set: PdfLineSet,
     currency_set: PdfLineSet | Currency | str,
-    deselection_list: Optional[List[PdfLineSet]] = [],
+    deselection_list: Optional[List[PdfLineSet]] = None,
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
     row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
@@ -290,6 +290,8 @@ def standard_pdf_filtering(
     ...     # Custom page metadata extraction
     ...     return {}
     """
+    if deselection_list is None:
+        deselection_list = []
     for deselection_set in deselection_list:
         body_set = body_set / deselection_set
 
@@ -388,8 +390,8 @@ def standard_pdf_filtering(
             )
 
             def _width(area):
-                xmin, ymin, xmax, ymax = area.bounds
-                return xmax - xmin
+                bounds = area.bounds
+                return bounds[2] - bounds[0]
 
             table_cell_widths = [_width(table_row.area) for table_row in table_rows]
             max_width = max(table_cell_widths)

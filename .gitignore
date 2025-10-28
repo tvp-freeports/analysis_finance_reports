@@ -25,3 +25,4 @@ conf*freeports.yml
 freeports.log
 .benchmarks
 .continue
+pylint.json

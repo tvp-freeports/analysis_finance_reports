@@ -12,7 +12,7 @@ from freeports_analysis.i18n import _
 
 data = Path(__file__).parent
 
-format_name_regexp = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\.]+)?"
+FORMAT_NAME_REGEXP = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\.]+)?"
 
 # Schema for validating the list of formats
 formats_schema = pa.DataFrameSchema(
@@ -30,7 +30,7 @@ formats_schema = pa.DataFrameSchema(
         name="Format name",
         checks=[
             pa.Check(
-                lambda x: x.str.match(f"^{format_name_regexp}$"),
+                lambda x: x.str.match(f"^{FORMAT_NAME_REGEXP}$"),
                 error="Format index not valid",
             )
         ],

@@ -233,8 +233,6 @@ class Investment(BaseModel, ABC):
 class Equity(Investment):
     """Represents an equity investment (stocks, shares)."""
 
-    pass
-
 
 class Bond(Investment):
     """Represents a bond investment with maturity and interest rate.
@@ -496,8 +494,8 @@ def write_files(
     if flags_cls.COMPRESSED in flags:
         if profile == profiles_cls.SINGLE_FILE:
             archive_name = f"{out_path.name}.gz"
-            with gzip.open(archive_name, "wb") as f_out:
-                shutil.copyfileobj(out_path.open("rb"), f_out)
+            with gzip.open(archive_name, "wb") as f_out, out_path.open("rb") as f_in:
+                shutil.copyfileobj(f_in, f_out)
             if remove_uncompressed_out:
                 os.remove(out_path)
         else:

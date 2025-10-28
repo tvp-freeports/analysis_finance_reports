@@ -15,6 +15,9 @@ market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")
     market_value_pos=2,
 )
 def text_extract(pdf_blks: PdfBlocksTable, i: int):
+    """
+    Text extract that extract quantity from the name of the company (is conained in the same cell)
+    """
     c = pdf_blks[i].content
     m = market_value_regex.match(c)
     return {"quantity": m[0]}

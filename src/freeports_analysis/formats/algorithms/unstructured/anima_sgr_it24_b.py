@@ -1,4 +1,5 @@
-from shapely import box
+"""Custom pdf filter for ANIMA_SGR-IT24.B"""
+
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
@@ -40,4 +41,5 @@ body_set = PdfLineSet.from_str("TrebuchetMS[7.02]")
     body_set=body_set,
 )
 def pdf_filter(xml_root):
-    pass
+    """Custom PDF filter that use a relative reference area for the subfund and for the currency"""
+    raise NotImplementedError

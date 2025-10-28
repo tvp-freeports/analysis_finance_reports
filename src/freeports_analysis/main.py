@@ -31,7 +31,6 @@ from freeports_analysis.formats.algorithms import (
     get_pipelines,
 )
 from freeports_analysis.conf_parse import (
-    log_config,
     DEFAULT_CONFIG,
     DEFAULT_CONFIG_LOCATION,
     FreeportsEnvConfig,
@@ -40,6 +39,7 @@ from freeports_analysis.conf_parse import (
     FreeportsJobConfig,
 )
 from freeports_analysis.logging import (
+    log_config,
     LOG_CONTEXTUAL_INFOS,
     LOG_ADAPT_INVESTMENT_INFOS,
     LOGGING_TABLE,
@@ -93,7 +93,7 @@ def pipeline_batch(
         end_page_batch,
     )
     parser = etree.XMLParser(recover=True)
-    xml_roots = [etree.fromstring(page, parser=parser) for page in batch_pages]
+    batch_pages = [etree.fromstring(page, parser=parser) for page in batch_pages]
     pipelines = get_pipelines(format_name)
 
     results = []
@@ -106,18 +106,16 @@ def pipeline_batch(
             i_page_batch,
             end_page_batch,
         )
-        pdf_blocks = pdf_filter_exec(i_page_batch, n_pages, xml_roots, pdf_filter_funcs)
+        blks = pdf_filter_exec(i_page_batch, n_pages, batch_pages, pdf_filter_funcs)
         logger.info(
             _("Extracting relevant blocks of text from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        filtered_text = text_extract_exec(
-            i_page_batch, n_pages, pdf_blocks, targets, text_extract_funcs
+        blks = text_extract_exec(
+            i_page_batch, n_pages, blks, targets, text_extract_funcs
         )
-        results += deserialize_exec(
-            i_page_batch, n_pages, filtered_text, deserialize_funcs
-        )
+        results += deserialize_exec(i_page_batch, n_pages, blks, deserialize_funcs)
 
     return results
 
@@ -223,6 +221,7 @@ def _output_file(
     compress = False
     remove_dir = False
     df = None
+
     if output_config["BATCH_FILE"] is not None:
         if output_config["SEPARATE_OUT_FILES"]:
             out_dir = out_csv
@@ -232,6 +231,11 @@ def _output_file(
             if not out_dir.exists() and compress:
                 remove_dir = True
             out_dir.mkdir(exist_ok=True)
+            for df_result, format_pdf, prefix_out in results:
+                name_file = f"{format_pdf.name}.csv"
+                if prefix_out is not None and prefix_out != "":
+                    name_file = f"{prefix_out}-{format_pdf.name}.csv"
+                df_result.to_csv(out_dir / name_file, index=False)
         else:
             dataframes = []
             for r, format_pdf, prefix_out in results:
@@ -240,16 +244,9 @@ def _output_file(
                 r["Format"] = format_pdf.name
                 dataframes.append(r)
             df = pd.concat(dataframes)
+            df.to_csv(output_config["OUT_PATH"], index=False)
     else:
         df = results[0][0]
-
-    if df is None:
-        for df, format_pdf, prefix_out in results:
-            name_file = f"{format_pdf.name}.csv"
-            if prefix_out is not None and prefix_out != "":
-                name_file = f"{prefix_out}-{format_pdf.name}.csv"
-            df.to_csv(out_dir / name_file, index=False)
-    else:
         df.to_csv(output_config["OUT_PATH"], index=False)
 
     if compress:
@@ -289,8 +286,8 @@ def _main_job(
     - Parallel processing of page batches
     - Promise resolution for deferred values
     """
-    config = FreeportsConfig(**main_job_config).model_dump()
-    log_file = config["OUT_PATH"] / ".log.csv"
+    job_config = FreeportsConfig(**main_job_config).model_dump()
+    log_file = job_config["OUT_PATH"] / ".log.csv"
     handler_csv = log.FileHandler(log_file, mode="a")
     csv_formatter = CsvFormatter()
     handler_csv.addFilter(LOG_ADAPT_INVESTMENT_INFOS)
@@ -300,13 +297,13 @@ def _main_job(
     format_utils = log.getLogger(__package__ + ".formats.utils")
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
-    LOG_CONTEXTUAL_INFOS.report = config["PREFIX_OUT"]
-    logger.debug(_("Starting job with configuration %s"), str(config))
-    pdf_file = _get_document(config)
+    LOG_CONTEXTUAL_INFOS.report = job_config["PREFIX_OUT"]
+    logger.debug(_("Starting job with configuration %s"), str(job_config))
+    pdf_file = _get_document(job_config)
     logger.info(_("Starting decoding pdf to xml..."))
     pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
     logger.debug(_("End decoding pdf to xml!"))
-    targets = get_target_companies(config["TARGET_LISTS"])
+    targets = get_target_companies(job_config["TARGET_LISTS"])
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
     n_pages = len(pdf_file_xml)
     batch_size = (n_pages + n_workers - 1) // n_workers
@@ -315,7 +312,9 @@ def _main_job(
         start_idx = i * batch_size
         end_idx = min((i + 1) * batch_size, n_pages)
         batch_pages = pdf_file_xml[start_idx:end_idx]
-        batches.append((batch_pages, start_idx + 1, n_pages, targets, config["FORMAT"]))
+        batches.append(
+            (batch_pages, start_idx + 1, n_pages, targets, job_config["FORMAT"])
+        )
     results_batches = None
     if n_workers > 1:
         LOG_CONTEXTUAL_INFOS.mproc = True
@@ -335,13 +334,13 @@ def _main_job(
                 else:
                     extracted_data_page.append(result)
             results.append(extracted_data_page)
-    flat_promises_map = flatten_promise_map(promises_resolution_map)
-    for i, results_page in enumerate(results):
-        for j in range(len(results_page)):
-            results[i][j].fulfill_promises(flat_promises_map)
+    promises_resolution_map = flatten_promise_map(promises_resolution_map)
+    for results_page in results:
+        for res in results_page:
+            res.fulfill_promises(promises_resolution_map)
     format_utils.removeHandler(handler_csv)
     LOGGING_TABLE.removeHandler(handler_csv)
-    return results, config["FORMAT"], config["PREFIX_OUT"]
+    return results, job_config["FORMAT"], job_config["PREFIX_OUT"]
 
 
 def main(main_config: Dict[str, Any]) -> None:
@@ -423,11 +422,10 @@ def main(main_config: Dict[str, Any]) -> None:
 
 
 if __name__ == "__main__":
-    """Command line entry point for the PDF processing application."""
     config = DEFAULT_CONFIG
     config_location = DEFAULT_CONFIG_LOCATION
-    log_level = (5 - config["VERBOSITY"]) * 10
-    log.basicConfig(level=log_level)
+    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
+    log.basicConfig(level=LOG_LEVEL)
     config_env = FreeportsEnvConfig()
     tmp_config, tmp_config_location = config_env.overwrite_config(
         DEFAULT_CONFIG, DEFAULT_CONFIG_LOCATION
@@ -439,12 +437,12 @@ if __name__ == "__main__":
     )
     config, config_location = config_env.overwrite_config(config, config_location)
 
-    log_level = (5 - config["VERBOSITY"]) * 10
-    if log_level <= log.DEBUG:
+    LOG_LEVEL = (5 - config["VERBOSITY"]) * 10
+    if LOG_LEVEL <= log.DEBUG:
         handler_devdebug = log.FileHandler("freeports.log", "w")
         handler_devdebug.addFilter(LOG_CONTEXTUAL_INFOS)
         handler_devdebug.setFormatter(DevDebugFormatter())
         logger.addHandler(handler_devdebug)
-    logger.setLevel(log_level)
+    logger.setLevel(LOG_LEVEL)
     log_config(logger, config, config_location)
     main(config)

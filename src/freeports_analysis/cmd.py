@@ -8,12 +8,12 @@ from freeports_analysis.conf_parse import (
     FreeportsFileConfig,
     FreeportsEnvConfig,
     FreeportsCmdConfig,
-    log_config,
 )
 from freeports_analysis.logging import (
     HANDLER_STDERR,
     LOG_CONTEXTUAL_INFOS,
     DevDebugFormatter,
+    log_config,
 )
 from freeports_analysis.main import main
 

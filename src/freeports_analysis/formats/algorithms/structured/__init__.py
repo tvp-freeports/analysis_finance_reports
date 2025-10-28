@@ -302,6 +302,12 @@ def get_pipes(
     deserialize_segment: Dict[str, List[Callable]] = {}
 
     for pipeline, arg in args:
+
+        def _set_if_not_na(func_arg_dict, key, args, key_value):
+            if not pd.isna(args[key_value]):
+                func_arg_dict[key] = args[key_value]
+            return func_arg_dict
+
         # PDF Filter segment
         if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
             pdf_filter_args = {
@@ -318,8 +324,9 @@ def get_pipes(
                 pdf_filter_args["algorithm_flags"] = TablePosAlgorithm.from_dict(
                     arg["Algorithm flags"]
                 )
-            if not pd.isna(arg["Tolerance"]):
-                pdf_filter_args["tolerance"] = arg["Tolerance"]
+            pdf_filter_args = _set_if_not_na(
+                pdf_filter_args, "tolerance", arg, "Tolerance"
+            )
             pdf_filter = standard_pdf_filtering(**pdf_filter_args)(
                 lambda xml_root: None
             )
@@ -330,21 +337,27 @@ def get_pipes(
         # Text Extract segment
         if pd.isna(arg["text_extract"]) or arg["text_extract"]:
             text_extract_args = {"market_value_pos": arg["Market value"]}
-            if not pd.isna(arg["Geometrical indexing"]):
-                text_extract_args["geometrical_indexes"] = arg["Geometrical indexing"]
-            if not pd.isna(arg["Merge previous"]):
-                text_extract_args["merge_prev"] = arg["Merge previous"]
-            if not pd.isna(arg["Quantity"]):
-                text_extract_args["nominal_quantity_pos"] = arg["Quantity"]
-            if not pd.isna(arg["% net assets"]):
-                text_extract_args["perc_net_assets_pos"] = arg["% net assets"]
-            if not pd.isna(arg["Acquisition currency"]):
-                text_extract_args["acquisition_currency_pos"] = arg[
-                    "Acquisition currency"
-                ]
-            if not pd.isna(arg["Acquisition cost"]):
-                text_extract_args["acquisition_cost_pos"] = arg["Acquisition cost"]
-
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "geometrical_indexes", arg, "Geometrical indexing"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "merge_prev", arg, "Merge previous"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "nominal_quantity_pos", arg, "Quantity"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "perc_net_assets_pos", arg, "% net assets"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args,
+                "acquisition_currency_pos",
+                arg,
+                "Acquisition currency",
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "acquisition_cost_pos", arg, "Acquisition cost"
+            )
             text_extract = standard_text_extraction(**text_extract_args)(
                 lambda blks, targets: None
             )
@@ -355,15 +368,18 @@ def get_pipes(
         # Deserialize segment
         if pd.isna(arg["deserialize"]) or arg["deserialize"]:
             deserialize_args = {}
-            if not pd.isna(arg["Interpret quantity as float"]):
-                deserialize_args["quantity_interpret_float"] = arg[
-                    "Interpret quantity as float"
-                ]
-            if not pd.isna(arg["Interpret cost and value as int"]):
-                deserialize_args["cost_and_value_interpret_int"] = arg[
-                    "Interpret cost and value as int"
-                ]
-
+            deserialize_args = _set_if_not_na(
+                deserialize_args,
+                "quantity_interpret_float",
+                arg,
+                "Interpret quantity as float",
+            )
+            deserialize_args = _set_if_not_na(
+                deserialize_args,
+                "cost_and_value_interpret_int",
+                arg,
+                "Interpret cost and value as int",
+            )
             deserialize = standard_deserialization(**deserialize_args)(
                 lambda blk, targets: None
             )

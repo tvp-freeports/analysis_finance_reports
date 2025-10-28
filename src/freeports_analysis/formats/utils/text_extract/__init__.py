@@ -23,9 +23,10 @@ from freeports_analysis.formats import (
     ExpectedTextBlockNotFound,
     LineParseFail,
 )
+from freeports_analysis.consts import Currency
 from .match import match_company
 from .. import overwrite_if_implemented
-from freeports_analysis.consts import Currency
+
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +117,7 @@ class PdfBlocksTable:
             if col in dict_table[row]:
                 dict_table[row][col].append((i, blk))
             else:
-                if col > col_max:
-                    col_max = col
+                col_max = max(col, col_max)
                 dict_table[row][col] = [(i, blk)]
         for row in sorted(dict_table.keys()):
             cols = []
@@ -185,12 +185,10 @@ class PdfBlocksTable:
             vals = self._table[j][k]
             if len(vals) == 1:
                 return vals[0]
-            elif len(vals) == 0:
+            if len(vals) == 0:
                 return None
-            else:
-                return vals
-        else:
-            return self._blks[i]
+            return vals
+        return self._blks[i]
 
     def __len__(self):
         """Number of blocks in the table.
@@ -318,7 +316,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 return text_part_list
             pdf_blocks_table = PdfBlocksTable(pdf_blocks)
             n_cols = pdf_blocks_table.shape[1]
-            while True and i < len(pdf_blocks_table) - 1:
+            while i < len(pdf_blocks_table) - 1:
                 company_name = False
                 split = False
                 current_block = pdf_blocks_table[i]
@@ -341,7 +339,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         ):
                             n_full_cols += 1
                         else:
-                            if c == col - 1 or c == col + 1:
+                            if c in (col - 1, col + 1):
                                 empty_adj += 1
                     if n_full_cols == 1 or empty_adj == 2:
                         split = True
@@ -367,7 +365,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
-                    except ExpectedTextBlockNotFound as e:
+                    except ExpectedTextBlockNotFound:
                         LOG_ADAPT_INVESTMENT_INFOS.row = None
                         LOG_ADAPT_INVESTMENT_INFOS.col = None
                         LOG_ADAPT_INVESTMENT_INFOS.field = None
@@ -387,7 +385,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company match"] = content
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
-                    except ExpectedTextBlockNotFound as e:
+                    except ExpectedTextBlockNotFound:
                         LOG_ADAPT_INVESTMENT_INFOS.row = None
                         LOG_ADAPT_INVESTMENT_INFOS.col = None
                         LOG_ADAPT_INVESTMENT_INFOS.field = None

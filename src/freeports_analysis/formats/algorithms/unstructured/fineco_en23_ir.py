@@ -1,3 +1,5 @@
+"""Custom pdf filter for FINECO-EN23[IR] format"""
+
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
@@ -54,4 +56,5 @@ body_set = (
     body_set=body_set,
 )
 def pdf_filter(xml_root):
-    pass
+    """A pdf filter that use relative areas and set algebra"""
+    raise NotImplementedError

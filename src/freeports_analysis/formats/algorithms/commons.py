@@ -4,18 +4,14 @@ This module provides shared functionality for handling format and pipeline
 identifiers, including validation schemas and index manipulation utilities.
 """
 
-from typing import Optional, List
-from enum import Enum
-from lxml import etree
 import pandera.pandas as pa
 import pandas as pd
-from freeports_analysis.formats.data import format_name_regexp, VALID_FORMATS
-from freeports_analysis.i18n import _
+from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
 
 # Regular expressions for pipeline naming conventions
 pipe_name_regexp: str = "[0-9a-z_]*"
 pipe_regexp: str = rf"\({pipe_name_regexp}\)"
-format_algorithm_id_regexp: str = f"{format_name_regexp}({pipe_regexp})?"
+format_algorithm_id_regexp: str = f"{FORMAT_NAME_REGEXP}({pipe_regexp})?"
 
 # Pandera schema for validating format-pipeline index structure
 index_format_pipe: pa.MultiIndex = pa.MultiIndex(

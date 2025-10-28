@@ -73,12 +73,12 @@ def _str_to_bool(string: str) -> bool:
     raise ValueError(error_string)
 
 
-def _format_validate(format: str) -> str:
+def _format_validate(format_name: str) -> str:
     """Validate that a format name exists in the list of supported formats.
 
     Parameters
     ----------
-    format : str
+    format_name : str
         Name of the format to validate
 
     Returns
@@ -96,13 +96,13 @@ def _format_validate(format: str) -> str:
     This function is used by Pydantic validators to ensure only supported
     PDF processing formats are accepted in configuration.
     """
-    if format not in VALID_FORMATS:
+    if format_name not in VALID_FORMATS:
         raise ValueError(
             _("`{}` is not a valid format, valid formats are {}").format(
-                format, VALID_FORMATS
+                format_name, VALID_FORMATS
             )
         )
-    return format
+    return format_name
 
 
 Format = Annotated[str, AfterValidator(_format_validate)]
@@ -113,24 +113,24 @@ Verbosity = conint(ge=0, le=5)
 
 _out_structure_both_modes = ["REGULAR", "SINGLE_FILE", "STRUCTURED"]
 _out_structure_normal_mode = []
-_out_structure_batch_mode = []
+_out_structurebatch_mode = []
 OutStructureNormalMode = Enum(
     "OutStructureNormalMode", _out_structure_both_modes + _out_structure_normal_mode
 )
 OutStructureBatchMode = Enum(
-    "OutStructureBatchMode", _out_structure_both_modes + _out_structure_batch_mode
+    "OutStructureBatchMode", _out_structure_both_modes + _out_structurebatch_mode
 )
 
 _out_flags_both_modes = ["COMPRESSED"]
 _out_flags_normal_mode = []
-_out_flags_batch_mode = ["SEPARATE_OUT_FILES"]
+_out_flagsbatch_mode = ["SEPARATE_OUT_FILES"]
 OutFlagsNormalMode = Flag(
     "OutFlagsNormalMode",
     _out_flags_both_modes + _out_flags_normal_mode,
 )
 OutFlagsBatchMode = Flag(
     "OutFlagsBatchMode",
-    _out_flags_both_modes + _out_flags_batch_mode,
+    _out_flags_both_modes + _out_flagsbatch_mode,
 )
 
 OutProfile = Union[
@@ -218,7 +218,6 @@ class ParitalConfiguration(ABC):
         This method is typically implemented by Pydantic models that inherit
         from this class, providing automatic serialization of model fields.
         """
-        pass
 
     def overwrite_config(
         self, config: Dict[str, Any], config_location: Dict[str, str]
@@ -245,8 +244,8 @@ class ParitalConfiguration(ABC):
         existing values in the configuration dictionary.
         """
         this_conf = self.model_dump()
-        new_conf = {k: v for k, v in config.items()}
-        new_conf_location = {k: v for k, v in config_location.items()}
+        new_conf = dict(config.items())
+        new_conf_location = dict(config_location.items())
         for k, v in this_conf.items():
             if v is not None:
                 new_conf[k] = v
@@ -480,7 +479,9 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
             super().__init__()
             return
         config_file = Path(config_file)
-        config_dict = yaml.safe_load(config_file.open("r", encoding="UTF-8"))
+        config_dict = {}
+        with config_file.open("r", encoding="UTF-8") as f:
+            config_dict = yaml.safe_load(f)
         config_dict = {_map_names[k]: v for k, v in config_dict.items()}
         super().__init__(**config_dict)
 
@@ -549,20 +550,20 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
 
     def __init__(self):
         """Initialize FreeportsEnvConfig by loading configuration from environment variables."""
-        ENV_PREFIX = "FREEPORTS_"
+        env_prefix = "FREEPORTS_"
         _map_names = {
-            f"{ENV_PREFIX}URL": "URL",
-            f"{ENV_PREFIX}VERBOSITY": "VERBOSITY",
-            f"{ENV_PREFIX}N_WORKERS": "N_WORKERS",
-            f"{ENV_PREFIX}BATCH_FILE": "BATCH_FILE",
-            f"{ENV_PREFIX}OUT_PATH": "OUT_PATH",
-            f"{ENV_PREFIX}OUT_PROFILE": "OUT_PROFILE",
-            f"{ENV_PREFIX}OUT_FLAGS": "OUT_FLAGS",
-            f"{ENV_PREFIX}SAVE_PDF": "SAVE_PDF",
-            f"{ENV_PREFIX}FORMAT": "FORMAT",
-            f"{ENV_PREFIX}PDF": "PDF",
-            f"{ENV_PREFIX}CONFIG_FILE": "CONFIG_FILE",
-            f"{ENV_PREFIX}TARGET_LIST": "TARGET_LISTS",
+            f"{env_prefix}URL": "URL",
+            f"{env_prefix}VERBOSITY": "VERBOSITY",
+            f"{env_prefix}N_WORKERS": "N_WORKERS",
+            f"{env_prefix}BATCH_FILE": "BATCH_FILE",
+            f"{env_prefix}OUT_PATH": "OUT_PATH",
+            f"{env_prefix}OUT_PROFILE": "OUT_PROFILE",
+            f"{env_prefix}OUT_FLAGS": "OUT_FLAGS",
+            f"{env_prefix}SAVE_PDF": "SAVE_PDF",
+            f"{env_prefix}FORMAT": "FORMAT",
+            f"{env_prefix}PDF": "PDF",
+            f"{env_prefix}CONFIG_FILE": "CONFIG_FILE",
+            f"{env_prefix}TARGET_LIST": "TARGET_LISTS",
         }
         config_dict = {std_k: os.environ.get(k) for k, std_k in _map_names.items()}
         super().__init__(**config_dict)
@@ -719,7 +720,7 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
             raise argparse.ArgumentTypeError(
                 _("Cannot increase and decrease verbosity!")
             )
-        elif args["v"] is not None:
+        if args["v"] is not None:
             increase_verbosity = args["v"]
         elif args["q"] is not None:
             increase_verbosity = args["q"]
@@ -836,7 +837,7 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
     TARGET_LISTS: Lists
     PREFIX_OUT: Optional[str] = None
     OUT_PROFILE: Union[OutStructureNormalMode, OutStructureBatchMode]
-    OUT_FLAGS: Union[OutFlagsNormalMode, OutFlagsBatchMode]
+    OUT_FLAGS: Union[OutFlagsNormalMode, OutFlagsBatchMode] = None
     OUT_PATH: Path
 
     @model_validator(mode="after")
@@ -1001,37 +1002,6 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         if not self.PDF.exists():
             if self.URL is None:
                 raise ValueError(_("Url don't specified and PDF not valid!!!"))
-            else:
-                _logger.warning("PDF is not valid, fallback to URL...")
-                self.PDF = None
+            _logger.warning("PDF is not valid, fallback to URL...")
+            self.PDF = None
         return self
-
-
-def log_config(
-    logger: log.Logger, config: Dict[str, Any], config_location: Dict[str, str]
-) -> None:
-    """Log with debug priority the configuration provided.
-
-    Parameters
-    ----------
-    logger : log.Logger
-        the logger that has to log
-    config : Dict[str, Any]
-        The configuration dictionary to log
-    config_location : Dict[str, str]
-        Dictionary mapping configuration keys to their source locations
-    """
-    locations = {"DEFAULT": [], "CONFIG_FILE": [], "ENV_VAR": [], "CMD_ARG": []}
-    for k, v in config_location.items():
-        if v == "FreeportsDefaultConfig":
-            locations["DEFAULT"].append(k)
-        elif v == "FreeportsFileConfig":
-            locations["CONFIG_FILE"].append(k)
-        elif v == "FreeportsEnvConfig":
-            locations["ENV_VAR"].append(k)
-        elif v == "FreeportsCmdConfig":
-            locations["CMD_ARG"].append(k)
-        else:
-            raise ValueError(_("Unknown config location: {}").format(v))
-    logger.debug(_("Resulting config: %s"), {k: v for k, v in config.items()})
-    logger.debug(_("Resulting location: %s"), locations)

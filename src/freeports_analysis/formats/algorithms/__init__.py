@@ -82,7 +82,6 @@ def _exec_segment(
     n_pages: int,
     args_batch: List[Any],
     funcs: List[Callable],
-    error_msg: str,
     progress_msg: Optional[str] = None,
 ) -> List[List[Any]]:
     """Execute a segment of processing functions with error handling and progress reporting.
@@ -97,8 +96,6 @@ def _exec_segment(
         List of arguments to pass to the functions
     funcs : List[Callable]
         List of functions to execute
-    error_msg : str
-        Error message to log on failure
     progress_msg : Optional[str]
         Progress message to log periodically
 
@@ -165,7 +162,6 @@ def pdf_filter_exec(
         n_pages,
         batch_pages,
         pdf_filter_funcs,
-        _("Fatal error in pdf filter"),
         _("Still filtering..."),
     )
     return batch_results
@@ -211,7 +207,6 @@ def text_extract_exec(
         n_pages,
         pdf_blocks_batch,
         text_extract_funcs_with_targets,
-        _("Invalid text extraction!!"),
         _("Still extracting..."),
     )
     return batch_results
@@ -266,11 +261,7 @@ def deserialize_exec(
         _add_loop_to_deserialize(deserialize) for deserialize in deserialize_funcs
     ]
     batch_results = _exec_segment(
-        i_batch_page,
-        n_pages,
-        text_blocks_batch,
-        deserialize_funcs_blks,
-        _("Invalid deserialization!!"),
+        i_batch_page, n_pages, text_blocks_batch, deserialize_funcs_blks
     )
     return batch_results
 
@@ -325,14 +316,11 @@ def get_pipelines(
         if not data and not allow_partial_pipelines:
             raise ValueError(_("List of {} cannot be empty").format(category))
 
-    # Get all unique keys
-    all_keys = set(
-        key for category_data in combined.values() for key in category_data.keys()
-    )
-
     # Create final result with validation
     result: Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]] = {}
-    for key in all_keys:
+    for key in set(
+        key for category_data in combined.values() for key in category_data.keys()
+    ):
         pdf_filters = combined["pdf_filters"].get(key, [])
         text_extract = combined["text_extract"].get(key, [])
         deserialize = combined["deserialize"].get(key, [])

@@ -1,3 +1,9 @@
+"""Text extraction algorithms for semi-structured document processing.
+
+This module provides text extraction functions specifically designed for
+semi-structured documents.
+"""
+
 from typing import Optional
 from pydantic import BaseModel, model_validator
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction

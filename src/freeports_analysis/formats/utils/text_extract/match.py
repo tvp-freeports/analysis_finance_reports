@@ -172,8 +172,8 @@ def match_company(
     >>> match = match_company("ABC Inc", target_companies)
     >>> # Raises ValueError if multiple companies match
     """
-    norm_text = normalize_string(text)
     upper_text = text.upper()
+    text = normalize_string(text)
     matching_data, regexs_dict = target_companies
     matching_buds: List[str] = []
     matching_regexs: List[str] = []
@@ -181,16 +181,15 @@ def match_company(
     # First pass: exact name matches
     for row in matching_data:
         idx, (name, buds, regexs, syms) = row
-        if name in norm_text:
+        if name in text:
             return idx
-        if any(bud in norm_text for bud in buds):
+        if any(bud in text for bud in buds):
             matching_buds.append(idx)
 
     # Second pass: bud matches with regex validation
-    n_mbuds = len(matching_buds)
-    if n_mbuds > 0:
+    if len(matching_buds) > 0:
         for bud_idx in matching_buds:
-            if any(regex.search(norm_text) for regex in regexs_dict[bud_idx]):
+            if any(regex.search(text) for regex in regexs_dict[bud_idx]):
                 matching_regexs.append(bud_idx)
         n_mregexs = len(matching_regexs)
         if n_mregexs == 1:
@@ -203,7 +202,7 @@ def match_company(
     # Third pass: regex and symbol matches
     for row in matching_data:
         idx, (name, buds, regexs, syms) = row
-        if any(regex.search(norm_text) for regex in regexs):
+        if any(regex.search(text) for regex in regexs):
             matching_regexs.append(idx)
         if any(sym.search(upper_text) for sym in syms):
             return idx

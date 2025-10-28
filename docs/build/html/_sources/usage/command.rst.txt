@@ -157,7 +157,7 @@ Noticebly the most important performed checks are:
 
 
 
-.. _batch_mode:
+.. batch_mode:
 
 --------------
 ``BATCH_MODE``

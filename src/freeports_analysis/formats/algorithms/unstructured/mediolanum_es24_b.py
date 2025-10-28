@@ -17,12 +17,12 @@ from freeports_analysis.formats.utils.text_extract import (
     standard_text_extraction,
 )
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
-from .. import PdfBlock, TextBlock
 from freeports_analysis.consts import (
     Promise,
     Currency,
     PromisesResolutionContext,
 )
+from .. import PdfBlock, TextBlock
 
 
 class PdfBlockType(Enum):

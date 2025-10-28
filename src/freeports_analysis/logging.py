@@ -6,9 +6,9 @@ financial data extraction workflows.
 """
 
 import logging
-import logging.config as config
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Dict
 import pandas as pd
+from freeports_analysis.i18n import _
 
 
 class DevDebugFormatter(logging.Formatter):
@@ -23,12 +23,12 @@ class DevDebugFormatter(logging.Formatter):
         Inherits all attributes from logging.Formatter
     """
 
-    def format(self, log_record: logging.LogRecord) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         """Format log record with full information on code and PDF document location.
 
         Parameters
         ----------
-        log_record : logging.LogRecord
+        record : logging.LogRecord
             The log record to format
 
         Returns
@@ -45,58 +45,57 @@ class DevDebugFormatter(logging.Formatter):
         - PDF document coordinates and position references
         - The actual log message
         """
-        debug_msg = (
-            f"[{log_record.process}] " if getattr(log_record, "_mproc", False) else ""
-        )
+        debug_msg = f"[{record.process}] " if getattr(record, "mproc", False) else ""
         debug_msg += "=" * 70 + "\n"
-        debug_msg += f'{log_record.levelname} from "{log_record.funcName}", line {log_record.lineno} of {log_record.pathname}\n'
+        debug_msg += (
+            f'{record.levelname} from "{record.funcName}", '
+            + f"line {record.lineno} of {record.pathname}\n"
+        )
         report_str = (
-            f"Report {log_record.report} "
-            if getattr(log_record, "report", None) is not None
+            f"Report {record.report} "
+            if getattr(record, "report", None) is not None
             else ""
         )
         page_str = (
-            f"page {log_record.page} "
-            if getattr(log_record, "page", None) is not None
-            else ""
+            f"page {record.page} " if getattr(record, "page", None) is not None else ""
         )
         locate_str = (
-            f"in {log_record.horizontal_ref} "
-            if getattr(log_record, "horizontal_ref", None) is not None
+            f"in {record.horizontal_ref} "
+            if getattr(record, "horizontal_ref", None) is not None
             else ""
         )
         locate_str += (
-            f"of {log_record.vertical_ref} "
-            if getattr(log_record, "vertical_ref", None) is not None
+            f"of {record.vertical_ref} "
+            if getattr(record, "vertical_ref", None) is not None
             else ""
         )
         coordinates = (
             "\t["
-            if getattr(log_record, "c2", None) is not None
-            or getattr(log_record, "c1", None) is not None
+            if getattr(record, "c2", None) is not None
+            or getattr(record, "c1", None) is not None
             else ""
         )
         coordinates += (
-            f"c1={log_record.c1}" if getattr(log_record, "c1", None) is not None else ""
+            f"c1={record.c1}" if getattr(record, "c1", None) is not None else ""
         )
         coordinates += (
             ","
-            if getattr(log_record, "c2", None) is not None
-            and getattr(log_record, "c1", None) is not None
+            if getattr(record, "c2", None) is not None
+            and getattr(record, "c1", None) is not None
             else ""
         )
         coordinates += (
-            f"c2={log_record.c2}" if getattr(log_record, "c2", None) is not None else ""
+            f"c2={record.c2}" if getattr(record, "c2", None) is not None else ""
         )
         coordinates += (
             "]"
-            if getattr(log_record, "c2", None) is not None
-            or getattr(log_record, "c1", None) is not None
+            if getattr(record, "c2", None) is not None
+            or getattr(record, "c1", None) is not None
             else ""
         )
         line_location = report_str + page_str + locate_str + coordinates
         debug_msg += line_location + "\n" if line_location != "" else ""
-        debug_msg += log_record.getMessage()
+        debug_msg += record.getMessage()
         return debug_msg
 
 
@@ -112,12 +111,12 @@ class StderrFormatter(logging.Formatter):
         Inherits all attributes from logging.Formatter
     """
 
-    def format(self, log_record: logging.LogRecord) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         """Format the log as a concise one-line message for live stream display.
 
         Parameters
         ----------
-        log_record : logging.LogRecord
+        record : logging.LogRecord
             The log record to format
 
         Returns
@@ -134,55 +133,49 @@ class StderrFormatter(logging.Formatter):
         - Position references (if available)
         - The actual log message
         """
-        log_msg = (
-            f"[{log_record.process}] " if getattr(log_record, "_mproc", False) else ""
-        )
-        log_msg += f"{log_record.levelname} "
+        log_msg = f"[{record.process}] " if getattr(record, "mproc", False) else ""
+        log_msg += f"{record.levelname} "
         log_msg += (
             "{"
-            if getattr(log_record, "report", None) is not None
-            or getattr(log_record, "page", None) is not None
+            if getattr(record, "report", None) is not None
+            or getattr(record, "page", None) is not None
             else ""
         )
         log_msg += (
-            f"{log_record.report}"
-            if getattr(log_record, "report", None) is not None
-            else ""
+            f"{record.report}" if getattr(record, "report", None) is not None else ""
         )
         log_msg += (
             " "
-            if getattr(log_record, "report", None) is not None
-            and getattr(log_record, "page", None) is not None
+            if getattr(record, "report", None) is not None
+            and getattr(record, "page", None) is not None
             else ""
         )
         log_msg += (
-            f"pag.{log_record.page}"
-            if getattr(log_record, "page", None) is not None
-            else ""
+            f"pag.{record.page}" if getattr(record, "page", None) is not None else ""
         )
         log_msg += (
             "} "
-            if getattr(log_record, "report", None) is not None
-            or getattr(log_record, "page", None) is not None
+            if getattr(record, "report", None) is not None
+            or getattr(record, "page", None) is not None
             else ""
         )
         log_msg += (
-            f"in {log_record.horizontal_ref} "
-            if getattr(log_record, "horizontal_ref", None) is not None
+            f"in {record.horizontal_ref} "
+            if getattr(record, "horizontal_ref", None) is not None
             else ""
         )
         log_msg += (
             " "
-            if getattr(log_record, "horizontal_ref", None) is not None
-            and getattr(log_record, "vertical_ref", None) is not None
+            if getattr(record, "horizontal_ref", None) is not None
+            and getattr(record, "vertical_ref", None) is not None
             else ""
         )
         log_msg += (
-            f"of {log_record.vertical_ref} "
-            if getattr(log_record, "vertical_ref", None) is not None
+            f"of {record.vertical_ref} "
+            if getattr(record, "vertical_ref", None) is not None
             else ""
         )
-        log_msg = log_msg.strip() + f": {log_record.getMessage()}"
+        log_msg = log_msg.strip() + f": {record.getMessage()}"
 
         return log_msg
 
@@ -200,12 +193,12 @@ class CsvFormatter(logging.Formatter):
         Inherits all attributes from logging.Formatter
     """
 
-    def format(self, log_record: logging.LogRecord) -> str:
+    def format(self, record: logging.LogRecord) -> str:
         """Format the log record as CSV with PDF position information.
 
         Parameters
         ----------
-        log_record : logging.LogRecord
+        record : logging.LogRecord
             The log record to format
 
         Returns
@@ -217,29 +210,13 @@ class CsvFormatter(logging.Formatter):
         -----
         The CSV output includes fields for:
         - Page number
-        - Company matching information
-        - Company name
-        - Field name
         - Row and column coordinates
         - Log message
         - Report identifier (in batch mode)
         """
-        company = ""
-        company_match = ""
-        field_name = ""
 
-        try:
-            matched_company = log_record.matched_company
-            company = log_record.company
-        except AttributeError:
-            pass
-        try:
-            field_name = log_record.field_name
-        except AttributeError:
-            pass
-
-        if getattr(log_record, "vertical_ref", None) is not None:
-            vertical_ref = log_record.vertical_ref.split("[")
+        if getattr(record, "vertical_ref", None) is not None:
+            vertical_ref = record.vertical_ref.split("[")
             company = vertical_ref[-1].replace("]", "").strip()
             company_match = " ".join(vertical_ref[:-1]).strip()
             if company == "":
@@ -248,23 +225,21 @@ class CsvFormatter(logging.Formatter):
                 company_match = None
 
         fields = {
-            "page": log_record.page
-            if getattr(log_record, "page", None) is not None
-            else "",
+            "page": record.page if getattr(record, "page", None) is not None else "",
             "company_match": company_match if company_match is not None else "",
             "company": company if company is not None else "",
-            "field_name": log_record.horizontal_ref
-            if getattr(log_record, "horizontal_ref", None) is not None
+            "field_name": record.horizontal_ref
+            if getattr(record, "horizontal_ref", None) is not None
             else "",
-            "row": log_record.c1 if getattr(log_record, "c1", None) is not None else "",
-            "col": log_record.c2 if getattr(log_record, "c2", None) is not None else "",
-            "message": log_record.getMessage(),
+            "row": record.c1 if getattr(record, "c1", None) is not None else "",
+            "col": record.c2 if getattr(record, "c2", None) is not None else "",
+            "message": record.getMessage(),
         }
 
-        if getattr(log_record, "_batch_mode", False):
+        if getattr(record, "batch_mode", False):
             fields = {
-                "report": log_record.report
-                if getattr(log_record, "report", None) is not None
+                "report": record.report
+                if getattr(record, "report", None) is not None
                 else ""
             } | fields
 
@@ -343,12 +318,12 @@ class AddContextualInfos(logging.Filter):
     c1: Optional[Union[float, int]] = None
     c2: Optional[Union[float, int]] = None
 
-    def filter(self, log_record: logging.LogRecord) -> logging.LogRecord:
+    def filter(self, record: logging.LogRecord) -> logging.LogRecord:
         """Add contextual information from filter state to the LogRecord.
 
         Parameters
         ----------
-        log_record : logging.LogRecord
+        record : logging.LogRecord
             The log record to enrich with contextual information
 
         Returns
@@ -356,11 +331,11 @@ class AddContextualInfos(logging.Filter):
         logging.LogRecord
             The enriched log record with contextual information
         """
-        log_record._mproc = self.mproc
-        log_record._batch_mode = self.batch_mode
+        record.mproc = self.mproc
+        record.batch_mode = self.batch_mode
         for field in ["page", "report", "vertical_ref", "horizontal_ref", "c1", "c2"]:
-            _set_if_not_exists(self, log_record, field)
-        return log_record
+            _set_if_not_exists(self, record, field)
+        return record
 
 
 LOG_CONTEXTUAL_INFOS = AddContextualInfos()
@@ -394,12 +369,12 @@ class AdaptStandardInvesmentInfos(logging.Filter):
     row: Optional[int] = None
     col: Optional[int] = None
 
-    def filter(self, log_record: logging.LogRecord) -> logging.LogRecord:
+    def filter(self, record: logging.LogRecord) -> logging.LogRecord:
         """Add investment-specific information and convert to contextual format.
 
         Parameters
         ----------
-        log_record : logging.LogRecord
+        record : logging.LogRecord
             The log record to enrich with investment information
 
         Returns
@@ -408,25 +383,21 @@ class AdaptStandardInvesmentInfos(logging.Filter):
             The enriched log record with investment context
         """
         for field in ["company", "company_match", "field", "row", "col"]:
-            _set_if_not_exists(self, log_record, field)
+            _set_if_not_exists(self, record, field)
 
-        company = (
-            log_record.company
-            if getattr(log_record, "company", None) is not None
-            else ""
-        )
+        company = record.company if getattr(record, "company", None) is not None else ""
         company_match = (
-            log_record.company_match
-            if getattr(log_record, "company_match", None) is not None
+            record.company_match
+            if getattr(record, "company_match", None) is not None
             else ""
         )
-        log_record.vertical_ref = (
+        record.vertical_ref = (
             f"{company} [{company_match.replace(chr(10), '\\n').strip()}]"
         )
-        log_record.horizontal_ref = log_record.field
-        log_record.c1 = log_record.row
-        log_record.c2 = log_record.col
-        return log_record
+        record.horizontal_ref = record.field
+        record.c1 = record.row
+        record.c2 = record.col
+        return record
 
 
 LOG_ADAPT_INVESTMENT_INFOS = AdaptStandardInvesmentInfos()
@@ -438,3 +409,33 @@ HANDLER_STDERR.setFormatter(StderrFormatter())
 logging.getLogger().addHandler(HANDLER_STDERR)
 LOGGING_TABLE = logging.getLogger("logging_table")
 LOGGING_STDERR = logging.getLogger("stderr")
+
+
+def log_config(
+    logger: logging.Logger, config: Dict[str, Any], config_location: Dict[str, str]
+) -> None:
+    """Log with debug priority the configuration provided.
+
+    Parameters
+    ----------
+    logger : logging.Logger
+        the logger that has to log
+    config : Dict[str, Any]
+        The configuration dictionary to log
+    config_location : Dict[str, str]
+        Dictionary mapping configuration keys to their source locations
+    """
+    locations = {"DEFAULT": [], "CONFIG_FILE": [], "ENV_VAR": [], "CMD_ARG": []}
+    for k, v in config_location.items():
+        if v == "FreeportsDefaultConfig":
+            locations["DEFAULT"].append(k)
+        elif v == "FreeportsFileConfig":
+            locations["CONFIG_FILE"].append(k)
+        elif v == "FreeportsEnvConfig":
+            locations["ENV_VAR"].append(k)
+        elif v == "FreeportsCmdConfig":
+            locations["CMD_ARG"].append(k)
+        else:
+            raise ValueError(_("Unknown config location: {}").format(v))
+    logger.debug(_("Resulting config: %s"), config)
+    logger.debug(_("Resulting location: %s"), locations)

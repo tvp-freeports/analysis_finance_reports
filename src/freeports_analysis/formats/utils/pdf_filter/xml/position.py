@@ -1,6 +1,7 @@
 """PDF block element utilities for spatial analysis and manipulation.
 
-This module provides functions for working with PDF block elements (represented as lxml.etree.Element objects)
+This module provides functions for working with PDF block elements
+(represented as lxml.etree.Element objects)
 that contain bounding box information. It includes utilities for checking spatial relationships,
 extracting coordinates, and calculating dimensions of PDF content blocks.
 """

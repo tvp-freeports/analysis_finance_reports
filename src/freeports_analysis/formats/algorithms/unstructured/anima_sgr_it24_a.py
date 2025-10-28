@@ -1,3 +1,5 @@
+"""Custom pipeline for ANIMA_SGR-IT23.A"""
+
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
 
@@ -41,4 +43,5 @@ body_set = PdfLineSet(
     body_set=body_set,
 )
 def pdf_filter(xml_root):
-    pass
+    """Pdf filter that takes the subfund and the currency relative to different cells"""
+    raise NotImplementedError

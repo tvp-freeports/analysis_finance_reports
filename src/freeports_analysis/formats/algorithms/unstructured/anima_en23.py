@@ -69,28 +69,19 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
         return []
     ((x0, x1), (y0, y1)) = get_bounds(fair_value_line)
     y_offset = 10
-    w_enlarge = 10
-    h_enlarge = 10
     currency_set = PdfLineSet(
         "Helvetica-Bold",
         font_size=8.9802,
-        area=box(
-            x0 - w_enlarge / 2,
-            y0 + y_offset,
-            x1 + w_enlarge / 2,
-            y1 + y_offset + h_enlarge,
-        ),
+        area=box(x0 - 5, y0 + y_offset, x1 + 5, y1 + y_offset + 10),
     )
     skeleton = get_lines_with_font(xml_root, "Helvetica-Bold")
-    skeleton_lines = [ExtractedPdfLine(line) for line in skeleton]
+    skeleton = [ExtractedPdfLine(line) for line in skeleton]
     tables = [
-        line
-        for line in skeleton_lines
-        if line in PdfLineSet(area=box(-1e6, -1e6, 105, 1e6))
+        line for line in skeleton if line in PdfLineSet(area=box(-1e6, -1e6, 105, 1e6))
     ]
     if len(tables) == 0:
         return []
-    elif len(tables) == 1:
+    if len(tables) == 1:
         area = None
     else:
         if tables[-1].text == "Holdings":
@@ -102,9 +93,12 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
                     y0 = table.area.bounds[1]
                     y1 = tables[i + 1].area.bounds[1]
         area = box(-1e6, y0, 1e6, y1)
-    body_set = PdfLineSet("Helvetica-Light", area=area)
 
-    @standard_pdf_filtering(**options, body_set=body_set, currency_set=currency_set)
+    @standard_pdf_filtering(
+        **options,
+        body_set=PdfLineSet("Helvetica-Light", area=area),
+        currency_set=currency_set,
+    )
     def filter_page(xml_root):
         raise NotImplementedError
 

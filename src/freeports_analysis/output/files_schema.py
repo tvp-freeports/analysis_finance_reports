@@ -9,10 +9,10 @@ from typing import Optional, List
 import datetime
 import pandera.pandas as pa
 import pandas as pd
+from pydantic import BaseModel, confloat
 from freeports_analysis.data import COMPANIES
 from freeports_analysis.formats.data import VALID_FORMATS
 from freeports_analysis.consts import Currency
-from pydantic import BaseModel, confloat
 
 
 # List of valid financial instrument types

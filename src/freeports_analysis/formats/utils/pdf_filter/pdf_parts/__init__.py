@@ -36,11 +36,11 @@ from operator import or_, and_, sub, truediv
 from functools import reduce
 from lxml import etree
 from pydantic import BaseModel, AfterValidator, PositiveFloat
+from shapely import Polygon, box
+from portion.interval import Interval
 from freeports_analysis.i18n import _
 from .font import Font, FontSize, FontSizeSet, FontSet, TextSet, AllFonts
 from ..xml.position import get_bounds
-from shapely import Polygon, box
-from portion.interval import Interval
 from .position import InputArea
 from ..xml import xpath_queries as xpath
 
@@ -268,19 +268,19 @@ class InputPdfLineSet(BaseModel):
     area: Optional[InputArea] = None
 
 
-_line_set_font_regexp = r"(?P<font>[\w\-, ]+)"
-_number_regexp = r"[0-9]+(\.[0-9]+)?"
-_line_set_fontsize_regexp = rf"\[(?P<font_size>{_number_regexp})\]"
-_range_regexp = rf"\(({_number_regexp})?:({_number_regexp})?\)"
-_line_set_area_regexp = (
-    rf"(?P<y_range>{_range_regexp})|\((?P<area>{_range_regexp}{_range_regexp})\)"
+_LINE_SET_FONT_REGEXP = r"(?P<font>[\w\-, ]+)"
+_NUMBER_REGEXP = r"[0-9]+(\.[0-9]+)?"
+_LINE_SET_FONTSIZE_REGEXP = rf"\[(?P<font_size>{_NUMBER_REGEXP})\]"
+_RANGE_REGEXP = rf"\(({_NUMBER_REGEXP})?:({_NUMBER_REGEXP})?\)"
+_LINE_SET_AREA_REGEXP = (
+    rf"(?P<y_range>{_RANGE_REGEXP})|\((?P<area>{_RANGE_REGEXP}{_RANGE_REGEXP})\)"
 )
-_line_set_text_regexp = '"(?P<text>.*)"'
-line_set_regexp = f"({_line_set_font_regexp})? ?"
-line_set_regexp += f"({_line_set_fontsize_regexp})? ?"
-line_set_regexp += f"({_line_set_area_regexp})? ?"
-line_set_regexp += f"({_line_set_text_regexp})?"
-_line_set_regexp = re.compile(line_set_regexp)
+_LINE_SET_TEXT_REGEXP = '"(?P<text>.*)"'
+LINE_SET_REGEXP = f"({_LINE_SET_FONT_REGEXP})? ?"
+LINE_SET_REGEXP += f"({_LINE_SET_FONTSIZE_REGEXP})? ?"
+LINE_SET_REGEXP += f"({_LINE_SET_AREA_REGEXP})? ?"
+LINE_SET_REGEXP += f"({_LINE_SET_TEXT_REGEXP})?"
+_LINE_SET_REGEXP = re.compile(LINE_SET_REGEXP)
 
 
 def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
@@ -532,11 +532,7 @@ class PdfLineSet:
                 if ymax is None:
                     ymax = +1e6
                 area = box(xmin, ymin, xmax, ymax)
-            elif (
-                isinstance(area[0], float)
-                or isinstance(area[0], int)
-                or area[0] is None
-            ):
+            elif isinstance(area[0], (float, int)) or area[0] is None:
                 # Vertical range only: (ymin, ymax)
                 ymin, ymax = area
                 if ymin is None:
@@ -548,7 +544,7 @@ class PdfLineSet:
         # Convert string inputs to proper typed objects
         if isinstance(font, str):
             font = FontSet(font)
-        if isinstance(font_size, float) or isinstance(font_size, int):
+        if isinstance(font_size, (float, int)):
             font_size = FontSizeSet.from_range(font_size - 1e-4, font_size + 1e-4)
         if isinstance(text, str):
             text = TextSet(text)
@@ -760,7 +756,7 @@ class PdfLineSet:
         return self / other
 
     def __repr__(self):
-        BIN_OPS = {
+        bin_ops = {
             ast.And: "AND",
             ast.Or: "OR",
             ast.Div: "BESIDES",
@@ -781,24 +777,22 @@ class PdfLineSet:
             else:
                 right_string = repr(right)
 
-            string = f"{left_string}\n\t{BIN_OPS[op]}\n{right_string}"
+            string = f"{left_string}\n\t{bin_ops[op]}\n{right_string}"
         else:
             string = left_string
         return string
 
     def __contains__(self, other):
-        BIN_OPS = {
+        bin_ops = {
             ast.And: lambda v1, v2: v1 and v2,
             ast.Or: lambda v1, v2: v1 or v2,
             ast.Div: lambda v1, v2: v1 and not v2,
         }
-        in_right = False
         in_set = other in self._left
         if self._right is None:
             return in_set
-        else:
-            op, right = self._right
-            return BIN_OPS[op](in_set, other in right)
+        op, right = self._right
+        return bin_ops[op](in_set, other in right)
 
     @classmethod
     def from_dict(cls, data):
@@ -822,7 +816,7 @@ class PdfLineSet:
 
     @classmethod
     def from_str(cls, string):
-        matched = _line_set_regexp.match(string).groupdict()
+        matched = _LINE_SET_REGEXP.match(string).groupdict()
         area = None
         tmp_area = matched["area"]
         tmp_range = matched["y_range"]
@@ -911,19 +905,19 @@ def _pdflineset_area_agg(areas):
     if len(areas) == 2:
         x_min0, y_min0, x_max0, y_max0 = areas[0].bounds
         x_min1, y_min1, x_max1, y_max1 = areas[1].bounds
-        h_a = y_max1 - y_min2
-        h_b = y_max2 - y_min1
+        h_a = y_max0 - y_min1
+        h_b = y_max1 - y_min0
         h = min(abs(h_a), abs(h_b))
-        w_a = x_max1 - x_min2
-        w_b = x_max2 - x_min1
+        w_a = x_max0 - x_min1
+        w_b = x_max1 - x_min0
         w = min(abs(w_a), abs(w_b))
         if h > w:
-            return box(-1e6, min(y_max1, y_max2), 1e6, max(y_min1, y_min2))
-        return box(min(x_max1, x_max2), -1e6, min(x_min1, x_min2), 1e6)
+            return box(-1e6, min(y_max0, y_max1), 1e6, max(y_min0, y_min1))
+        return box(min(x_max0, x_max1), -1e6, min(x_min0, x_min1), 1e6)
     if len(areas) == 3:
-        x_min0, y_min0, x_max0, y_max0 = areas[0].bounds
-        x_min1, y_min1, x_max1, y_max1 = areas[1].bounds
-        x_min2, y_min2, x_max2, y_max2 = areas[2].bounds
+        x_min1, y_min1, x_max1, y_max1 = areas[0].bounds
+        x_min2, y_min2, x_max2, y_max2 = areas[1].bounds
+        x_min3, y_min3, x_max3, y_max3 = areas[2].bounds
         h_a12 = y_max1 - y_min2
         h_b12 = y_max2 - y_min1
         h_a23 = y_max2 - y_min3
@@ -974,7 +968,7 @@ def _pdflineset_area_agg(areas):
 
 def _default_area_agg(value, lines, xml_root):
     concrete_values = {"x_min": None, "x_max": None, "y_min": None, "y_max": None}
-    for k in concrete_values.keys():
+    for k in concrete_values:
         vl = value[k]
         if isinstance(vl, PdfLineSet):
             vl = vl.contextualize(xml_root)

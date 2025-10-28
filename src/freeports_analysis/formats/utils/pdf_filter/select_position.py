@@ -1,15 +1,27 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
-from typing import List, Annotated, Tuple
+from typing import List, Tuple
 from enum import Flag, Enum, auto
-from pydantic import BeforeValidator
-import pandas as pd
 
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
 
 
 class TablePosAlgorithm(Flag):
+    """Algorithm flags for table position detection.
+
+    Attributes
+    ----------
+    ROW : TablePosAlgorithm
+        Calculate row positions (vertical axis)
+    BIG_RULE : TablePosAlgorithm
+        Use largest areas as rulers instead of smallest
+    RULER_AREA : TablePosAlgorithm
+        Match based on ruler area intersection
+    TEST_POS : TablePosAlgorithm
+        Match based on test element position
+    """
+
     ROW = auto()
     BIG_RULE = auto()
     RULER_AREA = auto()
@@ -17,6 +29,18 @@ class TablePosAlgorithm(Flag):
 
     @classmethod
     def from_dict(cls, v: str | list):
+        """Create TablePosAlgorithm from string or list representation.
+
+        Parameters
+        ----------
+        v : str | list
+            String flag name or list of flag names
+
+        Returns
+        -------
+        TablePosAlgorithm
+            Combined flags object
+        """
         flag_from_string(v, cls)
 
 
@@ -24,6 +48,18 @@ InputTablePosAlgorithm = input_flags(TablePosAlgorithm)
 
 
 class TablePosMeasureUnit(Enum):
+    """Measurement units for position tolerance.
+
+    Attributes
+    ----------
+    EM : TablePosMeasureUnit
+        Relative to font size (em units)
+    PERC : TablePosMeasureUnit
+        Percentage of element size
+    PT : TablePosMeasureUnit
+        Absolute points
+    """
+
     EM = auto()
     PERC = auto()
     PT = auto()
@@ -68,7 +104,6 @@ def _area_position_algorithm(
 def _area_intersection_algorithm(
     ruler_geometry: Tuple[float, Tuple[float, float]],
     test_geometry: Tuple[float, Tuple[float, float]],
-    algorithm_flags: TablePosAlgorithm,
     abs_tolerance: float,
 ) -> bool:
     """Determine if test geometry intersects ruler geometry using area-based algorithm.
@@ -79,8 +114,6 @@ def _area_intersection_algorithm(
         (position, (min_bound, max_bound)) of the ruler element
     test_geometry : Tuple[float, Tuple[float, float]]
         (position, (min_bound, max_bound)) of the test element
-    algorithm_flags : TablePosAlgorithm
-        Flags controlling the matching algorithm
     abs_tolerance : float
         Absolute tolerance for boundary matching
 
@@ -126,12 +159,11 @@ def _algorithm_table_pos(
         TablePosAlgorithm.TEST_POS not in algorithm_flags
     ):
         return _area_intersection_algorithm(
-            ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
+            ruler_geometry, test_geometry, abs_tolerance
         )
-    else:
-        return _area_position_algorithm(
-            ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
-        )
+    return _area_position_algorithm(
+        ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
+    )
 
 
 def get_table_positions(
@@ -176,13 +208,17 @@ def get_table_positions(
     return_col = TablePosAlgorithm.ROW not in algorithm_flags
 
     def _get_geometrical_horizontal_infos(a):
-        xmin, ymin, xmax, ymax = a.bounds
+        bounds = a.bounds
+        xmin = bounds[0]
+        xmax = bounds[2]
         width = xmax - xmin
         x_center = (xmin + xmax) / 2
         return (xmin, xmax), width, x_center
 
     def _get_geometrical_vertical_infos(a):
-        xmin, ymin, xmax, ymax = a.bounds
+        bounds = a.bounds
+        ymin = bounds[1]
+        ymax = bounds[3]
         height = ymax - ymin
         y_center = (ymin + ymax) / 2
         return (ymin, ymax), height, y_center
