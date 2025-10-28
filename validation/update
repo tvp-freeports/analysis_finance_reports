@@ -1,0 +1,202 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
+
+SUBCOMMAND=""
+METHODOLOGY=""
+FILES=()
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case $1 in
+        version|methodology|file|files)
+            SUBCOMMAND="$1"
+            shift
+            ;;
+        with)
+            shift
+            METHODOLOGY="$1"
+            shift
+            ;;
+        *)
+            FILES+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$SUBCOMMAND" ]; then
+    echo "Usage: $0 <subcommand>"
+    echo "Subcommands:"
+    echo "  version                    - Update general methodology version"
+    echo "  methodology <name>         - Update specific methodology hash"
+    echo "  file <file> with <methodology> - Update single file hash"
+    echo "  files with <methodology>   - Update methodology hash (same as 'methodology')"
+    exit 1
+fi
+
+if [ -z "$PERSONAL_DOC" ]; then
+    echo "Error: No validation document found for current user"
+    echo "Run create-document first to create your validation document"
+    exit 1
+fi
+
+# Function to update file hash in document
+update_file_hash() {
+    local file_path="$1"
+    local methodology="$2"
+    
+    # Get absolute path and check if file exists
+    if [[ "$file_path" != /* ]]; then
+        file_path="$REPO_ROOT/$file_path"
+    fi
+    
+    if [ ! -f "$file_path" ]; then
+        echo "Error: File '$file_path' does not exist"
+        return 1
+    fi
+    
+    # Calculate new hash
+    local new_hash
+    new_hash=$(sha256sum "$file_path" | awk '{print $1}')
+    
+    # Get relative path from repo root
+    local rel_path
+    rel_path=$(realpath --relative-to="$REPO_ROOT" "$file_path")
+    
+    # Update file in specific methodology
+    echo "Updating '$rel_path' in methodology '$methodology'"
+    yq -i "(.data[] | select(.methodology == \"$methodology\").files[] | select(.path == \"$rel_path\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+    echo "✓ Updated '$rel_path' hash to: $new_hash in methodology '$methodology'"
+}
+
+# Function to check if methodology has associated files
+has_associated_files() {
+    local methodology="$1"
+    local file_count
+    file_count=$(yq -e ".data[] | select(.methodology == \"$methodology\").files | length" "$PERSONAL_DOC" 2>/dev/null || echo "0")
+    [ "$file_count" -gt 0 ]
+}
+
+# Function to remove all files associated with a methodology
+remove_associated_files() {
+    local methodology="$1"
+    echo "Removing all files associated with methodology '$methodology'..."
+    yq -i "del(.data[] | select(.methodology == \"$methodology\"))" -y "$PERSONAL_DOC"
+    echo "✓ Removed all files associated with methodology '$methodology'"
+}
+
+case "$SUBCOMMAND" in
+    version)
+        echo "Updating general methodology version..."
+        new_version=$(get_version_methodology)
+        yq -i ".version = \"$new_version\"" -y "$PERSONAL_DOC"
+        echo "✓ Updated general methodology version to: $new_version"
+        ;;
+        
+    methodology)
+        if [ ${#FILES[@]} -eq 0 ] && [ -n "$METHODOLOGY" ]; then
+            # Using methodology name from METHODOLOGY parameter
+            method_name=$(normalize_methodology_name "$METHODOLOGY")
+        elif [ ${#FILES[@]} -gt 0 ]; then
+            # Using methodology name from FILES parameter (backward compatibility)
+            method_name=$(normalize_methodology_name "${FILES[0]}")
+        else
+            echo "Error: Methodology name required"
+            echo "Usage: $0 methodology <methodology-name>"
+            echo "       $0 files with <methodology>"
+            exit 1
+        fi
+        
+        # Check if methodology exists
+        if ! yq -e ".methodologies[] | select(.name == \"$method_name\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
+            echo "Error: Methodology '$method_name' not found in validation document"
+            exit 1
+        fi
+        
+        # Check if methodology has associated files
+        if has_associated_files "$method_name"; then
+            echo "Warning: Methodology '$method_name' has files associated with it."
+            echo "Updating the methodology hash will remove all associated files."
+            read -p "Do you want to continue? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Operation cancelled."
+                exit 0
+            fi
+            # Remove associated files
+            remove_associated_files "$method_name"
+        fi
+        
+        # Get methodology file path and calculate new hash
+        method_file=$(echo "$method_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+        method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
+        
+        if [ ! -f "$method_path" ]; then
+            echo "Error: Methodology file '$method_path' does not exist"
+            exit 1
+        fi
+        
+        new_hash=$(sha256sum "$method_path" | awk '{print $1}')
+        
+        # Update methodology hash
+        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+        echo "✓ Updated methodology '$method_name' hash to: $new_hash"
+        ;;
+        
+    files)
+        if [ -z "$METHODOLOGY" ]; then
+            echo "Error: Must specify 'with <methodology>' for files subcommand"
+            echo "Usage: $0 files with <methodology>"
+            exit 1
+        fi
+        
+        method_name=$(normalize_methodology_name "$METHODOLOGY")
+        
+        # Check if methodology exists
+        if ! yq -e ".methodologies[] | select(.name == \"$method_name\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
+            echo "Error: Methodology '$method_name' not found in validation document"
+            exit 1
+        fi
+        
+        # Get methodology file path and calculate new hash
+        method_file=$(echo "$method_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+        method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
+        
+        if [ ! -f "$method_path" ]; then
+            echo "Error: Methodology file '$method_path' does not exist"
+            exit 1
+        fi
+        
+        new_hash=$(sha256sum "$method_path" | awk '{print $1}')
+        
+        # Update methodology hash (without removing associated files)
+        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+        echo "✓ Updated methodology '$method_name' hash to: $new_hash"
+        ;;
+        
+    file)
+        if [ ${#FILES[@]} -eq 0 ]; then
+            echo "Error: File path required"
+            echo "Usage: $0 file <file-path> with <methodology>"
+            exit 1
+        fi
+        
+        if [ -z "$METHODOLOGY" ]; then
+            echo "Error: Must specify 'with <methodology>'"
+            exit 1
+        fi
+        
+        update_file_hash "${FILES[0]}" "$METHODOLOGY"
+        ;;
+        
+    *)
+        echo "Error: Unknown subcommand '$SUBCOMMAND'"
+        exit 1
+        ;;
+esac
+
+echo ""
+echo "Update operation completed. Document updated: $PERSONAL_DOC"
+echo "Remember to sign the document with 'sign-document' to make changes valid"

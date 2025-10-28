@@ -16,6 +16,14 @@ fi
 
 echo "Signing validation document: $(basename "$PERSONAL_DOC")"
 
+# Check if signature already exists and is not null
+existing_sig=$(yq -r '.sign' "$PERSONAL_DOC")
+if [ "$existing_sig" != "null" ] && [ -n "$existing_sig" ]; then
+    echo "Error: Signature already exists in document"
+    echo "Operation cancelled"
+    exit 0
+fi
+
 # Get normalized content and sign it directly using process substitution
 echo "Signing with key: $KEYID"
 signature=$(yq -y -S 'del(.sign)' "$PERSONAL_DOC" | gpg --detach-sign --armor --default-key "$KEYID" - 2>/dev/null | base64 -w 0)
