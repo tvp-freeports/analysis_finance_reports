@@ -2,7 +2,7 @@
 Human check
 ===========
 
-The files covered
+The files covered can be of different types
 
 *************************
 ``{N PAGE}-pdf_blks.pkl``

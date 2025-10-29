@@ -73,7 +73,7 @@ update_file_hash() {
     
     # Update file in specific methodology
     print_info "Updating '$rel_path' in methodology '$methodology'"
-    yq -i "(.data[] | select(.methodology == \"$methodology\").files[] | select(.path == \"$rel_path\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+    yq -i "(.data[] | select(.methodology == \"$methodology\").files[] | select(.path == \"$rel_path\")).sha256 = \"$new_hash\"" "$PERSONAL_DOC"
     print_success "Updated '$rel_path' hash to: $new_hash in methodology '$methodology'"
 }
 
@@ -89,7 +89,7 @@ has_associated_files() {
 remove_associated_files() {
     local methodology="$1"
     print_info "Removing all files associated with methodology '$methodology'..."
-    yq -i "del(.data[] | select(.methodology == \"$methodology\"))" -y "$PERSONAL_DOC"
+    yq -i "del(.data[] | select(.methodology == \"$methodology\"))" "$PERSONAL_DOC"
     print_success "Removed all files associated with methodology '$methodology'"
 }
 
@@ -97,7 +97,7 @@ case "$SUBCOMMAND" in
     version)
         print_info "Updating general methodology version..."
         new_version=$(get_version_methodology)
-        yq -i ".version = \"$new_version\"" -y "$PERSONAL_DOC"
+        yq -i ".version = \"$new_version\"" "$PERSONAL_DOC"
         print_success "Updated general methodology version to: $new_version"
         ;;
         
@@ -147,7 +147,7 @@ case "$SUBCOMMAND" in
         new_hash=$(sha256sum "$method_path" | awk '{print $1}')
         
         # Update methodology hash
-        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\""  "$PERSONAL_DOC"
         print_success "Updated methodology '$method_name' hash to: $new_hash"
         ;;
         
@@ -178,7 +178,7 @@ case "$SUBCOMMAND" in
         new_hash=$(sha256sum "$method_path" | awk '{print $1}')
         
         # Update methodology hash (without removing associated files)
-        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
+        yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" "$PERSONAL_DOC"
         print_success "Updated methodology '$method_name' hash to: $new_hash"
         ;;
         

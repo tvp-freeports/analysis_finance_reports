@@ -46,7 +46,7 @@ add_methodology_to_document() {
     local methodology_name="$2"
     local methodology_hash="$3"
     
-    yq -i ".methodologies += [{\"name\": \"$methodology_name\", \"sha256\": \"$methodology_hash\"}]" -y "$doc_path"
+    yq -i ".methodologies += [{\"name\": \"$methodology_name\", \"sha256\": \"$methodology_hash\"}]"  "$doc_path"
 }
 
 # Function to add file grant to document
@@ -58,11 +58,11 @@ add_file_grant_to_document() {
     
     # Create methodology section if it doesn't exist
     if ! yq -e ".data[] | select(.methodology == \"$methodology_name\")" "$doc_path" > /dev/null 2>&1; then
-        yq -i ".data += [{\"methodology\": \"$methodology_name\", \"files\": []}]" -y "$doc_path"
+        yq -i ".data += [{\"methodology\": \"$methodology_name\", \"files\": []}]"  "$doc_path"
     fi
     
     # Add file to methodology's files list
-    yq -i "(.data[] | select(.methodology == \"$methodology_name\").files) += [{\"path\": \"$file_path\", \"sha256\": \"$file_hash\"}]" -y "$doc_path"
+    yq -i "(.data[] | select(.methodology == \"$methodology_name\").files) += [{\"path\": \"$file_path\", \"sha256\": \"$file_hash\"}]"  "$doc_path"
 }
 
 # Function to iterate over methodologies in document
