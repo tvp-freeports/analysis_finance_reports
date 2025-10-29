@@ -76,6 +76,6 @@ through his *hash* or with the beginning part of it (enough to distinguish it fr
 
    general_methodology
    methodologies/basic_check
-   methodoloogis/golden_standard
+   methodologies/golden_standard
    methodologies/agreement_and_good_faith
    assertions/validation_algorithm_trustworthiness
