@@ -131,7 +131,14 @@ case $GROUP_BY in
             for methodology in "${!methodology_grants[@]}"; do
                 files=$(echo "${methodology_grants[$methodology]}" | sed 's/, $//')
                 echo "Methodology: $methodology"
-                echo "  Files: $files"
+                echo "  Files:"
+                # Split the stored files string (comma-separated)
+                # and print each file on a new indented line
+                IFS=',' read -ra files <<< "${methodology_grants[$methodology]}"
+                for file in "${files[@]}"; do
+                    file=$(echo "$file" | xargs) # trim spaces
+                    [[ -n "$file" ]] && echo "    - $file"
+                done
                 echo ""
             done
         fi
