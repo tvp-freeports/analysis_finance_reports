@@ -131,9 +131,13 @@ case $GROUP_BY in
             echo "GRANTS GROUPED BY CONTRIBUTOR:"
             echo "=============================="
             for contributor in "${!contributor_grants[@]}"; do
-                files=$(echo "${contributor_grants[$contributor]}" | sed 's/, $//')
                 echo "Contributor: $contributor"
-                echo "  Files: $files"
+                echo "  Files:"
+                IFS=',' read -ra files <<< "${contributor_grants[$contributor]}"
+                for file in "${files[@]}"; do
+                    file=$(echo "$file" | xargs) # trim spaces
+                    [[ -n "$file" ]] && echo "    - $file"
+                done
                 echo ""
             done
         fi
