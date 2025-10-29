@@ -11,6 +11,10 @@ export TEST_DIR="${REPO_ROOT}/tests"
 export DOCUMENT_DIR="${REPO_ROOT}/validation/documents"
 export LIB_DIR="${REPO_ROOT}/validation/lib"
 
+# Source shared libraries
+source "${LIB_DIR}/validation_utils.sh"
+source "${LIB_DIR}/document_utils.sh"
+
 # Get UID information and parse it
 user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
 if [ -z "$user_id" ]; then
@@ -18,41 +22,13 @@ if [ -z "$user_id" ]; then
     exit 1
 fi
 
-normalize_methodology_name(){
-    echo "$1" | tr '_' ' ' | tr '[:upper:]' '[:lower:]'
-}
-
-get_version_methodology(){
-    sha256sum ../docs/source/validation/general_methodology.rst | awk '{print $1}'
-}
-
-
-# Function to validate document signature
-validate_document_signature() {
-    local doc_path="$1"
-    
-    # Check if signature exists
-    local existing_sig
-    existing_sig=$(yq -r '.sign' "$doc_path")
-    if [ "$existing_sig" = "null" ] || [ -z "$existing_sig" ]; then
-        # No signature found, this is acceptable
-        return 0
-    fi
-    
-    # Verify the signature
-    if yq -y -S 'del(.sign)' "$doc_path" | gpg --verify <(yq -r '.sign' "$doc_path" | base64 -d) - >/dev/null 2>&1; then
-        return 0
-    else
-        echo "Error: Invalid signature in document"
-        return 1
-    fi
-}
-
 # Extract name and email
 export NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
 export EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
 out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
 export PERSONAL_DOC="${DOCUMENT_DIR}/${out_file_name}.yaml"
 
-
+get_version_methodology(){
+    sha256sum "$REPO_ROOT/docs/source/validation/general_methodology.rst" | awk '{print $1}'
+}
 

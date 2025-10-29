@@ -27,7 +27,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$SUBCOMMAND" ]; then
-    echo "Usage: $0 <subcommand>"
+    print_error "Usage: $0 <subcommand>"
     echo "Subcommands:"
     echo "  version                    - Update general methodology version"
     echo "  methodology <name>         - Update specific methodology hash"
@@ -37,14 +37,14 @@ if [ -z "$SUBCOMMAND" ]; then
 fi
 
 if [ -z "$PERSONAL_DOC" ]; then
-    echo "Error: No validation document found for current user"
+    print_error "No validation document found for current user"
     echo "Run create-document first to create your validation document"
     exit 1
 fi
 
 # Validate document signature before making changes
 if ! validate_document_signature "$PERSONAL_DOC"; then
-    echo "Operation cancelled due to invalid signature"
+    print_error "Operation cancelled due to invalid signature"
     exit 1
 fi
 
@@ -54,7 +54,7 @@ update_file_hash() {
     local methodology="$2"
     
     if [ ! -f "$file_path" ]; then
-        echo "Error: File '$file_path' does not exist"
+        print_error "File '$file_path' does not exist"
         return 1
     fi
     
@@ -67,9 +67,9 @@ update_file_hash() {
     rel_path=$(realpath --relative-to="$REPO_ROOT" "$file_path")
     
     # Update file in specific methodology
-    echo "Updating '$rel_path' in methodology '$methodology'"
+    print_info "Updating '$rel_path' in methodology '$methodology'"
     yq -i "(.data[] | select(.methodology == \"$methodology\").files[] | select(.path == \"$rel_path\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
-    echo "✓ Updated '$rel_path' hash to: $new_hash in methodology '$methodology'"
+    print_success "Updated '$rel_path' hash to: $new_hash in methodology '$methodology'"
 }
 
 # Function to check if methodology has associated files
@@ -83,17 +83,17 @@ has_associated_files() {
 # Function to remove all files associated with a methodology
 remove_associated_files() {
     local methodology="$1"
-    echo "Removing all files associated with methodology '$methodology'..."
+    print_info "Removing all files associated with methodology '$methodology'..."
     yq -i "del(.data[] | select(.methodology == \"$methodology\"))" -y "$PERSONAL_DOC"
-    echo "✓ Removed all files associated with methodology '$methodology'"
+    print_success "Removed all files associated with methodology '$methodology'"
 }
 
 case "$SUBCOMMAND" in
     version)
-        echo "Updating general methodology version..."
+        print_info "Updating general methodology version..."
         new_version=$(get_version_methodology)
         yq -i ".version = \"$new_version\"" -y "$PERSONAL_DOC"
-        echo "✓ Updated general methodology version to: $new_version"
+        print_success "Updated general methodology version to: $new_version"
         ;;
         
     methodology)
@@ -104,26 +104,26 @@ case "$SUBCOMMAND" in
             # Using methodology name from FILES parameter (backward compatibility)
             method_name=$(normalize_methodology_name "${FILES[0]}")
         else
-            echo "Error: Methodology name required"
+            print_error "Methodology name required"
             echo "Usage: $0 methodology <methodology-name>"
             echo "       $0 files with <methodology>"
             exit 1
         fi
         
         # Check if methodology exists
-        if ! yq -e ".methodologies[] | select(.name == \"$method_name\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-            echo "Error: Methodology '$method_name' not found in validation document"
+        if ! methodology_exists "$PERSONAL_DOC" "$method_name"; then
+            print_error "Methodology '$method_name' not found in validation document"
             exit 1
         fi
         
         # Check if methodology has associated files
         if has_associated_files "$method_name"; then
-            echo "Warning: Methodology '$method_name' has files associated with it."
+            print_warning "Methodology '$method_name' has files associated with it."
             echo "Updating the methodology hash will remove all associated files."
             read -p "Do you want to continue? (y/N): " -n 1 -r
             echo
             if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                echo "Operation cancelled."
+                print_info "Operation cancelled."
                 exit 0
             fi
             # Remove associated files
@@ -135,7 +135,7 @@ case "$SUBCOMMAND" in
         method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
         
         if [ ! -f "$method_path" ]; then
-            echo "Error: Methodology file '$method_path' does not exist"
+            print_error "Methodology file '$method_path' does not exist"
             exit 1
         fi
         
@@ -143,12 +143,12 @@ case "$SUBCOMMAND" in
         
         # Update methodology hash
         yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
-        echo "✓ Updated methodology '$method_name' hash to: $new_hash"
+        print_success "Updated methodology '$method_name' hash to: $new_hash"
         ;;
         
     files)
         if [ -z "$METHODOLOGY" ]; then
-            echo "Error: Must specify 'with <methodology>' for files subcommand"
+            print_error "Must specify 'with <methodology>' for files subcommand"
             echo "Usage: $0 files with <methodology>"
             exit 1
         fi
@@ -156,8 +156,8 @@ case "$SUBCOMMAND" in
         method_name=$(normalize_methodology_name "$METHODOLOGY")
         
         # Check if methodology exists
-        if ! yq -e ".methodologies[] | select(.name == \"$method_name\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-            echo "Error: Methodology '$method_name' not found in validation document"
+        if ! methodology_exists "$PERSONAL_DOC" "$method_name"; then
+            print_error "Methodology '$method_name' not found in validation document"
             exit 1
         fi
         
@@ -166,7 +166,7 @@ case "$SUBCOMMAND" in
         method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
         
         if [ ! -f "$method_path" ]; then
-            echo "Error: Methodology file '$method_path' does not exist"
+            print_error "Methodology file '$method_path' does not exist"
             exit 1
         fi
         
@@ -174,18 +174,18 @@ case "$SUBCOMMAND" in
         
         # Update methodology hash (without removing associated files)
         yq -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" -y "$PERSONAL_DOC"
-        echo "✓ Updated methodology '$method_name' hash to: $new_hash"
+        print_success "Updated methodology '$method_name' hash to: $new_hash"
         ;;
         
     file)
         if [ ${#FILES[@]} -eq 0 ]; then
-            echo "Error: File path required"
+            print_error "File path required"
             echo "Usage: $0 file <file-path> with <methodology>"
             exit 1
         fi
         
         if [ -z "$METHODOLOGY" ]; then
-            echo "Error: Must specify 'with <methodology>'"
+            print_error "Must specify 'with <methodology>'"
             exit 1
         fi
         
@@ -193,12 +193,12 @@ case "$SUBCOMMAND" in
         ;;
         
     *)
-        echo "Error: Unknown subcommand '$SUBCOMMAND'"
+        print_error "Unknown subcommand '$SUBCOMMAND'"
         exit 1
         ;;
 esac
 
 echo ""
-echo "Update operation completed. Document updated: $PERSONAL_DOC"
+print_success "Update operation completed. Document updated: $PERSONAL_DOC"
 echo "Updating signature..."
 "$REPO_ROOT/validation/sign-document" --update

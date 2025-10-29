@@ -10,7 +10,7 @@ GROUP_BY="methodology"
 while getopts "f" opt; do
     case $opt in
         f) GROUP_BY="file" ;;
-        *) echo "Usage: $0 [-f] <contributor_identifier>"
+        *) print_error "Usage: $0 [-f] <contributor_identifier>"
            echo "  -f: Group by file"
            echo "  Default: Group by methodology"
            exit 1
@@ -20,138 +20,14 @@ done
 shift $((OPTIND-1))
 
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 [-f] <contributor_identifier>"
+    print_error "Usage: $0 [-f] <contributor_identifier>"
     echo "  contributor_identifier can be: name, email, or pubkey_id"
     exit 1
 fi
 
 CONTRIBUTOR_ID="$1"
 
-# Function to validate document signature
-validate_document_signature() {
-    local doc_path="$1"
-    
-    # Check if signature exists
-    local existing_sig
-    existing_sig=$(yq -r '.sign' "$doc_path" 2>/dev/null)
-    if [ "$existing_sig" = "null" ] || [ -z "$existing_sig" ]; then
-        # No signature found, this is acceptable but warn
-        return 2
-    fi
-    
-    # Verify the signature
-    if yq -y -S 'del(.sign)' "$doc_path" 2>/dev/null | gpg --verify <(echo "$existing_sig" | base64 -d 2>/dev/null) - >/dev/null 2>&1; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to check methodology hash validity
-validate_methodology_hash() {
-    local doc_path="$1"
-    local methodology_name="$2"
-    
-    # Get stored hash from document
-    local stored_hash
-    stored_hash=$(yq -r ".methodologies[] | select(.name == \"$methodology_name\") | .sha256" "$doc_path" 2>/dev/null)
-    
-    if [ -z "$stored_hash" ] || [ "$stored_hash" = "null" ]; then
-        return 1
-    fi
-    
-    # Get methodology file path and calculate current hash
-    local method_file
-    method_file=$(echo "$methodology_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-    local method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
-    
-    if [ ! -f "$method_path" ]; then
-        return 1
-    fi
-    
-    local current_hash
-    current_hash=$(sha256sum "$method_path" | awk '{print $1}')
-    
-    if [ "$stored_hash" = "$current_hash" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to check file hash validity
-validate_file_hash() {
-    local file_path="$1"
-    local stored_hash="$2"
-    
-    if [ ! -f "$file_path" ]; then
-        return 1
-    fi
-    
-    local current_hash
-    current_hash=$(sha256sum "$file_path" | awk '{print $1}')
-    
-    if [ "$stored_hash" = "$current_hash" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to check version validity
-validate_version() {
-    local doc_path="$1"
-    
-    # Get stored version from document
-    local stored_version
-    stored_version=$(yq -r '.version' "$doc_path" 2>/dev/null)
-    
-    if [ -z "$stored_version" ] || [ "$stored_version" = "null" ]; then
-        return 1
-    fi
-    
-    # Calculate current version hash
-    local current_version
-    current_version=$(sha256sum "$REPO_ROOT/docs/source/validation/general_methodology.rst" | awk '{print $1}')
-    
-    if [ "$stored_version" = "$current_version" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to check if document belongs to contributor
-is_contributor_document() {
-    local doc_path="$1"
-    local identifier="$2"
-    
-    # Check name
-    local name
-    name=$(yq -r '.who.name' "$doc_path" 2>/dev/null)
-    if [ "$name" = "$identifier" ]; then
-        return 0
-    fi
-    
-    # Check email
-    local email
-    email=$(yq -r '.who.email' "$doc_path" 2>/dev/null)
-    if [ "$email" = "$identifier" ]; then
-        return 0
-    fi
-    
-    # Check pubkey_id
-    local pubkey_id
-    pubkey_id=$(yq -r '.who.pubkey_id' "$doc_path" 2>/dev/null)
-    if [ "$pubkey_id" = "$identifier" ]; then
-        return 0
-    fi
-    
-    return 1
-}
-
-echo "=================================================================="
-echo "Files granted by: $CONTRIBUTOR_ID"
+print_info "Files granted by: $CONTRIBUTOR_ID"
 echo "=================================================================="
 
 # Arrays to store results for different grouping modes
@@ -170,19 +46,15 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
     fi
     
     DOC_NAME=$(basename "$doc" .yaml)
-    CONTRIBUTOR_NAME=$(yq -r '.who.name' "$doc" 2>/dev/null)
+    CONTRIBUTOR_NAME=$(get_contributor_info "$doc")
     
-    if [ -z "$CONTRIBUTOR_NAME" ] || [ "$CONTRIBUTOR_NAME" = "null" ]; then
-        CONTRIBUTOR_NAME="Unknown"
-    fi
-    
-    echo "Processing document: $DOC_NAME"
+    print_info "Processing document: $DOC_NAME"
     
     # Validate document signature - silently check
     if ! validate_document_signature "$doc" > /dev/null 2>&1; then
         if [ $? -eq 1 ]; then
             # Invalid signature - skip document
-            echo "  ⚠️  Invalid signature - skipping document"
+            print_warning "Invalid signature - skipping document"
             continue
         fi
     fi
@@ -190,14 +62,14 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
     # Validate version - silently check
     if ! validate_version "$doc" > /dev/null 2>&1; then
         # Invalid version - skip document
-        echo "  ⚠️  Invalid version - skipping document"
+        print_warning "Invalid version - skipping document"
         continue
     fi
     
     # Check each methodology section
-    METHODOLOGY_COUNT=$(yq '.data | length' "$doc" 2>/dev/null)
+    METHODOLOGY_COUNT=$(get_document_array_length "$doc" "data")
     for ((i=0; i<METHODOLOGY_COUNT; i++)); do
-        METHODOLOGY=$(yq -r ".data[$i].methodology" "$doc" 2>/dev/null)
+        METHODOLOGY=$(get_document_array_element "$doc" "data" "$i" "methodology")
         if [ -z "$METHODOLOGY" ] || [ "$METHODOLOGY" = "null" ]; then
             continue
         fi
@@ -207,7 +79,7 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
         # Validate methodology hash - silently check
         if ! validate_methodology_hash "$doc" "$METHODOLOGY" > /dev/null 2>&1; then
             # Invalid methodology hash - skip methodology
-            echo "  ⚠️  Invalid methodology hash for '$METHODOLOGY' - skipping methodology"
+            print_warning "Invalid methodology hash for '$METHODOLOGY' - skipping methodology"
             continue
         fi
         
@@ -218,7 +90,7 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
             # Validate file hash - silently check
             if ! validate_file_hash "$REPO_ROOT/$GRANTED_PATH" "$GRANTED_SHA256" > /dev/null 2>&1; then
                 # File hash mismatch - skip this grant
-                echo "  ⚠️  File hash mismatch for '$GRANTED_PATH' - skipping file"
+                print_warning "File hash mismatch for '$GRANTED_PATH' - skipping file"
                 continue
             fi
             
@@ -245,7 +117,7 @@ done
 case $GROUP_BY in
     "methodology")
         if [ ${#methodology_grants[@]} -eq 0 ]; then
-            echo "No valid grants found for this contributor."
+            print_warning "No valid grants found for this contributor."
         else
             echo ""
             echo "GRANTS GROUPED BY METHODOLOGY:"
@@ -261,7 +133,7 @@ case $GROUP_BY in
         
     "file")
         if [ ${#file_grants[@]} -eq 0 ]; then
-            echo "No valid grants found for this contributor."
+            print_warning "No valid grants found for this contributor."
         else
             echo ""
             echo "GRANTS GROUPED BY FILE:"

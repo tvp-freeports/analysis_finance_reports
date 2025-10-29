@@ -21,34 +21,31 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-
 if [ -z "$METHODOLOGY" ]; then
-    echo "Usage: $0 <files...> [with <methodology>]"
+    print_error "Usage: $0 <files...> [with <methodology>]"
     exit 1
 fi
 
 if [ -z "$PERSONAL_DOC" ]; then
-    echo "Error: No validation document found for current user"
+    print_error "No validation document found for current user"
     echo "Run create-document first to create your validation document"
     exit 1
 fi
 
-
 # Validate document signature before making changes
 if ! validate_document_signature "$PERSONAL_DOC"; then
-    echo "Operation cancelled due to invalid signature"
+    print_error "Operation cancelled due to invalid signature"
     exit 1
 fi
 
-
 # If no files are provided, just add the methodology
-METHODOLOGY=$(normalize_methodology_name $METHODOLOGY)
+METHODOLOGY=$(normalize_methodology_name "$METHODOLOGY")
 if [ ${#FILES[@]} -eq 0 ]; then
-    echo "Adding methodology: $METHODOLOGY"
+    print_info "Adding methodology: $METHODOLOGY"
     
     # Check if methodology already exists
-    if yq -e ".methodologies[] | select(.name == \"$METHODOLOGY\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-        echo "Warning: Methodology '$METHODOLOGY' already exists in validation document"
+    if methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
+        print_warning "Methodology '$METHODOLOGY' already exists in validation document"
         exit 0
     fi
     
@@ -57,7 +54,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
     methodology_path="$REPO_ROOT/docs/source/validation/methodologies/${methodology_file}.rst"
     
     if [ ! -f "$methodology_path" ]; then
-        echo "Error: Methodology file '$methodology_path' does not exist"
+        print_error "Methodology file '$methodology_path' does not exist"
         echo "Please create the methodology documentation first"
         exit 1
     fi
@@ -65,18 +62,16 @@ if [ ${#FILES[@]} -eq 0 ]; then
     methodology_hash=$(sha256sum "$methodology_path" | awk '{print $1}')
     
     # Add methodology to methodologies list
-    yq -i ".methodologies += [{\"name\": \"$METHODOLOGY\", \"sha256\": \"$methodology_hash\"}]" -y "$PERSONAL_DOC"
-    
-    echo "✓ Added methodology '$METHODOLOGY' with hash: $methodology_hash"
+    add_methodology_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$methodology_hash"
+    print_success "Added methodology '$METHODOLOGY' with hash: $methodology_hash"
     echo "Updating signature..."
     "$REPO_ROOT/validation/sign-document" --update
     exit 0
 fi
 
-
 # Check if methodology exists in the document
-if ! yq -e ".methodologies[] | select(.name == \"$METHODOLOGY\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-    echo "Error: Methodology '$METHODOLOGY' not found in validation document"
+if ! methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
+    print_error "Methodology '$METHODOLOGY' not found in validation document"
     echo "Available methodologies:"
     yq -r '.methodologies[].name' "$PERSONAL_DOC"
     echo ""
@@ -87,7 +82,7 @@ fi
 # Process each file
 for file in "${FILES[@]}"; do
     if [ ! -f "$file" ]; then
-        echo "Error: File '$file' does not exist"
+        print_error "File '$file' does not exist"
         exit 1
     fi
     
@@ -97,27 +92,21 @@ for file in "${FILES[@]}"; do
     # Get relative path from repo root
     rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
     
-    echo "Processing: $rel_path (SHA256: $file_hash)"
+    print_info "Processing: $rel_path (SHA256: $file_hash)"
     
     # Check if file is already granted with this methodology
-    if yq -e ".data[] | select(.methodology == \"$METHODOLOGY\") | .files[] | select(.path == \"$rel_path\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-        echo "Warning: File '$rel_path' is already granted with methodology '$METHODOLOGY'"
+    if file_granted_with_methodology "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path"; then
+        print_warning "File '$rel_path' is already granted with methodology '$METHODOLOGY'"
         continue
     fi
     
     # Add file to the methodology section
-    # If methodology section doesn't exist in data, create it
-    if ! yq -e ".data[] | select(.methodology == \"$METHODOLOGY\")" "$PERSONAL_DOC" > /dev/null 2>&1; then
-        # Create new methodology section in data
-        yq -i ".data += [{\"methodology\": \"$METHODOLOGY\", \"files\": []}]" -y "$PERSONAL_DOC"
-    fi
-    
-    # Add file to the methodology's files list
-    yq -i "(.data[] | select(.methodology == \"$METHODOLOGY\").files) += [{\"path\": \"$rel_path\", \"sha256\": \"$file_hash\"}]" -y "$PERSONAL_DOC"
-    
-    echo "✓ Granted '$rel_path' with methodology '$METHODOLOGY'"
+    add_file_grant_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path" "$file_hash"
+
+    print_success "Granted '$rel_path' with methodology '$METHODOLOGY'"
 done
 
-echo "Grant operation completed. Document updated: $PERSONAL_DOC"
+print_success "Grant operation completed. Document updated: $PERSONAL_DOC"
 echo "Updating signature..."
 "$REPO_ROOT/validation/sign-document" --update
+

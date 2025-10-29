@@ -3,154 +3,6 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 source "${REPO_ROOT}/validation/lib/utils"
 
-# Function to check a specific validation document
-check_document() {
-    local doc_path="$1"
-    local errors=0
-    local warnings=0
-    
-    echo "Checking validation document: $(basename "$doc_path")"
-    echo "=========================================="
-    
-    # Check if document exists
-    if [ ! -f "$doc_path" ]; then
-        echo "❌ Error: Document '$doc_path' does not exist"
-        return 1
-    fi
-    
-    # Extract document content without signature for verification
-    local normalized_content
-    normalized_content=$(yq -y -S 'del(.sign)' "$doc_path" 2>/dev/null)
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ Error: Invalid YAML format in document"
-        return 1
-    fi
-    
-    # 1. Check signature
-    echo "1. Checking cryptographic signature..."
-    local signature
-    signature=$(yq -r '.sign' "$doc_path")
-    
-    if [ -z "$signature" ] || [ "$signature" = "null" ]; then
-        echo "❌ Error: No signature found in document"
-        ((errors++))
-    else
-        # Verify signature using GPG
-        if echo "$normalized_content" | gpg --verify <(echo "$signature" | base64 -d) - >/dev/null 2>&1; then
-            echo "✅ Signature is valid"
-        else
-            echo "❌ Error: Invalid signature"
-            ((errors++))
-        fi
-    fi
-    
-    # 2. Check general methodology version
-    echo "2. Checking general methodology version..."
-    local doc_version
-    doc_version=$(yq -r '.version' "$doc_path")
-    local current_version
-    current_version=$(get_version_methodology)
-    
-    if [ "$doc_version" = "$current_version" ]; then
-        echo "✅ General methodology version is current: $doc_version"
-    else
-        echo "❌ Error: General methodology version mismatch"
-        echo "   Document version: $doc_version"
-        echo "   Current version:  $current_version"
-        ((errors++))
-    fi
-    
-    # 3. Check methodologies
-    echo "3. Checking methodologies..."
-    local methodology_count
-    methodology_count=$(yq -r '.methodologies | length' "$doc_path")
-    
-    for ((i=0; i<methodology_count; i++)); do
-        local method_name
-        method_name=$(yq -r ".methodologies[$i].name" "$doc_path")
-        local doc_hash
-        doc_hash=$(yq -r ".methodologies[$i].sha256" "$doc_path")
-        
-        # Get methodology file path
-        local method_file
-        method_file=$(echo "$method_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-        local method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
-        
-        if [ ! -f "$method_path" ]; then
-            echo "❌ Error: Methodology file '$method_path' not found for '$method_name'"
-            ((errors++))
-            continue
-        fi
-        
-        # Calculate current hash
-        local current_hash
-        current_hash=$(sha256sum "$method_path" | awk '{print $1}')
-        
-        if [ "$doc_hash" = "$current_hash" ]; then
-            echo "✅ Methodology '$method_name': hash matches"
-        else
-            echo "❌ Error: Methodology '$method_name' hash mismatch"
-            echo "   Document hash: $doc_hash"
-            echo "   Current hash:  $current_hash"
-            ((errors++))
-        fi
-    done
-    
-    # 4. Check files in data section
-    echo "4. Checking granted files..."
-    local data_count
-    data_count=$(yq -r '.data | length' "$doc_path")
-    
-    for ((i=0; i<data_count; i++)); do
-        local method_name
-        method_name=$(yq -r ".data[$i].methodology" "$doc_path")
-        local files_count
-        files_count=$(yq -r ".data[$i].files | length" "$doc_path")
-        
-        echo "   Methodology: $method_name"
-        
-        for ((j=0; j<files_count; j++)); do
-            local file_path
-            file_path=$(yq -r ".data[$i].files[$j].path" "$doc_path")
-            local doc_hash
-            doc_hash=$(yq -r ".data[$i].files[$j].sha256" "$doc_path")
-            
-            # Check if file exists
-            local full_path="$REPO_ROOT/$file_path"
-            
-            if [ ! -f "$full_path" ]; then
-                echo "❌ Error: File '$file_path' not found"
-                ((errors++))
-                continue
-            fi
-            
-            # Calculate current hash
-            local current_hash
-            current_hash=$(sha256sum "$full_path" | awk '{print $1}')
-            
-            if [ "$doc_hash" = "$current_hash" ]; then
-                echo "   ✅ $file_path: hash matches"
-            else
-                echo "❌ Error: File '$file_path' hash mismatch"
-                echo "      Document hash: $doc_hash"
-                echo "      Current hash:  $current_hash"
-                ((errors++))
-            fi
-        done
-    done
-    
-    # Summary
-    echo "=========================================="
-    if [ $errors -eq 0 ]; then
-        echo "✅ All checks passed for $(basename "$doc_path")"
-        return 0
-    else
-        echo "❌ Found $errors error(s) in $(basename "$doc_path")"
-        return 1
-    fi
-}
-
 # Main execution
 if [ $# -eq 0 ]; then
     # Check personal document if no specific document is provided
@@ -160,16 +12,16 @@ if [ $# -eq 0 ]; then
     local overall_errors=0
 
     if [ -f "$PERSONAL_DOC" ]; then
-        check_document "$PERSONAL_DOC"
+        validate_document_comprehensive "$PERSONAL_DOC"
         overall_errors=$((overall_errors + $?))
         echo ""
     fi
     
     if [ $overall_errors -eq 0 ]; then
-        echo "🎉 All validation documents passed verification"
+        print_success "All validation documents passed verification"
         exit 0
     else
-        echo "💥 Some validation documents have errors"
+        print_error "Some validation documents have errors"
         exit 1
     fi
 else
@@ -178,6 +30,6 @@ else
     if [[ "$doc_path" != /* ]]; then
         doc_path="$DOCUMENT_DIR/$doc_path"
     fi
-    check_document "$doc_path"
+    validate_document_comprehensive "$doc_path"
     exit $?
 fi
