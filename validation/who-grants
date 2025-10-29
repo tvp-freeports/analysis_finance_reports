@@ -1,17 +1,16 @@
 #!/bin/bash
 
-source lib/utils
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
 
 # Default grouping by contributor
 GROUP_BY="contributor"
 
 # Parse command line options
-while getopts "fm" opt; do
+while getopts "m" opt; do
     case $opt in
-        f) GROUP_BY="file" ;;
         m) GROUP_BY="methodology" ;;
-        *) echo "Usage: $0 [-f] [-m] <file_path>"
-           echo "  -f: Group by file"
+        *) echo "Usage: $0 [-m] <file_paths...>"
            echo "  -m: Group by methodology"
            echo "  Default: Group by contributor"
            exit 1
@@ -20,66 +19,242 @@ while getopts "fm" opt; do
 done
 shift $((OPTIND-1))
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 [-f] [-m] <file_path>"
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 [-m] <file_paths...>"
     exit 1
 fi
 
-FILE_PATH="$1"
-FILE_SHA256=$(sha256sum "$FILE_PATH" | awk '{print $1}')
+# Function to validate document signature
+validate_document_signature() {
+    local doc_path="$1"
+    
+    # Check if signature exists
+    local existing_sig
+    existing_sig=$(yq -r '.sign' "$doc_path" 2>/dev/null)
+    if [ "$existing_sig" = "null" ] || [ -z "$existing_sig" ]; then
+        # No signature found, this is acceptable but warn
+        echo "⚠️  No signature found"
+        return 2
+    fi
+    
+    # Verify the signature
+    if yq -y -S 'del(.sign)' "$doc_path" 2>/dev/null | gpg --verify <(echo "$existing_sig" | base64 -d 2>/dev/null) - >/dev/null 2>&1; then
+        return 0
+    else
+        echo "❌ Invalid signature"
+        return 1
+    fi
+}
 
-echo "Grants for file: $FILE_PATH (SHA256: $FILE_SHA256)"
-echo "=================================================="
+# Function to check methodology hash validity
+validate_methodology_hash() {
+    local doc_path="$1"
+    local methodology_name="$2"
+    
+    # Get stored hash from document
+    local stored_hash
+    stored_hash=$(yq -r ".methodologies[] | select(.name == \"$methodology_name\") | .sha256" "$doc_path" 2>/dev/null)
+    
+    if [ -z "$stored_hash" ] || [ "$stored_hash" = "null" ]; then
+        echo "❌ Methodology not found in document"
+        return 1
+    fi
+    
+    # Get methodology file path and calculate current hash
+    local method_file
+    method_file=$(echo "$methodology_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+    local method_path="$REPO_ROOT/docs/source/validation/methodologies/${method_file}.rst"
+    
+    if [ ! -f "$method_path" ]; then
+        echo "❌ Methodology file not found: $method_path"
+        return 1
+    fi
+    
+    local current_hash
+    current_hash=$(sha256sum "$method_path" | awk '{print $1}')
+    
+    if [ "$stored_hash" = "$current_hash" ]; then
+        return 0
+    else
+        echo "❌ Methodology hash mismatch"
+        return 1
+    fi
+}
 
-# Find all validation documents
-for doc in "$DOCUMENT_DIR"/*.yaml; do
-    if [ ! -f "$doc" ]; then
+# Function to check file hash validity
+validate_file_hash() {
+    local file_path="$1"
+    local stored_hash="$2"
+    
+    if [ ! -f "$file_path" ]; then
+        echo "❌ File not found: $file_path"
+        return 1
+    fi
+    
+    local current_hash
+    current_hash=$(sha256sum "$file_path" | awk '{print $1}')
+    
+    if [ "$stored_hash" = "$current_hash" ]; then
+        return 0
+    else
+        echo "❌ File hash mismatch"
+        return 1
+    fi
+}
+
+# Function to check version validity
+validate_version() {
+    local doc_path="$1"
+    
+    # Get stored version from document
+    local stored_version
+    stored_version=$(yq -r '.version' "$doc_path" 2>/dev/null)
+    
+    if [ -z "$stored_version" ] || [ "$stored_version" = "null" ]; then
+        echo "❌ No version found in document"
+        return 1
+    fi
+    
+    # Calculate current version hash
+    local current_version
+    current_version=$(sha256sum "$REPO_ROOT/docs/source/validation/general_methodology.rst" | awk '{print $1}')
+    
+    if [ "$stored_version" = "$current_version" ]; then
+        return 0
+    else
+        echo "❌ Version mismatch"
+        return 1
+    fi
+}
+
+# Process each file provided as argument
+for FILE_PATH in "$@"; do
+    echo "=================================================================="
+    echo "Grants for file: $FILE_PATH"
+    echo "=================================================================="
+    
+    if [ ! -f "$FILE_PATH" ]; then
+        echo "❌ Error: File '$FILE_PATH' does not exist"
+        echo ""
         continue
     fi
     
-    # Extract document info
-    DOC_NAME=$(basename "$doc" .yaml)
-    CONTRIBUTOR_NAME=$(yq '.who.name' "$doc")
+    FILE_SHA256=$(sha256sum "$FILE_PATH" | awk '{print $1}')
+    REL_PATH=$(realpath --relative-to="$REPO_ROOT" "$FILE_PATH")
     
-    # Check if file is granted in this document
-    GRANTED=false
-    METHODOLOGIES=""
+    echo "Relative path: $REL_PATH"
+    echo "Current SHA256: $FILE_SHA256"
+    echo ""
     
-    # Check each methodology section
-    METHODOLOGY_COUNT=$(yq '.data | length' "$doc")
-    for ((i=0; i<METHODOLOGY_COUNT; i++)); do
-        METHODOLOGY=$(yq ".data[$i].methodology" "$doc")
-        FILES_COUNT=$(yq ".data[$i].files | length" "$doc")
+    # Arrays to store results for different grouping modes
+    declare -A contributor_grants
+    declare -A methodology_grants
+    
+    # Find all validation documents
+    for doc in "$DOCUMENT_DIR"/*.yaml; do
+        if [ ! -f "$doc" ]; then
+            continue
+        fi
         
-        for ((j=0; j<FILES_COUNT; j++)); do
-            GRANTED_PATH=$(yq ".data[$i].files[$j].path" "$doc")
-            GRANTED_SHA256=$(yq ".data[$i].files[$j].sha256" "$doc")
-            
-            if [ "$GRANTED_PATH" = "$FILE_PATH" ] && [ "$GRANTED_SHA256" = "$FILE_SHA256" ]; then
-                GRANTED=true
-                METHODOLOGIES="$METHODOLOGIES$METHODOLOGY, "
+        DOC_NAME=$(basename "$doc" .yaml)
+        CONTRIBUTOR_NAME=$(yq -r '.who.name' "$doc" 2>/dev/null)
+        
+        if [ -z "$CONTRIBUTOR_NAME" ] || [ "$CONTRIBUTOR_NAME" = "null" ]; then
+            CONTRIBUTOR_NAME="Unknown"
+        fi
+        
+        # Validate document signature - silently check
+        if ! validate_document_signature "$doc" > /dev/null 2>&1; then
+            if [ $? -eq 1 ]; then
+                # Invalid signature - skip document
+                continue
             fi
+        fi
+        
+        # Validate version - silently check
+        if ! validate_version "$doc" > /dev/null 2>&1; then
+            # Invalid version - skip document
+            continue
+        fi
+        
+        # Check each methodology section for the file
+        METHODOLOGY_COUNT=$(yq '.data | length' "$doc" 2>/dev/null)
+        for ((i=0; i<METHODOLOGY_COUNT; i++)); do
+            METHODOLOGY=$(yq -r ".data[$i].methodology" "$doc" 2>/dev/null)
+            if [ -z "$METHODOLOGY" ] || [ "$METHODOLOGY" = "null" ]; then
+                continue
+            fi
+            
+            FILES_COUNT=$(yq ".data[$i].files | length" "$doc" 2>/dev/null)
+            
+            # Validate methodology hash - silently check
+            if ! validate_methodology_hash "$doc" "$METHODOLOGY" > /dev/null 2>&1; then
+                # Invalid methodology hash - skip methodology
+                continue
+            fi
+            
+            for ((j=0; j<FILES_COUNT; j++)); do
+                GRANTED_PATH=$(yq -r ".data[$i].files[$j].path" "$doc" 2>/dev/null)
+                GRANTED_SHA256=$(yq -r ".data[$i].files[$j].sha256" "$doc" 2>/dev/null)
+                
+                if [ "$GRANTED_PATH" = "$REL_PATH" ]; then
+                    # Validate file hash - silently check
+                    if ! validate_file_hash "$FILE_PATH" "$GRANTED_SHA256" > /dev/null 2>&1; then
+                        # File hash mismatch - skip this grant
+                        continue
+                    fi
+                    
+                    # Store results for different grouping modes without duplicates
+                    case $GROUP_BY in
+                        "contributor")
+                            # Check if methodology is already in the contributor's list
+                            if [[ ! "${contributor_grants[$CONTRIBUTOR_NAME]}" =~ "$METHODOLOGY" ]]; then
+                                contributor_grants["$CONTRIBUTOR_NAME"]+="$METHODOLOGY, "
+                            fi
+                            ;;
+                        "methodology")
+                            # Check if contributor is already in the methodology's list
+                            if [[ ! "${methodology_grants[$METHODOLOGY]}" =~ "$CONTRIBUTOR_NAME" ]]; then
+                                methodology_grants["$METHODOLOGY"]+="$CONTRIBUTOR_NAME, "
+                            fi
+                            ;;
+                    esac
+                fi
+            done
         done
     done
     
-    if [ "$GRANTED" = true ]; then
-        METHODOLOGIES=$(echo "$METHODOLOGIES" | sed 's/, $//')
-        case $GROUP_BY in
-            "contributor")
-                echo "Contributor: $CONTRIBUTOR_NAME"
-                echo "  Methodologies: $METHODOLOGIES"
-                echo ""
-                ;;
-            "methodology")
-                # Group by methodology - we'll collect and print later
-                echo "$METHODOLOGIES|$CONTRIBUTOR_NAME"
-                ;;
-            "file")
-                echo "File: $FILE_PATH"
-                echo "  Granted by: $CONTRIBUTOR_NAME"
-                echo "  Methodologies: $METHODOLOGIES"
-                echo ""
-                ;;
-        esac
-    fi
+    # Print results based on grouping mode
+    case $GROUP_BY in
+        "contributor")
+            if [ ${#contributor_grants[@]} -eq 0 ]; then
+                echo "No valid grants found for this file."
+            else
+                echo "GRANTS GROUPED BY CONTRIBUTOR:"
+                echo "=============================="
+                for contributor in "${!contributor_grants[@]}"; do
+                    methodologies=$(echo "${contributor_grants[$contributor]}" | sed 's/, $//')
+                    echo "Contributor: $contributor"
+                    echo "  Methodologies: $methodologies"
+                    echo ""
+                done
+            fi
+            ;;
+            
+        "methodology")
+            if [ ${#methodology_grants[@]} -eq 0 ]; then
+                echo "No valid grants found for this file."
+            else
+                echo "GRANTS GROUPED BY METHODOLOGY:"
+                echo "=============================="
+                for methodology in "${!methodology_grants[@]}"; do
+                    contributors=$(echo "${methodology_grants[$methodology]}" | sed 's/, $//')
+                    echo "Methodology: $methodology"
+                    echo "  Contributors: $contributors"
+                    echo ""
+                done
+            fi
+            ;;
+    esac
+    echo ""
 done
