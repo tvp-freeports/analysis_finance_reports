@@ -20,7 +20,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Developer documentation" href="../dev/index.html" />
+    <link rel="next" title="Validation Algorithm Trustworthiness" href="assertions/validation_algorithm_trustworthiness.html" />
     <link rel="prev" title="How the data is validated" href="index.html" /> 
 </head>
 
@@ -59,6 +59,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#utilities-for-the-developers">Utilities for the developers</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="assertions/validation_algorithm_trustworthiness.html">Validation Algorithm Trustworthiness</a></li>
 </ul>
 </li>
 </ul>
@@ -163,7 +164,7 @@ and it has a certain structure:</p>
 <span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">.</span>
 <span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">.</span>
 <span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">.</span>
-<span class="nt">sig</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;crittographic signature of the document&gt;</span>
+<span class="nt">sign</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;crittographic signature of the document&gt;</span>
 </pre></div>
 </div>
 <p>The first parameters its <code class="docutils literal notranslate"><span class="pre">version</span></code> and it rappresent to which version of the <strong>general methodology</strong>
@@ -210,7 +211,7 @@ the <code class="docutils literal notranslate"><span class="pre">.yaml</span></c
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>You can get the precise version that is signed (normalized and without signature) launching on linux:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">yq -y -S &#39;del(.sig)&#39; &lt;yaml-document-path&gt;</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">yq &#39;del(.sign) | sortKeys(..)&#39; &lt;yaml-document-path&gt;</span>
 </pre></div>
 </div>
 </div>
@@ -223,7 +224,7 @@ the <code class="docutils literal notranslate"><span class="pre">.yaml</span></c
 <li><p><code class="docutils literal notranslate"><span class="pre">granted-by</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">granted-with</span></code></p></li>
 </ul>
-<p>that are copmelementary and respectively they take in input:</p>
+<p>that are complementary and respectively they take in input:</p>
 <ul class="simple">
 <li><p>a file in the assertions or test results directory</p></li>
 <li><p>a complete name, email or pubkey-id of a specific contributor</p></li>
@@ -259,6 +260,25 @@ the validation documents)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code> for grouping by contributor</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-m</span></code> for grouping by methodology</p></li>
 </ul>
+<p><strong>Internal Working:</strong></p>
+<p>These scripts parse all validation documents in the <code class="docutils literal notranslate"><span class="pre">validation/documents/</span></code> directory and:</p>
+<ol class="arabic simple">
+<li><p>Validate document schema and signatures before processing</p></li>
+<li><p>Cross-reference file paths with actual SHA256 hashes to ensure integrity</p></li>
+<li><p>Filter results based on the input criteria (file, contributor, or methodology)</p></li>
+<li><p>Output formatted results showing the trust relationships</p></li>
+</ol>
+<p><strong>Example Usage:</strong></p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp"># </span>Find<span class="w"> </span>who<span class="w"> </span>grants<span class="w"> </span>a<span class="w"> </span>specific<span class="w"> </span><span class="nb">test</span><span class="w"> </span>file
+<span class="gp">$ </span>./who-grants<span class="w"> </span>tests/results/accuracy_analysis.csv
+
+<span class="gp"># </span>Find<span class="w"> </span>all<span class="w"> </span>files<span class="w"> </span>granted<span class="w"> </span>by<span class="w"> </span>a<span class="w"> </span>specific<span class="w"> </span>contributor
+<span class="gp">$ </span>./granted-by<span class="w"> </span><span class="s2">&quot;John Doe&quot;</span>
+
+<span class="gp"># </span>Find<span class="w"> </span>files<span class="w"> </span>covered<span class="w"> </span>by<span class="w"> </span>a<span class="w"> </span>specific<span class="w"> </span>methodology,<span class="w"> </span>grouped<span class="w"> </span>by<span class="w"> </span>contributor
+<span class="gp">$ </span>./granted-with<span class="w"> </span><span class="s2">&quot;basic check&quot;</span><span class="w"> </span>-c
+</pre></div>
+</div>
 </section>
 <section id="utilities-for-the-developers">
 <h2>Utilities for the developers<a class="headerlink" href="#utilities-for-the-developers" title="Link to this heading"></a></h2>
@@ -268,14 +288,38 @@ the validation documents)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">check-grants</span> <span class="pre">{&lt;files&gt;</span> <span class="pre">|</span> <span class="pre">with</span> <span class="pre">&lt;methodology&gt;}</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">update</span> <span class="pre">&lt;subcommand&gt;</span></code></p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">files</span> <span class="pre">|</span> <span class="pre">file</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">version</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">methodology</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">files</span> <span class="pre">|</span> <span class="pre">file</span></code> - Update SHA256 hashes for files in your document</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">version</span></code> - Update general methodology version hash</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">methodology</span></code> - Update methodology hashes when protocols change</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">sign-document</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">create-document</span></code></p></li>
 </ul>
+<p><strong>Developer Workflow:</strong></p>
+<ol class="arabic simple">
+<li><p><strong>Create Document</strong>: First-time setup creates your personal validation document</p></li>
+<li><p><strong>Grant Files</strong>: Add files to your document with specific methodologies</p></li>
+<li><p><strong>Update Hashes</strong>: Keep file and methodology hashes current</p></li>
+<li><p><strong>Sign Document</strong>: Cryptographically sign your document after changes</p></li>
+</ol>
+<p><strong>Document Signing Process:</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">sign-document</span></code> script:</p>
+<ol class="arabic simple">
+<li><p>Validates document schema using JSON Schema validation</p></li>
+<li><p>Checks for existing signatures (requires <code class="docutils literal notranslate"><span class="pre">--update</span></code> flag to overwrite)</p></li>
+<li><p>Normalizes the YAML document (removes whitespace, sorts keys alphabetically)</p></li>
+<li><p>Creates GPG detached signature using your private key</p></li>
+<li><p>Embeds the armored signature in the document</p></li>
+</ol>
+<p><strong>Signature Validation:</strong></p>
+<p>All utility scripts automatically validate document signatures using the <code class="docutils literal notranslate"><span class="pre">validate_document_signature</span></code> function, which:</p>
+<ul class="simple">
+<li><p>Extracts the GPG signature from the document</p></li>
+<li><p>Verifies it against the signer’s public key (fetched from OpenPGP keyservers)</p></li>
+<li><p>Ensures the signature matches the normalized document content</p></li>
+</ul>
+<p>This ensures that only properly signed and validated documents are considered when determining trust relationships.</p>
 </section>
 </section>
 
@@ -284,7 +328,7 @@ the validation documents)</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="How the data is validated" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../dev/index.html" class="btn btn-neutral float-right" title="Developer documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="assertions/validation_algorithm_trustworthiness.html" class="btn btn-neutral float-right" title="Validation Algorithm Trustworthiness" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

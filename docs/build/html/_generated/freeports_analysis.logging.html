@@ -64,6 +64,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.CsvFormatter"><code class="docutils literal notranslate"><span class="pre">CsvFormatter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.DevDebugFormatter"><code class="docutils literal notranslate"><span class="pre">DevDebugFormatter</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.StderrFormatter"><code class="docutils literal notranslate"><span class="pre">StderrFormatter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.logging.log_config"><code class="docutils literal notranslate"><span class="pre">log_config()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
@@ -109,6 +110,14 @@
 <p>This module provides custom logging formatters, filters, and configuration
 for the standard <cite>logging</cite> Python package, tailored for PDF processing and
 financial data extraction workflows.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.logging.log_config" title="freeports_analysis.logging.log_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_config</span></code></a>(logger, config, config_location)</p></td>
+<td><p>Log with debug priority the configuration provided.</p></td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
@@ -194,11 +203,11 @@ and converts it to a less algorithm-dependent format suitable for the
 
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.logging.AdaptStandardInvesmentInfos.filter">
-<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.filter" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AdaptStandardInvesmentInfos.filter" title="Link to this definition"></a></dt>
 <dd><p>Add investment-specific information and convert to contextual format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with investment information</p>
+<dd class="field-odd"><p><strong>record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with investment information</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The enriched log record with investment context</p>
@@ -307,11 +316,11 @@ information to log records for better traceability and debugging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.logging.AddContextualInfos.filter">
-<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.filter" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">LogRecord</span></span></span><a class="headerlink" href="#freeports_analysis.logging.AddContextualInfos.filter" title="Link to this definition"></a></dt>
 <dd><p>Add contextual information from filter state to the LogRecord.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with contextual information</p>
+<dd class="field-odd"><p><strong>record</strong> (<em>logging.LogRecord</em>) – The log record to enrich with contextual information</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The enriched log record with contextual information</p>
@@ -339,11 +348,11 @@ review rather than developer debugging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.logging.CsvFormatter.format">
-<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.CsvFormatter.format" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.CsvFormatter.format" title="Link to this definition"></a></dt>
 <dd><p>Format the log record as CSV with PDF position information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+<dd class="field-odd"><p><strong>record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>CSV-formatted log entry</p>
@@ -355,9 +364,6 @@ review rather than developer debugging.</p>
 <p class="rubric">Notes</p>
 <p>The CSV output includes fields for:
 - Page number
-- Company matching information
-- Company name
-- Field name
 - Row and column coordinates
 - Log message
 - Report identifier (in batch mode)</p>
@@ -379,11 +385,11 @@ information about code location and PDF document position.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.logging.DevDebugFormatter.format">
-<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.DevDebugFormatter.format" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.DevDebugFormatter.format" title="Link to this definition"></a></dt>
 <dd><p>Format log record with full information on code and PDF document location.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+<dd class="field-odd"><p><strong>record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Formatted debug message with comprehensive location information</p>
@@ -417,11 +423,11 @@ and command-line output.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="freeports_analysis.logging.StderrFormatter.format">
-<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.StderrFormatter.format" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LogRecord</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.logging.StderrFormatter.format" title="Link to this definition"></a></dt>
 <dd><p>Format the log as a concise one-line message for live stream display.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>log_record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
+<dd class="field-odd"><p><strong>record</strong> (<em>logging.LogRecord</em>) – The log record to format</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Compact formatted log message</p>
@@ -439,6 +445,21 @@ and command-line output.</p>
 - The actual log message</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.logging.log_config">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.logging.</span></span><span class="sig-name descname"><span class="pre">log_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Logger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_location</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.logging.log_config" title="Link to this definition"></a></dt>
+<dd><p>Log with debug priority the configuration provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logger</strong> (<em>logging.Logger</em>) – the logger that has to log</p></li>
+<li><p><strong>config</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – The configuration dictionary to log</p></li>
+<li><p><strong>config_location</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – Dictionary mapping configuration keys to their source locations</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

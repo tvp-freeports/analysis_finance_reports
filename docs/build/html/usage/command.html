@@ -120,7 +120,7 @@
 </ol>
 <p>in this way options specified through the command line are never overwritten and have maximum priority. An options not specified defaults to the values specified in the <span class="xref std std-ref">conf_parse submodule</span>.
 These are overwritten by the options specified in the <strong>configuration file</strong>, then the result is overwritten by the <strong>environment variables</strong>,
-<strong>command line options</strong> and finally if when in <a class="reference internal" href="#batch-mode"><span class="std std-ref">BATCH MODE</span></a> by the <em>job contextual options</em>.
+<strong>command line options</strong> and finally if when in <span class="xref std std-ref">BATCH MODE</span> by the <em>job contextual options</em>.
 The options available to be overwritten and how are documented in the respective reference pages:</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Reference config pages:</span></p>
@@ -282,7 +282,7 @@ Noticebly the most important performed checks are:</p>
 </ul>
 </section>
 <section id="batch-mode">
-<span id="id1"></span><h2><code class="docutils literal notranslate"><span class="pre">BATCH_MODE</span></code><a class="headerlink" href="#batch-mode" title="Link to this heading"></a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">BATCH_MODE</span></code><a class="headerlink" href="#batch-mode" title="Link to this heading"></a></h2>
 <p>This mode permits to process different files all at one in parallel. This mode is caratterized by the <code class="docutils literal notranslate"><span class="pre">BATCH</span></code>
 variable set to a <em>batch csv file</em> and the possibility of setting <code class="docutils literal notranslate"><span class="pre">SEPARATE_OUT_FILES</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>
 ( in this case <code class="docutils literal notranslate"><span class="pre">OUT_CSV</span></code> should be a directory name or the name of a <code class="docutils literal notranslate"><span class="pre">.tar.gz</span></code> archive to create)

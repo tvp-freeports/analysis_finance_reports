@@ -1,4 +1,4 @@
-freeports\_analysis.consts
+﻿freeports\_analysis.consts
 ==========================
 
 .. automodule:: freeports_analysis.consts
@@ -16,11 +16,11 @@ freeports\_analysis.consts
 
    .. autosummary::
    
-      input_enum
-      input_flags
       flag_from_string
       flag_to_string
       flatten_promise_map
+      input_enum
+      input_flags
    
    .. rubric:: Classes
 

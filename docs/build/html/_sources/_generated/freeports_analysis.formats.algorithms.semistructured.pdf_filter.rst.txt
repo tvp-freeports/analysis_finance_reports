@@ -1,4 +1,4 @@
-freeports\_analysis.formats.algorithms.semistructured.pdf\_filter
+﻿freeports\_analysis.formats.algorithms.semistructured.pdf\_filter
 =================================================================
 
 .. automodule:: freeports_analysis.formats.algorithms.semistructured.pdf_filter
@@ -17,10 +17,3 @@ freeports\_analysis.formats.algorithms.semistructured.pdf\_filter
    
       InputStandardCostCurr
    
-.. rubric:: Modules
-
-.. autosummary::
-   :toctree:
-   :recursive:
-
-   funcs

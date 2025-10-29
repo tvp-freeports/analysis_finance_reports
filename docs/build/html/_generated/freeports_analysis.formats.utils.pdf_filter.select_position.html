@@ -126,22 +126,118 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosAlgorithm</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Algorithm flags for table position detection.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosMeasureUnit</span></code></a>(*values)</p></td>
-<td><p></p></td>
+<td><p>Measurement units for position tolerance.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosAlgorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Algorithm flags for table position detection.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.ROW">
+<span class="sig-name descname"><span class="pre">ROW</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.ROW" title="Link to this definition"></a></dt>
+<dd><p>Calculate row positions (vertical axis)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.BIG_RULE">
+<span class="sig-name descname"><span class="pre">BIG_RULE</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.BIG_RULE" title="Link to this definition"></a></dt>
+<dd><p>Use largest areas as rulers instead of smallest</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.RULER_AREA">
+<span class="sig-name descname"><span class="pre">RULER_AREA</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.RULER_AREA" title="Link to this definition"></a></dt>
+<dd><p>Match based on ruler area intersection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.TEST_POS">
+<span class="sig-name descname"><span class="pre">TEST_POS</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.TEST_POS" title="Link to this definition"></a></dt>
+<dd><p>Match based on test element position</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.from_dict">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.from_dict" title="Link to this definition"></a></dt>
+<dd><p>Create TablePosAlgorithm from string or list representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>v</strong> (<em>str</em><em> | </em><em>list</em>) – String flag name or list of flag names</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Combined flags object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosMeasureUnit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Measurement units for position tolerance.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.EM">
+<span class="sig-name descname"><span class="pre">EM</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.EM" title="Link to this definition"></a></dt>
+<dd><p>Relative to font size (em units)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PERC">
+<span class="sig-name descname"><span class="pre">PERC</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PERC" title="Link to this definition"></a></dt>
+<dd><p>Percentage of element size</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PT">
+<span class="sig-name descname"><span class="pre">PT</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PT" title="Link to this definition"></a></dt>
+<dd><p>Absolute points</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions">

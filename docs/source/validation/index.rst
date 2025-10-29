@@ -75,5 +75,7 @@ through his *hash* or with the beginning part of it (enough to distinguish it fr
    :caption: Contents:
 
    general_methodology
-   methodolgies/human_check
-   methodologis/automatic
+   methodolgies/basic_check
+   methodologis/golden_standard
+   methodolgies/agreement_and_good_faith
+   assertions/validation_algorithm_trustworthiness

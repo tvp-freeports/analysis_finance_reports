@@ -1,15 +1,9 @@
-freeports\_analysis.conf\_parse
+﻿freeports\_analysis.conf\_parse
 ===============================
 
 .. automodule:: freeports_analysis.conf_parse
    :members:
    
-   
-   .. rubric:: Functions
-
-   .. autosummary::
-   
-      log_config
    
    .. rubric:: Classes
 

@@ -90,7 +90,7 @@ and it has a certain structure:
         .
         .
         .
-    sig: <crittographic signature of the document>
+    sign: <crittographic signature of the document>
 
 The first parameters its ``version`` and it rappresent to which version of the **general methodology**
 the file refears to. It is linked to a specific way of interpreting the entries and to their meaning.
@@ -142,7 +142,7 @@ the ``.yaml`` file stripped from meaningless white spaces and with the mapping e
   
   .. code:: console
 
-    yq -y -S 'del(.sig)' <yaml-document-path>
+    yq 'del(.sign) | sortKeys(..)' <yaml-document-path>
 
 ***********************
 Utilities for the users
@@ -154,7 +154,7 @@ In the validation directory are present three different useful scripts:
 * ``granted-by`` 
 * ``granted-with``
 
-that are copmelementary and respectively they take in input:
+that are complementary and respectively they take in input:
 
 * a file in the assertions or test results directory
 * a complete name, email or pubkey-id of a specific contributor
@@ -186,6 +186,27 @@ for selecting a specific grouping output it can be specified respectively:
 * ``-c`` for grouping by contributor
 * ``-m`` for grouping by methodology
 
+**Internal Working:**
+
+These scripts parse all validation documents in the ``validation/documents/`` directory and:
+
+1. Validate document schema and signatures before processing
+2. Cross-reference file paths with actual SHA256 hashes to ensure integrity
+3. Filter results based on the input criteria (file, contributor, or methodology)
+4. Output formatted results showing the trust relationships
+
+**Example Usage:**
+
+.. code-block:: console
+
+    # Find who grants a specific test file
+    $ ./who-grants tests/results/accuracy_analysis.csv
+    
+    # Find all files granted by a specific contributor
+    $ ./granted-by "John Doe"
+    
+    # Find files covered by a specific methodology, grouped by contributor
+    $ ./granted-with "basic check" -c
 
 ****************************
 Utilities for the developers
@@ -196,9 +217,36 @@ Utilities for the developers
 * ``check-grants {<files> | with <methodology>}``
 * ``update <subcommand>``
   
-  * ``files | file``
-  * ``version``
-  * ``methodology``
+  * ``files | file`` - Update SHA256 hashes for files in your document
+  * ``version`` - Update general methodology version hash
+  * ``methodology`` - Update methodology hashes when protocols change
 
 * ``sign-document``
 * ``create-document``
+
+**Developer Workflow:**
+
+1. **Create Document**: First-time setup creates your personal validation document
+2. **Grant Files**: Add files to your document with specific methodologies
+3. **Update Hashes**: Keep file and methodology hashes current
+4. **Sign Document**: Cryptographically sign your document after changes
+
+**Document Signing Process:**
+
+The ``sign-document`` script:
+
+1. Validates document schema using JSON Schema validation
+2. Checks for existing signatures (requires ``--update`` flag to overwrite)
+3. Normalizes the YAML document (removes whitespace, sorts keys alphabetically)
+4. Creates GPG detached signature using your private key
+5. Embeds the armored signature in the document
+
+**Signature Validation:**
+
+All utility scripts automatically validate document signatures using the ``validate_document_signature`` function, which:
+
+* Extracts the GPG signature from the document
+* Verifies it against the signer's public key (fetched from OpenPGP keyservers)
+* Ensures the signature matches the normalized document content
+
+This ensures that only properly signed and validated documents are considered when determining trust relationships.

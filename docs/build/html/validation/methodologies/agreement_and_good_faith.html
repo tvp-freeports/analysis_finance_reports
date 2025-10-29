@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Basic Check Methodology &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>Agreement and Good Faith Methodology &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/colors.css?v=c9ec9885" />
@@ -67,9 +67,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Basic Check Methodology</li>
+      <li class="breadcrumb-item active">Agreement and Good Faith Methodology</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/validation/methodologies/basic_check.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/validation/methodologies/agreement_and_good_faith.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -77,41 +77,57 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="basic-check-methodology">
-<h1>Basic Check Methodology<a class="headerlink" href="#basic-check-methodology" title="Link to this heading"></a></h1>
+  <section id="agreement-and-good-faith-methodology">
+<h1>Agreement and Good Faith Methodology<a class="headerlink" href="#agreement-and-good-faith-methodology" title="Link to this heading"></a></h1>
 <p><strong>Purpose</strong>
-The basic_check methodology provides a lightweight validation that ensures program outputs are generated correctly and appear reasonable at first glance.</p>
+The agreement_and_good_faith methodology certifies that a contributor has read, understood, and agrees with the content of an assertion based on their technical capabilities and in good faith.</p>
 <p><strong>Scope</strong>
-This methodology covers files in the test output directories (<code class="docutils literal notranslate"><span class="pre">tests/.../out/</span></code> and <code class="docutils literal notranslate"><span class="pre">tests/.../pages/</span></code>) and certifies that:</p>
+This methodology covers assertion files in the <code class="docutils literal notranslate"><span class="pre">docs/source/validation/assertions/</span></code> directory, including:</p>
 <ul class="simple">
-<li><p>The program successfully generates the expected output files</p></li>
-<li><p>The content appears reasonable and follows expected patterns</p></li>
-<li><p>A human has performed a basic visual inspection of the results</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.rst</span></code> files (documentation assertions)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.md</span></code> files (markdown assertions)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.png</span></code> files (visual assertions)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.svg</span></code> files (diagram assertions)</p></li>
 </ul>
-<p><strong>Covered File Types</strong>
-- <code class="docutils literal notranslate"><span class="pre">.csv</span></code> files (e.g., <code class="docutils literal notranslate"><span class="pre">investments.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">.log.csv</span></code>)
-- <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> files (e.g., <code class="docutils literal notranslate"><span class="pre">investments_add_infos.yaml</span></code>)
-- <code class="docutils literal notranslate"><span class="pre">.pkl</span></code> files (specifically <code class="docutils literal notranslate"><span class="pre">results.pkl</span></code>)</p>
 <p><strong>Protocol Steps</strong>
-1. <strong>File Generation Check</strong>: Verify that all expected output files are created by the program
-2. <strong>Basic Content Validation</strong>:</p>
+1. <strong>Thorough Reading/Review</strong>:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Check that CSV files contain data with expected columns</p></li>
-<li><p>Verify YAML files have valid structure and contain expected keys</p></li>
-<li><p>Ensure pickle files can be loaded and contain data</p></li>
+<li><p>Completely read the assertion content (text, diagrams, or visual elements)</p></li>
+<li><p>Ensure understanding of all technical concepts and claims presented</p></li>
 </ul>
 </div></blockquote>
-<ol class="arabic simple" start="3">
-<li><p><strong>Human Visual Inspection</strong>:
-- Quick review of output data for obvious anomalies
-- Confirmation that data appears reasonable for the test case</p></li>
-<li><p><strong>Cross-reference Check</strong>: Verify that <code class="docutils literal notranslate"><span class="pre">results.pkl</span></code> is derived from <code class="docutils literal notranslate"><span class="pre">pdf_blks</span></code> and <code class="docutils literal notranslate"><span class="pre">txt_blks</span></code> inputs</p></li>
+<ol class="arabic simple" start="2">
+<li><p><strong>Technical Capability Assessment</strong>:
+- Evaluate the assertion within the scope of your technical expertise
+- Identify any areas beyond your current understanding
+- Seek clarification if any aspect is unclear</p></li>
+<li><p><strong>Good Faith Agreement</strong>:
+- Confirm agreement with the assertion content to the best of your understanding
+- Acknowledge any limitations in your technical knowledge
+- Document any reservations or qualifications if applicable</p></li>
+<li><p><strong>Responsibility Acceptance</strong>:
+- Accept responsibility for the consequences of agreeing with the assertion
+- Commit to updating your position if new information emerges</p></li>
 </ol>
 <p><strong>Trust Level</strong>
-This methodology provides <strong>weak certification</strong> - it indicates the program functions correctly on test data and produces outputs that appear reasonable, but does not guarantee complete accuracy or comprehensive data validation.</p>
+This methodology provides <strong>personal certification</strong> - it represents an individual’s good-faith agreement based on their current technical understanding, but does not guarantee objective truth or comprehensive verification.</p>
 <p><strong>Applicable Context</strong>
-Use this methodology for routine testing and development verification where comprehensive manual review is not required.</p>
+Use this methodology for:
+- Assertions about software behavior or capabilities
+- Documentation accuracy claims
+- Architectural or design principle assertions
+- Best practice recommendations
+- Compliance or standard adherence statements</p>
+<p><strong>Limitations</strong>
+- Agreement is subjective and based on individual technical capabilities
+- Does not replace empirical testing or formal verification
+- Should be used alongside other validation methodologies for critical assertions</p>
+<p><strong>Ethical Considerations</strong>
+Contributors should only use this methodology when they have genuinely:
+- Made reasonable efforts to understand the assertion
+- Applied their technical knowledge appropriately
+- Acted in good faith without conflicts of interest</p>
 </section>
 
 

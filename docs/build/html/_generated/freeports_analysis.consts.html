@@ -57,14 +57,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.CircularPromisesChain"><code class="docutils literal notranslate"><span class="pre">CircularPromisesChain</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.Currency"><code class="docutils literal notranslate"><span class="pre">Currency</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.FinancialInstrument"><code class="docutils literal notranslate"><span class="pre">FinancialInstrument</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_enum"><code class="docutils literal notranslate"><span class="pre">input_enum()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_flags"><code class="docutils literal notranslate"><span class="pre">input_flags()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.Promise"><code class="docutils literal notranslate"><span class="pre">Promise</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionContext"><code class="docutils literal notranslate"><span class="pre">PromisesResolutionContext</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.PromisesResolutionMap"><code class="docutils literal notranslate"><span class="pre">PromisesResolutionMap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flag_from_string"><code class="docutils literal notranslate"><span class="pre">flag_from_string()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flag_to_string"><code class="docutils literal notranslate"><span class="pre">flag_to_string()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.flatten_promise_map"><code class="docutils literal notranslate"><span class="pre">flatten_promise_map()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_enum"><code class="docutils literal notranslate"><span class="pre">input_enum()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.consts.input_flags"><code class="docutils literal notranslate"><span class="pre">input_flags()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
@@ -128,12 +128,6 @@ constants, types, and utility functions for the entire codebase.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_enum" title="freeports_analysis.consts.input_enum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_enum</span></code></a>(enum_cls)</p></td>
-<td><p>Create an annotated type for Enum input validation.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_flags" title="freeports_analysis.consts.input_flags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_flags</span></code></a>(flag_cls)</p></td>
-<td><p>Create an annotated type for Flag input validation.</p></td>
-</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.flag_from_string" title="freeports_analysis.consts.flag_from_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flag_from_string</span></code></a>(expression, cls)</p></td>
 <td><p>Convert a string expression to a Flag object.</p></td>
 </tr>
@@ -142,6 +136,12 @@ constants, types, and utility functions for the entire codebase.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.flatten_promise_map" title="freeports_analysis.consts.flatten_promise_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flatten_promise_map</span></code></a>(mapping)</p></td>
 <td><p>Flatten a mapping containing Promise objects by resolving all references.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_enum" title="freeports_analysis.consts.input_enum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_enum</span></code></a>(enum_cls)</p></td>
+<td><p>Create an annotated type for Enum input validation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.input_flags" title="freeports_analysis.consts.input_flags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input_flags</span></code></a>(flag_cls)</p></td>
+<td><p>Create an annotated type for Flag input validation.</p></td>
 </tr>
 </tbody>
 </table>
@@ -154,7 +154,7 @@ constants, types, and utility functions for the entire codebase.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.consts.FinancialInstrument" title="freeports_analysis.consts.FinancialInstrument"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FinancialInstrument</span></code></a>(*values)</p></td>
 <td><p>Enumeration of financial instrument types.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.Promise" title="freeports_analysis.consts.Promise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Promise</span></code></a>(ID)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.consts.Promise" title="freeports_analysis.consts.Promise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Promise</span></code></a>(promise_id)</p></td>
 <td><p>Base class for deferred value resolution in financial data processing.</p></td>
 </tr>
 </tbody>
@@ -202,43 +202,9 @@ creating an infinite loop that cannot be resolved.</p>
 <dd><p>Enumeration of financial instrument types.</p>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.consts.input_enum">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_enum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">S</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_enum" title="Link to this definition"></a></dt>
-<dd><p>Create an annotated type for Enum input validation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>enum_cls</strong> (<em>Type</em><em>[</em><em>S</em><em>]</em>) – The Enum class to validate against</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Annotated type for Pydantic validation</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>type</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.consts.input_flags">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flag_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_flags" title="Link to this definition"></a></dt>
-<dd><p>Create an annotated type for Flag input validation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>flag_cls</strong> (<em>Type</em><em>[</em><em>T</em><em>]</em>) – The Flag class to validate against</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Annotated type for Pydantic validation</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>type</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py class">
 <dt class="sig sig-object py" id="freeports_analysis.consts.Promise">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">Promise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ID</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.consts.Promise" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">Promise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">promise_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.consts.Promise" title="Link to this definition"></a></dt>
 <dd><p>Base class for deferred value resolution in financial data processing.</p>
 <p>Implements a promise pattern where values can be resolved later from a mapping.</p>
 <dl class="py attribute">
@@ -295,7 +261,7 @@ creating an infinite loop that cannot be resolved.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="freeports_analysis.consts.flag_from_string">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flag_from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.logging.html#freeports_analysis.logging.CsvFormatter.None" title="freeports_analysis.logging.CsvFormatter.None"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Flag</span></span></span><a class="headerlink" href="#freeports_analysis.consts.flag_from_string" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">flag_from_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Flag</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Flag</span></span></span><a class="headerlink" href="#freeports_analysis.consts.flag_from_string" title="Link to this definition"></a></dt>
 <dd><p>Convert a string expression to a Flag object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -358,6 +324,40 @@ Detects and prevents circular references that would cause infinite resolution lo
 <p>This function implements a depth-first resolution algorithm that follows
 promise chains until concrete values are found. It maintains a resolution
 history to detect and prevent infinite loops from circular dependencies.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.input_enum">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_enum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enum_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">S</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_enum" title="Link to this definition"></a></dt>
+<dd><p>Create an annotated type for Enum input validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enum_cls</strong> (<em>Type</em><em>[</em><em>S</em><em>]</em>) – The Enum class to validate against</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Annotated type for Pydantic validation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.consts.input_flags">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.consts.</span></span><span class="sig-name descname"><span class="pre">input_flags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flag_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">type</span></span></span><a class="headerlink" href="#freeports_analysis.consts.input_flags" title="Link to this definition"></a></dt>
+<dd><p>Create an annotated type for Flag input validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>flag_cls</strong> (<em>Type</em><em>[</em><em>T</em><em>]</em>) – The Flag class to validate against</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Annotated type for Pydantic validation</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
