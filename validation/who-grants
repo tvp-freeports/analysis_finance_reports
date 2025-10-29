@@ -55,6 +55,11 @@ for FILE_PATH in "$@"; do
         
         CONTRIBUTOR_NAME=$(get_contributor_info "$doc")
         
+        # Validate document schema - silently check
+        if ! validate_document_schema "$doc" > /dev/null 2>&1; then
+            continue
+        fi
+        
         # Validate document signature - silently check
         if ! validate_document_signature "$doc" > /dev/null 2>&1; then
             if [ $? -eq 1 ]; then

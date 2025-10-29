@@ -32,7 +32,12 @@ if [ -z "$PERSONAL_DOC" ]; then
     exit 1
 fi
 
-# Validate document signature before making changes
+# Validate document schema and signature before making changes
+if ! validate_document_schema "$PERSONAL_DOC"; then
+    print_error "Document schema is invalid - cannot proceed with ungrant operation"
+    exit 1
+fi
+
 if ! validate_document_signature "$PERSONAL_DOC"; then
     print_error "Operation cancelled due to invalid signature"
     exit 1
@@ -131,3 +136,5 @@ echo "  $0 with <methodology>                    - Remove all files with methodo
 echo "  $0 <files...> with any                   - Remove files from all methodologies"
 echo "  $0 <files...> with <methodology>         - Remove files from specific methodology"
 exit 1
+
+

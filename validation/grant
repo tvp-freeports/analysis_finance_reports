@@ -32,7 +32,12 @@ if [ -z "$PERSONAL_DOC" ]; then
     exit 1
 fi
 
-# Validate document signature before making changes
+# Validate document schema and signature before making changes
+if ! validate_document_schema "$PERSONAL_DOC"; then
+    print_error "Document schema is invalid - cannot proceed with grant operation"
+    exit 1
+fi
+
 if ! validate_document_signature "$PERSONAL_DOC"; then
     print_error "Operation cancelled due to invalid signature"
     exit 1
@@ -63,6 +68,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
     
     # Add methodology to methodologies list
     add_methodology_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$methodology_hash"
+
     print_success "Added methodology '$METHODOLOGY' with hash: $methodology_hash"
     echo "Updating signature..."
     "$REPO_ROOT/validation/sign-document" --update

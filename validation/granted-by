@@ -50,6 +50,12 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
     
     print_info "Processing document: $DOC_NAME"
     
+    # Validate document schema - silently check
+    if ! validate_document_schema "$doc" > /dev/null 2>&1; then
+        print_warning "Invalid schema - skipping document"
+        continue
+    fi
+    
     # Validate document signature - silently check
     if ! validate_document_signature "$doc" > /dev/null 2>&1; then
         if [ $? -eq 1 ]; then

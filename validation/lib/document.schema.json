@@ -1,145 +1,125 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema", 
-    "$id": "https://example.com/validation-document.schema.json", 
-    "title": "Validation Document",
-    "description": "A validation document for granting protocol usage in specific contexts",
-    "type": "object",
-    "required": ["version", "who", "methodologies", "data", "sign"],
-    "$defs": {
-        "sha256Pattern": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-        },
-        "gpgSignature": {
-            "type": "string",
-            "description": "GPG/PGP armored signature output as produced by gpg2 --armor --detach-sign",
-            "pattern": "^-----BEGIN PGP SIGNATURE-----\\s*\\n([A-Za-z0-9+/=]{64}\\n)*[A-Za-z0-9+/=]{1,64}\\n?-----END PGP SIGNATURE-----$"
-        },
-        "pgpKeyId": {
-            "type": "string",
-            "description": "PGP public key ID as used by gpg2 command (long format)",
-            "pattern": "^[0-9A-F]{40}$"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/validation-document.schema.json",
+  "title": "Validation Document",
+  "description": "A validation document for granting protocol usage in specific contexts",
+  "type": "object",
+  "required": ["version", "who", "methodologies", "data", "sign"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "sha256Pattern": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     },
-    "additionalProperties": false,
-    "properties": {
-        "version": {
-            "$ref": "#/$defs/sha256Pattern",
-            "description": "SHA256 hash of the general methodology documentation source file"
-        },
-        "who": {
-            "type": "object",
-            "description": "Personal information of the contributor who owns the document",
-            "required": ["name", "email", "pubkey_id"],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Complete name of the document owner"
-                },
-                "email": {
-                    "type": "string",
-                    "format": "email",
-                    "description": "Email address of the contributor"
-                },
-                "pubkey_id": {
-                    "$ref": "#/$defs/pgpKeyId",
-                    "description": "PGP public key ID (16 hex digits) as used by gpg2 --list-keys --keyid-format LONG"
-                }
-            }
-        },
-        "methodologies": {
-            "type": "array",
-            "description": "List of specific methodologies used to grant trust",
-            "minItems": 0,
-            "uniqueItems": true,
-            "items": {
-                "type": "object",
-                "required": ["name", "sha256"],
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Name of the methodology (derived from documentation filename)"
-                    },
-                    "sha256": {
-                        "$ref": "#/$defs/sha256Pattern",
-                        "description": "SHA256 hash of the methodology content"
-                    }
-                }
-            }
-        },
-        "data": {
-            "type": "array",
-            "description": "List of files covered by methodology grants",
-            "items": {
-                "type": "object",
-                "required": ["methodology", "files"],
-                "properties": {
-                    "methodology": {
-                        "type": "string",
-                        "description": "Name of the methodology (must match one from methodologies section)"
-                    },
-                    "files": {
-                        "type": "array",
-                        "description": "List of files covered by this methodology",
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "required": ["path", "sha256"],
-                            "properties": {
-                                "path": {
-                                    "type": "string",
-                                    "description": "Relative path to the file (from tests or docs/source/validation/assertions directory)"
-                                },
-                                "sha256": {
-                                    "$ref": "#/$defs/sha256Pattern",
-                                    "description": "SHA256 hash of the file content"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "sign": {
-            "anyOf": [
-                {"$ref": "#/$defs/gpgSignature"},
-                {"type": "null"}
-            ],
-            "description": "GPG armored detached signature as produced by: gpg2 --armor --detach-sign --output - <normalized-document>"
-        }
+    "gpgSignature": {
+      "type": "string",
+      "description": "GPG/PGP armored signature output as produced by gpg2 --armor --detach-sign",
+      "pattern": "^-----BEGIN PGP SIGNATURE-----\\s*\\r?\\n([A-Za-z0-9+/=]{1,76}\\r?\\n)*-----END PGP SIGNATURE-----$"
     },
-    "if": {
-        "properties": {
-            "methodologies": {
-                "type": "array",
-                "minItems": 1
-            }
-        }
+    "pgpKeyId": {
+      "type": "string",
+      "description": "PGP public key ID as used by gpg2 command (long format)",
+      "pattern": "^[0-9A-F]{40}$"
     },
-    "then": {
-        "properties": {
-            "data": {
-                "type": "array",
-                "items": {
-                    "properties": {
-                        "methodology": {
-                            "enum": [
-                                {
-                                    "$data": "/methodologies/name"
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
+    "methodology": {
+      "type": "object",
+      "required": ["name", "sha256"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the methodology (derived from documentation filename)"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256Pattern",
+          "description": "SHA256 hash of the methodology content"
         }
+      },
+      "additionalProperties": false
     },
-    "else": {
-        "properties": {
-            "data": {
-                "type": "array",
-                "maxItems": 0
-            }
+    "fileEntry": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Relative path to the file (from tests or docs/source/validation/assertions directory)"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256Pattern",
+          "description": "SHA256 hash of the file content"
         }
+      },
+      "additionalProperties": false
+    },
+    "dataEntry": {
+      "type": "object",
+      "required": ["methodology", "files"],
+      "properties": {
+        "methodology": {
+          "type": "string",
+          "description": "Name of the methodology (should match one from methodologies section — not enforced by pure JSON Schema)"
+        },
+        "files": {
+          "type": "array",
+          "description": "List of files covered by this methodology",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fileEntry" },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
     }
+  },
+
+  "properties": {
+    "version": {
+      "$ref": "#/$defs/sha256Pattern",
+      "description": "SHA256 hash of the general methodology documentation source file"
+    },
+
+    "who": {
+      "type": "object",
+      "description": "Personal information of the contributor who owns the document",
+      "required": ["name", "email", "pubkey_id"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Complete name of the document owner"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address of the contributor"
+        },
+        "pubkey_id": {
+          "$ref": "#/$defs/pgpKeyId",
+          "description": "PGP public key ID (16 hex digits) as used by gpg2 --list-keys --keyid-format LONG"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "methodologies": {
+      "type": "array",
+      "description": "List of specific methodologies used to grant trust",
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/methodology" }
+    },
+
+    "data": {
+      "type": "array",
+      "description": "List of files covered by methodology grants",
+      "items": { "$ref": "#/$defs/dataEntry" }
+    },
+
+    "sign": {
+      "anyOf": [
+        { "$ref": "#/$defs/gpgSignature" },
+        { "type": "null" }
+      ],
+      "description": "GPG armored detached signature as produced by: gpg2 --armor --detach-sign --output - <normalized-document>"
+    }
+  }
 }
