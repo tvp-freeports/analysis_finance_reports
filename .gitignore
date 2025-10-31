@@ -2,6 +2,7 @@ venv/
 *.pdf
 *.csv
 **/*.csv
+/out/
 src/**/*.pdf
 dist/
 docs/build/doctrees/
@@ -21,3 +22,7 @@ freeports*conf*.yaml
 freeports*conf*.yml
 conf*freeports.yaml
 conf*freeports.yml
+freeports.log
+.benchmarks
+.continue
+pylint.json

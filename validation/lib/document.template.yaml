@@ -1,0 +1,11 @@
+version: <PLACEHOLDER>
+who:
+  name: <PLACEHOLDER>
+  email: <PLACEHOLDER>
+  pubkey_id: <PLACEHOLDER>
+
+methodologies: []
+
+data: []
+
+sign: ~

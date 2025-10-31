@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>freeports_analysis.formats.utils.text_extract &mdash; freeports_analysis 0.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47de8214"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="freeports_analysis.formats.utils.text_extract.match" href="freeports_analysis.formats.utils.text_extract.match.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils.pdf_filter.xml.xpath_queries" href="freeports_analysis.formats.utils.pdf_filter.xml.xpath_queries.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            freeports_analysis
+              <img src="https://www.freeports.org/assets/logo/square.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/quickstart.html">Quickstart guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/command.html">Command reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.conf_parse.html">freeports_analysis.conf_parse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedPdfBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedPdfBlockNotFound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExpectedTextBlockNotFound"><code class="docutils literal notranslate"><span class="pre">ExpectedTextBlockNotFound</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.ExtractionFieldFail"><code class="docutils literal notranslate"><span class="pre">ExtractionFieldFail</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.LineParseFail"><code class="docutils literal notranslate"><span class="pre">LineParseFail</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PageParseFail"><code class="docutils literal notranslate"><span class="pre">PageParseFail</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock"><code class="docutils literal notranslate"><span class="pre">PdfBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.TextBlock"><code class="docutils literal notranslate"><span class="pre">TextBlock</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.algorithms.html">freeports_analysis.formats.algorithms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="freeports_analysis.formats.data.html">freeports_analysis.formats.data</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribute.html">How to contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validation/index.html">How the data is validated</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">Developer documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">freeports_analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../API.html">Package reference</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.text_extract</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.text_extract.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-freeports_analysis.formats.utils.text_extract">
+<span id="freeports-analysis-formats-utils-text-extract"></span><h1>freeports_analysis.formats.utils.text_extract<a class="headerlink" href="#module-freeports_analysis.formats.utils.text_extract" title="Link to this heading"></a></h1>
+<p>Module for text block processing and extraction in document analysis.</p>
+<p>This module provides functionality for:
+- Defining text block types through enumerations
+- Matching text against targets using various matching strategies
+- Extracting text blocks from PDF documents based on target matches
+- Supporting different matching methods (exact, fuzzy, prefix-based)</p>
+<p>Key components:
+- Decorators for text block type definition (one_txt_blk, EquityBondTextBlockType)
+- Standard text extraction functionality through standard_text_extraction decorator</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.standard_text_extraction" title="freeports_analysis.formats.utils.text_extract.standard_text_extraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction</span></code></a>(market_value_pos[, ...])</p></td>
+<td><p>Decorator for defining standard text extraction logic from PDF blocks based on target matches.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.standard_text_extraction_loop" title="freeports_analysis.formats.utils.text_extract.standard_text_extraction_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_text_extraction_loop</span></code></a>([...])</p></td>
+<td><p>Decorator for standard text extraction loop.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType" title="freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EquityBondTextBlockType</span></code></a>(*values)</p></td>
+<td><p>Enum representing two type of text blocks in document processing.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable" title="freeports_analysis.formats.utils.text_extract.PdfBlocksTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfBlocksTable</span></code></a>(pdf_blocks)</p></td>
+<td><p>Represents a table structure of PDF blocks organized by row and column.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.</span></span><span class="sig-name descname"><span class="pre">EquityBondTextBlockType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType" title="Link to this definition"></a></dt>
+<dd><p>Enum representing two type of text blocks in document processing.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType.BOND_TARGET">
+<span class="sig-name descname"><span class="pre">BOND_TARGET</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType.BOND_TARGET" title="Link to this definition"></a></dt>
+<dd><p>Text block containing target <cite>Bond</cite> row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType.EQUITY_TARGET">
+<span class="sig-name descname"><span class="pre">EQUITY_TARGET</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.EquityBondTextBlockType.EQUITY_TARGET" title="Link to this definition"></a></dt>
+<dd><p>Text block containing target <cite>Equity</cite> row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enum</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.</span></span><span class="sig-name descname"><span class="pre">PdfBlocksTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pdf_blocks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable" title="Link to this definition"></a></dt>
+<dd><p>Represents a table structure of PDF blocks organized by row and column.</p>
+<p>This class provides a tabular view of PDF blocks based on their
+row and column metadata, enabling efficient access and manipulation
+of blocks in a grid-like structure. It transforms a flat list of
+PDF blocks into a 2D table structure for easier navigation and
+manipulation of tabular data extracted from PDF documents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pdf_blocks</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock"><em>PdfBlock</em></a><em>]</em>) – A list of PDF blocks that should have ‘table-row’ and ‘table-col’
+metadata indicating their position in the table structure.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable._blks">
+<span class="sig-name descname"><span class="pre">_blks</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable._blks" title="Link to this definition"></a></dt>
+<dd><p>Original list of PDF blocks</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock">PdfBlock</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable._table_indexes">
+<span class="sig-name descname"><span class="pre">_table_indexes</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable._table_indexes" title="Link to this definition"></a></dt>
+<dd><p>Index mapping from table coordinates to block indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[List[List[int]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable._table">
+<span class="sig-name descname"><span class="pre">_table</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable._table" title="Link to this definition"></a></dt>
+<dd><p>Table structure containing PDF blocks organized by row and column</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[List[List[<a class="reference internal" href="freeports_analysis.formats.html#freeports_analysis.formats.PdfBlock" title="freeports_analysis.formats.PdfBlock">PdfBlock</a>]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The table structure allows for sparse tables (empty cells)</p></li>
+<li><p>Multiple blocks can occupy the same cell (represented as lists)</p></li>
+<li><p>Row and column indices start from 0</p></li>
+<li><p>The shape property provides table dimensions</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Assuming blocks have table-row and table-col metadata</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="n">PdfBlocksTable</span><span class="p">(</span><span class="n">pdf_blocks</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table shape: </span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">Table shape: (5, 3)  # 5 rows, 3 columns</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Access a specific cell</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cell_content</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># Row 2, Column 1</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Iterate through all blocks</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">process_block</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">j</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable.merge" title="Link to this definition"></a></dt>
+<dd><p>Merge two blocks by combining their content.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>j</strong> (<em>int</em>) – Index of first block to merge</p></li>
+<li><p><strong>i</strong> (<em>int</em>) – Index of second block to merge</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The content of both blocks is concatenated and stored in the
+block with the lower index. The higher-indexed block is removed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable.pop">
+<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">j</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable.pop" title="Link to this definition"></a></dt>
+<dd><p>Remove a block from the table by index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>j</strong> (<em>int</em>) – Index of the block to remove</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Updates the table structure and adjusts row numbers for blocks
+that come after the removed row.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.PdfBlocksTable.shape">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.PdfBlocksTable.shape" title="Link to this definition"></a></dt>
+<dd><p>Table dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(number of rows, number of columns)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[int, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.standard_text_extraction">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.</span></span><span class="sig-name descname"><span class="pre">standard_text_extraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">market_value_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nominal_quantity_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">perc_net_assets_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acquisition_currency_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acquisition_cost_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometrical_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.standard_text_extraction" title="Link to this definition"></a></dt>
+<dd><p>Decorator for defining standard text extraction logic
+from PDF blocks based on target matches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nominal_quantity_pos</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Relative position for nominal quantity metadata</p></li>
+<li><p><strong>market_value_pos</strong> (<em>int</em>) – Relative position for market value metadata</p></li>
+<li><p><strong>perc_net_assets_pos</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Relative position for percentage of net assets metadata</p></li>
+<li><p><strong>acquisition_currency_pos</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.consts.html#freeports_analysis.consts.Currency" title="freeports_analysis.consts.Currency"><em>Currency</em></a><em>]</em><em>, </em><em>optional</em>) – Either relative position for currency metadata or Currency enum value, by default None</p></li>
+<li><p><strong>acquisition_cost_pos</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Relative position for acquisition cost metadata, by default None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A wrapped text extraction function that processes PDF blocks
+and returns matched TextBlock objects</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The decorated function can optionally be specified with
+the purpose of including additional metadata.
+The extraction process:
+1. Normalizes and matches text against targets using the specified match_func
+2. Extracts metadata from surrounding blocks based on extract_positions
+3. Creates TextBlock objects for successful matches</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.standard_text_extraction_loop">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.</span></span><span class="sig-name descname"><span class="pre">standard_text_extraction_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometrical_indexes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.standard_text_extraction_loop" title="Link to this definition"></a></dt>
+<dd><p>Decorator for standard text extraction loop.</p>
+<p>This decorator wraps the function provided in the usual loop that gives a simplified
+and higher level context to the decorated <cite>text_extraction</cite> function.
+Specifically it expects that in the metadata of each <cite>PdfBlock</cite> is present
+an indicator of which column it is located graphically in the main table of the
+PDF page (it assumes that the data was tabular in some way) <cite>table-col</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>geometrical_indexes</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use (row, column) coordinates instead of linear indices, by default True</p></li>
+<li><p><strong>merge_prev</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to merge with previous block instead of next block, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Decorator that wraps text extraction functions with standard processing logic</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The loop performs the following steps:
+- Takes each block and concatenates the content with the subsequent if</p>
+<blockquote>
+<div><p>they are on the same column.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Uses <cite>match_func</cite> to see if one between the target provided to the
+extraction function matches with the content of the block.</p></li>
+<li><p>If it does, it overwrites the list of <cite>PdfBlock</cite> to persist the concatenation
+of the block with its subsequent.</p></li>
+<li><p>Adds <cite>company</cite> metadata with the match</p></li>
+<li><p>Creates a <cite>TextBlock</cite> adding the metadata provided by the wrapped function.</p></li>
+</ul>
+</dd></dl>
+
+<p class="rubric">Modules</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.text_extract.match.html#module-freeports_analysis.formats.utils.text_extract.match" title="freeports_analysis.formats.utils.text_extract.match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">match</span></code></a></p></td>
+<td><p>Target matching algorithms for company name extraction.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="freeports_analysis.formats.utils.pdf_filter.xml.xpath_queries.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_filter.xml.xpath_queries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.text_extract.match.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.text_extract.match" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Oreste Sciacqualegni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

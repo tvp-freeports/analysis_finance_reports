@@ -1,65 +1,27 @@
-"""Module common to each format, it contains the definitions used by all the formats"""
+"""Core data structures and exceptions for PDF document processing.
 
+This module defines the fundamental data structures (PdfBlock, TextBlock) and
+exception classes used throughout the document processing pipeline.
+"""
+
+from typing import Optional, List, Union
 from enum import Enum
-from typing import Optional, List, Callable
-import logging as log
 from lxml import etree
-from freeports_analysis.consts import FinancialData, PromisesResolutionContext
 from freeports_analysis.i18n import _
 
-logger = log.getLogger(__name__)
 
-
-class LogFormatterWithPage(log.Formatter):
-    """Formatter that inherit the behaviour from
-    another formatter given in input, but insert into it
-    an attrinbute that rappresent the page number of the pdf report
-    """
-
-    def __init__(self, old_formatter: log.Formatter):
-        """Initialize the LogFormatterWithPage taking another formatter
-        as reference to modify
-
-        Parameters
-        ----------
-        old_formatter : logging.Formatter
-            the formatter to take as reference
-        """
-        super().__init__()
-        self._parent_fmt = old_formatter
-        self.page = None
-
-    def format(self, record: log.LogRecord) -> str:
-        """Method used to get the rappresentation of the report.
-        overwrite the inherited one
-
-        Parameters
-        ----------
-        record : logging.LogRecord
-            the record to format
-
-        Returns
-        -------
-        str
-            formatted version of the record
-        """
-        string = self._parent_fmt.format(record).replace(":", f"{{pag. {self.page}}}:")
-        return string
-
-
-def _str_blocks(blk) -> str:
-    """Basic function to format both PdfBlock and TextBlock
-    for string rappresentation
+def _str_blocks(blk: Union["PdfBlock", "TextBlock"]) -> str:
+    """Format PdfBlock or TextBlock for string representation.
 
     Parameters
     ----------
-    blk : PdfBlock | TextBlock
-        block to format
+    blk : Union[PdfBlock, TextBlock]
+        Block to format
 
     Returns
     -------
     str
-        formatted version
+        Formatted string representation
     """
     type_translated = _("({} type)").format(blk.type_block.name)
     metadata_translated = _("metadata")
@@ -73,7 +35,23 @@ def _str_blocks(blk) -> str:
     return text
 
 
-def _eq_blocks(a, b) -> bool:
+def _eq_blocks(
+    a: Union["PdfBlock", "TextBlock"], b: Union["PdfBlock", "TextBlock"]
+) -> bool:
+    """Compare two TextBlocks or PdfBlocks for equality.
+
+    Parameters
+    ----------
+    a : Union[PdfBlock, TextBlock]
+        First block to compare
+    b : Union[PdfBlock, TextBlock]
+        Second block to compare
+
+    Returns
+    -------
+    bool
+        True if blocks are equal, False otherwise
+    """
     equal = True
     equal = equal and a.type_block == b.type_block
     equal = equal and a.metadata == b.metadata
@@ -82,17 +60,16 @@ def _eq_blocks(a, b) -> bool:
 
 
 class PdfBlock:
-    """Represents a PDF content block with data to be extracted or relevant
-    for subsequent filtering stages.
+    """Represents a PDF content block with data to be extracted or relevant for filtering.
 
     Attributes
     ----------
     type_block : Enum
-        The type of the PDF block.
+        The type of the PDF block
     metadata : Optional[dict]
-        Additional metadata associated with the block.
+        Additional metadata associated with the block
     content : Optional[str]
-        The textual content extracted from the block.
+        The textual content extracted from the block
     """
 
     type_block: Enum
@@ -100,17 +77,17 @@ class PdfBlock:
     content: Optional[str]
 
     def _text_form_element(self, ele: etree.Element) -> str:
-        """Extracts text content from an XML element representing a PDF block.
+        """Extract text content from an XML element representing a PDF block.
 
-        Args
-        ----
+        Parameters
+        ----------
         ele : etree.Element
-            The XML element to extract text from.
+            XML element to extract text from
 
         Returns
         -------
         str
-            The extracted text content.
+            Extracted text content
         """
         text = ""
         if ele.tag == "line":
@@ -125,38 +102,37 @@ class PdfBlock:
             text += "\n"
         return text
 
-    def __eq__(self, other):
-        """Compares two PdfBlock instances for equality.
+    def __eq__(self, other: "PdfBlock") -> bool:
+        """Compare two PdfBlock instances for equality.
 
         Parameters
         ----------
         other : PdfBlock
-            The other PdfBlock to compare with.
+            Other PdfBlock to compare with
 
         Returns
         -------
         bool
-            True if the blocks are equal, False otherwise.
+            True if blocks are equal, False otherwise
         """
-        equal = _eq_blocks(self, other)
-        return equal
+        return _eq_blocks(self, other)
 
     def __init__(
         self,
         type_block: Enum,
         metadata: dict,
-        xml_ele: etree.Element | List[etree.Element],
+        xml_ele: Union[etree.Element, List[etree.Element]],
     ):
-        """Initializes a PdfBlock instance.
+        """Initialize a PdfBlock instance.
 
         Parameters
         ----------
         type_block : Enum
-            The type of the PDF block.
+            Type of the PDF block
         metadata : dict
-            Additional metadata for the block.
-        xml_ele : etree.Element | List[etree.Element]
-            The XML element(s) containing the block's content.
+            Additional metadata for the block
+        xml_ele : Union[etree.Element, List[etree.Element]]
+            XML element(s) containing the block's content
         """
         self.type_block = type_block
         self.metadata = metadata
@@ -169,12 +145,12 @@ class PdfBlock:
         self.content = txt
 
     def __str__(self) -> str:
-        """Returns a string representation of the PdfBlock.
+        """Return string representation of the PdfBlock.
 
         Returns
         -------
         str
-            The string representation.
+            String representation
         """
         return _str_blocks(self)
 
@@ -185,13 +161,13 @@ class TextBlock:
     Attributes
     ----------
     type_block : Enum
-        The type of the text block.
+        Type of the text block
     metadata : dict
-        Additional metadata associated with the block.
+        Additional metadata associated with the block
     content : str
-        The textual content of the block.
+        Textual content of the block
     pdf_block : PdfBlock
-        The original PdfBlock this text was derived from.
+        Original PdfBlock this text was derived from
     """
 
     type_block: Enum
@@ -200,16 +176,16 @@ class TextBlock:
     pdf_block: PdfBlock
 
     def __init__(self, type_block: Enum, metadata: dict, pdf_block: PdfBlock):
-        """Initializes a TextBlock instance.
+        """Initialize a TextBlock instance.
 
         Parameters
         ----------
         type_block : Enum
-            The type of the text block.
+            Type of the text block
         metadata : dict
-            Additional metadata for the block.
+            Additional metadata for the block
         pdf_block : PdfBlock
-            The source PdfBlock.
+            Source PdfBlock
         """
         self.type_block = type_block
         self.metadata = metadata
@@ -217,150 +193,48 @@ class TextBlock:
         self.content = pdf_block.content
 
     def __str__(self) -> str:
-        """Returns a string representation of the TextBlock.
+        """Return string representation of the TextBlock.
 
         Returns
         -------
         str
-            The string representation.
+            String representation
         """
         return _str_blocks(self)
 
-    def __eq__(self, other):
-        """Compares two TextBlock instances for equality.
+    def __eq__(self, other: "TextBlock") -> bool:
+        """Compare two TextBlock instances for equality.
 
-        Args
-        ----
+        Parameters
+        ----------
         other : TextBlock
-            The other TextBlock to compare with.
+            Other TextBlock to compare with
 
         Returns
         -------
         bool
-            True if the blocks are equal, False otherwise.
+            True if blocks are equal, False otherwise
         """
         equal = _eq_blocks(self, other)
         equal = equal and self.pdf_block == other.pdf_block
         return equal
 
 
-def pdf_filter_exec(
-    batch_pages: List[str],
-    i_batch_page: int,
-    n_pages: int,
-    pdf_filter_func: Callable[[List[str]], List[PdfBlock]],
-) -> List[PdfBlock]:
-    """Processes a PDF document through a filter function to extract relevant blocks.
-
-    Args
-    ----
-
-    document : List[str]
-        The PDF document to process as a list of xml pages.
-    i_batch_page : int
-        Starting page of the batch processed by the instance of `pdf_filter_exec` function,
-        used for informative purposes
-    n_pages : int
-        Total number of pages in the document, used for informative purposes.
-    pdf_filter_func : Callable[[List[str]], List[PdfBlock]]
-        A function that takes an XML element and returns a list of relevant PdfBlock.
-
-    Returns
-    -------
-    List[PdfBlock]
-        PdfBlock objects containing the filtered content.
-    """
-    batch_results = []
-    logger.propagate = False
-    std_err_log = log.StreamHandler()
-    page_format_log = LogFormatterWithPage(logger.parent.handlers[0].formatter)
-    std_err_log.setFormatter(page_format_log)
-    logger.addHandler(std_err_log)
-
-    for page_number, page in enumerate(batch_pages, start=i_batch_page):
-        page_results = []
-        page_format_log.page = page_number
-        if (page_number + i_batch_page) % (n_pages // min(10, n_pages)) == 0:
-            logger.info(_("Still filtering..."))
-        try:
-            for r in pdf_filter_func(page):
-                r.metadata["page"] = page_number
-                page_results.append(r)
-        except Exception as e:
-            logger.error("fatal error in pdf filter")
-            raise e
-        batch_results.append(page_results)
-    return batch_results
-
-
-def text_extract_exec(
-    pdf_blocks_batch: List[List[PdfBlock]],
-    targets: List[str],
-    text_extract_func: Callable[[List[PdfBlock], List[str]], List[TextBlock]],
-) -> List[TextBlock]:
-    """Extracts text content from PDF blocks using a specified extraction function.
-
-    Args
-    ----
-    pdf_blocks : List[PdfBlock]
-        PdfBlock objects to process.
-    targets : List[str]
-        Target companies identified for extraction.
-    text_extract_func : Callable[[List[PdfBlock], List[str]], List[TextBlock]]
-        Function that processes PdfBlocks and targets into TextBlocks.
-
-    Returns
-    -------
-    List[TextBlock]
-        TextBlock objects containing the extracted content.
-    """
-    txt_blocks = None
-    try:
-        txt_blocks = [
-            text_extract_func(pdf_blocks, targets) for pdf_blocks in pdf_blocks_batch
-        ]
-    except Exception as e:
-        logger.error(_("Invalid text extraction!!"))
-        raise e
-    return txt_blocks
-
-
-def deserialize_exec(
-    text_blocks_batch: List[List[TextBlock]],
-    targets: List[str],
-    deserialize_func: Callable[
-        [TextBlock, List[str]], FinancialData | PromisesResolutionContext
-    ],
-) -> List[FinancialData | PromisesResolutionContext]:
-    """Converts TextBlocks into tabular data using a specified function that
-    from an expected formatting, return a python object.
-
-    Args
-    ----
-    text_blocks : List[List[TextBlock]]
-        TextBlock objects to process.
-    targets : List[str]
-        Targets companies to validate the object creation
-    deserialize_func : Callable[[TextBlock, List[str]], FinancialData | PromisesResolutionContext]
-        Function that converts a TextBlock into a finantial data class or into
-        a bit of context for resolving deferred values
-
-    Returns
-    -------
-    List[FinancialData | PromisesResolutionContext]
-        FinantialData classes containing the deserialized data or context
-        for resolving deferred values
-    """
-    return [
-        deserialize_func(txtblk, targets)
-        for (text_blocks) in text_blocks_batch
-        for (txtblk) in text_blocks
-    ]
-
-
 class ExpectedPdfBlockNotFound(Exception):
-    """Raised when a required PdfBlock is not found"""
+    """Raised when a required PdfBlock is not found during processing."""
 
 
 class ExpectedTextBlockNotFound(Exception):
-    """Raised when a required TextBlock is not found"""
+    """Raised when a required TextBlock is not found during processing."""
+
+
+class PageParseFail(Exception):
+    """Raised when the algorithm is unable to parse a page."""
+
+
+class LineParseFail(Exception):
+    """Raised when the algorithm is unable to parse a line."""
+
+
+class ExtractionFieldFail(Exception):
+    """Raised when the algorithm is unable to parse a field."""

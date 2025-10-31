@@ -1,0 +1,5 @@
+AMUNDI-IT24:
+  quantity-interpret-float: true
+  cost-and-value-interpret-int: false
+
+EURIZON-IT24: ~

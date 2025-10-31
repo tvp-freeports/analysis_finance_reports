@@ -1,0 +1,9 @@
+AMUNDI-IT24:
+  nominal_quantity: +1
+  market_value: +2
+  perc_net_assets: +5
+
+EURIZON-IT24:
+  nominal_quantity: +1
+  market_value: +2
+  perc_net_assets: +3

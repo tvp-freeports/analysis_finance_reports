@@ -1,0 +1,157 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
+
+# Default grouping by contributor
+GROUP_BY="contributor"
+
+# Parse command line options
+while getopts "m" opt; do
+    case $opt in
+        m) GROUP_BY="methodology" ;;
+        *) print_error "Usage: $0 [-m] <file_paths...>"
+           echo "  -m: Group by methodology"
+           echo "  Default: Group by contributor"
+           exit 1
+           ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ $# -eq 0 ]; then
+    print_error "Usage: $0 [-m] <file_paths...>"
+    exit 1
+fi
+
+# Process each file provided as argument
+for FILE_PATH in "$@"; do
+    echo "=================================================================="
+    echo "Grants for file: $FILE_PATH"
+    echo "=================================================================="
+    
+    if [ ! -f "$FILE_PATH" ]; then
+        print_error "File '$FILE_PATH' does not exist"
+        echo ""
+        continue
+    fi
+    
+    FILE_SHA256=$(sha256sum "$FILE_PATH" | awk '{print $1}')
+    REL_PATH=$(realpath --relative-to="$REPO_ROOT" "$FILE_PATH")
+    
+    echo "Relative path: $REL_PATH"
+    echo "Current SHA256: $FILE_SHA256"
+    echo ""
+    
+    # Arrays to store results for different grouping modes
+    declare -A contributor_grants
+    declare -A methodology_grants
+    
+    # Find all validation documents
+    for doc in "$DOCUMENT_DIR"/*.yaml; do
+        if [ ! -f "$doc" ]; then
+            continue
+        fi
+        
+        CONTRIBUTOR_NAME=$(get_contributor_info "$doc")
+        
+        # Validate document schema - silently check
+        if ! validate_document_schema "$doc" > /dev/null 2>&1; then
+            continue
+        fi
+        
+        # Validate document signature - silently check
+        if ! validate_document_signature "$doc" > /dev/null 2>&1; then
+            if [ $? -eq 1 ]; then
+                # Invalid signature - skip document
+                continue
+            fi
+        fi
+        
+        # Validate version - silently check
+        if ! validate_version "$doc" > /dev/null 2>&1; then
+            # Invalid version - skip document
+            continue
+        fi
+        
+        # Check each methodology section for the file
+        METHODOLOGY_COUNT=$(get_document_array_length "$doc" "data")
+        for ((i=0; i<METHODOLOGY_COUNT; i++)); do
+            METHODOLOGY=$(get_document_array_element "$doc" "data" "$i" "methodology")
+            if [ -z "$METHODOLOGY" ] || [ "$METHODOLOGY" = "null" ]; then
+                continue
+            fi
+            
+            FILES_COUNT=$(yq ".data[$i].files | length" "$doc" 2>/dev/null)
+            
+            # Validate methodology hash - silently check
+            if ! validate_methodology_hash "$doc" "$METHODOLOGY" > /dev/null 2>&1; then
+                # Invalid methodology hash - skip methodology
+                continue
+            fi
+            
+            for ((j=0; j<FILES_COUNT; j++)); do
+                GRANTED_PATH=$(yq -r ".data[$i].files[$j].path" "$doc" 2>/dev/null)
+                GRANTED_SHA256=$(yq -r ".data[$i].files[$j].sha256" "$doc" 2>/dev/null)
+                
+                if [ "$GRANTED_PATH" = "$REL_PATH" ]; then
+                    # Validate file hash - silently check
+                    if ! validate_file_hash "$FILE_PATH" "$GRANTED_SHA256" > /dev/null 2>&1; then
+                        # File hash mismatch - skip this grant
+                        continue
+                    fi
+                    
+                    # Store results for different grouping modes without duplicates
+                    case $GROUP_BY in
+                        "contributor")
+                            # Check if methodology is already in the contributor's list
+                            if [[ ! "${contributor_grants[$CONTRIBUTOR_NAME]}" =~ "$METHODOLOGY" ]]; then
+                                contributor_grants["$CONTRIBUTOR_NAME"]+="$METHODOLOGY, "
+                            fi
+                            ;;
+                        "methodology")
+                            # Check if contributor is already in the methodology's list
+                            if [[ ! "${methodology_grants[$METHODOLOGY]}" =~ "$CONTRIBUTOR_NAME" ]]; then
+                                methodology_grants["$METHODOLOGY"]+="$CONTRIBUTOR_NAME, "
+                            fi
+                            ;;
+                    esac
+                fi
+            done
+        done
+    done
+    
+    # Print results based on grouping mode
+    case $GROUP_BY in
+        "contributor")
+            if [ ${#contributor_grants[@]} -eq 0 ]; then
+                print_warning "No valid grants found for this file."
+            else
+                echo "GRANTS GROUPED BY CONTRIBUTOR:"
+                echo "=============================="
+                for contributor in "${!contributor_grants[@]}"; do
+                    methodologies=$(echo "${contributor_grants[$contributor]}" | sed 's/, $//')
+                    echo "Contributor: $contributor"
+                    echo "  Methodologies: $methodologies"
+                    echo ""
+                done
+            fi
+            ;;
+            
+        "methodology")
+            if [ ${#methodology_grants[@]} -eq 0 ]; then
+                print_warning "No valid grants found for this file."
+            else
+                echo "GRANTS GROUPED BY METHODOLOGY:"
+                echo "=============================="
+                for methodology in "${!methodology_grants[@]}"; do
+                    contributors=$(echo "${methodology_grants[$methodology]}" | sed 's/, $//')
+                    echo "Methodology: $methodology"
+                    echo "  Contributors: $contributors"
+                    echo ""
+                done
+            fi
+            ;;
+    esac
+    echo ""
+done

@@ -1,0 +1,51 @@
+AMUNDI-IT24:
+  - deselection_list:
+      - font: TrebuchetMS
+        text: "^ "
+    header_set:
+      - font: TrebuchetMS-Bold
+        text: "Titolo"
+    body_set:
+      font: TrebuchetMS
+    subfund_set:
+      font: Arial-BoldItalicMT
+      area:
+        y_max: 60
+    currency: EUR
+    # algorithm-flags:
+    #   - RULER_AREA
+    tolerance: 1.0
+    row_tolerance: 0.5
+
+EURIZON-IT24:
+  deselection_list:
+    - font: TrebuchetMS
+      text: "Totale"
+    - font: TrebuchetMS
+      text: "Altri strumenti finanziari"
+  header_set:
+    - font: TrebuchetMS,Bold
+      text: "Elenco"
+  body_set:
+    font: TrebuchetMS
+  subfund_set:
+    font: TrebuchetMS,Italic
+    area:
+      y_min: 793
+      y_max: 803
+  currency: EUR
+
+FIDEURAM-IT24:
+  header_set:
+    - font: Tahoma,Bold
+      text: "Titolo"
+    - font: Tahoma,Bold
+      text: "Controvalore"
+  body_set:
+    font: Tahoma
+    font_size: 6.96
+  subfund_set:
+    font: Arial,Bold
+    area:
+      y_max: 73
+  currency: "EUR"

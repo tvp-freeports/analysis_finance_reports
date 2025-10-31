@@ -1,41 +1,203 @@
-"""Provide basic constant and types used by all submodules,
-should facilitate avoiding circular imports
+"""Provides basic constants and types used by all submodules.
+
+This module facilitates avoiding circular imports by providing shared
+constants, types, and utility functions for the entire codebase.
 """
 
-from abc import ABC, abstractmethod
-import datetime
-from enum import Enum, auto
-from typing import List, TypeAlias, Any, Optional
+import ast
+import operator
+from enum import Enum, auto, Flag
+from typing import Type, TypeAlias, Any, TypeVar, Annotated, Optional, Union, Dict
 import logging as log
-import importlib
-
-import yaml
-from importlib_resources import files
-from freeports_analysis import data
+import pandas as pd
+from pydantic import BeforeValidator
 from freeports_analysis.i18n import _
 
-
 logger = log.getLogger(__name__)
-STANDARD_LOG_FORMATTER = log.Formatter("%(levelname)s %(name)s: %(message)s")
-STANDARD_LOG_FORMATTER_MP = log.Formatter(
-    "%(levelname)s[%(process)d] %(name)s: %(message)s"
-)
-STANDARD_LOG_FORMATTER = log.Formatter("%(levelname)s %(name)s: %(message)s")
-STANDARD_LOG_FORMATTER_MP = log.Formatter(
-    "%(levelname)s[%(process)d] %(name)s: %(message)s"
+
+PROGRAM_DESCRIPTION = _(
+    """Analyze finance reports searching for investing in companies
+allegedly involved interantional law violations by third parties
+"""
 )
 
-ENV_PREFIX = "AFINANCE_"
+
+def flag_to_string(flags: Flag) -> str:
+    """Convert a Flag object to a string representation using bitwise OR syntax.
+
+    Parameters
+    ----------
+    flags : Flag
+        The flag object to convert to string
+
+    Returns
+    -------
+    str
+        String representation of flags using '|' as separator
+    """
+    string = ""
+    first = True
+    clss = flags.__class__
+    for f in clss:
+        if f in flags:
+            if not first:
+                string += " | "
+            string += f.name
+            first = False
+    return string
 
 
-# Leggi il file YAML
-YAML_DATA = None
-with files(data).joinpath("format_url_mapping.yaml").open("r") as f:
-    YAML_DATA = yaml.safe_load(f)
+def flag_from_string(expression: Optional[Union[str, list]], cls: Type[Flag]) -> Flag:
+    """Convert a string expression to a Flag object.
 
-PdfFormats = Enum(
-    "PdfFormats", {k: v if v is not None else [] for k, v in YAML_DATA.items()}
-)
+    Parameters
+    ----------
+    expression : Optional[Union[str, list]]
+        String expression or list of flag names to convert
+    cls : Type[Flag]
+        The Flag class to instantiate
+
+    Returns
+    -------
+    Flag
+        Flag object created from the expression
+
+    Raises
+    ------
+    ValueError
+        If the expression contains unsupported operations or invalid flag names
+    """
+    bin_ops = {
+        ast.BitAnd: operator.and_,
+        ast.BitOr: operator.or_,
+        ast.BitXor: operator.xor,
+    }
+    unary_ops = {ast.Invert: operator.invert}
+
+    def _from_ast(node: ast.AST, flag_cls: Type[Flag]) -> Flag:
+        if isinstance(node, ast.Expression):
+            return _from_ast(node.body, flag_cls)
+        if isinstance(node, ast.BinOp):
+            left = node.left
+            right = node.right
+            op = type(node.op)
+            if op in bin_ops:
+                return bin_ops[op](
+                    _from_ast(left, flag_cls), _from_ast(right, flag_cls)
+                )
+            raise ValueError(_("Binary operation {} not supported").format(op))
+        if isinstance(node, ast.UnaryOp):
+            operand = node.operand
+            op = type(node.op)
+            if op in unary_ops:
+                return unary_ops[op](_from_ast(operand, flag_cls))
+            raise ValueError(_("Unary operation {} not supported").format(op))
+        if isinstance(node, ast.Name):
+            name = node.id.upper()
+            if hasattr(flag_cls, name):
+                return getattr(flag_cls, name)
+            raise ValueError(_("Invalid flag {}").format(name))
+        raise ValueError(_("Unsupported AST node: {}").format(type(node)))
+
+    if isinstance(expression, list):
+        expression = " | ".join(expression)
+        return flag_from_string(expression, cls)
+    if pd.isna(expression):
+        return None
+    if isinstance(expression, str):
+        if expression.strip() == "":
+            return cls(0)
+        expression = ast.parse(expression, mode="eval")
+        return _from_ast(expression, cls)
+    raise ValueError(_("Flags should be specified with list or string expression"))
+
+
+T = TypeVar("T", bound=Flag)
+
+
+def _cast_input_flags(flag_cls: Type[T], value: Any) -> T:
+    """Cast input value to Flag type.
+
+    Parameters
+    ----------
+    flag_cls : Type[T]
+        The Flag class to cast to
+    value : Any
+        The value to cast
+
+    Returns
+    -------
+    T
+        Cast Flag object
+    """
+    if isinstance(value, flag_cls):
+        return value
+    if isinstance(value, Flag):
+        value = flag_to_string(value)
+    return flag_from_string(value, flag_cls)
+
+
+def input_flags(flag_cls: Type[T]) -> type:
+    """Create an annotated type for Flag input validation.
+
+    Parameters
+    ----------
+    flag_cls : Type[T]
+        The Flag class to validate against
+
+    Returns
+    -------
+    type
+        Annotated type for Pydantic validation
+    """
+    return Annotated[
+        flag_cls,
+        BeforeValidator(lambda value: _cast_input_flags(flag_cls, value)),
+    ]
+
+
+S = TypeVar("S", bound=Enum)
+
+
+def _cast_input_enum(enum_cls: Type[S], value: Any) -> S:
+    """Cast input value to Enum type.
+
+    Parameters
+    ----------
+    enum_cls : Type[S]
+        The Enum class to cast to
+    value : Any
+        The value to cast
+
+    Returns
+    -------
+    S
+        Cast Enum object
+    """
+    if isinstance(value, enum_cls):
+        return value
+    if isinstance(value, Enum):
+        value = value.name
+    return enum_cls[value.strip().upper()]
+
+
+def input_enum(enum_cls: Type[S]) -> type:
+    """Create an annotated type for Enum input validation.
+
+    Parameters
+    ----------
+    enum_cls : Type[S]
+        The Enum class to validate against
+
+    Returns
+    -------
+    type
+        Annotated type for Pydantic validation
+    """
+    return Annotated[
+        enum_cls,
+        BeforeValidator(lambda value: _cast_input_enum(enum_cls, value)),
+    ]
 
 
 class FinancialInstrument(Enum):
@@ -95,9 +257,18 @@ class Currency(Enum):
     BGN = "BGN"
     ISK = "ISK"
     NZD = "NZD"
+    EGP = "EGP"
+    TWD = "TWD"
 
     @property
-    def symbol(self):
+    def symbol(self) -> str:
+        """Get the currency symbol for this currency.
+
+        Returns
+        -------
+        str
+            The currency symbol
+        """
         return {
             "USD": "$",
             "EUR": "€",
@@ -129,6 +300,7 @@ class Currency(Enum):
             "SAR": "﷼",
             "QAR": "ر.ق",
             "KWD": "د.ك",
+            "EGP": "ج.م",
             "CLP": "$",
             "COP": "$",
             "PEN": "S/.",
@@ -142,96 +314,121 @@ class Currency(Enum):
             "BGN": "лв",
             "ISK": "kr",
             "NZD": "$",
+            "TWD": "$",
         }[self.value]
 
 
-PromisesResolutionMap: TypeAlias = dict
-PromisesResolutionContext: TypeAlias = dict
+PromisesResolutionMap: TypeAlias = Dict[str, Any]
+"""Type alias for promise resolution mapping.
+
+A dictionary mapping promise IDs to their resolved values.
+"""
 
 
 class Promise:
     """Base class for deferred value resolution in financial data processing.
+
     Implements a promise pattern where values can be resolved later from a mapping.
+
     Attributes
     ----------
-    id : str
-        The key used to lookup the promised value in the resolution mapping.
+    _id : str
+        The unique identifier for this promise
+
     Methods
     -------
     fulfill_with(mapping: PromisesResolutionMap) -> Any
         Resolves the promised value from the given mapping.
     """
 
-    def __init__(self, ID: str):
-        """Initialize a Promise with the given lookup ID.
+    def __init__(self, promise_id: str):
+        """Initialize a Promise with a unique identifier.
+
         Parameters
         ----------
-        ID : str
-            The key to use when resolving this promise from a mapping.
+        promise_id : str
+            Unique identifier for this promise
         """
-        self._id = ID
-
-    @property
-    def id(self) -> str:
-        """str: The lookup key for this promise."""
-        return self._id
+        self._id = str(promise_id)
 
     def fulfill_with(self, mapping: PromisesResolutionMap) -> Any:
         """Resolve this promise's value from the given mapping.
+
         Parameters
         ----------
         mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
+            Dictionary containing values to resolve promises from
+
         Returns
         -------
         Any
-            The resolved value from the mapping.
+            The resolved value from the mapping
         """
-        return mapping[self.id]
+        return mapping[str(self)]
 
     def __str__(self) -> str:
-        """str: String representation showing promise class and ID."""
-        return f'{self.__class__.__name__}("{self.id}")'
+        """Get string representation of the promise.
+
+        Returns
+        -------
+        str
+            The promise's unique identifier
+        """
+        return self._id
+
+    def __repr__(self) -> str:
+        """Get detailed string representation showing promise class and ID.
+
+        Returns
+        -------
+        str
+            String representation showing promise class and ID
+        """
+        return f'{self.__class__.__name__}("{str(self)}")'
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality with another promise.
+
+        Parameters
+        ----------
+        other : object
+            The object to compare with
+
+        Returns
+        -------
+        bool
+            True if promises have the same ID
+        """
+        if not isinstance(other, Promise):
+            return False
+        return self._id == other._id
+
+    def __format__(self, fmt: str) -> str:
+        """Format the promise for string formatting.
+
+        Parameters
+        ----------
+        fmt : str
+            Format specification
+
+        Returns
+        -------
+        str
+            Formatted string representation
+        """
+        return repr(self)
 
 
-class SubfundPromise(Promise):
-    """Promise for resolving subfund names in financial data."""
+PromisesResolutionContext: TypeAlias = Dict[str, Union[Promise, Any]]
+"""Type alias for promise resolution context.
 
-
-class CurrencyPromise(Promise):
-    """Promise for resolving currency values in financial data."""
-
-
-class NominalQuantityPromise(Promise):
-    """Promise for resolving nominal quantity values in financial data."""
-
-
-class MarkedValuePromise(Promise):
-    """Promise for resolving marked value amounts in financial data."""
-
-
-class PercNetAssetsPromise(Promise):
-    """Promise for resolving percentage of net assets values."""
-
-
-class AcquisitionCostPromise(Promise):
-    """Promise for resolving acquisition cost values."""
-
-
-class AcquisitionCurrencyPromise(Promise):
-    """Promise for resolving acquisition currency."""
-
-
-class MaturityPromise(Promise):
-    """Promise for resolving maturity dates in bond instruments."""
-
-
-class InterestRatePromise(Promise):
-    """Promise for resolving interest rate values in bond instruments."""
+A dictionary containing promises and their dependencies during resolution.
+"""
 
 
 class CircularPromisesChain(Exception):
     """Exception raised when a circular dependency is detected in promise resolution.
+
     This occurs when a promise chain references itself either directly or indirectly,
     creating an infinite loop that cannot be resolved.
     """
@@ -239,21 +436,31 @@ class CircularPromisesChain(Exception):
 
 def flatten_promise_map(mapping: PromisesResolutionMap) -> PromisesResolutionMap:
     """Flatten a mapping containing Promise objects by resolving all references.
+
     Processes a dictionary that may contain Promise objects, resolving each promise
     by looking up its value in the mapping until all values are concrete (non-Promise).
     Detects and prevents circular references that would cause infinite resolution loops.
+
     Parameters
     ----------
     mapping : PromisesResolutionMap
-        Dictionary containing both direct values and Promise objects to be resolved.
+        Dictionary containing both direct values and Promise objects to be resolved
+
     Returns
     -------
     PromisesResolutionMap
-        A new dictionary with all Promise objects resolved to their final values.
+        A new dictionary with all Promise objects resolved to their final values
+
     Raises
     ------
     CircularPromisesChain
-        If a circular reference is detected in the promise resolution chain.
+        If a circular reference is detected in the promise resolution chain
+
+    Notes
+    -----
+    This function implements a depth-first resolution algorithm that follows
+    promise chains until concrete values are found. It maintains a resolution
+    history to detect and prevent infinite loops from circular dependencies.
     """
     flattened = {}
     resolve_history = {}
@@ -281,16 +488,16 @@ def flatten_promise_map(mapping: PromisesResolutionMap) -> PromisesResolutionMap
                 promises.pop(i)
             else:
                 # Check for circular reference
-                if value.id in resolve_history[p]:
-                    _debug_str = f"{resolve_history[p]} -> {value.id}"
+                if value._id in resolve_history[p]:
+                    _debug_str = f"{resolve_history[p]} -> {value._id}"
                     raise CircularPromisesChain(
                         _("Circular reference detected in promise resolution chain: ")
                         + _debug_str
                     )
 
                 # Track resolution path and follow the reference
-                resolve_history[p].append(value.id)
-                mapping[p] = mapping[value.id]
+                resolve_history[p].append(value._id)
+                mapping[p] = mapping[value._id]
                 i += 1
             if i >= len(promises):
                 break
@@ -299,448 +506,3 @@ def flatten_promise_map(mapping: PromisesResolutionMap) -> PromisesResolutionMap
             break
 
     return flattened
-
-
-class FinancialData(ABC):
-    """Abstract base class representing financial data.
-
-    This class serves as the foundation for specific financial instrument types,
-    providing common attributes and validation.
-
-    Attributes
-    ----------
-    page : int
-        The page number where the financial data appears (must be positive).
-    targets: List[str]
-        The list of companies to search for, used as company validation
-    company : str
-        The identifier of the company or issuer.
-    company_match : str
-        The complete name of the company or issuer as it is in the report.
-    market_value : float | MarketValuePromise
-        The current market value of the instrument.
-    currency : Currency | CurrencyPromise
-        The currency in which the value is denominated.
-    subfund : str | SubfundPromise
-        The subfund to which this instrument belongs.
-    nominal_quantity : int | NominalQuantityPromise
-        The nominal quantity of the instrument, if applicable.
-    perc_net_assets : float | PercNetAssetsPromise , optional
-        Percentage of net assets (must be between 0 and 1).
-    acquisition_cost : float | AcquisitionCostPromise , optional
-        The original acquisition cost of the instrument.
-    acquisition_currency : Currency | AcquisitionCurrencyPromise , optional
-        The original acquisition currency of the instrument.
-
-    Raises
-    ------
-    ValueError
-        If perc_net_assets is not between 0 and 1.
-        If page is not a positive number.
-        If company is not in targets.
-        If company is not in targets.
-    """
-
-    def __init__(
-        self,
-        page: int,
-        targets: List[str],
-        company: str,
-        company_match: str,
-        subfund: str | SubfundPromise,
-        nominal_quantity: float | NominalQuantityPromise,
-        market_value: float | MarkedValuePromise,
-        currency: Currency | CurrencyPromise,
-        perc_net_assets: float | PercNetAssetsPromise = None,
-        acquisition_cost: float | AcquisitionCostPromise = None,
-        acquisition_currency: Currency | AcquisitionCurrencyPromise = None,
-    ):
-        if not page > 0:
-            raise ValueError(_("page should be a positive number, not {}").format(page))
-        if not isinstance(perc_net_assets, PercNetAssetsPromise):
-            self._validate_perc_net_assets(perc_net_assets)
-
-        self._company_match = company_match
-        self._validate_company(company, targets)
-        self._company = company
-        self._page = page
-        self._market_value = market_value
-        self._currency = currency
-        self._perc_net_assets = perc_net_assets
-        self._subfund = subfund
-        self._nominal_quantity = nominal_quantity
-        self._acquisition_cost = acquisition_cost
-        self._acquisition_currency = acquisition_currency
-
-    @property
-    @abstractmethod
-    def instrument(self) -> FinancialInstrument:
-        """Abstract property to identify the financial instrument type.
-        Returns
-        -------
-        FinancialInstrument
-            The type of financial instrument (EQUITY, BOND, etc.)
-        """
-
-    @property
-    def page(self) -> int:
-        """int: The page number where the financial data appears."""
-        return self._page
-
-    @property
-    def perc_net_assets(self) -> float:
-        """float: Percentage of net assets (between 0 and 1)."""
-        return self._perc_net_assets
-
-    @property
-    def company_match(self) -> str:
-        """str: The name of the company or issuer as it is in the report."""
-        return self._company_match
-
-    @property
-    def company(self) -> str:
-        """str: The name of the company or issuer."""
-        return self._company
-
-    @property
-    def market_value(self) -> float:
-        """float: The current market value of the instrument."""
-        return self._market_value
-
-    @property
-    def currency(self) -> Currency:
-        """Currency: The currency in which the value is denominated."""
-        return self._currency
-
-    @property
-    def acquisition_currency(self) -> Currency:
-        """Currency: The currency in which the financial data is acquired."""
-        return self._acquisition_currency
-
-    @property
-    def subfund(self) -> str:
-        """str: The subfund to which this instrument belongs."""
-        return self._subfund
-
-    @property
-    def nominal_quantity(self) -> float:
-        """int or None: The nominal quantity of the instrument, if applicable."""
-        return self._nominal_quantity
-
-    @property
-    def acquisition_cost(self) -> float:
-        """float or None: The original acquisition cost of the instrument."""
-        return self._acquisition_cost
-
-    def _validate_perc_net_assets(self, perc_net_assets: float):
-        if perc_net_assets is not None and not 0.0 <= perc_net_assets <= 1.0:
-            raise ValueError(
-                _("perc_net_assets must be between 0 and 1, not {}").format(
-                    perc_net_assets
-                )
-            )
-
-    def _validate_company(self, company: str, targets: List[str]):
-        if company not in targets:
-            raise ValueError(
-                _("company should be between targets, not {}").format(company)
-            )
-
-    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
-        """Resolve all promise objects in this financial data instance.
-
-        Processes each attribute that may contain a Promise object, resolving it
-        using the provided mapping and performing validation where required.
-
-        Parameters
-        ----------
-        mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
-
-        Notes
-        -----
-        For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment.
-        """
-        if isinstance(self._subfund, SubfundPromise):
-            self._subfund = self._subfund.fulfill_with(mapping)
-
-        if isinstance(self._currency, CurrencyPromise):
-            self._currency = self._currency.fulfill_with(mapping)
-
-        if isinstance(self._nominal_quantity, NominalQuantityPromise):
-            self._nominal_quantity = self._nominal_quantity.fulfill_with(mapping)
-
-        if isinstance(self._acquisition_cost, AcquisitionCostPromise):
-            self._acquisition_cost = self._acquisition_cost.fulfill_with(mapping)
-
-        if isinstance(self._market_value, MarkedValuePromise):
-            self._market_value = self._market_value.fulfill_with(mapping)
-
-        if isinstance(self._perc_net_assets, PercNetAssetsPromise):
-            perc_net_assets = self._perc_net_assets.fulfill_with(mapping)
-            self._validate_perc_net_assets(perc_net_assets)
-            self._perc_net_assets = perc_net_assets
-
-    def to_dict(self) -> dict:
-        """Cast financial data to python dictionary
-
-        Returns
-        -------
-        dict
-            casted data
-        """
-        return {
-            "Page report": self.page,
-            "Company": self.company,
-            "Matched company": self.company_match,
-            "Financial instrument": self.instrument.name,
-            "Sub-fund": self.subfund,
-            "Nominal/Quantity": self.nominal_quantity,
-            "Market value": self.market_value,
-            "Currency": self.currency.name,
-            "% Net Assets": self.perc_net_assets,
-            "Acquisition cost": self.acquisition_cost,
-            "Acquisition currency": self.acquisition_currency.name
-            if self.acquisition_currency is not None
-            else None,
-            "Maturity": None,
-            "Interest rate": None,
-        }
-
-    def _str_additional_infos(self) -> str:
-        string = ""
-        if self.nominal_quantity is not None:
-            translated_field = _("Quantity")
-            string += f"\t\t{translated_field}:\t\t{int(self.nominal_quantity)}\n"
-        if self.perc_net_assets is not None:
-            translated_field = _("Percentage of net assets")
-            string += f"\t\t{translated_field}:\t\t{self.perc_net_assets:.3%}\n"
-        if self.acquisition_cost is not None:
-            translated_field = _("Acquisition cost")
-            string += f"\t\t{translated_field}:\t\t{self.acquisition_cost:.2f}{self.currency.symbol}\n"
-        if self.acquisition_currency is not None:
-            translated_field = _("Acquisition currency")
-            string += f"\t\t{translated_field}:\t\t{self.acquisition_currency.name}\n"
-        return string
-
-    def __str__(self) -> str:
-        string = f"{self.__class__.__name__}:\n"
-        translated_field = _("Type match")
-        string += f"\t{translated_field}:\t{self.instrument.name}\t(pag. {self.page})\n"
-        translated_field = _("Subfund")
-        string += f"\t{translated_field}:\t{self.subfund}\n"
-        translated_field = _("Company")
-        string += f"\t{translated_field}:\t{self.company_match}\t[{self.company}]\n"
-        translated_field = _("Currency")
-        string += f"\t{translated_field}:\t{self.currency.name}\n"
-        translated_field = _("Market value")
-        string += (
-            f"\t{translated_field}:\t{self.market_value:.2f}{self.currency.symbol}"
-        )
-        if self.perc_net_assets is not None:
-            translated_field = _("of net assets")
-            string += f"\t({self.perc_net_assets:.3%} {translated_field})"
-        string += "\n"
-        if self.nominal_quantity is not None:
-            translated_field = _("Quantity")
-            string += f"\t{translated_field}:\t{self.nominal_quantity}\n"
-        translated_field = _("Additional infos")
-        string += f"\t{translated_field}: {{"
-        add_string = self._str_additional_infos()
-        if add_string != "":
-            string += "\n" + add_string + "\t"
-        string += "}\n"
-        return string
-
-    def __eq__(self, other) -> bool:
-        def _float_cmp(x, y):
-            return (
-                x is None
-                and y is None
-                or ((x is not None and y is not None) and (abs(x - y) < 1e-4))
-            )
-
-        eq = True
-        eq = eq and self.instrument == other.instrument
-        eq = eq and self.page == other.page
-        eq = eq and self.subfund == other.subfund
-        eq = eq and self.currency == other.currency
-        eq = eq and _float_cmp(self.market_value, other.market_value)
-        eq = eq and _float_cmp(self.perc_net_assets, other.perc_net_assets)
-        eq = eq and _float_cmp(self.nominal_quantity, other.nominal_quantity)
-        eq = eq and _float_cmp(self.acquisition_cost, other.acquisition_cost)
-        eq = eq and self.acquisition_currency == other._acquisition_currency
-        eq = eq and self.company == other.company
-        eq = eq and self.company_match == other.company_match
-        return eq
-
-
-class Equity(FinancialData):
-    """Concrete class representing equity financial instruments.
-
-    Inherits from FinancialData and implements the instrument property
-    to identify as EQUITY type.
-    """
-
-    @property
-    def instrument(self) -> FinancialInstrument:
-        """FinancialInstrument: Identifies this instrument as EQUITY type.
-
-        Returns
-        -------
-        FinancialInstrument
-            Always returns FinancialInstrument.EQUITY
-        """
-        return FinancialInstrument.EQUITY
-
-
-class Bond(FinancialData):
-    """Concrete class representing bond financial instruments.
-
-    Extends FinancialData with bond-specific attributes including maturity date
-    and interest rate.
-
-    Attributes
-    ----------
-    maturity : datetime.date, optional
-        The maturity date of the bond.
-    interest_rate : float, optional
-        The interest rate of the bond (should be between 0 and 1).
-    """
-
-    def __init__(
-        self,
-        page: int,
-        targets: List[str],
-        company: str,
-        company_match: str,
-        subfund: str,
-        nominal_quantity: float,
-        market_value: float,
-        currency: Currency,
-        perc_net_assets: float = None,
-        acquisition_cost: float = None,
-        acquisition_currency: Currency = None,
-        maturity: datetime.date = None,
-        interest_rate: float = None,
-    ) -> None:
-        """Initialize a Bond financial instrument.
-
-        Parameters
-        ----------
-        page : int
-            The page number where the bond appears.
-        targets: List[str]
-            The list of companies to search for, used as company validation
-        company : str
-            The id of the issuer of the bond.
-        company_match : str
-            The issuer of the bond as it is in the report.
-        market_value : float
-            Current market value of the bond.
-        currency : Currency
-            Currency denomination.
-        subfund : str
-            Associated subfund.
-        perc_net_assets : float, optional
-            Percentage of net assets (0-1).
-        nominal_quantity : int, optional
-            Nominal quantity of bonds.
-        acquisition_cost : float, optional
-            Original acquisition cost.
-        maturity : datetime.date, optional
-            Bond maturity date.
-        interest_rate : float, optional
-            Bond interest rate (0-1).
-        """
-        super().__init__(
-            page=page,
-            targets=targets,
-            company=company,
-            company_match=company_match,
-            subfund=subfund,
-            nominal_quantity=nominal_quantity,
-            market_value=market_value,
-            currency=currency,
-            perc_net_assets=perc_net_assets,
-            acquisition_cost=acquisition_cost,
-            acquisition_currency=acquisition_currency,
-        )
-        self._maturity = maturity
-        if interest_rate is not None and not 0.0 <= interest_rate <= 1.0:
-            logger.warning(
-                _(
-                    "Interest rate of bond in not between 0 and 1, maybe should be normalized?"
-                )
-            )
-        self._interest_rate = interest_rate
-
-    @property
-    def maturity(self) -> datetime.date:
-        """datetime.date or None: The maturity date of the bond."""
-        return self._maturity
-
-    @property
-    def interest_rate(self) -> float:
-        """float or None: The interest rate of the bond.
-
-        Returns
-        -------
-        float
-            The interest rate value
-
-        Notes
-        -----
-        Logs a warning if interest rate is not normalized (0-1 range).
-        """
-        return self._interest_rate
-
-    @property
-    def instrument(self) -> FinancialInstrument:
-        """FinancialInstrument: Identifies this instrument as BOND type.
-
-        Returns
-        -------
-        FinancialInstrument
-            Always returns FinancialInstrument.BOND
-        """
-        return FinancialInstrument.BOND
-
-    def to_dict(self):
-        row = super().to_dict()
-        row["Maturity"] = self.maturity
-        row["Interest rate"] = self.interest_rate
-        return row
-
-    def _str_additional_infos(self) -> str:
-        string = super()._str_additional_infos()
-        translated_maturity_interest_rate = _("Maturity & interest rate")
-        translated_maturity = _("Maturity")
-        translated_interest_rate = _("Interest rate")
-        if self.maturity is not None and self.interest_rate is not None:
-            string += f"\t\t{translated_maturity_interest_rate}:\t{self.maturity} +{self.interest_rate:.3%}\n"
-        elif self.maturity is not None:
-            string += f"\t\t{translated_maturity}:\t\t{self.maturity}\n"
-        elif self.interest_rate is not None:
-            string += f"\t\t{translated_interest_rate}:\t\t{self.interest_rate:.3%}\n"
-        return string
-
-    def __eq__(self, other):
-        eq = super().__eq__(other)
-        eq = eq and self.maturity == other.maturity
-        eq = eq and self.interest_rate == other._interest_rate
-        return eq
-
-
-def _get_module(module_name: str):
-    try:
-        module = importlib.import_module(
-            f"freeports_analysis.formats.{module_name.lower()}", package=__package__
-        )
-    except ImportError:
-        logger.error(
-            _("Module {} ({}) not found").format(module_name.lower(), module_name)
-        )
-        raise
-    return module

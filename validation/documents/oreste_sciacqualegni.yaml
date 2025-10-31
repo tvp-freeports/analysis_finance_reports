@@ -1,0 +1,361 @@
+version: d7f23dc8ad3014b4f9b7a0e550f24c83531559c46e91d28d25706c323b890323
+who:
+  name: Oreste Sciacqualegni
+  email: orestesciacqualegni@tutanota.com
+  pubkey_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+methodologies:
+  - name: basic check
+    sha256: eb4b396bf453fbf6273d7cca7ef0fc7fac925c03c20dd98bcae054d75a148f37
+  - name: agreement and good faith
+    sha256: 3f00f9af73fbef9ad3d01de71b4d2936158e9d508314f8c75bc16b20c4e1117e
+data:
+  - methodology: agreement and good faith
+    files:
+      - path: docs/source/validation/assertions/validation_algorithm_trustworthiness.rst
+        sha256: 2a7856218fdf2119f9f8e067de1f23437071639c868d0abcc784f321db2a2a30
+  - methodology: basic check
+    files:
+      - path: tests/formats/algorithms/AMUNDI-EN24/out/investments.csv
+        sha256: 9287dd11454fd49930b3e8fb53367cf63e8bd1e6ad3cabb827980c0610e13c5f
+      - path: tests/formats/algorithms/AMUNDI-EN24/out/investments_add_infos.yaml
+        sha256: f505b61096574230228e7996b0dcd4fb481742d6716ae0731297d403fd59e4ec
+      - path: tests/formats/algorithms/AMUNDI-EN24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/AMUNDI-IT24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/AMUNDI-IT24/out/investments.csv
+        sha256: bc971b3f24356bebdbfea3f4de881e9a8b9d5878e9a96a1cbf339530196a078c
+      - path: tests/formats/algorithms/AMUNDI-IT24/out/investments_add_infos.yaml
+        sha256: ab00109dca3bc68f0a47ea1ae040bb646558413bd0127576ec9cd13f456b21ae
+      - path: tests/formats/algorithms/ANIMA-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ANIMA-EN23/out/investments.csv
+        sha256: 246ba7d1de7f1b9707c79bb01274222c39b30c2672e8698400e27bccfffc37d4
+      - path: tests/formats/algorithms/ANIMA-EN23/out/investments_add_infos.yaml
+        sha256: e79abcb6f0cebcfb5770ba6c3db30dddcab408f8cc61fd44f08f5a2fff1c52c3
+      - path: tests/formats/algorithms/ARCA-IT24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ARCA-IT24/out/investments.csv
+        sha256: 76a647ab5ad32453bb8a19ec02d43422b0b8dfc103d3c92f220de6cef8d71858
+      - path: tests/formats/algorithms/ARCA-IT24/out/investments_add_infos.yaml
+        sha256: ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356
+      - path: tests/formats/algorithms/ASTERIA-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ASTERIA-EN23/out/investments.csv
+        sha256: 23a6a38722b7426c289a93234b8fed2394b72bdd67c123e1beda1a03dcbcf4e4
+      - path: tests/formats/algorithms/ASTERIA-EN23/out/investments_add_infos.yaml
+        sha256: fa8832dfdbc97bd4a9e5adeefcb75d47b45a9317ae6fb81d3fc51d151484ae97
+      - path: tests/formats/algorithms/ASTERIA-EN24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ASTERIA-EN24/out/investments.csv
+        sha256: 8f514ce2c2bf77255775550a03b5863da81f1a10a81fa7fff6c1cbc0966089f4
+      - path: tests/formats/algorithms/ASTERIA-EN24/out/investments_add_infos.yaml
+        sha256: 954b13d723fddf9538758e8187450d085540e5e5a1fe9548d220f91638d03dcf
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/out/.log.csv
+        sha256: d70d2bc5a5e87e0f5d6635adb0914fc8ed3ff3931bbfbbd7272175d786b7a938
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/out/investments.csv
+        sha256: 03c65006441ac9943a503138edd9d4b9e434e9477ce6120953889f32466072bc
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/out/investments_add_infos.yaml
+        sha256: a57050c5b1221e50d0eb614c1baa66a1ef3487c032b7776470bb961dd44bc621
+      - path: tests/formats/algorithms/EURIZON-EN21/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/EURIZON-EN21/out/investments.csv
+        sha256: 55efc18d91687ad10a49436a93a8dbf5a51306d8bcd128a88e59c5fa98543ab9
+      - path: tests/formats/algorithms/EURIZON-EN21/out/investments_add_infos.yaml
+        sha256: c5655ecd7268f10be6fd082f894e62109c27e5fbdb12ff4614fbc50230c79cf1
+      - path: tests/formats/algorithms/EURIZON-IT24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/EURIZON-IT24/out/investments.csv
+        sha256: f6f823660d9f3ff78964548e6e113ae64006b160fb0c5372e2cfd999d2a0d6a8
+      - path: tests/formats/algorithms/EURIZON-IT24/out/investments_add_infos.yaml
+        sha256: ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356
+      - path: tests/formats/algorithms/FIDEURAM-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/FIDEURAM-EN23/out/investments.csv
+        sha256: b86189524727c258063bf24289b7391913046c1a0edf6d6ef74b555cc6dff90d
+      - path: tests/formats/algorithms/FIDEURAM-EN23/out/investments_add_infos.yaml
+        sha256: 8c300ef9470a14f5a329c656df5b470c260f32648cf53f8b329a4a847ab1605f
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/out/investments.csv
+        sha256: 9e90aa0657a0e4f4d1ffe8a552298261fe263f0b43c365f4611bbebfc1d67147
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/out/investments_add_infos.yaml
+        sha256: ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/out/.log.csv
+        sha256: c880fd527b5c57271a427396941fce2d0367faaf93ef1b1e3515f3d4b516ff9e
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/out/investments.csv
+        sha256: 9ff212641dea823d51d4b8f6f15522e29285396790cb590936598eb5ce2ea7bb
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/out/investments_add_infos.yaml
+        sha256: ae96e78873ea32a1902653db5172c98b6cdf599109980db61961f259260b247b
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/out/.log.csv
+        sha256: 0d7b06be71e489a99ddc72ed126e3a9780faa6adc8021e0bb36b00a05d3f4ea8
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/out/investments.csv
+        sha256: 2d0f68d377bbdee36cba2cc1dd8cf038b54869de7be3b0fb207505dcd235e2f9
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/out/investments_add_infos.yaml
+        sha256: af44649702e0d7a26177b3d476d13bc82a87d58c8a6297ae3d79311889470393
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/out/investments.csv
+        sha256: bf4c0fa83a9e1e9cf2ed89987bb72a00c12c2c3a2ab8ede37a0e0fc7c6468a3b
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/out/investments_add_infos.yaml
+        sha256: ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/out/investments.csv
+        sha256: ef3b6b315fc45de35cd23f6a6d411ef691214cfe2c1c0598492bd957c3758fc8
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/out/investments_add_infos.yaml
+        sha256: fe64d8ea5c3502dc0c56a6d07b0e799157edf684edccdb6d2f8c30da6f7ed10f
+      - path: tests/formats/algorithms/CARNE-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/CARNE-EN23/out/investments.csv
+        sha256: 7f9b0aede42f7344af0ce7146f7d35e1a9355f2e3c63d6e0bcc14edde6c8cfe9
+      - path: tests/formats/algorithms/CARNE-EN23/out/investments_add_infos.yaml
+        sha256: 810be37e2a26b9d9eb0ca47eca86d6325642b89a312c66cdb0d1361b0ef098ca
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/out/investments.csv
+        sha256: 690a37726758eeccb1b8fc2b70f150f3744352164c78dcae11226c3fad87acdf
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/out/investments_add_infos.yaml
+        sha256: a59d31f588649862dad3236124df03388fa6662819a859d82052aba622f11915
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/out/investments.csv
+        sha256: 7071ec464e97d81c59b352edea056a81f949c41d003cea4a965bbe52719f7999
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/out/investments_add_infos.yaml
+        sha256: 129aa76500327c1792e661553adc80f7d8adc9129f270c4fb3908cb49e1ddfd1
+      - path: tests/formats/algorithms/KAIROS-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/KAIROS-EN23/out/investments.csv
+        sha256: b27bf25c92d3a695c206c84c59a3f03f64d6ab96012639832b3af459534337cc
+      - path: tests/formats/algorithms/KAIROS-EN23/out/investments_add_infos.yaml
+        sha256: 71d3b560db9562fc794bd51aa61fdd16ae9bcd1a8f6cec515c7ab14eb48fad72
+      - path: tests/formats/algorithms/UBS-EN23/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/UBS-EN23/out/investments.csv
+        sha256: 4a533ec285ba0259f062e98479a7f2d377ab236c471d765ab12d473aa3d15c9d
+      - path: tests/formats/algorithms/UBS-EN23/out/investments_add_infos.yaml
+        sha256: d3dfefff657017e66cd5e046becbddc58b10b19ded17fad831b7b7c9932ba86f
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/out/investments.csv
+        sha256: 9c2139d1dc7df110615486cd8b3d3d692569bdfa605be377a2eab5c4d038eb62
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/out/investments_add_infos.yaml
+        sha256: 5aa814a3b7a4ec1fcc7b9b5c8238e2429339de6a8542ac6170b12a3e997a3a6e
+      - path: tests/formats/algorithms/FINECO-EN23@IR/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/FINECO-EN23@IR/out/investments.csv
+        sha256: 2628fb52bcca2ec9910b9b91926e6fab4032f1c488edc960c9b4b3e87752ef38
+      - path: tests/formats/algorithms/FINECO-EN23@IR/out/investments_add_infos.yaml
+        sha256: 11ddb91c73e4218f829724a65ecb840211063123bc1363ffaed30c773a7796ac
+      - path: tests/formats/algorithms/EURIZON-EN23.A/out/.log.csv
+        sha256: e0e43e648be9f52dbb3be387c659d33daef0338bc216bfeed38332cb54fda85b
+      - path: tests/formats/algorithms/EURIZON-EN23.A/out/investments.csv
+        sha256: 83f1808113095e2e6de026e58e94bee64a73f9898bc442ed73e46dd54aaaa46a
+      - path: tests/formats/algorithms/EURIZON-EN23.A/out/investments_add_infos.yaml
+        sha256: 915ef02db51b735338f71cd08f15253612db83ad173ce69b4affbf2c9220bd27
+      - path: tests/formats/algorithms/AMUNDI-EN24/pages/44-pdf_blks.pkl
+        sha256: 41c8bd6d38de1a69ab6489a27b93ab1b4d2e2fb44adb503b8566b7b1653ed5f3
+      - path: tests/formats/algorithms/AMUNDI-EN24/pages/44-results.pkl
+        sha256: 9350871fa9130b516168528faa7b2e8186e6a498236ff5397744a4f044ed5155
+      - path: tests/formats/algorithms/AMUNDI-EN24/pages/44-txt_blks.pkl
+        sha256: d30a966a622f30509a96f5e630a77688434b4f26f56fe617ee961e0156e1a628
+      - path: tests/formats/algorithms/AMUNDI-IT24/pages/559-pdf_blks.pkl
+        sha256: ee943a7a4371f2873a5d40a6e1408dfd953232ab1f1b24e844396f04f852647d
+      - path: tests/formats/algorithms/AMUNDI-IT24/pages/559-results.pkl
+        sha256: 5f7d62e71edf90246329042f6602186c70bd1b260431bf8edebd4d4158b68a88
+      - path: tests/formats/algorithms/AMUNDI-IT24/pages/559-txt_blks.pkl
+        sha256: 9111c4ffa2f7b60884fb5d0a3b4c34b0fff62a82ce2a0e800c5ac0ac4329ac06
+      - path: tests/formats/algorithms/ANIMA-EN23/pages/545-pdf_blks.pkl
+        sha256: 588f65ef1f9ee6f73ccd1d58566f577c56682951b05546c9974add809c37ae56
+      - path: tests/formats/algorithms/ANIMA-EN23/pages/545-results.pkl
+        sha256: eccc3d7d3a36c0d31e50eb9906ddc4a8b6283dfa3aa7cb74cd2f2f21f771d407
+      - path: tests/formats/algorithms/ANIMA-EN23/pages/545-txt_blks.pkl
+        sha256: b931d3aae495a6cddbf758f42a641b6b0242caacf0a969551041ada13fb5bff0
+      - path: tests/formats/algorithms/ARCA-IT24/pages/21-pdf_blks.pkl
+        sha256: a5b6e06e9905b61e4974dd04b45b3f1afb17f5f77d35a505dd511f4150b7ca2b
+      - path: tests/formats/algorithms/ARCA-IT24/pages/21-results.pkl
+        sha256: 4dfc629dc1d1a86e4bf410e07cfce8a4c500d88cc3a19c0d68ed795885779002
+      - path: tests/formats/algorithms/ARCA-IT24/pages/21-txt_blks.pkl
+        sha256: c7d85c6e3acb28a970916a4f4a7397f95d1c9029fc298bbc3efcaa68271a2296
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/22-pdf_blks.pkl
+        sha256: 6802361701a127a93d05b6bc99f696181bbdd55abf0001360d6aecf0f595853c
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/22-results.pkl
+        sha256: 45999baaef72f8f110156e2f0ae8f9d33e750eab0b7fa0e1de8007339ff8d9cd
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/22-txt_blks.pkl
+        sha256: 43ffef31517c99da85eceb4ea3ee2bdfe6c1bbe4047188746300f0a9fc5f7b5b
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/27-pdf_blks.pkl
+        sha256: ecb6f915cdb44711139695bb007231df24ab5aea591de187807f320c52533883
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/27-results.pkl
+        sha256: beaf2a9e1799085d9b9cfb70e9fa0e84305054067c29284e5cff6b65d2ac3f7a
+      - path: tests/formats/algorithms/ASTERIA-EN23/pages/27-txt_blks.pkl
+        sha256: fbeded4d1d784d9da48cee029879c13374d8b1074766bd7834445011cc06eae8
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/78-pdf_blks.pkl
+        sha256: 23059412728945aedeafedd38a64f28bce60b268f7c613b6d0ec5aaa51b76bf8
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/78-results.pkl
+        sha256: 0ba884c1fed5c79d53afaebee7b75d3d5303b6d71803c4158288e4b0acab8ff7
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/78-txt_blks.pkl
+        sha256: 3d6885a7c474f315c28968d54de0beedeff947efe6b67ad68f80c8e5e5bf81b8
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/79-pdf_blks.pkl
+        sha256: 6d5c0e43977891bc1068868dac5a4499b011d5a17d9f27037ab0de9cd39d0241
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/79-results.pkl
+        sha256: a5469c1a11dd1f20b5529571619d502f63d0bee9ba0dd301ae9489380387958c
+      - path: tests/formats/algorithms/ASTERIA-EN24/pages/79-txt_blks.pkl
+        sha256: 200f20a471cef8dd453e30666e54e426b4b845ef040d3747640fbc57e75b622b
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/pages/149-pdf_blks.pkl
+        sha256: 78355ed7bec75ccf9fdbb8f8ff320534ee6fa9d65bfbca8b7ebfb67062abd4c6
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/pages/149-results.pkl
+        sha256: ec0a6ccf9debf1c16781445c4b9106080d00478b0559469336db7c7b7b9711c8
+      - path: tests/formats/algorithms/DANSKEINVEST-EN24/pages/149-txt_blks.pkl
+        sha256: ec0a6ccf9debf1c16781445c4b9106080d00478b0559469336db7c7b7b9711c8
+      - path: tests/formats/algorithms/EURIZON-EN21/pages/98-pdf_blks.pkl
+        sha256: f0b728ff3e8f156a7fc0a906fad65efba28e4eb2751ee1bdb84553cb760ec245
+      - path: tests/formats/algorithms/EURIZON-EN21/pages/98-results.pkl
+        sha256: 28b16066c965155ce1708baddbf548e32534a669010a9405a6ea70c8b3b2ee58
+      - path: tests/formats/algorithms/EURIZON-EN21/pages/98-txt_blks.pkl
+        sha256: b52661a82aeafa365e11e404f1a2ab61459448de453cfafd6e6b15ee66ff7b8a
+      - path: tests/formats/algorithms/EURIZON-IT24/pages/30-pdf_blks.pkl
+        sha256: efbd11492d851d60d8c51b057d39c1eb5e5a420ec6d7d6524ea3bc2fd0248057
+      - path: tests/formats/algorithms/EURIZON-IT24/pages/30-results.pkl
+        sha256: c497d36ad346eb0acedc4fdc358763e391f0c6c92f5652837e4d81d067275f55
+      - path: tests/formats/algorithms/EURIZON-IT24/pages/30-txt_blks.pkl
+        sha256: 9e130d242b43e968574b774945ff8d26ea056806c4895afb43bb0ea7b35d596a
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/34-pdf_blks.pkl
+        sha256: 7532cf1c445d7525a7ad4b539e9da5c645ee0a9d41d90467f3b3a660aca857bb
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/34-results.pkl
+        sha256: b31aa32141d01f1388f8495fe89158d817ab066cfe40bd4f39cdebc7091a0dfb
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/34-txt_blks.pkl
+        sha256: ac50e0e23ee108bb0b0d02dfd013fc0a312999abc643626d6c3f0a9dba533d94
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/52-pdf_blks.pkl
+        sha256: 0960b728eff3c7d0e5462e20c38108fd7242b18d60db5c3d290c5e5725e85f8f
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/52-results.pkl
+        sha256: c0532c12928710780a61e5fba907c0f5ec2d69c93a203af5ac0acee42bd6a441
+      - path: tests/formats/algorithms/FIDEURAM-EN23/pages/52-txt_blks.pkl
+        sha256: 51653e299f1d62ffda6b3ab5d19cfef30199c89b042f53219e159597ecf914cf
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/40-pdf_blks.pkl
+        sha256: f93d0c114aacce4ff9d6370891c994066a53e6355bc886eb0af534f723433f3d
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/40-results.pkl
+        sha256: 70a45b718602f6c2152e0d657b602fa9851f6ebaa9d89561f54fb37e45731aea
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/40-txt_blks.pkl
+        sha256: 5a2b4e6a46cf2ba9dd0ecd092aa7c621087023012b10cc55eab4279e246e4331
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/41-pdf_blks.pkl
+        sha256: ccfb88f1c76dd446295eb3fc90589b1bc802c5425f7a1c677232a0138808a6b2
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/41-results.pkl
+        sha256: a8917084b271cb045f2883b84728447df8f6dacd59fd5258bda3d09be6338f21
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.A/pages/41-txt_blks.pkl
+        sha256: 0417c259aee73be89c4b51e2c47b3982da3515f1e7c14b733efb34711d74ba4c
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/pages/16-pdf_blks.pkl
+        sha256: 7b81a1e872441b1ba27419728f074da611144ef4e867478d7ce99437f852637a
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/pages/16-results.pkl
+        sha256: 3613450a6e30695f90b6852b610a8b502a9447ea8fa88fb5588cb600a0d0bd7f
+      - path: tests/formats/algorithms/MEDIOLANUM-ES24.B/pages/16-txt_blks.pkl
+        sha256: 15afe87445e411b8d6a7e00982caf3a07399e7ccc4d0ad61da8be2c36bec84c7
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/439-pdf_blks.pkl
+        sha256: 98f3f50776d27f8a43d5f89eb825ca1b3a5b463986b432689cec0b5407e65791
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/439-results.pkl
+        sha256: f355c6557c5c40313fb00c0ca351f8bcc42a820d7a3f1ac03328ed8b4d9923ad
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/439-txt_blks.pkl
+        sha256: 11b2b7a5dd319b5d6e5beec46eb01aaad94f71dea5cbbaed0bb7b6c17e51f0b6
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/554-pdf_blks.pkl
+        sha256: 73e3eca6101ff6593dd30718a823f4710156c99ed47341c87146aff22919085f
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/554-results.pkl
+        sha256: 4260979fec011479f3711aba22b6a90223462c9608f7ebb66b79e901494efa98
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/554-txt_blks.pkl
+        sha256: a63927123aa36f054ae3a4fe9e547dd52e4c5daaf69fa16c38b486452753aa61
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/605-pdf_blks.pkl
+        sha256: 42c0b6b4fab85b867bf287156523777d476a7057b5551320103635f8b2213017
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/605-results.pkl
+        sha256: 1920b6a828d7336e2c45ab87a8466962f0f400c9769186c0ad1473c65e86c0bf
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.A/pages/605-txt_blks.pkl
+        sha256: 9d5c089eebf0cf778d2a514690b8dccae2ba226d35c1419dec4aef0e7d1df60d
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/56-pdf_blks.pkl
+        sha256: 030a3b9459f19edec115035f66bc21569b234445a7b75b3d34cfcb5102c18c0c
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/56-results.pkl
+        sha256: ef8f6ee264b676dabd702ed389ebc93932171544dac0b1774a5f0dd14a5ff327
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/56-txt_blks.pkl
+        sha256: 6194b87f9486f5ba798bbe5bc079dd7f3dab824fa4c7290279db23a5f218a9d9
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/95-pdf_blks.pkl
+        sha256: b23ba78b14288f64baa0628ffd9fedf0be82ddd65f49796a4696470cd9597284
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/95-results.pkl
+        sha256: ecb4f0dfb5d16926b688b18c6a8c5e251f0755a93f6ad6a38deceaa519c16250
+      - path: tests/formats/algorithms/MEDIOLANUM-IT24.B/pages/95-txt_blks.pkl
+        sha256: 187a3a59fc909b90bf10a449c7c3472ae15ce52dc6f9ecd0f834da65be98fc24
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/pages/1409-pdf_blks.pkl
+        sha256: fb2d77c5b30c57be380b1b25185455730b8720d7fe25a964216bae2c6408f0f7
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/pages/1409-txt_blks.pkl
+        sha256: a1fdcdd8810bec917523d026d00a22866e5ce2178da4a1a8dfcebcb324f85880
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.A/pages/1409-results.pkl
+        sha256: 674a8dd5654ce4b0929edd3c78b9ef98a7e48f60780cc05e76afc9bb8bfc6213
+      - path: tests/formats/algorithms/CARNE-EN23/pages/25-pdf_blks.pkl
+        sha256: 7b7daa138c100f4032f12b98bc71ff26811b091fa278cace20ecf43b7963cab0
+      - path: tests/formats/algorithms/CARNE-EN23/pages/25-results.pkl
+        sha256: 60ada85d2674658e232e289679a14f54c5de22932d1830e139b91265e1610d92
+      - path: tests/formats/algorithms/CARNE-EN23/pages/25-txt_blks.pkl
+        sha256: 015ad4e1fe731d15faefffb77ba98b2f1e373be7278d616c24ca698eb30fd275
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/pages/24-pdf_blks.pkl
+        sha256: 9c3775c84e9220f0cc5e01ac20fbacc75054fc36e0cc7e12823c631ea3b04942
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/pages/24-results.pkl
+        sha256: 09c841bf0b74242b71457c39a121e825fc89b48f58cd444be5df04f328c18c2d
+      - path: tests/formats/algorithms/ANIMA_SGR-IT24.B/pages/24-txt_blks.pkl
+        sha256: 8e36d534d47904efe075f263f7deec1c7d9485c294c1ab15903f3903e2f6f355
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/pages/23-pdf_blks.pkl
+        sha256: b42adc9509405dce2b5b9ef14a4ae4ea4bf849a1632578817f99fe0576be8312
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/pages/23-results.pkl
+        sha256: 0282a8d43d0da537a1b1228b1637247d8285b774cf3d27ecb92253aff892d810
+      - path: tests/formats/algorithms/ANIMA_SICAV-EN24/pages/23-txt_blks.pkl
+        sha256: 5417430143b7a2f98cbf91375efc32f410fb82c765c811d66157fe1dbc8587a5
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/30-pdf_blks.pkl
+        sha256: 7b1b510efa6ca1ea8f6af13d642c6f8fd70486600d68dbf68ad64632d2da2fa2
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/30-results.pkl
+        sha256: b1923adb591b6f34d018bec2de0a2b518cf4324d38619042f919e78e06981f88
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/30-txt_blks.pkl
+        sha256: d8b1b5f3159a482d78936e4368f832b9b55b06ba125735e410dc1bfa897bf147
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/61-pdf_blks.pkl
+        sha256: 8e01695bd70b23dedbfd26fbabf8182b274979ea907fe327f1f7ab7b94cb1d0f
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/61-results.pkl
+        sha256: 1c09ccc76997a8217a9124b8c18f94d946def3c8e1a79f84c25b874ecd473ba4
+      - path: tests/formats/algorithms/KAIROS-EN23/pages/61-txt_blks.pkl
+        sha256: e8a6d4b7e94c07b49dbf1899c761aad8629c8f0eea6796e6af7da03d27ca43bf
+      - path: tests/formats/algorithms/UBS-EN23/pages/43-pdf_blks.pkl
+        sha256: f378df4c974e6d2349b1ad217553bed1639da6ba4d27cfc3dc87feb8a637a8da
+      - path: tests/formats/algorithms/UBS-EN23/pages/43-results.pkl
+        sha256: 46763b0fe8ea98bb61f3fd73f05ff494898c5461f8341cf3c4da9e9e4e88a1d2
+      - path: tests/formats/algorithms/UBS-EN23/pages/43-txt_blks.pkl
+        sha256: 8d68dd83f7735ae17a707e93008dcb6c6e4af64928a0b08e21f3e5faa699073c
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/140-pdf_blks.pkl
+        sha256: 8c7aaa6d619f0c82dba2a9dbf0206c03f465bf11ad7b099120b3bc885560159c
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/140-results.pkl
+        sha256: b1a61db74f11758aa91f2a7474bb1bf58e0e2a39a1f48e09c5871ccb13aa72c2
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/140-txt_blks.pkl
+        sha256: 53d54bd2935ec44953b4c5176ddd3f15a0da2d60cce5d1619580f11aeb0dafdd
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/149-pdf_blks.pkl
+        sha256: ba7f87f4248ffc6fb7d2eea904ec6c442b96d69a2ac7c2d1ce8686835c5dc678
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/149-results.pkl
+        sha256: f2dd8048799dde279c224ff01d2a50839d15d578b9f59f0e06d9f75e20834bce
+      - path: tests/formats/algorithms/FINECO-EN23@LUX/pages/149-txt_blks.pkl
+        sha256: 42ddf33d977914cbac85c06d071d566330599d02b00d96e99d11dd6e45ca47d3
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/517-pdf_blks.pkl
+        sha256: 41ded175b2f4e9620d767129e7814505ec134f1fe435bf3a04c5a64c6a7d0f66
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/517-results.pkl
+        sha256: 6c38be00264dab4174f8f84f4e22fa45ea3184242918f5f6b943481dc611fb73
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/517-txt_blks.pkl
+        sha256: a71c2cf57ea3a193ddcb346ca56966ae8d0b68f4b65753f1aed9a5c344377fc3
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/530-pdf_blks.pkl
+        sha256: 8c6c82b1c002201cc44e77eb7cf914d82dd494ad5025fe80cb2ba5c1289a3f99
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/530-results.pkl
+        sha256: ec0a6ccf9debf1c16781445c4b9106080d00478b0559469336db7c7b7b9711c8
+      - path: tests/formats/algorithms/FINECO-EN23@IR/pages/530-txt_blks.pkl
+        sha256: ec0a6ccf9debf1c16781445c4b9106080d00478b0559469336db7c7b7b9711c8
+      - path: tests/formats/algorithms/EURIZON-EN23.A/pages/255-pdf_blks.pkl
+        sha256: fe98e0636f174e4291b69d58aa09ee3fbcf16935cef5c4b1475bda810d804b84
+      - path: tests/formats/algorithms/EURIZON-EN23.A/pages/255-results.pkl
+        sha256: ec6e5b495803388caa85d8269a77e58c37c6c66ca1db7b201e46fed447d01ba7
+      - path: tests/formats/algorithms/EURIZON-EN23.A/pages/255-txt_blks.pkl
+        sha256: 6f649d428d611005f12c1d0671d4c5a270f2fc0c41ee37bc7d3ad12d15749e91
+sign: |-
+  -----BEGIN PGP SIGNATURE-----
+
+  iHUEABYKAB0WIQTmG83I+BrWy1U+1YAefFZE/fTjBAUCaQI8hAAKCRAefFZE/fTj
+  BDlmAQCQSEfK7mx48G87gyxeRT/fK0RmTFFJoy8g7K8aljvUuwEAlME1ZczYIk1G
+  rzveRQLGm0OkGaUXYKbcUOvKsF3oOwQ=
+  =OneJ
+  -----END PGP SIGNATURE-----

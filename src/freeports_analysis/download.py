@@ -1,33 +1,41 @@
-"""Functions to download pdf from internet and for scraping"""
+"""Functions for downloading PDF files from the internet and web scraping."""
 
 import logging as log
 from io import BytesIO
 import os
+from pathlib import Path
+from typing import Optional
 import requests as rq
 from freeports_analysis.i18n import _
 
 logger = log.getLogger(__name__)
 
 
-def download_pdf(url: str, pdf: str = None) -> BytesIO:
-    """Function to download pdf file from url
+def download_pdf(url: str, pdf: Optional[Path] = None) -> BytesIO:
+    """Download PDF file from URL and optionally save to local filesystem.
 
     Parameters
     ----------
     url : str
-        unique resource identifier on internet
-    pdf : str
-        path of the file where to save the file in filesystem
+        Unique resource identifier on internet pointing to PDF file
+    pdf : Optional[Path], optional
+        Path where to save the PDF in filesystem, by default None
 
     Returns
     -------
     BytesIO
-        output byte stream with input output operation like file
+        Byte stream with input/output operations like a file object
 
     Raises
     ------
-    Exception
-        if the code returned from the http get call is an error code, an exception occurs
+    requests.RequestException
+        If the HTTP GET call fails or returns an error status code
+
+    Notes
+    -----
+    If `pdf` is provided, the downloaded PDF will be saved to that path
+    in addition to being returned as a BytesIO stream. The function uses
+    a 10-second timeout for the HTTP request.
     """
     try:
         response = rq.get(url, timeout=10)

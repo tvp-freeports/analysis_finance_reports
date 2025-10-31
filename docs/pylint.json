@@ -1,0 +1,15 @@
+[
+    {
+        "type": "fatal",
+        "module": "src",
+        "obj": "",
+        "line": 1,
+        "column": 0,
+        "endLine": null,
+        "endColumn": null,
+        "path": "src",
+        "symbol": "fatal",
+        "message": "No module named src",
+        "message-id": "F0001"
+    }
+]

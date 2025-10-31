@@ -1,10 +1,16 @@
 from pathlib import Path
 import shutil
 from lxml import etree
-from freeports_analysis.main import get_targets
+from freeports_analysis.data import get_target_companies, TARGET_LISTS
+from freeports_analysis.conf_parse import (
+    OutStructureNormalMode,
+    OutFlagsNormalMode,
+    FreeportsFileConfig,
+)
 
-out_dir = Path(__file__).parent / "output/"
-data_dir = Path(__file__).parent / "data/"
+root_dir = Path(__file__).parent
+out_dir = root_dir / "output/"
+
 
 try:
     shutil.rmtree(out_dir)
@@ -13,48 +19,31 @@ except FileNotFoundError:
 out_dir.mkdir()
 
 url_example_formats = {
-    "AMUNDI_EN24": "https://www.amundi.com/dl/doc/annual-report/LU1883342377/ENG/ITA/20240630?inline",
-    "AMUNDI_IT24": "https://www.amundi.it/dl/doc/annual-report/IT0005491680/ITA/ITA/20241230",
-    "EURIZON_EN23": "https://www.eurizonam.hr/UserDocsImages//LUX/SAR_HR_en_LU1341630033_YES_2023-06-30.pdf",
-    "ANIMA_EN23": "https://www.animasgr.it/d/EN/downloads/Documents/Anima%20Funds%20plc%2031%20December%202023%20Financials.pdf",
-    "FIDEURAM_EN23": "https://www.fideuramassetmanagement.ie/upload/File/pdf/Policy_FAMI/WILLERFUNDS/DOC/FIDEURAM_WILLERFUNDS_Semi-Annual%2028.02.2023.pdf",
-    "EURIZON_EN21": "https://www.fundsquare.net/download/dl?siteId=FSQ&v=8R3GVJJluMrT1vWzWKb2+2y6bAdM4PonP+u32Js1vq7RbUzoOUpWj9+xriJFNnBxAFS14hLTev85fvgpgbDFQEJJfw8puksMVK/oWiK71T9YU0KjYpAH3l1VIKUAV4rPjwPaPQ7DDY4yhqF+o4MlHw==",
-    "MEDIOLANUM_IT24": "https://www.mediolanumgestionefondi.it/static-assets/documenti/file/it/2025/05/02//Relazione_di_gestione_annuale_al_%2030122024.pdf",
-    "ARCA_IT24": "https://docs.arcafondi.it/docs/getdoc/documenti/RENDICONTO_ANNUALE_IT0005419103.pdf",
-}
-
-single_page_tests = {
-    "ANIMA_EN23": [545],
-    "AMUNDI_EN24": [44],
-    "ASTERIA_EN24": [79],
-    "AMUNDI_IT24": [559],
-    "FIDEURAM_EN23": [52, 34],
-    "EURIZON_EN21": [98],
-    "EURIZON_IT24": [30],
-    "ARCA_IT24": [21],
-    "EURIZON_EN23": [255],
-    "ASTERIA_EN23": [22, 27],
-    "MEDIOLANUM_ES24_A": [40, 41],
-    "MEDIOLANUM_ES24_B": [28],
-    "MEDIOLANUM_ES24_C": [43],
-    "MEDIOLANUM_IT24_A": [439, 605, 554],
-    "MEDIOLANUM_IT24_B": [56, 95],
-    "DANSKEINVEST_EN24": [149],
+    "AMUNDI-EN24": "https://www.amundi.com/dl/doc/annual-report/LU1883342377/ENG/ITA/20240630?inline",
+    "AMUNDI-IT24": "https://www.amundi.it/dl/doc/annual-report/IT0005491680/ITA/ITA/20241230",
+    "EURIZON-EN23.A": "https://www.eurizonam.hr/UserDocsImages//LUX/SAR_HR_en_LU1341630033_YES_2023-06-30.pdf",
+    "ANIMA-EN23": "https://www.animasgr.it/d/EN/downloads/Documents/Anima%20Funds%20plc%2031%20December%202023%20Financials.pdf",
+    "FIDEURAM-EN23": "https://www.fideuramassetmanagement.ie/upload/File/pdf/Policy_FAMI/WILLERFUNDS/DOC/FIDEURAM_WILLERFUNDS_Semi-Annual%2028.02.2023.pdf",
+    "EURIZON-EN21": "https://www.fundsquare.net/download/dl?siteId=FSQ&v=8R3GVJJluMrT1vWzWKb2+2y6bAdM4PonP+u32Js1vq7RbUzoOUpWj9+xriJFNnBxAFS14hLTev85fvgpgbDFQEJJfw8puksMVK/oWiK71T9YU0KjYpAH3l1VIKUAV4rPjwPaPQ7DDY4yhqF+o4MlHw==",
+    "MEDIOLANUM-IT24": "https://www.mediolanumgestionefondi.it/static-assets/documenti/file/it/2025/05/02//Relazione_di_gestione_annuale_al_%2030122024.pdf",
+    "ARCA-IT24": "https://docs.arcafondi.it/docs/getdoc/documenti/RENDICONTO_ANNUALE_IT0005419103.pdf",
 }
 
 xml_parser = etree.XMLParser(recover=True)
-targets = get_targets()
+targets = get_target_companies(["TEST"])
 
 conf = {
     "VERBOSITY": 2,
     "N_WORKERS": 1,
-    "BATCH": None,
-    "OUT_CSV": None,
+    "BATCH_FILE": None,
+    "OUT_PATH": None,
     "SAVE_PDF": False,
     "URL": None,
     "PDF": None,
     "FORMAT": None,
-    "CONFIG_FILE": None,
+    "CONFIG_FILE": FreeportsFileConfig.find_config(),
     "PREFIX_OUT": None,
-    "SEPARATE_OUT_FILES": None,
+    "TARGET_LISTS": ["TEST"],
+    "OUT_PROFILE": OutStructureNormalMode.REGULAR,
+    "OUT_FLAGS": OutFlagsNormalMode(0),
 }

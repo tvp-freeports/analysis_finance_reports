@@ -1,0 +1,143 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+source "${REPO_ROOT}/validation/lib/utils"
+
+METHODOLOGY=""
+FILES=()
+ANY_METHODOLOGY=false
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case $1 in
+        with)
+            shift
+            if [ "$1" = "any" ]; then
+                ANY_METHODOLOGY=true
+            else
+                METHODOLOGY="$1"
+            fi
+            shift
+            ;;
+        *)
+            FILES+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$PERSONAL_DOC" ]; then
+    print_error "No validation document found for current user"
+    echo "Run create-document first to create your validation document"
+    exit 1
+fi
+
+# Validate document schema and signature before making changes
+if ! validate_document_schema "$PERSONAL_DOC"; then
+    print_error "Document schema is invalid - cannot proceed with ungrant operation"
+    exit 1
+fi
+
+if ! validate_document_signature "$PERSONAL_DOC"; then
+    print_error "Operation cancelled due to invalid signature"
+    exit 1
+fi
+
+# Normalize methodology name if specified
+if [ -n "$METHODOLOGY" ]; then
+    METHODOLOGY=$(normalize_methodology_name "$METHODOLOGY")
+fi
+
+# Case 1: ungrant with <methodology> (no files) - remove all files with that methodology and the methodology itself
+if [ ${#FILES[@]} -eq 0 ] && [ -n "$METHODOLOGY" ]; then
+    print_warning "This will remove ALL files granted with methodology '$METHODOLOGY' and the methodology itself from the document."
+    echo "This action cannot be undone."
+    read -p "Are you sure you want to continue? (y/N): " confirm
+    
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        # Remove all files with this methodology from data section
+        yq -i "del(.data[] | select(.methodology == \"$METHODOLOGY\"))"  "$PERSONAL_DOC"
+        
+        # Remove the methodology from methodologies section
+        yq -i "del(.methodologies[] | select(.name == \"$METHODOLOGY\"))"  "$PERSONAL_DOC"
+        
+        print_success "Removed all files and methodology '$METHODOLOGY' from validation document"
+        echo "Updating signature..."
+        "$REPO_ROOT/validation/sign-document" --update
+        exit 0
+    else
+        print_info "Operation cancelled"
+    fi
+    exit 0
+fi
+
+# Case 2: ungrant <files> with any - remove files from all methodologies
+if [ ${#FILES[@]} -gt 0 ] && [ "$ANY_METHODOLOGY" = true ]; then
+    for file in "${FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            print_error "File '$file' does not exist"
+            exit 1
+        fi
+        
+        # Get relative path from repo root
+        rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
+        
+        print_info "Removing file '$rel_path' from all methodologies"
+        
+        # Remove file from all methodology sections in data
+        yq -i "del(.data[].files[] | select(.path == \"$rel_path\"))" "$PERSONAL_DOC"
+        
+        # Clean up empty methodology sections
+        yq -i 'del(.data[] | select(.files | length == 0))'  "$PERSONAL_DOC"
+        
+        print_success "Removed '$rel_path' from all methodologies"
+    done
+    
+    print_success "Ungrant operation completed. Document updated: $PERSONAL_DOC"
+    echo "Updating signature..."
+    "$REPO_ROOT/validation/sign-document" --update
+    exit 0
+fi
+
+# Case 3: ungrant <files> with <methodology> - remove specific files from specific methodology
+if [ ${#FILES[@]} -gt 0 ] && [ -n "$METHODOLOGY" ]; then
+    # Check if methodology exists
+    if ! methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
+        print_error "Methodology '$METHODOLOGY' not found in validation document"
+        exit 1
+    fi
+    
+    for file in "${FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            print_error "File '$file' does not exist"
+            exit 1
+        fi
+        
+        # Get relative path from repo root
+        rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
+        
+        print_info "Removing file '$rel_path' from methodology '$METHODOLOGY'"
+        
+        # Remove file from specific methodology section
+        yq -i "del(.data[] | select(.methodology == \"$METHODOLOGY\").files[] | select(.path == \"$rel_path\"))"  "$PERSONAL_DOC"
+        
+        # Clean up empty methodology sections
+        yq -i 'del(.data[] | select(.files | length == 0))' "$PERSONAL_DOC"
+        
+        print_success "Removed '$rel_path' from methodology '$METHODOLOGY'"
+    done
+    
+    print_success "Ungrant operation completed. Document updated: $PERSONAL_DOC"
+    echo "Updating signature..."
+    "$REPO_ROOT/validation/sign-document" --update
+    exit 0
+fi
+
+# If we get here, the arguments are invalid
+print_error "Usage:"
+echo "  $0 with <methodology>                    - Remove all files with methodology and the methodology itself"
+echo "  $0 <files...> with any                   - Remove files from all methodologies"
+echo "  $0 <files...> with <methodology>         - Remove files from specific methodology"
+exit 1
+
+

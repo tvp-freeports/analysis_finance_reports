@@ -1,0 +1,1092 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>freeports_analysis.conf_parse &mdash; freeports_analysis 0.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47de8214"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="freeports_analysis.consts" href="freeports_analysis.consts.html" />
+    <link rel="prev" title="freeports_analysis.cmd" href="freeports_analysis.cmd.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            freeports_analysis
+              <img src="https://www.freeports.org/assets/logo/square.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/quickstart.html">Quickstart guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/command.html">Command reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">Package reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="freeports_analysis.html">freeports_analysis</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.cmd.html">freeports_analysis.cmd</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">freeports_analysis.conf_parse</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsCmdConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsCmdConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsEnvConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsEnvConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsFileConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsFileConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsJobConfig"><code class="docutils literal notranslate"><span class="pre">FreeportsJobConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsBatchMode"><code class="docutils literal notranslate"><span class="pre">OutFlagsBatchMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsNormalMode"><code class="docutils literal notranslate"><span class="pre">OutFlagsNormalMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureBatchMode"><code class="docutils literal notranslate"><span class="pre">OutStructureBatchMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureNormalMode"><code class="docutils literal notranslate"><span class="pre">OutStructureNormalMode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration"><code class="docutils literal notranslate"><span class="pre">ParitalConfiguration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#freeports_analysis.conf_parse.SelectorOutProfile"><code class="docutils literal notranslate"><span class="pre">SelectorOutProfile</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.consts.html">freeports_analysis.consts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.data.html">freeports_analysis.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.download.html">freeports_analysis.download</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.i18n.html">freeports_analysis.i18n</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.logging.html">freeports_analysis.logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.main.html">freeports_analysis.main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="freeports_analysis.output.html">freeports_analysis.output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contribute.html">How to contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validation/index.html">How the data is validated</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">Developer documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">freeports_analysis</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../API.html">Package reference</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.conf_parse</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_generated/freeports_analysis.conf_parse.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-freeports_analysis.conf_parse">
+<span id="freeports-analysis-conf-parse"></span><h1>freeports_analysis.conf_parse<a class="headerlink" href="#module-freeports_analysis.conf_parse" title="Link to this heading"></a></h1>
+<p>Submodule containing all the utilities for validating and parsing the configuration</p>
+<p class="rubric">Classes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsCmdConfig" title="freeports_analysis.conf_parse.FreeportsCmdConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsCmdConfig</span></code></a>(args, default_verbosity)</p></td>
+<td><p>Represents configuration loaded from command line arguments.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsConfig</span></code></a>(*, VERBOSITY, None, ...)</p></td>
+<td><p>Main configuration class that combines all configuration sources.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsEnvConfig" title="freeports_analysis.conf_parse.FreeportsEnvConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsEnvConfig</span></code></a>()</p></td>
+<td><p>Represents configuration loaded from environment variables.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsFileConfig" title="freeports_analysis.conf_parse.FreeportsFileConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsFileConfig</span></code></a>([config_file])</p></td>
+<td><p>Represents the configuration portion loaded from a specific configuration file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsJobConfig" title="freeports_analysis.conf_parse.FreeportsJobConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreeportsJobConfig</span></code></a>(row_dict)</p></td>
+<td><p>Represents configuration for individual jobs in batch processing mode.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsBatchMode" title="freeports_analysis.conf_parse.OutFlagsBatchMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutFlagsBatchMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsNormalMode" title="freeports_analysis.conf_parse.OutFlagsNormalMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutFlagsNormalMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureBatchMode" title="freeports_analysis.conf_parse.OutStructureBatchMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutStructureBatchMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureNormalMode" title="freeports_analysis.conf_parse.OutStructureNormalMode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OutStructureNormalMode</span></code></a>(*values)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration" title="freeports_analysis.conf_parse.ParitalConfiguration"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParitalConfiguration</span></code></a>()</p></td>
+<td><p>Abstract base class for partial configuration sources.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.conf_parse.SelectorOutProfile" title="freeports_analysis.conf_parse.SelectorOutProfile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SelectorOutProfile</span></code></a>()</p></td>
+<td><p>Mixin class for Pydantic models to handle output profile and flags type casting.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsCmdConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_verbosity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig" title="Link to this definition"></a></dt>
+<dd><p>Represents configuration loaded from command line arguments.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.VERBOSITY">
+<span class="sig-name descname"><span class="pre">VERBOSITY</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.VERBOSITY" title="Link to this definition"></a></dt>
+<dd><p>The verbosity level for logging output</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Verbosity]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_PROFILE">
+<span class="sig-name descname"><span class="pre">OUT_PROFILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_PROFILE" title="Link to this definition"></a></dt>
+<dd><p>The output structure profile (normal or batch mode)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutProfile]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_FLAGS">
+<span class="sig-name descname"><span class="pre">OUT_FLAGS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_FLAGS" title="Link to this definition"></a></dt>
+<dd><p>Additional output flags and options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutFlags]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_PATH">
+<span class="sig-name descname"><span class="pre">OUT_PATH</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.OUT_PATH" title="Link to this definition"></a></dt>
+<dd><p>The output directory path for generated files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.N_WORKERS">
+<span class="sig-name descname"><span class="pre">N_WORKERS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.N_WORKERS" title="Link to this definition"></a></dt>
+<dd><p>Number of parallel workers for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[PositiveInt]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.BATCH_FILE">
+<span class="sig-name descname"><span class="pre">BATCH_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.BATCH_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to batch file for batch processing mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.SAVE_PDF">
+<span class="sig-name descname"><span class="pre">SAVE_PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.SAVE_PDF" title="Link to this definition"></a></dt>
+<dd><p>Whether to save downloaded PDF files locally</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.URL">
+<span class="sig-name descname"><span class="pre">URL</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.URL" title="Link to this definition"></a></dt>
+<dd><p>URL pointing to PDF resources</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[HttpUrl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.PDF">
+<span class="sig-name descname"><span class="pre">PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.PDF" title="Link to this definition"></a></dt>
+<dd><p>Local path to PDF file for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.FORMAT">
+<span class="sig-name descname"><span class="pre">FORMAT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.FORMAT" title="Link to this definition"></a></dt>
+<dd><p>Format specification for PDF parsing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Format]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.TARGET_LISTS">
+<span class="sig-name descname"><span class="pre">TARGET_LISTS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.TARGET_LISTS" title="Link to this definition"></a></dt>
+<dd><p>Lists of target companies to filter during analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Lists]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.create_parser">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.create_parser" title="Link to this definition"></a></dt>
+<dd><p>Create and configure the command line argument parser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Configured argument parser for command line interface</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>argparse.ArgumentParser</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsCmdConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsCmdConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">*,</span> <span class="pre">VERBOSITY:</span> <span class="pre">~typing.Annotated[int,</span> <span class="pre">None,</span> <span class="pre">~annotated_types.Interval(gt=None,</span> <span class="pre">ge=0,</span> <span class="pre">lt=None,</span> <span class="pre">le=5),</span> <span class="pre">None],</span> <span class="pre">N_WORKERS:</span> <span class="pre">~typing.Annotated[int,</span> <span class="pre">~annotated_types.Gt(gt=0)],</span> <span class="pre">BATCH_FILE:</span> <span class="pre">~typing.Annotated[~pathlib.Path,</span> <span class="pre">~pydantic.types.PathType(path_type=file)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">SAVE_PDF:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">URL:</span> <span class="pre">~pydantic.networks.HttpUrl</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">PDF:</span> <span class="pre">~pathlib.Path</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">FORMAT:</span> <span class="pre">~typing.Annotated[str,</span> <span class="pre">~pydantic.functional_validators.AfterValidator(func=~freeports_analysis.conf_parse._format_validate)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">CONFIG_FILE:</span> <span class="pre">~typing.Annotated[~pathlib.Path,</span> <span class="pre">~pydantic.types.PathType(path_type=file)]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">TARGET_LISTS:</span> <span class="pre">~typing.Annotated[~typing.List[str],</span> <span class="pre">~pydantic.functional_validators.BeforeValidator(func=~freeports_analysis.conf_parse.&lt;lambda&gt;,</span> <span class="pre">json_schema_input_type=PydanticUndefined)],</span> <span class="pre">PREFIX_OUT:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">OUT_PROFILE:</span> <span class="pre">~freeports_analysis.conf_parse.OutStructureNormalMode</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.conf_parse.OutStructureBatchMode,</span> <span class="pre">OUT_FLAGS:</span> <span class="pre">~freeports_analysis.conf_parse.OutFlagsNormalMode</span> <span class="pre">|</span> <span class="pre">~freeports_analysis.conf_parse.OutFlagsBatchMode</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">OUT_PATH:</span> <span class="pre">~pathlib.Path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig" title="Link to this definition"></a></dt>
+<dd><p>Main configuration class that combines all configuration sources.</p>
+<p>This class represents the final validated configuration after merging
+defaults, file config, environment variables, and command line arguments.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.VERBOSITY">
+<span class="sig-name descname"><span class="pre">VERBOSITY</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.VERBOSITY" title="Link to this definition"></a></dt>
+<dd><p>The verbosity level for logging output</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Verbosity</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.N_WORKERS">
+<span class="sig-name descname"><span class="pre">N_WORKERS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.N_WORKERS" title="Link to this definition"></a></dt>
+<dd><p>Number of parallel workers for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>PositiveInt</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.BATCH_FILE">
+<span class="sig-name descname"><span class="pre">BATCH_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.BATCH_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to batch file for batch processing mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.SAVE_PDF">
+<span class="sig-name descname"><span class="pre">SAVE_PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.SAVE_PDF" title="Link to this definition"></a></dt>
+<dd><p>Whether to save downloaded PDF files locally</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.URL">
+<span class="sig-name descname"><span class="pre">URL</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.URL" title="Link to this definition"></a></dt>
+<dd><p>URL pointing to PDF resources</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[HttpUrl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.PDF">
+<span class="sig-name descname"><span class="pre">PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.PDF" title="Link to this definition"></a></dt>
+<dd><p>Local path to PDF file for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.FORMAT">
+<span class="sig-name descname"><span class="pre">FORMAT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.FORMAT" title="Link to this definition"></a></dt>
+<dd><p>Format specification for PDF parsing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Format]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.CONFIG_FILE">
+<span class="sig-name descname"><span class="pre">CONFIG_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.CONFIG_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to custom configuration file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.TARGET_LISTS">
+<span class="sig-name descname"><span class="pre">TARGET_LISTS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.TARGET_LISTS" title="Link to this definition"></a></dt>
+<dd><p>Lists of target companies to filter during analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Lists</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.PREFIX_OUT">
+<span class="sig-name descname"><span class="pre">PREFIX_OUT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.PREFIX_OUT" title="Link to this definition"></a></dt>
+<dd><p>Prefix for output files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.OUT_PROFILE">
+<span class="sig-name descname"><span class="pre">OUT_PROFILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.OUT_PROFILE" title="Link to this definition"></a></dt>
+<dd><p>The output structure profile (normal or batch mode)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[<a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureNormalMode" title="freeports_analysis.conf_parse.OutStructureNormalMode">OutStructureNormalMode</a>, <a class="reference internal" href="#freeports_analysis.conf_parse.OutStructureBatchMode" title="freeports_analysis.conf_parse.OutStructureBatchMode">OutStructureBatchMode</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.OUT_FLAGS">
+<span class="sig-name descname"><span class="pre">OUT_FLAGS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.OUT_FLAGS" title="Link to this definition"></a></dt>
+<dd><p>Additional output flags and options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[<a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsNormalMode" title="freeports_analysis.conf_parse.OutFlagsNormalMode">OutFlagsNormalMode</a>, <a class="reference internal" href="#freeports_analysis.conf_parse.OutFlagsBatchMode" title="freeports_analysis.conf_parse.OutFlagsBatchMode">OutFlagsBatchMode</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.OUT_PATH">
+<span class="sig-name descname"><span class="pre">OUT_PATH</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.OUT_PATH" title="Link to this definition"></a></dt>
+<dd><p>The output directory path for generated files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.detect_format">
+<span class="sig-name descname"><span class="pre">detect_format</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.detect_format" title="Link to this definition"></a></dt>
+<dd><p>Detect format from URL if not explicitly specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If format cannot be detected or specified</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.input_should_be_specified">
+<span class="sig-name descname"><span class="pre">input_should_be_specified</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.input_should_be_specified" title="Link to this definition"></a></dt>
+<dd><p>Validate that at least one input source is specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If neither URL nor PDF input is specified</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.out_path_exists">
+<span class="sig-name descname"><span class="pre">out_path_exists</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.out_path_exists" title="Link to this definition"></a></dt>
+<dd><p>Validate that the output path parent directory exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If output path parent directory doesn’t exist</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.out_path_single_file">
+<span class="sig-name descname"><span class="pre">out_path_single_file</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.out_path_single_file" title="Link to this definition"></a></dt>
+<dd><p>Ensure output path has .csv extension for SINGLE_FILE mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.pdf_path_validation">
+<span class="sig-name descname"><span class="pre">pdf_path_validation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.pdf_path_validation" title="Link to this definition"></a></dt>
+<dd><p>Validate PDF path and handle SAVE_PDF logic.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If PDF path is invalid and no URL is specified</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.right_out_profile_type">
+<span class="sig-name descname"><span class="pre">right_out_profile_type</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.right_out_profile_type" title="Link to this definition"></a></dt>
+<dd><p>Validate that output profile and flags match the processing mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If output profile/flags don’t match the processing mode</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsConfig.set_compress_flag">
+<span class="sig-name descname"><span class="pre">set_compress_flag</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig"><span class="pre">FreeportsConfig</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsConfig.set_compress_flag" title="Link to this definition"></a></dt>
+<dd><p>Set COMPRESSED flag if output path ends with .tar.gz.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The updated configuration instance</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#freeports_analysis.conf_parse.FreeportsConfig" title="freeports_analysis.conf_parse.FreeportsConfig">FreeportsConfig</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsEnvConfig</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig" title="Link to this definition"></a></dt>
+<dd><p>Represents configuration loaded from environment variables.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.VERBOSITY">
+<span class="sig-name descname"><span class="pre">VERBOSITY</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.VERBOSITY" title="Link to this definition"></a></dt>
+<dd><p>The verbosity level for logging output</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Verbosity]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.N_WORKERS">
+<span class="sig-name descname"><span class="pre">N_WORKERS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.N_WORKERS" title="Link to this definition"></a></dt>
+<dd><p>Number of parallel workers for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[PositiveInt]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.BATCH_FILE">
+<span class="sig-name descname"><span class="pre">BATCH_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.BATCH_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to batch file for batch processing mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_PATH">
+<span class="sig-name descname"><span class="pre">OUT_PATH</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_PATH" title="Link to this definition"></a></dt>
+<dd><p>The output directory path for generated files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_PROFILE">
+<span class="sig-name descname"><span class="pre">OUT_PROFILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_PROFILE" title="Link to this definition"></a></dt>
+<dd><p>The output structure profile (normal or batch mode)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutProfile]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_FLAGS">
+<span class="sig-name descname"><span class="pre">OUT_FLAGS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.OUT_FLAGS" title="Link to this definition"></a></dt>
+<dd><p>Additional output flags and options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutFlags]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.SAVE_PDF">
+<span class="sig-name descname"><span class="pre">SAVE_PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.SAVE_PDF" title="Link to this definition"></a></dt>
+<dd><p>Whether to save downloaded PDF files locally</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.URL">
+<span class="sig-name descname"><span class="pre">URL</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.URL" title="Link to this definition"></a></dt>
+<dd><p>URL pointing to PDF resources</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[HttpUrl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.PDF">
+<span class="sig-name descname"><span class="pre">PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.PDF" title="Link to this definition"></a></dt>
+<dd><p>Local path to PDF file for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.FORMAT">
+<span class="sig-name descname"><span class="pre">FORMAT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.FORMAT" title="Link to this definition"></a></dt>
+<dd><p>Format specification for PDF parsing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Format]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.CONFIG_FILE">
+<span class="sig-name descname"><span class="pre">CONFIG_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.CONFIG_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to custom configuration file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.TARGET_LISTS">
+<span class="sig-name descname"><span class="pre">TARGET_LISTS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.TARGET_LISTS" title="Link to this definition"></a></dt>
+<dd><p>Lists of target companies to filter during analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Lists]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsEnvConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsEnvConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsFileConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig" title="Link to this definition"></a></dt>
+<dd><p>Represents the configuration portion loaded from a specific configuration file.</p>
+<p>This class handles the parsing and validation of configuration settings
+from YAML configuration files located in various standard locations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.VERBOSITY">
+<span class="sig-name descname"><span class="pre">VERBOSITY</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.VERBOSITY" title="Link to this definition"></a></dt>
+<dd><p>The verbosity level for logging output</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Verbosity]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.OUT_PATH">
+<span class="sig-name descname"><span class="pre">OUT_PATH</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.OUT_PATH" title="Link to this definition"></a></dt>
+<dd><p>The output directory path for generated files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.OUT_PROFILE">
+<span class="sig-name descname"><span class="pre">OUT_PROFILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.OUT_PROFILE" title="Link to this definition"></a></dt>
+<dd><p>The output structure profile (normal or batch mode)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutProfile]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.OUT_FLAGS">
+<span class="sig-name descname"><span class="pre">OUT_FLAGS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.OUT_FLAGS" title="Link to this definition"></a></dt>
+<dd><p>Additional output flags and options</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[OutFlags]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.N_WORKERS">
+<span class="sig-name descname"><span class="pre">N_WORKERS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.N_WORKERS" title="Link to this definition"></a></dt>
+<dd><p>Number of parallel workers for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[PositiveInt]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.BATCH_FILE">
+<span class="sig-name descname"><span class="pre">BATCH_FILE</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.BATCH_FILE" title="Link to this definition"></a></dt>
+<dd><p>Path to batch file for batch processing mode</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[FilePath]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.SAVE_PDF">
+<span class="sig-name descname"><span class="pre">SAVE_PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.SAVE_PDF" title="Link to this definition"></a></dt>
+<dd><p>Whether to save downloaded PDF files locally</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.URL">
+<span class="sig-name descname"><span class="pre">URL</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.URL" title="Link to this definition"></a></dt>
+<dd><p>URL pointing to PDF resources</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[HttpUrl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.PDF">
+<span class="sig-name descname"><span class="pre">PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.PDF" title="Link to this definition"></a></dt>
+<dd><p>Local path to PDF file for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.FORMAT">
+<span class="sig-name descname"><span class="pre">FORMAT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.FORMAT" title="Link to this definition"></a></dt>
+<dd><p>Format specification for PDF parsing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Format]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.TARGET_LISTS">
+<span class="sig-name descname"><span class="pre">TARGET_LISTS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.TARGET_LISTS" title="Link to this definition"></a></dt>
+<dd><p>Lists of target companies to filter during analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Lists]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.find_config">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">find_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.find_config" title="Link to this definition"></a></dt>
+<dd><p>Find configuration file by searching in standard locations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path to configuration file if found, None otherwise</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optional[Path]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Searches locations in the following order:
+1. Current working directory (various naming patterns)
+2. User configuration directories (XDG on POSIX, AppData on Windows)
+3. System-wide directories (/etc on POSIX, Windows system directory)</p>
+<p>Returns the first configuration file found in this search order.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsFileConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsFileConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">FreeportsJobConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig" title="Link to this definition"></a></dt>
+<dd><p>Represents configuration for individual jobs in batch processing mode.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.PREFIX_OUT">
+<span class="sig-name descname"><span class="pre">PREFIX_OUT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.PREFIX_OUT" title="Link to this definition"></a></dt>
+<dd><p>Prefix for output files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.SAVE_PDF">
+<span class="sig-name descname"><span class="pre">SAVE_PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.SAVE_PDF" title="Link to this definition"></a></dt>
+<dd><p>Whether to save downloaded PDF files locally</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.URL">
+<span class="sig-name descname"><span class="pre">URL</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.URL" title="Link to this definition"></a></dt>
+<dd><p>URL pointing to PDF resources</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[HttpUrl]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.PDF">
+<span class="sig-name descname"><span class="pre">PDF</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.PDF" title="Link to this definition"></a></dt>
+<dd><p>Local path to PDF file for processing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Path]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.FORMAT">
+<span class="sig-name descname"><span class="pre">FORMAT</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.FORMAT" title="Link to this definition"></a></dt>
+<dd><p>Format specification for PDF parsing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Format</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.TARGET_LISTS">
+<span class="sig-name descname"><span class="pre">TARGET_LISTS</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.TARGET_LISTS" title="Link to this definition"></a></dt>
+<dd><p>Lists of target companies to filter during analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Lists]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.FreeportsJobConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.conf_parse.FreeportsJobConfig.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutFlagsBatchMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutFlagsBatchMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutFlagsBatchMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutFlagsNormalMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutFlagsNormalMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutFlagsNormalMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutStructureBatchMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutStructureBatchMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutStructureBatchMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.OutStructureNormalMode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">OutStructureNormalMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.conf_parse.OutStructureNormalMode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.ParitalConfiguration">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">ParitalConfiguration</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.ParitalConfiguration" title="Link to this definition"></a></dt>
+<dd><p>Abstract base class for partial configuration sources.</p>
+<p>This class represents a configuration source that provides partial
+configuration values, used to overwrite the main configuration dictionary
+and track the source of each configuration value.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.ParitalConfiguration.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.ParitalConfiguration.None" title="Link to this definition"></a></dt>
+<dd><p>This is an abstract base class</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.ParitalConfiguration.model_dump">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.ParitalConfiguration.model_dump" title="Link to this definition"></a></dt>
+<dd><p>Serialize the partial configuration to a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing the configuration values from this source</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method is typically implemented by Pydantic models that inherit
+from this class, providing automatic serialization of model fields.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.ParitalConfiguration.overwrite_config">
+<span class="sig-name descname"><span class="pre">overwrite_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_location</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.ParitalConfiguration.overwrite_config" title="Link to this definition"></a></dt>
+<dd><p>Overwrite configuration with values from this partial configuration source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Current configuration dictionary to be updated</p></li>
+<li><p><strong>config_location</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – Current configuration location tracking dictionary</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple containing:
+- Updated configuration dictionary with overwritten values
+- Updated location dictionary tracking source of each value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Dict[str, Any], Dict[str, str]]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Only non-None values from this configuration source will overwrite
+existing values in the configuration dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.SelectorOutProfile">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.conf_parse.</span></span><span class="sig-name descname"><span class="pre">SelectorOutProfile</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.SelectorOutProfile" title="Link to this definition"></a></dt>
+<dd><p>Mixin class for Pydantic models to handle output profile and flags type casting.</p>
+<p>This class provides validation logic to ensure output profiles and flags
+are cast to the appropriate type based on whether batch mode is active.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.SelectorOutProfile.None">
+<span class="sig-name descname"><span class="pre">None</span></span><a class="headerlink" href="#freeports_analysis.conf_parse.SelectorOutProfile.None" title="Link to this definition"></a></dt>
+<dd><p>This is a mixin class that adds validation behavior</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="freeports_analysis.conf_parse.SelectorOutProfile.cast_to_right_type">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cast_to_right_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.conf_parse.SelectorOutProfile.cast_to_right_type" title="Link to this definition"></a></dt>
+<dd><p>Cast output profile and flags to the correct type based on processing mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>values</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Dictionary of input values to validate and cast</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Validated dictionary with properly typed output profile and flags</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This validator automatically detects whether batch mode is active
+(based on presence of BATCH_FILE) and casts OUT_PROFILE and OUT_FLAGS
+to the appropriate enum/flag types for that mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="freeports_analysis.cmd.html" class="btn btn-neutral float-left" title="freeports_analysis.cmd" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.consts.html" class="btn btn-neutral float-right" title="freeports_analysis.consts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Oreste Sciacqualegni.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

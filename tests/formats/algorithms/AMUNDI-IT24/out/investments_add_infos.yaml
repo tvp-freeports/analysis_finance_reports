@@ -1,0 +1,33 @@
+1:
+  interest_rate: 0.018000000000000002
+  maturity: '2025-10-15'
+2:
+  interest_rate: 0.0625
+  maturity: '2025-05-01'
+4:
+  interest_rate: 0.013000000000000001
+  maturity: '2026-01-08'
+5:
+  interest_rate: 0.014499999999999999
+  maturity: '2026-07-15'
+6:
+  interest_rate: 0.05
+  maturity: '2026-02-15'
+7:
+  interest_rate: 0.00875
+  maturity: '2030-02-09'
+8:
+  interest_rate: 0.00875
+  maturity: '2029-07-01'
+9:
+  interest_rate: 0.013000000000000001
+  maturity: '2026-01-08'
+12:
+  interest_rate: 0.008
+  maturity: null
+13:
+  interest_rate: 0.013000000000000001
+  maturity: '2026-01-08'
+14:
+  interest_rate: 0.014499999999999999
+  maturity: '2026-07-15'

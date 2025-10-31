@@ -1,0 +1,13 @@
+ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous
+AMUNDI-IT24,,,TRUE,FALSE,,TRUE
+EURIZON-EN21,,,,FALSE,,
+EURIZON-EN23.A,,,TRUE,FALSE,,
+EURIZON-EN23.B,,,TRUE,FALSE,,TRUE
+ASTERIA-EN24,,,,,,TRUE
+DANSKEINVEST-EN24,,,,,,TRUE
+CARNE-EN23,,,TRUE,FALSE,,TRUE
+UBS-EN23,,,TRUE,FALSE,,
+ANIMA_SICAV-EN24,,,TRUE,FALSE,,
+KAIROS-EN23,,,,FALSE,,
+FINECO-EN23@LUX,,,TRUE,,,
+FINECO-EN23@IR,,,,,,TRUE

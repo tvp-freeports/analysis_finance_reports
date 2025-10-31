@@ -1,0 +1,26 @@
+ID,Header set,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency
+AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",ArialMT(:27),ArialNarrow(:208),ArialNarrow(:768),-1,1,2,,
+AMUNDI-IT24,,,,,2,1,5,,
+ANIMA-EN23,,,,,1,-1,2,,
+ARCA-IT24,,,,,3,2,4,,1
+ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",CenturyGothic-Bold(80:95),"CenturyGothic-Bold[8.9802] ""(Expressed in""",CenturyGothic,4,1,5,3,2
+ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",CenturyGothic-Bold(:87),"CenturyGothic-Bold[8.9802] ""(expressed in""",CenturyGothic (:810),4,1,5,3,2
+DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",Calibri[14.5](60:80),"Calibri[8.5] ""expressed in""",Calibri[9],4,1,5,3,2
+EURIZON-EN21,"ArialMT-Bold ""Face value/""",ArialMT(82:98),"ArialMT[8.9802] ""(expressed in""",Verdana(195:710),4,1,5,3,2
+EURIZON-EN23.A,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",Frutiger-Black(:85),"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",Frutiger-Light(160:765),3,-1,4,2,1
+EURIZON-EN23.B,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",Frutiger-Black(:85),"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",Frutiger-Light(160:765),3,-1,4,2,1
+EURIZON-IT24,,,,,2,1,3,,
+FIDEURAM-EN23,"Arial ""Country""",Arial-Bold(:82),Arial[6.9846]((480:)(148:155.5)),Arial(103:749),1,-1,2,,-2
+MEDIOLANUM-ES24.A,,,,,4,1,5,3,2
+MEDIOLANUM-ES24.B,"Helvetica-Bold ""Cartera Exerior""",Helvetica-Bold(:80),"Helvetica ""Expresado en""",Helvetica,3,,,2,
+MEDIOLANUM-IT24.A,"[8.037657] ""Descrizione""",[15.47555] (:80),"[8.037657] ""valori espressi in""",[8.037657],4,1,5,3,2
+MEDIOLANUM-IT24.B,,,,,2,1,3,,
+FIDEURAM-IT24,,,,,1,4,5,,
+CARNE-EN23,,,,,2,1,3,,-1
+ANIMA_SGR-IT24.A,,,,,3,2,4,,1
+FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,ArialNarrow-Bold(:90),ArialNarrow-Bold((480:497)(145:159)),ArialNarrow[8],3,-1,4,2,1
+FINECO-EN23@IR,,,,,1,-1,2,,
+ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",ArialNarrow-Bold(:75),"ArialNarrow-Bold(:75) ""(in """,ArialNarrow[7],,,,,
+KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",ArialNarrow-Bold(:75),"ArialNarrow-Bold[12] ""(in """,ArialNarrow[6],,,,,
+UBS-EN23,"Frutiger45LightBold ""Description """,Frutiger45Light(730:770),"Frutiger45LightBold ""Valuation in """,Frutiger45Light[5],2,1,3,,-1
+ANIMA_SGR-IT24.B,,,,,3,2,4,,1
