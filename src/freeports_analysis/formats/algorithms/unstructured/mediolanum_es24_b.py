@@ -145,9 +145,8 @@ def deserialize(txt_blk: Optional[TextBlock]) -> Optional[Any]:
     if txt_blk is None:
         return None
     if txt_blk.type_block == TextBlockType.SUBFUND:
-        return PromisesResolutionContext(
-            {"title document": txt_blk.metadata["subfund"]}
-        )
+        # type PromisesResolutionContext
+        return {"title document": txt_blk.metadata["subfund"]}
 
     @standard_deserialization()
     def std_deserialize(txt_blk: TextBlock):
