@@ -31,7 +31,7 @@ a:active, a:hover, a:visited {
 }
 
 .wy-menu-vertical a {
-    color: #dadada;
+    color: #fcfcfc;
 }
 
 .rst-content code.literal, .rst-content tt.literal {
@@ -45,17 +45,17 @@ a:active, a:hover, a:visited {
     color: #d422ff;
 }
 
-/* .wy-side-nav-search .wy-dropdown > a, .wy-side-nav-search > a {
+.wy-side-nav-search .wy-dropdown > a, .wy-side-nav-search > a {
     color: #fcfcfc;
-} */
+}
 
 .wy-nav-top {
     background-color: #d422ff;
 }
 
 
-/* .wy-nav-top a {
+.wy-nav-top a {
     color: #fcfcfc;
-} */
+}
 
 
