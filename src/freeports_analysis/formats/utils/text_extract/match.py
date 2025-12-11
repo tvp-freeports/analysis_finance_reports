@@ -35,12 +35,15 @@ translation_table: Dict[str, str] = {
     "ñ": "n",
     "ç": "c",
     "ß": "ss",
+    "å": "a",
+    "ø": "o",
     "œ": "oe",
     "æ": "ae",
+    "&": "and"
 }
 
-TO_SEP = ",/-"
-TO_REMOVE = "!?{}[]()\"'/."
+TO_SEP = ",-–+"
+TO_REMOVE = "!?{}[]()\"'’/."
 table = str.maketrans(translation_table)
 for char in TO_SEP:
     table[ord(char)] = " "

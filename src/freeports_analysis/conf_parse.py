@@ -667,6 +667,7 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
         parser.add_argument(
             "--target-list",
             "-T",
+            nargs="+",
             type=str,
             help=_("List to filter the companies of interest (default: {})").format(
                 target_lists

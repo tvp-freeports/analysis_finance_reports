@@ -13,7 +13,7 @@ subfund_set = PdfLineSet(
     font_size=7.98,
     area={
         "x_min": PdfLineSet(
-            font="Open Sans", text="di Gestione del Risparmio", font_size=7.98
+            font=FontSet("Open Sans", "Lato"), text="di Gestione del Risparmio", font_size=7.98
         ),
         "x_max": None,
         "y_min": None,

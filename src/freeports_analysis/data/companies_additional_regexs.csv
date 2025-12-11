@@ -1,1 +1,99 @@
 Company name,Regex
+Ackerstein Industries,\backr
+Actividades de Construcción y Servicios,\bacs
+Ahava Dead Sea Laboratories,dead.*sea.*laboratories
+Alphabet,google
+Amir Marketing and Investments,\bamrk
+Ashtrom Residential Development,ashdar.*(building|company)
+"Bar-Amana Buildings Construction and
+Development",binyanei
+Booking Holdings,\bbkng
+C Mer Industries,\bcmer
+Cafe Cafe Israel,\breshet
+Construcciones y Auxiliar de Ferrocarriles,ferrocarrilles
+Construcciones y Auxiliar de Ferrocarriles,\bcaf
+Danya Cebus,\bdnya
+Davidov Garages,mayer.*garages
+Delek Group,\bdlekg
+Delek Group,\bdelky
+Delta Galil Industries,\bdelg
+Delta Galil Industries,\bdeltf
+Delta Israel Brands,\bdlti
+Alon Energy,dor.*alon
+Alon Energy,\bdral
+eDreams ODIGEO,\bedre
+eDreams ODIGEO,\bedemy
+eDreams ODIGEO,\beddrf
+Electra Group,\beltr
+Electra Group,\betrzf
+Electricity Production and Renewable Energy Systems Ltd,\belectricity.*(production|renewables)
+Elyakim Ben-Ari,ben.*ari
+Expedia,\bexgr
+Extra Retail Group,naaman
+First International Bank of Israel,\bfibi
+First International Bank of Israel,\bfbkif
+Fosun International,fosuf
+General Electric,\bge.*aerospace
+"Greenmix, of Benny and Tzvika Group",tzvika
+Hamat Group,mcbmf
+Hangzhou Hik-vision Digital Technology Co,\bhikvision
+Hangzhou Hik-vision Digital Technology Co,hikvision digital tech\b
+Harsa Studio Sanitaryware Manufacturers,lipski
+Heidelberg Materials,hdlmy
+Ingeniería y Economía del Transporte,\bineco
+Israel Aereospace Industries,\bil aereospaces industries\b
+Israel Discount Bank,\bdsct
+Israel Discount Bank,\bisday
+Israel Discount Bank,\bisdaf
+JC Bamford Excavators,(?=.*(jc|bamford)).*excavators
+JC Bamford Excavators,\bjcb
+Kardan NV,\bkrnv
+Keller Williams Reality,\bwilliams reality
+Keller Williams Reality,keller reality\b
+Keren Kayemeth LeIsrael,\bkeren leisrael
+Keren Kayemeth LeIsrael,kayemeth leisrael
+Keren Kayemeth LeIsrael,jewish national fund\b
+Kiriat Sefer Ltd,diur.*modyin
+Kotler Adika Building Co,adika
+MAN Truck & Bus SE,\btruck & bus\b
+"Marom Tuval Consulting, Management &
+Investments",tuval
+Matrix IT Ltd,\bmtrx
+Matrix IT Ltd,\brmthf
+Mega Or Holdings,\bmgor
+Meta Platforms,metaplatforms
+Minrav Group,\bmnrv
+Mivne Ltd,\bmvne
+Mizrahi Tefahot Bank,(?=.*bank)tefahot
+Mizrahi Tefahot Bank,\bmztf
+Mizrahi Tefahot Bank,\bmztff
+Modi’in Ezrachi Group,\bmodi.*in
+Mordechai Aviv,(?=.*(mordechai|taasiot|tassiot|beniyah)).*aviv
+Nof Yam Security,natoon.*(nof|yam|security)
+NSO Group Technologies,\bnso technolog\b
+Partner Communication Co,\bptnr
+Paz Retail and Energy,\bpzzpf
+Petróleo Brasileiro,\bpetrobras
+Petróleo Brasileiro,petroleo\b
+Powergen Solar,\bslgn
+Powergen Solar,solegreen
+Rami Levy Chain Stores Hashikma Marketing,\brmli
+Rami Levy Chain Stores Hashikma Marketing,\brlevf
+Impact Property Development,\bre.*max.*israel
+Impact Property Development,\brmax
+Rotshtein Real Estate,\brots
+S.A.G. Building & Development,\bvelvel
+Salomon A. Angel,angel.*bake
+Shapir Engineering and Industry,\bspen
+Shikun & Binui,\bskbn
+American Israeli Gas Corp,amisragas
+The Caisse de dépôt et placement du Québec,\bthe caisse de depot et placement du quebec
+The Caisse de dépôt et placement du Québec,caisse de depot\b
+TUI AG,\btui group\b
+Unikowsky Maoz,maoz
+Unikowsky Maoz,onikovsky
+Villar International,\bvilr
+Yacobi Brothers Group,\byaco
+Yes TV and Communications Services,\bsatellite.*services
+ZMH Hammerman,hammerman
+Zriha Hlavin Industries,hlavin

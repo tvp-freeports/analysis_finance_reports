@@ -1,254 +1,289 @@
 Name,Bud,Regex
-A Barkan and Partners,barkan,\bbarkan\b
-AP Møller Mærsk,,
-Ackerstein Industries,ackerstein,\backerstein\b
-ACS Actividades de Construcción y Servicios,actividades de construccion y servicios,\bactividades de construccion y servicios\b
-Ahava Dead Sea Laboratories,ahava,\bahava\b
-Airbnb,airbnb,\bairbnb\b
-Alon Blue Square,alon blue,\balon blue\b
+Barkan and Partners,barkan,barkan
+AP Møller Mærsk,maersk,\bmaersk\b
+Ackerstein Industries,ackerstein,ackerstein
+Actividades de Construcción y Servicios,actividades,actividades.*(acs|constr|serv)
+Adm Do Brasil,,
+AeroVironment,,
+Agrex Do Brasil S.A.,,
+Ahava Dead Sea Laboratories,ahava,ahava
+Airbnb,,\babnb
+Alon Blue Square,alon,\balon
 Alphabet,alphabet,\balphabet\b
-Alstom SA,alstom,\balstom\b
-Altice International,altice,\baltice\b
+Alstom,,
+Altice International,altice,\baltice
+Amaggi Exportacao E Importacao,,
+Amaggi Louis Dreyfus Zen Noh Graos Sa,,
 Amazon,amazon,\bamazon\b
-American Israeli Gas Corp,american israeli ga,\bamerican israeli ga\b
-Amir Marketing and Investments in Agriculture,amir,\bamir\b
-Amos Hadar Properties and Investments,amos,\bamos\b
+Amir Marketing and Investments,amir,\bamir
+Amos Hadar Properties and Investments,amos,\bamos
 Amot Investments,amot,\bamot\b
-Anglo Saxon Real Estate Agency,anglo saxon,\banglo saxon\b
+Anglo Saxon Real Estate,anglo,anglo.*(saxon|real.*estate)
 Apple,,
 Archivists,,
-Ariel Properties Group,ariel properties,\bariel properties\b
-Ashdod refinery,ashdod,\bashdod\b
-Ashtrom Group,ashtrom,\bashtrom\b
-Ashtrom Industries,ashtrom,\bashtrom\b
-Ashtrom Residential Development,ashtrom residential,\bashtrom residential\b
+Ariel Properties Group,ariel,\bariel.*(properties|group)
+Ashot Ashkelon Industries,ashot,ashot|ashkelon
+Ashtrom Group,ashtrom,ashtrom
+Ashtrom Industries,ashtrom industries,ashtrom.*industries
+Ashtrom Residential Development,ashtrom residential,ashtrom.*(residential|development)
 Axel Springer,axel,\baxel\b
-B. Gaon Holdings,b gaon,\bb gaon\b
-Bank Hapoalim,bank hapoalim,\bbank hapoalim\b
-Bank Leumi,leumi,\bleumi\b
-Bank of Jerusalem,,
+Gaon Holdings,gaon,gaon
+BAE Systems,bae,\bbae.*(plc|systems)
+Bank Hapoalim,hapoalim,hapoalim
+Bank Leumi,leumi,leumi
+Bank of Jerusalem,jerusalem,(?=.*bank).*jerusalem
 "Bar-Amana Buildings Construction and
-Development Company",bar amana,\bbar amana\b
-"Barad Earthworks, Development and Roadworks",barad,\bbarad\b
-Baran Group,baran,\bbaran\b
-Bardarian Brothers,bardarian,\bbardarian\b
-Beit Haarchiv,beit,\bbeit\b
-Bezeq Corp,bezeq,\bbezeq\b
-Bombardier Transportation Israel,bombardier transportation,\bbombardier transportation\b
-Boneich Construction Development & Investments,boneich,\bboneich\b
-Booking Holdings,booking,\bbooking\b
-Booking.com,,
+Development",amana,amana
+"Barad Earthworks, Development and Roadworks",barad,barad
+Baran Group,baran,baran
+Bardarian Brothers,bardarian,bardarian
+Beit Haarchiv,haarchiv,haarchiv
+Bezeq The Israeli Telecomunication Corp,bezeq,bezeq
+Bianchini Sa Industria Comercio & Agricultura,,
+Blackrock,,
+Bombardier Transportation Israel,bombardier,bombardier.*israel
+Boneich Construction Development & Investments,boneich,boneich
+Booking Holdings,booking,booking
+Booking.com,bookingcom,booking.*com
 BP Plc,,
 Bright Dairy & Food Ltd,bright dairy,\bbright dairy\b
 Bright Food Group,bright food,\bbright food\b
-Brothers Hasid Construction Contracting Company,brothers hasid,\bbrothers hasid\b
-C Mer Industries,c mer,\bc mer\b
-Caliber 3,caliber,\bcaliber\b
+Brothers Hasid Construction,hasid,(?=.*brothers).*hasid
+Bunge Alimentos S/A,bunge,\bbunge\b
+C Mer Industries,mer industries,\bmer.*industries
+Cafe Cafe Israel,cafe,cafe.*israel
+Caliber 3,caliber,\bcaliber
+Cargill Agricola Sa,cargill,\bcargill\b
 Carlsberg Group,carlsberg,\bcarlsberg\b
 Carrefour,,
 Caterpillar,,
-Cellcom Israel,cellcom,\bcellcom\b
+Cellcom Israel,cellcom,cellcom
+Cellebrite,,
 Cemex,,
 Cherriessa,,
 Chevron,,
-Chish Nofei Israel Ltd,chish nofei,\bchish nofei\b
-Cim Lustigman Development and Construction,cim lustigman,\bcim lustigman\b
-Cisco Systems,cisco,cisco ?s[yi]stems?
-CityBook Services,citybook,\bcitybook\b
+Chs Agronegocio Industria & Comercio Ltda,,
+Cim Lustigman Development and Construction,lustigman,lustigman
+Cisco Systems,cisco,\bcisco\b
+CityBook Services,citybook,citybook
+Cj International Brasil Comercial Agricola Ltda.,,
 CNH Industrial,,
-Comasco Ltd,comasco,\bcomasco\b
-Construcciones y Auxiliar de Ferrocarriles SA,construcciones y auxiliar,\bconstrucciones y auxiliar\b
-DBS Satellite Service,satellite service,\bsatellite service\b
-D.N. Kol-Gader,kol gader,\bkol gader\b
-Dalia Elispur Construction Contracting Company,dalia elispur,\bdalia elispur\b
-Danya Cebus,,
-Delek Group,delek,\bdelek\b
-Delta Galil Industries,delta galil,\bdelta galil\b
-Delta Israel Brands,israel brands,\bisrael brands\b
-Dor Alon Energy Ltd.,dor alon,\bdor alon\b
+Coamo,,
+Cofco Brasil S.A.,cofco,\bcofco\b
+Colt CZ,colt,\bcolt.*(cz|group)
+Comasco Ltd,comasco,comasco
+Construcciones y Auxiliar de Ferrocarriles,construcciones,construcciones.*ferrocarriles
+Corsight AI,corsight,\bcorsight.*ai
+Cutrale,,
+Kol-Gader Ltd,kol,kol.*gader
+Dalia Elispur Construction Contracting Co,elispur,elispur
+Dan Public Transportation Co,dan public,\bdan.*(public|transp)
+Dana Petroleum,dana,\bdana.*petr
+Danya Cebus,danya,danya
+Davidov Garages,davidov,davidov
+Day & Zimmerman,day and zimm,\bday.*and.*zimm
+Billiards,,chish
+Delek Group,delek,delek
+Delek Israel Fuel Co,delek israel,delek.*(israel|fuel)
+Dell Technologies,dell,\bdell.*technologies
+Delta Galil Industries,galil,galil
+Delta Israel Brands,delta israel,delta.*(israel|brands)
+Alon Energy,alon energy,alon.*ener
 Drummond Company,drummond,\bdrummond\b
-E.T. Legal Services,et legal,\bet legal\b
-eDreams ODIGEO,edreams,\bedreams\b
-Egged Transportation Ltd,egged,\begged\b
-Egis Group,egis,\begis\b
-Egis Rail SA,egis,\begis\b
-Einav Hahetz,einav,\beinav\b
+E.T. Legal Services,et legal,\bet.*legal
+eDreams ODIGEO,edreams,edreams
+Egged Transportation Ltd,egged,egged.*transp
+Egis Group,egis,\begis
+Egis Rail SA,egis rail,egis.*rail
+Einav Hahetz Ltd,einav,einav.*hahetz
 Elbit Systems,elbit,\belbit\b
-Elco,,
-Electra Afikim,electra,\belectra\b
-Electra Group,electra,\belectra\b
-Electricity Production and Renewable Energy Systems Ltd,energy systems,\benergy systems\b
-Elyakim Ben-Ari,elyakim,\belyakim\b
-Euro-Israel,euro israel,\beuro israel\b
+Elco Ltd,elco,\belco
+Electra Afikim,afikim,afikim
+Electra Group,electra,\belectra
+Electricity Production and Renewable Energy Systems Ltd,electricity,\bepr.*(energy|systems)
+Elyakim Ben-Ari,elyakim,elyakim
+Engelhart,,
+Eni S.p.A,eni,\beni.*spa
+Euro-Israel Ltd,euro israel,euro.*israel
 Expedia,,
-Export Investment Company Ltd,,
-Extal,,
-Extra Retail Group,extra retail,\bextra retail\b
+Export Investment Co,export investment,export.*investment
+Extal Ltd,extal,\bextal
+Extra Retail Group,extra retail,extra.*retail
 FANUC Corp,fanuc,\bfanuc\b
-Field Produce,,
-Field Produce Marketing,,
-First International Bank of Israel,international bank of israel,\binternational bank of israel\b
-Fosun International,fosun,\bfosun\b
-Gadish Group,gadish,\bgadish\b
-Galnor Construction and Development,galnor,\bgalnor\b
-Galshan Shvakim Plc,shvakim,\bshvakim\b
+Field Produce Ltd,field produce,field.*produce
+Field Produce Marketing Ltd,field produce marketing,field.*marketing
+First International Bank of Israel,international bank,(?=.*israel).*international.*bank
+Ford Motor,ford,\bford.*(motor|company)
+Fosun International,fosun,fosun
+Gadish Group,gadish,gadish
+Galnor Construction and Development,galnor,galnor
+Galshan Shvakim,shvakim,shvakim
+Gavilon,,
+General Dynamics,general dynamics,\bgeneral.*dynamics
+General Electric,general electric,\bgeneral.*electric
 "Geo-Da Lands & Property Management &
-Information",geo da,\bgeo da\b
+Information",geo da,\bgeo.*da
 Glencore,,
 Greenkote,,
-"Greenmix, of Benny and Tzvika Group",greenmix,\bgreenmix\b
-Hadar Group,hadar,\bhadar\b
-Hadiklaim Ltd,hadiklaim,\bhadiklaim\b
-Haim Zaken Construction & Investments,haim zaken,\bhaim zaken\b
-Hamat Group,hamat,\bhamat\b
-Hangzhou Hikvision Digital Technology Co,hangzhou hikvision,\bhangzhou hikvision\b
-Hanson Israel Ltd,hanson,\bhanson\b
-Harsa Studio Sanitaryware Manufacturers,harsa studio,\bharsa studio\b
-HD Hyundai,hyundai,\bhyundai\b
-HD Hyundai Infracore,hyundai infracore,\bhyundai infracore\b
-Heidelberg Materials,heidelberg,\bheidelberg\b
+"Greenmix, of Benny and Tzvika Group",greenmix,greenmix
+Hadar Group,hadar,hadar
+Hadiklaim Ltd,hadiklaim,hadiklaim
+Haim Zaken Construction & Investments,haim zaken,haim.*zaken|zaken.*haim
+Hamat Group,hamat,hamat
+Hangzhou Hik-vision Digital Technology Co,hangzhou hik vision,\bhangzhou hikvision\b
+Hanson Israel Ltd,hanson,hanson.*israel
+Harsa Studio Sanitaryware Manufacturers,harsa,harsa.*(studio|sanitaryware|manufacturers)
+HD Hyundai,hyundai,^(?!.*(heavy|indust)).*hyundai
+Heidelberg Materials,heidelberg,heidelberg
 Hewlett Packard Enterprise,hewlett packard,\bhewlett packard\b
 Hilan Ltd,hilan,\bhilan\b
-Hot Mobile Ltd,hot mobile,\bhot mobile\b
-Hot Telecommunications Systems,hot telecommunications,\bhot telecommunications\b
+Honeywell International,honeywell,honeywell
+Hot Mobile Ltd,hot mobile,hot.*mobile
+Hot Telecommunications Systems,hot telecommunications,hot.*telecommunications
+Hyundai Heavy Industries,hyundai heavy,hyundai.*(heavy|industries)
 ICL Group,icl,\bicl\b
-Ingeniería y Economía del Transporte,,
+Ingeniería y Economía del Transporte,ingenieria y economia,ingenieria.*economia
+Intel Corp.,intel,\bintel.*corp
 International Business Machines,,
 Israel Aereospace Industries,aereospace industries,\baereospace industries\b
-Israel Discount Bank,discount bank,\bdiscount bank\b
-Israel Railways Corporation,israel railways,\bisrael railways\b
-Italek Ltd,italek,\bitalek\b
-JC Bamford Excavators,bamford excavators,\bbamford excavators\b
-Kardan NV,kardan,\bkardan\b
-Kass,,\b\b
-Kavim Public Transportation,kavim,\bkavim\b
+Israel Chemicals,chemicals,\bisrael.*chemicals
+Israel Discount Bank,discount bank,(?=.*israel).*discount.*bank
+Israel Government,,
+Israel Government International,,
+Israel Railways Corp,israel railways,israel.*railways
+Italek Ltd,italek,italek
+Italy btps,,
+JC Bamford Excavators,bamford,bamford
+Kardan NV,kardan,kardan
+Kass Ltd,kass,\bkass.*(ltd|group)
+Kavim Public Transportation,kavim,kavim.*transportation
 Keller Williams Reality,keller williams,\bkeller williams\b
 Keren Kayemeth LeIsrael,keren kayemeth,\bkeren kayemeth\b
-"Kfar Giladi Quarries Agricultural Cooperative
-Association",kfar giladi,\bkfar giladi\b
-Kiriat Sefer,kiriat,\bkiriat\b
-Kotler Adika Building Company,kotler,\bkotler\b
+Kfar Giladi Quarries Agricultural Coop,kfar giladi,kfar.*giladi
+Kiriat Sefer Ltd,kiriat sefer,kiriat.*sefer
+Kotler Adika Building Co,kotler,kotler
 KW Israel,kw israel,\bkw israel\b
-Lapidoth Capital,lapidoth,\blapidoth\b
+Harris Technologies,harris,harris.*technologies
+Lapidoth Capital,lapidoth,lapidoth
 Leonardo,,
-Lipski Installation and Sanitation,lipski,\blipski\b
+LIG Nex1,nex1,nex1
 Lockheed Martin,lockheed,\blockheed\b
-Magen Construction Engineering Works,magen,\bmagen\b
+Louis Dreyfus Company Brasil S.A.,,
+Magen Construction Engineering Works,magen,magen.*(construc|engine|work)
 MAN Truck & Bus SE,man truck,\bman truck\b
-Margolin Bros. Engineering & Consulting,margolin,\bmargolin\b
+Margolin Bros. Engineering & Consulting,margolin,margolin.*(bros|engine|consult)
 "Marom Tuval Consulting, Management &
-Investments",marom tuval,\bmarom tuval\b
-Matrix IT Ltd,matrix,\bmatrix\b
-Mayer Davidov Garages,mayer,\bmayer\b
-Mayer’s Cars and Trucks Co.,cars and trucks,\bcars and trucks\b
-Medan Roads and Quarries,medan,\bmedan\b
-Mega Or Holdings,mega or,\bmega or\b
-Mekorot Water Company,mekorot water,\bmekorot water\b
-Mercantile Discount Bank,,
-Merkavim Transportation Technologies,merkavim,\bmerkavim\b
-Mery Building Works Contracting Company,,
-Metrontario Investments,metrontario,\bmetrontario\b
+Investments",marom,marom
+Matrix IT Ltd,matrix,matrix
+Mayer’s Cars and Trucks Co,mayers,mayers.*(cars|trucks)
+Medan Roads and Quarries,medan,medan.*(roads|quarries)
+Mega Or Holdings,mega or,\bmega.*or.*holding
+Mekorot Water Co,mekorot water,mekorot.*water
+Mercantile Discount Bank,discount bank,(?=.*mercantile).*discount.*bank
+Mercedes-Benz,mercedes,mercedes
+Merkavim Transportation Technologies,merkavim,merkavim
+Mery Building Works Contracting Co,mery,\bmery.*(building|works|contracting)
+Meta Platforms,meta,\bmeta\b
+Metrontario Investments,metrontario,metrontario
 Microsoft,,
-Minrav Group,minrav,\bminrav\b
+Minrav Group,minrav,minrav
 "Mishab Housing Construction & Development
-Company",mishab,\bmishab\b
+Co",mishab,mishab.*(constr|develop)
 "Mishkan Eliyahu Construction and Investment
-Company",mishkan eliyahu,\bmishkan eliyahu\b
-Mivne Ltd,mivne,\bmivne\b
-Mizrahi Tefahot Bank,mizrahi tefahot,\bmizrahi tefahot\b
-Modi’in Ezrachi Group,ezrachi,\bezrachi\b
-Mordechai Aviv Tassiot Beniyah,mordechai,\bmordechai\b
-Motorola Solutions,motorola,\bmotorola\b
-Motorola Solutions Israel,motorola solutions,\bmotorola solutions\b
-N.O.H. Management and Consulting,noh management,\bnoh management\b
-Naaman Group,naaman,\bnaaman\b
-Natoon Group,natoon,\bnatoon\b
+Co",mishkan,mishkan
+Mivne Ltd,mivne,\bmivne
+Mizrachi & Sons Investments Group,mizrachi,mizrachi.*invest
+Mizrahi Tefahot Bank,mizrahi,(?=.*bank)mizrahi
+Modi’in Ezrachi Group,ezrachi,ezrachi
+Mordechai Aviv,mordechai,mordechai.*(aviv|taasiot|tassiot|beniyah|1973)
+Motorola Solutions,motorola,motorola.*solut
+Motorola Solutions Israel,motorola,motorola.*(israel|south)
+N.O.H. Management and Consulting,management and consult,manag.*consult|consult.*manag
+Natoon Group,natoon,natoon
+Nof Yam Security,nof yam,nof.*yam
 Netafim,,
-New Way Traffic,new way,\bnew way\b
+New Way Traffic,new way,new.*way.*traffic
 NewMedEnergy Limited Partnership,newmedenergy,\bnewmedenergy\b
-Nof Yam Security Ltd,nof yam,\bnof yam\b
+Northrop Grumman,northrop,northrop
+Novaagri Infra-Estrutura De Armazenagem E Escoamento Agricol,novaagri,\bnovaagri\b
 NSO Group Technologies,nso group,\bnso group\b
 NVIDIA,,
-Ofertex Industries,ofertex,\bofertex\b
+Ofertex Industries,ofertex,ofertex
+Olam Agricola Ltda.,,
+Olam Brasil Ltda,,
 "Olenik Transportation Earth Work and Road
-Constructions",olenik,\bolenik\b
-Opodo Ltd,opodo,\bopodo\b
+Constructions",olenik,olenik
+Opodo Ltd,opodo,opodo
+Oracle,,
 Orbia Corp.,orbia,\borbia\b
-Oron Group Investments & Holdings,oron group,\boron group\b
+Oron Group Investments & Holdings,oron,\boron
+Oshkosh,,
 Palantir Technologies,palantir,\bpalantir\b
-Partner Communication Company,partner communication,\bpartner communication\b
-Paz Retail and Energy Ltd,paz retail and energy,\bpaz retail and energy\b
-Pelephone Communications,pelephone,\bpelephone\b
+Partner Communication Co,partner commun,partner.*commun
+Paz Retail and Energy,paz,\bpaz.*(retail|energy|oil|company|group)
+Pelephone Communications,pelephone,pelephone
 Petróleo Brasileiro,,
-Powergen Solar,powergen,\bpowergen\b
-Proffimat Ltd,proffimat,\bproffimat\b
-Rami Levy Chain Stores Hashikma Marketing,rami levy,\brami levy\b
-Rami Levy Hashikma,,
-Remax Israel,remax,\bremax\b
-Reshet Cafe Israel,reshet caf,\breshet caf\b
-Rotshtein Real Estate,rotshtein real estate,\brotshtein real estate\b
-S.A.G. Building & Development,sag building,\bsag building\b
-Angel Bakeries Ltd,angel bakeries,\bangel bakeries\b
-Sarfati Shimon,sarfati,\bsarfati\b
-Shahar Co,shahar,\bshahar\b
-Shalgal Food,shalgal,\bshalgal\b
+Powergen Solar,powergen,powergen
+Proffimat Ltd,proffimat,proffimat
+Rafael Advanced Defence Systems,rafael,\brafael.*(advanced|defence|systems)
+Rami Levy Chain Stores Hashikma Marketing,rami levy,^(?!.*communic).*rami.*levy
+Rami Levy Hashikma,rami levy,rami.*levy.*communic
+Impact Property Development,impact property,impact.*property
+RENK Group,renk,\brenk\b
+Rolls-Royce Holdings,royce,\brolls.*royce
+Rotshtein Real Estate,rotshtein,rotshtein
+RTX Corp.,rtx,\brtx.*corp
+S.A.G. Building & Development,sag building,sag.*building
+Salomon A. Angel,salomon,salomon.*angel
+Sarfati Shimon,sarfati shimon,sarfati.*shimon
+Shahar Co,shahar,shahar
+Shalgal Food,shalgal,shalgal
 Shapir Engineering and Industry,shapir,\bshapir\b
-Shikun & Binui Solel Boneh Infrastructure,shikun & binui,\bshikun & binui\b
-Shikun & Binui Ltd,shikun,\bshikun\b
-Shlomo Cohen Construction Company,shlomo,\bshlomo\b
-Shoham Engineering and Development,shoham,\bshoham\b
-Shufersal,,
+Shell Plc,shell,\bshell\b
+Shikun & Binui Solel Boneh Infrastructure,shikun,shikun.*(solel|boneh|infrastructure)
+Shikun & Binui,shikun,^(?!.*(solel|boneh|infrastructure)).*shikun
+Shlomo Cohen Construction Co,shlomo,shlomo.*constr
+Shoham Engineering and Development,shoham,shoham.*(engine|develop)
+Shufersal,,\bshuff
 Siemens,,\bsiemens\b
-Sociedad Espanola De Montajes Industriales,sociedad espanola,\bsociedad espanola\b
-Sonol Israel,sonol,\bsonol\b
+Sociedad Espanola De Montajes Industriales,sociedad espanola,sociedad.*espanola
+Sonol Israel,sonol,sonol
 Steconfer,,
+Sturm Ruger & Company,sturm,sturm.*ruger
 Superbus,,
-Supergum Industries,supergum,\bsupergum\b
+Superbus Transportation and Tourism,superbus,superbus.*(transp|tour)
+Supergum Industries,supergum,supergum
 Syensqo SA,syensqo,\bsyensqo\b
-Tahal Group,tahal,\btahal\b
+Tahal Group,tahal,tahal.*(group|intern)
+American Israeli Gas Corp,american israeli,american.*israeli
+Boeing,,
 The Caisse de dépôt et placement du Québec,caisse de,\bcaisse de\b
 The Coca-Cola Company,coca,coca-?cola (co\.?)?
+ThyssenKrupp,thyssen,thyssen
 TKH Group,,
 Tnuva Central Cooperative for the Marketing of Agricultural Produce in Israel,tnuva,\btnuva\b
-Traton S.E,traton,\btraton\b
-TripAdvisor,,
+Total Energies,total,\btotal.*energies
+Toyota Motor,toyota,toyota
+Traton SE,traton,\btraton\b
+TripAdvisor,trip,\btrip\b(?!\.)
 TUI AG,,
 Twitoplast,,
-Unikowsky Maoz,unikowsky,\bunikowsky\b
-Villar International,villar,\bvillar\b
+Unikowsky Maoz,unikowsky,unikowsky
+Valero Energy,valero,valero.*energy
+Villar International,villar,villar.*intern
 Vinci SA,vinci,\bvinci\b
+Viterra Bv,,
 Volvo Car Corp,volvo,\bvolvo\b
+Woodward,,
 WSP Global,wsp,\bwsp\b
 "Y.A.Z Construction and Development
-Company",yaz construction,\byaz construction\b
-Y.D. Barazani,barazani,\bbarazani\b
-Yacobi Brothers Group,yacobi brothers,\byacobi brothers\b
-Yes TV and Communications Services,yes tv,\byes tv\b
-Z.F. Building Company,zf building,zf (building)? (company)?
-Zakai Agriculture Know-how and inputs,zakai,\bzakai\b
-ZF Development and Construction,zf development,\bzf development\b
-ZMH Hammerman,zmh,\bzmh\b
-Zriha Hlavin Industries,zriha,\bzriha\b
-Israel Government International,,
-Israel Government,,
-Italy btps,,
-Blackrock,,
-Bunge Alimentos S/A,bunge,\bbunge\b
-Cofco Brasil S.A.,cofco,\bcofco\b
-Cargill Agricola Sa,cargill,\bcargill\b
-Novaagri Infra-Estrutura De Armazenagem E Escoamento Agricol,novaagri,\bnovaagri\b
-Adm Do Brasil,,
-Gavilon,,
-Amaggi Louis Dreyfus Zen Noh Graos Sa,,
-Louis Dreyfus Company Brasil S.A.,,
-Olam Agricola Ltda.,,
-Chs Agronegocio Industria & Comercio Ltda,,
-Amaggi Exportacao E Importacao,,
-Engelhart,,
-Cj International Brasil Comercial Agricola Ltda.,,
-Viterra Bv,,
-Bianchini Sa Industria Comercio & Agricultura,,
-Agrex Do Brasil S.A.,,
-Cutrale,,
-Coamo,,
-Olam Brasil Ltda,,
+Co",yaz,(yaz|yaaz).*(const|develop|build)
+Y.D. Barazani,barazani,barazani
+Yacobi Brothers Group,yacobi,yacobi.*(brother|group)
+Yes TV and Communications Services,yes,\byes.*(tv|communications|services)
+Z.F. Building Co,zf building,zf.*(build|develop|constr)
+Zakai Agriculture Know-how and inputs,zakai,
+ZIM Integrated Shipping Services,zim,\bzim.*(integrated|shipping|services)
+ZMH Hammerman,zmh,\bzmh
+Zoko Enterprises,zoko,\bzoko
+Zriha Hlavin Industries,zriha,zriha
