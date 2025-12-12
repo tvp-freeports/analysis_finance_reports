@@ -8,6 +8,7 @@ name = "freeports_lib"
 crate-type = ["cdylib"]
 
 [dependencies]
+bitflags = "2.10.0"
 
 
 [dependencies.pyo3]
