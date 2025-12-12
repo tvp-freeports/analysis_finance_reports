@@ -29,13 +29,13 @@ enum LimitsBuildError {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone,Copy)]
 enum SplittingDirection {
     Up,
     Down
 }
 
-#[derive(Clone)]
+#[derive(Clone,Copy)]
 enum SplittingState {
     Allow(SplittingDirection),
     Disallow
@@ -184,7 +184,6 @@ fn get_table_indexes<'a>(
     .into_iter()
     .enumerate()
     .collect();
-    println!("{unordered_mapping:?}");
     unordered_mapping.sort_by(|a,b| b.1.pos.partial_cmp(&a.1.pos).unwrap() );
     unordered_mapping.reverse();
     let mut mapping: HashMap<usize,usize> = HashMap::new();
@@ -242,7 +241,7 @@ fn collapse_table_rows_by_pattern(
         match cols_cfg[current_col] {
             SplittingState::Disallow => {
                 i += 1;
-                continue;
+                continue
             },
             SplittingState::Allow(dir) => {
                 split_direction=dir;
@@ -603,7 +602,7 @@ mod tests {
                 (3,1),
                 (3,2)
             ];
-            let res: Vec<(usize,usize)> = vec![
+            let both_collapsed_up: Vec<(usize,usize)> = vec![
                 (0,0),
                 (0,1),
                 (0,2),
@@ -617,15 +616,112 @@ mod tests {
                 (3,1),
                 (3,2)
             ];
+            let both_collapsed_down: Vec<(usize,usize)> = vec![
+                (0,0),
+                (0,1),
+                (0,2),
+                (1,0),
+                (2,1),
+                (2,1),
+                (1,2),
+                (5,0),
+                (5,0),
+                (5,0),
+                (3,1),
+                (3,2)               
+            ];
+            let second_collapsed_up: Vec<(usize,usize)> = vec![
+                (0,0),
+                (0,1),
+                (0,2),
+                (1,0),
+                (1,1),
+                (2,1),
+                (1,2),
+                (3,0),
+                (3,0),
+                (3,0),
+                (3,1),
+                (3,2)                
+            ];
+            let first_collapsed_down: Vec<(usize,usize)> = vec![
+                (0,0),
+                (0,1),
+                (0,2),
+                (1,0),
+                (2,1),
+                (2,1),
+                (1,2),
+                (3,0),
+                (4,0),
+                (5,0),
+                (3,1),
+                (3,2)                
+            ];
+            let unknow_splittable_col = ColumnConfig{
+                limits: None,
+                splitting: None,
+                nullable: None
+            };
+            let disallow_splittable_col = ColumnConfig{
+                splitting: Some(SplittingState::Disallow),
+                ..unknow_splittable_col.clone()
+            };
+            let down_splittable_col = ColumnConfig{
+                splitting: Some(SplittingState::Allow(SplittingDirection::Down)),
+                ..unknow_splittable_col.clone()
+            };
+            let up_splittable_col = ColumnConfig{
+                splitting: Some(SplittingState::Allow(SplittingDirection::Up)),
+                ..unknow_splittable_col.clone()
+            };
+            let cfg_all_collapsable_unknown=TableConfig{
+                rows: None,
+                cols: Some(vec![unknow_splittable_col.clone();3])
+            };
+            let cfg_all_collapsable_up=TableConfig{
+                cols: Some(vec![down_splittable_col.clone();3]),
+                ..cfg_all_collapsable_unknown.clone()
+            };
+            let cfg_all_collapsable_down=TableConfig{
+                cols: Some(vec![up_splittable_col.clone();3]),
+                ..cfg_all_collapsable_unknown.clone()
+            };
+            let cfg_first_collapsable_down=TableConfig{
+                cols: Some(vec![
+                    disallow_splittable_col.clone(),
+                    up_splittable_col.clone(),
+                    disallow_splittable_col.clone(),
+                ]),
+                ..cfg_all_collapsable_unknown.clone()
+            };
+            let cfg_second_collapsable_up=TableConfig{
+                cols: Some(vec![
+                    down_splittable_col.clone(),
+                    disallow_splittable_col.clone(),
+                    disallow_splittable_col.clone()
+                ]),
+                ..cfg_all_collapsable_unknown.clone()
+            };
             assert_eq!(
-                res,
-                collapse_table_rows_by_pattern(
-                    cells,
-                    &TableConfig{
-                        cols: None,
-                        rows: None
-                    }
-                )
+                both_collapsed_down,
+                collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_down)
+            );
+            assert_eq!(
+                both_collapsed_up,
+                collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_unknown)
+            );
+            assert_eq!(
+                both_collapsed_up,
+                collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_up)
+            );
+            assert_eq!(
+                first_collapsed_down,
+                collapse_table_rows_by_pattern(cells.clone(),&cfg_first_collapsable_down)
+            );
+            assert_eq!(
+                second_collapsed_up,
+                collapse_table_rows_by_pattern(cells.clone(),&cfg_second_collapsable_up)
             );
         }
         #[test]
