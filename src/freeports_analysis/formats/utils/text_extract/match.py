@@ -39,7 +39,7 @@ translation_table: Dict[str, str] = {
     "ø": "o",
     "œ": "oe",
     "æ": "ae",
-    "&": "and"
+    "&": "and",
 }
 
 TO_SEP = ",-–+"
