@@ -642,12 +642,12 @@ class PdfLineSet:
         newset = PdfLineSet()
         if self.is_simple and self.is_concrete and other.one_d and other.is_concrete:
             # Direct union for simple, concrete sets
-            newset._left._font = _op_over_none(or_, self._left.font, other.font)
+            newset._left._font = _op_over_none(or_, self._left._font, other._left._font)
             newset._left._font_size = _op_over_none(
-                or_, self._left.font_size, other._left.font_size
+                or_, self._left._font_size, other._left._font_size
             )
-            newset._left._area = _op_over_none(or_, self._left.area, other._left.area)
-            newset._left._text = _op_over_none(or_, self._left.text, other._left.text)
+            newset._left._area = _op_over_none(or_, self._left.area, other._left._area)
+            newset._left._text = _op_over_none(or_, self._left.text, other._left._text)
             return newset
         # Create compound set for complex cases
         newset._left = self
