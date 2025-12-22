@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use std::error::Error;
 
 mod text_extract;
 mod pdf_filter {
@@ -11,7 +10,7 @@ mod pdf_filter {
 /// import the module.
 #[pymodule]
 pub mod freeports_lib {
-    use super::pdf_filter;
-    use super::text_extract;
+    // use super::pdf_filter;
+    // use super::text_extract;
 }
 
