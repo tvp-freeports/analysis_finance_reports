@@ -13,227 +13,6 @@ pub enum SplittingState {
 }
 
 
-
-fn collapse_table_rows_by_geometry_c(
-    indexes: Vec<(usize,usize)>,
-    table_config: &TableConfig
-) ->  Vec<(usize,usize)> {
-    let tmp_table_cfg=table_config.clone();
-    // Get column splitting configurations
-    let cols_cfg: Vec<SplittingState>=tmp_table_cfg.cols
-        .unwrap()
-        .into_iter()
-        .map(|x| x.splitting.unwrap_or(
-            SplittingState::Allow(SplittingDirection::Down)
-        ))
-        .collect();
-
-    // Find dimensions of the table
-    let max_row = indexes.iter().map(|&(row, _)| row).max().unwrap_or(0);
-    let max_col = indexes.iter().map(|&(_, col)| col).max().unwrap_or(0);
-    
-    // Create a boolean matrix: true if cell exists, false otherwise
-    let n_rows = max_row + 1;
-    let n_cols = max_col + 1;
-    let mut matrix = vec![vec![false; n_cols]; n_rows];
-    
-    // Mark existing cells
-    for &(row, col) in &indexes {
-        matrix[row][col] = true;
-    }
-    
-    // Analyze each row to determine if it can be collapsed
-    let mut row_collapsibility: Vec<Option<SplittingDirection>> = vec![None; n_rows];
-    
-    for row in 0..n_rows {
-        let mut can_collapse = true;
-        let mut common_direction: Option<SplittingDirection> = None;
-        
-        // Check each column in this row
-        for col in 0..n_cols {
-            // If this cell exists in the table
-            if matrix[row][col] {
-                match cols_cfg.get(col).copied().unwrap_or(SplittingState::Allow(SplittingDirection::Down)) {
-                    SplittingState::Disallow => {
-                        // If any cell is not splittable, this row cannot be collapsed
-                        can_collapse = false;
-                        break;
-                    }
-                    SplittingState::Allow(dir) => {
-                        if let Some(prev_dir) = common_direction {
-                            // Check if all cells have the same splitting direction
-                            if prev_dir != dir {
-                                // Mixed directions - cannot collapse this row
-                                can_collapse = false;
-                                break;
-                            }
-                        } else {
-                            common_direction = Some(dir);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if can_collapse {
-            row_collapsibility[row] = common_direction;
-        }
-    }
-    
-    // Now collapse rows
-    let mut result = indexes.clone();
-    
-    // For each row that can be collapsed, determine target row
-    for row in 0..n_rows {
-        if let Some(direction) = row_collapsibility[row] {
-            let target_row = match direction {
-                SplittingDirection::Up => {
-                    // Find the highest row above that is not collapsible
-                    (0..=row).rev()
-                        .find(|&r| row_collapsibility[r].is_none())
-                        .unwrap_or(0)
-                }
-                SplittingDirection::Down => {
-                    // Find the lowest row below that is not collapsible
-                    (row..n_rows)
-                        .find(|&r| row_collapsibility[r].is_none())
-                        .unwrap_or(row)
-                }
-            };
-            
-            // Update all cells in this row to target row
-            for (r, c) in result.iter_mut() {
-                if *r == row {
-                    *r = target_row;
-                }
-            }
-        }
-    }
-    
-    result
-}
-
-fn collapse_table_rows_by_geometry_b(
-    indexes: Vec<(usize,usize)>,
-    table_config: &TableConfig
-) ->  Vec<(usize,usize)> {
-    let tmp_table_cfg=table_config.clone();
-    
-    // Get column configurations for both splitting and nullable
-    let col_configs: Vec<(SplittingState, bool)> = tmp_table_cfg.cols
-        .unwrap()
-        .into_iter()
-        .map(|x| (
-            x.splitting.unwrap_or(SplittingState::Allow(SplittingDirection::Down)),
-            x.nullable.unwrap_or(false)
-        ))
-        .collect();
-
-    // Find dimensions of the table
-    let max_row = indexes.iter().map(|&(row, _)| row).max().unwrap_or(0);
-    let max_col = indexes.iter().map(|&(_, col)| col).max().unwrap_or(0);
-    
-    // Create a boolean matrix: true if cell exists, false otherwise
-    let n_rows = max_row + 1;
-    let n_cols = max_col + 1;
-    let mut matrix = vec![vec![false; n_cols]; n_rows];
-    
-    // Mark existing cells
-    for &(row, col) in &indexes {
-        matrix[row][col] = true;
-    }
-    
-    // Analyze each row to determine if it can be collapsed
-    let mut row_collapsibility: Vec<Option<SplittingDirection>> = vec![None; n_rows];
-    
-    for row in 0..n_rows {
-        let mut can_collapse = true;
-        let mut common_direction: Option<SplittingDirection> = None;
-        
-        // Check each column in this row
-        for col in 0..n_cols {
-            let (splitting_state, nullable) = col_configs.get(col)
-                .copied()
-                .unwrap_or((SplittingState::Allow(SplittingDirection::Down), false));
-            
-            // Check if cell exists in the table
-            if matrix[row][col] {
-                match splitting_state {
-                    SplittingState::Disallow => {
-                        // If any existing cell is not splittable, this row cannot be collapsed
-                        can_collapse = false;
-                        break;
-                    }
-                    SplittingState::Allow(dir) => {
-                        if let Some(prev_dir) = common_direction {
-                            // Check if all cells have the same splitting direction
-                            if prev_dir != dir {
-                                // Mixed directions - cannot collapse this row
-                                can_collapse = false;
-                                break;
-                            }
-                        } else {
-                            common_direction = Some(dir);
-                        }
-                    }
-                }
-            } else {
-                // Cell doesn't exist in this row
-                // Only allow collapse if the missing cell is nullable
-                if !nullable {
-                    // Non-nullable cell is missing - row cannot be collapsed
-                    can_collapse = false;
-                    break;
-                }
-            }
-        }
-        
-        // Don't collapse if row is completely full (all cells exist)
-        let row_is_full = (0..n_cols).all(|col| matrix[row][col]);
-        if can_collapse && !row_is_full {
-            row_collapsibility[row] = common_direction;
-        }
-    }
-    
-    // Now collapse rows
-    let mut result = indexes.clone();
-    
-    // For each row that can be collapsed, determine target row
-    for row in 0..n_rows {
-        if let Some(direction) = row_collapsibility[row] {
-            let target_row = match direction {
-                SplittingDirection::Up => {
-                    // Find the highest row above that is not collapsible
-                    (0..=row).rev()
-                        .find(|&r| row_collapsibility[r].is_none())
-                        .unwrap_or(0)
-                }
-                SplittingDirection::Down => {
-                    // Find the lowest row below that is not collapsible
-                    (row..n_rows)
-                        .find(|&r| row_collapsibility[r].is_none())
-                        .unwrap_or(row)
-                }
-            };
-            
-            // Update all cells in this row to target row
-            for (r, c) in result.iter_mut() {
-                if *r == row {
-                    *r = target_row;
-                }
-            }
-        }
-    }
-    
-    // Remove duplicates that might have been created by collapsing
-    result.sort();
-    result.dedup();
-    
-    result
-}
-
-
-
 fn collapse_table_rows_by_geometry(
     indexes: Vec<(usize, usize)>,
     table_config: &TableConfig,
@@ -512,7 +291,146 @@ mod tests {
     use super::*;
     #[test]
     fn test_geometrical_strategy(){
-        todo!();
+        let cells: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (1,1),
+            (1,2),
+            (3,0),
+            (3,1),
+            (3,2),
+            // collapsable lines:
+            (2,1),
+            (4,0),
+            (5,0),
+        ];
+        let both_collapsed_up: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (1,1),
+            (1,2),
+            (3,0),
+            (3,1),
+            (3,2),
+            // collapsed:
+            (1,1),
+            (3,0),
+            (3,0),
+        ];
+        let both_collapsed_down: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (2,1),  // <-- collapsed
+            (1,2),
+            (5,0),  // <-- collapsed
+            (3,1),
+            (3,2),
+            // ----
+            (2,1),
+            (5,0),  // <-- collapsed
+            (5,0),
+        ];
+        let second_collapsed_up: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (1,1),
+            (1,2),
+            (3,0),
+            (3,1),
+            (3,2),
+            // -----
+            (2,1), 
+            (3,0), // <-- colapsed
+            (3,0), // <-- colapsed
+        ];
+        let first_collapsed_down: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (2,1),  // <-- collapsed
+            (1,2),
+            (3,0),
+            (3,1),
+            (3,2),
+            // ----
+            (2,1),
+            (4,0),
+            (5,0),
+        ];
+        let unknow_splittable_col = ColumnConfig{
+            limits: None,
+            splitting: None,
+            nullable: None
+        };
+        let disallow_splittable_col = ColumnConfig{
+            splitting: Some(SplittingState::Disallow),
+            ..unknow_splittable_col.clone()
+        };
+        let down_splittable_col = ColumnConfig{
+            splitting: Some(SplittingState::Allow(SplittingDirection::Down)),
+            ..unknow_splittable_col.clone()
+        };
+        let up_splittable_col = ColumnConfig{
+            splitting: Some(SplittingState::Allow(SplittingDirection::Up)),
+            ..unknow_splittable_col.clone()
+        };
+        let cfg_all_collapsable_unknown=TableConfig{
+            rows: None,
+            cols: Some(vec![unknow_splittable_col.clone();3])
+        };
+        let cfg_all_collapsable_up=TableConfig{
+            cols: Some(vec![down_splittable_col.clone();3]),
+            ..cfg_all_collapsable_unknown.clone()
+        };
+        let cfg_all_collapsable_down=TableConfig{
+            cols: Some(vec![up_splittable_col.clone();3]),
+            ..cfg_all_collapsable_unknown.clone()
+        };
+        let cfg_first_collapsable_down=TableConfig{
+            cols: Some(vec![
+                disallow_splittable_col.clone(),
+                up_splittable_col.clone(),
+                disallow_splittable_col.clone(),
+            ]),
+            ..cfg_all_collapsable_unknown.clone()
+        };
+        let cfg_second_collapsable_up=TableConfig{
+            cols: Some(vec![
+                down_splittable_col.clone(),
+                disallow_splittable_col.clone(),
+                disallow_splittable_col.clone()
+            ]),
+            ..cfg_all_collapsable_unknown.clone()
+        };
+        assert_eq!(
+            both_collapsed_down,
+            collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_down)
+        );
+        assert_eq!(
+            both_collapsed_up,
+            collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_unknown)
+        );
+        assert_eq!(
+            both_collapsed_up,
+            collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_up)
+        );
+        assert_eq!(
+            first_collapsed_down,
+            collapse_table_rows_by_pattern(cells.clone(),&cfg_first_collapsable_down)
+        );
+        assert_eq!(
+            second_collapsed_up,
+            collapse_table_rows_by_pattern(cells.clone(),&cfg_second_collapsable_up)
+        );
     }
     #[test]
     fn test_pattern_strategy(){
