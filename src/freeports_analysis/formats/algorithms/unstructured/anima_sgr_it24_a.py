@@ -7,6 +7,7 @@ header_set = [
     PdfLineSet.from_str('Lato,Bold "Titoli "'),
     PdfLineSet.from_str('Lato,Bold "Divisa "'),
 ]
+prv
 subfund_set = PdfLineSet(
     font="Lato",
     font_size=7.92,
