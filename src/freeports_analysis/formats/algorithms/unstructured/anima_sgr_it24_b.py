@@ -8,6 +8,12 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
 header_set = [
     PdfLineSet.from_str('TrebuchetMS-Bold "Titoli $"'),
 ]
+
+manco_set = PdfLineSet(
+    text='Società di Gestione del Risparmio',
+    font=FontSet("Open Sans", "Lato")
+)
+
 subfund_set = PdfLineSet(
     font=FontSet("Open Sans", "Lato"),
     font_size=7.98,
@@ -41,6 +47,7 @@ body_set = PdfLineSet.from_str("TrebuchetMS[7.02]")
     subfund_set=subfund_set,
     currency_set=currency_set,
     body_set=body_set,
+    manco_set=manco_set
 )
 def pdf_filter(xml_root):
     """Custom PDF filter that use a relative reference area for the subfund and for the currency"""
