@@ -1,4 +1,4 @@
-"""Custom pipeline for ANIMA_SGR-IT23.A"""
+"""Custom pipeline for ANIMA_SGR-IT24.A"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
@@ -7,7 +7,12 @@ header_set = [
     PdfLineSet.from_str('Lato,Bold "Titoli "'),
     PdfLineSet.from_str('Lato,Bold "Divisa "'),
 ]
-prv
+
+manco_set = PdfLineSet(
+    text='Società di Gestione del Risparmio',
+    font='Lato'
+)
+
 subfund_set = PdfLineSet(
     font="Lato",
     font_size=7.92,
@@ -20,7 +25,9 @@ subfund_set = PdfLineSet(
         "y_max": PdfLineSet(font="Lato,Bold", text="Titoli"),
     },
 )
+
 currency_set = PdfLineSet.from_str('Lato,Bold "Controvalore in "')
+
 body_set = PdfLineSet(
     font="Lato",
     font_size=6.96,
@@ -36,12 +43,12 @@ body_set = PdfLineSet(
     },
 )
 
-
 @standard_pdf_filtering(
     header_set=header_set,
     subfund_set=subfund_set,
     currency_set=currency_set,
     body_set=body_set,
+    manco_set=manco_set
 )
 def pdf_filter(xml_root):
     """Pdf filter that takes the subfund and the currency relative to different cells"""

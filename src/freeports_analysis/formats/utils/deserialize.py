@@ -401,6 +401,7 @@ def standard_deserialization(
                     "subfund": to_str(md["subfund"]).upper()
                     if not isinstance(md["subfund"], Promise)
                     else md["subfund"],
+                    "manco": to_str(md["manco"]) if md.get("manco") else None,
                     "market_value": float_cast(md["market value"]),
                     "currency": to_currency(md["currency"]),
                     "nominal_quantity": try_cast(md, "quantity", quantity_cast),

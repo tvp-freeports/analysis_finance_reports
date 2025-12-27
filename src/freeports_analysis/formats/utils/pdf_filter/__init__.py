@@ -93,7 +93,6 @@ def filter_page_if(
 
     return wrapper
 
-
 def standard_extraction_subfund(
     subfund_set: PdfLineSet,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
@@ -207,12 +206,67 @@ def standard_extraction_currency(
 
     return decorator
 
+def standard_extraction_manco(
+        manco_set: PdfLineSet,
+)   -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+    """"Decorator for extracting the management company (manco) text and updating metadata.
+    
+    Parameters
+    ----------
+    manco_set : PdfLineSet
+        Criteria for extracting manco information from the page.
+    
+    Returns
+    -------
+    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+        A decorator that updates metadata with the extracted manco text.
+    """
+
+    def decorator(old_page_metadata):
+        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
+            metadata = old_page_metadata(xml_root)
+            xml_lines = None
+            manco = None
+
+            manco_set_c = manco_set.contextualize(xml_root)
+
+            if manco_set_c.is_simple and manco_set_c._left.font is not None:
+                xml_lines = get_lines_with_font(xml_root, manco_set_c._left.font)
+            else:
+                xml_lines = xml_root.findall(".//line")
+
+            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
+
+            try: 
+                manco = [line.text for line in lines if line in manco_set_c][0]
+            
+            except IndexError as exc:
+                logger.error(exc)
+                logger.debug("Manco set:")
+                logger.debug(str(manco_set_c))
+                logger.debug("First lines where:")
+                logger.debug(
+                    "%s",
+                    str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+                )
+                raise ExpectedPdfBlockNotFound(
+                    _("Management company block not found")
+                ) from exc
+            
+            metadata['manco'] = manco
+            return metadata
+        
+        return new_page_metadata
+    
+    return decorator
+
 
 def standard_pdf_filtering(
     header_set: PdfLineSet | List[PdfLineSet],
     subfund_set: PdfLineSet,
     body_set: PdfLineSet,
     currency_set: PdfLineSet | Currency | str,
+    manco_set: Optional[PdfLineSet] = None,
     deselection_list: Optional[List[PdfLineSet]] = None,
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
@@ -296,11 +350,20 @@ def standard_pdf_filtering(
         body_set = body_set / deselection_set
 
     def decorator(f):
-        @standard_extraction_subfund(subfund_set)
-        @standard_extraction_currency(currency_set)
-        @overwrite_if_implemented(f)
-        def page_metadata(_: etree.Element) -> dict:
-            return {}
+        if manco_set is not None:
+            @standard_extraction_subfund(subfund_set)
+            @standard_extraction_currency(currency_set)
+            @standard_extraction_manco(manco_set)
+            @overwrite_if_implemented(f)
+            def page_metadata(_: etree.Element) -> dict:
+                return {}
+        else:
+            # Original without manco (backward compatible)
+            @standard_extraction_subfund(subfund_set)
+            @standard_extraction_currency(currency_set)
+            @overwrite_if_implemented(f)
+            def page_metadata(_: etree.Element) -> dict:
+                return {}
 
         def _is_header(xml_root, header_set) -> bool:
             if not isinstance(header_set, list):
