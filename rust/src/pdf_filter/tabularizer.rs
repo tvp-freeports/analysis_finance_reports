@@ -3,7 +3,7 @@ mod collapse;
 
 
 use coordinates::Limits;
-use collapse::SplittingState;
+use collapse::{SplittingState,NullableState};
 
 
 
@@ -12,19 +12,19 @@ use collapse::SplittingState;
 
 
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 struct ColumnConfig {
     limits: Option<Limits>,
     splitting: Option<SplittingState>,
-    nullable: Option<bool>
+    nullable: Option<NullableState>
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 struct RowConfig {
     limits: Option<Limits>
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 struct TableConfig {
     cols: Option<Vec<ColumnConfig>>,
     rows: Option<Vec<RowConfig>>
