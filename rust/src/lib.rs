@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
 
 mod text_extract;
-mod pdf_filter {
-    mod tabularizer;
+pub mod pdf_filter {
+    pub mod tabularizer;
 }
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -10,7 +10,7 @@ mod pdf_filter {
 /// import the module.
 #[pymodule]
 pub mod freeports_lib {
-    // use super::pdf_filter;
+    pub use super::pdf_filter;
     // use super::text_extract;
 }
 

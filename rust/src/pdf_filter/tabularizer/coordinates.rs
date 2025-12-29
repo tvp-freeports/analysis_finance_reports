@@ -45,12 +45,12 @@ bitflags!{
 
 
 #[derive(Debug)]
-struct CellGeometry {
+pub struct CellGeometry {
     bounds: (f32,f32,f32,f32),
     tolerance: f32
 }
 impl CellGeometry {
-    fn new(bounds: (f32,f32,f32,f32), tolerance: f32) -> Self {
+    pub fn new(bounds: (f32,f32,f32,f32), tolerance: f32) -> Self {
         let (x0,y0,x1,y1)=bounds;
         if let Err(err)=Limits::build(x0,x1) {
             panic!("Invalid horizontal interval: {err:?}");
@@ -168,7 +168,7 @@ fn get_table_indexes<'a>(
     indexes.iter().map(|x| mapping[&x.unwrap()]).collect()
 }
 
-fn get_table_coordinates<'a>(
+pub fn get_table_coordinates<'a>(
     cells: &'a[CellGeometry],
     algorithm_flags: TablePosAlgorithm,
     table_config: &TableConfig

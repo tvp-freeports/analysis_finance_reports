@@ -6,11 +6,8 @@ use coordinates::Limits;
 use collapse::{SplittingState,NullableState};
 
 
-
-
-
-
-
+pub use coordinates::{get_table_coordinates,TablePosAlgorithm,CellGeometry};
+pub use collapse::{collapse_table_rows,CollapseAlgorithm};
 
 #[derive(Clone,Debug)]
 struct ColumnConfig {
@@ -25,7 +22,7 @@ struct RowConfig {
 }
 
 #[derive(Clone,Debug)]
-struct TableConfig {
+pub struct TableConfig {
     cols: Option<Vec<ColumnConfig>>,
     rows: Option<Vec<RowConfig>>
 }

@@ -42,7 +42,7 @@ pub fn collapse_table_rows(
 
 
 #[derive(Clone,Copy,PartialEq,Debug)]
-enum SplittingDirection {
+pub enum SplittingDirection {
     Up,
     Down
 }
@@ -133,7 +133,7 @@ fn build_existence_matrix(
     cell_exists
 }
 
-fn is_row_collapsable(row: &[bool],cfg: &[GeometryCollapseConfig]) -> bool {
+fn is_row_collapsable(row: &[bool],_cfg: &[GeometryCollapseConfig]) -> bool {
     row.iter().any(|full| !full)
 }
 fn is_row_splittable(row: &[bool],cfg: &[GeometryCollapseConfig])  -> bool {
@@ -272,7 +272,7 @@ fn collapse_table_rows_by_pattern(
         }
         if sequence_end - i > 1 {
             // Collapsability the sequence
-            let mut sequence=&mut indexes[i..sequence_end];
+            let sequence=&mut indexes[i..sequence_end];
             let target_row = match split_direction {
                 SplittingDirection::Up => sequence.iter().map(|&(row, _)| row).max().unwrap(),
                 SplittingDirection::Down => sequence.iter().map(|&(row, _)| row).min().unwrap()
