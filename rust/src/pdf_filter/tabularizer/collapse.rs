@@ -1,5 +1,46 @@
 use super::{TableConfig,ColumnConfig};
 
+
+pub enum CollapseAlgorithm {
+    Pattern,
+    Geometry,
+    GeometryThenPattern,
+    PatternThenGeometry
+}
+
+pub fn collapse_table_rows(
+    indexes: Vec<(usize, usize)>,
+    table_config: &TableConfig,
+    alghoritm: CollapseAlgorithm
+) -> Vec<(usize, usize)> {
+    use CollapseAlgorithm::*;
+    let mut tmp_conf=table_config.clone();
+    if tmp_conf.cols.is_none() {
+        let _tmp =indexes.iter();
+        let n_cols=_tmp.max_by_key(|x| x.1).unwrap().1+1;
+        tmp_conf.cols=Some(
+            vec![ColumnConfig{
+                limits: None,
+                splitting: None,
+                nullable: None
+            };n_cols]
+        )
+    }
+    match alghoritm {
+        Pattern => collapse_table_rows_by_pattern(indexes,&tmp_conf),
+        Geometry => collapse_table_rows_by_geometry(indexes,&tmp_conf),
+        PatternThenGeometry => {
+            let tmp_res = collapse_table_rows_by_pattern(indexes,&tmp_conf);
+            collapse_table_rows_by_geometry(tmp_res,&tmp_conf)
+        },
+        GeometryThenPattern => {
+            let tmp_res = collapse_table_rows_by_geometry(indexes,&tmp_conf);
+            collapse_table_rows_by_pattern(tmp_res,&tmp_conf)
+        }
+    }
+}
+
+
 #[derive(Clone,Copy,PartialEq,Debug)]
 enum SplittingDirection {
     Up,
@@ -12,13 +53,9 @@ pub enum SplittingState {
     Disallow
 }
 
-
-pub type Collapsability = bool;
-
 pub type NullableState = bool;
 
-
-
+type Collapsability = bool;
 
 fn collapse_table_rows_by_geometry(
     indexes: Vec<(usize, usize)>,
@@ -252,33 +289,6 @@ fn collapse_table_rows_by_pattern(
 
 
 
-fn collapse_table_rows(
-    mut indexes: Vec<(usize,usize)>,
-    table_config: &TableConfig,
-    geometrical_strategy: bool,
-    pattern_strategy: bool
-) -> Vec<(usize,usize)> {
-    let mut tmp_conf=table_config.clone();
-    if tmp_conf.cols.is_none() {
-        let _tmp =indexes.iter();
-        let n_cols=_tmp.max_by_key(|x| x.1).unwrap().1+1;
-        tmp_conf.cols=Some(
-            vec![ColumnConfig{
-                limits: None,
-                splitting: None,
-                nullable: None
-            };n_cols]
-        )
-    }
-
-    if geometrical_strategy {
-        indexes=collapse_table_rows_by_geometry(indexes,&tmp_conf);
-    }
-    if pattern_strategy {
-        indexes=collapse_table_rows_by_pattern(indexes,&tmp_conf);
-    }
-    indexes
-}
 
 #[cfg(test)]
 mod tests {
@@ -800,8 +810,80 @@ mod tests {
         );
     }
     #[test]
-    fn test_both_strategies(){
-        todo!();
+    fn test_collapse_algorithm(){
+        let indexes: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (2,0),
+            (3,0),
+            (1,1),
+            (4,0),
+            (4,1),
+            (4,2),
+            (5,1)
+        ];
+        let cfg = TableConfig{
+            rows: None,
+            cols: None
+        };
+        let only_pattern: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (1,0),
+            (1,0),
+            (1,0),
+            (1,1),
+            (4,0),
+            (4,1),
+            (4,2),
+            (5,1)
+        ];
+        let only_geometry: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (0,0),
+            (0,0),
+            (0,0),
+            (0,1),
+            (4,0),
+            (4,1),
+            (4,2),
+            (4,1)
+        ];
+        let pattern_geometry: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (0,0),
+            (0,0),
+            (0,0),
+            (0,1),
+            (4,0),
+            (4,1),
+            (4,2),
+            (4,1)
+        ];
+        let geometry_pattern: Vec<(usize,usize)> = vec![
+            (0,0),
+            (0,1),
+            (0,2),
+            (0,0),
+            (0,0),
+            (0,0),
+            (0,1),
+            (4,0),
+            (4,1),
+            (4,2),
+            (4,1)
+        ];
+        assert_eq!(only_pattern,collapse_table_rows(indexes.clone(),&cfg,CollapseAlgorithm::Pattern));
+        assert_eq!(only_geometry,collapse_table_rows(indexes.clone(),&cfg,CollapseAlgorithm::Geometry));
+        assert_eq!(pattern_geometry,collapse_table_rows(indexes.clone(),&cfg,CollapseAlgorithm::PatternThenGeometry));
+        assert_eq!(geometry_pattern,collapse_table_rows(indexes.clone(),&cfg,CollapseAlgorithm::GeometryThenPattern));
     }
 }
 
