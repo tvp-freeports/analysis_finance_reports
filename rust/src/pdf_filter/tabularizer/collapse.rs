@@ -1,6 +1,10 @@
+use pyo3::prelude::*;
+use pyo3::pyclass;
+
 use super::{TableConfig,ColumnConfig};
 
-
+#[pyclass]
+#[derive(Clone)]
 pub enum CollapseAlgorithm {
     Pattern,
     Geometry,
@@ -8,6 +12,7 @@ pub enum CollapseAlgorithm {
     PatternThenGeometry
 }
 
+#[pyfunction]
 pub fn collapse_table_rows(
     indexes: Vec<(usize, usize)>,
     table_config: &TableConfig,
@@ -41,11 +46,31 @@ pub fn collapse_table_rows(
 }
 
 
+#[pyclass]
 #[derive(Clone,Copy,PartialEq,Debug)]
 pub enum SplittingDirection {
     Up,
     Down
 }
+
+#[pyclass]
+#[pyo3(name = "SplittingState")]
+#[derive(Clone,Copy)]
+pub enum PySplittingState {
+    Allow(SplittingDirection),
+    Disallow()
+}
+#[pymethods]
+impl PySplittingState {
+    #[new]
+    fn py_new(direction: Option<SplittingDirection>) -> Self {
+        match direction {
+            Some(a) => PySplittingState::Allow(a),
+            None => PySplittingState::Disallow()
+        }
+    }
+}
+
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub enum SplittingState {

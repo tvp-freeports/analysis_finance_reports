@@ -1,3 +1,6 @@
+use pyo3::prelude::*;
+use pyo3::pyclass;
+
 use std::marker;
 use std::collections::{HashMap};
 use std::iter::{zip};
@@ -9,7 +12,7 @@ use super::{TableConfig};
 pub struct Limits(f32, f32);
 
 impl Limits {
-    fn build(a: f32, b: f32) -> Result<Self,LimitsBuildError> {
+    pub fn build(a: f32, b: f32) -> Result<Self,LimitsBuildError> {
         if a < 0.0 {
             Err(LimitsBuildError::NegativeLeftEntry(a))
         } else if b < 0.0 {
@@ -23,7 +26,7 @@ impl Limits {
 }
 
 #[derive(Debug)]
-enum LimitsBuildError {
+pub enum LimitsBuildError {
     NegativeLeftEntry(f32),
     NegativeRightEntry(f32),
     NegativeInterval(f32,f32,f32)
@@ -31,9 +34,9 @@ enum LimitsBuildError {
 
 
 
-// #[pyclass(flags)]
 bitflags!{
-    #[derive(Clone)]
+    #[pyclass]
+    #[derive(Clone,Copy)]
     pub struct TablePosAlgorithm: u8 {
         const Default = 0b000000000;
         const ReturnRows = 0b00000001;
@@ -42,14 +45,49 @@ bitflags!{
         const UseTestPos = 0b00001000;
     }
 }
+#[pymethods]
+impl TablePosAlgorithm {
+    /// Create from raw bits
+    #[new]
+    pub fn new(bits: u8) -> PyResult<Self> {
+        Ok(TablePosAlgorithm::from_bits_truncate(bits))
+    }
+    #[staticmethod]
+    pub fn from_flags(flags: Vec<Self>) -> Self {
+        flags.into_iter().fold(Self::Default, |a, b| a | b)
+    }
+
+    /// Bitwise OR (so Python can do a | b)
+    fn __or__(&self, other: &Self) -> Self {
+        *self | *other
+    }
+
+    fn __repr__(&self) -> String {
+        format!("TablePosAlgorithm({:#010b})", self.bits())
+    }
+
+    #[classattr]
+    const DEFAULT: Self = Self::Default;
+    #[classattr]
+    const RETURN_ROWS: Self = Self::ReturnRows;
+    #[classattr]
+    const BIG_CELL_RULE: Self = Self::BigCellRule;
+    #[classattr]
+    const USE_RULER_AREA: Self = Self::UseRulerArea;
+    #[classattr]
+    const USE_TEST_POS: Self = Self::UseTestPos;
+}
 
 
-#[derive(Debug)]
+#[pyclass]
+#[derive(Debug,Clone)]
 pub struct CellGeometry {
     bounds: (f32,f32,f32,f32),
     tolerance: f32
 }
+#[pymethods]
 impl CellGeometry {
+    #[new]
     pub fn new(bounds: (f32,f32,f32,f32), tolerance: f32) -> Self {
         let (x0,y0,x1,y1)=bounds;
         if let Err(err)=Limits::build(x0,x1) {
@@ -168,8 +206,8 @@ fn get_table_indexes<'a>(
     indexes.iter().map(|x| mapping[&x.unwrap()]).collect()
 }
 
-pub fn get_table_coordinates<'a>(
-    cells: &'a[CellGeometry],
+pub fn get_table_coordinates(
+    cells: &[CellGeometry],
     algorithm_flags: TablePosAlgorithm,
     table_config: &TableConfig
 ) -> Vec<(usize,usize)> {
@@ -181,6 +219,17 @@ pub fn get_table_coordinates<'a>(
     let rows = get_table_indexes(cells,algorithm_flags_rows,table_config);
     zip(rows,cols).collect()
 }
+
+#[pyfunction]
+#[pyo3(name = "get_table_coordinates")]
+pub fn py_get_table_coordinates(
+    cells: Vec<CellGeometry>,
+    algorithm_flags: TablePosAlgorithm,
+    table_config: &TableConfig
+) -> Vec<(usize,usize)> {
+    get_table_coordinates(&cells,algorithm_flags,table_config)
+}
+
 
 #[cfg(test)]
 mod tests {
