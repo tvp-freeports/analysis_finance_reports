@@ -7,8 +7,12 @@ from enum import Flag, Enum, auto
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
 
-TablePosAlgorithm_r = freeports_lib.pdf_filter.tabularizer.TablePosAlgorithm
-get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
+_TablePosAlgorithm = freeports_lib.pdf_filter.tabularizer.TablePosAlgorithm
+_get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
+_CellGeometry = freeports_lib.pdf_filter.tabularizer.CellGeometry
+_TableConfig = freeports_lib.pdf_filter.tabularizer.TableConfig
+_collapse_table_rows = freeports_lib.pdf_filter.tabularizer.collapse_table_rows
+_CollapseAlgorithm = freeports_lib.pdf_filter.tabularizer.CollapseAlgorithm
 
 
 class TablePosAlgorithm(Flag):
@@ -168,6 +172,39 @@ def _algorithm_table_pos(
     return _area_position_algorithm(
         ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
     )
+
+
+def get_table_coordinates(
+    lines: List[ExtractedPdfLine],
+    algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
+    tolerance: float = 0,
+    tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
+) -> List[Tuple[int, int]]:
+    cells = [
+        _CellGeometry(
+            l.area.bounds,
+            tolerance
+            if (tolerance_mu == TablePosMeasureUnit.PT)
+            else tolerance * (l.bounds[2] - l.bounds[0])
+            if (tolerance_mu == TablePosMeasureUnit.PERC)
+            else tolerance * l.font_size
+            if (tolerance_mu == TablePosMeasureUnit.EM)
+            else 0,
+        )
+        for l in lines
+    ]
+    flags = _TablePosAlgorithm.DEFAULT
+    if TablePosAlgorithm.BIG_RULE in algorithm_flags:
+        flags |= _TablePosAlgorithm.BIG_CELL_RULE
+    if TablePosAlgorithm.TEST_POS in algorithm_flags:
+        flags |= _TablePosAlgorithm.USE_TEST_POS
+    if TablePosAlgorithm.RULER_AREA in algorithm_flags:
+        flags |= _TablePosAlgorithm.USE_RULER_AREA
+    cfg = _TableConfig(cols=None, rows=None)
+    coords = _get_table_coordinates(cells, flags, cfg)
+    alg = _CollapseAlgorithm.Geometry
+    # coords=_collapse_table_rows(coords,cfg,alg)
+    return coords
 
 
 def get_table_positions(

@@ -20,6 +20,7 @@ mod freeports_lib {
                 TablePosAlgorithm,
                 TableConfig,
                 ColumnConfig,
+                CollapseAlgorithm,
                 SplittingDirection,
                 RowConfig,
                 CellGeometry,

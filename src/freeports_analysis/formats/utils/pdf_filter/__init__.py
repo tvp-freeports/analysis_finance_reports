@@ -18,9 +18,10 @@ from freeports_analysis.i18n import _
 from freeports_analysis.consts import Promise
 from freeports_analysis.consts import Currency
 from .xml.font import get_lines_with_font, get_lines_with_txt_font
-from .select_position import get_table_positions, TablePosAlgorithm
+from .select_position import TablePosAlgorithm, get_table_coordinates
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
+
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 """Type alias for metadata update functions.
@@ -380,14 +381,10 @@ def standard_pdf_filtering(
                         algo |= flag
                 _row_algorithm_flags = algo
 
-            table_col_positions = get_table_positions(
-                table_rows, algorithm_flags=_algorithm_flags, tolerance=tolerance
+            coords = get_table_coordinates(
+                table_rows, _algorithm_flags, tolerance=row_tolerance
             )
-            table_row_positions = get_table_positions(
-                table_rows,
-                algorithm_flags=_row_algorithm_flags | TablePosAlgorithm.ROW,
-                tolerance=row_tolerance,
-            )
+            table_row_positions, table_col_positions = zip(*coords)
 
             def _width(area):
                 bounds = area.bounds
