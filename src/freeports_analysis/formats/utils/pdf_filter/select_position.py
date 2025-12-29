@@ -1,10 +1,14 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
+import freeports_lib
 from typing import List, Tuple
 from enum import Flag, Enum, auto
 
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
+
+TablePosAlgorithm_r = freeports_lib.pdf_filter.tabularizer.TablePosAlgorithm
+get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
 
 
 class TablePosAlgorithm(Flag):
