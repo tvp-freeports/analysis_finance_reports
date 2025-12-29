@@ -32,8 +32,8 @@ fn collapse_table_rows_by_geometry(
 
     // Build column configurations
     let column_info = extract_column_info(table_config);
-    let (row_count, col_count, cell_exists) = build_existence_matrix(&indexes);
-    let cell_configuration = dbg!(build_configuration_matrix(&cell_exists, &column_info));
+    let cell_exists = build_existence_matrix(&indexes);
+    let cell_configuration = build_configuration_matrix(&cell_exists, &column_info);
     let target_rows = calc_target_rows(&cell_configuration);
     
     // Apply row collapsing to indexes
@@ -79,7 +79,7 @@ struct CellCollapseState(SplittingState,Collapsability);
 // Helper function: Determine table size and which cells exist
 fn build_existence_matrix(
     indexes: &[(usize, usize)]
-) -> (usize, usize, Vec<Vec<bool>>) {
+) -> Vec<Vec<bool>> {
     // Find table boundaries
     let max_row = indexes.iter().map(|&(row, _)| row).max().unwrap_or(0);
     let max_col = indexes.iter().map(|&(_, col)| col).max().unwrap_or(0);
@@ -93,7 +93,7 @@ fn build_existence_matrix(
         cell_exists[row][col] = true;
     }
 
-    (row_count, col_count, cell_exists)
+    cell_exists
 }
 
 fn is_row_collapsable(row: &[bool],cfg: &[GeometryCollapseConfig]) -> bool {
@@ -142,15 +142,15 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
     for col in 0..ncols {
         let mut start_collapsing: Option<usize> = None;
         let mut end_collapsing: Option<usize> = None;
-        println!("COLONNA {col}:");
         for row in 0..nrows {
-            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Down),_),None) = (dbg!(matrix[row][col]),start_collapsing) {
-                println!("STA PARTENDO UN CLUSTER DA LINEA {row}");
+            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Down),_),None) = (matrix[row][col],start_collapsing) {
                 start_collapsing=Some(row);
                 end_collapsing=Some(row);
             } else if let Some(start) = start_collapsing {
                 if !matrix[row][col].1 || row == nrows-1 {
-                    println!("TERMINA IN {row}");
+                    if row == nrows-1 && matrix[row][col].1 {
+                        end_collapsing=Some(row)
+                    }
                     (start..=end_collapsing.unwrap()).for_each(
                         |i| {
                             target_rows[i] = start;
@@ -162,7 +162,6 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
                         _ => (None,None)
                     }
                 } else {
-                    println!("CONTINUA IN {row}");
                     end_collapsing=Some(row);
                 }
             }
@@ -175,6 +174,9 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
                 end_collapsing=Some(row);
             } else if let Some(start) = start_collapsing {
                 if !matrix[row][col].1 || row == 0 {
+                    if row == 0 && matrix[row][col].1 {
+                        end_collapsing=Some(row)
+                    }
                     (end_collapsing.unwrap()..start).for_each(
                         |i| {
                             if !collapsing_rows[i] {
@@ -340,14 +342,12 @@ mod tests {
                 (3,0),
                 (3,2),
             ];
-            let (rows, cols, matrix) = build_existence_matrix(&cells);
-            assert_eq!(cols,3);
-            assert_eq!(rows,4);
+            let matrix = build_existence_matrix(&cells);
             assert_eq!(matrix,vec![
-                vec![true,true,true],
+                vec![ true, true, true],
                 vec![false,false,false],
-                vec![false,true,false],
-                vec![true,false,true]
+                vec![false, true,false],
+                vec![ true,false, true]
             ]);
         }
         #[test]
@@ -380,7 +380,7 @@ mod tests {
             let sdc=CellCollapseState(SplittingState::Allow(SplittingDirection::Down),true);
             let suc=CellCollapseState(SplittingState::Allow(SplittingDirection::Up),true);
             let cfg_matrix=vec![
-                vec![sd.clone(),emp.clone(),su.clone()],
+                vec![ sd.clone(),emp.clone(), su.clone()],
                 vec![emp.clone(),emp.clone(),emp.clone()],
                 vec![emp.clone(),col.clone(),emp.clone()],
                 vec![sdc.clone(),emp.clone(),suc.clone()]
@@ -590,7 +590,7 @@ mod tests {
             (3,1),
             (3,2),
             // ----
-            (2,1),
+            (3,1),
             (4,0),
             (5,0),
         ];
@@ -644,23 +644,22 @@ mod tests {
             both_collapsed_down,
             collapse_table_rows_by_geometry(cells.clone(),&cfg_all_collapsable_down)
         );
-        println!("ECCO LA CONFIGURAZIONE DELLA TABELLA: {cfg_all_collapsable_unknown:?}");
         assert_eq!(
             both_collapsed_up,
             collapse_table_rows_by_geometry(cells.clone(),&cfg_all_collapsable_unknown)
         );
-        // assert_eq!(
-        //     both_collapsed_up,
-        //     collapse_table_rows_by_pattern(cells.clone(),&cfg_all_collapsable_up)
-        // );
-        // assert_eq!(
-        //     first_collapsed_down,
-        //     collapse_table_rows_by_pattern(cells.clone(),&cfg_first_collapsable_down)
-        // );
-        // assert_eq!(
-        //     second_collapsed_up,
-        //     collapse_table_rows_by_pattern(cells.clone(),&cfg_second_collapsable_up)
-        // );
+        assert_eq!(
+            both_collapsed_up,
+            collapse_table_rows_by_geometry(cells.clone(),&cfg_all_collapsable_up)
+        );
+        assert_eq!(
+            first_collapsed_down,
+            collapse_table_rows_by_geometry(cells.clone(),&cfg_first_collapsable_down)
+        );
+        assert_eq!(
+            second_collapsed_up,
+            collapse_table_rows_by_geometry(cells.clone(),&cfg_second_collapsable_up)
+        );
     }
     #[test]
     fn test_pattern_strategy(){
