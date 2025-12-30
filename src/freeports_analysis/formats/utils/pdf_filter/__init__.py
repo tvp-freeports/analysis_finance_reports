@@ -22,6 +22,10 @@ from .select_position import TablePosAlgorithm, get_table_coordinates
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
 
+import freeports_lib
+
+_CollapseAlgorithm = freeports_lib.pdf_filter.tabularizer.CollapseAlgorithm
+_TableConfig = freeports_lib.pdf_filter.tabularizer.TableConfig
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
 """Type alias for metadata update functions.
@@ -381,8 +385,10 @@ def standard_pdf_filtering(
                         algo |= flag
                 _row_algorithm_flags = algo
 
+            cfg = _TableConfig(cols=None, rows=None)
+            collapse_alg = _CollapseAlgorithm.Geometry
             coords = get_table_coordinates(
-                table_rows, _algorithm_flags, tolerance=row_tolerance
+                table_rows, cfg, _algorithm_flags, collapse_alg, tolerance=row_tolerance
             )
             table_row_positions, table_col_positions = zip(*coords)
 

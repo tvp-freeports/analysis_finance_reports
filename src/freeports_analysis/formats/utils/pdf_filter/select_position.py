@@ -176,7 +176,9 @@ def _algorithm_table_pos(
 
 def get_table_coordinates(
     lines: List[ExtractedPdfLine],
+    table_cfg=_TableConfig(cols=None, rows=None),
     algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
+    collapse_alg=_CollapseAlgorithm.Geometry,
     tolerance: float = 0,
     tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
 ) -> List[Tuple[int, int]]:
@@ -200,9 +202,7 @@ def get_table_coordinates(
         flags |= _TablePosAlgorithm.USE_TEST_POS
     if TablePosAlgorithm.RULER_AREA in algorithm_flags:
         flags |= _TablePosAlgorithm.USE_RULER_AREA
-    cfg = _TableConfig(cols=None, rows=None)
-    coords = _get_table_coordinates(cells, flags, cfg)
-    alg = _CollapseAlgorithm.Geometry
+    coords = _get_table_coordinates(cells, flags, table_cfg)
     # coords=_collapse_table_rows(coords,cfg,alg)
     return coords
 
