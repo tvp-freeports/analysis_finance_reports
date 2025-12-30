@@ -181,6 +181,7 @@ def get_table_coordinates(
     collapse_alg=_CollapseAlgorithm.Geometry,
     tolerance: float = 0,
     tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
+    collapse: bool = False,
 ) -> List[Tuple[int, int]]:
     cells = [
         _CellGeometry(
@@ -203,7 +204,8 @@ def get_table_coordinates(
     if TablePosAlgorithm.RULER_AREA in algorithm_flags:
         flags |= _TablePosAlgorithm.USE_RULER_AREA
     coords = _get_table_coordinates(cells, flags, table_cfg)
-    # coords=_collapse_table_rows(coords,cfg,alg)
+    if collapse:
+        coords = _collapse_table_rows(coords, table_cfg, collapse_alg)
     return coords
 
 
