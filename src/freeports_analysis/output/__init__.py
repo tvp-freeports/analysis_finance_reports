@@ -152,6 +152,7 @@ class Investment(BaseModel, ABC):
     company: Company
     company_match: str
     subfund: PromisedSubfund
+    manco: Optional[str] = None
     nominal_quantity: Optional[PositiveFloat] = None
     market_value: PromisedMarketValue
     currency: PromisedCurrency
@@ -341,6 +342,7 @@ def transform_to_files_schema(
             "company": "Company",
             "company_match": "Matched company",
             "subfund": "Subfund",
+            "manco": "Management company",
             "nominal_quantity": "Nominal/Quantity",
             "market_value": "Market value",
             "currency": "Currency",
