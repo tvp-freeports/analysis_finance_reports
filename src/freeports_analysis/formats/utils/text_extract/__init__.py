@@ -531,7 +531,7 @@ def standard_text_extraction(
 
             metadata = {}
 
-            metadata['manco'] = pdf_blocks_table[i].metadata.get('manco')
+            metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
 
             try:
                 metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]

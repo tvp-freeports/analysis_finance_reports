@@ -8,10 +8,7 @@ header_set = [
     PdfLineSet.from_str('Lato,Bold "Divisa "'),
 ]
 
-manco_set = PdfLineSet(
-    text='Società di Gestione del Risparmio',
-    font='Lato'
-)
+manco_set = PdfLineSet(text="Società di Gestione del Risparmio", font="Lato")
 
 subfund_set = PdfLineSet(
     font="Lato",
@@ -43,12 +40,13 @@ body_set = PdfLineSet(
     },
 )
 
+
 @standard_pdf_filtering(
     header_set=header_set,
     subfund_set=subfund_set,
     currency_set=currency_set,
     body_set=body_set,
-    manco_set=manco_set
+    manco_set=manco_set,
 )
 def pdf_filter(xml_root):
     """Pdf filter that takes the subfund and the currency relative to different cells"""

@@ -28,7 +28,7 @@ investments_schema = pa.DataFrameSchema(
             pd.StringDtype, checks=pa.Check.isin(list_of_instruments)
         ),
         "Subfund": pa.Column(pd.StringDtype),
-        "Management company": pa.Column(pd.StringDtype, nullable=True), 
+        "Management company": pa.Column(pd.StringDtype, nullable=True),
         "Nominal/Quantity": pa.Column(
             pd.Float32Dtype, checks=pa.Check.greater_than(0), nullable=True
         ),

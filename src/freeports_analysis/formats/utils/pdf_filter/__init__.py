@@ -98,6 +98,7 @@ def filter_page_if(
 
     return wrapper
 
+
 def standard_extraction_subfund(
     subfund_set: PdfLineSet,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
@@ -211,16 +212,17 @@ def standard_extraction_currency(
 
     return decorator
 
+
 def standard_extraction_manco(
-        manco_set: PdfLineSet,
-)   -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
-    """"Decorator for extracting the management company (manco) text and updating metadata.
-    
+    manco_set: PdfLineSet,
+) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+    """ "Decorator for extracting the management company (manco) text and updating metadata.
+
     Parameters
     ----------
     manco_set : PdfLineSet
         Criteria for extracting manco information from the page.
-    
+
     Returns
     -------
     Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
@@ -242,9 +244,9 @@ def standard_extraction_manco(
 
             lines = [ExtractedPdfLine(blk) for blk in xml_lines]
 
-            try: 
+            try:
                 manco = [line.text for line in lines if line in manco_set_c][0]
-            
+
             except IndexError as exc:
                 logger.error(exc)
                 logger.debug("Manco set:")
@@ -257,12 +259,12 @@ def standard_extraction_manco(
                 raise ExpectedPdfBlockNotFound(
                     _("Management company block not found")
                 ) from exc
-            
-            metadata['manco'] = manco
+
+            metadata["manco"] = manco
             return metadata
-        
+
         return new_page_metadata
-    
+
     return decorator
 
 
@@ -356,6 +358,7 @@ def standard_pdf_filtering(
 
     def decorator(f):
         if manco_set is not None:
+
             @standard_extraction_subfund(subfund_set)
             @standard_extraction_currency(currency_set)
             @standard_extraction_manco(manco_set)
