@@ -17,16 +17,13 @@ mod freeports_lib {
             #[pymodule_export]
             use crate::pdf_filter::tabularizer::{
                 collapse_table_rows,
+                CollapseAlgorithm,
                 TablePosAlgorithm,
                 TableConfig,
                 ColumnConfig,
-                CollapseAlgorithm,
-                SplittingDirection,
                 RowConfig,
                 CellGeometry,
             };
-            #[pymodule_export]
-            use crate::pdf_filter::tabularizer::PySplittingState;
             #[pymodule_export]
             use crate::pdf_filter::tabularizer::py_get_table_coordinates;
 

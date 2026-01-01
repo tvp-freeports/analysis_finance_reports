@@ -6,10 +6,10 @@ mod collapse;
 
 
 use coordinates::Limits;
-use collapse::{SplittingState,NullableState};
+use collapse::{NullableState};
 
 pub use coordinates::{get_table_coordinates,TablePosAlgorithm,CellGeometry,py_get_table_coordinates};
-pub use collapse::{collapse_table_rows,CollapseAlgorithm,PySplittingState,SplittingDirection};
+pub use collapse::{collapse_table_rows,CollapseAlgorithm,SplittingDirection,SplittingState};
 
 #[pyclass]
 #[derive(Clone,Debug)]
@@ -21,19 +21,10 @@ pub struct ColumnConfig {
 #[pymethods]
 impl ColumnConfig {
     #[new]
-    fn py_new(limits: Option<(f32,f32)>, splitting: Option<PySplittingState>, nullable: Option<NullableState> ) -> Self {
+    fn py_new(limits: Option<Limits>, splitting: Option<SplittingState>, nullable: Option<NullableState> ) -> Self {
         ColumnConfig{
-            limits: match limits {
-                Some((a,b)) => Some(Limits::build(a,b).unwrap()),
-                None => None
-            },
-            splitting: match splitting {
-                Some(a) => Some(match a {
-                    PySplittingState::Allow(b) => SplittingState::Allow(b),
-                    PySplittingState::Disallow() => SplittingState::Disallow
-                }),
-                None => None
-            },
+            limits,
+            splitting,
             nullable
         }
     }

@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::exceptions::PyValueError;
 use pyo3::pyclass;
 
 use std::marker;
@@ -24,12 +25,26 @@ impl Limits {
         }
     }
 }
+impl FromPyObject<'_, '_> for Limits {
+    type Error = PyErr;
+    fn extract(tuple: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+        let a: f32 = tuple.get_item(0)?.extract()?;
+        let b: f32 = tuple.get_item(1)?.extract()?;
+        Ok(Limits::build(a,b)?)
+    }
+}
+
 
 #[derive(Debug)]
 pub enum LimitsBuildError {
     NegativeLeftEntry(f32),
     NegativeRightEntry(f32),
     NegativeInterval(f32,f32,f32)
+}
+impl From<LimitsBuildError> for PyErr {
+    fn from(err: LimitsBuildError) -> PyErr {
+        PyValueError::new_err(format!("{err:?}"))
+    }
 }
 
 
@@ -77,6 +92,14 @@ impl TablePosAlgorithm {
     #[classattr]
     const USE_TEST_POS: Self = Self::UseTestPos;
 }
+// impl FromPyObject<'_, '_> for TablePosAlgorithm {
+//     type Error = PyErr;
+//     fn extract(tuple: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+//         let a: f32 = tuple.get_item(0)?.extract()?;
+//         let b: f32 = tuple.get_item(1)?.extract()?;
+//         Ok(Limits::build(a,b)?)
+//     }
+// }
 
 
 #[pyclass]
@@ -85,6 +108,7 @@ pub struct CellGeometry {
     bounds: (f32,f32,f32,f32),
     tolerance: f32
 }
+
 #[pymethods]
 impl CellGeometry {
     #[new]
@@ -219,6 +243,7 @@ pub fn get_table_coordinates(
     let rows = get_table_indexes(cells,algorithm_flags_rows,table_config);
     zip(rows,cols).collect()
 }
+
 
 #[pyfunction]
 #[pyo3(name = "get_table_coordinates")]

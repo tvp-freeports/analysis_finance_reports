@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::exceptions::PyValueError;
 use pyo3::pyclass;
 
 use super::{TableConfig,ColumnConfig};
@@ -11,6 +12,21 @@ pub enum CollapseAlgorithm {
     GeometryThenPattern,
     PatternThenGeometry
 }
+// impl FromPyObject<'_, '_> for CollapseAlgorithm {
+//     type Error = PyErr;
+//     fn extract(py_enum_variant: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+//         let name: String = py_enum_variant.getattr("name")?.extract()?;
+//         match name.as_str() {
+//             "PATTERN" => Ok(Self::Pattern),
+//             "GEOMETRY" => Ok(Self::Geometry),
+//             "GEOMETRY_PATTERN" => Ok(Self::GeometryThenPattern),
+//             "PATTERN_GEOMETRY" => Ok(Self::PatternThenGeometry),
+//             _ => Err(PyValueError::new_err(
+//                 "CollapseAlgorithm enum value not recognized",
+//             )),
+//         }
+//     }
+// }
 
 #[pyfunction]
 pub fn collapse_table_rows(
@@ -53,23 +69,23 @@ pub enum SplittingDirection {
     Down
 }
 
-#[pyclass]
-#[pyo3(name = "SplittingState")]
-#[derive(Clone,Copy)]
-pub enum PySplittingState {
-    Allow(SplittingDirection),
-    Disallow()
-}
-#[pymethods]
-impl PySplittingState {
-    #[new]
-    fn py_new(direction: Option<SplittingDirection>) -> Self {
-        match direction {
-            Some(a) => PySplittingState::Allow(a),
-            None => PySplittingState::Disallow()
-        }
-    }
-}
+// #[pyclass]
+// #[pyo3(name = "SplittingState")]
+// #[derive(Clone,Copy)]
+// pub enum PySplittingState {
+//     Allow(SplittingDirection),
+//     Disallow()
+// }
+// #[pymethods]
+// impl PySplittingState {
+//     #[new]
+//     fn py_new(direction: Option<SplittingDirection>) -> Self {
+//         match direction {
+//             Some(a) => PySplittingState::Allow(a),
+//             None => PySplittingState::Disallow()
+//         }
+//     }
+// }
 
 
 #[derive(Clone,Copy,Debug,PartialEq)]
@@ -77,6 +93,24 @@ pub enum SplittingState {
     Allow(SplittingDirection),
     Disallow
 }
+impl FromPyObject<'_, '_> for SplittingState {
+    type Error = PyErr;
+    fn extract(py_enum_variant: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+        let name: String = py_enum_variant.getattr("name")?.extract()?;
+        match name.as_str() {
+            "UP" => Ok(Self::Allow(SplittingDirection::Up)),
+            "DOWN" => Ok(Self::Allow(SplittingDirection::Down)),
+            "DISALLOW" => Ok(Self::Disallow),
+            _ => Err(PyValueError::new_err(
+                "SplittingState enum value not recognized",
+            )),
+        }
+    }
+
+}
+
+
+
 
 pub type NullableState = bool;
 
