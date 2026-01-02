@@ -59,37 +59,6 @@ bitflags!{
         const UseTestPos = 0b00001000;
     }
 }
-// impl TablePosAlgorithm {
-//     /// Create from raw bits
-//     #[new]
-//     pub fn new(bits: u8) -> PyResult<Self> {
-//         Ok(TablePosAlgorithm::from_bits_truncate(bits))
-//     }
-//     #[staticmethod]
-//     pub fn from_flags(flags: Vec<Self>) -> Self {
-//         flags.into_iter().fold(Self::Default, |a, b| a | b)
-//     }
-
-//     /// Bitwise OR (so Python can do a | b)
-//     fn __or__(&self, other: &Self) -> Self {
-//         *self | *other
-//     }
-
-//     fn __repr__(&self) -> String {
-//         format!("TablePosAlgorithm({:#010b})", self.bits())
-//     }
-
-//     // #[classattr]
-//     // const DEFAULT: Self = Self::Default;
-//     // #[classattr]
-//     // const RETURN_ROWS: Self = Self::ReturnRows;
-//     // #[classattr]
-//     // const BIG_CELL_RULE: Self = Self::BigCellRule;
-//     // #[classattr]
-//     // const USE_RULER_AREA: Self = Self::UseRulerArea;
-//     // #[classattr]
-//     // const USE_TEST_POS: Self = Self::UseTestPos;
-// }
 impl FromPyObject<'_, '_> for TablePosAlgorithm {
     type Error = PyErr;
     fn extract(flags: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
@@ -109,16 +78,13 @@ impl FromPyObject<'_, '_> for TablePosAlgorithm {
 }
 
 
-#[pyclass]
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,FromPyObject)]
 pub struct CellGeometry {
     bounds: (f32,f32,f32,f32),
     tolerance: f32
 }
 
-#[pymethods]
 impl CellGeometry {
-    #[new]
     pub fn new(bounds: (f32,f32,f32,f32), tolerance: f32) -> Self {
         let (x0,y0,x1,y1)=bounds;
         if let Err(err)=Limits::build(x0,x1) {
@@ -257,9 +223,9 @@ pub fn get_table_coordinates(
 pub fn py_get_table_coordinates(
     cells: Vec<CellGeometry>,
     algorithm_flags: TablePosAlgorithm,
-    table_config: &TableConfig
+    table_config: TableConfig
 ) -> Vec<(usize,usize)> {
-    get_table_coordinates(&cells,algorithm_flags,table_config)
+    get_table_coordinates(&cells,algorithm_flags,&table_config)
 }
 
 

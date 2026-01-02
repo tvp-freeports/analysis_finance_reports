@@ -1,16 +1,47 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
 import freeports_lib
-from typing import List, Tuple
+from typing import List, Tuple, TypeAlias, Optional
 from enum import Flag, Enum, auto
 
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
 
 _get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
-_CellGeometry = freeports_lib.pdf_filter.tabularizer.CellGeometry
-_TableConfig = freeports_lib.pdf_filter.tabularizer.TableConfig
 _collapse_table_rows = freeports_lib.pdf_filter.tabularizer.collapse_table_rows
+
+Limits: TypeAlias = Tuple[float, float]
+NullableState: TypeAlias = bool
+
+
+class CellGeometry:
+    bounds: Tuple[float, float, float, float]
+    tolerance: float
+
+    def __init__(self, bounds, tolerance):
+        self.bounds = bounds
+        self.tolerance = tolerance
+
+
+class SplittableState(Enum):
+    DISALLOW = auto()
+    ALLOW_UP = auto()
+    ALLOW_DOWN = auto()
+
+
+class RowConfig:
+    limits: Optional[Limits]
+
+
+class ColumnConfig:
+    limits: Optional[Limits]
+    nullable: Optional[NullableState]
+    splittable: Optional[SplittableState]
+
+
+class TableConfig:
+    cols: Optional[List] = None
+    rows: Optional[List] = None
 
 
 class CollapseAlgorithm(Enum):
@@ -181,7 +212,7 @@ def _algorithm_table_pos(
 
 def get_table_coordinates(
     lines: List[ExtractedPdfLine],
-    table_cfg=_TableConfig(cols=None, rows=None),
+    table_cfg=TableConfig(),
     algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
     collapse_alg=CollapseAlgorithm.GEOMETRY,
     tolerance: float = 0,
@@ -189,7 +220,7 @@ def get_table_coordinates(
     collapse: bool = False,
 ) -> List[Tuple[int, int]]:
     cells = [
-        _CellGeometry(
+        CellGeometry(
             l.area.bounds,
             tolerance
             if (tolerance_mu == TablePosMeasureUnit.PT)
