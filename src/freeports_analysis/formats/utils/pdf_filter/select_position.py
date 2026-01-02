@@ -7,12 +7,17 @@ from enum import Flag, Enum, auto
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
 
-_TablePosAlgorithm = freeports_lib.pdf_filter.tabularizer.TablePosAlgorithm
 _get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
 _CellGeometry = freeports_lib.pdf_filter.tabularizer.CellGeometry
 _TableConfig = freeports_lib.pdf_filter.tabularizer.TableConfig
 _collapse_table_rows = freeports_lib.pdf_filter.tabularizer.collapse_table_rows
-_CollapseAlgorithm = freeports_lib.pdf_filter.tabularizer.CollapseAlgorithm
+
+
+class CollapseAlgorithm(Enum):
+    GEOMETRY = auto()
+    PATTERN = auto()
+    GEOMETRY_PATTERN = auto()
+    PATTERN_GEOMETRY = auto()
 
 
 class TablePosAlgorithm(Flag):
@@ -20,20 +25,20 @@ class TablePosAlgorithm(Flag):
 
     Attributes
     ----------
-    ROW : TablePosAlgorithm
+    RETURN_ROWS : TablePosAlgorithm
         Calculate row positions (vertical axis)
-    BIG_RULE : TablePosAlgorithm
+    BIG_CELL_RULE : TablePosAlgorithm
         Use largest areas as rulers instead of smallest
-    RULER_AREA : TablePosAlgorithm
+    USE_RULER_AREA : TablePosAlgorithm
         Match based on ruler area intersection
-    TEST_POS : TablePosAlgorithm
+    USE_TES_POS : TablePosAlgorithm
         Match based on test element position
     """
 
-    ROW = auto()
-    BIG_RULE = auto()
-    RULER_AREA = auto()
-    TEST_POS = auto()
+    RETURN_ROWS = auto()
+    BIG_CELL_RULE = auto()
+    USE_RULER_AREA = auto()
+    USE_TES_POS = auto()
 
     @classmethod
     def from_dict(cls, v: str | list):
@@ -99,7 +104,7 @@ def _area_position_algorithm(
     """
     test_pos, test_bounds = test_geometry
     ruler_pos, ruler_bounds = ruler_geometry
-    if TablePosAlgorithm.RULER_AREA in algorithm_flags:
+    if TablePosAlgorithm.USE_RULER_AREA in algorithm_flags:
         match_pos = test_pos
         min_bound, max_bound = ruler_bounds
     else:
@@ -163,8 +168,8 @@ def _algorithm_table_pos(
     bool
         True if test geometry matches ruler geometry according to selected algorithm
     """
-    if (TablePosAlgorithm.RULER_AREA in algorithm_flags) and (
-        TablePosAlgorithm.TEST_POS not in algorithm_flags
+    if (TablePosAlgorithm.USE_RULER_AREA in algorithm_flags) and (
+        TablePosAlgorithm.USE_TES_POS not in algorithm_flags
     ):
         return _area_intersection_algorithm(
             ruler_geometry, test_geometry, abs_tolerance
@@ -178,7 +183,7 @@ def get_table_coordinates(
     lines: List[ExtractedPdfLine],
     table_cfg=_TableConfig(cols=None, rows=None),
     algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
-    collapse_alg=_CollapseAlgorithm.Geometry,
+    collapse_alg=CollapseAlgorithm.GEOMETRY,
     tolerance: float = 0,
     tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
     collapse: bool = False,
@@ -196,14 +201,7 @@ def get_table_coordinates(
         )
         for l in lines
     ]
-    flags = _TablePosAlgorithm.DEFAULT
-    if TablePosAlgorithm.BIG_RULE in algorithm_flags:
-        flags |= _TablePosAlgorithm.BIG_CELL_RULE
-    if TablePosAlgorithm.TEST_POS in algorithm_flags:
-        flags |= _TablePosAlgorithm.USE_TEST_POS
-    if TablePosAlgorithm.RULER_AREA in algorithm_flags:
-        flags |= _TablePosAlgorithm.USE_RULER_AREA
-    coords = _get_table_coordinates(cells, flags, table_cfg)
+    coords = _get_table_coordinates(cells, algorithm_flags, table_cfg)
     if collapse:
         coords = _collapse_table_rows(coords, table_cfg, collapse_alg)
     return coords
@@ -247,8 +245,8 @@ def get_table_positions(
     font_sizes = [line.font_size for line in lines]
     rulers = []
     # Choose min/max function based on small_rule
-    choose = max if TablePosAlgorithm.BIG_RULE in algorithm_flags else min
-    return_col = TablePosAlgorithm.ROW not in algorithm_flags
+    choose = max if TablePosAlgorithm.BIG_CELL_RULE in algorithm_flags else min
+    return_col = TablePosAlgorithm.RETURN_ROWS not in algorithm_flags
 
     def _get_geometrical_horizontal_infos(a):
         bounds = a.bounds

@@ -4,7 +4,6 @@ use pyo3::pyclass;
 
 use super::{TableConfig,ColumnConfig};
 
-#[pyclass]
 #[derive(Clone)]
 pub enum CollapseAlgorithm {
     Pattern,
@@ -12,21 +11,21 @@ pub enum CollapseAlgorithm {
     GeometryThenPattern,
     PatternThenGeometry
 }
-// impl FromPyObject<'_, '_> for CollapseAlgorithm {
-//     type Error = PyErr;
-//     fn extract(py_enum_variant: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
-//         let name: String = py_enum_variant.getattr("name")?.extract()?;
-//         match name.as_str() {
-//             "PATTERN" => Ok(Self::Pattern),
-//             "GEOMETRY" => Ok(Self::Geometry),
-//             "GEOMETRY_PATTERN" => Ok(Self::GeometryThenPattern),
-//             "PATTERN_GEOMETRY" => Ok(Self::PatternThenGeometry),
-//             _ => Err(PyValueError::new_err(
-//                 "CollapseAlgorithm enum value not recognized",
-//             )),
-//         }
-//     }
-// }
+impl FromPyObject<'_, '_> for CollapseAlgorithm {
+    type Error = PyErr;
+    fn extract(py_enum_variant: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+        let name: String = py_enum_variant.getattr("name")?.extract()?;
+        match name.as_str() {
+            "PATTERN" => Ok(Self::Pattern),
+            "GEOMETRY" => Ok(Self::Geometry),
+            "GEOMETRY_PATTERN" => Ok(Self::GeometryThenPattern),
+            "PATTERN_GEOMETRY" => Ok(Self::PatternThenGeometry),
+            _ => Err(PyValueError::new_err(
+                "CollapseAlgorithm enum value not recognized",
+            )),
+        }
+    }
+}
 
 #[pyfunction]
 pub fn collapse_table_rows(

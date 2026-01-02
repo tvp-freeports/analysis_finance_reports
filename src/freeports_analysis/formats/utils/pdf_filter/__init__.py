@@ -18,13 +18,12 @@ from freeports_analysis.i18n import _
 from freeports_analysis.consts import Promise
 from freeports_analysis.consts import Currency
 from .xml.font import get_lines_with_font, get_lines_with_txt_font
-from .select_position import TablePosAlgorithm, get_table_coordinates
+from .select_position import TablePosAlgorithm, get_table_coordinates, CollapseAlgorithm
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
 
 import freeports_lib
 
-_CollapseAlgorithm = freeports_lib.pdf_filter.tabularizer.CollapseAlgorithm
 _TableConfig = freeports_lib.pdf_filter.tabularizer.TableConfig
 
 UpdateMetadataFunc: TypeAlias = Callable[[etree.Element], dict]
@@ -428,10 +427,10 @@ def standard_pdf_filtering(
 
             if isinstance(_algorithm_flags, list):
                 all_flags = [
-                    TablePosAlgorithm.ROW,
-                    TablePosAlgorithm.BIG_RULE,
-                    TablePosAlgorithm.RULER_AREA,
-                    TablePosAlgorithm.TEST_POS,
+                    TablePosAlgorithm.RETURN_ROWS,
+                    TablePosAlgorithm.BIG_CELL_RULE,
+                    TablePosAlgorithm.USE_RULER_AREA,
+                    TablePosAlgorithm.USE_TES_POS,
                 ]
                 algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
                 for flag, enabled in zip(all_flags, _algorithm_flags):
@@ -440,10 +439,10 @@ def standard_pdf_filtering(
                 _algorithm_flags = algo
             if isinstance(_row_algorithm_flags, list):
                 all_flags = [
-                    TablePosAlgorithm.ROW,
-                    TablePosAlgorithm.BIG_RULE,
-                    TablePosAlgorithm.RULER_AREA,
-                    TablePosAlgorithm.TEST_POS,
+                    TablePosAlgorithm.RETURN_ROWS,
+                    TablePosAlgorithm.BIG_CELL_RULE,
+                    TablePosAlgorithm.USE_RULER_AREA,
+                    TablePosAlgorithm.USE_TES_POS,
                 ]
                 algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
                 for flag, enabled in zip(all_flags, _row_algorithm_flags):
@@ -452,7 +451,7 @@ def standard_pdf_filtering(
                 _row_algorithm_flags = algo
 
             cfg = _TableConfig(cols=None, rows=None)
-            collapse_alg = _CollapseAlgorithm.Geometry
+            collapse_alg = CollapseAlgorithm.GEOMETRY
             coords = get_table_coordinates(
                 table_rows, cfg, _algorithm_flags, collapse_alg, tolerance=row_tolerance
             )

@@ -50,7 +50,6 @@ impl From<LimitsBuildError> for PyErr {
 
 
 bitflags!{
-    #[pyclass]
     #[derive(Clone,Copy)]
     pub struct TablePosAlgorithm: u8 {
         const Default = 0b000000000;
@@ -60,46 +59,54 @@ bitflags!{
         const UseTestPos = 0b00001000;
     }
 }
-#[pymethods]
-impl TablePosAlgorithm {
-    /// Create from raw bits
-    #[new]
-    pub fn new(bits: u8) -> PyResult<Self> {
-        Ok(TablePosAlgorithm::from_bits_truncate(bits))
-    }
-    #[staticmethod]
-    pub fn from_flags(flags: Vec<Self>) -> Self {
-        flags.into_iter().fold(Self::Default, |a, b| a | b)
-    }
-
-    /// Bitwise OR (so Python can do a | b)
-    fn __or__(&self, other: &Self) -> Self {
-        *self | *other
-    }
-
-    fn __repr__(&self) -> String {
-        format!("TablePosAlgorithm({:#010b})", self.bits())
-    }
-
-    #[classattr]
-    const DEFAULT: Self = Self::Default;
-    #[classattr]
-    const RETURN_ROWS: Self = Self::ReturnRows;
-    #[classattr]
-    const BIG_CELL_RULE: Self = Self::BigCellRule;
-    #[classattr]
-    const USE_RULER_AREA: Self = Self::UseRulerArea;
-    #[classattr]
-    const USE_TEST_POS: Self = Self::UseTestPos;
-}
-// impl FromPyObject<'_, '_> for TablePosAlgorithm {
-//     type Error = PyErr;
-//     fn extract(tuple: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
-//         let a: f32 = tuple.get_item(0)?.extract()?;
-//         let b: f32 = tuple.get_item(1)?.extract()?;
-//         Ok(Limits::build(a,b)?)
+// impl TablePosAlgorithm {
+//     /// Create from raw bits
+//     #[new]
+//     pub fn new(bits: u8) -> PyResult<Self> {
+//         Ok(TablePosAlgorithm::from_bits_truncate(bits))
 //     }
+//     #[staticmethod]
+//     pub fn from_flags(flags: Vec<Self>) -> Self {
+//         flags.into_iter().fold(Self::Default, |a, b| a | b)
+//     }
+
+//     /// Bitwise OR (so Python can do a | b)
+//     fn __or__(&self, other: &Self) -> Self {
+//         *self | *other
+//     }
+
+//     fn __repr__(&self) -> String {
+//         format!("TablePosAlgorithm({:#010b})", self.bits())
+//     }
+
+//     // #[classattr]
+//     // const DEFAULT: Self = Self::Default;
+//     // #[classattr]
+//     // const RETURN_ROWS: Self = Self::ReturnRows;
+//     // #[classattr]
+//     // const BIG_CELL_RULE: Self = Self::BigCellRule;
+//     // #[classattr]
+//     // const USE_RULER_AREA: Self = Self::UseRulerArea;
+//     // #[classattr]
+//     // const USE_TEST_POS: Self = Self::UseTestPos;
 // }
+impl FromPyObject<'_, '_> for TablePosAlgorithm {
+    type Error = PyErr;
+    fn extract(flags: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
+        let mut res=Self::Default;
+        for f in flags.try_iter()? {
+            let flag_name: String = f?.getattr("name")?.extract()?;
+            match flag_name.as_str() {
+                "RETURN_ROWS" => res |= Self::ReturnRows,
+                "BIG_CELL_RULE" => res |= Self::BigCellRule,
+                "USE_RULER_AREA" => res |= Self::UseRulerArea,
+                "USE_TEST_POS" => res |= Self::UseTestPos,
+                flg => return Err(PyValueError::new_err(format!("TablePosAlgorithm flag {flg} not recognized")))
+            }
+        }
+        Ok(res)
+    }
+}
 
 
 #[pyclass]

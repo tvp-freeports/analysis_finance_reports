@@ -13,7 +13,7 @@ AMUNDI-IT24:
         y_max: 60
     currency: EUR
     # algorithm-flags:
-    #   - RULER_AREA
+    #   - USE_RULER_AREA
     tolerance: 1.0
     row_tolerance: 0.5
 

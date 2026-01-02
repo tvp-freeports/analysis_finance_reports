@@ -1,4 +1,7 @@
 
+use pyo3::Bound;
+use pyo3::prelude::*;
+
 pub mod text_extract;
 
 mod pdf_filter {
@@ -10,15 +13,31 @@ mod pdf_filter {
 /// import the module.
 #[pyo3::pymodule]
 mod freeports_lib {
+    use pyo3::Bound;
+    use pyo3::prelude::*;
     #[pyo3::pymodule]
     mod pdf_filter {
+        use pyo3::Bound;
+        use pyo3::prelude::*;
+        #[pymodule_init]
+        fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+            // Arbitrary code to run at the module initialization
+            m.setattr("__package__", "freeports_lib.pdf_filter")?;
+            m.getattr("tabularizer")?.setattr("__name__","freeports_lib.pdf_filter.tabularizer")
+
+        }
         #[pyo3::pymodule]
         mod tabularizer {
+            use pyo3::Bound;
+            use pyo3::prelude::*;
+            #[pymodule_init]
+            fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+                // Arbitrary code to run at the module initialization
+                m.setattr("__package__", "freeports_lib.pdf_filter")
+            }
             #[pymodule_export]
             use crate::pdf_filter::tabularizer::{
                 collapse_table_rows,
-                CollapseAlgorithm,
-                TablePosAlgorithm,
                 TableConfig,
                 ColumnConfig,
                 RowConfig,
@@ -29,7 +48,11 @@ mod freeports_lib {
 
         }
     }
-    //pub use super::pdf_filter;
-    // use super::text_extract;
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        // Arbitrary code to run at the module initialization
+        m.setattr("__package__", "freeports_lib")?;
+        m.getattr("pdf_filter")?.setattr("__name__","freeports_lib.pdf_filter")
+    }
 }
 
