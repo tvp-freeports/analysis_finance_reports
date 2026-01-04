@@ -1,4 +1,4 @@
-"""Custom pdf filter for ANIMA_SGR-IT24.B"""
+"""Custom pdf filter for ANIMA_SGR-IT24.C"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
@@ -10,12 +10,12 @@ header_set = [
 manco_set = PdfLineSet(
     text="di Gestione del Risparmio", 
     font='Open Sans',
-    font_size=7.98
+    font_size=7.92
 )
 
 subfund_set = PdfLineSet(
     font='Open Sans',
-    font_size=7.98,
+    font_size=7.92,
     area={
         "x_min": manco_set,
         "x_max": None,
@@ -34,7 +34,7 @@ currency_set = (
         (1.2, 1.2),
     ),
 )
-body_set = PdfLineSet.from_str("TrebuchetMS[7.02]")
+body_set = PdfLineSet.from_str("TrebuchetMS[6.96]")
 
 
 @standard_pdf_filtering(

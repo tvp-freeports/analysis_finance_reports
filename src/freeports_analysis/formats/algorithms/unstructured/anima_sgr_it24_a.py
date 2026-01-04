@@ -8,15 +8,17 @@ header_set = [
     PdfLineSet.from_str('Lato,Bold "Divisa "'),
 ]
 
-manco_set = PdfLineSet(text="Società di Gestione del Risparmio", font="Lato")
+manco_set = PdfLineSet(
+    text="Società di Gestione del Risparmio",
+    font="Lato",
+    font_size=7.92
+    )
 
 subfund_set = PdfLineSet(
     font="Lato",
     font_size=7.92,
     area={
-        "x_min": PdfLineSet(
-            font="Lato", text="di Gestione del Risparmio", font_size=7.92
-        ),
+        "x_min": manco_set,
         "x_max": None,
         "y_min": None,
         "y_max": PdfLineSet(font="Lato,Bold", text="Titoli"),
