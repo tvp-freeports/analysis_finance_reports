@@ -7,9 +7,9 @@ use std::collections::{HashMap};
 use std::iter::{zip};
 
 use bitflags::bitflags;
-use super::{TableConfig};
+use super::{TableConfig,ColumnConfig};
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Copy)]
 pub struct Limits(f32, f32);
 
 impl Limits {
@@ -44,6 +44,25 @@ pub enum LimitsBuildError {
 impl From<LimitsBuildError> for PyErr {
     fn from(err: LimitsBuildError) -> PyErr {
         PyValueError::new_err(format!("{err:?}"))
+    }
+}
+
+
+
+#[derive(Debug)]
+pub enum CoordinateExtractionError {
+    MismatchColumnNumber(usize,usize),
+    MismatchRowNumber(usize,usize)
+}
+impl From<CoordinateExtractionError> for PyErr {
+    fn from(err: CoordinateExtractionError) -> PyErr {
+        use CoordinateExtractionError::*;
+        PyValueError::new_err(
+            match err {
+                MismatchColumnNumber(expected,found) => format!("Expected {expected} columns, found {found}"),
+                MismatchRowNumber(expected,found) => format!("Expected {expected} rows, found {found}")
+            }
+        )
     }
 }
 
@@ -125,6 +144,17 @@ impl<'a> CellGeometryUnindexed<'a> {
             bounds: Limits::build(a,b).unwrap(),
         }
     }
+    fn from_limits(limits: Limits, index: usize, tolerance: f32) -> Self {
+        let Limits(a,b) = limits;
+        Self{
+            _marker: marker::PhantomData,
+            index,
+            tolerance,
+            area: b-a,
+            pos: (a+b)/2.0,
+            bounds: limits
+        }
+    }
 }
 
 
@@ -150,16 +180,27 @@ fn get_table_indexes<'a>(
     cells: &'a[CellGeometry],
     algorithm_flags: TablePosAlgorithm,
     table_config: &TableConfig
-) -> Vec<usize> {
+) -> Result<Vec<usize>,CoordinateExtractionError> {
     let return_col = !algorithm_flags.contains(TablePosAlgorithm::ReturnRows);
     let mut unindexed: Vec<CellGeometryUnindexed<'a>> = cells.iter().enumerate().map(
         |(i, c)| CellGeometryUnindexed::from_cell_geometry(c, i, return_col)
     ).collect();
     let mut indexes: Vec<Option<usize>> = vec![None; cells.len()];
     let mut rulers: Vec<CellGeometryUnindexed> = Vec::new();
+    let cfg: Option<Vec<Option<Limits>>> = if return_col {
+        table_config.cols.as_ref().map(|conf| conf.iter().map(|c| c.limits).collect())
+    } else {
+        table_config.rows.as_ref().map(|conf| conf.iter().map(|c| c.limits).collect())
+    };
+    let n_expected_indexes: Option<usize> = cfg.as_ref().map(|l| l.len());
+    let mut cfg_iter=cfg.map(|v| v.into_iter());
     while indexes.iter().any(|a| a.is_none()) {
+        let limits: Option<Limits> = cfg_iter.as_mut().map(|i| i.next()).flatten().flatten();
         let current_ruler_idx = rulers.len();
-        let selected: CellGeometryUnindexed=if !algorithm_flags.contains(TablePosAlgorithm::BigCellRule) {
+
+        let selected: CellGeometryUnindexed=match limits {
+            Some(l) => CellGeometryUnindexed::from_limits(l,0,0.0),
+            None => if !algorithm_flags.contains(TablePosAlgorithm::BigCellRule) {
                 unindexed.iter().min_by(
                     |a, b| a.area.partial_cmp(&b.area).unwrap()
                 ).unwrap()
@@ -167,7 +208,8 @@ fn get_table_indexes<'a>(
                 unindexed.iter().max_by(
                     |a, b| a.area.partial_cmp(&b.area).unwrap()
                 ).unwrap()
-            }.clone();
+            }.clone()
+        };
         rulers.push(selected);
         let ruler=&rulers[current_ruler_idx];
         
@@ -187,6 +229,20 @@ fn get_table_indexes<'a>(
             !it_matches
         });
     }
+    if let Some(n_expected_indexes) = n_expected_indexes {
+        let n_indexes = rulers.len();
+        if n_indexes != n_expected_indexes {
+            if return_col {
+                return Err(
+                    CoordinateExtractionError::MismatchColumnNumber(n_expected_indexes,n_indexes)
+                );
+            } else {
+                return Err(
+                    CoordinateExtractionError::MismatchRowNumber(n_expected_indexes,n_indexes)
+                );
+            }
+        }
+    }
     let mut unordered_mapping: Vec<(usize,CellGeometryUnindexed)> = rulers
     .into_iter()
     .enumerate()
@@ -200,21 +256,21 @@ fn get_table_indexes<'a>(
             .enumerate() {
         mapping.insert(pos,i);
     }
-    indexes.iter().map(|x| mapping[&x.unwrap()]).collect()
+    Ok(indexes.iter().map(|x| mapping[&x.unwrap()]).collect())
 }
 
 pub fn get_table_coordinates(
     cells: &[CellGeometry],
     algorithm_flags: TablePosAlgorithm,
     table_config: &TableConfig
-) -> Vec<(usize,usize)> {
+) -> Result<Vec<(usize,usize)>,CoordinateExtractionError> {
     if algorithm_flags.contains(TablePosAlgorithm::ReturnRows) {
         panic!("Doesn't make any sense to return Row indexes when interested to (Row,Col)")
     }
     let algorithm_flags_rows=algorithm_flags.clone() | TablePosAlgorithm::ReturnRows;
-    let cols = get_table_indexes(cells,algorithm_flags,table_config);
-    let rows = get_table_indexes(cells,algorithm_flags_rows,table_config);
-    zip(rows,cols).collect()
+    let cols = get_table_indexes(cells,algorithm_flags,table_config)?;
+    let rows = get_table_indexes(cells,algorithm_flags_rows,table_config)?;
+    Ok(zip(rows,cols).collect())
 }
 
 
@@ -224,7 +280,7 @@ pub fn py_get_table_coordinates(
     cells: Vec<CellGeometry>,
     algorithm_flags: TablePosAlgorithm,
     table_config: TableConfig
-) -> Vec<(usize,usize)> {
+) -> Result<Vec<(usize,usize)>,CoordinateExtractionError> {
     get_table_coordinates(&cells,algorithm_flags,&table_config)
 }
 
@@ -410,97 +466,227 @@ mod tests {
         }
     }
     
-    #[test]
-    fn cell_geometry_unindexed_from_cell_geometry() {
-        let cell_geometry=CellGeometry::new((0.1,2.0,40.0,22.0),43.0);
-        assert!(matches!(
-            CellGeometryUnindexed::from_cell_geometry(&cell_geometry,100,true),
-            CellGeometryUnindexed{
-                index: 100,
-                pos: 20.05,
-                area: 39.9,
-                tolerance: 43.0,
-                bounds: Limits(0.1,40.0),
-                _marker: marker::PhantomData
-            }
-        ));
-        assert!(matches!(
-            CellGeometryUnindexed::from_cell_geometry(&cell_geometry,11,false),
-            CellGeometryUnindexed{
-                index: 11,
-                pos: 12.0,
-                area: 20.0,
-                tolerance: 43.0,
-                bounds: Limits(2.0,22.0),
-                _marker: marker::PhantomData
-            }
-        ));
+    mod cell_geometry_unindexed {
+        use super::*;
+        #[test]
+        fn from_cell_geometry() {
+            let cell_geometry=CellGeometry::new((0.1,2.0,40.0,22.0),43.0);
+            assert!(matches!(
+                CellGeometryUnindexed::from_cell_geometry(&cell_geometry,100,true),
+                CellGeometryUnindexed{
+                    index: 100,
+                    pos: 20.05,
+                    area: 39.9,
+                    tolerance: 43.0,
+                    bounds: Limits(0.1,40.0),
+                    _marker: marker::PhantomData
+                }
+            ));
+            assert!(matches!(
+                CellGeometryUnindexed::from_cell_geometry(&cell_geometry,11,false),
+                CellGeometryUnindexed{
+                    index: 11,
+                    pos: 12.0,
+                    area: 20.0,
+                    tolerance: 43.0,
+                    bounds: Limits(2.0,22.0),
+                    _marker: marker::PhantomData
+                }
+            ));
+        }
+
+        #[test]
+        fn from_limits() {
+            let cell_limits=Limits::build(0.1,40.5).unwrap();
+            assert!(matches!(
+                CellGeometryUnindexed::from_limits(cell_limits,99,5.7),
+                CellGeometryUnindexed{
+                    index: 99,
+                    pos: 20.3,
+                    area: 40.4,
+                    tolerance: 5.7,
+                    bounds: Limits(0.1,40.5),
+                    _marker: marker::PhantomData
+                }
+            ));
+        }
     }
     
-    #[test]
-    fn get_index_no_info() {
-        let table_cfg=TableConfig{
-            cols: None,
-            rows: None
-        };
-        let x_col: Vec<((f32,f32),usize)> = vec![
-            ((0.0,2.0),0),
-            ((2.0,3.0),1),
-            ((3.0,4.0),2),
-            ((3.0,4.0),2),
-            ((0.0,2.0),0),
-            ((2.0,3.0),1),
-            ((0.0,2.0),0),
-            ((3.0,4.0),2),
-            ((2.0,3.0),1),
-        ];
-        let y_row: Vec<((f32,f32),usize)> = vec![
-            ((10.0,20.0),0),
-            ((20.0,30.0),1),
-            ((10.0,20.0),0),
-            ((30.0,40.0),2),
-            ((20.0,30.0),1),
-            ((10.0,20.0),0),
-            ((20.0,30.0),1),
-            ((30.0,40.0),2),
-            ((30.0,40.0),2),
-        ];
-        let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
-        let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
-        let mut cells: Vec<CellGeometry> = Vec::new();
-        for i in 0..x_col.len() {
-            let (x0,x1)=x_col[i].0;
-            let (y0,y1)=y_row[i].0;
-            cells.push(
-                CellGeometry::new((x0,y0,x1,y1),0.0)
+    mod get_index {
+        use super::*;
+        #[test]
+        fn no_info() {
+            let table_cfg=TableConfig{
+                cols: None,
+                rows: None
+            };
+            let x_col: Vec<((f32,f32),usize)> = vec![
+                ((0.0,2.0),0),
+                ((2.0,3.0),1),
+                ((3.0,4.0),2),
+                ((3.0,4.0),2),
+                ((0.0,2.0),0),
+                ((2.0,3.0),1),
+                ((0.0,2.0),0),
+                ((3.0,4.0),2),
+                ((2.0,3.0),1),
+            ];
+            let y_row: Vec<((f32,f32),usize)> = vec![
+                ((10.0,20.0),0),
+                ((20.0,30.0),1),
+                ((10.0,20.0),0),
+                ((30.0,40.0),2),
+                ((20.0,30.0),1),
+                ((10.0,20.0),0),
+                ((20.0,30.0),1),
+                ((30.0,40.0),2),
+                ((30.0,40.0),2),
+            ];
+            let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
+            let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
+            let mut cells: Vec<CellGeometry> = Vec::new();
+            for i in 0..x_col.len() {
+                let (x0,x1)=x_col[i].0;
+                let (y0,y1)=y_row[i].0;
+                cells.push(
+                    CellGeometry::new((x0,y0,x1,y1),0.0)
+                );
+            }
+            
+            assert_eq!(
+                col_indexes,
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::Default,
+                    &table_cfg
+                ).unwrap()
+            );
+            assert_eq!(
+                row_indexes,
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::ReturnRows,
+                    &table_cfg
+                ).unwrap()
+            );
+            assert_eq!(
+                zip(row_indexes,col_indexes).collect::<Vec<(usize,usize)>>(),
+                get_table_coordinates(
+                    &cells,
+                    TablePosAlgorithm::Default,
+                    &table_cfg
+                ).unwrap()
+            )
+        }
+        #[test]
+        fn no_info_on_cols() {
+            let table_cfg=TableConfig{
+                cols: Some(vec![
+                    ColumnConfig{
+                        limits: None,
+                        splitting: None,
+                        nullable: None
+                    }; 3
+                ]),
+                rows: None
+            };
+            let x_col: Vec<((f32,f32),usize)> = vec![
+                ((0.0,2.0),0),
+                ((2.0,3.0),1),
+                ((3.0,4.0),2),
+                ((3.0,4.0),2),
+                ((0.0,2.0),0),
+                ((2.0,3.0),1),
+                ((0.0,2.0),0),
+                ((3.0,4.0),2),
+                ((2.0,3.0),1),
+            ];
+            let y_row: Vec<((f32,f32),usize)> = vec![
+                ((10.0,20.0),0),
+                ((20.0,30.0),1),
+                ((10.0,20.0),0),
+                ((30.0,40.0),2),
+                ((20.0,30.0),1),
+                ((10.0,20.0),0),
+                ((20.0,30.0),1),
+                ((30.0,40.0),2),
+                ((30.0,40.0),2),
+            ];
+            let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
+            let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
+            let mut cells: Vec<CellGeometry> = Vec::new();
+            for i in 0..x_col.len() {
+                let (x0,x1)=x_col[i].0;
+                let (y0,y1)=y_row[i].0;
+                cells.push(
+                    CellGeometry::new((x0,y0,x1,y1),0.0)
+                );
+            }
+            assert_eq!(
+                col_indexes,
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::Default,
+                    &table_cfg
+                ).unwrap()
             );
         }
-        
-        assert_eq!(
-            col_indexes,
-            get_table_indexes(
-                &cells,
-                TablePosAlgorithm::Default,
-                &table_cfg
-            )
-        );
-        assert_eq!(
-            row_indexes,
-            get_table_indexes(
-                &cells,
-                TablePosAlgorithm::ReturnRows,
-                &table_cfg
-            )
-        );
-        assert_eq!(
-            zip(row_indexes,col_indexes).collect::<Vec<(usize,usize)>>(),
-            get_table_coordinates(
-                &cells,
-                TablePosAlgorithm::Default,
-                &table_cfg
-            )
-        )
+        // #[test]
+        // fn get_index_no_info_on_columns_less_column() {
+        //     let table_cfg=TableConfig{
+        //         cols: vec![
+        //             ColumnConfig{
+        //                 limits: None,
+        //                 splittable: None,
+        //                 nullable: None
+        //             }; 3
+        //         ],
+        //         rows: None
+        //     };
+        //     let x_col: Vec<((f32,f32),usize)> = vec![
+        //         ((0.0,2.0),0),
+        //         ((2.0,3.0),1),
+        //         ((3.0,4.0),2),
+        //         ((3.0,4.0),2),
+        //         ((0.0,2.0),0),
+        //         ((2.0,3.0),1),
+        //         ((0.0,2.0),0),
+        //         ((3.0,4.0),2),
+        //         ((2.0,3.0),1),
+        //     ];
+        //     let y_row: Vec<((f32,f32),usize)> = vec![
+        //         ((10.0,20.0),0),
+        //         ((20.0,30.0),1),
+        //         ((10.0,20.0),0),
+        //         ((30.0,40.0),2),
+        //         ((20.0,30.0),1),
+        //         ((10.0,20.0),0),
+        //         ((20.0,30.0),1),
+        //         ((30.0,40.0),2),
+        //         ((30.0,40.0),2),
+        //     ];
+        //     let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
+        //     let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
+        //     let mut cells: Vec<CellGeometry> = Vec::new();
+        //     for i in 0..x_col.len() {
+        //         let (x0,x1)=x_col[i].0;
+        //         let (y0,y1)=y_row[i].0;
+        //         cells.push(
+        //             CellGeometry::new((x0,y0,x1,y1),0.0)
+        //         );
+        //     }
+        //     assert_eq!(
+        //         col_indexes,
+        //         get_table_indexes(
+        //             &cells,
+        //             TablePosAlgorithm::Default,
+        //             &table_cfg
+        //         )
+        //     );
+        // }
     }
+    
+
     #[test]
     #[should_panic(expected="Doesn't make any sense to return Row indexes when interested to (Row,Col)")]
     fn get_table_coordinates_return_rows(){
