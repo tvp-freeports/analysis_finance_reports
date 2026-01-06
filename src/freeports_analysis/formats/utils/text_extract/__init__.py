@@ -530,6 +530,9 @@ def standard_text_extraction(
                 return metadata
 
             metadata = {}
+
+            metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
+
             try:
                 metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
             except AttributeError as e:

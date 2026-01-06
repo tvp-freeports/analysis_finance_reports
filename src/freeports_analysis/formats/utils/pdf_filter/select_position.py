@@ -1,10 +1,54 @@
 """Utilities for selecting or deselecting lines or getting infos based of geometrical information"""
 
-from typing import List, Tuple
+import freeports_lib
+from typing import List, Tuple, TypeAlias, Optional
 from enum import Flag, Enum, auto
 
 from freeports_analysis.consts import flag_from_string, input_flags
 from .pdf_parts import ExtractedPdfLine
+
+_get_table_coordinates = freeports_lib.pdf_filter.tabularizer.get_table_coordinates
+_collapse_table_rows = freeports_lib.pdf_filter.tabularizer.collapse_table_rows
+
+Limits: TypeAlias = Tuple[float, float]
+NullableState: TypeAlias = bool
+
+
+class CellGeometry:
+    bounds: Tuple[float, float, float, float]
+    tolerance: float
+
+    def __init__(self, bounds, tolerance):
+        self.bounds = bounds
+        self.tolerance = tolerance
+
+
+class SplittableState(Enum):
+    DISALLOW = auto()
+    ALLOW_UP = auto()
+    ALLOW_DOWN = auto()
+
+
+class RowConfig:
+    limits: Optional[Limits]
+
+
+class ColumnConfig:
+    limits: Optional[Limits]
+    nullable: Optional[NullableState]
+    splittable: Optional[SplittableState]
+
+
+class TableConfig:
+    cols: Optional[List] = None
+    rows: Optional[List] = None
+
+
+class CollapseAlgorithm(Enum):
+    GEOMETRY = auto()
+    PATTERN = auto()
+    GEOMETRY_PATTERN = auto()
+    PATTERN_GEOMETRY = auto()
 
 
 class TablePosAlgorithm(Flag):
@@ -12,20 +56,20 @@ class TablePosAlgorithm(Flag):
 
     Attributes
     ----------
-    ROW : TablePosAlgorithm
+    RETURN_ROWS : TablePosAlgorithm
         Calculate row positions (vertical axis)
-    BIG_RULE : TablePosAlgorithm
+    BIG_CELL_RULE : TablePosAlgorithm
         Use largest areas as rulers instead of smallest
-    RULER_AREA : TablePosAlgorithm
+    USE_RULER_AREA : TablePosAlgorithm
         Match based on ruler area intersection
-    TEST_POS : TablePosAlgorithm
+    USE_TES_POS : TablePosAlgorithm
         Match based on test element position
     """
 
-    ROW = auto()
-    BIG_RULE = auto()
-    RULER_AREA = auto()
-    TEST_POS = auto()
+    RETURN_ROWS = auto()
+    BIG_CELL_RULE = auto()
+    USE_RULER_AREA = auto()
+    USE_TES_POS = auto()
 
     @classmethod
     def from_dict(cls, v: str | list):
@@ -91,7 +135,7 @@ def _area_position_algorithm(
     """
     test_pos, test_bounds = test_geometry
     ruler_pos, ruler_bounds = ruler_geometry
-    if TablePosAlgorithm.RULER_AREA in algorithm_flags:
+    if TablePosAlgorithm.USE_RULER_AREA in algorithm_flags:
         match_pos = test_pos
         min_bound, max_bound = ruler_bounds
     else:
@@ -155,8 +199,8 @@ def _algorithm_table_pos(
     bool
         True if test geometry matches ruler geometry according to selected algorithm
     """
-    if (TablePosAlgorithm.RULER_AREA in algorithm_flags) and (
-        TablePosAlgorithm.TEST_POS not in algorithm_flags
+    if (TablePosAlgorithm.USE_RULER_AREA in algorithm_flags) and (
+        TablePosAlgorithm.USE_TES_POS not in algorithm_flags
     ):
         return _area_intersection_algorithm(
             ruler_geometry, test_geometry, abs_tolerance
@@ -164,6 +208,34 @@ def _algorithm_table_pos(
     return _area_position_algorithm(
         ruler_geometry, test_geometry, algorithm_flags, abs_tolerance
     )
+
+
+def get_table_coordinates(
+    lines: List[ExtractedPdfLine],
+    table_cfg=TableConfig(),
+    algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
+    collapse_alg=CollapseAlgorithm.GEOMETRY,
+    tolerance: float = 0,
+    tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
+    collapse: bool = False,
+) -> List[Tuple[int, int]]:
+    cells = [
+        CellGeometry(
+            l.area.bounds,
+            tolerance
+            if (tolerance_mu == TablePosMeasureUnit.PT)
+            else tolerance * (l.bounds[2] - l.bounds[0])
+            if (tolerance_mu == TablePosMeasureUnit.PERC)
+            else tolerance * l.font_size
+            if (tolerance_mu == TablePosMeasureUnit.EM)
+            else 0,
+        )
+        for l in lines
+    ]
+    coords = _get_table_coordinates(cells, algorithm_flags, table_cfg)
+    if collapse:
+        coords = _collapse_table_rows(coords, table_cfg, collapse_alg)
+    return coords
 
 
 def get_table_positions(
@@ -204,8 +276,8 @@ def get_table_positions(
     font_sizes = [line.font_size for line in lines]
     rulers = []
     # Choose min/max function based on small_rule
-    choose = max if TablePosAlgorithm.BIG_RULE in algorithm_flags else min
-    return_col = TablePosAlgorithm.ROW not in algorithm_flags
+    choose = max if TablePosAlgorithm.BIG_CELL_RULE in algorithm_flags else min
+    return_col = TablePosAlgorithm.RETURN_ROWS not in algorithm_flags
 
     def _get_geometrical_horizontal_infos(a):
         bounds = a.bounds

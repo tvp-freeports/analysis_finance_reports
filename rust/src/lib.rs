@@ -1,17 +1,28 @@
-use pyo3::prelude::*;
-use std::error::Error;
 
-mod text_extract;
+use pyo3::Bound;
+use pyo3::prelude::*;
+
+pub mod text_extract;
+
 mod pdf_filter {
-    mod tabularizer;
+    pub mod tabularizer;
 }
 
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[pymodule]
-pub mod freeports_lib {
-    use super::pdf_filter;
-    use super::text_extract;
+#[pyo3::pymodule]
+mod freeports_lib {
+    #[pyo3::pymodule]
+    mod pdf_filter {
+        #[pyo3::pymodule]
+        mod tabularizer {
+            #[pymodule_export]
+            use crate::pdf_filter::tabularizer::{
+                py_get_table_coordinates,
+                py_collapse_table_rows
+            };
+        }
+    }
 }
 
