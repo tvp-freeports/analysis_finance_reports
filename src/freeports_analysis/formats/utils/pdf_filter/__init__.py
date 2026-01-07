@@ -458,7 +458,13 @@ def standard_pdf_filtering(
             # cfg.cols=[]
             collapse_alg = CollapseAlgorithm.GEOMETRY
             coords = get_table_coordinates(
-                table_rows, cfg, _algorithm_flags, collapse_alg, tolerance=row_tolerance
+                table_rows,
+                cfg,
+                _algorithm_flags,
+                collapse_alg,
+                tolerance=row_tolerance,
+                company_col=company_index,
+                collapse=False,
             )
             table_row_positions, table_col_positions = zip(*coords)
 

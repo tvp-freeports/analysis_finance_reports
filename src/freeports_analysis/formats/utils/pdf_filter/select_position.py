@@ -23,7 +23,7 @@ class CellGeometry:
         self.tolerance = tolerance
 
 
-class SplittableState(Enum):
+class SplittingState(Enum):
     DISALLOW = auto()
     ALLOW_UP = auto()
     ALLOW_DOWN = auto()
@@ -34,9 +34,12 @@ class RowConfig:
 
 
 class ColumnConfig:
-    limits: Optional[Limits]
-    nullable: Optional[NullableState]
-    splittable: Optional[SplittableState]
+    limits: Optional[Limits] = None
+    nullable: Optional[NullableState] = None
+    splitting: Optional[SplittingState] = None
+
+    def __init__(self):
+        self.splitting = SplittingState.DISALLOW
 
 
 class TableConfig:
@@ -217,6 +220,7 @@ def get_table_coordinates(
     collapse_alg=CollapseAlgorithm.GEOMETRY,
     tolerance: float = 0,
     tolerance_mu: TablePosMeasureUnit = TablePosMeasureUnit.EM,
+    company_col: Optional[int] = None,
     collapse: bool = False,
 ) -> List[Tuple[int, int]]:
     cells = [
@@ -233,6 +237,12 @@ def get_table_coordinates(
         for l in lines
     ]
     coords = _get_table_coordinates(cells, algorithm_flags, table_cfg)
+    if table_cfg.cols is None and company_col is not None:
+        _, cols = zip(*coords)
+        n_cols = max(*cols)
+        table_cfg.cols = [ColumnConfig()] * n_cols
+        table_cfg.cols[company_col].splitting = None
+
     if collapse:
         coords = _collapse_table_rows(coords, table_cfg, collapse_alg)
     return coords
