@@ -7,7 +7,7 @@ use std::collections::{HashMap};
 use std::iter::{zip};
 
 use bitflags::bitflags;
-use super::{TableConfig,ColumnConfig};
+use super::{TableConfig,ColumnConfig,RowConfig};
 
 #[derive(Debug,Clone,Copy)]
 pub struct Limits(f32, f32);
@@ -199,7 +199,9 @@ fn get_table_indexes<'a>(
         let current_ruler_idx = rulers.len();
 
         let selected: CellGeometryUnindexed=match limits {
-            Some(l) => CellGeometryUnindexed::from_limits(l,0,0.0),
+            Some(l) => {
+                CellGeometryUnindexed::from_limits(l,0,0.0)
+            },
             None => if !algorithm_flags.contains(TablePosAlgorithm::BigCellRule) {
                 unindexed.iter().min_by(
                     |a, b| a.area.partial_cmp(&b.area).unwrap()
@@ -212,7 +214,6 @@ fn get_table_indexes<'a>(
         };
         rulers.push(selected);
         let ruler=&rulers[current_ruler_idx];
-        
         unindexed.retain(|elem| {
             let it_matches=if algorithm_flags.contains(TablePosAlgorithm::UseRulerArea | TablePosAlgorithm::UseTestPos) {
                 position_in_area(&elem,&ruler)
@@ -292,9 +293,10 @@ mod tests {
         use super::*;
         #[test]
         fn ok() {
-            let Limits(a,b) = Limits::build(20.3,30.7).unwrap();
-            assert_eq!(a,20.3);
-            assert_eq!(b,30.7);
+            assert!(matches!(
+                Limits::build(20.3,30.7),
+                Ok(Limits(20.3,30.7))
+            ));
         }
         #[test]
         fn err() {
@@ -340,9 +342,9 @@ mod tests {
         use super::*;
         #[test]
         fn same_position_true() {
-            let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
-            let cell_b=CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
-            let cell_c=CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
+            let cell_a = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
+            let cell_b = CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
+            let cell_c = CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
             let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
@@ -361,9 +363,9 @@ mod tests {
         }
         #[test]
         fn same_position_false() {
-            let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
-            let cell_b=CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
-            let cell_c=CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
+            let cell_a = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
+            let cell_b = CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
+            let cell_c = CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
             let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
@@ -382,9 +384,9 @@ mod tests {
         }
         #[test]
         fn position_in_area_true() {
-            let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
-            let cell_b=CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
-            let cell_c=CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
+            let cell_a: CellGeometry = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
+            let cell_b: CellGeometry = CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
+            let cell_c: CellGeometry = CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
             let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
@@ -403,9 +405,9 @@ mod tests {
         }
         #[test]
         fn position_in_area_false() {
-            let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
-            let cell_b=CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
-            let cell_c=CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
+            let cell_a: CellGeometry = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
+            let cell_b: CellGeometry = CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
+            let cell_c: CellGeometry = CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
             let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
@@ -514,72 +516,83 @@ mod tests {
     
     mod get_index {
         use super::*;
+        const X_COL: [((f32,f32),usize); 9] = [
+            ((0.0,2.0),0),
+            ((2.0,3.0),1),
+            ((3.0,4.0),2),
+            ((3.0,4.0),2),
+            ((0.0,2.0),0),
+            ((2.0,3.0),1),
+            ((0.0,2.0),0),
+            ((3.0,4.0),2),
+            ((2.0,3.0),1),
+        ];
+        const Y_ROW: [((f32,f32),usize); 9] = [
+            ((10.0,20.0),0),
+            ((20.0,30.0),1),
+            ((10.0,20.0),0),
+            ((30.0,40.0),2),
+            ((20.0,30.0),1),
+            ((10.0,20.0),0),
+            ((20.0,30.0),1),
+            ((30.0,40.0),2),
+            ((30.0,40.0),2),
+        ];
         #[test]
         fn no_info() {
+            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let CELLS: Vec<CellGeometry> = {
+                X_COL.each_ref().iter().zip(Y_ROW.each_ref())
+                    .map(|(&x, &y)| {
+                        let (x0, x1) = x.0;
+                        let (y0, y1) = y.0;
+                        CellGeometry::new((x0, y0, x1, y1), 0.0)
+                    })
+                    .collect()
+            };
             let table_cfg=TableConfig{
                 cols: None,
                 rows: None
             };
-            let x_col: Vec<((f32,f32),usize)> = vec![
-                ((0.0,2.0),0),
-                ((2.0,3.0),1),
-                ((3.0,4.0),2),
-                ((3.0,4.0),2),
-                ((0.0,2.0),0),
-                ((2.0,3.0),1),
-                ((0.0,2.0),0),
-                ((3.0,4.0),2),
-                ((2.0,3.0),1),
-            ];
-            let y_row: Vec<((f32,f32),usize)> = vec![
-                ((10.0,20.0),0),
-                ((20.0,30.0),1),
-                ((10.0,20.0),0),
-                ((30.0,40.0),2),
-                ((20.0,30.0),1),
-                ((10.0,20.0),0),
-                ((20.0,30.0),1),
-                ((30.0,40.0),2),
-                ((30.0,40.0),2),
-            ];
-            let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
-            let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
-            let mut cells: Vec<CellGeometry> = Vec::new();
-            for i in 0..x_col.len() {
-                let (x0,x1)=x_col[i].0;
-                let (y0,y1)=y_row[i].0;
-                cells.push(
-                    CellGeometry::new((x0,y0,x1,y1),0.0)
-                );
-            }
-            
             assert_eq!(
-                col_indexes,
+                COL_INDEXES.to_vec(),
                 get_table_indexes(
-                    &cells,
+                    &CELLS,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
             );
             assert_eq!(
-                row_indexes,
+                ROW_INDEXES.to_vec(),
                 get_table_indexes(
-                    &cells,
+                    &CELLS,
                     TablePosAlgorithm::ReturnRows,
                     &table_cfg
                 ).unwrap()
             );
             assert_eq!(
-                zip(row_indexes,col_indexes).collect::<Vec<(usize,usize)>>(),
+                zip(ROW_INDEXES,COL_INDEXES).collect::<Vec<(usize,usize)>>(),
                 get_table_coordinates(
-                    &cells,
+                    &CELLS,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
             )
         }
         #[test]
-        fn no_info_on_cols() {
+        fn no_info_on_cols_and_rows() {
+            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let CELLS: Vec<CellGeometry> = {
+                X_COL.each_ref().iter().zip(Y_ROW.each_ref())
+                    .map(|(&x, &y)| {
+                        let (x0, x1) = x.0;
+                        let (y0, y1) = y.0;
+                        CellGeometry::new((x0, y0, x1, y1), 0.0)
+                    })
+                    .collect()
+            };
             let table_cfg=TableConfig{
                 cols: Some(vec![
                     ColumnConfig{
@@ -590,100 +603,195 @@ mod tests {
                 ]),
                 rows: None
             };
-            let x_col: Vec<((f32,f32),usize)> = vec![
-                ((0.0,2.0),0),
-                ((2.0,3.0),1),
-                ((3.0,4.0),2),
-                ((3.0,4.0),2),
-                ((0.0,2.0),0),
-                ((2.0,3.0),1),
-                ((0.0,2.0),0),
-                ((3.0,4.0),2),
-                ((2.0,3.0),1),
-            ];
-            let y_row: Vec<((f32,f32),usize)> = vec![
-                ((10.0,20.0),0),
-                ((20.0,30.0),1),
-                ((10.0,20.0),0),
-                ((30.0,40.0),2),
-                ((20.0,30.0),1),
-                ((10.0,20.0),0),
-                ((20.0,30.0),1),
-                ((30.0,40.0),2),
-                ((30.0,40.0),2),
-            ];
-            let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
-            let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
-            let mut cells: Vec<CellGeometry> = Vec::new();
-            for i in 0..x_col.len() {
-                let (x0,x1)=x_col[i].0;
-                let (y0,y1)=y_row[i].0;
-                cells.push(
-                    CellGeometry::new((x0,y0,x1,y1),0.0)
-                );
-            }
             assert_eq!(
-                col_indexes,
+                COL_INDEXES.to_vec(),
                 get_table_indexes(
-                    &cells,
+                    &CELLS,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
             );
+            let table_cfg=TableConfig{
+                cols: Some(vec![
+                    ColumnConfig{
+                        limits: None,
+                        splitting: None,
+                        nullable: None
+                    }; 3
+                ]),
+                rows: Some(vec![
+                    RowConfig{
+                        limits: None
+                    }; 3
+                ]),
+            };
+            assert_eq!(
+                ROW_INDEXES.to_vec(),
+                get_table_indexes(
+                    &CELLS,
+                    TablePosAlgorithm::ReturnRows,
+                    &table_cfg
+                ).unwrap()
+            );
         }
-        // #[test]
-        // fn get_index_no_info_on_columns_less_column() {
-        //     let table_cfg=TableConfig{
-        //         cols: vec![
-        //             ColumnConfig{
-        //                 limits: None,
-        //                 splittable: None,
-        //                 nullable: None
-        //             }; 3
-        //         ],
-        //         rows: None
-        //     };
-        //     let x_col: Vec<((f32,f32),usize)> = vec![
-        //         ((0.0,2.0),0),
-        //         ((2.0,3.0),1),
-        //         ((3.0,4.0),2),
-        //         ((3.0,4.0),2),
-        //         ((0.0,2.0),0),
-        //         ((2.0,3.0),1),
-        //         ((0.0,2.0),0),
-        //         ((3.0,4.0),2),
-        //         ((2.0,3.0),1),
-        //     ];
-        //     let y_row: Vec<((f32,f32),usize)> = vec![
-        //         ((10.0,20.0),0),
-        //         ((20.0,30.0),1),
-        //         ((10.0,20.0),0),
-        //         ((30.0,40.0),2),
-        //         ((20.0,30.0),1),
-        //         ((10.0,20.0),0),
-        //         ((20.0,30.0),1),
-        //         ((30.0,40.0),2),
-        //         ((30.0,40.0),2),
-        //     ];
-        //     let col_indexes: Vec<usize> = x_col.iter().map(|a| a.1).collect();
-        //     let row_indexes: Vec<usize> = y_row.iter().map(|a| a.1).collect();
-        //     let mut cells: Vec<CellGeometry> = Vec::new();
-        //     for i in 0..x_col.len() {
-        //         let (x0,x1)=x_col[i].0;
-        //         let (y0,y1)=y_row[i].0;
-        //         cells.push(
-        //             CellGeometry::new((x0,y0,x1,y1),0.0)
-        //         );
-        //     }
-        //     assert_eq!(
-        //         col_indexes,
-        //         get_table_indexes(
-        //             &cells,
-        //             TablePosAlgorithm::Default,
-        //             &table_cfg
-        //         )
-        //     );
-        // }
+        #[test]
+        fn get_index_mismatch_cols() {
+            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let CELLS: Vec<CellGeometry> = {
+                X_COL.each_ref().iter().zip(Y_ROW.each_ref())
+                    .map(|(&x, &y)| {
+                        let (x0, x1) = x.0;
+                        let (y0, y1) = y.0;
+                        CellGeometry::new((x0, y0, x1, y1), 0.0)
+                    })
+                    .collect()
+            };
+            let table_cfg=TableConfig{
+                cols: Some(vec![
+                    ColumnConfig{
+                        limits: None,
+                        splitting: None,
+                        nullable: None
+                    }; 4
+                ]),
+                rows: None
+            };
+            assert!(
+                matches!(
+                    get_table_indexes(
+                        &CELLS,
+                        TablePosAlgorithm::Default,
+                        &table_cfg
+                    ),
+                    Err(CoordinateExtractionError::MismatchColumnNumber(4,3))
+                )
+            );
+        }
+        #[test]
+        fn get_index_mismatch_rows() {
+            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let CELLS: Vec<CellGeometry> = {
+                X_COL.each_ref().iter().zip(Y_ROW.each_ref())
+                    .map(|(&x, &y)| {
+                        let (x0, x1) = x.0;
+                        let (y0, y1) = y.0;
+                        CellGeometry::new((x0, y0, x1, y1), 0.0)
+                    })
+                    .collect()
+            };
+            let table_cfg=TableConfig{
+                cols: None,
+                rows: Some(vec![
+                    RowConfig{
+                        limits: None
+                    }; 2
+                ])
+            };
+            assert!(
+                matches!(
+                    get_table_indexes(
+                        &CELLS,
+                        TablePosAlgorithm::ReturnRows,
+                        &table_cfg
+                    ),
+                    Err(CoordinateExtractionError::MismatchRowNumber(2,3))
+                )
+            );
+        }
+        const INTERVALS: [(f32,f32); 9] = [
+            (0.0,2.0),
+            (0.5,1.5),
+            (0.0,1.8),
+            (0.7,1.0),
+            // center
+            (1.9,3.0),
+            (2.0,3.0),
+            // right
+            (10.0,20.0),
+            (30.0,40.0),
+            (35.0,45.0),
+        ];
+        const BIG_ONE: [usize; 9] = [0; 9];
+        const ALL_TREE_SX: [usize; 9] = [0,0,0,0,0,0,1,1,2];
+        const ALL_TREE_DX: [usize; 9] = [0,0,0,0,1,1,1,2,2];
+        const CENTER_UNSPECIFIED: [usize; 9] = [0,0,0,0,1,1,2,2,2];
+        #[test]
+        fn info_on_limits(){
+            let cells=INTERVALS.each_ref().map(
+                |&(x0, x1)| CellGeometry::new((x0, 0.0, x1, 1.0), 0.0)
+            ).to_vec();
+            let table_cfg=TableConfig{
+                cols: Some(vec![ColumnConfig{
+                    splitting: None,
+                    nullable: None,
+                    limits: Some(Limits::build(0.1,50.0).unwrap())
+                }]),
+                rows: None
+            };
+            assert_eq!(
+                BIG_ONE.to_vec(),
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::UseRulerArea,
+                    &table_cfg
+                ).unwrap()
+            );
+            let cells=INTERVALS.each_ref().map(
+                |&(y0, y1)| CellGeometry::new((0.0, y0, 1.0, y1), 0.0)
+            ).to_vec();
+            let table_cfg=TableConfig{
+                rows: Some(vec![
+                    RowConfig{limits: Some(Limits::build(0.0,3.0).unwrap())},
+                    RowConfig{limits: Some(Limits::build(10.0,35.0).unwrap())},
+                    RowConfig{limits: Some(Limits::build(35.0,50.0).unwrap())}
+                ]),
+                cols: None
+            };
+            assert_eq!(
+                ALL_TREE_SX.to_vec(),
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::UseRulerArea | TablePosAlgorithm::ReturnRows | TablePosAlgorithm::UseTestPos,
+                    &table_cfg
+                ).unwrap()
+            );
+            let table_cfg=TableConfig{
+                rows: Some(vec![
+                    RowConfig{limits: Some(Limits::build(0.0,2.0).unwrap())},
+                    RowConfig{limits: Some(Limits::build(2.0,20.0).unwrap())},
+                    RowConfig{limits: Some(Limits::build(20.0,50.0).unwrap())}
+                ]),
+                cols: None
+            };
+            assert_eq!(
+                ALL_TREE_DX.to_vec(),
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::UseRulerArea | TablePosAlgorithm::ReturnRows | TablePosAlgorithm::UseTestPos,
+                    &table_cfg
+                ).unwrap()
+            );
+            let table_cfg=TableConfig{
+                rows: Some(vec![
+                    RowConfig{limits: Some(Limits::build(0.0,2.0).unwrap())},
+                    RowConfig{limits: None},
+                    RowConfig{limits: Some(Limits::build(3.0,50.0).unwrap())}
+                ]),
+                cols: None
+            };
+            assert_eq!(
+                CENTER_UNSPECIFIED.to_vec(),
+                get_table_indexes(
+                    &cells,
+                    TablePosAlgorithm::UseRulerArea | TablePosAlgorithm::ReturnRows | TablePosAlgorithm::UseTestPos,
+                    &table_cfg
+                ).unwrap()
+            );
+
+        }
+
     }
     
 
