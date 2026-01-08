@@ -29,7 +29,7 @@ The module uses Shapely for geometric operations and lxml for XML processing.
 All coordinates are in PDF points (1/72 inch).
 """
 
-from typing import Optional, Tuple, Annotated, Callable, Any
+from typing import Optional, Tuple, Annotated, Callable, Any, List
 import re
 import ast
 from operator import or_, and_, sub, truediv
@@ -263,7 +263,7 @@ class ExtractedPdfLine(PdfLine):
 
 class InputPdfLineSet(BaseModel):
     text: Optional[str] = None
-    font: Optional[str] = None
+    font: Optional[str | List[str]] = None
     font_size: Optional[PositiveFloat] = None
     area: Optional[InputArea] = None
 
@@ -798,8 +798,9 @@ class PdfLineSet:
     def from_dict(cls, data):
         ls = InputPdfLineSet(**data)
         input_area = ls.area.model_dump() if ls.area is not None else None
+        font = [ls.font] if isinstance(ls.font, str) else ls.font
         return cls(
-            font=FontSet(ls.font) if ls.font is not None else None,
+            font=FontSet(*font) if font is not None else None,
             font_size=FontSizeSet.from_range(ls.font_size - 1e-3, ls.font_size + 1e-3)
             if ls.font_size is not None
             else None,
