@@ -88,7 +88,7 @@ class TablePosAlgorithm(Flag):
         TablePosAlgorithm
             Combined flags object
         """
-        flag_from_string(v, cls)
+        return flag_from_string(v, cls)
 
 
 InputTablePosAlgorithm = input_flags(TablePosAlgorithm)
