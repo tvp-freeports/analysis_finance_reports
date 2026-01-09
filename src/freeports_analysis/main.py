@@ -287,6 +287,7 @@ def _main_job(
     - Promise resolution for deferred values
     """
     job_config = FreeportsConfig(**main_job_config).model_dump()
+    LOG_CONTEXTUAL_INFOS.report = job_config["PREFIX_OUT"]
     log_file = job_config["OUT_PATH"] / ".log.csv"
     handler_csv = log.FileHandler(log_file, mode="a")
     csv_formatter = CsvFormatter()
@@ -297,7 +298,6 @@ def _main_job(
     format_utils = log.getLogger(__package__ + ".formats.utils")
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
-    LOG_CONTEXTUAL_INFOS.report = job_config["PREFIX_OUT"]
     logger.debug(_("Starting job with configuration %s"), str(job_config))
     pdf_file = _get_document(job_config)
     logger.info(_("Starting decoding pdf to xml..."))
@@ -340,6 +340,7 @@ def _main_job(
             res.fulfill_promises(promises_resolution_map)
     format_utils.removeHandler(handler_csv)
     LOGGING_TABLE.removeHandler(handler_csv)
+    LOG_CONTEXTUAL_INFOS.report = None
     return results, job_config["FORMAT"], job_config["PREFIX_OUT"]
 
 

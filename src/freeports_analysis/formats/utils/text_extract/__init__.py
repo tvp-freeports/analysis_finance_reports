@@ -323,10 +323,11 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 next_block = pdf_blocks_table[i + 1]
                 col = current_block.metadata["table-col"]
                 row = current_block.metadata["table-row"]
+
+                LOG_ADAPT_INVESTMENT_INFOS.row = row
                 next_col = next_block.metadata["table-col"]
                 next_row = next_block.metadata["table-row"]
                 cell_width = current_block.metadata["is-max-width"]
-
                 content = current_block.content
                 if col == next_col:
                     split = False
@@ -347,16 +348,14 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                             content += next_block.content
                 company = match_company(content, targets)
                 if company is not None:
+                    LOG_ADAPT_INVESTMENT_INFOS.company = company
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = content
                     company_name = True
                     if company_name and split:
                         if merge_prev:
                             pdf_blocks_table.merge(i, i + 1)
                         else:
                             pdf_blocks_table.merge(i + 1, i)
-                    LOG_ADAPT_INVESTMENT_INFOS.company = company
-                    LOG_ADAPT_INVESTMENT_INFOS.company_match = content
-                    LOG_ADAPT_INVESTMENT_INFOS.row = row
-                    LOG_ADAPT_INVESTMENT_INFOS.col = col
                     try:
                         txt_blk = f(
                             pdf_blocks_table,
@@ -366,17 +365,20 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound:
-                        LOG_ADAPT_INVESTMENT_INFOS.row = None
-                        LOG_ADAPT_INVESTMENT_INFOS.col = None
-                        LOG_ADAPT_INVESTMENT_INFOS.field = None
                         logger.warning(_("Skipping line..."))
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+                    LOG_ADAPT_INVESTMENT_INFOS.company = None
                 i += 1
                 if i >= len(pdf_blocks_table) - 1:
                     break
             if i == len(pdf_blocks_table) - 1:
+                row = pdf_blocks_table[-1].metadata["table-row"]
+                LOG_ADAPT_INVESTMENT_INFOS.row = row
                 content = pdf_blocks_table[-1].content
                 company = match_company(content, targets)
                 if company is not None:
+                    LOG_ADAPT_INVESTMENT_INFOS.company = company
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = content
                     try:
                         txt_blk = f(
                             pdf_blocks_table,
@@ -386,10 +388,10 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         txt_blk.metadata["company"] = company
                         text_part_list.append(txt_blk)
                     except ExpectedTextBlockNotFound:
-                        LOG_ADAPT_INVESTMENT_INFOS.row = None
-                        LOG_ADAPT_INVESTMENT_INFOS.col = None
-                        LOG_ADAPT_INVESTMENT_INFOS.field = None
                         logger.warning(_("Skipping line..."))
+                    LOG_ADAPT_INVESTMENT_INFOS.company = None
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+            LOG_ADAPT_INVESTMENT_INFOS.row = None
             return text_part_list
 
         return text_extract

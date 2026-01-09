@@ -130,6 +130,7 @@ def _exec_segment(
         except PageParseFail as e:
             logger_source.error(e)
             logger.warning(_("Skipping page..."))
+    LOG_CONTEXTUAL_INFOS.page = None
     return batch_results
 
 
@@ -249,9 +250,6 @@ def deserialize_exec(
                     results.append(f(blk))
                 except LineParseFail as e:
                     logger.error(e)
-                    LOG_ADAPT_INVESTMENT_INFOS.row = None
-                    LOG_ADAPT_INVESTMENT_INFOS.col = None
-                    LOG_ADAPT_INVESTMENT_INFOS.field = None
                     logger.warning(_("Skipping line..."))
             return results
 
