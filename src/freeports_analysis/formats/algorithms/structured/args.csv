@@ -19,9 +19,7 @@ MEDIOLANUM-EN24,"[8.04] ""Description""",[15.48] (:80),"[8.04] ""expressed in"""
 MEDIOLANUM-IT24.B,,,,,2,1,3,,
 FIDEURAM-IT24,,,,,4,1,5,,
 CARNE-EN23,,,,,2,1,3,,-1
-ANIMA_SGR-IT24.A,,,,,3,2,4,,1
-ANIMA_SGR-IT24.B,,,,,3,2,4,,1
-ANIMA_SGR-IT24.C,,,,,3,2,4,,1
+ANIMA_SGR-IT24,,,,,3,2,4,,1
 FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,ArialNarrow-Bold(:90),ArialNarrow-Bold((480:497)(145:159)),ArialNarrow[8],3,-1,4,2,1
 FINECO-EN23@IR,,,,,1,-1,2,,
 ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",ArialNarrow-Bold(:75),"ArialNarrow-Bold(:75) ""(in """,ArialNarrow[7],,,,,

@@ -18,12 +18,12 @@ def pdf_filter(xml_root):
         next_table = get_lines_with_txt_font(
             xml_root, "STRUMENTI FINANZIARI QUOTATI", "Helvetica-Bold"
         )
-    body_low_limit = None if next_table is None else get_bounds(next_table)[1][1]
+    body_low_limit = 700 if next_table is None else get_bounds(next_table)[1][1]
 
     @standard_pdf_filtering(
         header_set=[
-            PdfLineSet(font_size=5.9981, text="Titolo", font="Helvetica-Bold"),
-            PdfLineSet(font_size=5.9981, text="Controvalore", font="Helvetica-Bold"),
+            PdfLineSet(text="Titolo", font="Helvetica-Bold"),
+            PdfLineSet(text="Controvalore", font="Helvetica-Bold"),
         ],
         subfund_set=PdfLineSet(
             font="Helvetica",
