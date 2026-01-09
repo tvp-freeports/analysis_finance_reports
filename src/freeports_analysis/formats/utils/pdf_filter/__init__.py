@@ -23,6 +23,7 @@ from .select_position import (
     get_table_coordinates,
     CollapseAlgorithm,
     TableConfig,
+    ColumnConfig,
 )
 from .pdf_parts import ExtractedPdfLine, PdfLineSet
 from .. import overwrite_if_implemented
@@ -280,6 +281,7 @@ def standard_pdf_filtering(
     tolerance: float = 0.0,
     row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     row_tolerance: float = 0.0,
+    company_index: Optional[int] = None,
 ) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
     """Decorator factory for creating PDF filters with standardized processing.
 
@@ -453,9 +455,16 @@ def standard_pdf_filtering(
                 _row_algorithm_flags = algo
 
             cfg = TableConfig()
+            # cfg.cols=[]
             collapse_alg = CollapseAlgorithm.GEOMETRY
             coords = get_table_coordinates(
-                table_rows, cfg, _algorithm_flags, collapse_alg, tolerance=row_tolerance
+                table_rows,
+                cfg,
+                _algorithm_flags,
+                collapse_alg,
+                tolerance=row_tolerance,
+                company_col=company_index,
+                collapse=False,
             )
             table_row_positions, table_col_positions = zip(*coords)
 

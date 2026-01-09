@@ -366,6 +366,8 @@ def standard_deserialization(
                 Finantial data deserialized from text block
             """
             md = blk.metadata
+            LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
+            LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
 
             def float_cast(x):
                 if cost_and_value_interpret_int:
@@ -380,9 +382,12 @@ def standard_deserialization(
             def try_cast(md, key, cast_func):
                 LOG_ADAPT_INVESTMENT_INFOS.field = key
                 if key not in md or md[key] is None:
+                    LOG_ADAPT_INVESTMENT_INFOS.field = None
                     return None
                 try:
-                    return cast_func(md[key])
+                    tmp = cast_func(md[key])
+                    LOG_ADAPT_INVESTMENT_INFOS.field = None
+                    return tmp
                 except ValueError:
                     logger.error(
                         _("Error casting, found: %s"),
@@ -390,10 +395,9 @@ def standard_deserialization(
                     )
                     logger.warning(_("Skipping field"))
                     logger.debug(str(md))
+                    LOG_ADAPT_INVESTMENT_INFOS.field = None
                     return None
 
-            LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
-            LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
             try:
                 args = {
                     "company": to_str(md["company"]),
@@ -412,8 +416,12 @@ def standard_deserialization(
                     ),
                 }
                 if blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
+                    LOG_ADAPT_INVESTMENT_INFOS.company = None
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = None
                     return Equity(**args)
                 if blk.type_block == EquityBondTextBlockType.BOND_TARGET:
+                    LOG_ADAPT_INVESTMENT_INFOS.company = None
+                    LOG_ADAPT_INVESTMENT_INFOS.company_match = None
                     return Bond(
                         **args,
                         maturity=to_date(md["maturity"]) if "maturity" in md else None,
@@ -421,9 +429,14 @@ def standard_deserialization(
                         if "interest rate" in md
                         else None,
                     )
-                return default_other_txt_blk_deserializer(blk)
+                tmp = default_other_txt_blk_deserializer(blk)
+                LOG_ADAPT_INVESTMENT_INFOS.company = None
+                LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+                return tmp
             except ValueError as e:
                 logger.error(_("Cast error"))
+                LOG_ADAPT_INVESTMENT_INFOS.company = None
+                LOG_ADAPT_INVESTMENT_INFOS.company_match = None
                 raise LineParseFail(e) from e
 
         return deserialize
