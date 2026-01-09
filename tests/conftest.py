@@ -2,6 +2,7 @@ from pathlib import Path
 import shutil
 from lxml import etree
 from freeports_analysis.data import get_target_companies, TARGET_LISTS
+from freeports_analysis.formats import PdfBlock, TextBlock
 from freeports_analysis.conf_parse import (
     OutStructureNormalMode,
     OutFlagsNormalMode,
@@ -17,6 +18,11 @@ try:
 except FileNotFoundError:
     pass
 out_dir.mkdir()
+
+import pytest
+
+pytest.register_assert_rewrite("tests.formats.algorithms")
+
 
 url_example_formats = {
     "AMUNDI-EN24": "https://www.amundi.com/dl/doc/annual-report/LU1883342377/ENG/ITA/20240630?inline",

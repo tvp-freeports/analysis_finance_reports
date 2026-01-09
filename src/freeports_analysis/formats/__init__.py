@@ -192,6 +192,9 @@ class TextBlock:
         self.pdf_block = pdf_block
         self.content = pdf_block.content
 
+    def __repr__(self) -> str:
+        return str(self)
+
     def __str__(self) -> str:
         """Return string representation of the TextBlock.
 

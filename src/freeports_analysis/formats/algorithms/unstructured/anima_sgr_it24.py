@@ -2,39 +2,34 @@
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet, FontSizeSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
+    FontSet,
+    FontSizeSet,
+)
 
 header_set = [
-    PdfLineSet(
-        font=FontSet('Lato,Bold', 'TrebuchetMS-Bold'),
-        text="Titoli"
-    ),
-    PdfLineSet(
-        font=FontSet('Lato,Bold', 'TrebuchetMS-Bold'),
-        text="Divisa"
-    ),
+    PdfLineSet(font=FontSet("Lato,Bold", "TrebuchetMS-Bold"), text="Titoli"),
+    PdfLineSet(font=FontSet("Lato,Bold", "TrebuchetMS-Bold"), text="Divisa"),
 ]
 
 manco_set = PdfLineSet(
-    text="di Gestione del Risparmio",
-    font=FontSet("Lato","Open Sans")
-    )
+    text="di Gestione del Risparmio", font=FontSet("Lato", "Open Sans")
+)
 
 subfund_set = PdfLineSet(
-    font=FontSet("Lato","Open Sans"),
+    font=FontSet("Lato", "Open Sans"),
     area={
         "x_min": manco_set,
         "x_max": None,
         "y_min": None,
         "y_max": header_set[0],
-    }
+    },
 )
 
-currency_font = FontSet("Lato,Bold","TrebuchetMS-Bold")
+currency_font = FontSet("Lato,Bold", "TrebuchetMS-Bold")
 
 currency_set = (
-    PdfLineSet(font=currency_font, text="Controvalore in ")
-    - PdfLineSet(text="in $")
+    PdfLineSet(font=currency_font, text="Controvalore in ") - PdfLineSet(text="in $")
 ) | PdfLineSet(
     font=currency_font,
     area=(
@@ -45,15 +40,15 @@ currency_set = (
 )
 
 body_set = PdfLineSet(
-    font=FontSet("Lato","TrebuchetMS"),
+    font=FontSet("Lato", "TrebuchetMS"),
     font_size=FontSizeSet.from_range(6.8, 7.2),
     area={
         "x_min": None,
         "x_max": None,
         "y_min": PdfLineSet(
-            font=FontSet("Lato","TrebuchetMS"),
+            font=FontSet("Lato", "TrebuchetMS"),
             text="Elenco analitico dei principali strumenti finanziari detenuti dal Fondo",
-            font_size=FontSizeSet.from_range(11,13),
+            font_size=FontSizeSet.from_range(11, 13),
         ),
         "y_max": None,
     },
