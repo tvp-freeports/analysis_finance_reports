@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use pyo3::pyclass;
 
 use super::{TableConfig,ColumnConfig};
 

@@ -1,11 +1,10 @@
 
-use pyo3::Bound;
-use pyo3::prelude::*;
-
-pub mod text_extract;
-
-mod pdf_filter {
+pub mod pdf_filter {
     pub mod tabularizer;
+}
+
+pub mod text_extract {
+    pub mod matcher;
 }
 
 /// A Python module implemented in Rust. The name of this function must match

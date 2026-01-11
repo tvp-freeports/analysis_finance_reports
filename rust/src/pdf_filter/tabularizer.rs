@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use pyo3::pyclass;
 
 mod coordinates;
 mod collapse;

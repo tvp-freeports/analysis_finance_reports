@@ -1,13 +1,13 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
-use pyo3::pyclass;
+
 
 use std::marker;
 use std::collections::{HashMap};
 use std::iter::{zip};
 
 use bitflags::bitflags;
-use super::{TableConfig,ColumnConfig,RowConfig};
+use super::TableConfig;
 
 #[derive(Debug,Clone,Copy)]
 pub struct Limits(f32, f32);
@@ -289,6 +289,7 @@ pub fn py_get_table_coordinates(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::{ColumnConfig,RowConfig};
     mod limits_build {
         use super::*;
         #[test]
@@ -540,9 +541,9 @@ mod tests {
         ];
         #[test]
         fn no_info() {
-            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
-            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
-            let CELLS: Vec<CellGeometry> = {
+            let col_indexes: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let row_indexes: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let cells: Vec<CellGeometry> = {
                 X_COL.each_ref().iter().zip(Y_ROW.each_ref())
                     .map(|(&x, &y)| {
                         let (x0, x1) = x.0;
@@ -556,25 +557,25 @@ mod tests {
                 rows: None
             };
             assert_eq!(
-                COL_INDEXES.to_vec(),
+                col_indexes.to_vec(),
                 get_table_indexes(
-                    &CELLS,
+                    &cells,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
             );
             assert_eq!(
-                ROW_INDEXES.to_vec(),
+                row_indexes.to_vec(),
                 get_table_indexes(
-                    &CELLS,
+                    &cells,
                     TablePosAlgorithm::ReturnRows,
                     &table_cfg
                 ).unwrap()
             );
             assert_eq!(
-                zip(ROW_INDEXES,COL_INDEXES).collect::<Vec<(usize,usize)>>(),
+                zip(row_indexes,col_indexes).collect::<Vec<(usize,usize)>>(),
                 get_table_coordinates(
-                    &CELLS,
+                    &cells,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
@@ -582,9 +583,9 @@ mod tests {
         }
         #[test]
         fn no_info_on_cols_and_rows() {
-            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
-            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
-            let CELLS: Vec<CellGeometry> = {
+            let col_indexes: [usize; 9] = X_COL.each_ref().map(|a| a.1);
+            let row_indexes: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
+            let cells: Vec<CellGeometry> = {
                 X_COL.each_ref().iter().zip(Y_ROW.each_ref())
                     .map(|(&x, &y)| {
                         let (x0, x1) = x.0;
@@ -604,9 +605,9 @@ mod tests {
                 rows: None
             };
             assert_eq!(
-                COL_INDEXES.to_vec(),
+                col_indexes.to_vec(),
                 get_table_indexes(
-                    &CELLS,
+                    &cells,
                     TablePosAlgorithm::Default,
                     &table_cfg
                 ).unwrap()
@@ -626,9 +627,9 @@ mod tests {
                 ]),
             };
             assert_eq!(
-                ROW_INDEXES.to_vec(),
+                row_indexes.to_vec(),
                 get_table_indexes(
-                    &CELLS,
+                    &cells,
                     TablePosAlgorithm::ReturnRows,
                     &table_cfg
                 ).unwrap()
@@ -636,9 +637,7 @@ mod tests {
         }
         #[test]
         fn get_index_mismatch_cols() {
-            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
-            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
-            let CELLS: Vec<CellGeometry> = {
+            let cells: Vec<CellGeometry> = {
                 X_COL.each_ref().iter().zip(Y_ROW.each_ref())
                     .map(|(&x, &y)| {
                         let (x0, x1) = x.0;
@@ -660,7 +659,7 @@ mod tests {
             assert!(
                 matches!(
                     get_table_indexes(
-                        &CELLS,
+                        &cells,
                         TablePosAlgorithm::Default,
                         &table_cfg
                     ),
@@ -670,9 +669,7 @@ mod tests {
         }
         #[test]
         fn get_index_mismatch_rows() {
-            let COL_INDEXES: [usize; 9] = X_COL.each_ref().map(|a| a.1);
-            let ROW_INDEXES: [usize; 9] = Y_ROW.each_ref().map(|a| a.1);
-            let CELLS: Vec<CellGeometry> = {
+            let cells: Vec<CellGeometry> = {
                 X_COL.each_ref().iter().zip(Y_ROW.each_ref())
                     .map(|(&x, &y)| {
                         let (x0, x1) = x.0;
@@ -692,7 +689,7 @@ mod tests {
             assert!(
                 matches!(
                     get_table_indexes(
-                        &CELLS,
+                        &cells,
                         TablePosAlgorithm::ReturnRows,
                         &table_cfg
                     ),
@@ -799,7 +796,7 @@ mod tests {
     #[should_panic(expected="Doesn't make any sense to return Row indexes when interested to (Row,Col)")]
     fn get_table_coordinates_return_rows(){
         let cells=vec![CellGeometry::new((0.0,1.0,1.0,2.0),0.0)];
-        get_table_coordinates(
+        let _ = get_table_coordinates(
             &cells,
             TablePosAlgorithm::ReturnRows,
             &TableConfig{

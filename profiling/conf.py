@@ -15,7 +15,7 @@ OUT_PATH.mkdir()
 long_documents = [
     "AMUNDI-EN24",
     "AMUNDI-IT24",
-    "ANIMA_SGR-IT24",
+    "ANIMA_SGR-IT24/1/",
     "ANIMA-EN23",
     "FINECO-EN23@IR",
     "MEDIOLANUM-IT24.A",

@@ -1,7 +1,7 @@
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import ExtractedPdfLine
 from freeports_analysis.formats.algorithms import get_pipelines
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
-    get_table_positions,
+    get_table_coordinates,
 )
 from .conftest import xml_blks, xml_tree, body_blks
 import pytest
@@ -24,4 +24,4 @@ def test_pdf_filter(benchmark):
 
 @pytest.mark.benchmarks
 def test_get_table_positions(benchmark):
-    result = benchmark(get_table_positions, body_blks)
+    result = benchmark(get_table_coordinates, body_blks)
