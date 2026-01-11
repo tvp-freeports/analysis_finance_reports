@@ -10,6 +10,10 @@ crate-type = ["cdylib"]
 [dependencies]
 bitflags = "2.10.0"
 
+[dev-dependencies]
+test-case = "3.3.1"
+pretty_assertions = "1.4.1"
+
 
 [dependencies.pyo3]
 version = "0.27.0"

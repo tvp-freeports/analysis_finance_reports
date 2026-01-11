@@ -49,3 +49,24 @@ pub fn normalize_string(input: &str) -> String {
 
     out.trim().to_string()
 }
+
+
+#[cfg(test)]
+mod tests {
+    use test_case::test_case;
+    use super::*;
+    use pretty_assertions::{assert_eq};
+    #[test_case("Coca Cola","coca cola"; "lower")]
+    #[test_case(" \thello  i am the\n\n fox\t","hello i am the fox"; "withespaces")]
+    // #[test_case("Coca Cola","coca cola"; "lower ascii")]
+    // #[test_case("Coca Cola","coca cola"; "lower ascii")]
+    // #[test_case("Coca Cola","coca cola"; "lower ascii")]
+    fn string_normalization(provided: &str, expected: &str) {
+        assert_eq!(
+            normalize_string(provided),
+            expected
+        )
+    }
+
+
+}

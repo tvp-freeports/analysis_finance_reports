@@ -340,6 +340,7 @@ fn collapse_table_rows_by_pattern(
 mod tests {
     use super::*;
     mod geometrical_strategy {
+        use pretty_assertions::{assert_eq};
         use super::*;
         #[test]
         fn test_extract_column_info(){
@@ -505,6 +506,7 @@ mod tests {
             ));
         }
         mod target_row {
+            use pretty_assertions::{assert_eq};
             use super::*;
             const EMP: CellCollapseState = CellCollapseState(SplittingState::Disallow,false);
             const SD: CellCollapseState = CellCollapseState(SplittingState::Allow(SplittingDirection::Down),false);

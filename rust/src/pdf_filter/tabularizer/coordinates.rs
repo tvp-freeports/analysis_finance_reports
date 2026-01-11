@@ -288,8 +288,10 @@ pub fn py_get_table_coordinates(
 
 #[cfg(test)]
 mod tests {
+    
     use super::*;
     use super::super::{ColumnConfig,RowConfig};
+    
     mod limits_build {
         use super::*;
         #[test]
@@ -516,6 +518,7 @@ mod tests {
     }
     
     mod get_index {
+        use pretty_assertions::{assert_eq};
         use super::*;
         const X_COL: [((f32,f32),usize); 9] = [
             ((0.0,2.0),0),
