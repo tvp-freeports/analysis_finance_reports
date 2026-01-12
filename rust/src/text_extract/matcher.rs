@@ -59,12 +59,26 @@ struct Company{
 }
 
 
+fn match_exact_name<'a>(text: &str, target_companies: &'a[Company]) -> Option<&'a str> {
+    let txt=normalize_string(text);
+    for c in target_companies {
+        let n_name=normalize_string(&c.name);
+        if txt.contains(&n_name){
+            return Some(&c.name)
+        }
+    }
+    None
+}
+
 
 #[cfg(test)]
 mod tests {
     use test_case::test_case;
+    use std::sync::LazyLock;
     use super::*;
     use pretty_assertions::{assert_eq};
+    
+
     #[test_case("Coca Cola","coca cola"; "lower")]
     #[test_case(" \thello  i am the\n\n fox\t","hello i am the fox"; "withespaces")]
     #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
@@ -77,6 +91,49 @@ mod tests {
             expected
         )
     }
+
+    mod match_companies {
+        use super::*;
+        use pretty_assertions::{assert_eq};
+        use test_case::test_case;
+        const EMPTY_COMPANY: Company = Company{
+            name: String::new(),
+            buds: Vec::<String>::new(),
+            regexs: Vec::<Regex>::new(),
+            symbols: Vec::<Regex>::new(),
+        };
+        static COMPANY_LIST: LazyLock<Vec<Company>> = LazyLock::new(
+            || vec![
+                Company{
+                    name: "Coca Cola".to_string(),
+                    ..EMPTY_COMPANY
+                },
+                Company{
+                    name: "BlackRock".to_string(),
+                    ..EMPTY_COMPANY
+                },
+                Company{
+                    name: "pimpa Co.".to_string(),
+                    ..EMPTY_COMPANY
+                },
+                Company{
+                    name: "almade".to_string(),
+                    ..EMPTY_COMPANY
+                }
+            ]
+        );
+        
+        #[test_case(" The COCA COLA company","Coca Cola";"just name")]
+        fn name_contained(provided: &str, expected: &str) {
+            let res = match_exact_name(provided,&COMPANY_LIST).unwrap();
+            assert_eq!(
+                res,expected
+            )
+        }
+        
+    }
+
+
 
 
 }
