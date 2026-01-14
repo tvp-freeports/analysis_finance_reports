@@ -90,7 +90,7 @@ impl FromPyObject<'_, '_> for SplittingState {
             "ALLOW_UP" => Ok(Self::Allow(SplittingDirection::Up)),
             "ALLOW_DOWN" => Ok(Self::Allow(SplittingDirection::Down)),
             "DISALLOW" => Ok(Self::Disallow),
-            state => return Err(PyValueError::new_err(format!("SplittingState {state} not recognized")))
+            state => Err(PyValueError::new_err(format!("SplittingState {state} not recognized")))
         }
     }
 
