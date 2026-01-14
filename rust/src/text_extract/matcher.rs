@@ -99,14 +99,14 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
 }
 
 
+type MatchResult<'a> = Result<Option<&'a str>,MatchingErrors<'a>>;
 
-
-fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> MatchResult<'a> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     match target_companies.iter().scan(
         None::<(&'a str,&'a Regex)>,
-        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a Company| -> Option<(Result<Option<&'a str>,MatchingErrors<'a>>,Option<&'a str>)> {
+        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a Company| -> Option<(MatchResult<'a>,Option<&'a str>)> {
             let Company{
                 name,
                 buds,
@@ -122,7 +122,7 @@ fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<
                         match *last_match {
                             Some((ln,lr)) => {
                                 Err(AmbiguousRegex{
-                                    text: text,
+                                    text,
                                     origin_company: ln,
                                     other_company: &c.name,
                                     origin_match: lr,
@@ -140,7 +140,7 @@ fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<
             } else {Ok(None)};
             Some((res,last_match.map(|x| x.0)))
         }
-    ).scan(Ok(None::<&'a str>),|prev_res: & mut Result<Option<&'a str>,MatchingErrors<'a>>, (res,lm) | {
+    ).scan(Ok(None::<&'a str>),|prev_res: & mut MatchResult, (res,lm) | {
         let tmp = match *prev_res {
             Ok(None) => Some((res,lm)),
             _ => None

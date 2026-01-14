@@ -14,12 +14,13 @@ pub struct Limits(f32, f32);
 
 impl Limits {
     pub fn build(a: f32, b: f32) -> Result<Self,LimitsBuildError> {
+        use LimitsBuildError::*;
         if a < 0.0 {
-            Err(LimitsBuildError::NegativeLeftEntry(a))
+            Err(LeftNegative(a))
         } else if b < 0.0 {
-            Err(LimitsBuildError::NegativeRightEntry(b))
+            Err(RightNegative(b))
         } else if a >= b {
-            Err(LimitsBuildError::NegativeInterval(a,b,b-a))
+            Err(NegativeInterval(a,b))
         } else {
             Ok(Self(a,b))
         }
@@ -37,9 +38,9 @@ impl FromPyObject<'_, '_> for Limits {
 
 #[derive(Debug)]
 pub enum LimitsBuildError {
-    NegativeLeftEntry(f32),
-    NegativeRightEntry(f32),
-    NegativeInterval(f32,f32,f32)
+    LeftNegative(f32),
+    RightNegative(f32),
+    NegativeInterval(f32,f32)
 }
 impl From<LimitsBuildError> for PyErr {
     fn from(err: LimitsBuildError) -> PyErr {
@@ -195,7 +196,7 @@ fn get_table_indexes<'a>(
     let n_expected_indexes: Option<usize> = cfg.as_ref().map(|l| l.len());
     let mut cfg_iter=cfg.map(|v| v.into_iter());
     while indexes.iter().any(|a| a.is_none()) {
-        let limits: Option<Limits> = cfg_iter.as_mut().map(|i| i.next()).flatten().flatten();
+        let limits: Option<Limits> = cfg_iter.as_mut().and_then(|i| i.next()).flatten();
         let current_ruler_idx = rulers.len();
 
         let selected: CellGeometryUnindexed=match limits {
@@ -216,13 +217,13 @@ fn get_table_indexes<'a>(
         let ruler=&rulers[current_ruler_idx];
         unindexed.retain(|elem| {
             let it_matches=if algorithm_flags.contains(TablePosAlgorithm::UseRulerArea | TablePosAlgorithm::UseTestPos) {
-                position_in_area(&elem,&ruler)
+                position_in_area(elem,ruler)
             } else if algorithm_flags.contains(TablePosAlgorithm::UseRulerArea) {
-                areas_intersect(&ruler,&elem)
+                areas_intersect(ruler,elem)
             } else if algorithm_flags.contains(TablePosAlgorithm::UseTestPos) {
-                same_position(&ruler,&elem)
+                same_position(ruler,elem)
             } else {
-                position_in_area(&ruler,&elem)
+                position_in_area(ruler,elem)
             };
             if it_matches {
                 indexes[elem.index]=Some(current_ruler_idx)
@@ -268,7 +269,7 @@ pub fn get_table_coordinates(
     if algorithm_flags.contains(TablePosAlgorithm::ReturnRows) {
         panic!("Doesn't make any sense to return Row indexes when interested to (Row,Col)")
     }
-    let algorithm_flags_rows=algorithm_flags.clone() | TablePosAlgorithm::ReturnRows;
+    let algorithm_flags_rows=algorithm_flags | TablePosAlgorithm::ReturnRows;
     let cols = get_table_indexes(cells,algorithm_flags,table_config)?;
     let rows = get_table_indexes(cells,algorithm_flags_rows,table_config)?;
     Ok(zip(rows,cols).collect())
@@ -303,17 +304,18 @@ mod tests {
         }
         #[test]
         fn err() {
+            use LimitsBuildError::*;
             assert!(matches!(
                 Limits::build(-20.0, 30.1),
-                Err(LimitsBuildError::NegativeLeftEntry(-20.0))
+                Err(LeftNegative(-20.0))
             ));
             assert!(matches!(
                 Limits::build(20.0, -30.1),
-                Err(LimitsBuildError::NegativeRightEntry(-30.1))
+                Err(RightNegative(-30.1))
             ));
             assert!(matches!(
                 Limits::build(30.1, 20.0),
-                Err(LimitsBuildError::NegativeInterval(30.1, 20.0, -10.1))
+                Err(NegativeInterval(30.1, 20.0))
             ));
         }
     }
