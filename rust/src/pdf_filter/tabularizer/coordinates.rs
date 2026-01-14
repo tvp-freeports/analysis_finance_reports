@@ -199,11 +199,11 @@ fn get_table_indexes<'a>(
         let limits: Option<Limits> = cfg_iter.as_mut().and_then(|i| i.next()).flatten();
         let current_ruler_idx = rulers.len();
 
-        let selected: CellGeometryUnindexed=match limits {
+        let selected: CellGeometryUnindexed= match limits {
             Some(l) => {
                 CellGeometryUnindexed::from_limits(l,0,0.0)
             },
-            None => if !algorithm_flags.contains(TablePosAlgorithm::BigCellRule) {
+            None => * if !algorithm_flags.contains(TablePosAlgorithm::BigCellRule) {
                 unindexed.iter().min_by(
                     |a, b| a.area.partial_cmp(&b.area).unwrap()
                 ).unwrap()
@@ -211,7 +211,7 @@ fn get_table_indexes<'a>(
                 unindexed.iter().max_by(
                     |a, b| a.area.partial_cmp(&b.area).unwrap()
                 ).unwrap()
-            }.clone()
+            }
         };
         rulers.push(selected);
         let ruler=&rulers[current_ruler_idx];
@@ -350,7 +350,7 @@ mod tests {
             let cell_a = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b = CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
             let cell_c = CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>  = [
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),
@@ -371,7 +371,7 @@ mod tests {
             let cell_a = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b = CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
             let cell_c = CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)> = [
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),
@@ -392,7 +392,7 @@ mod tests {
             let cell_a: CellGeometry = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b: CellGeometry = CellGeometry::new((0.5,0.0,1.5,1.5),1.1);
             let cell_c: CellGeometry = CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=[
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),
@@ -413,7 +413,7 @@ mod tests {
             let cell_a: CellGeometry = CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b: CellGeometry = CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
             let cell_c: CellGeometry = CellGeometry::new((2.0,0.0,10.3,3.2),0.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=[
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),
@@ -434,7 +434,7 @@ mod tests {
             let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b=CellGeometry::new((1.1,0.0,10.5,1.5),0.2);
             let cell_c=CellGeometry::new((2.0,0.0,10.3,3.2),15.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=[
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),
@@ -455,7 +455,7 @@ mod tests {
             let cell_a=CellGeometry::new((0.0,0.0,1.0,1.0),0.0);
             let cell_b=CellGeometry::new((10.5,0.0,11.5,1.5),1.1);
             let cell_c=CellGeometry::new((13.0,0.0,13.3,3.2),0.1);
-            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=vec![
+            let cells_h: Vec<(CellGeometryUnindexed,CellGeometryUnindexed)>=[
                 (&cell_a,&cell_b),
                 (&cell_b,&cell_a),
                 (&cell_a,&cell_c),

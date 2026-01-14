@@ -350,9 +350,9 @@ mod tests {
         }
 
         #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-            text: &"Almande part two",
-            origin_company: &"almade",
-            other_company: &"olemande part two",
+            text: "Almande part two",
+            origin_company: "almade",
+            other_company: "olemande part two",
             origin_match: &Regex::new("lman?de\\b").unwrap(),
             other_match: &Regex::new("part two").unwrap(),
         };"ambiguous_regex")]
@@ -384,9 +384,9 @@ mod tests {
                 assert!(res.is_none())
             }
             #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-                text: &"Almande part two",
-                origin_company: &"almade",
-                other_company: &"olemande part two",
+                text: "Almande part two",
+                origin_company: "almade",
+                other_company: "olemande part two",
                 origin_match: &Regex::new("lman?de\\b").unwrap(),
                 other_match: &Regex::new("part two").unwrap(),
             };"ambiguous_regex")]
@@ -421,9 +421,9 @@ mod tests {
             }
 
             #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-                text: &"Almande part two",
-                origin_company: &"almade",
-                other_company: &"olemande part two",
+                text: "Almande part two",
+                origin_company: "almade",
+                other_company: "olemande part two",
                 origin_match: &Regex::new("lman?de\\b").unwrap(),
                 other_match: &Regex::new("part two").unwrap(),
             };"ambiguous_regex")]
@@ -457,9 +457,9 @@ mod tests {
             }
 
             #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-                text: &"Almande part two",
-                origin_company: &"almade",
-                other_company: &"olemande part two",
+                text: "Almande part two",
+                origin_company: "almade",
+                other_company: "olemande part two",
                 origin_match: &Regex::new("lman?de\\b").unwrap(),
                 other_match: &Regex::new("part two").unwrap(),
             };"ambiguous_regex")]

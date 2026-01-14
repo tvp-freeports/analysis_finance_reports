@@ -222,17 +222,17 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
     let mut target_rows: Vec<usize> = (0..nrows).collect();
     let mut collapsing_rows=vec![false; nrows];
 
-    for col in 0..ncols {
+    for i_col in 0..ncols {
         let mut start_collapsing: Option<usize> = None;
         let mut end_collapsing: Option<usize> = None;
-        for row in 0..nrows {
-            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Down),_),None) = (matrix[row][col],start_collapsing) {
-                start_collapsing=Some(row);
-                end_collapsing=Some(row);
+        for (i_row,row) in matrix.iter().enumerate() {
+            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Down),_),None) = (row[i_col],start_collapsing) {
+                start_collapsing=Some(i_row);
+                end_collapsing=Some(i_row);
             } else if let Some(start) = start_collapsing {
-                if !matrix[row][col].1 || row == nrows-1 {
-                    if row == nrows-1 && matrix[row][col].1 {
-                        end_collapsing=Some(row)
+                if !row[i_col].1 || i_row == nrows-1 {
+                    if i_row == nrows-1 && row[i_col].1 {
+                        end_collapsing=Some(i_row)
                     }
                     (start..=end_collapsing.unwrap()).for_each(
                         |i| {
@@ -240,25 +240,25 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
                             collapsing_rows[i] = true;
                         }
                     );
-                    (start_collapsing,end_collapsing) = match matrix[row][col].0 {
-                        SplittingState::Allow(SplittingDirection::Down) => (Some(row),Some(row)),
+                    (start_collapsing,end_collapsing) = match row[i_col].0 {
+                        SplittingState::Allow(SplittingDirection::Down) => (Some(i_row),Some(i_row)),
                         _ => (None,None)
                     }
                 } else {
-                    end_collapsing=Some(row);
+                    end_collapsing=Some(i_row);
                 }
             }
         }
         let mut start_collapsing: Option<usize> = None;
         let mut end_collapsing: Option<usize> = None;
-        for row in (0..nrows).rev() {
-            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Up),_),None) = (matrix[row][col],start_collapsing) {
-                start_collapsing=Some(row);
-                end_collapsing=Some(row);
+        for (i_row,row) in matrix.iter().enumerate().rev() {
+            if let (CellCollapseState(SplittingState::Allow(SplittingDirection::Up),_),None) = (row[i_col],start_collapsing) {
+                start_collapsing=Some(i_row);
+                end_collapsing=Some(i_row);
             } else if let Some(start) = start_collapsing {
-                if !matrix[row][col].1 || row == 0 {
-                    if row == 0 && matrix[row][col].1 {
-                        end_collapsing=Some(row)
+                if !row[i_col].1 || i_row == 0 {
+                    if i_row == 0 && row[i_col].1 {
+                        end_collapsing=Some(i_row)
                     }
                     (end_collapsing.unwrap()..start).for_each(
                         |i| {
@@ -270,12 +270,12 @@ fn calc_target_rows(matrix: &[Vec<CellCollapseState>]) -> Vec<usize> {
                             
                         }
                     );
-                    (start_collapsing,end_collapsing) = match matrix[row][col].0 {
-                        SplittingState::Allow(SplittingDirection::Up) => (Some(row),Some(row)),
+                    (start_collapsing,end_collapsing) = match row[i_col].0 {
+                        SplittingState::Allow(SplittingDirection::Up) => (Some(i_row),Some(i_row)),
                         _ => (None,None)
                     }
                 } else {
-                    end_collapsing=Some(row);
+                    end_collapsing=Some(i_row);
                 }
             }
         }
@@ -468,13 +468,13 @@ mod tests {
                 }
             ];
             assert!(is_row_collapsable(
-                &vec![true,true,false],&column_cfg
+                &[true,true,false],&column_cfg
             ));
             assert!(is_row_collapsable(
-                &vec![false,true,false],&column_cfg
+                &[false,true,false],&column_cfg
             ));
             assert!(!is_row_collapsable(
-                &vec![true,true,true],&column_cfg
+                &[true,true,true],&column_cfg
             ));
 
         }
@@ -496,13 +496,13 @@ mod tests {
                 }
             ];
             assert!(is_row_splittable(
-                &vec![true,true,true],&column_cfg
+                &[true,true,true],&column_cfg
             ));
             assert!(is_row_splittable(
-                &vec![false,true,false],&column_cfg
+                &[false,true,false],&column_cfg
             ));
             assert!(!is_row_splittable(
-                &vec![true,false,true],&column_cfg
+                &[true,false,true],&column_cfg
             ));
         }
         mod target_row {
@@ -786,48 +786,43 @@ mod tests {
             (3,1),
             (3,2)                
         ];
-        let unknow_splittable_col = ColumnConfig{
-            limits: None,
-            splitting: None,
-            nullable: None
-        };
         let disallow_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Disallow),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let down_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Allow(SplittingDirection::Down)),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let up_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Allow(SplittingDirection::Up)),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let cfg_all_collapsable_unknown=TableConfig{
             rows: None,
-            cols: Some(vec![unknow_splittable_col.clone();3])
+            cols: Some(vec![UNKOWN_SPLITTABLE_COL;3])
         };
         let cfg_all_collapsable_up=TableConfig{
-            cols: Some(vec![down_splittable_col.clone();3]),
+            cols: Some(vec![down_splittable_col;3]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_all_collapsable_down=TableConfig{
-            cols: Some(vec![up_splittable_col.clone();3]),
+            cols: Some(vec![up_splittable_col;3]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_first_collapsable_down=TableConfig{
             cols: Some(vec![
-                disallow_splittable_col.clone(),
-                up_splittable_col.clone(),
-                disallow_splittable_col.clone(),
+                disallow_splittable_col,
+                up_splittable_col,
+                disallow_splittable_col,
             ]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_second_collapsable_up=TableConfig{
             cols: Some(vec![
-                down_splittable_col.clone(),
-                disallow_splittable_col.clone(),
-                disallow_splittable_col.clone()
+                down_splittable_col,
+                disallow_splittable_col,
+                disallow_splittable_col
             ]),
             ..cfg_all_collapsable_unknown.clone()
         };
