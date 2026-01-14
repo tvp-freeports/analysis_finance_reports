@@ -50,7 +50,7 @@ pub fn normalize_string(input: &str) -> String {
     out.trim().to_string()
 }
 
-
+#[derive(Debug)]
 struct Company{
     name: String,
     buds: Vec<String>,
@@ -58,18 +58,197 @@ struct Company{
     symbols: Vec<Regex>
 }
 
-
-fn match_exact_name<'a>(text: &str, target_companies: &'a[Company]) -> Option<&'a str> {
+fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+    use MatchingErrors::*;
     let txt=normalize_string(text);
+    let mut last_matching_regex: Option<(&str,&Regex)> = None;
+    let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
+
     for c in target_companies {
         let n_name=normalize_string(&c.name);
         if txt.contains(&n_name){
-            return Some(&c.name)
+            return Ok(Some(&c.name))
+        }
+        for b in &c.buds {
+            if txt.contains(b) {
+                for r in &c.regexs {
+                    if r.is_match(&txt) {
+                        match &last_matching_regex{
+                            None => {
+                                last_matching_regex=Some((&c.name,r));
+                                res=Ok(Some(&c.name));
+                            },
+                            Some((company,reg)) => {
+                                return Err(AmbiguousRegex{
+                                    text: text,
+                                    origin_company: company,
+                                    other_company: &c.name,
+                                    origin_match: reg,
+                                    other_match: r
+                                })
+                            }
+                        }
+                        break
+                    }
+                }
+                break
+            }
         }
     }
-    None
+    res
 }
 
+
+
+
+fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+    use MatchingErrors::*;
+    let txt=normalize_string(text);
+    match target_companies.iter().scan(
+        None::<(&'a str,&'a Regex)>,
+        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a Company| -> Option<(Result<Option<&'a str>,MatchingErrors<'a>>,Option<&'a str>)> {
+            let Company{
+                name,
+                buds,
+                regexs,
+                ..
+            } = c;
+            let n_name=normalize_string(name.as_str());
+            let res = if txt.contains(&n_name) {
+                Ok(Some(c.name.as_str()))
+            } else {
+                if buds.into_iter().any(|b| txt.contains(b.as_str())) {
+                    match regexs.into_iter().find(|r| r.is_match(&txt)) {
+                        Some(r) => {
+                            match *last_match {
+                                Some((ln,lr)) => {
+                                    Err(AmbiguousRegex{
+                                        text: &text,
+                                        origin_company: ln,
+                                        other_company: &c.name,
+                                        origin_match: lr,
+                                        other_match: &r
+                                    })
+                                },
+                                None => {
+                                    *last_match = Some((&c.name,&r));
+                                    Ok(None)
+                                }
+                            }
+                        },
+                        None => Ok(None)   
+                    }
+                } else {Ok(None)}
+            };
+            Some((res,last_match.map(|x| x.0)))
+        }
+    ).scan(Ok(None::<&'a str>),|prev_res: & mut Result<Option<&'a str>,MatchingErrors<'a>>, (res,lm) | {
+        let tmp = match *prev_res {
+            Ok(None) => Some((res,lm)),
+            _ => None
+        };
+        *prev_res=res;
+        tmp
+    }).last() {
+        None => Ok(None),
+        Some((Ok(None),last_match)) => Ok(last_match),
+        Some((res,_)) => res,
+    }
+}
+
+
+
+fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+    use MatchingErrors::*;
+    let txt=normalize_string(text);
+    let mut last_matching_regex: Option<(&str,&Regex)> = None;
+    let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
+
+    for c in target_companies {
+        if c.symbols.iter().any(|s| s.is_match(&text)) {
+            return Ok(Some(&c.name))
+        }
+        for r in &c.regexs {
+            if r.is_match(&txt) {
+                match &last_matching_regex{
+                    None => {
+                        last_matching_regex=Some((&c.name,r));
+                        res=Ok(Some(&c.name));
+                    },
+                    Some((company,reg)) => {
+                        return Err(AmbiguousRegex{
+                            text: text,
+                            origin_company: company,
+                            other_company: &c.name,
+                            origin_match: reg,
+                            other_match: r
+                        })
+                    }
+                }
+                break
+            }
+        }
+    }
+    res
+}
+
+fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+    match match_fast(text,target_companies) {
+        Ok(None) => match_long(text,target_companies),
+        res => res
+    }
+}
+
+
+#[derive(Debug,Clone,Copy)]
+enum MatchingErrors<'a>{
+    AmbiguousRegex{
+        text: &'a str,
+        origin_company: &'a str,
+        other_company: &'a str,
+        origin_match: &'a Regex,
+        other_match: &'a Regex
+    }
+}
+
+impl PartialEq for MatchingErrors<'_> {
+    fn eq(&self,other: &Self) -> bool {
+        match (self,other) {
+            (Self::AmbiguousRegex{
+                text,
+                origin_company,
+                other_company,
+                origin_match,
+                other_match
+            },Self::AmbiguousRegex{
+                text: o_text,
+                origin_company: o_origin_company,
+                other_company: o_other_company,
+                origin_match: o_origin_match,
+                other_match: o_other_match                
+            }) => {
+                if (
+                    text,
+                    origin_company,
+                    other_company,
+                    origin_match.as_str(),
+                    other_match.as_str()
+                ) == (
+                    o_text,
+                    o_origin_company,
+                    o_other_company,
+                    o_origin_match.as_str(),
+                    o_other_match.as_str()
+                ) {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -78,7 +257,6 @@ mod tests {
     use super::*;
     use pretty_assertions::{assert_eq};
     
-
     #[test_case("Coca Cola","coca cola"; "lower")]
     #[test_case(" \thello  i am the\n\n fox\t","hello i am the fox"; "withespaces")]
     #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
@@ -106,34 +284,197 @@ mod tests {
             || vec![
                 Company{
                     name: "Coca Cola".to_string(),
+                    symbols: vec![
+                        Regex::new(r"\bCOC\b").unwrap()
+                    ],
+                    ..EMPTY_COMPANY
+                },
+                Company{
+                    name: "bubu".to_string(),
+                    buds: vec![String::from("rock bubu")],
+                    regexs: vec![
+                        Regex::new(r"\bbubu\b").unwrap(),
+                        Regex::new(r"rock").unwrap()
+                    ],
                     ..EMPTY_COMPANY
                 },
                 Company{
                     name: "BlackRock".to_string(),
+                    buds: vec![String::from("black"),String::from("rock")],
+                    regexs: vec![
+                        Regex::new(r"\bblack ?rock").unwrap()
+                    ],
                     ..EMPTY_COMPANY
                 },
                 Company{
                     name: "pimpa Co.".to_string(),
-                    ..EMPTY_COMPANY
+                    buds: vec![String::from("pimpa")],
+                    regexs: vec![
+                        Regex::new(r"\bpimpa co\b").unwrap(),
+                        Regex::new(r"\bsecret\b").unwrap()
+                    ],
+                    symbols: Vec::new()
                 },
                 Company{
                     name: "almade".to_string(),
+                    buds: vec![String::from("almande")],
+                    regexs: vec![
+                        Regex::new(r"lman?de\b").unwrap()
+                    ],
+                    symbols: vec![
+                        Regex::new(r"\bALMD\b").unwrap(),
+                        Regex::new(r"\bALM\b").unwrap()
+                    ]
+                },
+                Company{
+                    name: "olemande part two".to_string(),
+                    buds: vec![String::from("part")],
+                    regexs: vec![
+                        Regex::new(r"part two").unwrap()
+                    ],
                     ..EMPTY_COMPANY
                 }
             ]
         );
         
-        #[test_case(" The COCA COLA company","Coca Cola";"just name")]
-        fn name_contained(provided: &str, expected: &str) {
-            let res = match_exact_name(provided,&COMPANY_LIST).unwrap();
+        #[test_case("un ----BLACKROCK----","BlackRock";"just name")]
+        #[test_case(" Na BUBU la troc","bubu";"regex")]
+        #[test_case("302840128 ifl COC UUU]]]","Coca Cola";"symbol")]
+        fn matched(provided: &str, expected: &str) {
+            let res = match_company(provided,&COMPANY_LIST)
+            .unwrap()
+            .unwrap();
+            assert_eq!(
+                res,expected
+            )
+        }
+        #[test_case("calimbone";"company")]
+        #[test_case("One almd 1.2%";"lower symbol")]
+        fn no_match(provided: &str) {
+            let res = match_fast(provided,&COMPANY_LIST).unwrap();
+            assert!(res.is_none())
+        }
+
+        #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
+            text: &"Almande part two",
+            origin_company: &"almade",
+            other_company: &"olemande part two",
+            origin_match: &Regex::new("lman?de\\b").unwrap(),
+            other_match: &Regex::new("part two").unwrap(),
+        };"ambiguous_regex")]
+        fn err(provided: &str, expected: MatchingErrors) {
+            let res = match_long(provided,&COMPANY_LIST).unwrap_err();
             assert_eq!(
                 res,expected
             )
         }
         
+        mod fast_iter {
+            use super::*;
+            use pretty_assertions::{assert_eq};
+            use test_case::test_case;
+            #[test_case(" The Pimpa Company","pimpa Co.";"just name")]
+            #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
+            fn matched(provided: &str, expected: &str) {
+                let res = match_fast_iter(provided,&COMPANY_LIST)
+                .unwrap()
+                .unwrap();
+                assert_eq!(
+                    res,expected
+                )
+            }
+            #[test]
+            fn no_match() {
+                let provided=&"calimbone";
+                let res = match_fast_iter(provided,&COMPANY_LIST).unwrap();
+                assert!(res.is_none())
+            }
+            #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
+                text: &"Almande part two",
+                origin_company: &"almade",
+                other_company: &"olemande part two",
+                origin_match: &Regex::new("lman?de\\b").unwrap(),
+                other_match: &Regex::new("part two").unwrap(),
+            };"ambiguous_regex")]
+            fn err(provided: &str, expected: MatchingErrors) {
+                let res = match_fast_iter(provided,&COMPANY_LIST).unwrap_err();
+                assert_eq!(
+                    res,expected
+                )
+            }
+        }
+
+        mod fast {
+            use super::*;
+            use pretty_assertions::{assert_eq};
+            use test_case::test_case;
+            #[test_case(" The Pimpa Company","pimpa Co.";"just name")]
+            #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
+            fn matched(provided: &str, expected: &str) {
+                let res = match_fast(provided,&COMPANY_LIST)
+                .unwrap()
+                .unwrap();
+                assert_eq!(
+                    res,expected
+                )
+            }
+
+            #[test]
+            fn no_match() {
+                let provided=&"calimbone";
+                let res = match_fast(provided,&COMPANY_LIST).unwrap();
+                assert!(res.is_none())
+            }
+
+            #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
+                text: &"Almande part two",
+                origin_company: &"almade",
+                other_company: &"olemande part two",
+                origin_match: &Regex::new("lman?de\\b").unwrap(),
+                other_match: &Regex::new("part two").unwrap(),
+            };"ambiguous_regex")]
+            fn err(provided: &str, expected: MatchingErrors) {
+                let res = match_fast(provided,&COMPANY_LIST).unwrap_err();
+                assert_eq!(
+                    res,expected
+                )
+            }
+        }
+        mod long {
+            use super::*;
+            use pretty_assertions::{assert_eq};
+            use test_case::test_case;
+            #[test_case(" Secret company ","pimpa Co.";"regex")]
+            #[test_case("One ALMD 1.2%","almade";"symbol")]
+            fn matched(provided: &str, expected: &str) {
+                let res = match_long(provided,&COMPANY_LIST)
+                .unwrap()
+                .unwrap();
+                assert_eq!(
+                    res,expected
+                )
+            }
+
+            #[test_case("calimbone";"company")]
+            #[test_case("One almd 1.2%";"lower symbol")]
+            fn no_match(provided: &str) {
+                let res = match_fast(provided,&COMPANY_LIST).unwrap();
+                assert!(res.is_none())
+            }
+
+            #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
+                text: &"Almande part two",
+                origin_company: &"almade",
+                other_company: &"olemande part two",
+                origin_match: &Regex::new("lman?de\\b").unwrap(),
+                other_match: &Regex::new("part two").unwrap(),
+            };"ambiguous_regex")]
+            fn err(provided: &str, expected: MatchingErrors) {
+                let res = match_long(provided,&COMPANY_LIST).unwrap_err();
+                assert_eq!(
+                    res,expected
+                )
+            }
+        }
     }
-
-
-
-
 }
