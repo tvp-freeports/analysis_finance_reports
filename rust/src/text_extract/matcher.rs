@@ -51,7 +51,7 @@ pub fn normalize_string(input: &str) -> String {
 }
 
 #[derive(Debug)]
-struct Company{
+pub struct Company{
     name: String,
     buds: Vec<String>,
     regexs: Vec<Regex>,
@@ -80,7 +80,7 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
                             },
                             Some((company,reg)) => {
                                 return Err(AmbiguousRegex{
-                                    text: text,
+                                    text,
                                     origin_company: company,
                                     other_company: &c.name,
                                     origin_match: reg,
@@ -116,30 +116,28 @@ fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<
             let n_name=normalize_string(name.as_str());
             let res = if txt.contains(&n_name) {
                 Ok(Some(c.name.as_str()))
-            } else {
-                if buds.into_iter().any(|b| txt.contains(b.as_str())) {
-                    match regexs.into_iter().find(|r| r.is_match(&txt)) {
-                        Some(r) => {
-                            match *last_match {
-                                Some((ln,lr)) => {
-                                    Err(AmbiguousRegex{
-                                        text: &text,
-                                        origin_company: ln,
-                                        other_company: &c.name,
-                                        origin_match: lr,
-                                        other_match: &r
-                                    })
-                                },
-                                None => {
-                                    *last_match = Some((&c.name,&r));
-                                    Ok(None)
-                                }
+            } else if buds.iter().any(|b| txt.contains(b.as_str())) {
+                match regexs.iter().find(|r| r.is_match(&txt)) {
+                    Some(r) => {
+                        match *last_match {
+                            Some((ln,lr)) => {
+                                Err(AmbiguousRegex{
+                                    text: text,
+                                    origin_company: ln,
+                                    other_company: &c.name,
+                                    origin_match: lr,
+                                    other_match: r
+                                })
+                            },
+                            None => {
+                                *last_match = Some((&c.name,r));
+                                Ok(None)
                             }
-                        },
-                        None => Ok(None)   
-                    }
-                } else {Ok(None)}
-            };
+                        }
+                    },
+                    None => Ok(None)   
+                }
+            } else {Ok(None)};
             Some((res,last_match.map(|x| x.0)))
         }
     ).scan(Ok(None::<&'a str>),|prev_res: & mut Result<Option<&'a str>,MatchingErrors<'a>>, (res,lm) | {
@@ -165,7 +163,7 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
-        if c.symbols.iter().any(|s| s.is_match(&text)) {
+        if c.symbols.iter().any(|s| s.is_match(text)) {
             return Ok(Some(&c.name))
         }
         for r in &c.regexs {
@@ -177,7 +175,7 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
                     },
                     Some((company,reg)) => {
                         return Err(AmbiguousRegex{
-                            text: text,
+                            text,
                             origin_company: company,
                             other_company: &c.name,
                             origin_match: reg,
@@ -192,7 +190,7 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
     res
 }
 
-fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+pub fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     match match_fast(text,target_companies) {
         Ok(None) => match_long(text,target_companies),
         res => res
@@ -201,7 +199,7 @@ fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Op
 
 
 #[derive(Debug,Clone,Copy)]
-enum MatchingErrors<'a>{
+pub enum MatchingErrors<'a>{
     AmbiguousRegex{
         text: &'a str,
         origin_company: &'a str,
@@ -227,7 +225,7 @@ impl PartialEq for MatchingErrors<'_> {
                 origin_match: o_origin_match,
                 other_match: o_other_match                
             }) => {
-                if (
+                (
                     text,
                     origin_company,
                     other_company,
@@ -239,11 +237,7 @@ impl PartialEq for MatchingErrors<'_> {
                     o_other_company,
                     o_origin_match.as_str(),
                     o_other_match.as_str()
-                ) {
-                    true
-                } else {
-                    false
-                }
+                )
             }
         }
         
