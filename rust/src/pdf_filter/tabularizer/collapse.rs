@@ -3,7 +3,7 @@ use pyo3::exceptions::PyValueError;
 
 use super::{TableConfig,ColumnConfig};
 
-#[derive(Clone)]
+#[derive(Clone,Copy)]
 pub enum CollapseAlgorithm {
     Pattern,
     Geometry,
@@ -339,31 +339,31 @@ fn collapse_table_rows_by_pattern(
 #[cfg(test)]
 mod tests {
     use super::*;
+    const UNKOWN_SPLITTABLE_COL: ColumnConfig = ColumnConfig{
+        limits: None,
+        splitting: None,
+        nullable: None
+    };
     mod geometrical_strategy {
         use pretty_assertions::{assert_eq};
         use super::*;
         #[test]
         fn test_extract_column_info(){
-            let unknow_splittable_col = ColumnConfig{
-                limits: None,
-                splitting: None,
-                nullable: None
-            };
             let disallow_splittable_col = ColumnConfig{
                 splitting: Some(SplittingState::Disallow),
-                ..unknow_splittable_col.clone()
+                ..UNKOWN_SPLITTABLE_COL
             };
             let up_splittable_col = ColumnConfig{
                 splitting: Some(SplittingState::Allow(SplittingDirection::Up)),
                 nullable: Some(true),
-                ..unknow_splittable_col.clone()
+                ..UNKOWN_SPLITTABLE_COL
             };
             let cfg=TableConfig{
                 rows: None,
                 cols: Some(vec![
-                    unknow_splittable_col.clone(),
-                    disallow_splittable_col.clone(),
-                    up_splittable_col.clone()
+                    UNKOWN_SPLITTABLE_COL,
+                    disallow_splittable_col,
+                    up_splittable_col
                 ])
             };
             let cfg_geo=extract_column_info(&cfg);
@@ -437,10 +437,10 @@ mod tests {
             let sdc=CellCollapseState(SplittingState::Allow(SplittingDirection::Down),true);
             let suc=CellCollapseState(SplittingState::Allow(SplittingDirection::Up),true);
             let cfg_matrix=vec![
-                vec![ sd.clone(),emp.clone(), su.clone()],
-                vec![emp.clone(),emp.clone(),emp.clone()],
-                vec![emp.clone(),col.clone(),emp.clone()],
-                vec![sdc.clone(),emp.clone(),suc.clone()]
+                vec![ sd,emp, su],
+                vec![emp,emp,emp],
+                vec![emp,col,emp],
+                vec![sdc,emp,suc]
             ];
             assert_eq!(
                 cfg_matrix,
@@ -652,49 +652,44 @@ mod tests {
             (4,0),
             (5,0),
         ];
-        let unknow_splittable_col = ColumnConfig{
-            limits: None,
-            splitting: None,
-            nullable: None
-        };
         let disallow_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Disallow),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let down_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Allow(SplittingDirection::Down)),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let up_splittable_col = ColumnConfig{
             splitting: Some(SplittingState::Allow(SplittingDirection::Up)),
             nullable: Some(true),
-            ..unknow_splittable_col.clone()
+            ..UNKOWN_SPLITTABLE_COL
         };
         let cfg_all_collapsable_unknown=TableConfig{
             rows: None,
-            cols: Some(vec![unknow_splittable_col.clone();3])
+            cols: Some(vec![UNKOWN_SPLITTABLE_COL;3])
         };
         let cfg_all_collapsable_up=TableConfig{
-            cols: Some(vec![down_splittable_col.clone();3]),
+            cols: Some(vec![down_splittable_col;3]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_all_collapsable_down=TableConfig{
-            cols: Some(vec![up_splittable_col.clone();3]),
+            cols: Some(vec![up_splittable_col;3]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_first_collapsable_down=TableConfig{
             cols: Some(vec![
-                disallow_splittable_col.clone(),
-                up_splittable_col.clone(),
-                disallow_splittable_col.clone(),
+                disallow_splittable_col,
+                up_splittable_col,
+                disallow_splittable_col,
             ]),
             ..cfg_all_collapsable_unknown.clone()
         };
         let cfg_second_collapsable_up=TableConfig{
             cols: Some(vec![
-                down_splittable_col.clone(),
-                disallow_splittable_col.clone(),
-                disallow_splittable_col.clone()
+                down_splittable_col,
+                disallow_splittable_col,
+                disallow_splittable_col
             ]),
             ..cfg_all_collapsable_unknown.clone()
         };

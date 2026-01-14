@@ -19,14 +19,14 @@ pub use collapse::{
     py_collapse_table_rows
 };
 
-#[derive(Clone,Debug,FromPyObject)]
+#[derive(Clone,Debug,FromPyObject,Copy)]
 pub struct ColumnConfig {
     limits: Option<Limits>,
     splitting: Option<SplittingState>,
     nullable: Option<NullableState>
 }
 
-#[derive(Clone,Debug,FromPyObject)]
+#[derive(Clone,Debug,FromPyObject,Copy)]
 pub struct RowConfig {
     limits: Option<Limits>
 }

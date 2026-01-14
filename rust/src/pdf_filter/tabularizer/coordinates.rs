@@ -50,7 +50,7 @@ impl From<LimitsBuildError> for PyErr {
 
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub enum CoordinateExtractionError {
     MismatchColumnNumber(usize,usize),
     MismatchRowNumber(usize,usize)
@@ -98,7 +98,7 @@ impl FromPyObject<'_, '_> for TablePosAlgorithm {
 }
 
 
-#[derive(Debug,Clone,FromPyObject)]
+#[derive(Debug,Clone,FromPyObject,Copy)]
 pub struct CellGeometry {
     bounds: (f32,f32,f32,f32),
     tolerance: f32
@@ -120,7 +120,7 @@ impl CellGeometry {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Copy)]
 struct CellGeometryUnindexed<'a>{
     _marker: marker::PhantomData<&'a CellGeometry>,
     index: usize,
