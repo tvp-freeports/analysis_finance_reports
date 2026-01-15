@@ -14,7 +14,7 @@ import tarfile
 import shutil
 import logging as log
 from typing import List, Tuple, Optional, Union, Dict, Any
-from multiprocessing import Pool
+from multiprocessing import Pool, set_start_method
 import csv
 from lxml import etree
 import pymupdf as pypdf
@@ -47,7 +47,7 @@ from freeports_analysis.logging import (
     DevDebugFormatter,
 )
 
-
+set_start_method("fork")
 logger = log.getLogger()
 
 
