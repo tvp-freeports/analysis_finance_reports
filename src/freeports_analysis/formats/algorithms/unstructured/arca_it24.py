@@ -6,11 +6,14 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
 
 header_set = [
     PdfLineSet.from_str('TrebuchetMS-Bold "Titoli"'),
+    PdfLineSet.from_str('TrebuchetMS-Bold "Divisa"'),
 ]
+
 subfund_set = PdfLineSet(
     font=FontSet("Calibri", "Lato-Regular"),
     area={"x_min": None, "x_max": None, "y_min": None, "y_max": 60},
 )
+
 body_set = PdfLineSet(
     font="TrebuchetMS",
     font_size=6.96,
@@ -25,7 +28,6 @@ body_set = PdfLineSet(
         "y_max": None,
     },
 )
-
 
 @standard_pdf_filtering(
     header_set=header_set,
