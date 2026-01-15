@@ -1,5 +1,5 @@
 ID,Header set,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency
-AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",ArialMT(:27),ArialNarrow(:208),ArialNarrow(:768),-1,1,2,,
+AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",ArialMT(:27),ArialNarrow(:208),ArialNarrow(:768),1,-1,2,,
 AMUNDI-IT24,,,,,2,1,5,,
 ANIMA-EN23,,,,,1,-1,2,,
 ARCA-IT24,,,,,3,2,4,,1
