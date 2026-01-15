@@ -1,4 +1,7 @@
+use pyo3::prelude::*;
+use pyo3::types::{PyString,PyList};
 use regex::Regex;
+
 
 
 pub struct PdfBlockTable;
@@ -50,13 +53,41 @@ pub fn normalize_string(input: &str) -> String {
     out.trim().to_string()
 }
 
-#[derive(Debug)]
+// enum RegexErrors {
+//     FailedBuild{
+
+//     }
+// }
+
+#[derive(Debug,Clone)]
 pub struct Company{
     name: String,
     buds: Vec<String>,
     regexs: Vec<Regex>,
     symbols: Vec<Regex>
 }
+
+// impl<'a,'py> FromPyObject<'a,'py> for Company{
+//     type Error=PyErr;
+//     fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
+//         let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
+//         let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
+//         for p in regexs_patterns.into_iter() {
+//             regexs.push(Regex::new(&p)?)
+//         }
+//         let symbols_patterns: Vec<String> = py_company.getattr("symbols")?.extract()?;
+//         let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
+//         for p in symbols_patterns.into_iter() {
+//             symbols.push(Regex::new(&p)?)
+//         }
+//         Ok(Company {
+//             name: py_company.getattr("name")?.extract()?,
+//             buds: py_company.getattr("buds")?.extract()?,
+//             regexs,
+//             symbols
+//         })
+//     }
+// }
 
 fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
@@ -196,6 +227,49 @@ pub fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Resul
         res => res
     }
 }
+
+
+
+#[derive(Debug,Clone)]
+pub enum OwnedMatchingErrors{
+    AmbiguousRegex{
+        text: String,
+        origin_company: String,
+        other_company: String,
+        origin_match: Regex,
+        other_match: Regex
+    }
+}
+
+// #[pyfunction]
+// #[pyo3(name = "match_company")]
+// pub fn py_match_company(text: String, target_companies: Vec<Company>) -> Result<Option<String>,OwnedMatchingErrors> {
+//     match match_company(text.as_str(),&target_companies) {
+//         Ok(None) => Ok(None),
+//         Ok(Some(txt)) => Ok(Some(txt.to_string())),
+//         Err(MatchingErrors::AmbiguousRegex{
+//             text,
+//             origin_company,
+//             other_company,
+//             origin_match,
+//             other_match,
+//         }) => Err(OwnedMatchingErrors::AmbiguousRegex{
+//             text: text.to_string(),
+//             origin_company: origin_company.to_string(),
+//             other_company: other_company.to_string(),
+//             origin_match: origin_match.clone(),
+//             other_match: other_match.clone(),
+//         })
+//     }
+// }
+
+// #[pyfunction]
+// #[pyo3(name = "match_company")]
+// pub fn py_match_company<'py>(text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyAny>) -> PyResult<()> {
+//     let text: String = text.extract()?;
+//     let target_companies: Company = target_companies.extract()?;
+//     Ok(())
+// }
 
 
 #[derive(Debug,Clone,Copy)]
