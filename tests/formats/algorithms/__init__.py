@@ -121,8 +121,10 @@ def generic_test_pipelines(path):
     )
     assert out_dict == reference_dict
 
-    log = pd.read_csv(conf["OUT_PATH"] / ".log.csv", index_col=False)
-    reference_log = pd.read_csv(current_dir / "out" / ".log.csv", index_col=False)
+    log = pd.read_csv(conf["OUT_PATH"] / ".log.csv", index_col=False, encoding="utf-8")
+    reference_log = pd.read_csv(
+        current_dir / "out" / ".log.csv", index_col=False, encoding="utf-8"
+    )
     pd.testing.assert_frame_equal(
         log.sort_values(by=log.columns.tolist()).reset_index(drop=True),
         reference_log.sort_values(by=reference_log.columns.tolist()).reset_index(

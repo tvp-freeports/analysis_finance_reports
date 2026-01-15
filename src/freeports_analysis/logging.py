@@ -245,7 +245,7 @@ class CsvFormatter(logging.Formatter):
 
         return (
             pd.DataFrame([fields])
-            .to_csv(header=False, index=False)
+            .to_csv(header=False, index=False, encoding="utf-8")
             .strip()
             .replace("\n", "\\n")
         )

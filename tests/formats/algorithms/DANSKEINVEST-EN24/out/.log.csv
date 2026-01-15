@@ -1,46 +1,46 @@
 Page,Matched Company,Company,Field name,Row,Column,Message
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.07.25\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.07.25\n,% net assets,,,"Error casting, found: –\n"
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.07.25\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.07.25\n,% net assets,,,"Error casting, found: â€“\n"
 64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.07.25\n,% net assets,,,Skipping field
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.35\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.35\n,% net assets,,,"Error casting, found: –\n"
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.35\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.35\n,% net assets,,,"Error casting, found: â€“\n"
 64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.35\n,% net assets,,,Skipping field
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.44\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.44\n,% net assets,,,"Error casting, found: –\n"
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.44\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.44\n,% net assets,,,"Error casting, found: â€“\n"
 64,NORDEA,Nordea Kredit Realkreditaktieselskab \n4.00% 01.10.44\n,% net assets,,,Skipping field
-198,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-198,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: –\n"
+198,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+198,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: â€“\n"
 198,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Skipping field
-199,Carrefour,Carrefour SA\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-199,Carrefour,Carrefour SA\n,% net assets,,,"Error casting, found: –\n"
+199,Carrefour,Carrefour SA\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+199,Carrefour,Carrefour SA\n,% net assets,,,"Error casting, found: â€“\n"
 199,Carrefour,Carrefour SA\n,% net assets,,,Skipping field
-200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,"Error casting, found: –\n"
+200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,"Error casting, found: â€“\n"
 200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,Skipping field
-227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,"Error casting, found: –\n"
-227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,Skipping field
-227,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-227,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: –\n"
+227,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+227,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,"Error casting, found: â€“\n"
+227,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,Skipping field
+227,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+227,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: â€“\n"
 227,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Skipping field
-228,Siemens,Siemens Energy AG\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-228,Siemens,Siemens Energy AG\n,% net assets,,,"Error casting, found: –\n"
+228,Siemens,Siemens Energy AG\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+228,Siemens,Siemens Energy AG\n,% net assets,,,"Error casting, found: â€“\n"
 228,Siemens,Siemens Energy AG\n,% net assets,,,Skipping field
-229,Leonardo,Leonardo SpA\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-229,Leonardo,Leonardo SpA\n,% net assets,,,"Error casting, found: –\n"
+229,Leonardo,Leonardo SpA\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+229,Leonardo,Leonardo SpA\n,% net assets,,,"Error casting, found: â€“\n"
 229,Leonardo,Leonardo SpA\n,% net assets,,,Skipping field
-252,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-252,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,"Error casting, found: –\n"
-252,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,Skipping field
-252,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-252,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: –\n"
+252,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+252,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,"Error casting, found: â€“\n"
+252,AP MÃ¸ller MÃ¦rsk,AP Moller - Maersk A/S\n,% net assets,,,Skipping field
+252,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+252,Carlsberg Group,Carlsberg A/S\n,% net assets,,,"Error casting, found: â€“\n"
 252,Carlsberg Group,Carlsberg A/S\n,% net assets,,,Skipping field
-253,Carrefour,Carrefour SA\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-253,Carrefour,Carrefour SA\n,% net assets,,,"Error casting, found: –\n"
+253,Carrefour,Carrefour SA\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+253,Carrefour,Carrefour SA\n,% net assets,,,"Error casting, found: â€“\n"
 253,Carrefour,Carrefour SA\n,% net assets,,,Skipping field
-254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,,,"Error casting, found: –\n"
+254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,,,"Error casting, found: â€“\n"
 254,Heidelberg Materials,Heidelberg Materials AG\n,% net assets,,,Skipping field
-259,CNH Industrial,CNH Industrial NV\n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '–' - forzo la conversione"
-259,CNH Industrial,CNH Industrial NV\n,% net assets,,,"Error casting, found: –\n"
+259,CNH Industrial,CNH Industrial NV\n,% net assets,,,Trying to cast to number but found 'â€“' - forcing cast
+259,CNH Industrial,CNH Industrial NV\n,% net assets,,,"Error casting, found: â€“\n"
 259,CNH Industrial,CNH Industrial NV\n,% net assets,,,Skipping field
