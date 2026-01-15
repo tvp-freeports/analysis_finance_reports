@@ -475,22 +475,31 @@ DBIO24,Villar International
 DBIO24,Vinci SA
 DBIO24,Volvo Car Corp
 DBIO24,WSP Global
-TEST,MONDADORI
-TEST,ARCA
-TEST,ALMAWAVE
-TEST,ISRAEL FIXED
-TEST,SAUDI ARAB
-TEST,US TREASURY
-TEST,INTESA SANPAOLO
-TEST,ICCREA BANCA
-TEST,ITALY BOTS
-TEST,BTPS
+BR_SOY_DEFOREST_3K,Adm Do Brasil
+BR_SOY_DEFOREST_3K,Agrex Do Brasil S.A.
+BR_SOY_DEFOREST_3K,Amaggi Exportacao E Importacao
+BR_SOY_DEFOREST_3K,Amaggi Louis Dreyfus Zen Noh Graos Sa
+BR_SOY_DEFOREST_3K,Bianchini Sa Industria Comercio & Agricultura
+BR_SOY_DEFOREST_3K,Bunge Alimentos S/A
+BR_SOY_DEFOREST_3K,Cargill Agricola Sa
+BR_SOY_DEFOREST_3K,Chs Agronegocio Industria & Comercio Ltda
+BR_SOY_DEFOREST_3K,Cj International Brasil Comercial Agricola Ltda.
+BR_SOY_DEFOREST_3K,Coamo
+BR_SOY_DEFOREST_3K,Cofco Brasil S.A.
+BR_SOY_DEFOREST_3K,Cutrale
+BR_SOY_DEFOREST_3K,Engelhart
+BR_SOY_DEFOREST_3K,Gavilon
+BR_SOY_DEFOREST_3K,Louis Dreyfus Company Brasil S.A.
+BR_SOY_DEFOREST_3K,Novaagri Infra-Estrutura De Armazenagem E Escoamento Agricol
+BR_SOY_DEFOREST_3K,Olam Agricola Ltda.
+BR_SOY_DEFOREST_3K,Olam Brasil Ltda
+BR_SOY_DEFOREST_3K,Viterra Bv
 TEST,AP Møller Mærsk
 TEST,Airbnb
 TEST,Alphabet
 TEST,Altice International
 TEST,Amazon
-TEST,Apple
+TEST,Apple Inc
 TEST,Ashtrom Group
 TEST,Ashtrom Industries
 TEST,Ashtrom Residential Development
@@ -542,23 +551,22 @@ TEST,Petróleo Brasileiro
 TEST,Siemens
 TEST,The Caisse de dépôt et placement du Québec
 TEST,Volvo Car Corp
-TEST,BTPS
-BR_SOY_DEFOREST_3K,Adm Do Brasil
-BR_SOY_DEFOREST_3K,Agrex Do Brasil S.A.
-BR_SOY_DEFOREST_3K,Amaggi Exportacao E Importacao
-BR_SOY_DEFOREST_3K,Amaggi Louis Dreyfus Zen Noh Graos Sa
-BR_SOY_DEFOREST_3K,Bianchini Sa Industria Comercio & Agricultura
-BR_SOY_DEFOREST_3K,Bunge Alimentos S/A
-BR_SOY_DEFOREST_3K,Cargill Agricola Sa
-BR_SOY_DEFOREST_3K,Chs Agronegocio Industria & Comercio Ltda
-BR_SOY_DEFOREST_3K,Cj International Brasil Comercial Agricola Ltda.
-BR_SOY_DEFOREST_3K,Coamo
-BR_SOY_DEFOREST_3K,Cofco Brasil S.A.
-BR_SOY_DEFOREST_3K,Cutrale
-BR_SOY_DEFOREST_3K,Engelhart
-BR_SOY_DEFOREST_3K,Gavilon
-BR_SOY_DEFOREST_3K,Louis Dreyfus Company Brasil S.A.
-BR_SOY_DEFOREST_3K,Novaagri Infra-Estrutura De Armazenagem E Escoamento Agricol
-BR_SOY_DEFOREST_3K,Olam Agricola Ltda.
-BR_SOY_DEFOREST_3K,Olam Brasil Ltda
-BR_SOY_DEFOREST_3K,Viterra Bv
+TEST,ITALY BTPS
+TEST,ITALY BOTS
+TEST,ICCREA
+TEST,INTESA SANPAOLO
+TEST,ISRAEL FIXED
+TEST,ALMAWAVE
+TEST,MONDADORI
+TEST,EF BOND US
+TEST,YOURINDEX SICAV
+TEST,EU EU BOND
+TEST,BOTS ZC
+TEST,AXA SA
+TEST,ENELIM
+TEST,TAIWAN SEMICONDUCTOR
+TEST,ROLLS
+TEST,YIS MSCI WORLD
+TEST,DANBNK
+TEST,NORDEA
+TEST,ISHARES

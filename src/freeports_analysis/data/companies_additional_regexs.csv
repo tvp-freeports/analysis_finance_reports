@@ -1,11 +1,14 @@
 Company name,Regex
+AP Møller Mærsk,\bmoller
 Ackerstein Industries,\backr
 Actividades de Construcción y Servicios,\bacs
 Ahava Dead Sea Laboratories,dead.*sea.*laboratories
 Alphabet,google
-AP Møller Mærsk,\bmoller
 Amir Marketing and Investments,\bamrk
 Ashtrom Residential Development,ashdar.*(building|company)
+Bank Hapoalim,\bbkhyy
+Bank Hapoalim,\bbkhpy
+Bank Leumi,\bblmif
 "Bar-Amana Buildings Construction and
 Development",binyanei
 Booking Holdings,\bbkng
@@ -85,7 +88,6 @@ Impact Property Development,\brmax
 Rotshtein Real Estate,\brots
 S.A.G. Building & Development,\bvelvel
 Salomon A. Angel,angel.*bake
-Shapir Engineering and Industry,\bspen
 Shikun & Binui,\bskbn
 American Israeli Gas Corp,amisragas
 The Caisse de dépôt et placement du Québec,\bthe caisse de depot et placement du quebec
