@@ -1,6 +1,6 @@
 Name,Bud,Regex
 Barkan and Partners,barkan,barkan
-AP Møller Mærsk,maersk,\bmaersk\b
+AP Møller Mærsk,maersk,\bmaersk
 Ackerstein Industries,ackerstein,ackerstein
 Actividades de Construcción y Servicios,actividades,actividades.*(acs|constr|serv)
 Adm Do Brasil,,
@@ -19,7 +19,7 @@ Amir Marketing and Investments,amir,\bamir
 Amos Hadar Properties and Investments,amos,\bamos
 Amot Investments,amot,\bamot\b
 Anglo Saxon Real Estate,anglo,anglo.*(saxon|real.*estate)
-Apple,,
+Apple Inc,apple,\bapple
 Archivists,,
 Ariel Properties Group,ariel,\bariel.*(properties|group)
 Ashot Ashkelon Industries,ashot,ashot|ashkelon
@@ -140,11 +140,11 @@ Hilan Ltd,hilan,\bhilan\b
 Honeywell International,honeywell,honeywell
 Hot Mobile Ltd,hot mobile,hot.*mobile
 Hot Telecommunications Systems,hot telecommunications,hot.*telecommunications
-Hyundai Heavy Industries,hyundai heavy,hyundai.*(heavy|industries)
+Hyundai Heavy Industries,hyundai heavy,hyundai.*(heavy|indust)
 ICL Group,icl,\bicl\b
 Ingeniería y Economía del Transporte,ingenieria y economia,ingenieria.*economia
 Intel Corp.,intel,\bintel.*corp
-International Business Machines,,
+International Business Machines,business machines,business.*machines
 Israel Aereospace Industries,aereospace industries,\baereospace industries\b
 Israel Chemicals,chemicals,\bisrael.*chemicals
 Israel Discount Bank,discount bank,(?=.*israel).*discount.*bank
@@ -287,13 +287,22 @@ ZIM Integrated Shipping Services,zim,\bzim.*(integrated|shipping|services)
 ZMH Hammerman,zmh,\bzmh
 Zoko Enterprises,zoko,\bzoko
 Zriha Hlavin Industries,zriha,zriha
-BTPS,,
+ITALY BTPS,btps,\bbtps
 ITALY BOTS,,
-ICCREA BANCA,,
+ICCREA,,
 INTESA SANPAOLO,,
-US TREASURY,,
-SAUDI ARAB,,
 ISRAEL FIXED,,
 ALMAWAVE,,
-ARCA,,
 MONDADORI,,
+EF BOND US,,
+YOURINDEX SICAV,,
+EU EU BOND,,
+BOTS ZC,,
+AXA SA,axa,\baxa.*sa
+ENELIM,,
+TAIWAN SEMICONDUCTOR,,
+ROLLS,,
+YIS MSCI WORLD,,
+DANBNK,,
+NORDEA,,
+ISHARES,,
