@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
-use pyo3::types::{PyString,PyList};
-use pyo3::exceptions::PyException;
+use pyo3::types::{PyString,PyDict,PyList};
+use pyo3::exceptions::{PyException};
 use regex::Regex;
 
 
@@ -55,11 +55,6 @@ pub fn normalize_string(input: &str) -> String {
 }
 
 
-enum RegexBuildErrors {
-    Syntax(String),
-    CompiledTooBig(usize)
-}
-
 #[derive(Debug,Clone)]
 pub struct Company{
     name: String,
@@ -101,7 +96,7 @@ impl<'a,'py> FromPyObject<'a,'py> for Company{
             name: py_company.getattr("name")?.extract()?,
             buds: py_company.getattr("buds")?.extract()?,
             regexs: regexs,
-            symbols: Vec::new()
+            symbols: symbols
         })
     }
 
@@ -284,10 +279,29 @@ pub enum OwnedMatchingErrors{
 
 #[pyfunction]
 #[pyo3(name = "match_company")]
-pub fn py_match_company<'py>(text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyAny>) -> PyResult<()> {
+pub fn py_match_company<'py>(py: Python<'py>,text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyList>) -> PyResult<Option<Bound<'py,PyString>>> {
+    use MatchingErrors::*;
     let text: String = text.extract()?;
     let target_companies: Vec<Company> = target_companies.extract()?;
-    Ok(())
+    match match_company(&text,&target_companies) {
+        Ok(Some(res)) => Ok(Some(PyString::new(py,res))),
+        Ok(None) => Ok(None),
+        Err(AmbiguousRegex{
+            text,
+            origin_company,
+            other_company,
+            origin_match,
+            other_match,
+        }) => {
+            let info=PyDict::new(py);
+            info.set_item(PyString::new(py,"text"),PyString::new(py,text))?;
+            info.set_item(PyString::new(py,"origin_company"),PyString::new(py,origin_company))?;
+            info.set_item(PyString::new(py,"other_company"),PyString::new(py,other_company))?;
+            info.set_item(PyString::new(py,"origin_match"),PyString::new(py,origin_match.as_str()))?;
+            info.set_item(PyString::new(py,"other_match"),PyString::new(py,other_match.as_str()))?;
+            Err(PyErr::new::<PyException, Py<PyDict>>(info.unbind()))
+        }
+    }
 }
 
 
