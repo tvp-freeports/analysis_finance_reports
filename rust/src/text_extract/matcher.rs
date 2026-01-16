@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyString,PyDict,PyList};
 use pyo3::exceptions::{PyException};
-use regex::Regex;
+use regex::{Regex,RegexBuilder};
 
 
 
@@ -70,7 +70,11 @@ impl<'a,'py> FromPyObject<'a,'py> for Company{
         let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
         for p in regexs_patterns.into_iter() {
             regexs.push(
-                Regex::new(&p).map_err(|e|
+                RegexBuilder::new(&p)
+                .case_insensitive(true)
+                .dot_matches_new_line(true)
+                .build()
+                .map_err(|e|
                     match e {
                         regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
                         regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
@@ -83,7 +87,10 @@ impl<'a,'py> FromPyObject<'a,'py> for Company{
         let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
         for p in symbols_patterns.into_iter() {
             symbols.push(
-                Regex::new(&p).map_err(|e|
+                RegexBuilder::new(&format!(r"\b{p}\b"))
+                .dot_matches_new_line(true)
+                .build()
+                .map_err(|e|
                     match e {
                         regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
                         regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),

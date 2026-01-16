@@ -77,6 +77,10 @@ def normalize_string(string: str) -> str:
     return " ".join(string.lower().translate(table).split()).strip()
 
 
+def dataframe_to_list(target_companies: pd.DataFrame):
+    df = target_companies.copy()
+
+
 def dataframe_to_match(target_companies: pd.DataFrame) -> Tuple[List[Tuple], Dict]:
     """Prepare target company data for matching.
 
