@@ -286,7 +286,7 @@ pub enum OwnedMatchingErrors{
 #[pyo3(name = "match_company")]
 pub fn py_match_company<'py>(text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyAny>) -> PyResult<()> {
     let text: String = text.extract()?;
-    let target_companies: Company = target_companies.extract()?;
+    let target_companies: Vec<Company> = target_companies.extract()?;
     Ok(())
 }
 
