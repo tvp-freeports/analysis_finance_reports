@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyString,PyList};
+use pyo3::exceptions::PyException;
 use regex::Regex;
 
 
@@ -53,11 +54,11 @@ pub fn normalize_string(input: &str) -> String {
     out.trim().to_string()
 }
 
-// enum RegexErrors {
-//     FailedBuild{
 
-//     }
-// }
+enum RegexBuildErrors {
+    Syntax(String),
+    CompiledTooBig(usize)
+}
 
 #[derive(Debug,Clone)]
 pub struct Company{
@@ -67,27 +68,45 @@ pub struct Company{
     symbols: Vec<Regex>
 }
 
-// impl<'a,'py> FromPyObject<'a,'py> for Company{
-//     type Error=PyErr;
-//     fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
-//         let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
-//         let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
-//         for p in regexs_patterns.into_iter() {
-//             regexs.push(Regex::new(&p)?)
-//         }
-//         let symbols_patterns: Vec<String> = py_company.getattr("symbols")?.extract()?;
-//         let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
-//         for p in symbols_patterns.into_iter() {
-//             symbols.push(Regex::new(&p)?)
-//         }
-//         Ok(Company {
-//             name: py_company.getattr("name")?.extract()?,
-//             buds: py_company.getattr("buds")?.extract()?,
-//             regexs,
-//             symbols
-//         })
-//     }
-// }
+impl<'a,'py> FromPyObject<'a,'py> for Company{
+    type Error=PyErr;
+    fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
+        let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
+        let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
+        for p in regexs_patterns.into_iter() {
+            regexs.push(
+                Regex::new(&p).map_err(|e|
+                    match e {
+                        regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+                        regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                        _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+                    }
+                )?
+            )
+        }
+        let symbols_patterns: Vec<String> = py_company.getattr("symbols")?.extract()?;
+        let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
+        for p in symbols_patterns.into_iter() {
+            symbols.push(
+                Regex::new(&p).map_err(|e|
+                    match e {
+                        regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+                        regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                        _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+                    }
+                )?
+            )
+        }
+        Ok(Company {
+            name: py_company.getattr("name")?.extract()?,
+            buds: py_company.getattr("buds")?.extract()?,
+            regexs: regexs,
+            symbols: Vec::new()
+        })
+    }
+
+}
+
 
 fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
@@ -263,13 +282,13 @@ pub enum OwnedMatchingErrors{
 //     }
 // }
 
-// #[pyfunction]
-// #[pyo3(name = "match_company")]
-// pub fn py_match_company<'py>(text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyAny>) -> PyResult<()> {
-//     let text: String = text.extract()?;
-//     let target_companies: Company = target_companies.extract()?;
-//     Ok(())
-// }
+#[pyfunction]
+#[pyo3(name = "match_company")]
+pub fn py_match_company<'py>(text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyAny>) -> PyResult<()> {
+    let text: String = text.extract()?;
+    let target_companies: Company = target_companies.extract()?;
+    Ok(())
+}
 
 
 #[derive(Debug,Clone,Copy)]
