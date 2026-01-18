@@ -54,7 +54,7 @@ pub fn normalize_string(input: &str) -> String {
     out.trim().to_string()
 }
 
-
+#[pyclass]
 #[derive(Debug,Clone)]
 pub struct CompanyMatchInfos{
     name: String,
@@ -64,53 +64,53 @@ pub struct CompanyMatchInfos{
     symbols: Vec<Regex>
 }
 
-impl<'a,'py> FromPyObject<'a,'py> for CompanyMatchInfos{
-    type Error=PyErr;
-    fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
-        let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
-        let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
-        for p in regexs_patterns.into_iter() {
-            regexs.push(
-                RegexBuilder::new(&p)
-                .case_insensitive(true)
-                .dot_matches_new_line(true)
-                .build()
-                .map_err(|e|
-                    match e {
-                        regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
-                        regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
-                        _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
-                    }
-                )?
-            )
-        }
-        let symbols_patterns: Vec<String> = py_company.getattr("symbols")?.extract()?;
-        let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
-        for p in symbols_patterns.into_iter() {
-            symbols.push(
-                RegexBuilder::new(&format!(r"\b{p}\b"))
-                .dot_matches_new_line(true)
-                .build()
-                .map_err(|e|
-                    match e {
-                        regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
-                        regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
-                        _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
-                    }
-                )?
-            )
-        }
-        let name: String=py_company.getattr("name")?.extract()?;
-        Ok(CompanyMatchInfos {
-            n_name: normalize_string(&name),
-            name,
-            buds: py_company.getattr("buds")?.extract()?,
-            regexs: regexs,
-            symbols: symbols
-        })
-    }
+// impl<'a,'py> FromPyObject<'a,'py> for CompanyMatchInfos{
+//     type Error=PyErr;
+//     fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
+//         let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
+//         let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
+//         for p in regexs_patterns.into_iter() {
+//             regexs.push(
+//                 RegexBuilder::new(&p)
+//                 .case_insensitive(true)
+//                 .dot_matches_new_line(true)
+//                 .build()
+//                 .map_err(|e|
+//                     match e {
+//                         regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+//                         regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+//                         _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+//                     }
+//                 )?
+//             )
+//         }
+//         let symbols_patterns: Vec<String> = py_company.getattr("symbols")?.extract()?;
+//         let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
+//         for p in symbols_patterns.into_iter() {
+//             symbols.push(
+//                 RegexBuilder::new(&format!(r"\b{p}\b"))
+//                 .dot_matches_new_line(true)
+//                 .build()
+//                 .map_err(|e|
+//                     match e {
+//                         regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+//                         regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+//                         _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+//                     }
+//                 )?
+//             )
+//         }
+//         let name: String=py_company.getattr("name")?.extract()?;
+//         Ok(CompanyMatchInfos {
+//             n_name: normalize_string(&name),
+//             name,
+//             buds: py_company.getattr("buds")?.extract()?,
+//             regexs: regexs,
+//             symbols: symbols
+//         })
+//     }
 
-}
+// }
 
 
 fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
@@ -163,11 +163,12 @@ pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfo
         |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a CompanyMatchInfos| -> Option<(MatchResult<'a>,Option<&'a str>)> {
             let CompanyMatchInfos{
                 name,
+                n_name,
                 buds,
                 regexs,
                 ..
             } = c;
-            let res = if txt.contains(&c.n_name) {
+            let res = if txt.contains(n_name) {
                 Ok(Some(c.name.as_str()))
             } else if buds.iter().any(|b| txt.contains(b.as_str())) {
                 match regexs.iter().find(|r| r.is_match(&txt)) {
@@ -177,13 +178,13 @@ pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfo
                                 Err(AmbiguousRegex{
                                     text,
                                     origin_company: ln,
-                                    other_company: &c.name,
+                                    other_company: &name,
                                     origin_match: lr,
                                     other_match: r
                                 })
                             },
                             None => {
-                                *last_match = Some((&c.name,r));
+                                *last_match = Some((&name,r));
                                 Ok(None)
                             }
                         }
