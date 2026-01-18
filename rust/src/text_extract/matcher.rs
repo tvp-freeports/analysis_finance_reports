@@ -56,14 +56,15 @@ pub fn normalize_string(input: &str) -> String {
 
 
 #[derive(Debug,Clone)]
-pub struct Company{
+pub struct CompanyMatchInfos{
     name: String,
+    n_name: String,
     buds: Vec<String>,
     regexs: Vec<Regex>,
     symbols: Vec<Regex>
 }
 
-impl<'a,'py> FromPyObject<'a,'py> for Company{
+impl<'a,'py> FromPyObject<'a,'py> for CompanyMatchInfos{
     type Error=PyErr;
     fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
         let regexs_patterns: Vec<String> = py_company.getattr("regexs")?.extract()?;
@@ -99,8 +100,10 @@ impl<'a,'py> FromPyObject<'a,'py> for Company{
                 )?
             )
         }
-        Ok(Company {
-            name: py_company.getattr("name")?.extract()?,
+        let name: String=py_company.getattr("name")?.extract()?;
+        Ok(CompanyMatchInfos {
+            n_name: normalize_string(&name),
+            name,
             buds: py_company.getattr("buds")?.extract()?,
             regexs: regexs,
             symbols: symbols
@@ -110,15 +113,14 @@ impl<'a,'py> FromPyObject<'a,'py> for Company{
 }
 
 
-fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     let mut last_matching_regex: Option<(&str,&Regex)> = None;
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
-        let n_name=normalize_string(&c.name);
-        if txt.contains(&n_name){
+        if txt.contains(&c.n_name){
             return Ok(Some(&c.name))
         }
         for b in &c.buds {
@@ -153,20 +155,19 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
 
 type MatchResult<'a> = Result<Option<&'a str>,MatchingErrors<'a>>;
 
-pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> MatchResult<'a> {
+pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     match target_companies.iter().scan(
         None::<(&'a str,&'a Regex)>,
-        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a Company| -> Option<(MatchResult<'a>,Option<&'a str>)> {
-            let Company{
+        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a CompanyMatchInfos| -> Option<(MatchResult<'a>,Option<&'a str>)> {
+            let CompanyMatchInfos{
                 name,
                 buds,
                 regexs,
                 ..
             } = c;
-            let n_name=normalize_string(name.as_str());
-            let res = if txt.contains(&n_name) {
+            let res = if txt.contains(&c.n_name) {
                 Ok(Some(c.name.as_str()))
             } else if buds.iter().any(|b| txt.contains(b.as_str())) {
                 match regexs.iter().find(|r| r.is_match(&txt)) {
@@ -208,7 +209,7 @@ pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[Company]) -> Mat
 
 
 
-fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     let mut last_matching_regex: Option<(&str,&Regex)> = None;
@@ -242,7 +243,7 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Optio
     res
 }
 
-pub fn match_company<'a>(text: &'a str, target_companies: &'a[Company]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+pub fn match_company<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     match match_fast(text,target_companies) {
         Ok(None) => match_long(text,target_companies),
         res => res
@@ -264,7 +265,7 @@ pub enum OwnedMatchingErrors{
 
 // #[pyfunction]
 // #[pyo3(name = "match_company")]
-// pub fn py_match_company(text: String, target_companies: Vec<Company>) -> Result<Option<String>,OwnedMatchingErrors> {
+// pub fn py_match_company(text: String, target_companies: Vec<CompanyMatchInfos>) -> Result<Option<String>,OwnedMatchingErrors> {
 //     match match_company(text.as_str(),&target_companies) {
 //         Ok(None) => Ok(None),
 //         Ok(Some(txt)) => Ok(Some(txt.to_string())),
@@ -289,7 +290,7 @@ pub enum OwnedMatchingErrors{
 pub fn py_match_company<'py>(py: Python<'py>,text: &Bound<'py, PyString>, target_companies: &Bound<'py,PyList>) -> PyResult<Option<Bound<'py,PyString>>> {
     use MatchingErrors::*;
     let text: String = text.extract()?;
-    let target_companies: Vec<Company> = target_companies.extract()?;
+    let target_companies: Vec<CompanyMatchInfos> = target_companies.extract()?;
     match match_company(&text,&target_companies) {
         Ok(Some(res)) => Ok(Some(PyString::new(py,res))),
         Ok(None) => Ok(None),
@@ -382,23 +383,26 @@ mod tests {
         use super::*;
         use pretty_assertions::{assert_eq};
         use test_case::test_case;
-        const EMPTY_COMPANY: Company = Company{
+        const EMPTY_COMPANY: CompanyMatchInfos = CompanyMatchInfos{
             name: String::new(),
+            n_name: String::new(),
             buds: Vec::<String>::new(),
             regexs: Vec::<Regex>::new(),
             symbols: Vec::<Regex>::new(),
         };
-        static COMPANY_LIST: LazyLock<Vec<Company>> = LazyLock::new(
+        static COMPANY_LIST: LazyLock<Vec<CompanyMatchInfos>> = LazyLock::new(
             || vec![
-                Company{
+                CompanyMatchInfos{
                     name: "Coca Cola".to_string(),
+                    n_name: normalize_string("Coca Cola"),
                     symbols: vec![
                         Regex::new(r"\bCOC\b").unwrap()
                     ],
                     ..EMPTY_COMPANY
                 },
-                Company{
-                    name: "bubu".to_string(),
+                CompanyMatchInfos{
+                    name: "bubus".to_string(),
+                    n_name: normalize_string("bubus"),
                     buds: vec![String::from("rock bubu")],
                     regexs: vec![
                         Regex::new(r"\bbubu\b").unwrap(),
@@ -406,16 +410,18 @@ mod tests {
                     ],
                     ..EMPTY_COMPANY
                 },
-                Company{
+                CompanyMatchInfos{
                     name: "BlackRock".to_string(),
+                    n_name: normalize_string("BlackRock"),
                     buds: vec![String::from("black"),String::from("rock")],
                     regexs: vec![
                         Regex::new(r"\bblack ?rock").unwrap()
                     ],
                     ..EMPTY_COMPANY
                 },
-                Company{
+                CompanyMatchInfos{
                     name: "pimpa Co.".to_string(),
+                    n_name: normalize_string("pimpa Co."),
                     buds: vec![String::from("pimpa")],
                     regexs: vec![
                         Regex::new(r"\bpimpa co\b").unwrap(),
@@ -423,8 +429,9 @@ mod tests {
                     ],
                     symbols: Vec::new()
                 },
-                Company{
+                CompanyMatchInfos{
                     name: "almade".to_string(),
+                    n_name: normalize_string("almade"),
                     buds: vec![String::from("almande")],
                     regexs: vec![
                         Regex::new(r"lman?de\b").unwrap()
@@ -434,8 +441,9 @@ mod tests {
                         Regex::new(r"\bALM\b").unwrap()
                     ]
                 },
-                Company{
+                CompanyMatchInfos{
                     name: "olemande part two".to_string(),
+                    n_name: normalize_string("olemande part two"),
                     buds: vec![String::from("part")],
                     regexs: vec![
                         Regex::new(r"part two").unwrap()
@@ -446,7 +454,7 @@ mod tests {
         );
         
         #[test_case("un ----BLACKROCK----","BlackRock";"just name")]
-        #[test_case(" Na BUBU la troc","bubu";"regex")]
+        #[test_case(" Na BUBU la troc","bubus";"regex")]
         #[test_case("302840128 ifl COC UUU]]]","Coca Cola";"symbol")]
         fn matched(provided: &str, expected: &str) {
             let res = match_company(provided,&COMPANY_LIST)
@@ -481,7 +489,7 @@ mod tests {
             use super::*;
             use pretty_assertions::{assert_eq};
             use test_case::test_case;
-            #[test_case(" The Pimpa Company","pimpa Co.";"just name")]
+            #[test_case(" The Pimpa CompanyMatchInfos","pimpa Co.";"just name")]
             #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
             fn matched(provided: &str, expected: &str) {
                 let res = match_fast_iter(provided,&COMPANY_LIST)
@@ -516,7 +524,7 @@ mod tests {
             use super::*;
             use pretty_assertions::{assert_eq};
             use test_case::test_case;
-            #[test_case(" The Pimpa Company","pimpa Co.";"just name")]
+            #[test_case(" The Pimpa CompanyMatchInfos","pimpa Co.";"just name")]
             #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
             fn matched(provided: &str, expected: &str) {
                 let res = match_fast(provided,&COMPANY_LIST)
