@@ -29,7 +29,8 @@ mod freeports_lib {
         mod matcher {
             #[pymodule_export]
             use crate::text_extract::matcher::{
-                py_match_company
+                py_match_company,
+                CompanyMatchInfos
             };
         }
     }

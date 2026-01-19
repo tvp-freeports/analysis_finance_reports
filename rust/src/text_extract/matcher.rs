@@ -63,7 +63,65 @@ pub struct CompanyMatchInfos{
     regexs: Vec<Regex>,
     symbols: Vec<Regex>
 }
+#[pymethods]
+impl CompanyMatchInfos {
+    #[staticmethod]
+    pub fn compile_from_pandas_df<'py>(py: Python<'py>, df: Bound<'py,PyAny>) -> Result<Vec<Self>,PyErr>{
+        let mut res: Vec<Self> = Vec::new();
+        let kwargs=PyDict::new(py);
+        kwargs.set_item("orient","index")?;
+        let dict = df.call_method("to_dict",(),Some(&kwargs))?.cast_into::<PyDict>()?.iter();
+        for (py_name,py_company) in dict {
+            let name: String = py_name.extract()?;
+            let regexs_patterns: Vec<String> = py_company.get_item("Regexs")?.extract()?;
+            let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
+            for p in regexs_patterns.into_iter() {
+                regexs.push(
+                    RegexBuilder::new(&p)
+                    .case_insensitive(true)
+                    .dot_matches_new_line(true)
+                    .build()
+                    .map_err(|e|
+                        match e {
+                            regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+                            regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                            _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+                        }
+                    )?
+                )
+            }
+            let symbols_patterns: Vec<String> = py_company.get_item("Symbols")?.extract()?;
+            let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
+            for p in symbols_patterns.into_iter() {
+                symbols.push(
+                    RegexBuilder::new(&format!(r"\b{p}\b"))
+                    .dot_matches_new_line(true)
+                    .build()
+                    .map_err(|e|
+                        match e {
+                            regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
+                            regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                            _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
+                        }
+                    )?
+                )
+            }
 
+
+            res.push(
+                CompanyMatchInfos{
+                    n_name: normalize_string(&name),
+                    buds: py_company.get_item("Buds")?.extract()?,
+                    name,
+                    regexs,
+                    symbols
+                    
+                }
+            )
+        }
+        Ok(res)
+    } 
+}
 // impl<'a,'py> FromPyObject<'a,'py> for CompanyMatchInfos{
 //     type Error=PyErr;
 //     fn extract(py_company: Borrowed<'a,'py,PyAny>) -> Result<Self,Self::Error>{
