@@ -12,8 +12,8 @@ SHORT_DOCS_NAME = "S"
 LONG_DOCS_NAME = "L"
 TIMESTAMP = datetime.datetime.now().strftime("%y-%m-%d_%H,%M,%S")
 
-n_long = 3
-n_short = 5
+n_long = 0
+n_short = 1
 
 l_docs = random.sample(conf.long_documents, n_long)
 s_docs = random.sample(conf.short_documents, n_short)
@@ -40,6 +40,7 @@ for i, s in enumerate(s_docs):
     config["FORMAT"] = s
     config["PDF"] = TEST_FORMATS_DIR / s / "report.pdf"
     fra.main(config)
+
 pr.disable()
 pr.dump_stats(PROFILES_DIR / f"{SHORT_DOCS_NAME}{n_short}@{TIMESTAMP}.prof")
 print("-----------------------------------")

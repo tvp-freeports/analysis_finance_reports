@@ -1,6 +1,6 @@
 from test_single_page import get_page
 from freeports_analysis.data import get_target_companies, TARGET_LISTS
-from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
+import freeports_lib
 import dill
 
 
@@ -23,7 +23,12 @@ def create_plk_one_page(
     with open(f"{page_n}-pdf_blks.pkl", "wb") as f:
         dill.dump(blks, f)
     targets = get_target_companies(TARGET_LISTS)
-    blks = text_extract_func(blks, dataframe_to_match(targets))
+    targets = (
+        freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+            targets
+        )
+    )
+    blks = text_extract_func(blks, targets)
     if print_txt_blks:
         for blk in blks:
             print(blk)

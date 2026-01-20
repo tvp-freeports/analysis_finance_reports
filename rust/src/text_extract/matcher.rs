@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyString,PyDict,PyList};
 use pyo3::exceptions::{PyException};
-use regex::{Regex,RegexBuilder};
+use fancy_regex::{Regex,Error as RegexError};
 
 
 
@@ -77,14 +77,11 @@ impl CompanyMatchInfos {
             let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
             for p in regexs_patterns.into_iter() {
                 regexs.push(
-                    RegexBuilder::new(&p)
-                    .case_insensitive(true)
-                    .dot_matches_new_line(true)
-                    .build()
+                    Regex::new(&format!(r"(?is){p}"))
                     .map_err(|e|
                         match e {
-                            regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
-                            regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                            RegexError::ParseError(_,_) => PyErr::new::<PyException, _>("Error parsing regex"),
+                            RegexError::CompileError(_) => PyErr::new::<PyException, _>("Error compiling regex"),
                             _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
                         }
                     )?
@@ -94,13 +91,11 @@ impl CompanyMatchInfos {
             let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
             for p in symbols_patterns.into_iter() {
                 symbols.push(
-                    RegexBuilder::new(&format!(r"\b{p}\b"))
-                    .dot_matches_new_line(true)
-                    .build()
+                    Regex::new(&format!(r"(?s)\b{p}\b"))
                     .map_err(|e|
                         match e {
-                            regex::Error::Syntax(pattern) => PyErr::new::<PyException, _>(pattern),
-                            regex::Error::CompiledTooBig(n) => PyErr::new::<PyException, _>(n),
+                            RegexError::ParseError(_,_)  => PyErr::new::<PyException, _>("Error parsing regex"),
+                            RegexError::CompileError(_) => PyErr::new::<PyException, _>("Error compiling regex"),
                             _ => PyErr::new::<PyException, _>("Unknown error occurred in regex building")
                         }
                     )?
@@ -184,7 +179,7 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
         for b in &c.buds {
             if txt.contains(b) {
                 for r in &c.regexs {
-                    if r.is_match(&txt) {
+                    if r.is_match(&txt)? {
                         match &last_matching_regex{
                             None => {
                                 last_matching_regex=Some((&c.name,r));
@@ -229,7 +224,7 @@ pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfo
             let res = if txt.contains(n_name) {
                 Ok(Some(c.name.as_str()))
             } else if buds.iter().any(|b| txt.contains(b.as_str())) {
-                match regexs.iter().find(|r| r.is_match(&txt)) {
+                match regexs.iter().find(|r| r.is_match(&txt).unwrap()) {
                     Some(r) => {
                         match *last_match {
                             Some((ln,lr)) => {
@@ -275,11 +270,11 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
-        if c.symbols.iter().any(|s| s.is_match(text)) {
+        if c.symbols.iter().any(|s| s.is_match(text).unwrap()) {
             return Ok(Some(&c.name))
         }
         for r in &c.regexs {
-            if r.is_match(&txt) {
+            if r.is_match(&txt)? {
                 match &last_matching_regex{
                     None => {
                         last_matching_regex=Some((&c.name,r));
@@ -311,16 +306,6 @@ pub fn match_company<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]
 
 
 
-#[derive(Debug,Clone)]
-pub enum OwnedMatchingErrors{
-    AmbiguousRegex{
-        text: String,
-        origin_company: String,
-        other_company: String,
-        origin_match: Regex,
-        other_match: Regex
-    }
-}
 
 // #[pyfunction]
 // #[pyo3(name = "match_company")]
@@ -367,7 +352,8 @@ pub fn py_match_company<'py>(py: Python<'py>,text: &Bound<'py, PyString>, target
             info.set_item(PyString::new(py,"origin_match"),PyString::new(py,origin_match.as_str()))?;
             info.set_item(PyString::new(py,"other_match"),PyString::new(py,other_match.as_str()))?;
             Err(PyErr::new::<PyException, Py<PyDict>>(info.unbind()))
-        }
+        },
+        Err(MatchRegexRuntimeError) => Err(PyErr::new::<PyException, _>("Runtime error in matching evaluation"))
     }
 }
 
@@ -380,12 +366,22 @@ pub enum MatchingErrors<'a>{
         other_company: &'a str,
         origin_match: &'a Regex,
         other_match: &'a Regex
+    },
+    MatchRegexRuntimeError
+}
+impl From<RegexError> for MatchingErrors<'_> {
+    fn from(err: RegexError) -> MatchingErrors<'static> {
+        match err {
+            RegexError::RuntimeError(_) => MatchingErrors::MatchRegexRuntimeError,
+            _ => panic!("Unknow error, expected runtime error or regex evaluation")
+        }
     }
 }
 
 impl PartialEq for MatchingErrors<'_> {
     fn eq(&self,other: &Self) -> bool {
         match (self,other) {
+            (Self::MatchRegexRuntimeError,Self::MatchRegexRuntimeError) => true,
             (Self::AmbiguousRegex{
                 text,
                 origin_company,
@@ -412,7 +408,8 @@ impl PartialEq for MatchingErrors<'_> {
                     o_origin_match.as_str(),
                     o_other_match.as_str()
                 )
-            }
+            },
+            _ => false
         }
         
     }

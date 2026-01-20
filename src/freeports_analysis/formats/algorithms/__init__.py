@@ -10,6 +10,7 @@ The module also handles pipeline composition and execution coordination.
 
 from typing import List, Callable, Dict, Tuple, Union, Any, Optional
 import logging as log
+import freeports_lib
 from freeports_analysis.formats.algorithms.unstructured import (
     get_pipes as get_unstructured,
 )
@@ -17,7 +18,6 @@ from freeports_analysis.formats.algorithms.semistructured import (
     get_pipes as get_semistructured,
 )
 from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
-from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
 from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
 from freeports_analysis.output import Investment
@@ -195,7 +195,11 @@ def text_extract_exec(
     List[List[TextBlock]]
         List of TextBlock lists, one per page
     """
-    matches = dataframe_to_match(targets)
+    matches = (
+        freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+            targets
+        )
+    )
 
     def _add_targets_to_txt_extract(f: Callable) -> Callable:
         return lambda blks: f(blks, matches)

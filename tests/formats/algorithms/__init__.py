@@ -6,9 +6,9 @@ import pandas as pd
 from lxml import etree
 import yaml
 import freeports_analysis as fra
+import freeports_lib
 from freeports_analysis.formats.data import VALID_FORMATS
 from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.text_extract.match import dataframe_to_match
 from tests.conftest import out_dir, xml_parser, targets, conf
 
 
@@ -63,7 +63,9 @@ def generic_test_text_extract(page, path):
         pdf_blks = dill.load(f)
     fmt, pipeline_name = get_fmt_pipeline_name(path)
     text_extracts = get_segment(fmt, pipeline_name, 1)
-    trgs = dataframe_to_match(targets)
+    trgs = freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+        targets
+    )
     txt_blks = [
         blk for text_extract in text_extracts for blk in text_extract(pdf_blks, trgs)
     ]

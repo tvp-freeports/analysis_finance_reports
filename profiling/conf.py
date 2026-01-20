@@ -21,12 +21,11 @@ long_documents = [
     "MEDIOLANUM-IT24.A",
     "MEDIOLANUM-IT24.C",
     "EURIZON-EN23.A",
-    "EURIZON-EN23.B",
     "DANSKEINVEST-EN24",
 ]
 short_documents = [
     "ANIMA_SICAV-EN24",
-    "ARCA-IT24",
+    "ARCA-IT24/1/",
     "ASTERIA-EN23",
     "ASTERIA-EN24",
     "CARNE-EN23",
@@ -37,7 +36,7 @@ short_documents = [
     "MEDIOLANUM-IT24.B",
     "UBS-EN23",
     "EURIZON-EN21",
-    "EURIZON-IT24",
+    "EURIZON-IT24/1/",
     "MEDIOLANUM-ES24.B",
 ]
 
