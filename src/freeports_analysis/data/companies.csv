@@ -133,7 +133,7 @@ Hamat Group,hamat,hamat
 Hangzhou Hik-vision Digital Technology Co,hangzhou hik vision,\bhangzhou hikvision\b
 Hanson Israel Ltd,hanson,hanson.*israel
 Harsa Studio Sanitaryware Manufacturers,harsa,harsa.*(studio|sanitaryware|manufacturers)
-HD Hyundai,hyundai,^(?!.*(heavy|indust)).*hyundai
+HD Hyundai,hyundai,^.*hyundai
 Heidelberg Materials,heidelberg,heidelberg
 Hewlett Packard Enterprise,hewlett packard,\bhewlett packard\b
 Hilan Ltd,hilan,\bhilan\b
@@ -226,7 +226,7 @@ Petróleo Brasileiro,,
 Powergen Solar,powergen,powergen
 Proffimat Ltd,proffimat,proffimat
 Rafael Advanced Defence Systems,rafael,\brafael.*(advanced|defence|systems)
-Rami Levy Chain Stores Hashikma Marketing,rami levy,^(?!.*communic).*rami.*levy
+Rami Levy Chain Stores Hashikma Marketing,rami levy,^.*rami.*levy
 Rami Levy Hashikma,rami levy,rami.*levy.*communic
 Impact Property Development,impact property,impact.*property
 RENK Group,renk,\brenk\b
@@ -241,7 +241,7 @@ Shalgal Food,shalgal,shalgal
 Shapir Engineering and Industry,shapir,\bshapir\b
 Shell Plc,shell,\bshell\b
 Shikun & Binui Solel Boneh Infrastructure,shikun,shikun.*(solel|boneh|infrastructure)
-Shikun & Binui,shikun,^(?!.*(solel|boneh|infrastructure)).*shikun
+Shikun & Binui,shikun,^.*shikun
 Shlomo Cohen Construction Co,shlomo,shlomo.*constr
 Shoham Engineering and Development,shoham,shoham.*(engine|develop)
 Shufersal,,\bshuff
@@ -265,7 +265,7 @@ Tnuva Central Cooperative for the Marketing of Agricultural Produce in Israel,tn
 Total Energies,total,\btotal.*energies
 Toyota Motor,toyota,toyota
 Traton SE,traton,\btraton\b
-TripAdvisor,trip,\btrip\b(?!\.)
+TripAdvisor,trip,\btrip\b\.
 TUI AG,,
 Twitoplast,,
 Unikowsky Maoz,unikowsky,unikowsky

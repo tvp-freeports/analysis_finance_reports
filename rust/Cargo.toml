@@ -9,9 +9,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bitflags = "2.10.0"
-# regex = "1.12.2"
+regex = "1.12.2"
 # fancy-regex = "0.12"
-onig = "6.5.1"
+# onig = "6.5.1"
 
 [dev-dependencies]
 test-case = "3.3.1"
@@ -21,3 +21,10 @@ pretty_assertions = "1.4.1"
 [dependencies.pyo3]
 version = "0.27.0"
 features = ["abi3-py38"]
+
+
+[profile.release]
+debug = "line-tables-only"
+
+[build]
+rustflags = ["-C", "force-frame-pointers=yes","-C","symbol-mangling-version=v0"]

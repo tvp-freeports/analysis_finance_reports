@@ -17,6 +17,10 @@ from freeports_analysis.formats.algorithms.unstructured import (
 from freeports_analysis.formats.algorithms.semistructured import (
     get_pipes as get_semistructured,
 )
+from freeports_analysis.formats.utils.text_extract.match import (
+    USE_RUST_MATCH,
+    dataframe_to_match,
+)
 from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
 from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
@@ -195,11 +199,15 @@ def text_extract_exec(
     List[List[TextBlock]]
         List of TextBlock lists, one per page
     """
-    matches = (
-        freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
-            targets
+    matches = None
+    if USE_RUST_MATCH:
+        matches = (
+            freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+                targets
+            )
         )
-    )
+    else:
+        matches = dataframe_to_match(targets)
 
     def _add_targets_to_txt_extract(f: Callable) -> Callable:
         return lambda blks: f(blks, matches)
