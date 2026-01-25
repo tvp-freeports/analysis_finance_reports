@@ -1,7 +1,8 @@
 use pyo3::prelude::*;
+use std::sync::Arc;
 use pyo3::types::{PyString,PyDict,PyList};
 use pyo3::exceptions::{PyException};
-use regex::{Regex};
+use onig::{Regex, Syntax, RegexOptions};
 
 
 
@@ -60,8 +61,8 @@ pub struct CompanyMatchInfos{
     name: String,
     n_name: String,
     buds: Vec<String>,
-    regexs: Vec<Regex>,
-    symbols: Vec<Regex>
+    regexs: Vec<Arc<Regex>>,
+    symbols: Vec<Arc<Regex>>
 }
 #[pymethods]
 impl CompanyMatchInfos {
@@ -74,23 +75,33 @@ impl CompanyMatchInfos {
         for (py_name,py_company) in dict {
             let name: String = py_name.extract()?;
             let regexs_patterns: Vec<String> = py_company.get_item("Regexs")?.extract()?;
-            let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());
-            for p in regexs_patterns.into_iter() {
+            let mut regexs: Vec<Arc<Regex>> = Vec::with_capacity(regexs_patterns.len());
+            for p in regexs_patterns.iter() {
                 regexs.push(
-                    Regex::new(&format!(r"(?is){p}"))
+                    Arc::new(Regex::with_options(
+                        p,
+                        RegexOptions::REGEX_OPTION_IGNORECASE | RegexOptions::REGEX_OPTION_MULTILINE,
+                        Syntax::default()
+                    )
                     .map_err(|e|
-                        PyErr::new::<PyException, _>("Error in compiling Regex")
-                    )?
+                        PyErr::new::<PyException, _>((e.description().to_string(),p.to_string(),e.code()))
+                        // PyErr::new::<PyException, _>(format!("(?is){p}"))
+                    )?)
                 )
             }
             let symbols_patterns: Vec<String> = py_company.get_item("Symbols")?.extract()?;
-            let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
-            for p in symbols_patterns.into_iter() {
+            let mut symbols: Vec<Arc<Regex>> = Vec::with_capacity(symbols_patterns.len());
+            for p in symbols_patterns.iter() {
                 symbols.push(
-                    Regex::new(&format!(r"(?s)\b{p}\b"))
+                    Arc::new(Regex::with_options(
+                        p,
+                        RegexOptions::REGEX_OPTION_MULTILINE,
+                        Syntax::default()
+                    )
                     .map_err(|e|
-                        PyErr::new::<PyException, _>("Error in compiling Regex")
-                    )?
+                        PyErr::new::<PyException, _>((e.description().to_string(),p.to_string(),e.code()))
+                        // PyErr::new::<PyException, _>(format!("(?is){p}"))
+                    )?)
                 )
             }
 
@@ -114,20 +125,22 @@ impl CompanyMatchInfos {
 fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
-    let mut last_matching_regex: Option<(&str,&Regex)> = None;
+    let mut last_matching_regex: Option<(&str,Arc<Regex>)> = None;
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
         if txt.contains(&c.n_name){
             return Ok(Some(&c.name))
         }
+        // println!("{txt} | {c:?}");
         for b in &c.buds {
             if txt.contains(b) {
                 for r in &c.regexs {
+                    // println!("REGEX: {r:?}");
                     if r.is_match(&txt) {
                         match &last_matching_regex{
                             None => {
-                                last_matching_regex=Some((&c.name,r));
+                                last_matching_regex=Some((&c.name,r.clone()));
                                 res=Ok(Some(&c.name));
                             },
                             Some((company,reg)) => {
@@ -135,8 +148,8 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
                                     text,
                                     origin_company: company,
                                     other_company: &c.name,
-                                    origin_match: reg,
-                                    other_match: r
+                                    origin_match: reg.clone(),
+                                    other_match: r.clone()
                                 })
                             }
                         }
@@ -153,65 +166,65 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
 
 type MatchResult<'a> = Result<Option<&'a str>,MatchingErrors<'a>>;
 
-pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
-    use MatchingErrors::*;
-    let txt=normalize_string(text);
-    match target_companies.iter().scan(
-        None::<(&'a str,&'a Regex)>,
-        |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a CompanyMatchInfos| -> Option<(MatchResult<'a>,Option<&'a str>)> {
-            let CompanyMatchInfos{
-                name,
-                n_name,
-                buds,
-                regexs,
-                ..
-            } = c;
-            let res = if txt.contains(n_name) {
-                Ok(Some(c.name.as_str()))
-            } else if buds.iter().any(|b| txt.contains(b.as_str())) {
-                match regexs.iter().find(|r| r.is_match(&txt)) {
-                    Some(r) => {
-                        match *last_match {
-                            Some((ln,lr)) => {
-                                Err(AmbiguousRegex{
-                                    text,
-                                    origin_company: ln,
-                                    other_company: &name,
-                                    origin_match: lr,
-                                    other_match: r
-                                })
-                            },
-                            None => {
-                                *last_match = Some((&name,r));
-                                Ok(None)
-                            }
-                        }
-                    },
-                    None => Ok(None)   
-                }
-            } else {Ok(None)};
-            Some((res,last_match.map(|x| x.0)))
-        }
-    ).scan(Ok(None::<&'a str>),|prev_res: & mut MatchResult, (res,lm) | {
-        let tmp = match *prev_res {
-            Ok(None) => Some((res,lm)),
-            _ => None
-        };
-        *prev_res=res;
-        tmp
-    }).last() {
-        None => Ok(None),
-        Some((Ok(None),last_match)) => Ok(last_match),
-        Some((res,_)) => res,
-    }
-}
+// pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
+//     use MatchingErrors::*;
+//     let txt=normalize_string(text);
+//     match target_companies.iter().scan(
+//         None::<(&'a str,&'a Regex)>,
+//         |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a CompanyMatchInfos| -> Option<(MatchResult<'a>,Option<&'a str>)> {
+//             let CompanyMatchInfos{
+//                 name,
+//                 n_name,
+//                 buds,
+//                 regexs,
+//                 ..
+//             } = c;
+//             let res = if txt.contains(n_name) {
+//                 Ok(Some(c.name.as_str()))
+//             } else if buds.iter().any(|b| txt.contains(b.as_str())) {
+//                 match regexs.iter().find(|r| r.is_match(&txt)) {
+//                     Some(r) => {
+//                         match *last_match {
+//                             Some((ln,lr)) => {
+//                                 Err(AmbiguousRegex{
+//                                     text,
+//                                     origin_company: ln,
+//                                     other_company: &name,
+//                                     origin_match: lr,
+//                                     other_match: r
+//                                 })
+//                             },
+//                             None => {
+//                                 *last_match = Some((&name,r));
+//                                 Ok(None)
+//                             }
+//                         }
+//                     },
+//                     None => Ok(None)   
+//                 }
+//             } else {Ok(None)};
+//             Some((res,last_match.map(|x| x.0)))
+//         }
+//     ).scan(Ok(None::<&'a str>),|prev_res: & mut MatchResult, (res,lm) | {
+//         let tmp = match *prev_res {
+//             Ok(None) => Some((res,lm)),
+//             _ => None
+//         };
+//         *prev_res=res;
+//         tmp
+//     }).last() {
+//         None => Ok(None),
+//         Some((Ok(None),last_match)) => Ok(last_match),
+//         Some((res,_)) => res,
+//     }
+// }
 
 
 
 fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
-    let mut last_matching_regex: Option<(&str,&Regex)> = None;
+    let mut last_matching_regex: Option<(&str,Arc<Regex>)> = None;
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
@@ -222,7 +235,7 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
             if r.is_match(&txt) {
                 match &last_matching_regex{
                     None => {
-                        last_matching_regex=Some((&c.name,r));
+                        last_matching_regex=Some((&c.name,r.clone()));
                         res=Ok(Some(&c.name));
                     },
                     Some((company,reg)) => {
@@ -230,8 +243,8 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
                             text,
                             origin_company: company,
                             other_company: &c.name,
-                            origin_match: reg,
-                            other_match: r
+                            origin_match: reg.clone(),
+                            other_match: r.clone()
                         })
                     }
                 }
@@ -271,22 +284,22 @@ pub fn py_match_company<'py>(py: Python<'py>,text: &Bound<'py, PyString>, target
             info.set_item(PyString::new(py,"text"),PyString::new(py,text))?;
             info.set_item(PyString::new(py,"origin_company"),PyString::new(py,origin_company))?;
             info.set_item(PyString::new(py,"other_company"),PyString::new(py,other_company))?;
-            info.set_item(PyString::new(py,"origin_match"),PyString::new(py,origin_match.as_str()))?;
-            info.set_item(PyString::new(py,"other_match"),PyString::new(py,other_match.as_str()))?;
+            info.set_item(PyString::new(py,"origin_match"),PyString::new(py,format!("{origin_match:?}").as_str()))?;
+            info.set_item(PyString::new(py,"other_match"),PyString::new(py,format!("{other_match:?}").as_str()))?;
             Err(PyErr::new::<PyException, Py<PyDict>>(info.unbind()))
         }
     }
 }
 
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone)]
 pub enum MatchingErrors<'a>{
     AmbiguousRegex{
         text: &'a str,
         origin_company: &'a str,
         other_company: &'a str,
-        origin_match: &'a Regex,
-        other_match: &'a Regex
+        origin_match: Arc<Regex>,
+        other_match: Arc<Regex>
     }
 }
 
@@ -311,14 +324,14 @@ impl PartialEq for MatchingErrors<'_> {
                     text,
                     origin_company,
                     other_company,
-                    origin_match.as_str(),
-                    other_match.as_str()
+                    origin_match,
+                    other_match
                 ) == (
                     o_text,
                     o_origin_company,
                     o_other_company,
-                    o_origin_match.as_str(),
-                    o_other_match.as_str()
+                    o_origin_match,
+                    o_other_match
                 )
             }
         }
@@ -353,8 +366,8 @@ mod tests {
             name: String::new(),
             n_name: String::new(),
             buds: Vec::<String>::new(),
-            regexs: Vec::<Regex>::new(),
-            symbols: Vec::<Regex>::new(),
+            regexs: Vec::<Arc<Regex>>::new(),
+            symbols: Vec::<Arc<Regex>>::new(),
         };
         static COMPANY_LIST: LazyLock<Vec<CompanyMatchInfos>> = LazyLock::new(
             || vec![
@@ -362,7 +375,7 @@ mod tests {
                     name: "Coca Cola".to_string(),
                     n_name: normalize_string("Coca Cola"),
                     symbols: vec![
-                        Regex::new(r"\bCOC\b").unwrap()
+                        Arc::new(Regex::new(r".*\bCOC\b").unwrap())
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -371,8 +384,8 @@ mod tests {
                     n_name: normalize_string("bubus"),
                     buds: vec![String::from("rock bubu")],
                     regexs: vec![
-                        Regex::new(r"\bbubu\b").unwrap(),
-                        Regex::new(r"rock").unwrap()
+                        Arc::new(Regex::new(r".*\bbubu\b.*").unwrap()),
+                        Arc::new(Regex::new(r".*rock.*").unwrap())
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -381,7 +394,7 @@ mod tests {
                     n_name: normalize_string("BlackRock"),
                     buds: vec![String::from("black"),String::from("rock")],
                     regexs: vec![
-                        Regex::new(r"\bblack ?rock").unwrap()
+                        Arc::new(Regex::new(r".*\bblack ?rock.*").unwrap())
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -390,8 +403,8 @@ mod tests {
                     n_name: normalize_string("pimpa Co."),
                     buds: vec![String::from("pimpa")],
                     regexs: vec![
-                        Regex::new(r"\bpimpa co\b").unwrap(),
-                        Regex::new(r"\bsecret\b").unwrap()
+                        Arc::new(Regex::new(r".*\bpimpa co\b.*").unwrap()),
+                        Arc::new(Regex::new(r".*\bsecret\b.*").unwrap())
                     ],
                     symbols: Vec::new()
                 },
@@ -400,11 +413,11 @@ mod tests {
                     n_name: normalize_string("almade"),
                     buds: vec![String::from("almande")],
                     regexs: vec![
-                        Regex::new(r"lman?de\b").unwrap()
+                        Arc::new(Regex::new(r".*lman?de\b.*").unwrap())
                     ],
                     symbols: vec![
-                        Regex::new(r"\bALMD\b").unwrap(),
-                        Regex::new(r"\bALM\b").unwrap()
+                        Arc::new(Regex::new(r".*\bALMD\b.*").unwrap()),
+                        Arc::new(Regex::new(r".*\bALM\b.*").unwrap())
                     ]
                 },
                 CompanyMatchInfos{
@@ -412,7 +425,7 @@ mod tests {
                     n_name: normalize_string("olemande part two"),
                     buds: vec![String::from("part")],
                     regexs: vec![
-                        Regex::new(r"part two").unwrap()
+                        Arc::new(Regex::new(r".*part two.*").unwrap())
                     ],
                     ..EMPTY_COMPANY
                 }
@@ -441,8 +454,8 @@ mod tests {
             text: "Almande part two",
             origin_company: "almade",
             other_company: "olemande part two",
-            origin_match: &Regex::new("lman?de\\b").unwrap(),
-            other_match: &Regex::new("part two").unwrap(),
+            origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
+            other_match: Arc::new(Regex::new("part two").unwrap()),
         };"ambiguous_regex")]
         fn err(provided: &str, expected: MatchingErrors) {
             let res = match_long(provided,&COMPANY_LIST).unwrap_err();
@@ -451,40 +464,40 @@ mod tests {
             )
         }
         
-        mod fast_iter {
-            use super::*;
-            use pretty_assertions::{assert_eq};
-            use test_case::test_case;
-            #[test_case(" The Pimpa CompanyMatchInfos","pimpa Co.";"just name")]
-            #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
-            fn matched(provided: &str, expected: &str) {
-                let res = match_fast_iter(provided,&COMPANY_LIST)
-                .unwrap()
-                .unwrap();
-                assert_eq!(
-                    res,expected
-                )
-            }
-            #[test]
-            fn no_match() {
-                let provided=&"calimbone";
-                let res = match_fast_iter(provided,&COMPANY_LIST).unwrap();
-                assert!(res.is_none())
-            }
-            #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-                text: "Almande part two",
-                origin_company: "almade",
-                other_company: "olemande part two",
-                origin_match: &Regex::new("lman?de\\b").unwrap(),
-                other_match: &Regex::new("part two").unwrap(),
-            };"ambiguous_regex")]
-            fn err(provided: &str, expected: MatchingErrors) {
-                let res = match_fast_iter(provided,&COMPANY_LIST).unwrap_err();
-                assert_eq!(
-                    res,expected
-                )
-            }
-        }
+        // mod fast_iter {
+        //     use super::*;
+        //     use pretty_assertions::{assert_eq};
+        //     use test_case::test_case;
+        //     #[test_case(" The Pimpa CompanyMatchInfos","pimpa Co.";"just name")]
+        //     #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
+        //     fn matched(provided: &str, expected: &str) {
+        //         let res = match_fast_iter(provided,&COMPANY_LIST)
+        //         .unwrap()
+        //         .unwrap();
+        //         assert_eq!(
+        //             res,expected
+        //         )
+        //     }
+        //     #[test]
+        //     fn no_match() {
+        //         let provided=&"calimbone";
+        //         let res = match_fast_iter(provided,&COMPANY_LIST).unwrap();
+        //         assert!(res.is_none())
+        //     }
+        //     #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
+        //         text: "Almande part two",
+        //         origin_company: "almade",
+        //         other_company: "olemande part two",
+        //         origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
+        //         other_match: Arc::new(Regex::new("part two").unwrap()),
+        //     };"ambiguous_regex")]
+        //     fn err(provided: &str, expected: MatchingErrors) {
+        //         let res = match_fast_iter(provided,&COMPANY_LIST).unwrap_err();
+        //         assert_eq!(
+        //             res,expected
+        //         )
+        //     }
+        // }
 
         mod fast {
             use super::*;
@@ -512,8 +525,8 @@ mod tests {
                 text: "Almande part two",
                 origin_company: "almade",
                 other_company: "olemande part two",
-                origin_match: &Regex::new("lman?de\\b").unwrap(),
-                other_match: &Regex::new("part two").unwrap(),
+                origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
+                other_match: Arc::new(Regex::new("part two").unwrap()),
             };"ambiguous_regex")]
             fn err(provided: &str, expected: MatchingErrors) {
                 let res = match_fast(provided,&COMPANY_LIST).unwrap_err();
@@ -548,8 +561,8 @@ mod tests {
                 text: "Almande part two",
                 origin_company: "almade",
                 other_company: "olemande part two",
-                origin_match: &Regex::new("lman?de\\b").unwrap(),
-                other_match: &Regex::new("part two").unwrap(),
+                origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
+                other_match: Arc::new(Regex::new("part two").unwrap()),
             };"ambiguous_regex")]
             fn err(provided: &str, expected: MatchingErrors) {
                 let res = match_long(provided,&COMPANY_LIST).unwrap_err();
