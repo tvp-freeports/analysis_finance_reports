@@ -12,8 +12,8 @@ SHORT_DOCS_NAME = "S"
 LONG_DOCS_NAME = "L"
 TIMESTAMP = datetime.datetime.now().strftime("%y-%m-%d_%H,%M,%S")
 
-n_long = 0
-n_short = 1
+n_long = 3
+n_short = 5
 
 l_docs = random.sample(conf.long_documents, n_long)
 s_docs = random.sample(conf.short_documents, n_short)

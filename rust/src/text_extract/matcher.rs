@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use std::sync::Arc;
 use pyo3::types::{PyString,PyDict,PyList};
 use pyo3::exceptions::{PyException};
-use onig::{Regex, Syntax, RegexOptions};
+use onig::{Regex as OnigurmaRegex, Syntax, RegexOptions as OnigurmaRegexOptions};
 
 
 
@@ -55,14 +55,20 @@ pub fn normalize_string(input: &str) -> String {
     out.trim().to_string()
 }
 
+#[derive(Debug,Clone)]
+struct Regex {
+    pattern: String,
+    reference: Arc<OnigurmaRegex>
+}
+
 #[pyclass]
 #[derive(Debug,Clone)]
 pub struct CompanyMatchInfos{
     name: String,
     n_name: String,
     buds: Vec<String>,
-    regexs: Vec<Arc<Regex>>,
-    symbols: Vec<Arc<Regex>>
+    regexs: Vec<Regex>,
+    symbols: Vec<Regex>,
 }
 #[pymethods]
 impl CompanyMatchInfos {
@@ -75,37 +81,41 @@ impl CompanyMatchInfos {
         for (py_name,py_company) in dict {
             let name: String = py_name.extract()?;
             let regexs_patterns: Vec<String> = py_company.get_item("Regexs")?.extract()?;
-            let mut regexs: Vec<Arc<Regex>> = Vec::with_capacity(regexs_patterns.len());
-            for p in regexs_patterns.iter() {
+            let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());            
+            for p in regexs_patterns.into_iter() {
                 regexs.push(
-                    Arc::new(Regex::with_options(
-                        p,
-                        RegexOptions::REGEX_OPTION_IGNORECASE | RegexOptions::REGEX_OPTION_MULTILINE,
-                        Syntax::default()
-                    )
-                    .map_err(|e|
-                        PyErr::new::<PyException, _>((e.description().to_string(),p.to_string(),e.code()))
-                        // PyErr::new::<PyException, _>(format!("(?is){p}"))
-                    )?)
+                    Regex{
+                        reference: Arc::new(
+                            OnigurmaRegex::with_options(
+                                p.as_str(),
+                                OnigurmaRegexOptions::REGEX_OPTION_IGNORECASE | OnigurmaRegexOptions::REGEX_OPTION_MULTILINE,
+                                Syntax::default()
+                            ).map_err(|e|
+                                PyErr::new::<PyException, _>((p.clone(),e.description().to_string()))
+                            )?
+                        ),
+                        pattern: p
+                    }
                 )
             }
             let symbols_patterns: Vec<String> = py_company.get_item("Symbols")?.extract()?;
-            let mut symbols: Vec<Arc<Regex>> = Vec::with_capacity(symbols_patterns.len());
-            for p in symbols_patterns.iter() {
+            let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
+            for p in symbols_patterns.into_iter() {
                 symbols.push(
-                    Arc::new(Regex::with_options(
-                        p,
-                        RegexOptions::REGEX_OPTION_MULTILINE,
-                        Syntax::default()
-                    )
-                    .map_err(|e|
-                        PyErr::new::<PyException, _>((e.description().to_string(),p.to_string(),e.code()))
-                        // PyErr::new::<PyException, _>(format!("(?is){p}"))
-                    )?)
+                    Regex{
+                        reference: Arc::new(
+                            OnigurmaRegex::with_options(
+                                p.as_str(),
+                                OnigurmaRegexOptions::REGEX_OPTION_MULTILINE,
+                                Syntax::default()
+                            ).map_err(|e|
+                                PyErr::new::<PyException, _>((p.clone(),e.description().to_string()))
+                            )?
+                        ),
+                        pattern: p
+                    }
                 )
             }
-
-
             res.push(
                 CompanyMatchInfos{
                     n_name: normalize_string(&name),
@@ -125,22 +135,23 @@ impl CompanyMatchInfos {
 fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
-    let mut last_matching_regex: Option<(&str,Arc<Regex>)> = None;
+    let mut last_matching_regex: Option<(&str,&str)> = None;
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
         if txt.contains(&c.n_name){
             return Ok(Some(&c.name))
         }
-        // println!("{txt} | {c:?}");
         for b in &c.buds {
             if txt.contains(b) {
-                for r in &c.regexs {
-                    // println!("REGEX: {r:?}");
+                for Regex{
+                    pattern,
+                    reference: r
+                } in &c.regexs {
                     if r.is_match(&txt) {
                         match &last_matching_regex{
                             None => {
-                                last_matching_regex=Some((&c.name,r.clone()));
+                                last_matching_regex=Some((&c.name,pattern));
                                 res=Ok(Some(&c.name));
                             },
                             Some((company,reg)) => {
@@ -148,8 +159,8 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
                                     text,
                                     origin_company: company,
                                     other_company: &c.name,
-                                    origin_match: reg.clone(),
-                                    other_match: r.clone()
+                                    origin_match: reg,
+                                    other_match: pattern
                                 })
                             }
                         }
@@ -166,76 +177,25 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
 
 type MatchResult<'a> = Result<Option<&'a str>,MatchingErrors<'a>>;
 
-// pub fn match_fast_iter<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
-//     use MatchingErrors::*;
-//     let txt=normalize_string(text);
-//     match target_companies.iter().scan(
-//         None::<(&'a str,&'a Regex)>,
-//         |last_match: & mut Option<(&'a str,&'a Regex)>, c: &'a CompanyMatchInfos| -> Option<(MatchResult<'a>,Option<&'a str>)> {
-//             let CompanyMatchInfos{
-//                 name,
-//                 n_name,
-//                 buds,
-//                 regexs,
-//                 ..
-//             } = c;
-//             let res = if txt.contains(n_name) {
-//                 Ok(Some(c.name.as_str()))
-//             } else if buds.iter().any(|b| txt.contains(b.as_str())) {
-//                 match regexs.iter().find(|r| r.is_match(&txt)) {
-//                     Some(r) => {
-//                         match *last_match {
-//                             Some((ln,lr)) => {
-//                                 Err(AmbiguousRegex{
-//                                     text,
-//                                     origin_company: ln,
-//                                     other_company: &name,
-//                                     origin_match: lr,
-//                                     other_match: r
-//                                 })
-//                             },
-//                             None => {
-//                                 *last_match = Some((&name,r));
-//                                 Ok(None)
-//                             }
-//                         }
-//                     },
-//                     None => Ok(None)   
-//                 }
-//             } else {Ok(None)};
-//             Some((res,last_match.map(|x| x.0)))
-//         }
-//     ).scan(Ok(None::<&'a str>),|prev_res: & mut MatchResult, (res,lm) | {
-//         let tmp = match *prev_res {
-//             Ok(None) => Some((res,lm)),
-//             _ => None
-//         };
-//         *prev_res=res;
-//         tmp
-//     }).last() {
-//         None => Ok(None),
-//         Some((Ok(None),last_match)) => Ok(last_match),
-//         Some((res,_)) => res,
-//     }
-// }
-
-
 
 fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
-    let mut last_matching_regex: Option<(&str,Arc<Regex>)> = None;
+    let mut last_matching_regex: Option<(&str,&str)> = None;
     let mut res: Result<Option<&str>,MatchingErrors> = Ok(None);
 
     for c in target_companies {
-        if c.symbols.iter().any(|s| s.is_match(text)) {
+        if c.symbols.iter().any(|s| s.reference.is_match(text)) {
             return Ok(Some(&c.name))
         }
-        for r in &c.regexs {
+        for Regex{
+            pattern,
+            reference: r
+        } in &c.regexs {
             if r.is_match(&txt) {
                 match &last_matching_regex{
                     None => {
-                        last_matching_regex=Some((&c.name,r.clone()));
+                        last_matching_regex=Some((&c.name,pattern));
                         res=Ok(Some(&c.name));
                     },
                     Some((company,reg)) => {
@@ -243,8 +203,8 @@ fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
                             text,
                             origin_company: company,
                             other_company: &c.name,
-                            origin_match: reg.clone(),
-                            other_match: r.clone()
+                            origin_match: reg,
+                            other_match: pattern
                         })
                     }
                 }
@@ -284,8 +244,8 @@ pub fn py_match_company<'py>(py: Python<'py>,text: &Bound<'py, PyString>, target
             info.set_item(PyString::new(py,"text"),PyString::new(py,text))?;
             info.set_item(PyString::new(py,"origin_company"),PyString::new(py,origin_company))?;
             info.set_item(PyString::new(py,"other_company"),PyString::new(py,other_company))?;
-            info.set_item(PyString::new(py,"origin_match"),PyString::new(py,format!("{origin_match:?}").as_str()))?;
-            info.set_item(PyString::new(py,"other_match"),PyString::new(py,format!("{other_match:?}").as_str()))?;
+            info.set_item(PyString::new(py,"origin_match"),PyString::new(py,origin_match))?;
+            info.set_item(PyString::new(py,"other_match"),PyString::new(py,other_match))?;
             Err(PyErr::new::<PyException, Py<PyDict>>(info.unbind()))
         }
     }
@@ -298,8 +258,8 @@ pub enum MatchingErrors<'a>{
         text: &'a str,
         origin_company: &'a str,
         other_company: &'a str,
-        origin_match: Arc<Regex>,
-        other_match: Arc<Regex>
+        origin_match: &'a str,
+        other_match: &'a str
     }
 }
 
@@ -366,8 +326,8 @@ mod tests {
             name: String::new(),
             n_name: String::new(),
             buds: Vec::<String>::new(),
-            regexs: Vec::<Arc<Regex>>::new(),
-            symbols: Vec::<Arc<Regex>>::new(),
+            regexs: Vec::<Regex>::new(),
+            symbols: Vec::<Regex>::new(),
         };
         static COMPANY_LIST: LazyLock<Vec<CompanyMatchInfos>> = LazyLock::new(
             || vec![
@@ -375,7 +335,10 @@ mod tests {
                     name: "Coca Cola".to_string(),
                     n_name: normalize_string("Coca Cola"),
                     symbols: vec![
-                        Arc::new(Regex::new(r".*\bCOC\b").unwrap())
+                        Regex{
+                            pattern: r".*\bCOC\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bCOC\b.*").unwrap())
+                        }
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -384,8 +347,14 @@ mod tests {
                     n_name: normalize_string("bubus"),
                     buds: vec![String::from("rock bubu")],
                     regexs: vec![
-                        Arc::new(Regex::new(r".*\bbubu\b.*").unwrap()),
-                        Arc::new(Regex::new(r".*rock.*").unwrap())
+                        Regex{
+                            pattern: r".*\bbubu\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bbubu\b.*").unwrap())
+                        },
+                        Regex{
+                            pattern: r".*rock.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*rock.*").unwrap())
+                        }
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -394,7 +363,10 @@ mod tests {
                     n_name: normalize_string("BlackRock"),
                     buds: vec![String::from("black"),String::from("rock")],
                     regexs: vec![
-                        Arc::new(Regex::new(r".*\bblack ?rock.*").unwrap())
+                        Regex{
+                            pattern: r".*\bblack ?rock.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bblack ?rock.*").unwrap())
+                        }
                     ],
                     ..EMPTY_COMPANY
                 },
@@ -403,8 +375,14 @@ mod tests {
                     n_name: normalize_string("pimpa Co."),
                     buds: vec![String::from("pimpa")],
                     regexs: vec![
-                        Arc::new(Regex::new(r".*\bpimpa co\b.*").unwrap()),
-                        Arc::new(Regex::new(r".*\bsecret\b.*").unwrap())
+                        Regex{
+                            pattern: r".*\bpimpa co\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bpimpa co\b.*").unwrap())
+                        },
+                        Regex{
+                            pattern: r".*\bsecret\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bsecret\b.*").unwrap())
+                        }
                     ],
                     symbols: Vec::new()
                 },
@@ -413,11 +391,20 @@ mod tests {
                     n_name: normalize_string("almade"),
                     buds: vec![String::from("almande")],
                     regexs: vec![
-                        Arc::new(Regex::new(r".*lman?de\b.*").unwrap())
+                        Regex{
+                            pattern: r".*lman?de\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*lman?de\b.*").unwrap())
+                        }
                     ],
                     symbols: vec![
-                        Arc::new(Regex::new(r".*\bALMD\b.*").unwrap()),
-                        Arc::new(Regex::new(r".*\bALM\b.*").unwrap())
+                        Regex{
+                            pattern: r".*\bALMD\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bALMD\b.*").unwrap()),
+                        },
+                        Regex{
+                            pattern: r".*\bALM\b.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*\bALM\b.*").unwrap())
+                        }
                     ]
                 },
                 CompanyMatchInfos{
@@ -425,7 +412,10 @@ mod tests {
                     n_name: normalize_string("olemande part two"),
                     buds: vec![String::from("part")],
                     regexs: vec![
-                        Arc::new(Regex::new(r".*part two.*").unwrap())
+                        Regex{
+                            pattern: r".*part two.*".to_string(),
+                            reference: Arc::new(OnigurmaRegex::new(r".*part two.*").unwrap())
+                        }
                     ],
                     ..EMPTY_COMPANY
                 }
@@ -454,8 +444,8 @@ mod tests {
             text: "Almande part two",
             origin_company: "almade",
             other_company: "olemande part two",
-            origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
-            other_match: Arc::new(Regex::new("part two").unwrap()),
+            origin_match: ".*lman?de\\b.*",
+            other_match: ".*part two.*",
         };"ambiguous_regex")]
         fn err(provided: &str, expected: MatchingErrors) {
             let res = match_long(provided,&COMPANY_LIST).unwrap_err();
@@ -464,41 +454,6 @@ mod tests {
             )
         }
         
-        // mod fast_iter {
-        //     use super::*;
-        //     use pretty_assertions::{assert_eq};
-        //     use test_case::test_case;
-        //     #[test_case(" The Pimpa CompanyMatchInfos","pimpa Co.";"just name")]
-        //     #[test_case("One BLACK ROCK'n ROLL","BlackRock";"regex")]
-        //     fn matched(provided: &str, expected: &str) {
-        //         let res = match_fast_iter(provided,&COMPANY_LIST)
-        //         .unwrap()
-        //         .unwrap();
-        //         assert_eq!(
-        //             res,expected
-        //         )
-        //     }
-        //     #[test]
-        //     fn no_match() {
-        //         let provided=&"calimbone";
-        //         let res = match_fast_iter(provided,&COMPANY_LIST).unwrap();
-        //         assert!(res.is_none())
-        //     }
-        //     #[test_case("Almande part two",MatchingErrors::AmbiguousRegex{
-        //         text: "Almande part two",
-        //         origin_company: "almade",
-        //         other_company: "olemande part two",
-        //         origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
-        //         other_match: Arc::new(Regex::new("part two").unwrap()),
-        //     };"ambiguous_regex")]
-        //     fn err(provided: &str, expected: MatchingErrors) {
-        //         let res = match_fast_iter(provided,&COMPANY_LIST).unwrap_err();
-        //         assert_eq!(
-        //             res,expected
-        //         )
-        //     }
-        // }
-
         mod fast {
             use super::*;
             use pretty_assertions::{assert_eq};
@@ -525,8 +480,8 @@ mod tests {
                 text: "Almande part two",
                 origin_company: "almade",
                 other_company: "olemande part two",
-                origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
-                other_match: Arc::new(Regex::new("part two").unwrap()),
+                origin_match: ".*lman?de\\b.*",
+                other_match: ".*part two.*",
             };"ambiguous_regex")]
             fn err(provided: &str, expected: MatchingErrors) {
                 let res = match_fast(provided,&COMPANY_LIST).unwrap_err();
@@ -561,8 +516,8 @@ mod tests {
                 text: "Almande part two",
                 origin_company: "almade",
                 other_company: "olemande part two",
-                origin_match: Arc::new(Regex::new("lman?de\\b").unwrap()),
-                other_match: Arc::new(Regex::new("part two").unwrap()),
+                origin_match: ".*lman?de\\b.*",
+                other_match: ".*part two.*",
             };"ambiguous_regex")]
             fn err(provided: &str, expected: MatchingErrors) {
                 let res = match_long(provided,&COMPANY_LIST).unwrap_err();
