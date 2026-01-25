@@ -24,10 +24,6 @@ from freeports_analysis.formats import (
     ExpectedTextBlockNotFound,
     LineParseFail,
 )
-from freeports_analysis.formats.utils.text_extract.match import (
-    match_company,
-    USE_RUST_MATCH,
-)
 from freeports_analysis.consts import Currency
 from .. import overwrite_if_implemented
 
@@ -351,12 +347,9 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         if cell_width or (len(content) > 0 and content[-1] in " \n"):
                             content += next_block.content
                 company = None
-                if USE_RUST_MATCH:
-                    company = freeports_lib.text_extract.matcher.match_company(
-                        content, targets
-                    )
-                else:
-                    company = match_company(content, targets)
+                company = freeports_lib.text_extract.matcher.match_company(
+                    content, targets
+                )
                 if company is not None:
                     LOG_ADAPT_INVESTMENT_INFOS.company = company
                     LOG_ADAPT_INVESTMENT_INFOS.company_match = content
@@ -386,12 +379,10 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 LOG_ADAPT_INVESTMENT_INFOS.row = row
                 content = pdf_blocks_table[-1].content
                 company = None
-                if USE_RUST_MATCH:
-                    company = freeports_lib.text_extract.matcher.match_company(
-                        content, targets
-                    )
-                else:
-                    company = match_company(content, targets)
+                company = freeports_lib.text_extract.matcher.match_company(
+                    content, targets
+                )
+
                 if company is not None:
                     LOG_ADAPT_INVESTMENT_INFOS.company = company
                     LOG_ADAPT_INVESTMENT_INFOS.company_match = content

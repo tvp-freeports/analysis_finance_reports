@@ -10,9 +10,6 @@ from typing import Dict, List, Tuple, Optional
 import pandas as pd
 from freeports_analysis.i18n import _
 
-USE_RUST_MATCH = True
-
-
 # Character translation table for string normalization
 translation_table: Dict[str, str] = {
     "é": "e",
