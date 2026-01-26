@@ -132,7 +132,7 @@ impl CompanyMatchInfos {
 }
 
 
-fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     let mut last_matching_regex: Option<(&str,&str)> = None;
@@ -178,7 +178,7 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Re
 type MatchResult<'a> = Result<Option<&'a str>,MatchingErrors<'a>>;
 
 
-fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> Result<Option<&'a str>,MatchingErrors<'a>> {
+fn match_long<'a>(text: &'a str, target_companies: &'a[CompanyMatchInfos]) -> MatchResult<'a> {
     use MatchingErrors::*;
     let txt=normalize_string(text);
     let mut last_matching_regex: Option<(&str,&str)> = None;

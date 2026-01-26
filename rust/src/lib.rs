@@ -1,6 +1,7 @@
 
 pub mod pdf_filter {
     pub mod tabularizer;
+    pub mod select;
 }
 
 pub mod text_extract {
@@ -35,4 +36,5 @@ mod freeports_lib {
         }
     }
 }
+
 
