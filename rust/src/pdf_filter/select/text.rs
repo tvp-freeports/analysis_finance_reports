@@ -1,10 +1,12 @@
 use std::ops::{BitOr,BitAnd,Div};
 
 
-trait Set {
+trait Container {
     type Elem: ?Sized;
     fn contains(&self,e: &Self::Elem) -> bool;
 }
+
+trait Set: Container + BitAnd<Self,Output=Self> + BitOr<Self,Output=Self> + Div<Self,Output=Self> + Sized {}
 
 #[derive(Debug,PartialEq,Clone)]
 struct TextAstLeaf{
@@ -13,7 +15,7 @@ struct TextAstLeaf{
     end: bool
 }
 
-impl Set for TextAstLeaf {
+impl Container for TextAstLeaf {
     type Elem = str;
     fn contains(&self, text: &str) -> bool {
         let Self{
@@ -76,6 +78,19 @@ impl SetOps {
         }
     }
 }
+
+impl Container for TextAstNode {
+    type Elem = str;
+    fn contains(&self,txt: &str) -> bool {
+        match self {
+            Self::Leaf(leaf) => leaf.contains(txt),
+            Self::Branch(box_x,op,box_y) => op.call(
+                box_x.contains(txt),box_y.contains(txt)
+            )
+        }
+    }
+}
+
 
 #[derive(Debug,Clone)]
 pub struct TextSet(TextAstNode);
@@ -142,6 +157,17 @@ impl Div<Self> for TextSet {
         )
     }
 }
+
+
+impl Container for TextSet {
+    type Elem = str;
+    fn contains(&self,txt: &str) -> bool {
+        let Self(root_node) = self;
+        root_node.contains(txt)
+    }
+}
+
+impl Set for TextSet {}
 
 #[cfg(test)]
 mod tests {
@@ -412,5 +438,44 @@ mod tests {
 
             } 
         }
+    }
+    
+    #[test_case(
+        TextSet::new("juk"),
+        "text that has to be jukonne";
+        "simple"
+    )]
+    #[test_case(
+        TextSet::new("onne$"),
+        "text that has to be jukonne";
+        "end"
+    )]
+    #[test_case(
+        TextSet::new("^text"),
+        "text that has to be jukonne";
+        "begin"
+    )]
+    #[test_case(
+        TextSet::new("niluk") | TextSet::new("jukonne"),
+        "text that has to be jukonne";
+        "union"
+    )]
+    #[test_case(
+        TextSet::new("to be") & TextSet::new("nne$"),
+        "text that has to be jukonne";
+        "intersect"
+    )]
+    #[test_case(
+        TextSet::new("text") / TextSet::new("jukone"),
+        "text that has to be jukonne";
+        "subtraction"
+    )]
+    #[test_case(
+        TextSet::new("tra") | (TextSet::new("jukonne") & TextSet::new("to be ") / TextSet::new("pulvilio")),
+        "text that has to be jukonne";
+        "complex"
+    )]
+    fn element_in_textset(txt_set: TextSet, txt: &str){
+        assert!(txt_set.contains(txt));
     }
 }
