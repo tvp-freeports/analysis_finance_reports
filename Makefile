@@ -14,7 +14,7 @@ test-rust-unit:
 	cd rust && cargo test --lib
 
 test-python-full:
-	pytest
+	pytest -m "not benchmarks"
 
 test-rust-full:
 	cd rust && cargo test
