@@ -350,6 +350,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 company = freeports_lib.text_extract.matcher.match_company(
                     content, targets
                 )
+
                 if company is not None:
                     LOG_ADAPT_INVESTMENT_INFOS.company = company
                     LOG_ADAPT_INVESTMENT_INFOS.company_match = content

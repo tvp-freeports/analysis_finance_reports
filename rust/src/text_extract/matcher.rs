@@ -84,14 +84,22 @@ impl CompanyMatchInfos {
             let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());            
             for p in regexs_patterns.into_iter() {
                 let mut modified_pattern: String;
-                if p.starts_with('^') {
+                let start = p.starts_with('^');
+                let end = p.ends_with('$');
+                if start || end {
                     modified_pattern=p.clone();
-                    modified_pattern.remove(0);
-                } else if p.ends_with('$'){
-                    modified_pattern=p.clone();
-                    modified_pattern.pop();
+                    if start {
+                        modified_pattern.remove(0);
+                    } else {
+                        modified_pattern.insert_str(0,".*");
+                    }
+                    if end {
+                        modified_pattern.pop();
+                    } else {
+                        modified_pattern.push_str(".*");
+                    }
                 } else {
-                    modified_pattern=format!(".*{}.*",p)
+                    modified_pattern=format!(".*{}.*",p);
                 }
                 regexs.push(
                     Regex{
