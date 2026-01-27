@@ -1,4 +1,4 @@
 Page,Matched Company,Company,Field name,Row,Column,Message
-522,Blackrock,BlackRock Funding Inc \n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '-' - forzo la conversione"
+522,Blackrock,BlackRock Funding Inc \n,% net assets,,,Trying to cast to number but found '-' - forcing cast
 522,Blackrock,BlackRock Funding Inc \n,% net assets,,,"Error casting, found: - \n"
 522,Blackrock,BlackRock Funding Inc \n,% net assets,,,Skipping field

@@ -1,4 +1,5 @@
 Company name,Regex
+International Business Machines,\bibm corp\b
 AP Møller Mærsk,\bmoller
 Ackerstein Industries,\backr
 Actividades de Construcción y Servicios,\bacs
