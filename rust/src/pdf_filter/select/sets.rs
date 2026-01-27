@@ -395,4 +395,38 @@ mod tests {
     fn element_in_set(txt_set: TestSet, txt: &str){
         assert!(txt_set.contains(txt));
     }
+
+
+    #[test_case(
+        TestSet::new(["liquore","text","kkk"]),
+        "gulm";
+        "simple"
+    )]
+    #[test_case(
+        TestSet::new(["niluk"]) | TestSet::new(["jukonne si"]),
+        "jukonne no";
+        "union"
+    )]
+    #[test_case(
+        TestSet::new(["grum","jukonne","litro"]) & TestSet::new(["nespo","jukonne"]),
+        "grum";
+        "intersect"
+    )]
+    #[test_case(
+        TestSet::new(["jukone","grummo"]) / TestSet::new(["piffo","jukone"]),
+        "jukone";
+        "subtraction"
+    )]
+    #[test_case(
+        TestSet::new(["tra"]) | (
+            TestSet::new(["golib","be jukonne"]) & (
+                TestSet::new(["be jukonne","ggg"]) / TestSet::new(["pulvilio","be jukonne"])
+            )
+        ),
+        "be jukonne";
+        "expression"
+    )]
+    fn element_not_in_set(txt_set: TestSet, txt: &str){
+        assert!(!txt_set.contains(txt));
+    }
 }
