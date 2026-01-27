@@ -83,36 +83,47 @@ impl CompanyMatchInfos {
             let regexs_patterns: Vec<String> = py_company.get_item("Regexs")?.extract()?;
             let mut regexs: Vec<Regex> = Vec::with_capacity(regexs_patterns.len());            
             for p in regexs_patterns.into_iter() {
+                let mut modified_pattern: String;
+                if p.starts_with('^') {
+                    modified_pattern=p.clone();
+                    modified_pattern.remove(0);
+                } else if p.ends_with('$'){
+                    modified_pattern=p.clone();
+                    modified_pattern.pop();
+                } else {
+                    modified_pattern=format!(".*{}.*",p)
+                }
                 regexs.push(
                     Regex{
                         reference: Arc::new(
                             OnigurmaRegex::with_options(
-                                p.as_str(),
+                                modified_pattern.as_str(),
                                 OnigurmaRegexOptions::REGEX_OPTION_IGNORECASE | OnigurmaRegexOptions::REGEX_OPTION_MULTILINE,
                                 Syntax::default()
                             ).map_err(|e|
                                 PyErr::new::<PyException, _>((p.clone(),e.description().to_string()))
                             )?
                         ),
-                        pattern: p
+                        pattern: modified_pattern
                     }
                 )
             }
             let symbols_patterns: Vec<String> = py_company.get_item("Symbols")?.extract()?;
             let mut symbols: Vec<Regex> = Vec::with_capacity(symbols_patterns.len());
             for p in symbols_patterns.into_iter() {
+                let modified_pattern = format!(r".*\b{}\b.*",p);
                 symbols.push(
                     Regex{
                         reference: Arc::new(
                             OnigurmaRegex::with_options(
-                                p.as_str(),
+                                modified_pattern.as_str(),
                                 OnigurmaRegexOptions::REGEX_OPTION_MULTILINE,
                                 Syntax::default()
                             ).map_err(|e|
                                 PyErr::new::<PyException, _>((p.clone(),e.description().to_string()))
                             )?
                         ),
-                        pattern: p
+                        pattern: modified_pattern
                     }
                 )
             }
