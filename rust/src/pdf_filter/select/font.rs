@@ -3,7 +3,7 @@ use super::sets::{Container,Set,AstNode,SetOps};
 pub type FontSet = Set<FontAstLeaf,str>;
 
 #[derive(Debug,PartialEq,Clone)]
-struct FontAstLeaf(String);
+pub struct FontAstLeaf(String);
 
 pub fn normalize_font(input: &str) -> String {
     let trimmed_input = input.trim();
