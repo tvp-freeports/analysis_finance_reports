@@ -1,7 +1,7 @@
 
 .PHONY: test test-full test-unit test-rust test-python test-rust-unit test-python-unit
 
-test: test-unit
+test: test-rust-full test-python-unit
 
 test-full: test-rust-full test-python-full
 
