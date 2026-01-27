@@ -36,3 +36,38 @@ use pretty_assertions::assert_eq;
 fn element_in_fontset(txt_set: FontSet, txt: &str){
     assert!(txt_set.contains(txt));
 }
+
+
+#[test_case(
+    FontSet::new("hulk"),
+    "juk";
+    "simple"
+)]
+#[test_case(
+    FontSet::new("Jucca no.vento"),
+    "      JUCA/no/vento";
+    "normalized"
+)]
+#[test_case(
+    FontSet::new("THE FROG") | FontSet::new("the.fogg"),
+    "the-smogg";
+    "union"
+)]
+#[test_case(
+    FontSet::new("to be") & FontSet::new("to see"),
+    "to be";
+    "intersect"
+)]
+#[test_case(
+    FontSet::new("FULMA") / FontSet::new("ghiotto"),
+    " casola 8";
+    "subtraction"
+)]
+#[test_case(
+    (FontSet::new("souvenir") | FontSet::new("Galego")) | (FontSet::new("France") & FontSet::new("malquibo")),
+    "malquibo";
+    "complex"
+)]
+fn element_not_in_fontset(txt_set: FontSet, txt: &str){
+    assert!(!txt_set.contains(txt));
+}
