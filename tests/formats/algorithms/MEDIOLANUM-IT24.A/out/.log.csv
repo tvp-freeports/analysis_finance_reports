@@ -1,12 +1,12 @@
 Page,Matched Company,Company,Field name,Row,Column,Message
 611,ISHARES,IRLANDA \niShares IV Public Limited Company - iShares MSCI Japan SRI UCITS ETF \n,Market value,15,,Field not found
 611,ISHARES,IRLANDA \niShares IV Public Limited Company - iShares MSCI Japan SRI UCITS ETF \n,,15,,Skipping line...
-650,NORDEA,Nordea Bank Abp \n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '-' - forzo la conversione"
+650,NORDEA,Nordea Bank Abp \n,% net assets,,,Trying to cast to number but found '-' - forcing cast
 650,NORDEA,Nordea Bank Abp \n,% net assets,,,"Error casting, found: - \n"
 650,NORDEA,Nordea Bank Abp \n,% net assets,,,Skipping field
-658,Expedia,Expedia Group Inc \n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '-' - forzo la conversione"
+658,Expedia,Expedia Group Inc \n,% net assets,,,Trying to cast to number but found '-' - forcing cast
 658,Expedia,Expedia Group Inc \n,% net assets,,,"Error casting, found: - \n"
 658,Expedia,Expedia Group Inc \n,% net assets,,,Skipping field
-704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,,,"Sto trovando a convertire a numero, ma ho trovato '-' - forzo la conversione"
+704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,,,Trying to cast to number but found '-' - forcing cast
 704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,,,"Error casting, found: - \n"
 704,Israel Government,Israel Government Bond - Fixed 3.75% 31/03/2047 \n,% net assets,,,Skipping field

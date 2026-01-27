@@ -14,9 +14,6 @@ Page,Matched Company,Company,Field name,Row,Column,Message
 199,Carrefour,Carrefour SA\n,% net assets,,,Trying to cast to number but found '–' - forcing cast
 199,Carrefour,Carrefour SA\n,% net assets,,,"Error casting, found: –\n"
 199,Carrefour,Carrefour SA\n,% net assets,,,Skipping field
-200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,Trying to cast to number but found '–' - forcing cast
-200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,"Error casting, found: –\n"
-200,Carlsberg Group,Carl Zeiss Meditec AG\n,% net assets,,,Skipping field
 227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,Trying to cast to number but found '–' - forcing cast
 227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,"Error casting, found: –\n"
 227,AP Møller Mærsk,AP Moller - Maersk A/S\n,% net assets,,,Skipping field
