@@ -1,4 +1,4 @@
-use super::sets::{Container,Set,AstNode,SetOps};
+use super::{Container,Set,AstNode,SetOps};
 
 pub type TextSet = Set<TextAstLeaf,str>;
 

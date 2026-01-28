@@ -1,5 +1,9 @@
-use std::ops::{BitOr,BitAnd,Div};
+pub mod font;
+pub mod text;
+mod area;
+mod font_size;
 
+use std::ops::{BitOr,BitAnd,Div};
 
 pub trait Container {
     type Elem: ?Sized;

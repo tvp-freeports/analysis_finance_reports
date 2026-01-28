@@ -1,4 +1,4 @@
-use freeports_lib::pdf_filter::select::text::*;
+use freeports_lib::pdf_filter::select::sets::text::*;
 use freeports_lib::pdf_filter::select::sets::Container;
 use test_case::test_case;
 use pretty_assertions::assert_eq;
