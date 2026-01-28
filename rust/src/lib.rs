@@ -1,10 +1,15 @@
 
+pub mod commons {
+    pub mod geometric;
+}
+
 pub mod pdf_filter {
     pub mod tabularizer;
     pub mod select;
 }
 
 pub mod text_extract {
+    use super::commons;
     pub mod matcher;
 }
 

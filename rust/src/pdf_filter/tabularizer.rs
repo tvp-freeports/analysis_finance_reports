@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
-
 mod coordinates;
 mod collapse;
 
+use pyo3::prelude::*;
+use crate::commons::geometric::Limits;
+
 pub use coordinates::{
-    Limits,
     CellGeometry,
     TablePosAlgorithm,
     get_table_coordinates,    
