@@ -1,7 +1,7 @@
 pub mod font;
 pub mod text;
 mod area;
-mod font_size;
+pub mod font_size;
 
 use std::ops::{BitOr,BitAnd,Div};
 
