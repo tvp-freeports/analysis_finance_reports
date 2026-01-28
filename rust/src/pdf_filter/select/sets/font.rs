@@ -1,4 +1,4 @@
-use super::{Container,Set,AstNode,SetOps};
+use super::{Container,Set,AstNode};
 
 pub type FontSet = Set<FontAstLeaf,str>;
 

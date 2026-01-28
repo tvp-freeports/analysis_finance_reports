@@ -1,7 +1,9 @@
-use super::Container;
+use super::{Container,Set};
+
 use crate::commons::geometric::Limits;
 
 type Interval = Limits;
+
 
 impl Container for Interval {
     type Elem = f32;
@@ -10,6 +12,9 @@ impl Container for Interval {
         a <= x && x <= b
     }
 }
+
+pub type FontSizeSet = Set<Interval,f32>;
+pub type FontSizeInterval = FontSizeSet;
 
 #[cfg(test)]
 mod tests {
