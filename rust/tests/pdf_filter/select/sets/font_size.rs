@@ -3,71 +3,62 @@ use freeports_lib::pdf_filter::select::sets::Container;
 use test_case::test_case;
 use pretty_assertions::assert_eq;
 
-// #[test_case(
-//     FontSizeSet::new("juk"),
-//     "juk";
-//     "simple"
-// )]
-// #[test_case(
-//     FontSet::new("Jucca no.vento"),
-//     "      JUCCA/no/vento";
-//     "normalized"
-// )]
-// #[test_case(
-//     FontSet::new("THE FROG") | FontSet::new("the.fogg"),
-//     "the-fogg";
-//     "union"
-// )]
-// #[test_case(
-//     FontSet::new("to be") & FontSet::new("TO BE"),
-//     "to/Be";
-//     "intersect"
-// )]
-// #[test_case(
-//     FontSet::new("FULMA") / FontSet::new("ghiotto"),
-//     " fulma ";
-//     "subtraction"
-// )]
-// #[test_case(
-//     (FontSet::new("souvenir") | FontSet::new("Galego")) / (FontSet::new("France") & FontSet::new("malquibo")),
-//     "SOUVENIR";
-//     "complex"
-// )]
-// fn element_in_fontset(txt_set: FontSet, txt: &str){
-//     assert!(txt_set.contains(txt));
-// }
+#[test_case(
+    FontSizeSet::new(100.0,200.0),
+    150.0;
+    "simple"
+)]
+#[test_case(
+    FontSizeSet::new(1.0,2.0) | FontSizeSet::new(3.0,4.0),
+    3.5;
+    "union"
+)]
+#[test_case(
+    FontSizeSet::new(2.0,20.0) & FontSizeSet::new(15.0,25.0),
+    17.4;
+    "intersect"
+)]
+#[test_case(
+    FontSizeSet::new(40.0,60.0) / FontSizeSet::new(45.0,55.0),
+    42.0;
+    "subtraction"
+)]
+#[test_case(
+    FontSizeSet::new(0.0,1000.0) / (FontSizeSet::new(20.0,80.0) / FontSizeSet::new(50.0,60.0) | FontSizeSet::new(100.0,1000.0) ),
+    55.5;
+    "complex"
+)]
+fn element_in_fontsizeset(interval: FontSizeSet, x: f32){
+    assert!(interval.contains(&x));
+}
 
 
-// #[test_case(
-//     FontSet::new("hulk"),
-//     "juk";
-//     "simple"
-// )]
-// #[test_case(
-//     FontSet::new("Jucca no.vento"),
-//     "      JUCA/no/vento";
-//     "normalized"
-// )]
-// #[test_case(
-//     FontSet::new("THE FROG") | FontSet::new("the.fogg"),
-//     "the-smogg";
-//     "union"
-// )]
-// #[test_case(
-//     FontSet::new("to be") & FontSet::new("to see"),
-//     "to be";
-//     "intersect"
-// )]
-// #[test_case(
-//     FontSet::new("FULMA") / FontSet::new("ghiotto"),
-//     " casola 8";
-//     "subtraction"
-// )]
-// #[test_case(
-//     (FontSet::new("souvenir") | FontSet::new("Galego")) | (FontSet::new("France") & FontSet::new("malquibo")),
-//     "malquibo";
-//     "complex"
-// )]
-// fn element_not_in_fontset(txt_set: FontSet, txt: &str){
-//     assert!(!txt_set.contains(txt));
-// }
+#[test_case(
+    FontSizeSet::new(100.0,200.0),
+    50.0;
+    "simple"
+)]
+#[test_case(
+    FontSizeSet::new(1.0,2.0) | FontSizeSet::new(3.0,4.0),
+    34.5;
+    "union"
+)]
+#[test_case(
+    FontSizeSet::new(2.0,20.0) & FontSizeSet::new(15.0,25.0),
+    3.4;
+    "intersect"
+)]
+#[test_case(
+    FontSizeSet::new(40.0,60.0) / FontSizeSet::new(45.0,55.0),
+    46.0;
+    "subtraction"
+)]
+#[test_case(
+    FontSizeSet::new(0.0,1000.0) / (FontSizeSet::new(20.0,80.0) / FontSizeSet::new(50.0,60.0) | FontSizeSet::new(100.0,1000.0) ),
+    100.1;
+    "complex"
+)]
+fn element_not_in_fontsizeset(interval: FontSizeSet, x: f32){
+    assert!(!interval.contains(&x));
+}
+

@@ -83,9 +83,9 @@ mod tests {
                 Err(err) => panic!("Found err variant: {err}")
             }
         }
-        #[test_case(-20.0,30.1,LimitsBuildError::LeftNegative(-20.0);"left_negative")]
-        #[test_case(20.0,-30.1,LimitsBuildError::RightNegative(-30.1);"right_negative")]
-        #[test_case(30.1,20.0,LimitsBuildError::NegativeInterval(30.1, 20.0);"invalid_interval")]
+        #[test_case(-20.0,30.1,LimitsBuildError::LeftNegative(-20.0);"left negative")]
+        #[test_case(20.0,-30.1,LimitsBuildError::RightNegative(-30.1);"right negative")]
+        #[test_case(30.1,20.0,LimitsBuildError::NegativeInterval(30.1, 20.0);"invalid interval")]
         fn build_err(a: f32,b: f32, err: LimitsBuildError) {
             match Limits::build(a,b) {
                 Err(e) => assert_eq!(e,err),

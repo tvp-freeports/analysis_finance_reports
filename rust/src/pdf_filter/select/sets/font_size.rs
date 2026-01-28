@@ -1,4 +1,4 @@
-use super::{Container,Set};
+use super::{Container,Set,AstNode};
 
 use crate::commons::geometric::Limits;
 
@@ -12,6 +12,14 @@ impl Container for Interval {
         a <= x && x <= b
     }
 }
+
+
+impl FontSizeSet {
+    pub fn new(a: f32, b: f32) -> Self {
+        Self(AstNode::Leaf(Limits::new(a,b)))
+    }
+}
+
 
 pub type FontSizeSet = Set<Interval,f32>;
 pub type FontSizeInterval = FontSizeSet;
