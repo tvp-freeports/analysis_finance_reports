@@ -7,7 +7,7 @@ use crate::commons::geometric::Limits;
 impl Container for Limits {
     type Elem = f32;
     fn contains(&self,x: &f32) -> bool {
-        let (a,b) = self.into_tuple();
+        let (a,b) = self.as_tuple();
         a <= *x && *x <= b
     }
 }

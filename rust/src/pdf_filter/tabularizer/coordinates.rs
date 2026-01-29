@@ -443,7 +443,7 @@ mod tests {
             assert_eq!(cell_unindexed.pos,res.pos);
             assert_eq!(cell_unindexed.area,res.area);
             assert_eq!(cell_unindexed.tolerance,res.tolerance);
-            assert_eq!(cell_unindexed.bounds.into_tuple(),res.bounds.into_tuple());
+            assert_eq!(cell_unindexed.bounds.as_tuple(),res.bounds.as_tuple());
         }
 
         #[test]
@@ -462,7 +462,7 @@ mod tests {
             assert_eq!(cell_unindexed.pos,res.pos);
             assert_eq!(cell_unindexed.area,res.area);
             assert_eq!(cell_unindexed.tolerance,res.tolerance);
-            assert_eq!(cell_unindexed.bounds.into_tuple(),res.bounds.into_tuple());
+            assert_eq!(cell_unindexed.bounds.as_tuple(),res.bounds.as_tuple());
         }
     }
     
