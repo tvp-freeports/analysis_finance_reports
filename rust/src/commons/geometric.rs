@@ -272,23 +272,36 @@ mod tests {
             assert_eq!(y1,78.3);
         }
         #[test]
-        #[should_panic = "left bound of limit can't be negative, found '-20.3'"]
+        #[should_panic = "left bound of rectangle can't be negative, found '-20.3'"]
         fn new_panic_left_negative() {
-            todo!();
-            Limits::new(-20.3,31.1);
+            Rectangle::new(-20.3,1.0,31.1,8.0);
         }
         #[test]
-        #[should_panic = "right bound of limit can't be negative, found '-35.1'"]
+        #[should_panic = "right bound of rectangle can't be negative, found '-35.1'"]
         fn new_panic_right_negative() {
-            todo!();
-            Limits::new(25.67,-35.1);
+            Rectangle::new(25.67,4.3,-35.1,6.0);
         }
         #[test]
-        #[should_panic = "left limit bound can't be bigger than right one, found left '22.2' and right '11.1'"]
-        fn new_panic_invalid_interval() {
-            todo!();
-            Limits::new(22.2,11.1);
+        #[should_panic = "left side of a rectangle can't be bigger than right one, found left '22.2' and right '11.1'"]
+        fn new_panic_invalid_width() {
+            Rectangle::new(22.2,400.0,11.1,444.0);
         }
+        #[test]
+        #[should_panic = "top bound of rectangle can't be negative, found '-1'"]
+        fn new_panic_top_negative() {
+            Rectangle::new(20.3,-1.0,31.1,8.0);
+        }
+        #[test]
+        #[should_panic = "bottom bound of rectangle can't be negative, found '-6'"]
+        fn new_panic_bottom_negative() {
+            Rectangle::new(25.67,4.3,35.1,-6.0);
+        }
+        #[test]
+        #[should_panic = "top side of a rectangle can't be bigger than bottom one, found top '480' and bottom '444'"]
+        fn new_panic_invalid_height() {
+            Rectangle::new(2.54,480.0,11.1,444.0);
+        }
+        
         #[test]
         fn as_tuple() {
             let rectangle = Rectangle::new(9.0,6.2,99.0,22.3);
