@@ -99,17 +99,17 @@ impl fmt::Display for RectangleBuildError {
 
 
 impl Rectangle {
-    fn build(x0: f32, y0: f32, x1: f32, y1: f32) -> Result<Self,RectangleBuildError> {
+    pub fn build(x0: f32, y0: f32, x1: f32, y1: f32) -> Result<Self,RectangleBuildError> {
         Limits::build(x0,x1).map_err(|err| RectangleBuildError::Horizontal(err))?;
         Limits::build(y0,y1).map_err(|err| RectangleBuildError::Vertical(err))?;
         Ok(Self {x0,y0,x1,y1})
     }
-    fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
+    pub fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
         Self::build(x0,y0,x1,y1).unwrap_or_else(
             |err| panic!("{err}")
         )
     }
-    fn as_tuple(&self) -> (f32,f32,f32,f32) {
+    pub fn as_tuple(&self) -> (f32,f32,f32,f32) {
         (self.x0,self.y0,self.x1,self.y1)
     }
 }
