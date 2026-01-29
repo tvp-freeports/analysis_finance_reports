@@ -410,50 +410,59 @@ mod tests {
     mod cell_geometry_unindexed {
         use super::*;
         use pretty_assertions::assert_eq;
-        #[test]
-        fn from_cell_geometry() {
-            let cell_geometry=CellGeometry::new((0.1,2.0,40.0,22.0),43.0);
-            assert!(matches!(
-                CellGeometryUnindexed::from_cell_geometry(&cell_geometry,100,true),
-                CellGeometryUnindexed{
-                    index: 100,
-                    pos: 20.05,
-                    area: 39.9,
-                    tolerance: 43.0,
-                    bounds: _,
-                    // bounds: Limits(0.1,40.0),
-                    _marker: marker::PhantomData
-                }
-            ));
-            assert!(matches!(
-                CellGeometryUnindexed::from_cell_geometry(&cell_geometry,11,false),
-                CellGeometryUnindexed{
-                    index: 11,
-                    pos: 12.0,
-                    area: 20.0,
-                    tolerance: 43.0,
-                    // bounds: Limits(2.0,22.0),
-                    bounds: _,
-                    _marker: marker::PhantomData
-                }
-            ));
+        use test_case::test_case;
+        #[test_case(
+            CellGeometry::new((0.1,2.0,40.0,22.0),43.0),
+            100,
+            true,
+            CellGeometryUnindexed{
+                index: 100,
+                pos: 20.05,
+                area: 39.9,
+                tolerance: 43.0,
+                bounds: Limits::new(0.1,40.0),
+                _marker: marker::PhantomData
+            }; "horizontal"
+        )]
+        #[test_case(
+            CellGeometry::new((0.1,2.0,40.0,22.0),43.0),
+            11,
+            false,
+            CellGeometryUnindexed{
+                index: 11,
+                pos: 12.0,
+                area: 20.0,
+                tolerance: 43.0,
+                bounds: Limits::new(2.0,22.0),
+                _marker: marker::PhantomData
+            }; "vertical"
+        )]
+        fn from_cell_geometry(cell: CellGeometry, index: usize, horizontal: bool, res: CellGeometryUnindexed) {
+            let cell_unindexed = CellGeometryUnindexed::from_cell_geometry(&cell,index,horizontal);
+            assert_eq!(cell_unindexed.index,res.index);
+            assert_eq!(cell_unindexed.pos,res.pos);
+            assert_eq!(cell_unindexed.area,res.area);
+            assert_eq!(cell_unindexed.tolerance,res.tolerance);
+            assert_eq!(cell_unindexed.bounds.into_tuple(),res.bounds.into_tuple());
         }
 
         #[test]
         fn from_limits() {
-            let cell_limits=Limits::build(0.1,40.5).unwrap();
-            assert!(matches!(
-                CellGeometryUnindexed::from_limits(cell_limits,99,5.7),
-                CellGeometryUnindexed{
-                    index: 99,
-                    pos: 20.3,
-                    area: 40.4,
-                    tolerance: 5.7,
-                    // bounds: Limits(0.1,40.5),
-                    bounds: _,
-                    _marker: marker::PhantomData
-                }
-            ));
+            let cell_limits=Limits::new(0.1,40.5);
+            let cell_unindexed=CellGeometryUnindexed::from_limits(cell_limits,99,5.7);
+            let res = CellGeometryUnindexed{
+                index: 99,
+                pos: 20.3,
+                area: 40.4,
+                tolerance: 5.7,
+                bounds: Limits::new(0.1,40.5),
+                _marker: marker::PhantomData
+            };
+            assert_eq!(cell_unindexed.index,res.index);
+            assert_eq!(cell_unindexed.pos,res.pos);
+            assert_eq!(cell_unindexed.area,res.area);
+            assert_eq!(cell_unindexed.tolerance,res.tolerance);
+            assert_eq!(cell_unindexed.bounds.into_tuple(),res.bounds.into_tuple());
         }
     }
     
