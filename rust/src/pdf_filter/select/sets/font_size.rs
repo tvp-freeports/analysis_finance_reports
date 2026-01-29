@@ -2,7 +2,7 @@ use super::{Container,Set,AstNode};
 
 use crate::commons::geometric::Limits;
 
-
+type FontSizeAstLeaf = Limits;
 
 impl Container for Limits {
     type Elem = f32;
@@ -28,6 +28,15 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use test_case::test_case;
+    #[test]
+    fn new_fontsizeset() {
+        let (a,b) = (0.2,0.4);
+        let res = (0.2,0.4);
+        let Set(AstNode::Leaf(interval)) = FontSizeSet::new(a,b) else {
+            panic!("Expected have to be a FontSizeSet with just one leaf")
+        };
+        assert_eq!(interval.as_tuple(),res);
+    }
 
     #[test]
     fn element_in_leafset() {

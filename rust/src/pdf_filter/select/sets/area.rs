@@ -2,7 +2,7 @@ use super::{Container,Set,AstNode};
 
 use crate::commons::geometric::Rectangle;
 
-
+type AreaAstLeaf = Rectangle;
 
 impl Container for Rectangle {
     type Elem = Self;
@@ -29,6 +29,16 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use test_case::test_case;
+
+    #[test]
+    fn new_area() {
+        let (x0,y0,x1,y1) = (0.2,9.0,0.4,10.0);
+        let res = (0.2,9.0,0.4,10.0);
+        let Set(AstNode::Leaf(rec)) = Area::new(x0,y0,x1,y1) else {
+            panic!("Expected have to be a AreaSet with just one leaf")
+        };
+        assert_eq!(rec.as_tuple(),res);
+    }
 
     #[test]
     fn element_in_leafset() {
