@@ -32,18 +32,18 @@ mod tests {
 
     #[test]
     fn element_in_leafset() {
-        let area=Area::new(0.0,20.0,50.0,80.0);
+        let area=Rectangle::new(0.0,20.0,50.0,80.0);
         let rec = Rectangle::new(3.0,29.89,49.0,79.0);
         assert!(area.contains(&rec));
     }
-    #[test_case(Area::new(0.0,20.0,50.0,80.0),Rectangle::new(300.0,290.89,490.0,790.0);"outside")]
-    #[test_case(Area::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,19.89,55.0,88.0);"around")]
-    #[test_case(Area::new(0.0,20.0,50.0,80.0),Rectangle::new(3.0,13.11,49.0,81.0);"cross")]
-    #[test_case(Area::new(1.0,20.0,50.0,80.0),Rectangle::new(0.5,29.89,49.0,79.0);"left side")]
-    #[test_case(Area::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,29.89,49.0,793.0);"right side")]
-    #[test_case(Area::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,9.89,49.0,79.0);"top")]
-    #[test_case(Area::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,29.89,50.0002,79.0);"bottom")]
-    fn element_not_in_leafset(area: Area, rec: Rectangle) {
+    #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),Rectangle::new(300.0,290.89,490.0,790.0);"outside")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,19.89,55.0,88.0);"around")]
+    #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),Rectangle::new(3.0,13.11,49.0,81.0);"cross")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.5,29.89,49.0,79.0);"left side")]
+    #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,29.89,49.0,793.0);"right side")]
+    #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,9.89,49.0,79.0);"top")]
+    #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),Rectangle::new(30.0,29.89,50.0002,79.0);"bottom")]
+    fn element_not_in_leafset(area: Rectangle, rec: Rectangle) {
         assert!(!area.contains(&rec))
     }
 }
