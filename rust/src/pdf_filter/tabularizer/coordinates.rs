@@ -10,46 +10,6 @@ use bitflags::bitflags;
 use super::TableConfig;
 use crate::commons::geometric::Limits;
 
-// #[derive(Debug,Clone,Copy)]
-// pub struct Limits(f32, f32);
-
-// impl Limits {
-//     pub fn build(a: f32, b: f32) -> Result<Self,LimitsBuildError> {
-//         use LimitsBuildError::*;
-//         if a < 0.0 {
-//             Err(LeftNegative(a))
-//         } else if b < 0.0 {
-//             Err(RightNegative(b))
-//         } else if a >= b {
-//             Err(NegativeInterval(a,b))
-//         } else {
-//             Ok(Self(a,b))
-//         }
-//     }
-// }
-// impl FromPyObject<'_, '_> for Limits {
-//     type Error = PyErr;
-//     fn extract(tuple: Borrowed<'_, '_,PyAny>) -> Result<Self, Self::Error> {
-//         let a: f32 = tuple.get_item(0)?.extract()?;
-//         let b: f32 = tuple.get_item(1)?.extract()?;
-//         Ok(Limits::build(a,b)?)
-//     }
-// }
-
-
-// #[derive(Debug)]
-// pub enum LimitsBuildError {
-//     LeftNegative(f32),
-//     RightNegative(f32),
-//     NegativeInterval(f32,f32)
-// }
-// impl From<LimitsBuildError> for PyErr {
-//     fn from(err: LimitsBuildError) -> PyErr {
-//         PyValueError::new_err(format!("{err:?}"))
-//     }
-// }
-
-
 
 #[derive(Debug,Clone,Copy)]
 pub enum CoordinateExtractionError {
@@ -147,7 +107,7 @@ impl<'a> CellGeometryUnindexed<'a> {
         }
     }
     fn from_limits(limits: Limits, index: usize, tolerance: f32) -> Self {
-        let Limits(a,b) = limits;
+        let (a,b) = limits.as_tuple();
         Self{
             _marker: marker::PhantomData,
             index,
@@ -164,13 +124,13 @@ fn same_position(a: &CellGeometryUnindexed,b: &CellGeometryUnindexed) -> bool {
     (a.pos - b.pos).abs() <= (a.tolerance+b.tolerance)/2.0
 }
 fn position_in_area(a: &CellGeometryUnindexed,b: &CellGeometryUnindexed) -> bool {
-    let Limits(l,r)=b.bounds;
+    let (l,r)=b.bounds.as_tuple();
     let t=(a.tolerance+b.tolerance)/2.0;
     a.pos <= r+t && a.pos >= l-t
 }
 fn areas_intersect(a: &CellGeometryUnindexed,b: &CellGeometryUnindexed) -> bool {
-    let Limits(_al,_ar)=a.bounds;
-    let Limits(_bl,_br)=b.bounds;
+    let (_al,_ar)=a.bounds.as_tuple();
+    let (_bl,_br)=b.bounds.as_tuple();
     let (al,ar,bl,br)=(
         _al-a.tolerance,_ar+a.tolerance,_bl-b.tolerance,_br+b.tolerance
     );
@@ -293,33 +253,6 @@ mod tests {
     
     use super::*;
     use super::super::{ColumnConfig,RowConfig};
-    
-    // mod limits_build {
-    //     use super::*;
-    //     #[test]
-    //     fn ok() {
-    //         assert!(matches!(
-    //             Limits::build(20.3,30.7),
-    //             Ok(Limits(20.3,30.7))
-    //         ));
-    //     }
-    //     #[test]
-    //     fn err() {
-    //         use LimitsBuildError::*;
-    //         assert!(matches!(
-    //             Limits::build(-20.0, 30.1),
-    //             Err(LeftNegative(-20.0))
-    //         ));
-    //         assert!(matches!(
-    //             Limits::build(20.0, -30.1),
-    //             Err(RightNegative(-30.1))
-    //         ));
-    //         assert!(matches!(
-    //             Limits::build(30.1, 20.0),
-    //             Err(NegativeInterval(30.1, 20.0))
-    //         ));
-    //     }
-    // }
 
     mod cell_geometry_new {
         use super::*;
@@ -476,6 +409,7 @@ mod tests {
     
     mod cell_geometry_unindexed {
         use super::*;
+        use pretty_assertions::assert_eq;
         #[test]
         fn from_cell_geometry() {
             let cell_geometry=CellGeometry::new((0.1,2.0,40.0,22.0),43.0);
@@ -486,7 +420,8 @@ mod tests {
                     pos: 20.05,
                     area: 39.9,
                     tolerance: 43.0,
-                    bounds: Limits(0.1,40.0),
+                    bounds: _,
+                    // bounds: Limits(0.1,40.0),
                     _marker: marker::PhantomData
                 }
             ));
@@ -497,7 +432,8 @@ mod tests {
                     pos: 12.0,
                     area: 20.0,
                     tolerance: 43.0,
-                    bounds: Limits(2.0,22.0),
+                    // bounds: Limits(2.0,22.0),
+                    bounds: _,
                     _marker: marker::PhantomData
                 }
             ));
@@ -513,7 +449,8 @@ mod tests {
                     pos: 20.3,
                     area: 40.4,
                     tolerance: 5.7,
-                    bounds: Limits(0.1,40.5),
+                    // bounds: Limits(0.1,40.5),
+                    bounds: _,
                     _marker: marker::PhantomData
                 }
             ));

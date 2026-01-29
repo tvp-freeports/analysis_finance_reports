@@ -3,9 +3,17 @@ use pyo3::exceptions::PyValueError;
 use std::fmt;
 
 #[derive(Debug,Clone,Copy)]
-pub struct Limits(pub f32, pub f32);
+pub struct Limits(f32, f32);
 
 impl Limits {
+    pub fn as_tuple(&self) -> (&f32,&f32) {
+        let Limits(a,b) = self;
+        (a,b)
+    }
+    pub fn into_tuple(self) -> (f32,f32) {
+        let Limits(a,b) = self;
+        (a,b)
+    }
     pub fn new(a: f32, b: f32) -> Self {
         Self::build(a,b).unwrap_or_else(
             |err| panic!("{err}")
@@ -63,6 +71,32 @@ impl From<LimitsBuildError> for PyErr {
         PyValueError::new_err(format!("{err}"))
     }
 }
+
+
+
+
+#[derive(Debug,Clone,Copy)]
+pub struct Rectangle{
+    x0: f32,
+    y0: f32,
+    x1: f32,
+    y1: f32
+}
+
+impl Rectangle {
+    fn build(x0: f32, y0: f32, x1: f32, y1: f32) -> Result<Self,LimitsBuildError> {
+        Limits::build(x0,x1)?;
+        Limits::build(y0,y1)?;
+        Ok(Self {x0,y0,x1,y1})
+    }
+    fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
+        Self::build(x0,y0,x1,y1).unwrap_or_else(
+            |err| panic!("{err}")
+        )
+    }
+}
+
+
 
 
 
