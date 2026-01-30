@@ -8,7 +8,7 @@ use std::iter::{zip};
 
 use bitflags::bitflags;
 use super::TableConfig;
-use crate::commons::geometric::Limits;
+use crate::commons::geometry::Limits;
 
 
 #[derive(Debug,Clone,Copy)]

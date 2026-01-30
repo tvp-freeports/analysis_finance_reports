@@ -1,6 +1,7 @@
 
 pub mod commons {
-    pub mod geometric;
+    pub mod geometry;
+    pub mod sets;
 }
 
 pub mod pdf_filter {

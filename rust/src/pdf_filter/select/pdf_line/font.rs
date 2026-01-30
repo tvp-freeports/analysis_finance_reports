@@ -1,4 +1,4 @@
-use super::{Container,Set,AstNode};
+use crate::commons::sets::{Container,Set,AstNode};
 
 pub type FontSet = Set<FontAstLeaf,str>;
 

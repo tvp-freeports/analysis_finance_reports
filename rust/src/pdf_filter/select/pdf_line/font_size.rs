@@ -1,6 +1,5 @@
-use super::{Container,Set,AstNode};
-
-use crate::commons::geometric::Limits;
+use crate::commons::sets::{Container,Set,AstNode};
+use crate::commons::geometry::Limits;
 
 type FontSizeAstLeaf = Limits;
 

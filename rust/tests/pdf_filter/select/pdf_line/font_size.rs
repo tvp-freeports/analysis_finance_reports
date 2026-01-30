@@ -1,5 +1,5 @@
-use freeports_lib::pdf_filter::select::sets::font_size::*;
-use freeports_lib::pdf_filter::select::sets::Container;
+use freeports_lib::pdf_filter::select::pdf_line::font_size::*;
+use freeports_lib::commons::sets::Container;
 use test_case::test_case;
 use pretty_assertions::assert_eq;
 

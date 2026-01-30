@@ -2,7 +2,7 @@ mod coordinates;
 mod collapse;
 
 use pyo3::prelude::*;
-use crate::commons::geometric::Limits;
+use crate::commons::geometry::Limits;
 
 pub use coordinates::{
     CellGeometry,
