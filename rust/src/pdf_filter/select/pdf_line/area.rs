@@ -1,19 +1,36 @@
-use crate::commons::sets::{Container,Set,AstNode};
+use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
 use crate::commons::geometry::Rectangle;
 
 type AreaAstLeaf = Rectangle;
 
 impl Container for Rectangle {
-    // type Elem = Self;
-    // fn contains(&self, other: &Self) -> bool {
-    //     let (x0,y0,x1,y1) = self.as_tuple();
-    //     let (z0,w0,z1,w1) = other.as_tuple();
-    //     (x0<=z0  && z1<=x1) && (y0<=w0 && w1<=y1)
-    // }
     type Elem = (f32,f32);
     fn contains(&self, point: &(f32,f32)) -> bool {
         let (x0,y0,x1,y1) = self.as_tuple();
         ( x0 <= point.0 && point.0 <= x1 ) && ( y0 <= point.1 && point.1 <= y1 )
+    }
+}
+
+impl Overlappable for Rectangle {
+    fn set_relation(&self,other: &Self) -> SetRelation {
+        use SetRelation::*;
+        let (x0,y0,x1,y1) = self.as_tuple();
+        let (a0,b0,a1,b1) = self.as_tuple();
+        if (
+            (x0>a1 || x1<a0) || (a0>x1 || a1<x0)
+        ) || (
+            (y0>b1 || y1<b0) || (b0>y1 || b1<y0)
+        ){
+            Disjoint
+        } else if (x0,y0,x1,y1) == (a0,b0,a1,b1) {
+            Equal
+        } else if (a0<=x0 && x1<=a1 && b0<=y0 && y1<=b1) {
+            Subset
+        } else if (x0<=a0 && a1<=x1 && y0<=b0 && b1<=y1) {
+            Superset
+        } else {
+            Overlapping
+        }
     }
 }
 

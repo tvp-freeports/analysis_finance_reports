@@ -1,9 +1,16 @@
-use crate::commons::sets::{Container,Set,AstNode};
+use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
 
 pub type FontSet = Set<FontAstLeaf,str>;
 
 #[derive(Debug,PartialEq,Clone)]
 pub struct FontAstLeaf(String);
+
+impl Overlappable for FontAstLeaf {
+    fn set_relation(&self,other: &Self) -> SetRelation {
+        use SetRelation::*;
+        if self.0==other.1 {Equal} else {Disjoint}
+    }
+}
 
 pub fn normalize_font(input: &str) -> String {
     let trimmed_input = input.trim();

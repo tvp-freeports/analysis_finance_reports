@@ -1,15 +1,54 @@
 use std::ops::{BitOr,BitAnd,Div};
+use std::cmp::{PartialOrd,Ordering};
+
+pub enum SetRelation {
+    Overlapping,
+    Subset,
+    Superset,
+    Disjoint,
+    Equal
+}
 
 pub trait Container {
     type Elem: ?Sized;
     fn contains(&self,e: &Self::Elem) -> bool;
 }
 
-trait SetAlgebra<T: Container<Elem = E> + Clone,E: ?Sized>: 
-    Container<Elem=E> + 
+pub trait Overlappable: PartialOrd<Self> {
+    fn set_relation(&self, other: &Self) -> SetRelation;
+    use SetRelation::*;
+    fn is_disjoint(&self, other: &Self) -> bool {
+        match self.set_relation() {
+            Overlapping => false,
+            Subset => false,
+            Superset => false,
+            Equal => false,
+            Disjoint => true,
+        }
+    }
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Ordering::*;
+        match self.set_relation() {
+            Overlapping => None,
+            Subset => Some(Less),
+            Superset => Some(Greater),
+            Equal => Some(Equal),
+            Disjoint => None,
+        } 
+    }
+}
+
+pub trait SetAstLeaf<T: Container<Elem = E> + Clone + Overlappable, E: ?Sized>: 
     BitAnd<Self,Output=Self> + 
     BitOr<Self,Output=Self> + 
-    Div<Self,Output=Self> + 
+    Div<Self,Output=Self> +
+    Sized {}
+
+trait SetAlgebra<T: SetAstLeaf,E: ?Sized>:
+    Container<Elem=E> +
+    BitAnd<Self,Output=Self> + 
+    BitOr<Self,Output=Self> + 
+    Div<Self,Output=Self> +
     Sized {}
 
 

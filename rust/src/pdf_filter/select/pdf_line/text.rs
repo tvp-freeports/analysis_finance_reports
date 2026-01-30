@@ -1,4 +1,4 @@
-use crate::commons::sets::{Container,Set,AstNode,SetOps};
+use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
 
 pub type TextSet = Set<TextAstLeaf,str>;
 
@@ -7,6 +7,41 @@ pub struct TextAstLeaf{
     start: bool,
     content: String,
     end: bool
+}
+
+impl Overlappable for TextAstLeaf {
+    fn set_relation(&self,other: TextAstLeaf) -> bool {
+        use SetRelation::*;
+        let (a,b) = &(self.content,other.content);
+        match (self.start,self.end,other.start,other.end) {
+            (true,true,true,true) => if a == b {Equal} else {Disjoint},
+            //----------------------------
+            (true,true,true,false) => if a.starts_with(b) {Subset} else {Disjoint} ,
+            (true,true,false,true) => if a.ends_with(b) {Subset} else {Disjoint},
+            (true,false,true,true) => if b.starts_with(a) {Superset} else {Disjoint},
+            (false,true,true,true) => if b.ends_with(a) {Superset} else {Disjoint},
+            //----------------------------
+            (true,true,false,false) => if a.contains(b) {Subset} else {Disjoint},
+            (false,false,true,true) => if b.contains(a) {Superset} else {Disjoint},
+            //----------------------------
+            (true,false,false,true) => Overlapping,
+            (false,true,true,false) => Overlapping,
+            //----------------------------
+            (true,false,true,false) => {
+                if a==b {Equal} else if a.starts_with(b) {Subset} else if b.starts_with(a) {Subset} else {Disjoint}
+            },
+            (false,true,false,true) => {
+                if a==b {Equal} else if a.ends_with(b) {Subset} else if b.ends_with(a) {Subset} else {Disjoint}
+            },
+            //----------------------------
+            (false,false,false,true) => if b.contains(a) {Superset} else {Overlapping},
+            (false,false,true,false) => if b.contains(a) {Superset} else {Overlapping},
+            (false,true,false,false) => if a.contains(b) {Subset} else {Overlapping},
+            (true,false,false,false) => if a.contains(b) {Subset} else {Overlapping},
+            //----------------------------
+            (false,false,false,false) => if a==b {Equal} else {Overlapping}
+        }
+    }
 }
 
 impl Container for TextAstLeaf {
@@ -28,6 +63,8 @@ impl Container for TextAstLeaf {
         }
     }
 }
+
+
 
 impl TextSet {
     pub fn new(input_txt: &str) -> Self {
