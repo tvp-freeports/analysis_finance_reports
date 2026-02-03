@@ -36,28 +36,8 @@ trait Container {
     fn contains(&self,e: &Self::Elem) -> bool;
 }
 
-trait Overlappable<Rhs>: PartialOrd<Rhs> {
+trait Overlappable<Rhs>: {
     fn set_relation(&self,other: &Rhs) -> SetRelation;
-    fn is_disjoint(&self, other: &Rhs) -> bool {
-        use SetRelation::*;
-        match self.set_relation(other) {
-            Overlapping => false,
-            Subset => false,
-            Superset => false,
-            Equal => false,
-            Disjoint => true,
-        }
-    }
-    fn partial_cmp(&self, other: &Rhs) -> Option<Ordering> {
-        use SetRelation::*;
-        match self.set_relation(other) {
-            Overlapping => None,
-            Subset => Some(Ordering::Less),
-            Superset => Some(Ordering::Greater),
-            Equal => Some(Ordering::Equal),
-            Disjoint => None,
-        }
-    }
 }
 
 
@@ -86,7 +66,25 @@ mod tests {
     use super::*;
     use test_case::test_case;
     use pretty_assertions::assert_eq;
-    use std::collections::HashSet;
+    // use std::collections::HashSet;
+    // impl Overlappable<Self> for HashSet<String> {
+    //     fn set_relation(&self,other: &Self) -> SetRelation {
+    //         use SetRelation::*;
+    //         if self.is_subset(other) {
+    //             Subset
+    //         } else if self.is_superset(other) {
+    //             Superset
+    //         } else if self.is_disjoint(other) {
+    //             Disjoint
+    //         } else if self == other {
+    //             Equal
+    //         } else {
+    //             Overlapping
+    //         }
+    //     }
+    // }
+
+
     // impl Container for HashSet<String> {
     //     type Elem = str;
     //     fn contains(&self,txt: &str) -> bool {
