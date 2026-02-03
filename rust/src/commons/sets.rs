@@ -2,7 +2,9 @@ use std::ops::{BitOr,BitAnd,Div};
 use std::cmp::{PartialOrd,Ordering};
 
 mod indipendent_atoms;
-mod ast_essential;
+mod ast_simple;
+mod ast_smart;
+
 
 enum SetRelation {
     Overlapping,
@@ -49,14 +51,11 @@ BitAnd<Self,Output=Self> +
 Div<Self,Output=Self> +
 Sized {}
 
-trait UncomparableSet<E>:
+trait Set<E>:
 Container<Elem=E> +
 SetAlgebra 
 where E: ?Sized {}
 
-trait Set<E>:
-UncomparableSet<E> +
-Overlappable<Self> {}
 
 
 

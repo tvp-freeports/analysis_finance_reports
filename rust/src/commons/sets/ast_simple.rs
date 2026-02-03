@@ -1,4 +1,4 @@
-use super::{Container,SetRelation,SetOps,UncomparableSet,SetAlgebra};
+use super::{Container,SetRelation,SetOps,Set,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Clone)]
@@ -18,32 +18,6 @@ where
     L: Container<Elem = E> + Clone,
     E: ?Sized
 ;
-
-// impl<L,E> Clone for AstSet<L,E> 
-// where
-//     L: Container<Elem = E> + Clone,
-//     E: ?Sized
-// {
-//     fn clone(&self) -> Self {
-//         Self(
-//             self.0.clone()
-//         )
-//     }
-// }
-
-
-// impl<L,E> Clone for AstNode<L,E> 
-// where
-//     L: Container<Elem = E> + Clone,
-//     E: ?Sized
-// {
-//     fn clone(&self) -> Self {
-//         match self {
-//             AstNode::Leaf(a) => AstNode::Leaf(a.clone()),
-//             AstNode::Branch(box_x,op,box_y) => AstNode::Branch(box_x.clone(),*op,box_y.clone())
-//         }
-//     }
-// }
 
 impl<L,E> Container for AstNode<L,E>
 where
@@ -130,7 +104,7 @@ where
     E: ?Sized
 {}
 
-impl<L,E> UncomparableSet<E> for AstSet<L,E>
+impl<L,E> Set<E> for AstSet<L,E>
 where
     L: Container<Elem = E> + Clone,
     E: ?Sized

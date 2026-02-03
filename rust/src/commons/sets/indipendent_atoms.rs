@@ -1,4 +1,4 @@
-use super::{Container,Overlappable,SetRelation,UncomparableSet,SetAlgebra};
+use super::{Container,Overlappable,SetRelation,Set,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
 enum CompoundAtomOperationRes<T> {
@@ -279,7 +279,7 @@ where
     E: ?Sized
 {}
 
-impl<A,E> UncomparableSet<E> for DisjointAtomsSet<A,E>
+impl<A,E> Set<E> for DisjointAtomsSet<A,E>
 where
     A: AtomAlgebra + Container<Elem = E> + Clone,
     E: ?Sized
