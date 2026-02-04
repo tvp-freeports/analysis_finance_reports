@@ -1,6 +1,7 @@
 use super::{Container,SetRelation,SetOps,Set,SetAlgebra,Overlappable};
 use std::ops::{BitOr, BitAnd, Div};
 
+#[derive(Debug,PartialEq)]
 enum SmartAstNode<L,E>
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
@@ -11,7 +12,7 @@ where
     Branch(Box<SmartAstNode<L,E>>, SetOps, Box<SmartAstNode<L,E>>)
 }
 
-
+#[derive(Debug)]
 pub struct SmartAstSet<L,E>(SmartAstNode<L,E>)
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
@@ -203,9 +204,61 @@ mod tests {
             }
         }
     }
-    // mod ast_creation {
-    //     use super::*;
-    //     use pretty_assertions::assert_eq;
+    use SetOps::*;
+    #[test_case(
+        TestSet::new([1,2,3,4]),Union,TestSet::new([1,2,3,4]),
+        TestNode::Leaf(HashSet::from([1,2,3,4]));"union equal"
+    )]
+    #[test_case(
+        TestSet::new([2,3]),Union,TestSet::new([1,2,3,4]),
+        TestNode::Leaf(HashSet::from([1,2,3,4]));"union subset"
+    )]
+    #[test_case(
+        TestSet::new([1,2,3,4,5]),Union,TestSet::new([1,2,3,4]),
+        TestNode::Leaf(HashSet::from([1,2,3,4,5]));"union superset"
+    )]
+    #[test_case(
+        TestSet::new([1,2]),Union,TestSet::new([4,5,6]),
+        TestNode::Branch(
+            Box::new(TestNode::Leaf(HashSet::from([1,2]))),
+            Union,
+            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+        );"union disjoint"
+    )]
+    #[test_case(
+        TestSet::new([1,2,3,4,5]),Union,TestSet::new([4,5,6]),
+        TestNode::Branch(
+            Box::new(TestNode::Leaf(HashSet::from([1,2,3,4,5]))),
+            Union,
+            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+        );"union overlapping"
+    )]
+    fn ast_creation(a: TestSet, op: SetOps, b: TestSet,expected: TestNode) {
+        use SetOps::*;
+        let c = match op {
+            Union => a | b,
+            Inter => a & b,
+            Sub => a / b
+        };
+        match (c.0,expected) {
+            (
+                SmartAstNode::Branch(box_x,op,box_y),
+                SmartAstNode::Branch(exp_x,exp_op,exp_y)
+            ) => {
+                assert_eq!(op,exp_op);
+                assert_eq!(box_x,exp_x);
+                assert_eq!(box_y,exp_y);      
+            },
+            (
+                SmartAstNode::Leaf(res),
+                SmartAstNode::Leaf(exp)
+            ) => {
+                assert_eq!(res,exp);
+            },
+            _ => panic!("unexpected set structure")
+        }
+    }
+    
     //     #[test]
     //     fn union() {
     //         let a = TestSet::new(["cave","ghino"]);
