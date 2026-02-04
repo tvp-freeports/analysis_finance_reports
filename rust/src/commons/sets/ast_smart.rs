@@ -360,36 +360,35 @@ mod tests {
 
         }
     }
-    
 
-    // #[test_case(
-    //     TestSet::new(["liquore","text","kkk"]),
-    //     "text";
-    //     "simple"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["niluk"]) | TestSet::new(["jukonne si"]),
-    //     "jukonne si";
-    //     "union"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["grum","jukonne","litro"]) & TestSet::new(["nespo","jukonne"]),
-    //     "jukonne";
-    //     "intersect"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["text that has to be jukonne"]) / TestSet::new(["jukone"]),
-    //     "text that has to be jukonne";
-    //     "subtraction"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["tra"]) | (TestSet::new(["golib","be jukonne"]) & TestSet::new(["be jukonne","ggg"]) / TestSet::new(["pulvilio"])),
-    //     "be jukonne";
-    //     "expression"
-    // )]
-    // fn element_in_set(txt_set: TestSet, txt: &str){
-    //     assert!(txt_set.contains(txt));
-    // }
+    #[test_case(
+        TestSet::new([4,5,70]),
+        70;
+        "simple"
+    )]
+    #[test_case(
+        TestSet::new([4,6,7]) | TestSet::new([10,60,8,7]),
+        60;
+        "union"
+    )]
+    #[test_case(
+        TestSet::new([30,50,60,70]) & TestSet::new([60,70,80]),
+        60;
+        "intersect"
+    )]
+    #[test_case(
+        TestSet::new([2,4,6,8]) / TestSet::new([4,6]),
+        8;
+        "subtraction"
+    )]
+    #[test_case(
+        TestSet::new([6]) | (TestSet::new([3,89]) & TestSet::new([56,67,89]) / TestSet::new([67,78])),
+        89;
+        "expression"
+    )]
+    fn element_in_set(test_set: TestSet, n: u32){
+        assert!(test_set.contains(&n));
+    }
 
 
     // #[test_case(
