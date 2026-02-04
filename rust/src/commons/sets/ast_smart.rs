@@ -323,21 +323,9 @@ mod tests {
             panic!("unexpected set structure")
         };
         let c = TestSet::new([3,4]);
-        let SmartAstSet(SmartAstNode::Leaf(c_leaf)) = c.clone() else {
-            panic!("unexpected set structure")
-        };
         let d = TestSet::new([4]);
-        let SmartAstSet(SmartAstNode::Leaf(d_leaf)) = d.clone() else {
-            panic!("unexpected set structure")
-        };
         let e = TestSet::new([2,5]);
-        let SmartAstSet(SmartAstNode::Leaf(e_leaf)) = e.clone() else {
-            panic!("unexpected set structure")
-        };
         let f = TestSet::new([6]);
-        let SmartAstSet(SmartAstNode::Leaf(f_leaf)) = f.clone() else {
-            panic!("unexpected set structure")
-        };
         let g = a | (b / (c | d)) & (e / f);
         match g {
             SmartAstSet(SmartAstNode::Branch(

@@ -284,3 +284,13 @@ where
     A: AtomAlgebra + Container<Elem = E> + Clone,
     E: ?Sized
 {}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test_case::test_case;
+    use pretty_assertions::assert_eq;
+    use std::collections::HashSet;
+    
+}

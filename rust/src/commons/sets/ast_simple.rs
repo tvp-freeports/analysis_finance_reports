@@ -1,4 +1,4 @@
-use super::{Container,SetRelation,SetOps,Set,SetAlgebra};
+use super::{Container,SetOps,Set,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Clone)]

@@ -11,7 +11,6 @@ pub mod pdf_filter {
 }
 
 pub mod text_extract {
-    use super::commons;
     pub mod matcher;
 }
 

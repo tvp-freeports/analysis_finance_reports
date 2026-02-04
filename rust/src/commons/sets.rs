@@ -1,5 +1,4 @@
 use std::ops::{BitOr,BitAnd,Div};
-use std::cmp::{PartialOrd,Ordering};
 
 mod indipendent_atoms;
 mod ast_simple;
@@ -15,7 +14,7 @@ enum SetRelation {
 }
 
 impl SetOps {
-    pub fn call(&self, a: bool, b: bool) -> bool {
+    fn call(&self, a: bool, b: bool) -> bool {
         match self {
             Self::Union => a || b,
             Self::Inter => a && b,

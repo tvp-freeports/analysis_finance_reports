@@ -79,7 +79,7 @@ pub struct Rectangle{
 }
 
 #[derive(PartialEq,Debug)]
-enum RectangleBuildError {
+pub enum RectangleBuildError {
     Horizontal(LimitsBuildError),
     Vertical(LimitsBuildError)
 }

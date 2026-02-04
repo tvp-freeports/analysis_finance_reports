@@ -1,5 +1,3 @@
-// use super::{Container,SetRelation,Overlappable}
-use std::iter;
 use std::ops::{BitOr,BitAnd,Div};
 
 use crate::commons::geometry::{Limits,Rectangle};
@@ -145,14 +143,14 @@ impl Limits {
     fn set_relation(&self,other: &Self) -> SetRelation {
         use SetRelation::*;
         let (a0,a1) = self.as_tuple();
-        let (b0,b1) = self.as_tuple();
+        let (b0,b1) = other.as_tuple();
         if a0>b1 || b0>a1 {
             Disjoint
         } else if a0==b0 && a1==b1 {
             Equal
-        } else if (b0<=a0 && a1<=b1) {
+        } else if b0<=a0 && a1<=b1 {
             Subset
-        } else if (a0<=b0 && b1<=b0) {
+        } else if a0<=b0 && b1<=b0 {
             Superset
         } else {
             Overlapping
@@ -517,7 +515,6 @@ impl Rectangle {
     }
     fn union_overlapping(&self,other: &Self) -> UnionOverlappingRectanglesRes {
         use UnionOverlappingRectanglesRes::*;
-        use RectOverlapping::*;
         let (x0,y0,x1,y1) = self.as_tuple();
         let a = Rectangle::new(x0,y0,x1,y1);
         match self.subtract_overlapping(other) {
@@ -531,7 +528,7 @@ impl Rectangle {
     fn set_relation(&self,other: &Self) -> SetRelation {
         use SetRelation::*;
         let (x0,y0,x1,y1) = self.as_tuple();
-        let (a0,b0,a1,b1) = self.as_tuple();
+        let (a0,b0,a1,b1) = other.as_tuple();
         if (
             (x0>a1 || x1<a0) || (a0>x1 || a1<x0)
         ) || (
@@ -540,9 +537,9 @@ impl Rectangle {
             Disjoint
         } else if (x0,y0,x1,y1) == (a0,b0,a1,b1) {
             Equal
-        } else if (a0<=x0 && x1<=a1 && b0<=y0 && y1<=b1) {
+        } else if a0<=x0 && x1<=a1 && b0<=y0 && y1<=b1 {
             Subset
-        } else if (x0<=a0 && a1<=x1 && y0<=b0 && b1<=y1) {
+        } else if x0<=a0 && a1<=x1 && y0<=b0 && b1<=y1 {
             Superset
         } else {
             Overlapping
@@ -614,16 +611,16 @@ impl FontSet {
     }
 }
 impl Font {
-    fn subtract_subset(&self,other: &Self) -> SubtractSubsetFontsRes {
+    fn subtract_subset(&self,_other: &Self) -> SubtractSubsetFontsRes {
         SubtractSubsetFontsRes::Zero
     }
-    fn subtract_overlapping(&self,other: &Self) -> SubtractOverlappingFontsRes {
+    fn subtract_overlapping(&self,_other: &Self) -> SubtractOverlappingFontsRes {
         SubtractOverlappingFontsRes::Zero
     }
-    fn intersect_overlapping(&self,other: &Self) -> IntersectOverlappingFontsRes {
+    fn intersect_overlapping(&self,_other: &Self) -> IntersectOverlappingFontsRes {
         IntersectOverlappingFontsRes::Zero
     }
-    fn union_overlapping(&self,other: &Self) -> UnionOverlappingFontsRes {
+    fn union_overlapping(&self,_other: &Self) -> UnionOverlappingFontsRes {
         UnionOverlappingFontsRes::Zero
     }
 }
