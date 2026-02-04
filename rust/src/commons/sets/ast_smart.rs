@@ -109,14 +109,14 @@ where
                     Disjoint => Self(SmartAstNode::Leaf(a)),
                     Superset | Overlapping => Self(SmartAstNode::Branch(
                         Box::new(SmartAstNode::Leaf(a)),
-                        SetOps::Inter,
+                        SetOps::Sub,
                         Box::new(SmartAstNode::Leaf(b))
                     ))
                 }
             },
             (left_node,right_node) => Self(SmartAstNode::Branch(
                 Box::new(left_node),
-                SetOps::Inter,
+                SetOps::Sub,
                 Box::new(right_node)
             ))
         }
@@ -257,6 +257,34 @@ mod tests {
             Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
         );"intersect overlapping"
     )]
+    #[test_case(
+        TestSet::new([3,4,50]),Sub,TestSet::new([3,4,50]),
+        TestNode::EmptySet;"subtract equal"
+    )]
+    #[test_case(
+        TestSet::new([2,3]),Sub,TestSet::new([1,2,3,4]),
+        TestNode::EmptySet;"subtract subset"
+    )]
+    #[test_case(
+        TestSet::new([1,2,3,4,5]),Sub,TestSet::new([2,3,4]),
+        TestNode::Branch(
+            Box::new(TestNode::Leaf(HashSet::from([1,2,3,4,5]))),
+            Sub,
+            Box::new(TestNode::Leaf(HashSet::from([2,3,4])))
+        );"subtract superset"
+    )]
+    #[test_case(
+        TestSet::new([1,2]),Sub,TestSet::new([4,5,6]),
+        TestNode::Leaf(HashSet::from([1,2]));"subtract disjoint"
+    )]
+    #[test_case(
+        TestSet::new([3,4,5,70]),Sub,TestSet::new([4,5,60]),
+        TestNode::Branch(
+            Box::new(TestNode::Leaf(HashSet::from([3,4,5,70]))),
+            Sub,
+            Box::new(TestNode::Leaf(HashSet::from([4,5,60])))
+        );"subtract overlapping"
+    )]
     fn ast_creation(a: TestSet, op: SetOps, b: TestSet,expected: TestNode) {
         use SetOps::*;
         let c = match op {
@@ -283,183 +311,56 @@ mod tests {
             _ => panic!("unexpected set structure")
         }
     }
+
+    #[test]
+    fn ast_creation_expression() {
+        let a = TestSet::new([1]);
+        let SmartAstSet(SmartAstNode::Leaf(a_leaf)) = a.clone() else {
+            panic!("unexpected set structure")
+        };
+        let b = TestSet::new([2]);
+        let SmartAstSet(SmartAstNode::Leaf(b_leaf)) = b.clone() else {
+            panic!("unexpected set structure")
+        };
+        let c = TestSet::new([3,4]);
+        let SmartAstSet(SmartAstNode::Leaf(c_leaf)) = c.clone() else {
+            panic!("unexpected set structure")
+        };
+        let d = TestSet::new([4]);
+        let SmartAstSet(SmartAstNode::Leaf(d_leaf)) = d.clone() else {
+            panic!("unexpected set structure")
+        };
+        let e = TestSet::new([2,5]);
+        let SmartAstSet(SmartAstNode::Leaf(e_leaf)) = e.clone() else {
+            panic!("unexpected set structure")
+        };
+        let f = TestSet::new([6]);
+        let SmartAstSet(SmartAstNode::Leaf(f_leaf)) = f.clone() else {
+            panic!("unexpected set structure")
+        };
+        let g = a | (b / (c | d)) & (e / f);
+        match g {
+            SmartAstSet(SmartAstNode::Branch(
+                box_x0,
+                op0,
+                box_y0
+            )) => {
+                assert_eq!(op0,SetOps::Union);
+                let SmartAstNode::Leaf(should_a) = *box_x0 else {
+                    panic!("unexpected node structure")
+                };
+                assert_eq!(should_a,a_leaf);
+                let SmartAstNode::Leaf(should_b) = *box_y0 else {
+                    panic!("unexpected node structure")
+                };
+                assert_eq!(should_a,a_leaf);
+                assert_eq!(should_b,b_leaf);
+            },
+            _ => panic!("Ast structured different from the one expected")
+
+        }
+    }
     
-    //     #[test]
-    //     fn union() {
-    //         let a = TestSet::new(["cave","ghino"]);
-    //         let AstSet(AstNode::Leaf(a_leaf)) = a.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let b = TestSet::new(["canem","sunnia","sonnino"]);
-    //         let AstSet(AstNode::Leaf(b_leaf)) = b.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let c = a | b;
-    //         match c {
-    //             AstSet(AstNode::Branch(
-    //                 box_x,
-    //                 op,
-    //                 box_y
-    //             )) => {
-    //                 let AstNode::Leaf(x) = *box_x else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 let AstNode::Leaf(y) = *box_y else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op,SetOps::Union);
-    //                 assert_eq!(x,a_leaf);
-    //                 assert_eq!(y,b_leaf);
-    //             },
-    //             _ => panic!("Ast structured different from the one expected")
-
-    //         }
-    //     }
-    //     #[test]
-    //     fn intersection() {
-    //         let a = TestSet::new(["cave","ghino"]);
-    //         let AstSet(AstNode::Leaf(a_leaf)) = a.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let b = TestSet::new(["canem","sunnia","sonnino"]);
-    //         let AstSet(AstNode::Leaf(b_leaf)) = b.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let c = a & b;
-    //         match c {
-    //             AstSet(AstNode::Branch(
-    //                 box_x,
-    //                 op,
-    //                 box_y
-    //             )) => {
-    //                 let AstNode::Leaf(x) = *box_x else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 let AstNode::Leaf(y) = *box_y else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op,SetOps::Inter);
-    //                 assert_eq!(x,a_leaf);
-    //                 assert_eq!(y,b_leaf);
-    //             },
-    //             _ => panic!("Ast structured different from the one expected")
-
-    //         }
-    //     }
-    //     #[test]
-    //     fn subtraction() {
-    //         let a = TestSet::new(["cave","ghino"]);
-    //         let AstSet(AstNode::Leaf(a_leaf)) = a.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let b = TestSet::new(["canem","sunnia","sonnino"]);
-    //         let AstSet(AstNode::Leaf(b_leaf)) = b.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let c = a / b;
-    //         match c {
-    //             AstSet(AstNode::Branch(
-    //                 box_x,
-    //                 op,
-    //                 box_y
-    //             )) => {
-    //                 let AstNode::Leaf(x) = *box_x else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 let AstNode::Leaf(y) = *box_y else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op,SetOps::Sub);
-    //                 assert_eq!(x,a_leaf);
-    //                 assert_eq!(y,b_leaf);
-    //             },
-    //             _ => panic!("Ast structured different from the one expected")
-    //         } 
-    //     }
-    //     #[test]
-    //     fn expression() {
-    //         let a = TestSet::new(["A"]);
-    //         let AstSet(AstNode::Leaf(a_leaf)) = a.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let b = TestSet::new(["B"]);
-    //         let AstSet(AstNode::Leaf(b_leaf)) = b.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let c = TestSet::new(["C"]);
-    //         let AstSet(AstNode::Leaf(c_leaf)) = c.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let d = TestSet::new(["D"]);
-    //         let AstSet(AstNode::Leaf(d_leaf)) = d.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let e = TestSet::new(["E"]);
-    //         let AstSet(AstNode::Leaf(e_leaf)) = e.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let f = TestSet::new(["F"]);
-    //         let AstSet(AstNode::Leaf(f_leaf)) = f.clone() else {
-    //             panic!("unexpected set structure")
-    //         };
-    //         let g = a | (b / (c | d)) & (e / f);
-    //         match g {
-    //             AstSet(AstNode::Branch(
-    //                 box_x0,
-    //                 op0,
-    //                 box_y0
-    //             )) => {
-    //                 assert_eq!(op0,SetOps::Union);
-    //                 let AstNode::Leaf(should_a) = *box_x0 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_a,a_leaf);
-    //                 let AstNode::Branch(box_x1,op1,box_y1) = *box_y0 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op1,SetOps::Inter);
-
-    //                 let AstNode::Branch(box_x2,op2,box_y2) = *box_x1 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op2,SetOps::Sub);
-    //                 let AstNode::Branch(box_x3,op3,box_y3) = *box_y1 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op3,SetOps::Sub);
-
-    //                 let AstNode::Leaf(should_e) = *box_x3 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_e,e_leaf);
-    //                 let AstNode::Leaf(should_f) = *box_y3 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_f,f_leaf);
-
-    //                 let AstNode::Leaf(should_b) = *box_x2 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_b,b_leaf);
-    //                 let AstNode::Branch(box_x4,op4,box_y4) = *box_y2 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(op4,SetOps::Union);
-
-    //                 let AstNode::Leaf(should_c) = *box_x4 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_c,c_leaf);
-    //                 let AstNode::Leaf(should_d) = *box_y4 else {
-    //                     panic!("unexpected node structure")
-    //                 };
-    //                 assert_eq!(should_d,d_leaf);
-    //             },
-    //             _ => panic!("Ast structured different from the one expected")
-
-    //         }
-    //     }
-    // }
 
     // #[test_case(
     //     TestSet::new(["liquore","text","kkk"]),
