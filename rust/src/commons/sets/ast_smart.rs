@@ -155,18 +155,20 @@ mod tests {
     use test_case::test_case;
     use pretty_assertions::assert_eq;
     use std::collections::HashSet;
-    impl Container for HashSet<u32> {
+    #[derive(Clone,Debug,PartialEq)]
+    struct TestSmartLeaf(HashSet<u32>);
+    impl Container for TestSmartLeaf {
         type Elem = u32;
         fn contains(&self,n: &u32) -> bool {
-            HashSet::contains(self,n)
+            self.0.contains(n)
         }
     }
-    type TestSet = SmartAstSet<HashSet<u32>,u32>;
-    type TestNode = SmartAstNode<HashSet<u32>,u32>;
+    type TestSet = SmartAstSet<TestSmartLeaf,u32>;
+    type TestNode = SmartAstNode<TestSmartLeaf,u32>;
     impl TestSet {
         fn new<const N: usize>(vec: [u32; N]) -> Self {
             Self(SmartAstNode::Leaf(
-                HashSet::from(vec)
+                TestSmartLeaf(HashSet::from(vec))
             ))
         }
     }
@@ -188,16 +190,16 @@ mod tests {
             }
         }  
     }
-    impl Overlappable<Self> for HashSet<u32> {
+    impl Overlappable<Self> for TestSmartLeaf {
         fn set_relation(&self, other: &Self) -> SetRelation {
             use SetRelation::*;
             if self==other {
                 Equal
-            } else if self.is_subset(other) {
+            } else if self.0.is_subset(&other.0) {
                 Subset
-            } else if self.is_superset(other) {
+            } else if self.0.is_superset(&other.0) {
                 Superset
-            } else if self.is_disjoint(other) {
+            } else if self.0.is_disjoint(&other.0) {
                 Disjoint
             } else {
                 Overlapping
@@ -207,43 +209,43 @@ mod tests {
     use SetOps::*;
     #[test_case(
         TestSet::new([1,2,3,4]),Union,TestSet::new([1,2,3,4]),
-        TestNode::Leaf(HashSet::from([1,2,3,4]));"union equal"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2,3,4])));"union equal"
     )]
     #[test_case(
         TestSet::new([2,3]),Union,TestSet::new([1,2,3,4]),
-        TestNode::Leaf(HashSet::from([1,2,3,4]));"union subset"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2,3,4])));"union subset"
     )]
     #[test_case(
         TestSet::new([1,2,3,4,5]),Union,TestSet::new([1,2,3,4]),
-        TestNode::Leaf(HashSet::from([1,2,3,4,5]));"union superset"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2,3,4,5])));"union superset"
     )]
     #[test_case(
         TestSet::new([1,2]),Union,TestSet::new([4,5,6]),
         TestNode::Branch(
-            Box::new(TestNode::Leaf(HashSet::from([1,2]))),
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2])))),
             Union,
-            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([4,5,6]))))
         );"union disjoint"
     )]
     #[test_case(
         TestSet::new([1,2,3,4,5]),Union,TestSet::new([4,5,6]),
         TestNode::Branch(
-            Box::new(TestNode::Leaf(HashSet::from([1,2,3,4,5]))),
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2,3,4,5])))),
             Union,
-            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([4,5,6]))))
         );"union overlapping"
     )]
     #[test_case(
         TestSet::new([3,4,50]),Inter,TestSet::new([3,4,50]),
-        TestNode::Leaf(HashSet::from([3,4,50]));"intersect equal"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([3,4,50])));"intersect equal"
     )]
     #[test_case(
         TestSet::new([2,3]),Inter,TestSet::new([1,2,3,4]),
-        TestNode::Leaf(HashSet::from([2,3]));"intersect subset"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([2,3])));"intersect subset"
     )]
     #[test_case(
         TestSet::new([1,2,3,4,5]),Inter,TestSet::new([2,3,4]),
-        TestNode::Leaf(HashSet::from([2,3,4]));"intersect superset"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([2,3,4])));"intersect superset"
     )]
     #[test_case(
         TestSet::new([1,2]),Inter,TestSet::new([4,5,6]),
@@ -252,9 +254,9 @@ mod tests {
     #[test_case(
         TestSet::new([3,4,5]),Inter,TestSet::new([4,5,6]),
         TestNode::Branch(
-            Box::new(TestNode::Leaf(HashSet::from([3,4,5]))),
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([3,4,5])))),
             Inter,
-            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([4,5,6]))))
         );"intersect overlapping"
     )]
     #[test_case(
@@ -268,21 +270,21 @@ mod tests {
     #[test_case(
         TestSet::new([1,2,3,4,5]),Sub,TestSet::new([2,3,4]),
         TestNode::Branch(
-            Box::new(TestNode::Leaf(HashSet::from([1,2,3,4,5]))),
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2,3,4,5])))),
             Sub,
-            Box::new(TestNode::Leaf(HashSet::from([2,3,4])))
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([2,3,4]))))
         );"subtract superset"
     )]
     #[test_case(
         TestSet::new([1,2]),Sub,TestSet::new([4,5,6]),
-        TestNode::Leaf(HashSet::from([1,2]));"subtract disjoint"
+        TestNode::Leaf(TestSmartLeaf(HashSet::from([1,2])));"subtract disjoint"
     )]
     #[test_case(
         TestSet::new([3,4,5,70]),Sub,TestSet::new([4,5,60]),
         TestNode::Branch(
-            Box::new(TestNode::Leaf(HashSet::from([3,4,5,70]))),
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([3,4,5,70])))),
             Sub,
-            Box::new(TestNode::Leaf(HashSet::from([4,5,60])))
+            Box::new(TestNode::Leaf(TestSmartLeaf(HashSet::from([4,5,60]))))
         );"subtract overlapping"
     )]
     fn ast_creation(a: TestSet, op: SetOps, b: TestSet,expected: TestNode) {

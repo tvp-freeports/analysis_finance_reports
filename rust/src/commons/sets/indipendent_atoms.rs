@@ -1,6 +1,7 @@
 use super::{Container,Overlappable,SetRelation,Set,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
+#[derive(Debug)]
 enum CompoundAtomOperationRes<T> {
     One(T),
     Two(T,T),
@@ -8,6 +9,7 @@ enum CompoundAtomOperationRes<T> {
     Four(T,T,T,T)
 }
 
+#[derive(Debug)]
 enum AtomOperationRes<T> {
     EmptySet,
     Lhs,
@@ -292,5 +294,176 @@ mod tests {
     use test_case::test_case;
     use pretty_assertions::assert_eq;
     use std::collections::HashSet;
+    #[derive(Clone,Debug,PartialEq)]
+    struct TestAtom(HashSet<u32>);
+    impl Container for TestAtom {
+        type Elem = u32;
+        fn contains(&self,n: &u32) -> bool {
+            self.0.contains(n)
+        }
+    }
+    impl Overlappable<Self> for TestAtom {
+        fn set_relation(&self, other: &Self) -> SetRelation {
+            use SetRelation::*;
+            if self==other {
+                Equal
+            } else if self.0.is_subset(&other.0) {
+                Subset
+            } else if self.0.is_superset(&other.0) {
+                Superset
+            } else if self.0.is_disjoint(&other.0) {
+                Disjoint
+            } else {
+                Overlapping
+            }
+        }
+    }
+    enum TestAtomOpsRes {
+        One(HashSet<u32>),
+        Two(HashSet<u32>,HashSet<u32>),
+        Three(HashSet<u32>,HashSet<u32>,HashSet<u32>),
+        Four(HashSet<u32>,HashSet<u32>,HashSet<u32>,HashSet<u32>)
+    }
+    impl From<TestAtomOpsRes> for CompoundAtomOperationRes<TestAtom> {
+        fn from(value: TestAtomOpsRes) -> Self {
+            use TestAtomOpsRes::*;
+            match value {
+                One(a) => Self::One(TestAtom(a)),
+                Two(a,b) => Self::Two(
+                    TestAtom(a),
+                    TestAtom(b)
+                ),
+                Three(a,b,c) => Self::Three(
+                    TestAtom(a),
+                    TestAtom(b),
+                    TestAtom(c)
+                ),
+                Four(a,b,c,d) => Self::Four(
+                    TestAtom(a),
+                    TestAtom(b),
+                    TestAtom(c),
+                    TestAtom(d)
+                )
+            }
+        }
+    }
+    impl AtomOperations for TestAtom {
+        type SubtractOverlappingRes = TestAtomOpsRes;
+        type IntersectOverlappingRes = TestAtomOpsRes;
+        type UnionOverlappingRes = TestAtomOpsRes;
+        type SubtractSubsetRes = TestAtomOpsRes;
+        fn subtract_overlapping(&self,other: &Self) -> Self::SubtractOverlappingRes {
+            use TestAtomOpsRes::*;
+            One(self.0.difference(&other.0).map(|x| *x).collect())
+        }
+        fn intersect_overlapping(&self,other: &Self) -> Self::IntersectOverlappingRes {
+            use TestAtomOpsRes::*;
+            let res_set: HashSet<&u32>=self.0.intersection(&other.0).collect();
+            if res_set.len() == 2 {
+                let mut i=res_set.into_iter();
+                Two(
+                    HashSet::from([*i.next().unwrap()]),
+                    HashSet::from([*i.next().unwrap()])
+                )
+            } else if res_set.len() == 3 {
+                let mut i=res_set.into_iter();
+                Three(
+                    HashSet::from([*i.next().unwrap()]),
+                    HashSet::from([*i.next().unwrap()]),
+                    HashSet::from([*i.next().unwrap()])
+                )
+            } else {
+                One(res_set.into_iter().map(|x| *x).collect())
+            }
+        }
+        fn union_overlapping(&self,other: &Self) -> Self::UnionOverlappingRes {
+            use TestAtomOpsRes::*;
+            Three(
+                self.0.difference(&other.0).map(|x| *x).collect(),
+                self.0.intersection(&other.0).map(|x| *x).collect(),
+                other.0.difference(&self.0).map(|x| *x).collect()
+            )
+        }
+        fn subtract_subset(&self,other: &Self) -> Self::SubtractSubsetRes {
+            use TestAtomOpsRes::*;
+            One(self.0.difference(&other.0).map(|x| *x).collect())
+        }
+    }
+    impl AtomAlgebra for TestAtom {}
+    type TestSet = DisjointAtomsSet<TestAtom,u32>;
+    impl TestAtom {
+        fn new<const N: usize>(vec: [u32; N]) -> Self {
+            Self(HashSet::from(vec))
+        }
+    }
+    impl TestSet {
+        fn new<const N: usize>(vec: [u32; N]) -> Self {
+            Self::from_atom(TestAtom::new(vec))
+        }
+    }
+    
+    mod atom_ops {
+        use super::*;
+        use test_case::test_case;
+        use pretty_assertions::assert_eq;
+        use AtomOperationRes::*;
+        use CompoundAtomOperationRes::*;
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3]),
+            Lhs; "equal"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3,4,5]),
+            TestAtom::new([1,2,3]),
+            Lhs; "superset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3,50,10]),
+            Rhs; "subset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([2,3,4,5]),
+            Compound(Three(
+                TestAtom::new([1]),
+                TestAtom::new([2,3]),
+                TestAtom::new([4,5])
+            )); "overlapping"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([5,6]),
+            Both; "disjoint"
+        )]
+        fn union(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
+            let res = a.union(&b);
+            match (res,exp) {
+                (EmptySet,EmptySet) => (),
+                (Lhs,Lhs) => (),
+                (Rhs,Rhs) => (),
+                (Both,Both) => (),
+                (Compound(One(ra)),Compound(One(ea))) => assert_eq!(ra,ea),
+                (Compound(Two(ra,rb)),Compound(Two(ea,eb))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                },
+                (Compound(Three(ra,rb,rc)),Compound(Three(ea,eb,ec))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                },
+                (Compound(Four(ra,rb,rc,rd)),Compound(Four(ea,eb,ec,ed))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                    assert_eq!(rd,ed);
+                },
+                _ => panic!("Result and expected doesn't match the expected form")
+            };
+        }
+
+    }
     
 }
