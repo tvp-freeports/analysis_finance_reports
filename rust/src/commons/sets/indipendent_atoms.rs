@@ -59,8 +59,8 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
         use SetRelation::*;
         use AtomOperationRes::*;
         match self.set_relation(&other) {
-            Equal | Superset => EmptySet,
-            Subset => Compound(
+            Equal | Subset => EmptySet,
+            Superset => Compound(
                 self.subtract_subset(&other).into()
             ),
             Overlapping => Compound(
@@ -467,32 +467,34 @@ mod tests {
         #[test_case(
             TestAtom::new([1,2,3]),
             TestAtom::new([1,2,3]),
-            Lhs; "equal"
+            EmptySet; "equal"
         )]
         #[test_case(
             TestAtom::new([1,2,3,4,5]),
             TestAtom::new([1,2,3]),
-            Rhs; "superset"
+            Compound(One(
+                TestAtom::new([4,5])
+            )); "superset"
         )]
         #[test_case(
             TestAtom::new([1,2,3]),
             TestAtom::new([1,2,3,50,10]),
-            Lhs; "subset"
+            EmptySet; "subset"
         )]
         #[test_case(
             TestAtom::new([1,2,3,10,20,30]),
-            TestAtom::new([2,3,4,5,10,20,30]),
+            TestAtom::new([2,4,5,10,20,30]),
             Compound(One(
-                TestAtom::new([2,3,10,20,30])
+                TestAtom::new([1,3])
             )); "overlapping"
         )]
         #[test_case(
             TestAtom::new([1,2,3]),
             TestAtom::new([5,6]),
-            EmptySet; "disjoint"
+            Lhs; "disjoint"
         )]
-        fn intersect(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
-            let res = a.intersect(&b);
+        fn subtract(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
+            let res = a.subtract(&b);
             match (res,exp) {
                 (EmptySet,EmptySet) => (),
                 (Lhs,Lhs) => (),
