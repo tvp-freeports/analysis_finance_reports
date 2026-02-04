@@ -391,36 +391,33 @@ mod tests {
     }
 
 
-    // #[test_case(
-    //     TestSet::new(["liquore","text","kkk"]),
-    //     "gulm";
-    //     "simple"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["niluk"]) | TestSet::new(["jukonne si"]),
-    //     "jukonne no";
-    //     "union"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["grum","jukonne","litro"]) & TestSet::new(["nespo","jukonne"]),
-    //     "grum";
-    //     "intersect"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["jukone","grummo"]) / TestSet::new(["piffo","jukone"]),
-    //     "jukone";
-    //     "subtraction"
-    // )]
-    // #[test_case(
-    //     TestSet::new(["tra"]) | (
-    //         TestSet::new(["golib","be jukonne"]) & (
-    //             TestSet::new(["be jukonne","ggg"]) / TestSet::new(["pulvilio","be jukonne"])
-    //         )
-    //     ),
-    //     "be jukonne";
-    //     "expression"
-    // )]
-    // fn element_not_in_set(txt_set: TestSet, txt: &str){
-    //     assert!(!txt_set.contains(txt));
-    // }
+
+    #[test_case(
+        TestSet::new([4,5,70]),
+        71;
+        "simple"
+    )]
+    #[test_case(
+        TestSet::new([4,6,7]) | TestSet::new([10,60,8,7]),
+        603;
+        "union"
+    )]
+    #[test_case(
+        TestSet::new([30,50,60,70]) & TestSet::new([60,70,80]),
+        80;
+        "intersect"
+    )]
+    #[test_case(
+        TestSet::new([2,4,6,8]) / TestSet::new([4,6]),
+        4;
+        "subtraction"
+    )]
+    #[test_case(
+        TestSet::new([6]) | (TestSet::new([3,89,67]) & TestSet::new([56,67,89]) / TestSet::new([67,78])),
+        67;
+        "expression"
+    )]
+    fn element_not_in_set(test_set: TestSet, n: u32){
+        assert!(!test_set.contains(&n));
+    }
 }
