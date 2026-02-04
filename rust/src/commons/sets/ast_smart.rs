@@ -233,6 +233,30 @@ mod tests {
             Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
         );"union overlapping"
     )]
+    #[test_case(
+        TestSet::new([3,4,50]),Inter,TestSet::new([3,4,50]),
+        TestNode::Leaf(HashSet::from([3,4,50]));"intersect equal"
+    )]
+    #[test_case(
+        TestSet::new([2,3]),Inter,TestSet::new([1,2,3,4]),
+        TestNode::Leaf(HashSet::from([2,3]));"intersect subset"
+    )]
+    #[test_case(
+        TestSet::new([1,2,3,4,5]),Inter,TestSet::new([2,3,4]),
+        TestNode::Leaf(HashSet::from([2,3,4]));"intersect superset"
+    )]
+    #[test_case(
+        TestSet::new([1,2]),Inter,TestSet::new([4,5,6]),
+        TestNode::EmptySet;"intersect disjoint"
+    )]
+    #[test_case(
+        TestSet::new([3,4,5]),Inter,TestSet::new([4,5,6]),
+        TestNode::Branch(
+            Box::new(TestNode::Leaf(HashSet::from([3,4,5]))),
+            Inter,
+            Box::new(TestNode::Leaf(HashSet::from([4,5,6])))
+        );"intersect overlapping"
+    )]
     fn ast_creation(a: TestSet, op: SetOps, b: TestSet,expected: TestNode) {
         use SetOps::*;
         let c = match op {
@@ -255,6 +279,7 @@ mod tests {
             ) => {
                 assert_eq!(res,exp);
             },
+            (SmartAstNode::EmptySet,SmartAstNode::EmptySet) => (),
             _ => panic!("unexpected set structure")
         }
     }
