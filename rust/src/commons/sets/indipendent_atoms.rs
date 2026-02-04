@@ -402,7 +402,11 @@ mod tests {
             Self::from_atom(TestAtom::new(vec))
         }
     }
-    
+    #[test]
+    fn from_atom() {
+        let a=TestSet::from_atom(TestAtom(HashSet::from([20,30,40])));
+        assert_eq!(a.0,vec![TestAtom(HashSet::from([20,30,40]))]);
+    }
     mod atom_ops {
         use super::*;
         use test_case::test_case;
@@ -440,6 +444,59 @@ mod tests {
         )]
         fn union(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
             let res = a.union(&b);
+            match (res,exp) {
+                (EmptySet,EmptySet) => (),
+                (Lhs,Lhs) => (),
+                (Rhs,Rhs) => (),
+                (Both,Both) => (),
+                (Compound(One(ra)),Compound(One(ea))) => assert_eq!(ra,ea),
+                (Compound(Two(ra,rb)),Compound(Two(ea,eb))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                },
+                (Compound(Three(ra,rb,rc)),Compound(Three(ea,eb,ec))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                },
+                (Compound(Four(ra,rb,rc,rd)),Compound(Four(ea,eb,ec,ed))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                    assert_eq!(rd,ed);
+                },
+                _ => panic!("Result and expected doesn't match the expected form")
+            };
+        }
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3]),
+            Lhs; "equal"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3,4,5]),
+            TestAtom::new([1,2,3]),
+            Rhs; "superset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3,50,10]),
+            Lhs; "subset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3,10,20,30]),
+            TestAtom::new([2,3,4,5,10,20,30]),
+            Compound(One(
+                TestAtom::new([2,3,10,20,30])
+            )); "overlapping"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([5,6]),
+            EmptySet; "disjoint"
+        )]
+        fn intersect(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
+            let res = a.intersect(&b);
             match (res,exp) {
                 (EmptySet,EmptySet) => (),
                 (Lhs,Lhs) => (),
