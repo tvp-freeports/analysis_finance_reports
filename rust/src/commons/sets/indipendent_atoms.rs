@@ -72,7 +72,7 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 struct DisjointAtomsSet<A,E>(Vec<A>)
 where
     A: AtomAlgebra + Container<Elem=E> + Clone,
@@ -575,6 +575,30 @@ mod tests {
                 },
                 _ => panic!("Result and expected doesn't match the expected form")
             };
+        }
+
+    }
+
+    mod set_atom_ops {
+        use super::*;
+        use test_case::test_case;
+        use std::assert_eq;
+        
+        #[test_case(
+            DisjointAtomsSet(vec![
+                TestAtom::new([1,2,3,4]),
+                TestAtom::new([40,50,60]),
+            ]),
+            TestAtom::new([2,3,4,5,40]),
+            DisjointAtomsSet(vec![
+                TestAtom::new([1,2,3,4]),
+                TestAtom::new([40,50,60]),
+                TestAtom::new([5])
+            ]);"one results"
+        )]
+        fn union(set: TestSet, atm: TestAtom, exp: TestSet) {
+            let res = set.atom_union(atm);
+            assert_eq!(res.0,exp.0);
         }
 
     }
