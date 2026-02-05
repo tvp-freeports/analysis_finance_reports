@@ -1,6 +1,8 @@
 use super::{Container,Overlappable,SetRelation,Set,SetAlgebra};
 use std::fmt::Debug;
 use std::ops::{BitOr, BitAnd, Div};
+use std::collections::HashSet;
+use std::hash::Hash;
 
 #[derive(Debug)]
 enum CompoundAtomOperationRes<T> {
@@ -84,21 +86,23 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
 
 
 #[derive(Clone,Debug)]
-struct DisjointAtomsSet<A,E>(Vec<A>)
+struct DisjointAtomsSet<A,E>(HashSet<A>)
 where
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 ;
 
 impl<A,E> DisjointAtomsSet<A,E>
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
     fn from_atom(atom: A) -> Self {
-        Self(vec![atom])
+        let mut atoms = HashSet::new();
+        atoms.insert(atom);
+        Self(atoms)
     }
-    fn atom_union(mut self, other: A) -> Self {
+    fn atom_union(self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
         let mut new_atoms = Vec::with_capacity(4 * self.0.len());
@@ -148,93 +152,107 @@ where
                 }
             }
         }
-        Self(new_atoms)
+        let mut s=HashSet::with_capacity(new_atoms.len());
+        for a in new_atoms {
+            s.insert(a);
+        }
+        Self(s)
     }
 
-    fn atom_intersection(mut self, other: A) -> Self {
+    fn atom_intersection(self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
+        let mut atoms: Vec<A> = self.0.into_iter().collect();
         let mut i = 0;
-        while i < self.0.len() {
-            match self.0[i].intersect(&other) {
+        while i < atoms.len() {
+            match atoms[i].intersect(&other) {
                 EmptySet => {
-                    self.0.remove(i);
+                    atoms.remove(i);
                 },
                 Lhs => i += 1,
                 Rhs => {
-                    self.0[i] = other.clone();
+                    atoms[i] = other.clone();
                     i += 1;
                 },
                 Compound(One(a)) => {
-                    self.0[i] = a;
+                    atoms[i] = a;
                     i += 1;
                 },
                 Compound(Two(a, b)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
                     i += 2;
                 },
                 Compound(Three(a, b, c)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
-                    self.0.insert(i + 2, c);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
+                    atoms.insert(i + 2, c);
                     i += 3;
                 },
                 Compound(Four(a, b, c, d)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
-                    self.0.insert(i + 2, c);
-                    self.0.insert(i + 3, d);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
+                    atoms.insert(i + 2, c);
+                    atoms.insert(i + 3, d);
                     i += 4;
                 },
                 _ => unreachable!("Invalid operation result in DisjointAtomSet atom_intersection"),
             }
         }
-        self
+        let mut s=HashSet::with_capacity(atoms.len());
+        for a in atoms {
+            s.insert(a);
+        }
+        Self(s)
     }
 
     fn atom_subtraction(mut self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
+        let mut atoms: Vec<A> = self.0.into_iter().collect();
         let mut i = 0;
-        while i < self.0.len() {
-            match self.0[i].subtract(&other) {
+        while i < atoms.len() {
+            match atoms[i].subtract(&other) {
                 EmptySet => {
-                    self.0.remove(i);
+                    atoms.remove(i);
                 },
                 Lhs => i += 1,
                 Compound(One(a)) => {
-                    self.0[i] = a;
+                    atoms[i] = a;
                     i += 1;
                 },
                 Compound(Two(a, b)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
                     i += 2;
                 },
                 Compound(Three(a, b, c)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
-                    self.0.insert(i + 2, c);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
+                    atoms.insert(i + 2, c);
                     i += 3;
                 },
                 Compound(Four(a, b, c, d)) => {
-                    self.0[i] = a;
-                    self.0.insert(i + 1, b);
-                    self.0.insert(i + 2, c);
-                    self.0.insert(i + 3, d);
+                    atoms[i] = a;
+                    atoms.insert(i + 1, b);
+                    atoms.insert(i + 2, c);
+                    atoms.insert(i + 3, d);
                     i += 4;
                 },
                 _ => unreachable!("Invalid operation result in DisjointAtomSet atom_subtraction"),
             }
         }
-        self
+        let mut s=HashSet::with_capacity(atoms.len());
+        for a in atoms {
+            s.insert(a);
+        }
+        Self(s)
     }
 }
 
 impl<A,E> BitOr<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
     type Output = Self;
@@ -247,7 +265,7 @@ where
 }
 impl<A,E> BitAnd<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
     type Output = Self;
@@ -260,7 +278,7 @@ where
 }
 impl<A,E> Div<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
     type Output = Self;
@@ -274,7 +292,7 @@ where
 
 impl<A,E> Container for DisjointAtomsSet<A,E>
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
     type Elem = E;
@@ -290,13 +308,13 @@ where
 
 impl<A,E> SetAlgebra for DisjointAtomsSet<A,E> 
 where
-    A: AtomAlgebra + Container<Elem = E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem = E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {}
 
 impl<A,E> Set<E> for DisjointAtomsSet<A,E>
 where
-    A: AtomAlgebra + Container<Elem = E> + Clone + Debug,
+    A: AtomAlgebra + Container<Elem = E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {}
 
@@ -306,9 +324,9 @@ mod tests {
     use super::*;
     use test_case::test_case;
     use pretty_assertions::assert_eq;
-    use std::collections::HashSet;
-    #[derive(Clone,Debug,PartialEq)]
-    struct TestAtom(HashSet<u32>);
+    use std::collections::BTreeSet;
+    #[derive(Clone,Debug,PartialEq,Eq,Hash)]
+    struct TestAtom(BTreeSet<u32>);
     impl Container for TestAtom {
         type Elem = u32;
         fn contains(&self,n: &u32) -> bool {
@@ -332,10 +350,10 @@ mod tests {
         }
     }
     enum TestAtomOpsRes {
-        One(HashSet<u32>),
-        Two(HashSet<u32>,HashSet<u32>),
-        Three(HashSet<u32>,HashSet<u32>,HashSet<u32>),
-        Four(HashSet<u32>,HashSet<u32>,HashSet<u32>,HashSet<u32>)
+        One(BTreeSet<u32>),
+        Two(BTreeSet<u32>,BTreeSet<u32>),
+        Three(BTreeSet<u32>,BTreeSet<u32>,BTreeSet<u32>),
+        Four(BTreeSet<u32>,BTreeSet<u32>,BTreeSet<u32>,BTreeSet<u32>)
     }
     impl From<TestAtomOpsRes> for CompoundAtomOperationRes<TestAtom> {
         fn from(value: TestAtomOpsRes) -> Self {
@@ -370,20 +388,20 @@ mod tests {
         }
         fn intersect_overlapping(&self,other: &Self) -> Self::IntersectOverlappingRes {
             use TestAtomOpsRes::*;
-            let res_set: HashSet<&u32>=self.0.intersection(&other.0).collect();
+            let res_set: BTreeSet<&u32>=self.0.intersection(&other.0).collect();
             if res_set.len() == 2 {
                 let mut i=res_set.into_iter();
                 Two(
-                    HashSet::from([*i.next().unwrap()]),
-                    HashSet::from([*i.next().unwrap()])
+                    BTreeSet::from([*i.next().unwrap()]),
+                    BTreeSet::from([*i.next().unwrap()])
                 )
             } else if res_set.len() == 4 {
                 let mut i=res_set.into_iter();
                 Four(
-                    HashSet::from([*i.next().unwrap()]),
-                    HashSet::from([*i.next().unwrap()]),
-                    HashSet::from([*i.next().unwrap()]),
-                    HashSet::from([*i.next().unwrap()])
+                    BTreeSet::from([*i.next().unwrap()]),
+                    BTreeSet::from([*i.next().unwrap()]),
+                    BTreeSet::from([*i.next().unwrap()]),
+                    BTreeSet::from([*i.next().unwrap()])
                 )
             } else {
                 One(res_set.into_iter().map(|x| *x).collect())
@@ -398,7 +416,7 @@ mod tests {
     type TestSet = DisjointAtomsSet<TestAtom,u32>;
     impl TestAtom {
         fn new<const N: usize>(vec: [u32; N]) -> Self {
-            Self(HashSet::from(vec))
+            Self(BTreeSet::from(vec))
         }
     }
     impl TestSet {
@@ -408,8 +426,8 @@ mod tests {
     }
     #[test]
     fn from_atom() {
-        let a=TestSet::from_atom(TestAtom(HashSet::from([20,30,40])));
-        assert_eq!(a.0,vec![TestAtom(HashSet::from([20,30,40]))]);
+        let a=TestSet::from_atom(TestAtom(BTreeSet::from([20,30,40])));
+        assert_eq!(a.0,HashSet::from([TestAtom(BTreeSet::from([20,30,40]))]));
     }
     mod atom_ops {
         use super::*;
@@ -589,21 +607,64 @@ mod tests {
         use std::assert_eq;
         
         #[test_case(
-            DisjointAtomsSet(vec![
+            DisjointAtomsSet(HashSet::from([
                 TestAtom::new([1,2,3,4]),
                 TestAtom::new([40,50,60]),
-            ]),
+            ])),
             TestAtom::new([2,3,4,5,40]),
-            DisjointAtomsSet(vec![
+            DisjointAtomsSet(HashSet::from([
                 TestAtom::new([5]),
                 TestAtom::new([40]),
                 TestAtom::new([50,60]),
                 TestAtom::new([4,3,2]),
                 TestAtom::new([1]),
-            ]);"one results"
+            ]));"simple"
         )]
         fn union(set: TestSet, atm: TestAtom, exp: TestSet) {
             let res = set.atom_union(atm);
+            assert_eq!(res.0,exp.0);
+        }
+
+        #[test_case(
+            DisjointAtomsSet(HashSet::from([
+                TestAtom::new([1,3,4,5,6,7,8]),
+                TestAtom::new([2,9,10,11,12]),
+                TestAtom::new([13,14,20]),
+                TestAtom::new([30,50]),
+            ])),
+            TestAtom::new([3,4,5,6,7,8,9,10,11,12,13,14,30,50]),
+            DisjointAtomsSet(HashSet::from([
+                TestAtom::new([3,4,5,6,7,8]),
+                TestAtom::new([9]),
+                TestAtom::new([10]),
+                TestAtom::new([11]),
+                TestAtom::new([12]),
+                TestAtom::new([13]),
+                TestAtom::new([14]),
+                TestAtom::new([30,50]),
+            ]));"simple"
+        )]
+        fn intersect(set: TestSet, atm: TestAtom, exp: TestSet) {
+            let res = set.atom_intersection(atm);
+            assert_eq!(res.0,exp.0);
+        }
+
+        #[test_case(
+            DisjointAtomsSet(HashSet::from([
+                TestAtom::new([1,3,4,5,6,7,8]),
+                TestAtom::new([2,9,10,11,12]),
+                TestAtom::new([13,14,20]),
+                TestAtom::new([30,50]),
+            ])),
+            TestAtom::new([1,2,9,10,11,12,13]),
+            DisjointAtomsSet(HashSet::from([
+                TestAtom::new([3,4,5,6,7,8]),
+                TestAtom::new([14,20]),
+                TestAtom::new([30,50]),
+            ]));"simple"
+        )]
+        fn subtraction(set: TestSet, atm: TestAtom, exp: TestSet) {
+            let res = set.atom_subtraction(atm);
             assert_eq!(res.0,exp.0);
         }
 
