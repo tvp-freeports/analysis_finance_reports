@@ -4,7 +4,7 @@ mod indipendent_atoms;
 mod ast_simple;
 mod ast_smart;
 
-
+#[derive(Debug)]
 enum SetRelation {
     Overlapping,
     Subset,

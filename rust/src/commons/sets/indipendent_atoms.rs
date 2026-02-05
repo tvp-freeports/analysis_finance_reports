@@ -1,4 +1,5 @@
 use super::{Container,Overlappable,SetRelation,Set,SetAlgebra};
+use std::fmt::Debug;
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Debug)]
@@ -85,67 +86,69 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
 #[derive(Clone,Debug)]
 struct DisjointAtomsSet<A,E>(Vec<A>)
 where
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 ;
 
 impl<A,E> DisjointAtomsSet<A,E>
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 {
     fn from_atom(atom: A) -> Self {
         Self(vec![atom])
     }
-
     fn atom_union(mut self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        let mut other_pieces = Vec::with_capacity(4 * self.0.len());
-        other_pieces.push(other);
+        let mut new_atoms = Vec::with_capacity(4 * self.0.len());
+        new_atoms.push(other);
         for atm in &self.0 {
             let mut i = 0;
-            while i < other_pieces.len() {
-                match other_pieces[i].subtract(atm) {
-                    EmptySet => {
-                        other_pieces.remove(i);
-                    },
-                    Lhs => i += 1,
-                    Rhs => {
-                        other_pieces[i] = atm.clone();
-                        i += 1;
-                    },
-                    Both => {
-                        other_pieces.insert(i + 1, atm.clone());
-                        i += 2;
-                    },
-                    Compound(One(a)) => {
-                        other_pieces[i] = a;
-                        i += 1;
-                    },
-                    Compound(Two(a, b)) => {
-                        other_pieces[i] = a;
-                        other_pieces.insert(i + 1, b);
-                        i += 2;
-                    },
-                    Compound(Three(a, b, c)) => {
-                        other_pieces[i] = a;
-                        other_pieces.insert(i + 1, b);
-                        other_pieces.insert(i + 2, c);
-                        i += 3;
-                    },
-                    Compound(Four(a, b, c, d)) => {
-                        other_pieces[i] = a;
-                        other_pieces.insert(i + 1, b);
-                        other_pieces.insert(i + 2, c);
-                        other_pieces.insert(i + 3, d);
-                        i += 4;
+            while i < new_atoms.len() {
+                if let SetRelation::Disjoint = new_atoms[i].set_relation(atm) {
+                    i+=1;
+                } else {
+                    match new_atoms[i].union(atm) {
+                        EmptySet => {
+                            new_atoms.remove(i);
+                        },
+                        Lhs => i+=1,
+                        Rhs => {
+                            new_atoms[i] = atm.clone();
+                            i+=1;
+                        },
+                        Both => {
+                            new_atoms.insert(i + 1, atm.clone());
+                            i+=1;
+                        },
+                        Compound(One(a)) => {
+                            new_atoms[i] = a;
+                            i+=1;
+                        },
+                        Compound(Two(a, b)) => {
+                            new_atoms[i] = a;
+                            new_atoms.insert(i + 1, b);
+                            i+=2;
+                        },
+                        Compound(Three(a, b, c)) => {
+                            new_atoms[i] = a;
+                            new_atoms.insert(i + 1, b);
+                            new_atoms.insert(i + 2, c);
+                            i+=3;
+                        },
+                        Compound(Four(a, b, c, d)) => {
+                            new_atoms[i] = a;
+                            new_atoms.insert(i + 1, b);
+                            new_atoms.insert(i + 2, c);
+                            new_atoms.insert(i + 3, d);
+                            i+=4;
+                        }
                     }
                 }
             }
         }
-        self.0.extend(other_pieces);
-        self
+        Self(new_atoms)
     }
 
     fn atom_intersection(mut self, other: A) -> Self {
@@ -231,7 +234,7 @@ where
 
 impl<A,E> BitOr<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 {
     type Output = Self;
@@ -244,7 +247,7 @@ where
 }
 impl<A,E> BitAnd<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 {
     type Output = Self;
@@ -257,7 +260,7 @@ where
 }
 impl<A,E> Div<Self> for DisjointAtomsSet<A,E> 
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 {
     type Output = Self;
@@ -271,7 +274,7 @@ where
 
 impl<A,E> Container for DisjointAtomsSet<A,E>
 where 
-    A: AtomAlgebra + Container<Elem=E> + Clone,
+    A: AtomAlgebra + Container<Elem=E> + Clone + Debug,
     E: ?Sized
 {
     type Elem = E;
@@ -287,13 +290,13 @@ where
 
 impl<A,E> SetAlgebra for DisjointAtomsSet<A,E> 
 where
-    A: AtomAlgebra + Container<Elem = E> + Clone,
+    A: AtomAlgebra + Container<Elem = E> + Clone + Debug,
     E: ?Sized
 {}
 
 impl<A,E> Set<E> for DisjointAtomsSet<A,E>
 where
-    A: AtomAlgebra + Container<Elem = E> + Clone,
+    A: AtomAlgebra + Container<Elem = E> + Clone + Debug,
     E: ?Sized
 {}
 
@@ -592,9 +595,11 @@ mod tests {
             ]),
             TestAtom::new([2,3,4,5,40]),
             DisjointAtomsSet(vec![
-                TestAtom::new([1,2,3,4]),
-                TestAtom::new([40,50,60]),
-                TestAtom::new([5])
+                TestAtom::new([5]),
+                TestAtom::new([40]),
+                TestAtom::new([50,60]),
+                TestAtom::new([4,3,2]),
+                TestAtom::new([1]),
             ]);"one results"
         )]
         fn union(set: TestSet, atm: TestAtom, exp: TestSet) {
