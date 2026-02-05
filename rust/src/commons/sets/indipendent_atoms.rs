@@ -30,18 +30,29 @@ trait AtomOperations: Sized {
 }
 
 trait AtomAlgebra: Overlappable<Self> + AtomOperations {
-    // fn union(&self, other: &Self) -> AtomOperationRes<Self> {
-    //     use SetRelation::*;
-    //     use AtomOperationRes::*;
-    //     match self.set_relation(&other) {
-    //         Equal | Superset => Lhs,
-    //         Subset => Rhs,
-    //         Overlapping => Compound(
-    //             self.union_overlapping(&other).into()
-    //         ),
-    //         Disjoint => Both,
-    //     }
-    // }
+    fn union(&self, other: &Self) -> AtomOperationRes<Self> {
+        use SetRelation::*;
+        use AtomOperationRes::*;
+        use CompoundAtomOperationRes::*;
+        match self.set_relation(&other) {
+            Equal | Superset => Lhs,
+            Subset => Rhs,
+            Overlapping => {
+                Compound(match (
+                    self.subtract_overlapping(&other).into(),
+                    self.intersect_overlapping(&other).into(),
+                    other.subtract_overlapping(&self).into() 
+                ) {
+                    (One(a),One(b),One(c)) => Three(a,b,c),
+                    (Two(a,b),One(c),One(d)) => Four(a,b,c,d),
+                    (One(a),Two(b,c),One(d)) => Four(a,b,c,d),
+                    (One(a),One(b),Two(c,d)) => Four(a,b,c,d),
+                    _ => panic!("Default implementation of atom union doesn't support this combination of set subtraction and set intersection")
+                })
+            },
+            Disjoint => Both,
+        }
+    }
     fn intersect(&self,other: &Self) -> AtomOperationRes<Self> {
         use SetRelation::*;
         use AtomOperationRes::*;
@@ -349,7 +360,6 @@ mod tests {
     impl AtomOperations for TestAtom {
         type SubtractOverlappingRes = TestAtomOpsRes;
         type IntersectOverlappingRes = TestAtomOpsRes;
-        // type UnionOverlappingRes = TestAtomOpsRes;
         type SubtractSubsetRes = TestAtomOpsRes;
         fn subtract_overlapping(&self,other: &Self) -> Self::SubtractOverlappingRes {
             use TestAtomOpsRes::*;
@@ -376,14 +386,6 @@ mod tests {
                 One(res_set.into_iter().map(|x| *x).collect())
             }
         }
-        // fn union_overlapping(&self,other: &Self) -> Self::UnionOverlappingRes {
-        //     use TestAtomOpsRes::*;
-        //     Three(
-        //         self.0.difference(&other.0).map(|x| *x).collect(),
-        //         self.0.intersection(&other.0).map(|x| *x).collect(),
-        //         other.0.difference(&self.0).map(|x| *x).collect()
-        //     )
-        // }
         fn subtract_subset(&self,other: &Self) -> Self::SubtractSubsetRes {
             use TestAtomOpsRes::*;
             One(self.0.difference(&other.0).map(|x| *x).collect())
@@ -412,61 +414,61 @@ mod tests {
         use pretty_assertions::assert_eq;
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        // #[test_case(
-        //     TestAtom::new([1,2,3]),
-        //     TestAtom::new([1,2,3]),
-        //     Lhs; "equal"
-        // )]
-        // #[test_case(
-        //     TestAtom::new([1,2,3,4,5]),
-        //     TestAtom::new([1,2,3]),
-        //     Lhs; "superset"
-        // )]
-        // #[test_case(
-        //     TestAtom::new([1,2,3]),
-        //     TestAtom::new([1,2,3,50,10]),
-        //     Rhs; "subset"
-        // )]
-        // #[test_case(
-        //     TestAtom::new([1,2,3,10]),
-        //     TestAtom::new([2,3,4,5,6]),
-        //     Compound(Three(
-        //         TestAtom::new([1,10]),
-        //         TestAtom::new([2,3]),
-        //         TestAtom::new([4,5,6])
-        //     )); "overlapping"
-        // )]
-        // #[test_case(
-        //     TestAtom::new([1,2,3]),
-        //     TestAtom::new([5,6]),
-        //     Both; "disjoint"
-        // )]
-        // fn union(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
-        //     let res = a.union(&b);
-        //     match (res,exp) {
-        //         (EmptySet,EmptySet) => (),
-        //         (Lhs,Lhs) => (),
-        //         (Rhs,Rhs) => (),
-        //         (Both,Both) => (),
-        //         (Compound(One(ra)),Compound(One(ea))) => assert_eq!(ra,ea),
-        //         (Compound(Two(ra,rb)),Compound(Two(ea,eb))) => {
-        //             assert_eq!(ra,ea);
-        //             assert_eq!(rb,eb);
-        //         },
-        //         (Compound(Three(ra,rb,rc)),Compound(Three(ea,eb,ec))) => {
-        //             assert_eq!(ra,ea);
-        //             assert_eq!(rb,eb);
-        //             assert_eq!(rc,ec);
-        //         },
-        //         (Compound(Four(ra,rb,rc,rd)),Compound(Four(ea,eb,ec,ed))) => {
-        //             assert_eq!(ra,ea);
-        //             assert_eq!(rb,eb);
-        //             assert_eq!(rc,ec);
-        //             assert_eq!(rd,ed);
-        //         },
-        //         _ => panic!("Result and expected doesn't match the expected form")
-        //     };
-        // }
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3]),
+            Lhs; "equal"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3,4,5]),
+            TestAtom::new([1,2,3]),
+            Lhs; "superset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([1,2,3,50,10]),
+            Rhs; "subset"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3,99,999,9,10]),
+            TestAtom::new([2,3,4,5,6,99,999,9]),
+            Compound(Three(
+                TestAtom::new([1,10]),
+                TestAtom::new([2,3,9,99,999]),
+                TestAtom::new([4,5,6])
+            )); "overlapping"
+        )]
+        #[test_case(
+            TestAtom::new([1,2,3]),
+            TestAtom::new([5,6]),
+            Both; "disjoint"
+        )]
+        fn union(a: TestAtom, b: TestAtom ,exp: AtomOperationRes<TestAtom>) {
+            let res = a.union(&b);
+            match (res,exp) {
+                (EmptySet,EmptySet) => (),
+                (Lhs,Lhs) => (),
+                (Rhs,Rhs) => (),
+                (Both,Both) => (),
+                (Compound(One(ra)),Compound(One(ea))) => assert_eq!(ra,ea),
+                (Compound(Two(ra,rb)),Compound(Two(ea,eb))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                },
+                (Compound(Three(ra,rb,rc)),Compound(Three(ea,eb,ec))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                },
+                (Compound(Four(ra,rb,rc,rd)),Compound(Four(ea,eb,ec,ed))) => {
+                    assert_eq!(ra,ea);
+                    assert_eq!(rb,eb);
+                    assert_eq!(rc,ec);
+                    assert_eq!(rd,ed);
+                },
+                _ => panic!("Result and expected doesn't match the expected form")
+            };
+        }
         #[test_case(
             TestAtom::new([1,2,3]),
             TestAtom::new([1,2,3]),
