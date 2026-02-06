@@ -248,7 +248,7 @@ impl AtomOperations for  Rectangle {
 
 
 
-
+type Area = DisjointAtomsSet<Rectangle,(f32,f32)>;
 
 
 
