@@ -4,8 +4,13 @@ mod indipendent_atoms;
 mod ast_simple;
 mod ast_smart;
 
+pub use indipendent_atoms::{DisjointAtomsSet,AtomOperations,CompoundAtomOperationRes};
+pub use ast_smart::SmartAstSet;
+pub use ast_simple::AstSet;
+
+
 #[derive(Debug,PartialEq)]
-enum SetRelation {
+pub enum SetRelation {
     Overlapping,
     Subset,
     Superset,
@@ -32,12 +37,12 @@ enum SetOps{
     Sub
 }
 
-trait Container {
+pub trait Container {
     type Elem: ?Sized;
     fn contains(&self,e: &Self::Elem) -> bool;
 }
 
-trait Overlappable<Rhs>: {
+pub trait Overlappable<Rhs>: {
     fn set_relation(&self,other: &Rhs) -> SetRelation;
 }
 

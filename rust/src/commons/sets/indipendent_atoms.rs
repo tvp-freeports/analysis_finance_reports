@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 #[derive(Debug)]
-enum CompoundAtomOperationRes<T> {
+pub enum CompoundAtomOperationRes<T> {
     One(T),
     Two(T,T),
     Three(T,T,T),
@@ -22,7 +22,7 @@ enum AtomOperationRes<T> {
 }
 
 
-trait AtomOperations: Sized {
+pub trait AtomOperations: Sized {
     type SubtractSubsetRes: Into<CompoundAtomOperationRes<Self>>;
     type SubtractOverlappingRes: Into<CompoundAtomOperationRes<Self>>;
     type IntersectOverlappingRes: Into<CompoundAtomOperationRes<Self>>;
@@ -86,7 +86,7 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
 
 
 #[derive(Clone,Debug)]
-struct DisjointAtomsSet<A,E>(HashSet<A>)
+pub struct DisjointAtomsSet<A,E>(HashSet<A>)
 where
     A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
