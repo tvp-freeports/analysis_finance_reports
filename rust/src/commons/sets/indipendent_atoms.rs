@@ -894,14 +894,70 @@ mod tests {
 
     #[test]
     fn expression() {
-        let a = DisjointAtomsSet::from_atom(TestAtom::new([1,2,3,4]));
-        let b = DisjointAtomsSet::from_atom(TestAtom::new([0,2,3,4]));
-        let c = DisjointAtomsSet::from_atom(TestAtom::new([0,5,3,40]));
-        let d = DisjointAtomsSet::from_atom(TestAtom::new([1,2]));
-        let e = DisjointAtomsSet::from_atom(TestAtom::new([1,20]));
+        let a = DisjointAtomsSet::new([1,2,3,4]);
+        let b = DisjointAtomsSet::new([0,2,3,4]);
+        let c = DisjointAtomsSet::new([0,5,3,40]);
+        let d = DisjointAtomsSet::new([1,2]);
+        let e = DisjointAtomsSet::new([1,20]);
         let f = a & ( b / c ) | e;
         assert_eq!(f.0,HashSet::from([TestAtom::new([1,20]),TestAtom::new([2,4])]));
     }
 
+    #[test_case(
+        TestSet::new([4,5,70]),
+        70;
+        "simple"
+    )]
+    #[test_case(
+        TestSet::new([4,6,7]) | TestSet::new([10,60,8,7]),
+        60;
+        "union"
+    )]
+    #[test_case(
+        TestSet::new([30,50,60,70]) & TestSet::new([60,70,80]),
+        60;
+        "intersect"
+    )]
+    #[test_case(
+        TestSet::new([2,4,6,8]) / TestSet::new([4,6]),
+        8;
+        "subtraction"
+    )]
+    #[test_case(
+        TestSet::new([6]) | (TestSet::new([3,89]) & TestSet::new([56,67,89]) / TestSet::new([67,78])),
+        89;
+        "expression"
+    )]
+    fn element_in_set(test_set: TestSet, n: u32){
+        assert!(test_set.contains(&n));
+    }
+    #[test_case(
+        TestSet::new([4,5,70]),
+        71;
+        "simple"
+    )]
+    #[test_case(
+        TestSet::new([4,6,7]) | TestSet::new([10,60,8,7]),
+        603;
+        "union"
+    )]
+    #[test_case(
+        TestSet::new([30,50,60,70]) & TestSet::new([60,70,80]),
+        80;
+        "intersect"
+    )]
+    #[test_case(
+        TestSet::new([2,4,6,8]) / TestSet::new([4,6]),
+        4;
+        "subtraction"
+    )]
+    #[test_case(
+        TestSet::new([6]) | (TestSet::new([3,89,67]) & TestSet::new([56,67,89]) / TestSet::new([67,78])),
+        67;
+        "expression"
+    )]
+    fn element_not_in_set(test_set: TestSet, n: u32){
+        assert!(!test_set.contains(&n));
+    }
     
 }
