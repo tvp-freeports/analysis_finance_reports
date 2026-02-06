@@ -216,6 +216,27 @@ where
         }
         Self(s)
     }
+    fn union(&self,other: &Self) -> Self {
+        let mut res = Self(self.0.clone());
+        for o in &other.0 {
+            res=res.atom_union(o.clone());
+        }
+        res
+    }
+    fn intersect(&self,other: &Self) -> Self {
+        let mut res = Self(HashSet::new());
+        for o in &other.0 {
+            res=res | self.atom_intersection(o.clone());
+        }
+        res
+    }
+    fn subtract(&self,other: &Self) -> Self {
+        let mut res = Self(self.0.clone());
+        for o in &other.0 {
+            res=res.atom_subtraction(o.clone());
+        }
+        res
+    }
 }
 
 impl<A,E> BitOr<Self> for DisjointAtomsSet<A,E> 
@@ -224,11 +245,8 @@ where
     E: ?Sized
 {
     type Output = Self;
-    fn bitor(mut self,other: Self) -> Self {
-        for o in other.0 {
-            self=self.atom_union(o);
-        }
-        self
+    fn bitor(self,other: Self) -> Self {
+        self.union(&other)
     }
 }
 impl<A,E> BitAnd<Self> for DisjointAtomsSet<A,E> 
@@ -237,12 +255,8 @@ where
     E: ?Sized
 {
     type Output = Self;
-    fn bitand(mut self,other: Self) -> Self {
-        let mut set=Self(HashSet::new());
-        for o in other.0 {
-            set=set | self.atom_intersection(o);
-        }
-        set
+    fn bitand(self,other: Self) -> Self {
+        self.intersect(&other)
     }
 }
 impl<A,E> Div<Self> for DisjointAtomsSet<A,E> 
@@ -251,11 +265,8 @@ where
     E: ?Sized
 {
     type Output = Self;
-    fn div(mut self,other: Self) -> Self {
-        for o in other.0 {
-            self=self.atom_subtraction(o)
-        }
-        self
+    fn div(self,other: Self) -> Self {
+        self.subtract(&other)
     }
 }
 
@@ -281,11 +292,48 @@ where
     E: ?Sized
 {}
 
+
+impl<A, E> Overlappable<Self> for DisjointAtomsSet<A, E>
+where
+    A: AtomAlgebra + Container<Elem = E> + Clone + Debug + Eq + Hash,
+    E: ?Sized,
+{
+    fn set_relation(&self, other: &Self) -> SetRelation {
+        use SetRelation::*;
+        let mut disjoint = true;
+        'outer: for set_atom in &self.0 {
+            for o in &other.0 {
+                if set_atom.set_relation(o) != Disjoint {
+                    disjoint = false;
+                    break 'outer
+                }
+            }
+        }
+        if disjoint {
+            Disjoint
+        } else {
+            let self_is_contained = self.subtract(&other).0 == HashSet::new();
+            let other_is_contained = other.subtract(&self).0 == HashSet::new();
+            if other_is_contained && self_is_contained {
+                Equal
+            } else if other_is_contained {
+                Superset
+            } else if self_is_contained {
+                Subset
+            } else {
+                Overlapping
+            }
+        }
+    }
+}
+
 impl<A,E> Set<E> for DisjointAtomsSet<A,E>
 where
     A: AtomAlgebra + Container<Elem = E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {}
+
+
 
 
 #[cfg(test)]
@@ -960,4 +1008,66 @@ mod tests {
         assert!(!test_set.contains(&n));
     }
     
+
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,4,5]),
+            TestAtom::new([7,8,9])
+        ])),
+        SetRelation::Equal,
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,8]),
+            TestAtom::new([5]),
+            TestAtom::new([7,4,9])
+        ])); "equal"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,4,5,6,0]),
+            TestAtom::new([7,8,9])
+        ])),
+        SetRelation::Superset,
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,8]),
+            TestAtom::new([5]),
+            TestAtom::new([7,4,9])
+        ])); "superset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,4,5]),
+            TestAtom::new([7,8,9])
+        ])),
+        SetRelation::Subset,
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,8]),
+            TestAtom::new([5]),
+            TestAtom::new([500]),
+            TestAtom::new([7,4,9])
+        ])); "subset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,4,5]),
+            TestAtom::new([7,8])
+        ])),
+        SetRelation::Disjoint,
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([55,66,77]),
+            TestAtom::new([9])
+        ])); "disjoint"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,4,5]),
+            TestAtom::new([7,8,9,10])
+        ])),
+        SetRelation::Overlapping,
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([3,8,5,7,4,9,41,44])
+        ])); "overlapped"
+    )]
+    fn set_relation(a: TestSet, res: SetRelation, b: TestSet) {
+        assert_eq!(a.set_relation(&b),res);
+    }
 }

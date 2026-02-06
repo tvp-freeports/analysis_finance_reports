@@ -1,4 +1,4 @@
-use super::{Container,SetOps,Set,SetAlgebra};
+use super::{Container,SetOps,UncomparableSet,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Clone)]
@@ -104,7 +104,7 @@ where
     E: ?Sized
 {}
 
-impl<L,E> Set<E> for AstSet<L,E>
+impl<L,E> UncomparableSet<E> for AstSet<L,E>
 where
     L: Container<Elem = E> + Clone,
     E: ?Sized

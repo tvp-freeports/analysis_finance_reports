@@ -1,4 +1,4 @@
-use super::{Container,SetRelation,SetOps,Set,SetAlgebra,Overlappable};
+use super::{Container,SetRelation,SetOps,UncomparableSet,SetAlgebra,Overlappable};
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Debug,PartialEq)]
@@ -142,7 +142,7 @@ where
     E: ?Sized
 {}
 
-impl<L,E> Set<E> for SmartAstSet<L,E>
+impl<L,E> UncomparableSet<E> for SmartAstSet<L,E>
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
     E: ?Sized

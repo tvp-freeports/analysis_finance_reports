@@ -4,7 +4,7 @@ mod indipendent_atoms;
 mod ast_simple;
 mod ast_smart;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum SetRelation {
     Overlapping,
     Subset,
@@ -50,12 +50,16 @@ BitAnd<Self,Output=Self> +
 Div<Self,Output=Self> +
 Sized {}
 
-trait Set<E>:
+trait UncomparableSet<E>:
 Container<Elem=E> +
 SetAlgebra 
 where E: ?Sized {}
 
-
+trait Set<E>:
+Container<Elem=E> +
+SetAlgebra +
+Overlappable<Self>
+where E: ?Sized {}
 
 
 
