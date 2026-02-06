@@ -92,6 +92,10 @@ where
     E: ?Sized
 ;
 
+
+
+
+
 impl<A,E> DisjointAtomsSet<A,E>
 where 
     A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
@@ -105,58 +109,58 @@ where
     fn atom_union(self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        let mut new_atoms = Vec::with_capacity(4 * self.0.len());
-        new_atoms.push(other);
-        for atm in &self.0 {
-            let mut i = 0;
-            while i < new_atoms.len() {
-                if let SetRelation::Disjoint = new_atoms[i].set_relation(atm) {
-                    i+=1;
-                } else {
-                    match new_atoms[i].union(atm) {
-                        EmptySet => {
-                            new_atoms.remove(i);
-                        },
-                        Lhs => i+=1,
-                        Rhs => {
-                            new_atoms[i] = atm.clone();
-                            i+=1;
-                        },
-                        Both => {
-                            new_atoms.insert(i + 1, atm.clone());
-                            i+=1;
-                        },
-                        Compound(One(a)) => {
-                            new_atoms[i] = a;
-                            i+=1;
-                        },
-                        Compound(Two(a, b)) => {
-                            new_atoms[i] = a;
-                            new_atoms.insert(i + 1, b);
-                            i+=2;
-                        },
-                        Compound(Three(a, b, c)) => {
-                            new_atoms[i] = a;
-                            new_atoms.insert(i + 1, b);
-                            new_atoms.insert(i + 2, c);
-                            i+=3;
-                        },
-                        Compound(Four(a, b, c, d)) => {
-                            new_atoms[i] = a;
-                            new_atoms.insert(i + 1, b);
-                            new_atoms.insert(i + 2, c);
-                            new_atoms.insert(i + 3, d);
-                            i+=4;
-                        }
-                    }
-                }
+        let l=self.0.len();
+        let atoms: Vec<A> = self.0.into_iter().collect();
+        let l=atoms.len();
+        if l > 0 {
+            let mut new_set = HashSet::new();
+            for i in 1..l {
+                match atoms[i].subtract(&other) {
+                   EmptySet => (),
+                   Lhs => {
+                        new_set.insert(atoms[i].clone());
+                   },
+                   Compound(One(a)) => {
+                        new_set.insert(a);
+                   },
+                   _ => unreachable!("Invalid operation result in DisjointAtomSet atom_union"),
+                };
             }
+            match atoms[0].union(&other) {
+                Lhs => {
+                    new_set.insert(atoms[0].clone());
+                },
+                Rhs => {
+                    new_set.insert(other.clone());
+                },
+                Both => {
+                    new_set.insert(atoms[0].clone());
+                    new_set.insert(other.clone());
+                },
+                Compound(One(a)) => {
+                    new_set.insert(a);
+                },
+                Compound(Two(a,b)) => {
+                    new_set.insert(a);
+                    new_set.insert(b);
+                },
+                Compound(Three(a,b,c)) => {
+                    new_set.insert(a);
+                    new_set.insert(b);
+                    new_set.insert(c);
+                },
+                Compound(Four(a,b,c,d)) => {
+                    new_set.insert(a);
+                    new_set.insert(b);
+                    new_set.insert(c);
+                    new_set.insert(d);
+                },
+                _ => unreachable!("Invalid operation result in DisjointAtomSet atom_union"),
+            };
+            Self(new_set)
+        } else {
+            Self::from_atom(other)
         }
-        let mut s=HashSet::with_capacity(new_atoms.len());
-        for a in new_atoms {
-            s.insert(a);
-        }
-        Self(s)
     }
 
     fn atom_intersection(self, other: A) -> Self {
@@ -257,7 +261,9 @@ where
 {
     type Output = Self;
     fn bitor(mut self,other: Self) -> Self {
+        println!("TUTTO {:?} UNION {:?}",self.0,other.0);
         for o in other.0 {
+            println!("{:?} union {:?}",self.0,o);
             self=self.atom_union(o)
         }
         self
@@ -323,7 +329,6 @@ where
 mod tests {
     use super::*;
     use test_case::test_case;
-    use pretty_assertions::assert_eq;
     use std::collections::BTreeSet;
     #[derive(Clone,Debug,PartialEq,Eq,Hash)]
     struct TestAtom(BTreeSet<u32>);
@@ -613,11 +618,10 @@ mod tests {
             ])),
             TestAtom::new([2,3,4,5,40]),
             DisjointAtomsSet(HashSet::from([
-                TestAtom::new([5]),
-                TestAtom::new([40]),
                 TestAtom::new([50,60]),
-                TestAtom::new([4,3,2]),
                 TestAtom::new([1]),
+                TestAtom::new([4,3,2]),
+                TestAtom::new([5,40])
             ]));"simple"
         )]
         fn union(set: TestSet, atm: TestAtom, exp: TestSet) {
@@ -668,6 +672,27 @@ mod tests {
             assert_eq!(res.0,exp.0);
         }
 
+    }
+
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+                TestAtom::new([2,9,10,11,12]),
+                TestAtom::new([13,14,20]),
+            ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([1,3,4,5,6,7,8]),
+            TestAtom::new([30,50]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([1,3,4,5,6,7,8]),
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+            TestAtom::new([30,50]),
+        ]));"simple"
+    )]
+    fn union(a: TestSet, b: TestSet, exp: TestSet) {
+        let c = a | b;
+        assert_eq!(c.0,exp.0);
     }
     
 }
