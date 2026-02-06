@@ -109,58 +109,22 @@ where
     fn atom_union(self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        let l=self.0.len();
-        let atoms: Vec<A> = self.0.into_iter().collect();
-        let l=atoms.len();
-        if l > 0 {
-            let mut new_set = HashSet::new();
-            for i in 1..l {
-                match atoms[i].subtract(&other) {
-                   EmptySet => (),
-                   Lhs => {
-                        new_set.insert(atoms[i].clone());
-                   },
-                   Compound(One(a)) => {
-                        new_set.insert(a);
-                   },
-                   _ => unreachable!("Invalid operation result in DisjointAtomSet atom_union"),
-                };
-            }
-            match atoms[0].union(&other) {
+        let mut new_set = HashSet::new();
+        for atm in self.0 {
+            match atm.subtract(&other) {
+                EmptySet => (),
                 Lhs => {
-                    new_set.insert(atoms[0].clone());
-                },
-                Rhs => {
-                    new_set.insert(other.clone());
-                },
-                Both => {
-                    new_set.insert(atoms[0].clone());
-                    new_set.insert(other.clone());
+                    new_set.insert(atm.clone());
                 },
                 Compound(One(a)) => {
                     new_set.insert(a);
                 },
-                Compound(Two(a,b)) => {
-                    new_set.insert(a);
-                    new_set.insert(b);
-                },
-                Compound(Three(a,b,c)) => {
-                    new_set.insert(a);
-                    new_set.insert(b);
-                    new_set.insert(c);
-                },
-                Compound(Four(a,b,c,d)) => {
-                    new_set.insert(a);
-                    new_set.insert(b);
-                    new_set.insert(c);
-                    new_set.insert(d);
-                },
                 _ => unreachable!("Invalid operation result in DisjointAtomSet atom_union"),
             };
-            Self(new_set)
-        } else {
-            Self::from_atom(other)
+            
         }
+        new_set.insert(other);
+        Self(new_set)
     }
 
     fn atom_intersection(self, other: A) -> Self {
@@ -620,8 +584,7 @@ mod tests {
             DisjointAtomsSet(HashSet::from([
                 TestAtom::new([50,60]),
                 TestAtom::new([1]),
-                TestAtom::new([4,3,2]),
-                TestAtom::new([5,40])
+                TestAtom::new([40,5,4,3,2]),
             ]));"simple"
         )]
         fn union(set: TestSet, atm: TestAtom, exp: TestSet) {
