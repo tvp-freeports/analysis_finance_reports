@@ -106,11 +106,11 @@ where
         atoms.insert(atom);
         Self(atoms)
     }
-    fn atom_union(self, other: A) -> Self {
+    fn atom_union(&self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
         let mut new_set = HashSet::new();
-        for atm in self.0 {
+        for atm in &self.0 {
             match atm.subtract(&other) {
                 EmptySet => (),
                 Lhs => {
@@ -127,10 +127,10 @@ where
         Self(new_set)
     }
 
-    fn atom_intersection(self, other: A) -> Self {
+    fn atom_intersection(&self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        let mut atoms: Vec<A> = self.0.into_iter().collect();
+        let mut atoms: Vec<A> = self.0.iter().map(|a| a.clone()).collect();
         let mut i = 0;
         while i < atoms.len() {
             match atoms[i].intersect(&other) {
@@ -174,10 +174,10 @@ where
         Self(s)
     }
 
-    fn atom_subtraction(mut self, other: A) -> Self {
+    fn atom_subtraction(&self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;
-        let mut atoms: Vec<A> = self.0.into_iter().collect();
+        let mut atoms: Vec<A> = self.0.iter().map(|a| a.clone()).collect();
         let mut i = 0;
         while i < atoms.len() {
             match atoms[i].subtract(&other) {
@@ -225,10 +225,8 @@ where
 {
     type Output = Self;
     fn bitor(mut self,other: Self) -> Self {
-        println!("TUTTO {:?} UNION {:?}",self.0,other.0);
         for o in other.0 {
-            println!("{:?} union {:?}",self.0,o);
-            self=self.atom_union(o)
+            self=self.atom_union(o);
         }
         self
     }
@@ -240,10 +238,11 @@ where
 {
     type Output = Self;
     fn bitand(mut self,other: Self) -> Self {
+        let mut set=Self(HashSet::new());
         for o in other.0 {
-            self=self.atom_intersection(o)
+            set=set | self.atom_intersection(o);
         }
-        self
+        set
     }
 }
 impl<A,E> Div<Self> for DisjointAtomsSet<A,E> 
@@ -637,6 +636,24 @@ mod tests {
 
     }
 
+
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10]),
+            TestAtom::new([13,14]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([10,2]),
+            TestAtom::new([9]),
+            TestAtom::new([13,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,14]),
+            TestAtom::new([9]),
+            TestAtom::new([2,10])
+        ]));"equal"
+    )]
     #[test_case(
         DisjointAtomsSet(HashSet::from([
                 TestAtom::new([2,9,10,11,12]),
@@ -651,11 +668,240 @@ mod tests {
             TestAtom::new([2,9,10,11,12]),
             TestAtom::new([13,14,20]),
             TestAtom::new([30,50]),
-        ]));"simple"
+        ]));"disjoint"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,13,20]),
+            TestAtom::new([11,12,14]),
+            TestAtom::new([9,10])
+        ]));"superset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([9]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,13,20]),
+            TestAtom::new([11,12,14]),
+            TestAtom::new([9])
+        ]));"subset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,99]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([9,34]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,13,20]),
+            TestAtom::new([11,12,14]),
+            TestAtom::new([9,34]),
+             TestAtom::new([99])
+        ]));"overlapping"
     )]
     fn union(a: TestSet, b: TestSet, exp: TestSet) {
         let c = a | b;
         assert_eq!(c.0,exp.0);
     }
+
+
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10]),
+            TestAtom::new([13,14]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([10,2]),
+            TestAtom::new([9]),
+            TestAtom::new([13,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,14]),
+            TestAtom::new([9]),
+            TestAtom::new([2,10])
+        ]));"equal"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+                TestAtom::new([2,9,10,11,12]),
+                TestAtom::new([13,14,20]),
+            ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([1,3,4,5,6,7,8]),
+            TestAtom::new([30,50]),
+        ])),
+        DisjointAtomsSet(HashSet::new());"disjoint"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2]),
+            TestAtom::new([13]),
+            TestAtom::new([11]),
+            TestAtom::new([12]),
+            TestAtom::new([20]),
+            TestAtom::new([14]),
+        ]));"superset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([9]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2]),
+            TestAtom::new([13]),
+            TestAtom::new([20]),
+            TestAtom::new([14]),
+            TestAtom::new([9])
+        ]));"subset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,99]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([9,34]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2]),
+            TestAtom::new([9]),
+            TestAtom::new([20]),
+            TestAtom::new([13]),
+            TestAtom::new([14])
+        ]));"overlapping"
+    )]
+    fn intersect(a: TestSet, b: TestSet, exp: TestSet) {
+        let c = a & b;
+        assert_eq!(c.0,exp.0);
+    }
+
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10]),
+            TestAtom::new([13,14]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([10,2]),
+            TestAtom::new([9]),
+            TestAtom::new([13,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::new());"equal"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([1,3,4,5,6,7,8]),
+            TestAtom::new([30,50]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+        ]));"disjoint"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,10,11,12]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([9,10])
+        ]));"superset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([13,2,20]),
+            TestAtom::new([9]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::new());"subset"
+    )]
+    #[test_case(
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,9,99]),
+            TestAtom::new([13,14,20]),
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([2,20]),
+            TestAtom::new([9,34]),
+            TestAtom::new([11,12,14]),
+
+        ])),
+        DisjointAtomsSet(HashSet::from([
+            TestAtom::new([99]),
+            TestAtom::new([13])
+        ]));"overlapping"
+    )]
+    fn subtract(a: TestSet, b: TestSet, exp: TestSet) {
+        let c = a / b;
+        assert_eq!(c.0,exp.0);
+    }
+
+    #[test]
+    fn expression() {
+        let a = DisjointAtomsSet::from_atom(TestAtom::new([1,2,3,4]));
+        let b = DisjointAtomsSet::from_atom(TestAtom::new([0,2,3,4]));
+        let c = DisjointAtomsSet::from_atom(TestAtom::new([0,5,3,40]));
+        let d = DisjointAtomsSet::from_atom(TestAtom::new([1,2]));
+        let e = DisjointAtomsSet::from_atom(TestAtom::new([1,20]));
+        let f = a & ( b / c ) | e;
+        assert_eq!(f.0,HashSet::from([TestAtom::new([1,20]),TestAtom::new([2,4])]));
+    }
+
     
 }
