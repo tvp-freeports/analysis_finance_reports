@@ -22,13 +22,22 @@ enum AtomOperationRes<T> {
 }
 
 
-pub trait AtomOperations: Sized {
+pub trait AtomOperations: Sized + Clone {
     type SubtractSubsetRes: Into<CompoundAtomOperationRes<Self>>;
     type SubtractOverlappingRes: Into<CompoundAtomOperationRes<Self>>;
     type IntersectOverlappingRes: Into<CompoundAtomOperationRes<Self>>;
     fn subtract_subset(&self, other: &Self) -> Self::SubtractSubsetRes;
     fn subtract_overlapping(&self, other: &Self) -> Self::SubtractOverlappingRes;
     fn intersect_overlapping(&self, other: &Self) -> Self::IntersectOverlappingRes;
+    fn union_overlapping(&self, other: &Self) -> CompoundAtomOperationRes<Self> {
+        use CompoundAtomOperationRes::*;
+        match self.subtract_overlapping(other).into() {
+            One(a) => Two(a,(*other).clone()),
+            Two(a,b) => Three(a,b,(*other).clone()),
+            Three(a,b,c) => Four(a,b,c,(*other).clone()),
+            _ => unreachable!("Default implementation of union doesn't support that set subtraction")
+        }
+    }
 
 }
 
@@ -40,19 +49,7 @@ trait AtomAlgebra: Overlappable<Self> + AtomOperations {
         match self.set_relation(&other) {
             Equal | Superset => Lhs,
             Subset => Rhs,
-            Overlapping => {
-                Compound(match (
-                    self.subtract_overlapping(&other).into(),
-                    self.intersect_overlapping(&other).into(),
-                    other.subtract_overlapping(&self).into() 
-                ) {
-                    (One(a),One(b),One(c)) => Three(a,b,c),
-                    (Two(a,b),One(c),One(d)) => Four(a,b,c,d),
-                    (One(a),Two(b,c),One(d)) => Four(a,b,c,d),
-                    (One(a),One(b),Two(c,d)) => Four(a,b,c,d),
-                    _ => panic!("Default implementation of atom union doesn't support this combination of set subtraction and set intersection")
-                })
-            },
+            Overlapping => Compound(self.union_overlapping(other)),
             Disjoint => Both,
         }
     }
@@ -469,10 +466,9 @@ mod tests {
         #[test_case(
             TestAtom::new([1,2,3,99,999,9,10]),
             TestAtom::new([2,3,4,5,6,99,999,9]),
-            Compound(Three(
+            Compound(Two(
                 TestAtom::new([1,10]),
-                TestAtom::new([2,3,9,99,999]),
-                TestAtom::new([4,5,6])
+                TestAtom::new([4,5,6,2,3,9,99,999]),
             )); "overlapping"
         )]
         #[test_case(
