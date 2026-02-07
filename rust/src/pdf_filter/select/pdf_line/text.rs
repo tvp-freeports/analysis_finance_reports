@@ -65,6 +65,41 @@ impl Container for TextAstLeaf {
 type TextSet = SmartAstSet<TextAstLeaf,str>;
 
 
+impl TextAstLeaf {
+    pub fn new(input_txt: &str) -> Self {
+        let mut content = input_txt.to_string();
+        let mut start = false;
+        let mut end = false;
+        if input_txt.starts_with(r"\^") {
+            content.remove(0);
+        } else if input_txt.starts_with("^") {
+            start = true;
+            content.remove(0);
+        }
+
+        if input_txt.ends_with(r"\$") {
+            content.remove(content.len()-2);
+        } else if input_txt.ends_with("$") {
+            content.pop();
+            end = true;
+        }
+        Self{
+            start,
+            content,
+            end
+        }
+    }
+}
+
+
+// impl TextSet {
+//     pub fn new(input_txt: &str) -> Self {
+//         Self::from_atom(
+//             TextAstLeaf::new(input_txt)
+//         )
+//     }
+// }
+
 
 // #[cfg(test)]
 // mod tests {
