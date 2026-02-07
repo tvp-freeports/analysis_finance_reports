@@ -252,29 +252,6 @@ type Area = DisjointAtomsSet<Rectangle,(f32,f32)>;
 
 
 
-
-
-// use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
-// use crate::commons::geometry::Rectangle;
-
-// type AreaAstLeaf = Rectangle;
-
-
-
-
-
-
-// impl Area {
-//     pub fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
-//         Self(AstNode::Leaf(Rectangle::new(x0,y0,x1,y1)))
-//     }
-// }
-
-
-// // pub type Area = Set<Rectangle,Rectangle>;
-// pub type Area = Set<Rectangle,(f32,f32)>;
-// pub type AreaSet = Area;
-
 // #[cfg(test)]
 // mod tests {
 //     use super::*;

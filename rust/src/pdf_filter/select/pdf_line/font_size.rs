@@ -115,41 +115,6 @@ impl AtomOperations for Limits {
 type Interval = DisjointAtomsSet<Limits,f32>;
 type FontSizeSet = Interval;
 
-// use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
-// use crate::commons::geometry::Limits;
-
-// type FontSizeAstLeaf = Limits;
-
-
-
-// impl Overlappable for Limits {
-//     fn set_relation(&self,other: &Self) -> SetRelation {
-//         use SetRelation::*;
-//         let (a0,a1) = self.as_tuple();
-//         let (b0,b1) = self.as_tuple();
-//         if a0>b1 || b0>a1 {
-//             Disjoint
-//         } else if a0==b0 && a1==b1 {
-//             Equal
-//         } else if (b0<=a0 && a1<=b1) {
-//             Subset
-//         } else if (a0<=b0 && b1<=b0) {
-//             Superset
-//         } else {
-//             Overlapping
-//         }
-//     }
-// }
-
-// impl FontSizeSet {
-//     pub fn new(a: f32, b: f32) -> Self {
-//         Self(AstNode::Leaf(Limits::new(a,b)))
-//     }
-// }
-
-
-// pub type FontSizeSet = Set<Limits,f32>;
-// pub type FontSizeInterval = FontSizeSet;
 
 // #[cfg(test)]
 // mod tests {

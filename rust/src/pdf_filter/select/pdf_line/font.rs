@@ -71,38 +71,6 @@ impl AtomOperations for Font {
 type FontSet = DisjointAtomsSet<Font,Font>;
 
 
-// use crate::commons::sets::{Container,Set,AstNode,SetOps,Overlappable,SetRelation};
-
-// pub type FontSet = Set<FontAstLeaf,str>;
-
-// #[derive(Debug,PartialEq,Clone)]
-// pub struct FontAstLeaf(String);
-
-// impl Overlappable for FontAstLeaf {
-//     fn set_relation(&self,other: &Self) -> SetRelation {
-//         use SetRelation::*;
-//         if self.0==other.1 {Equal} else {Disjoint}
-//     }
-// }
-
-
-
-// impl Container for FontAstLeaf {
-//     type Elem = str;
-//     fn contains(&self, font: &str) -> bool {
-//         let Self(font_name) = self;
-//         (*font_name)==normalize_font(font)
-//     }
-// }
-
-// impl FontSet {
-//     pub fn new(input_txt: &str) -> Self {
-//         Self(AstNode::Leaf(FontAstLeaf(
-//             normalize_font(input_txt)
-//         )))
-//     }
-// }
-
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
