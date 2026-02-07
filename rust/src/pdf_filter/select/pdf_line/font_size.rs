@@ -99,16 +99,16 @@ impl AtomOperations for Limits {
             One(Limits::new(a0,b1))
         }
     }
-    // fn union_overlapping(&self,other: &Self) -> UnionOverlappingLimitsRes {
-    //     use UnionOverlappingLimitsRes::*;
-    //     let (a0,a1) = self.as_tuple();
-    //     let (b0,b1) = other.as_tuple();
-    //     if a0<b0 {
-    //         One(Limits::new(a0,b1))
-    //     } else {
-    //         One(Limits::new(b0,a1))
-    //     }
-    // }
+    fn union_overlapping(&self,other: &Self) -> CompoundAtomOperationRes<Self> {
+        use CompoundAtomOperationRes::*;
+        let (a0,a1) = self.as_tuple();
+        let (b0,b1) = other.as_tuple();
+        if a0<b0 {
+            One(Limits::new(a0,b1))
+        } else {
+            One(Limits::new(b0,a1))
+        }
+    }
 }
 
 
