@@ -92,13 +92,13 @@ impl TextAstLeaf {
 }
 
 
-// impl TextSet {
-//     pub fn new(input_txt: &str) -> Self {
-//         Self::from_leaf(
-//             TextAstLeaf::new(input_txt)
-//         )
-//     }
-// }
+impl TextSet {
+    pub fn new(input_txt: &str) -> Self {
+        Self::from_leaf(
+            TextAstLeaf::new(input_txt)
+        )
+    }
+}
 
 
 // #[cfg(test)]
