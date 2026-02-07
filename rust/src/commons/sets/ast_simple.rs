@@ -19,6 +19,16 @@ where
     E: ?Sized
 ;
 
+impl<L,E> AstSet<L,E> 
+where
+    L: Container<Elem = E> + Clone,
+    E: ?Sized
+{
+    pub fn from_leaf(leaf: L) -> Self {
+        Self(AstNode::Leaf(leaf))
+    }
+}
+
 impl<L,E> Container for AstNode<L,E>
 where
     L: Container<Elem = E> + Clone,
@@ -147,6 +157,15 @@ mod tests {
                 )
             }
         }  
+    }
+    #[test]
+    fn new() {
+        let l = HashSet::from(["nilpo".to_string(),"grummo".to_string(),"sabbo".to_string()]);
+        let s = TestSet::from_leaf(l.clone());
+        match s {
+            AstSet(AstNode::Leaf(lf)) => assert_eq!(l,lf),
+            _ => panic!("AstSet doesn't have expected shape")
+        }
     }
     mod ast_creation {
         use super::*;

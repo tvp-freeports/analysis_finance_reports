@@ -94,7 +94,7 @@ impl TextAstLeaf {
 
 // impl TextSet {
 //     pub fn new(input_txt: &str) -> Self {
-//         Self::from_atom(
+//         Self::from_leaf(
 //             TextAstLeaf::new(input_txt)
 //         )
 //     }

@@ -19,6 +19,17 @@ where
     E: ?Sized
 ;
 
+impl<L,E> SmartAstSet<L,E> 
+where
+    L: Container<Elem = E> + Clone + Overlappable<L>,
+    E: ?Sized
+{
+    pub fn from_leaf(leaf: L) -> Self {
+        Self(SmartAstNode::Leaf(leaf))
+    }
+}
+
+
 impl<L,E> Container for SmartAstNode<L,E>
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
@@ -204,6 +215,15 @@ mod tests {
             } else {
                 Overlapping
             }
+        }
+    }
+    #[test]
+    fn new() {
+        let l = TestSmartLeaf(HashSet::from([3,4,5]));
+        let s = TestSet::from_leaf(l.clone());
+        match s {
+            SmartAstSet(SmartAstNode::Leaf(lf)) => assert_eq!(l,lf),
+            _ => panic!("AstSet doesn't have expected shape")
         }
     }
     use SetOps::*;
