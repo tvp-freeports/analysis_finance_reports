@@ -101,74 +101,89 @@ impl TextSet {
 }
 
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use pretty_assertions::assert_eq;
-//     use test_case::test_case;
-//     #[test_case("cave canem",TextAstLeaf{
-//         start:false,
-//         content: "cave canem".to_string(),
-//         end: false
-//     };"contained")]
-//     #[test_case(r"\^nija Glu$m  ",TextAstLeaf{
-//         start:false,
-//         content: "^nija Glu$m  ".to_string(),
-//         end: false
-//     };"contained begin escaped")]
-//     #[test_case(r"yogurt\$",TextAstLeaf{
-//         start:false,
-//         content: "yogurt$".to_string(),
-//         end: false
-//     };"contained end escaped")]
-//     #[test_case(r"\^^\^guspo$\$",TextAstLeaf{
-//         start:false,
-//         content: r"^^\^guspo$$".to_string(),
-//         end: false
-//     };"contained begin end escaped")]
-//     #[test_case("^ ganico ",TextAstLeaf{
-//         start:true,
-//         content: " ganico ".to_string(),
-//         end: false
-//     };"prefix")]
-//     #[test_case(r"lemmo$",TextAstLeaf{
-//         start:false,
-//         content: "lemmo".to_string(),
-//         end: true
-//     };"postifix")]
-//     #[test_case(r"^\^O$$",TextAstLeaf{
-//         start:true,
-//         content: r"\^O$".to_string(),
-//         end: true
-//     };"exact")]
-//     fn new_textset(input: &str, expected: TextAstLeaf) {
-//         match TextSet::new(input) {
-//             Set(AstNode::Leaf(res)) => assert_eq!(res,expected),
-//             _ => panic!("Expected have to be a TextSet with just one leaf")
-//         }
-//     }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use test_case::test_case;
+    #[test_case("cave canem",TextAstLeaf{
+        start:false,
+        content: "cave canem".to_string(),
+        end: false
+    };"contained")]
+    #[test_case(r"\^nija Glu$m  ",TextAstLeaf{
+        start:false,
+        content: "^nija Glu$m  ".to_string(),
+        end: false
+    };"contained begin escaped")]
+    #[test_case(r"yogurt\$",TextAstLeaf{
+        start:false,
+        content: "yogurt$".to_string(),
+        end: false
+    };"contained end escaped")]
+    #[test_case(r"\^^\^guspo$\$",TextAstLeaf{
+        start:false,
+        content: r"^^\^guspo$$".to_string(),
+        end: false
+    };"contained begin end escaped")]
+    #[test_case("^ ganico ",TextAstLeaf{
+        start:true,
+        content: " ganico ".to_string(),
+        end: false
+    };"prefix")]
+    #[test_case(r"lemmo$",TextAstLeaf{
+        start:false,
+        content: "lemmo".to_string(),
+        end: true
+    };"postifix")]
+    #[test_case(r"^\^O$$",TextAstLeaf{
+        start:true,
+        content: r"\^O$".to_string(),
+        end: true
+    };"exact")]
+    fn new_textset(input: &str, expected: TextAstLeaf) {
+        let res = TextAstLeaf::new(input);
+        assert_eq!(res,expected);
+    }
 
-//     #[test_case("casa","Nico si casal de lim";"contained")]
-//     #[test_case("^ magnone seli"," magnone seli cumas";"begin")]
-//     #[test_case("to tha suco$$","nunca to tha suco$";"end")]
-//     #[test_case("^^j$","^j";"exact")]
-//     fn element_in_leafset(text_set: &str, text: &str ) {
-//         let set = TextSet::new(text_set);
-//         match set {
-//             Set(AstNode::Leaf(leaf)) => assert!(leaf.contains(text)),
-//             _ => panic!("Expected have to be a TextSet with just one leaf")
-//         }
-//     }
+    #[test_case("casa","Nico si casal de lim";"contained")]
+    #[test_case("^ magnone seli"," magnone seli cumas";"begin")]
+    #[test_case("to tha suco$$","nunca to tha suco$";"end")]
+    #[test_case("^^j$","^j";"exact")]
+    fn element_in_leafset(text_set: &str, text: &str ) {
+        let leaf = TextAstLeaf::new(text_set);
+        assert!(leaf.contains(text));
+    }
 
-//     #[test_case("casa","Nico si Casas de lim";"contained")]
-//     #[test_case("^ magnone seli","um magnone seli cumas";"begin")]
-//     #[test_case("to tha suco$$","nunca to tha suco$ demais";"end")]
-//     #[test_case("^^j$",".^j.";"exact")]
-//     fn element_not_in_leafset(text_set: &str, text: &str ) {
-//         let set = TextSet::new(text_set);
-//         match set {
-//             Set(AstNode::Leaf(leaf)) => assert!(!leaf.contains(text)),
-//             _ => panic!("Expected have to be a TextSet with just one leaf")
-//         }
-//     }
-// }
+    #[test_case("casa","Nico si Casas de lim";"contained")]
+    #[test_case("^ magnone seli","um magnone seli cumas";"begin")]
+    #[test_case("to tha suco$$","nunca to tha suco$ demais";"end")]
+    #[test_case("^^j$",".^j.";"exact")]
+    fn element_not_in_leafset(text_set: &str, text: &str ) {
+        let leaf = TextAstLeaf::new(text_set);
+        assert!(!leaf.contains(text));
+    }
+    use SetRelation::*;
+    #[test_case("^lemure$",Equal,"^lemure$";"equal both exact")]
+    #[test_case("gremure$",Equal,"gremure$";"equal end of both vincolated")]
+    #[test_case("^;leMut ",Equal,"^;leMut ";"equal start of both vincolated")]
+    #[test_case(";Mut ",Equal,";Mut ";"equal both substrings")]
+    #[test_case("^lemure$",Subset,"^lemu";"subset first exact second start vincolated")]
+    #[test_case("^gremure$",Subset,"mure$";"subset first exact second end vincolated")]
+    #[test_case("^;leMut fm",Subset,"^;leMut ";"subset start of both vincolated")]
+    #[test_case(";leMut fm$",Subset,"Mut fm$";"subset end of both vincolated")]
+    #[test_case("^;Mut $",Subset,"Mu";"subset first exact second substring")]
+    #[test_case("^;Mu",Subset,"Mu";"subset first start vincolated second substring")]
+    #[test_case("ut $",Subset,"u";"subset first end vincolated second substring")]
+    fn set_relation(a: &str, rel: SetRelation, b: &str) {
+        assert_eq!(
+            TextAstLeaf::new(a).set_relation(
+                &TextAstLeaf::new(b)
+            ),
+            rel
+        )
+    }
+
+
+}
+
