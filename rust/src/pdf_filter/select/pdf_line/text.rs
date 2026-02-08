@@ -26,10 +26,10 @@ impl Overlappable<Self> for TextAstLeaf {
             (false,true,true,false) => Overlapping,
             //----------------------------
             (true,false,true,false) => {
-                if a==b {Equal} else if a.starts_with(b) {Subset} else if b.starts_with(a) {Subset} else {Disjoint}
+                if a==b {Equal} else if a.starts_with(b) {Subset} else if b.starts_with(a) {Superset} else {Disjoint}
             },
             (false,true,false,true) => {
-                if a==b {Equal} else if a.ends_with(b) {Subset} else if b.ends_with(a) {Subset} else {Disjoint}
+                if a==b {Equal} else if a.ends_with(b) {Subset} else if b.ends_with(a) {Superset} else {Disjoint}
             },
             //----------------------------
             (false,false,false,true) => if b.contains(a) {Superset} else {Overlapping},
@@ -37,7 +37,9 @@ impl Overlappable<Self> for TextAstLeaf {
             (false,true,false,false) => if a.contains(b) {Subset} else {Overlapping},
             (true,false,false,false) => if a.contains(b) {Subset} else {Overlapping},
             //----------------------------
-            (false,false,false,false) => if a==b {Equal} else {Overlapping}
+            (false,false,false,false) => {
+                if a==b {Equal} else if a.contains(b) {Subset} else if b.contains(a) {Superset} else {Overlapping}
+            }
         }
     }
 }
@@ -175,6 +177,29 @@ mod tests {
     #[test_case("^;Mut $",Subset,"Mu";"subset first exact second substring")]
     #[test_case("^;Mu",Subset,"Mu";"subset first start vincolated second substring")]
     #[test_case("ut $",Subset,"u";"subset first end vincolated second substring")]
+    #[test_case(" nisp o y-utusv",Subset,"o y-utu";"subset both substrings")]
+    #[test_case("^l emure",Superset,"^l emureti cos(8)$";"superset first start vincolated second exact")]
+    #[test_case("mure][$",Superset,"^gremure][$";"superset first end vincolated second exact")]
+    #[test_case("^;leM",Superset,"^;leMut ";"superset start of both vincolated")]
+    #[test_case(" fm$",Superset,"Mut fm$";"superset end of both vincolated")]
+    #[test_case("t ",Superset,"^;Mut $";"superset first substring second exact")]
+    #[test_case("Mu",Superset,"^;Mut";"superset first substring second start vincolated")]
+    #[test_case("kut",Superset,"makut $";"superset first substring second end vincolated")]
+    #[test_case("tutu",Superset,"malitutu";"superset both substrings")]
+    #[test_case("^l emure",Overlapping,"cos(8)$";"overlapping first start second end vincolated")]
+    #[test_case("mure][$",Overlapping,"^gre";"overlapping first end second start vincolated")]
+    #[test_case("^;leM",Overlapping,"giummo";"overlapping first start vincolated second substring")]
+    #[test_case(" fm$",Overlapping,"giummo";"overlapping first end vincolated second substring")]
+    #[test_case("dribbo",Overlapping,"^;Mut obbo";"overlapping first substring second start vincolated")]
+    #[test_case("dribbo",Overlapping,";Mut fibbo$";"overlapping first sbustring second end vincolated")]
+    #[test_case("canimo",Overlapping,";::::;";"overlapping both substrings")]
+    #[test_case("^l emure$",Disjoint,"^cos(8)$";"disjoint both exact")]
+    #[test_case("^;leM",Disjoint,"^giummo";"disjoint both start vincolated")]
+    #[test_case(" fm$",Disjoint,"giummo$";"disjoint both end vincolated")]
+    #[test_case("^mure][$",Disjoint,"^gre";"disjoint exact second start vincolated")]
+    #[test_case("^mure][$",Disjoint,"gre$";"disjoint exact second end vincolated")]
+    #[test_case("^dribbo",Disjoint,"^;Mut obbo$";"disjoint first start vincolated second exact")]
+    #[test_case("dribbo$",Disjoint,"^;Mut obbo$";"disjoint first end vincolated second exact")]
     fn set_relation(a: &str, rel: SetRelation, b: &str) {
         assert_eq!(
             TextAstLeaf::new(a).set_relation(
