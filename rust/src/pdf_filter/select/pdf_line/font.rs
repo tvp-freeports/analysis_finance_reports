@@ -86,35 +86,29 @@ mod tests {
     fn new_font(input: &str, res: &str) {
         assert_eq!(Font::new(input).0,res.to_string());
     }
+    #[test]
+    fn element_in_leafset() {
+        let font_set=Font::new("casa Sapaforica/L");
+        let font=Font::new("CASA,SAPAFORICA,l");
+        assert!(font_set.contains(&font));
+    }
+    #[test]
+    fn element_not_in_leafset() {
+        let font_set="Liquor& ca/io ";
+        let font="CASA,Semaforica";
+        assert!(!font_set.contains(&font));
+    }
+
+    #[test_case("\tcalimo",SetRelation::Equal," CalImo ";"equal")]
+    #[test_case("\tcalimo",SetRelation::Disjoint," Calo ";"disjoint")]
+    fn set_relation(a: &str, rel: SetRelation , b: &str) {
+        assert_eq!(Font::new(a).set_relation(
+            &Font::new(b)
+        ),rel);
+    }
+
+
 }
 
-//     #[test]
-//     fn new_textset() {
-//         let input = "Liquor& ca/io ";
-//         let res = "liquorand-ca-io";
-//         let Set(AstNode::Leaf(FontAstLeaf(content))) = FontSet::new(input) else {
-//             panic!("Expected have to be a FontSet with just one leaf")
-//         };
-//         assert_eq!(content,res.to_string());
-//     }
-//     #[test]
-//     fn element_in_leafset() {
-//         let text_set="casa Sapaforica/L";
-//         let text="CASA,SAPAFORICA,l";
-//         let set = FontSet::new(text_set);
-//         match set {
-//             Set(AstNode::Leaf(leaf)) => assert!(leaf.contains(text)),
-//             _ => panic!("Expected have to be a TextSet with just one leaf")
-//         }
-//     }
-//     #[test]
-//     fn element_not_in_leafset() {
-//         let text_set="casa Semaforica/L";
-//         let text="CASA,SAPAFORICA,l";
-//         let set = FontSet::new(text_set);
-//         match set {
-//             Set(AstNode::Leaf(leaf)) => assert!(!leaf.contains(text)),
-//             _ => panic!("Expected have to be a TextSet with just one leaf")
-//         }
-//     }
-// }
+
+
