@@ -33,6 +33,7 @@ pub enum SubtractOverlappingLimitsRes {
     One(Limits)
 }
 pub enum SubtractSubsetLimitsRes {
+    One(Limits),
     Two(Limits,Limits)
 }
 
@@ -53,6 +54,7 @@ impl Into<CompoundAtomOperationRes<Limits>> for SubtractSubsetLimitsRes {
     fn into(self) -> CompoundAtomOperationRes<Limits> {
         use CompoundAtomOperationRes::*;
         match self {
+            Self::One(a) => One(a),
             Self::Two(a,b) => Two(a,b)
         }
     }
@@ -75,7 +77,14 @@ impl AtomOperations for Limits {
         use SubtractSubsetLimitsRes::*;
         let (a0,a1) = self.as_tuple();
         let (b0,b1) = other.as_tuple();
-        Two(Limits::new(a0,b0),Limits::new(b1,a1))
+        if b0==a0 {
+            One(Limits::new(b1,a1))
+        } else if a1==b1 {
+            One(Limits::new(a0,b0))
+        } else {
+            Two(Limits::new(a0,b0),Limits::new(b1,a1))
+        }
+        
     }
     fn subtract_overlapping(&self,other: &Self) -> SubtractOverlappingLimitsRes {
         use SubtractOverlappingLimitsRes::*;
@@ -176,7 +185,7 @@ mod tests {
 
     #[test_case(Limits::new(30.6,40.2),Limits::new(33.6,36.1),Two(
         Limits::new(30.6,33.6),Limits::new(36.1,40.2)
-    );"simple")]
+    );"common")]
     #[test_case(Limits::new(30.6,40.2),Limits::new(30.6,36.1),One(
         Limits::new(36.1,40.2)
     );"left touch")]
