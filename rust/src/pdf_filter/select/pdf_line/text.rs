@@ -152,7 +152,7 @@ mod tests {
     #[test_case("^ magnone seli"," magnone seli cumas";"begin")]
     #[test_case("to tha suco$$","nunca to tha suco$";"end")]
     #[test_case("^^j$","^j";"exact")]
-    fn element_in_leafset(text_set: &str, text: &str ) {
+    fn element_in_leaf(text_set: &str, text: &str ) {
         let leaf = TextAstLeaf::new(text_set);
         assert!(leaf.contains(text));
     }
@@ -161,7 +161,7 @@ mod tests {
     #[test_case("^ magnone seli","um magnone seli cumas";"begin")]
     #[test_case("to tha suco$$","nunca to tha suco$ demais";"end")]
     #[test_case("^^j$",".^j.";"exact")]
-    fn element_not_in_leafset(text_set: &str, text: &str ) {
+    fn element_not_in_leaf(text_set: &str, text: &str ) {
         let leaf = TextAstLeaf::new(text_set);
         assert!(!leaf.contains(text));
     }

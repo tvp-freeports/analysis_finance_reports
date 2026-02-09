@@ -129,15 +129,15 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use test_case::test_case;
-    #[test]
-    fn element_in_leafset() {
-        let interval=Limits::new(20.0,50.0);
-        let x=30.5;
+    #[test_case(Limits::new(20.0,50.0),30.5;"common")]
+    #[test_case(Limits::new(20.0,50.0),50.0;"touch right")]
+    #[test_case(Limits::new(20.0,50.0),20.0;"touch left")]
+    fn element_in_atom(interval: Limits, x: f32) {
         assert!(interval.contains(&x));
     }
     #[test_case(10.5;"too little")]
     #[test_case(55.5;"too big")]
-    fn element_not_in_leafset(x: f32) {
+    fn element_not_in_atom(x: f32) {
         let interval=Limits::build(20.0,50.0).unwrap();
         assert!(!interval.contains(&x));
     }

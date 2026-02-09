@@ -87,13 +87,13 @@ mod tests {
         assert_eq!(Font::new(input).0,res.to_string());
     }
     #[test]
-    fn element_in_leafset() {
+    fn element_in_atom() {
         let font_set=Font::new("casa Sapaforica/L");
         let font=Font::new("CASA,SAPAFORICA,l");
         assert!(font_set.contains(&font));
     }
     #[test]
-    fn element_not_in_leafset() {
+    fn element_not_in_atom() {
         let font_set=Font::new("Liquor& ca/io ");
         let font=Font::new("CASA,Semaforica");
         assert!(!font_set.contains(&font));
