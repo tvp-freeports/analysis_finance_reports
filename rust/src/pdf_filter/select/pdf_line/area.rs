@@ -374,8 +374,10 @@ mod tests {
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,200.0,670.0);"bigger right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,13.11,200.0,67.0);"bigger top")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,200.0,670.0);"bigger bottom")]
-    
-    // #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),SmallerLeft,Rectangle::new(3.0,13.11,49.0,81.0);"overlapping")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopLeft,Rectangle::new(0.0,13.11,2.0,67.0);"top left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopRight,Rectangle::new(41.41,13.11,200.0,67.0);"top right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomLeft,Rectangle::new(0.1,25.11,26.0,670.0);"bottom left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomRight,Rectangle::new(5.1,67.0,200.0,670.0);"bottom right")]
     fn type_overlap(a: Rectangle, ovrt: RectOverlapping, b: Rectangle) {
         assert_eq!(a.type_overlap(&b),ovrt);
     }
