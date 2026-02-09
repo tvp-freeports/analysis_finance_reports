@@ -61,10 +61,10 @@ impl AtomOperations for Font {
         unreachable!("Font cannot be a subset of another")
     }
     fn subtract_overlapping(&self,_other: &Self) -> CompoundAtomOperationRes<Font> {
-        unreachable!("Font cannot be a subset of another")
+        unreachable!("Font cannot be overlapping another")
     }
     fn intersect_overlapping(&self,_other: &Self) -> CompoundAtomOperationRes<Font> {
-        unreachable!("Font cannot be a subset of another")
+        unreachable!("Font cannot be overlapping another")
     }
 }
 
@@ -94,8 +94,8 @@ mod tests {
     }
     #[test]
     fn element_not_in_leafset() {
-        let font_set="Liquor& ca/io ";
-        let font="CASA,Semaforica";
+        let font_set=Font::new("Liquor& ca/io ");
+        let font=Font::new("CASA,Semaforica");
         assert!(!font_set.contains(&font));
     }
 
@@ -107,7 +107,27 @@ mod tests {
         ),rel);
     }
 
-
+    #[test]
+    #[should_panic(expected="internal error: entered unreachable code: Font cannot be overlapping another")]
+    fn subtract_overlapping() {
+        let a=Font::new("A");
+        let b=Font::new("B");
+        a.subtract_overlapping(&b);
+    }
+    #[test]
+    #[should_panic(expected="internal error: entered unreachable code: Font cannot be overlapping another")]
+    fn intersect_overlapping() {
+        let a=Font::new("A");
+        let b=Font::new("B");
+        a.intersect_overlapping(&b);
+    }
+    #[test]
+    #[should_panic(expected="internal error: entered unreachable code: Font cannot be a subset of another")]
+    fn subtract_subset() {
+        let a=Font::new("A");
+        let b=Font::new("B");
+        a.subtract_subset(&b);
+    }
 }
 
 
