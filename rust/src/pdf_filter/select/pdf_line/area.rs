@@ -510,5 +510,92 @@ mod tests {
 
 
 
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(3.0,19.0,49.0,79.0),
+    Three(
+        Rectangle::new(49.0,20.0,50.0,80.0),
+        Rectangle::new(1.0,79.0,49.0,80.0),
+        Rectangle::new(1.0,20.0,3.0,79.0)
+    );"small up")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(3.0,22.22,49.0,88.0),
+    Three(
+        Rectangle::new(1.0,20.0,3.0,80.0),
+        Rectangle::new(3.0,20.0,50.0,22.22),
+        Rectangle::new(49.0,22.22,50.0,80.0)
+    );"small down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(2.0,22.0,55.0,70.0),
+    Three(
+        Rectangle::new(1.0,70.0,50.0,80.0),
+        Rectangle::new(1.0,20.0,2.0,70.0),
+        Rectangle::new(2.0,20.0,50.0,22.0)
+    );"small right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.0,22.0,2.0,70.0),
+    Three(
+        Rectangle::new(1.0,20.0,50.0,22.0),
+        Rectangle::new(2.0,22.0,50.0,80.0),
+        Rectangle::new(1.0,70.0,2.0,80.0)
+    );"small left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.0,2.0,40.0,70.0),
+    Two(
+        Rectangle::new(40.0,20.0,50.0,80.0),
+        Rectangle::new(1.0,70.0,40.0,80.0)
+    );"top left corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,2.0,58.0,60.0),
+    Two(
+        Rectangle::new(1.0,60.0,50.0,80.0),
+        Rectangle::new(1.0,20.0,10.0,60.0)
+    );"top right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,25.5,58.0,800.0),
+    Two(
+        Rectangle::new(1.0,20.0,10.0,80.0),
+        Rectangle::new(10.0,20.0,50.0,25.5)
+    );"bottom right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,25.2,40.0,89.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.2),
+        Rectangle::new(40.0,25.2,50.0,80.0)
+    );"bottom left corner")]
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,12.0,30.0,90.0),
+    Two(
+        Rectangle::new(1.0,20.0,11.0,80.0),
+        Rectangle::new(30.0,20.0,50.0,80.0)
+    );"vertical crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.05,25.0,500.0,77.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.0),
+        Rectangle::new(1.0,77.0,50.0,80.0)
+    );"horizontal crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,500.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,500.0,86.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,33.0,80.2),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,51.0,80.2),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right")]
+    fn subtract_overlapping(a: Rectangle, b: Rectangle, exp: CompoundAtomOperationRes<Rectangle>){
+        match (a.subtract_overlapping(&b).into(),exp) {
+            (Four(ra,rb,rc,rd),Four(ea,eb,ec,ed)) => {
+                assert_eq!(ra.as_tuple(),ea.as_tuple());
+                assert_eq!(rb.as_tuple(),eb.as_tuple());
+                assert_eq!(rc.as_tuple(),ec.as_tuple());
+                assert_eq!(rd.as_tuple(),ed.as_tuple());
+            },
+            (Three(ra,rb,rc),Three(ea,eb,ec)) => {
+                assert_eq!(ra.as_tuple(),ea.as_tuple());
+                assert_eq!(rb.as_tuple(),eb.as_tuple());
+                assert_eq!(rc.as_tuple(),ec.as_tuple());
+            },
+            (Two(ra,rb),Two(ea,eb)) => {
+                assert_eq!(ra.as_tuple(),ea.as_tuple());
+                assert_eq!(rb.as_tuple(),eb.as_tuple());
+            },
+            (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+            _ => panic!("Result doesn't have the expected shape")
+        }
+    }
+
+
+
 
 }
