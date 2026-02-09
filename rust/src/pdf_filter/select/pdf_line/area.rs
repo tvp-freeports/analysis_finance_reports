@@ -268,9 +268,9 @@ impl AtomOperations for  Rectangle {
             BiggerTop => One(Self::new(x0,y0,x1,b1)),
             BiggerBottom => One(Self::new(x0,b0,x1,y1)),
             TopLeft => One(Self::new(x0,y0,a1,b1)),
-            TopRight => One(Self::new(x0,b0,a1,y1)),
+            TopRight => One(Self::new(a0,y0,x1,b1)),
             BottomRight => One(Self::new(a0,b0,x1,y1)),
-            BottomLeft => One(Self::new(a0,y0,x1,b1)),
+            BottomLeft => One(Self::new(x0,b0,a1,y1)),
             Vertical => One(Self::new(a0,y0,a1,y1)),
             Horizontal => One(Self::new(x0,b0,x1,b1))
         }
@@ -466,7 +466,6 @@ mod tests {
         Rectangle::new(1.0,20.0,50.0,25.2),
         Rectangle::new(40.0,25.2,50.0,80.0)
     );"same bottom left corner")]
-
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,20.0,30.0,80.0),
     Two(
         Rectangle::new(1.0,20.0,11.0,80.0),
@@ -554,7 +553,6 @@ mod tests {
         Rectangle::new(1.0,20.0,50.0,25.2),
         Rectangle::new(40.0,25.2,50.0,80.0)
     );"bottom left corner")]
-
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,12.0,30.0,90.0),
     Two(
         Rectangle::new(1.0,20.0,11.0,80.0),
@@ -594,6 +592,43 @@ mod tests {
             _ => panic!("Result doesn't have the expected shape")
         }
     }
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(3.0,19.0,49.0,79.0),
+    One(Rectangle::new(3.0,20.0,49.0,79.0));"small up")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(3.0,22.22,49.0,88.0),
+    One(Rectangle::new(3.0,22.22,49.0,80.0));"small down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(2.0,22.0,55.0,70.0),
+    One(Rectangle::new(2.0,22.0,50.0,70.0));"small right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.0,22.0,2.0,70.0),
+    One(Rectangle::new(1.0,22.0,2.0,70.0));"small left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.0,2.0,40.0,70.0),
+    One(Rectangle::new(1.0,20.0,40.0,70.0));"top left corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,2.0,58.0,60.0),
+    One(Rectangle::new(10.0,20.0,50.0,60.0));"top right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,25.5,58.0,800.0),
+    One(Rectangle::new(10.0,25.5,50.0,80.0));"bottom right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,25.2,40.0,89.0),
+    One(Rectangle::new(1.0,25.2,40.0,80.0));"bottom left corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,12.0,30.0,90.0),
+    One(Rectangle::new(11.0,20.0,30.0,80.0));"vertical crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.05,25.0,500.0,77.0),
+    One(Rectangle::new(1.0,25.0,50.0,77.0));"horizontal crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,500.0,40.0),
+    One(Rectangle::new(1.0,20.0,50.0,40.0));"bigger top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,500.0,86.0),
+    One(Rectangle::new(1.0,23.0,50.0,80.0));"bigger bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,33.0,80.2),
+    One(Rectangle::new(1.0,20.0,33.0,80.0));"bigger left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,51.0,80.2),
+    One(Rectangle::new(11.0,20.0,50.0,80.0));"bigger right")]
+    fn intersect_overlapping(a: Rectangle, b: Rectangle, exp: CompoundAtomOperationRes<Rectangle>){
+        match (a.intersect_overlapping(&b).into(),exp) {
+            (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+            _ => panic!("Result doesn't have the expected shape")
+        }
+    }
+
+
 
 
 
