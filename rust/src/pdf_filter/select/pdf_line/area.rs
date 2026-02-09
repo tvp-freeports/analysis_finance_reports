@@ -31,6 +31,7 @@ impl Overlappable<Self> for Rectangle {
     }
 }
 
+#[derive(PartialEq,Debug)]
 enum RectOverlapping {
     SmallerLeft,
     SmallerRight,
@@ -53,7 +54,7 @@ impl Rectangle {
         let (a0,b0,a1,b1) = other.as_tuple();
         if x0<=a0 {
             // BiggerRight SmallerRight TopRight BottomRight SmallerTop SmallerBottom
-            if x1 <= b1 {
+            if x1 <= a1 {
                 // BiggerRight SmallerRight TopRight BottomRight
                 if y0<=b0 {
                     // SmallerRight BottomRight
@@ -72,7 +73,7 @@ impl Rectangle {
                 }
             } else {
                 // SmallerTop SmallerBottom
-                if y0 <= b1 {
+                if b0 <= y0 {
                     SmallerTop
                 } else {
                     SmallerBottom
@@ -80,7 +81,7 @@ impl Rectangle {
             }
         } else {
             // BiggerLeft SmallerLeft TopLeft BottomLeft BiggerTop BiggerBottom
-            if x1<=a1 {
+            if a1<=b1 {
                 // BiggerLeft SmallerLeft TopLeft BottomLeft
                 if y0<=b0 {
                     // SmallerLeft BottomLeft
@@ -318,5 +319,61 @@ mod tests {
     fn set_relation(a: Rectangle, rel: SetRelation, b: Rectangle) {
         assert_eq!(a.set_relation(&b),rel);
     }
+
+    // use CompoundAtomOperationRes::*;
+    // #[test_case(Limits::new(2.0,5.5),Limits::new(5.0,50.5),One(Limits::new(2.0,5.0));"right")]
+    // #[test_case(Limits::new(5.0,53.5),Limits::new(2.0,5.5),One(Limits::new(5.5,53.5));"left")]
+    // fn subtract_overlapping(a: Limits, b: Limits, res: CompoundAtomOperationRes<Limits>) {
+    //     match (a.subtract_overlapping(&b).into(),res) {
+    //         (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+    //         _ => panic!("Result doesn't have the expected variant")
+    //     }
+    // }
+    // #[test_case(Limits::new(2.0,5.5),Limits::new(5.0,50.5),One(Limits::new(5.0,5.5));"right")]
+    // #[test_case(Limits::new(5.1,53.5),Limits::new(2.0,5.6),One(Limits::new(5.1,5.6));"left")]
+    // fn intersect_overlapping(a: Limits, b: Limits, res: CompoundAtomOperationRes<Limits>) {
+    //     match (a.intersect_overlapping(&b).into(),res) {
+    //         (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+    //         _ => panic!("Result doesn't have the expected variant")
+    //     }
+    // }
+    // #[test_case(Limits::new(2.0,5.5),Limits::new(5.0,50.5),One(Limits::new(2.0,50.5));"right")]
+    // #[test_case(Limits::new(5.1,53.5),Limits::new(2.2,5.6),One(Limits::new(2.2,53.5));"left")]
+    // fn union_overlapping(a: Limits, b: Limits, res: CompoundAtomOperationRes<Limits>) {
+    //     match (a.union_overlapping(&b),res) {
+    //         (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+    //         _ => panic!("Result doesn't have the expected variant")
+    //     }
+    // }
+
+    // #[test_case(Limits::new(30.6,40.2),Limits::new(33.6,36.1),Two(
+    //     Limits::new(30.6,33.6),Limits::new(36.1,40.2)
+    // );"common")]
+    // #[test_case(Limits::new(30.6,40.2),Limits::new(30.6,36.1),One(
+    //     Limits::new(36.1,40.2)
+    // );"left touch")]
+    // #[test_case(Limits::new(30.6,40.2),Limits::new(33.6,40.2),One(
+    //     Limits::new(30.6,33.6)
+    // );"right touch")]
+    // fn subtract_subset(a: Limits, b: Limits, res: CompoundAtomOperationRes<Limits>) {
+    //     match (a.subtract_subset(&b).into(),res) {
+    //         (One(r),One(e)) => assert_eq!(r.as_tuple(),e.as_tuple()),
+    //         (Two(ra,rb),Two(ea,eb)) => {
+    //             assert_eq!(ra.as_tuple(),ea.as_tuple());
+    //             assert_eq!(rb.as_tuple(),eb.as_tuple());
+    //         },
+    //         _ => panic!("Result doesn't have the expected variant")
+    //     }
+    // }
+    use RectOverlapping::*;
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerLeft,Rectangle::new(0.0,23.11,2.0,67.0);"smaller left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerRight,Rectangle::new(16.0,23.11,200.0,67.0);"smaller right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerTop,Rectangle::new(1.1,13.11,2.0,67.0);"smaller top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerBottom,Rectangle::new(1.1,67.0,2.0,670.0);"smaller bottom")]
+    // #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),SmallerLeft,Rectangle::new(3.0,13.11,49.0,81.0);"overlapping")]
+    fn type_overlap(a: Rectangle, ovrt: RectOverlapping, b: Rectangle) {
+        assert_eq!(a.type_overlap(&b),ovrt);
+    }
+
 
 }
