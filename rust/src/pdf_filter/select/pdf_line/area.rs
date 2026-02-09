@@ -65,7 +65,7 @@ impl Rectangle {
                     }
                 } else {
                     // BiggerRight TopRight
-                    if b0 <= y0 {
+                    if b1 <= y1 {
                         TopRight
                     } else {
                         BiggerRight
@@ -81,7 +81,7 @@ impl Rectangle {
             }
         } else {
             // BiggerLeft SmallerLeft TopLeft BottomLeft BiggerTop BiggerBottom
-            if a1<=b1 {
+            if a1<=x1 {
                 // BiggerLeft SmallerLeft TopLeft BottomLeft
                 if y0<=b0 {
                     // SmallerLeft BottomLeft
@@ -92,7 +92,7 @@ impl Rectangle {
                     }
                 } else {
                     // BiggerLeft TopLeft
-                    if b0 <= y0 {
+                    if b1 <= y1 {
                         TopLeft
                     } else {
                         BiggerLeft
@@ -100,7 +100,7 @@ impl Rectangle {
                 }
             } else {
                 // BiggerTop BiggerBottom
-                if y0 <= b1 {
+                if b1 <= y1 {
                     BiggerTop
                 } else {
                     BiggerBottom
@@ -370,6 +370,11 @@ mod tests {
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerRight,Rectangle::new(16.0,23.11,200.0,67.0);"smaller right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerTop,Rectangle::new(1.1,13.11,2.0,67.0);"smaller top")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerBottom,Rectangle::new(1.1,67.0,2.0,670.0);"smaller bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,13.11,2.0,670.0);"bigger left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,200.0,670.0);"bigger right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,13.11,200.0,67.0);"bigger top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,200.0,670.0);"bigger bottom")]
+    
     // #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),SmallerLeft,Rectangle::new(3.0,13.11,49.0,81.0);"overlapping")]
     fn type_overlap(a: Rectangle, ovrt: RectOverlapping, b: Rectangle) {
         assert_eq!(a.type_overlap(&b),ovrt);
