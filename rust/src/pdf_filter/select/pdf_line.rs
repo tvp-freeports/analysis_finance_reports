@@ -9,8 +9,8 @@ use area::Area;
 use font_size::FontSizeInterval;
 
 pub struct PdfLineSet{
-    font: FontSet,
-    font_size: FontSizeInterval,
-    text: TextSet,
-    area: Area
+    font: Option<FontSet>,
+    font_size: Option<FontSizeInterval>,
+    text: Option<TextSet>,
+    area: Option<Area>
 }
