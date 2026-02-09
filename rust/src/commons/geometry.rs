@@ -1,13 +1,14 @@
 use pyo3::prelude::*;
 use pyo3::exceptions::PyValueError;
 use std::fmt;
+use ordered_float::OrderedFloat;
 
-#[derive(Debug,Clone,Copy)]
-pub struct Limits(f32, f32);
+#[derive(Debug,Clone,Copy,Hash,Eq,PartialEq)]
+pub struct Limits(OrderedFloat<f32>,OrderedFloat<f32>);
 
 impl Limits {
     pub fn as_tuple(&self) -> (f32,f32) {
-        (self.0,self.1)
+        (self.0.into_inner(),self.1.into_inner())
     }
     pub fn new(a: f32, b: f32) -> Self {
         Self::build(a,b).unwrap_or_else(
@@ -23,7 +24,7 @@ impl Limits {
         } else if a >= b {
             Err(NegativeInterval(a,b))
         } else {
-            Ok(Self(a,b))
+            Ok(Self(OrderedFloat(a),OrderedFloat(b)))
         }
     }
 }
@@ -70,12 +71,12 @@ impl From<LimitsBuildError> for PyErr {
 
 
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,Hash,Eq,PartialEq)]
 pub struct Rectangle{
-    x0: f32,
-    y0: f32,
-    x1: f32,
-    y1: f32
+    x0: OrderedFloat<f32>,
+    y0: OrderedFloat<f32>,
+    x1: OrderedFloat<f32>,
+    y1: OrderedFloat<f32>
 }
 
 #[derive(PartialEq,Debug)]
@@ -102,7 +103,12 @@ impl Rectangle {
     pub fn build(x0: f32, y0: f32, x1: f32, y1: f32) -> Result<Self,RectangleBuildError> {
         Limits::build(x0,x1).map_err(|err| RectangleBuildError::Horizontal(err))?;
         Limits::build(y0,y1).map_err(|err| RectangleBuildError::Vertical(err))?;
-        Ok(Self {x0,y0,x1,y1})
+        Ok(Self {
+            x0: OrderedFloat(x0),
+            y0: OrderedFloat(y0),
+            x1: OrderedFloat(x1),
+            y1: OrderedFloat(y1)
+        })
     }
     pub fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
         Self::build(x0,y0,x1,y1).unwrap_or_else(
@@ -110,7 +116,12 @@ impl Rectangle {
         )
     }
     pub fn as_tuple(&self) -> (f32,f32,f32,f32) {
-        (self.x0,self.y0,self.x1,self.y1)
+        (
+            self.x0.into_inner(),
+            self.y0.into_inner(),
+            self.x1.into_inner(),
+            self.y1.into_inner()
+        )
     }
 }
 
@@ -146,7 +157,7 @@ mod tests {
             }
         }
         #[test_case(
-            Ok(Limits(10.1,20.1)),
+            Ok(Limits(OrderedFloat(10.1),OrderedFloat(20.1))),
             "[10.1:20.1]";
             "limit"
         )]

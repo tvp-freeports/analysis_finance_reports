@@ -64,7 +64,7 @@ impl Container for TextAstLeaf {
     }
 }
 
-type TextSet = SmartAstSet<TextAstLeaf,str>;
+pub type TextSet = SmartAstSet<TextAstLeaf,str>;
 
 
 impl TextAstLeaf {

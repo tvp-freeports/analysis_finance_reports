@@ -1,4 +1,12 @@
-use crate::commons::sets::{DisjointAtomsSet,Container,Overlappable,AtomOperations,SetRelation,CompoundAtomOperationRes};
+use crate::commons::sets::{
+    DisjointAtomsSet,
+    Container,
+    Overlappable,
+    AtomOperations,
+    AtomAlgebra,
+    SetRelation,
+    CompoundAtomOperationRes
+};
 use crate::commons::geometry::{Limits};
 
 impl Container for Limits {
@@ -118,9 +126,11 @@ impl AtomOperations for Limits {
     }
 }
 
+impl AtomAlgebra for Limits {}
 
 type Interval = DisjointAtomsSet<Limits,f32>;
-type FontSizeSet = Interval;
+pub type FontSizeSet = Interval;
+pub type FontSizeInterval = FontSizeSet;
 
 
 

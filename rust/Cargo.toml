@@ -10,6 +10,7 @@ crate-type = ["cdylib","lib"]
 [dependencies]
 bitflags = "2.10.0"
 onig = "6.5.1"
+ordered-float = "5.1.0"
 
 [dev-dependencies]
 test-case = "3.3.1"

@@ -41,7 +41,7 @@ pub trait AtomOperations: Sized + Clone {
 
 }
 
-trait AtomAlgebra: Overlappable<Self> + AtomOperations {
+pub trait AtomAlgebra: Overlappable<Self> + AtomOperations {
     fn union(&self, other: &Self) -> AtomOperationRes<Self> {
         use SetRelation::*;
         use AtomOperationRes::*;

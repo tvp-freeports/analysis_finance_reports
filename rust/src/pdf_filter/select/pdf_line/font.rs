@@ -1,6 +1,14 @@
-use crate::commons::sets::{DisjointAtomsSet,Container,Overlappable,AtomOperations,SetRelation,CompoundAtomOperationRes};
+use crate::commons::sets::{
+    DisjointAtomsSet,
+    Container,
+    Overlappable,
+    AtomOperations,
+    AtomAlgebra,
+    SetRelation,
+    CompoundAtomOperationRes
+};
 
-#[derive(Debug,PartialEq,Clone)]
+#[derive(Debug,PartialEq,Clone,Hash,Eq)]
 pub struct Font(String);
 
 impl Font {
@@ -68,7 +76,9 @@ impl AtomOperations for Font {
     }
 }
 
-type FontSet = DisjointAtomsSet<Font,Font>;
+impl AtomAlgebra for Font {}
+
+pub type FontSet = DisjointAtomsSet<Font,Font>;
 
 
 #[cfg(test)]

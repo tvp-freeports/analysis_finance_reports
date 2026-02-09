@@ -4,7 +4,7 @@ mod indipendent_atoms;
 mod ast_simple;
 mod ast_smart;
 
-pub use indipendent_atoms::{DisjointAtomsSet,AtomOperations,CompoundAtomOperationRes};
+pub use indipendent_atoms::{DisjointAtomsSet,AtomOperations,CompoundAtomOperationRes,AtomAlgebra};
 pub use ast_smart::SmartAstSet;
 pub use ast_simple::AstSet;
 
