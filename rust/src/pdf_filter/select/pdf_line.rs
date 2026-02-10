@@ -45,81 +45,6 @@ impl Container for AstLeafPdfLineSet {
     }
 }
 
-// impl Overlappable<Self> for AstLeafPdfLineSet {
-//     fn set_relation(&self, other: &Self) -> SetRelation {
-//         use SetRelation::*;
-//         let mut equal = 0;
-//         let mut superset = 0;
-//         let mut subset = 0;
-//         let mut overlapping = 0;
-//         let mut disjoint = 0;
-//         match (self.font_size.as_ref(),other.font_size.as_ref()) {
-//             (Some(a),Some(b)) => match a.set_relation(b) {
-//                 Equal => equal+=1,
-//                 Superset => superset+=1,
-//                 Subset => subset+=1,
-//                 Disjoint => disjoint+=1,
-//                 Overlapping => overlapping+=1
-//             },
-//             (None,Some(_)) => superset+=1,
-//             (Some(_),None) => subset+=1,
-//             (None,None) => equal+=1
-//         };
-//         match (self.area.as_ref(),other.area.as_ref()) {
-//             (Some(a),Some(b)) => match a.set_relation(b) {
-//                 Equal => equal+=1,
-//                 Superset => superset+=1,
-//                 Subset => subset+=1,
-//                 Disjoint => disjoint+=1,
-//                 Overlapping => overlapping+=1
-//             },
-//             (None,Some(_)) => superset+=1,
-//             (Some(_),None) => subset+=1,
-//             (None,None) => equal+=1
-//         };
-//         match (self.text.as_ref(),other.text.as_ref()) {
-//             (Some(a),Some(b)) => match a.set_relation(b) {
-//                 Equal => equal+=1,
-//                 Superset => superset+=1,
-//                 Subset => subset+=1,
-//                 Disjoint => disjoint+=1,
-//                 Overlapping => overlapping+=1
-//             },
-//             (None,Some(_)) => superset+=1,
-//             (Some(_),None) => subset+=1,
-//             (None,None) => equal+=1
-//         };
-//         match (self.font.as_ref(),other.font.as_ref()) {
-//             (Some(a),Some(b)) => match a.set_relation(b) {
-//                 Equal => equal+=1,
-//                 Superset => superset+=1,
-//                 Subset => subset+=1,
-//                 Disjoint => disjoint+=1,
-//                 Overlapping => overlapping+=1
-//             },
-//             (None,Some(_)) => superset+=1,
-//             (Some(_),None) => subset+=1,
-//             (None,None) => equal+=1
-//         };
-        
-//         if disjoint == 4 {
-//             Disjoint
-//         } else if equal == 4 {
-//             Equal
-//         } else if disjoint==0 && overlapping==0 {
-//             if subset>0 && superset==0{
-//                 Subset
-//             } else if superset>0 && subset==0 {
-//                 Superset
-//             } else {
-//                 Overlapping
-//             }
-//         } else {
-//             Overlapping
-//         }
-//     }
-// }
-
 pub type PdfLineSet = AstSet<AstLeafPdfLineSet,PdfLine>;
 
 
@@ -129,3 +54,9 @@ pub struct PdfLine {
     text: String,
     area: Area,
 }
+
+// impl PdfLine {
+//     fn new(font: Font, font_size) {
+
+//     }
+// }

@@ -98,7 +98,14 @@ where
     A: AtomAlgebra + Container<Elem=E> + Clone + Debug + Eq + Hash,
     E: ?Sized
 {
-    fn from_atom(atom: A) -> Self {
+    pub fn atoms_ref(&self) -> HashSet<&A> {
+        let mut atoms = HashSet::new();
+        for a in self.0.iter() {
+            atoms.insert(a);
+        }
+        atoms
+    }
+    pub fn from_atom(atom: A) -> Self {
         let mut atoms = HashSet::new();
         atoms.insert(atom);
         Self(atoms)
@@ -441,6 +448,22 @@ mod tests {
     fn from_atom() {
         let a=TestSet::from_atom(TestAtom(BTreeSet::from([20,30,40])));
         assert_eq!(a.0,HashSet::from([TestAtom(BTreeSet::from([20,30,40]))]));
+    }
+    #[test]
+    fn atoms_ref() {
+        let a = TestAtom(BTreeSet::from([20,30,40]));
+        let b = TestAtom(BTreeSet::from([80,60,20]));
+        let c = TestAtom(BTreeSet::from([81,61,21]));
+        let mut set = HashSet::new();
+        let mut set_ref = HashSet::new();
+        set_ref.insert(&a);
+        set_ref.insert(&b);
+        set_ref.insert(&c);
+        set.insert(a.clone());
+        set.insert(b.clone());
+        set.insert(c.clone());
+        let res = DisjointAtomsSet(set);
+        assert_eq!(res.atoms_ref(),set_ref);
     }
     mod atom_ops {
         use super::*;
@@ -938,11 +961,11 @@ mod tests {
 
     #[test]
     fn expression() {
-        let a = DisjointAtomsSet::new([1,2,3,4]);
-        let b = DisjointAtomsSet::new([0,2,3,4]);
-        let c = DisjointAtomsSet::new([0,5,3,40]);
-        let d = DisjointAtomsSet::new([1,2]);
-        let e = DisjointAtomsSet::new([1,20]);
+        let a = DisjointAtomsSet::from_atom(TestAtom::new([1,2,3,4]));
+        let b = DisjointAtomsSet::from_atom(TestAtom::new([0,2,3,4]));
+        let c = DisjointAtomsSet::from_atom(TestAtom::new([0,5,3,40]));
+        let d = DisjointAtomsSet::from_atom(TestAtom::new([1,2]));
+        let e = DisjointAtomsSet::from_atom(TestAtom::new([1,20]));
         let f = a & ( b / c ) | e;
         assert_eq!(f.0,HashSet::from([TestAtom::new([1,20]),TestAtom::new([2,4])]));
     }
