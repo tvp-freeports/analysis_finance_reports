@@ -91,6 +91,7 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use test_case::test_case;
+    use std::collections::HashSet;
     #[test_case("NicaRAguA","nicaragua";"lower")]
     #[test_case("ulma turman\t \n gerico\tsum","ulma-turman-gerico-sum";"withespaces")]
     #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
@@ -101,16 +102,20 @@ mod tests {
     fn new_font(input: &str, res: &str) {
         assert_eq!(Font::new(input).0,res.to_string());
     }
-    // #[test_case("NicaRAguA","nicaragua";"lower")]
-    // #[test_case("ulma turman\t \n gerico\tsum","ulma-turman-gerico-sum";"withespaces")]
-    // #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
-    // #[test_case("oba{pes}li(cu)[b]","oba[pes]li[cu][b]"; "parenthesis")]
-    // #[test_case("&","and"; "some unusual chars")]
-    // #[test_case("ooo,oooo–o/ooo.oo","ooo-oooo-o-ooo-oo"; "separating chars")]
-    // #[test_case("\t \n gattopardo \n\n","gattopardo"; "trim")]
-    // fn new_fontset(input: &str, res: &str) {
-    //     assert_eq!(FontSet::new(input).0,res.to_string());
-    // }
+    #[test_case("NicaRAguA","nicaragua";"lower")]
+    #[test_case("ulma turman\t \n gerico\tsum","ulma-turman-gerico-sum";"withespaces")]
+    #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
+    #[test_case("oba{pes}li(cu)[b]","oba[pes]li[cu][b]"; "parenthesis")]
+    #[test_case("&","and"; "some unusual chars")]
+    #[test_case("ooo,oooo–o/ooo.oo","ooo-oooo-o-ooo-oo"; "separating chars")]
+    #[test_case("\t \n gattopardo \n\n","gattopardo"; "trim")]
+    fn new_fontset(input: &str, res: &str) {
+        let set = FontSet::new(input);
+        let mut exp = HashSet::new();
+        let r = &Font::new(res);
+        exp.insert(r);
+        assert_eq!(set.atoms_ref(),exp);
+    }
 
     #[test]
     fn element_in_atom() {
