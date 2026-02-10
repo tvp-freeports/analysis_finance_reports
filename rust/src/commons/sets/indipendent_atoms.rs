@@ -105,6 +105,9 @@ where
         }
         atoms
     }
+    pub fn atoms(&self) -> &HashSet<A> {
+        &self.0
+    }
     pub fn from_atom(atom: A) -> Self {
         let mut atoms = HashSet::new();
         atoms.insert(atom);
@@ -464,6 +467,18 @@ mod tests {
         set.insert(c.clone());
         let res = DisjointAtomsSet(set);
         assert_eq!(res.atoms_ref(),set_ref);
+    }
+    #[test]
+    fn atoms() {
+        let a = TestAtom(BTreeSet::from([20,30,40]));
+        let b = TestAtom(BTreeSet::from([80,60,20]));
+        let c = TestAtom(BTreeSet::from([81,61,21]));
+        let mut set = HashSet::new();
+        set.insert(a);
+        set.insert(b);
+        set.insert(c);
+        let res = DisjointAtomsSet(set.clone());
+        assert_eq!(res.atoms(),&set);
     }
     mod atom_ops {
         use super::*;
