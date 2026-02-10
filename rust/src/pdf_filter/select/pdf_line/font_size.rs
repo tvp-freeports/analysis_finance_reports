@@ -132,13 +132,25 @@ type Interval = DisjointAtomsSet<Limits,f32>;
 pub type FontSizeSet = Interval;
 pub type FontSizeInterval = FontSizeSet;
 
-
+impl FontSizeInterval {
+    fn new(a:f32,b:f32) -> Self {
+        Self::from_atom(Limits::new(a,b))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use test_case::test_case;
+    use std::collections::HashSet;
+    fn new_fontset() {
+        let (a,b) = (6.0,70.0);
+        let mut set = HashSet::new();
+        set.insert(Limits::new(6.0,70.0));
+        assert_eq!(FontSizeInterval::new(6.0,70.0).atoms(),&set);
+    }
+
     #[test_case(Limits::new(20.0,50.0),30.5;"common")]
     #[test_case(Limits::new(20.0,50.0),50.0;"touch right")]
     #[test_case(Limits::new(20.0,50.0),20.0;"touch left")]

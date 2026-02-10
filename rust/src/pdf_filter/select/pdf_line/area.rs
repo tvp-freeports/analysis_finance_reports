@@ -289,12 +289,25 @@ impl AtomAlgebra for Rectangle {}
 
 pub type Area = DisjointAtomsSet<Rectangle,(f32,f32)>;
 
-
+impl Area {
+    fn new(x0:f32,y0:f32,x1:f32,y1:f32) -> Self {
+        Self::from_atom(Rectangle::new(x0,y0,x1,y1))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use test_case::test_case;
+    use std::collections::HashSet;
+    #[test]
+    fn new_area() {
+        let (x0,y0,x1,y1) = (3.4,4.5,4.5,56.0);
+        let mut set = HashSet::new();
+        set.insert(Rectangle::new(x0,y0,x1,y1));
+        assert_eq!(Area::new(x0,y0,x1,y1).atoms(),&set);
+    }
+
     #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),(3.0,29.89);"common")]
     #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),(3.0,20.0);"touch up")]
     #[test_case(Rectangle::new(0.0,20.0,50.0,80.0),(3.0,80.0);"touch down")]
