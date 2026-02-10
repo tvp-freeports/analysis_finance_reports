@@ -206,6 +206,10 @@ mod tests {
         AstLeafPdfLineSet::new(None,None,None,Some((0.0,0.0,2.0,2.0))),
         PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"area"
     )]
+    #[test_case(
+        AstLeafPdfLineSet::new(Some("ARIAL"),Some((0.0,100.0)),Some("mi$"),Some((0.0,0.0,2.0,2.0))),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"all specified"
+    )]
     fn element_in_leaf(set: AstLeafPdfLineSet, ele: PdfLine) {
         assert!(set.contains(&ele))
     }
