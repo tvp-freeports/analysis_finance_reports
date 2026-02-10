@@ -12,7 +12,7 @@ use crate::commons::sets::{
 pub struct Font(String);
 
 impl Font {
-    fn new(input: &str) -> Self {
+    pub fn new(input: &str) -> Self {
         let trimmed_input = input.trim();
         let mut out = String::with_capacity(trimmed_input.len());
         let mut last_was_div = false;

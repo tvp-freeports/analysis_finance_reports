@@ -2,7 +2,7 @@ use super::{Container,SetRelation,SetOps,UncomparableSet,SetAlgebra,Overlappable
 use std::ops::{BitOr, BitAnd, Div};
 
 #[derive(Debug,PartialEq)]
-enum SmartAstNode<L,E>
+pub enum SmartAstNode<L,E>
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
     E: ?Sized,
@@ -26,6 +26,9 @@ where
 {
     pub fn from_leaf(leaf: L) -> Self {
         Self(SmartAstNode::Leaf(leaf))
+    }
+    pub fn ast(&self) -> &SmartAstNode<L,E> {
+        &self.0
     }
 }
 

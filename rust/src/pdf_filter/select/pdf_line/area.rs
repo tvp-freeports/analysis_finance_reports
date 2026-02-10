@@ -290,7 +290,7 @@ impl AtomAlgebra for Rectangle {}
 pub type Area = DisjointAtomsSet<Rectangle,(f32,f32)>;
 
 impl Area {
-    fn new(x0:f32,y0:f32,x1:f32,y1:f32) -> Self {
+    pub fn new(x0:f32,y0:f32,x1:f32,y1:f32) -> Self {
         Self::from_atom(Rectangle::new(x0,y0,x1,y1))
     }
 }

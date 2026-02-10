@@ -1,10 +1,10 @@
 use super::{Container,SetOps,UncomparableSet,SetAlgebra};
 use std::ops::{BitOr, BitAnd, Div};
 
-#[derive(Clone)]
-enum AstNode<L,E>
+// #[derive(Clone)]
+pub enum AstNode<L,E>
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     Leaf(L),
@@ -12,26 +12,29 @@ where
 }
 
 
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct AstSet<L,E>(AstNode<L,E>)
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized
 ;
 
 impl<L,E> AstSet<L,E> 
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized
 {
     pub fn from_leaf(leaf: L) -> Self {
         Self(AstNode::Leaf(leaf))
     }
+    pub fn ast(&self) -> &AstNode<L,E> {
+        &self.0
+    }
 }
 
 impl<L,E> Container for AstNode<L,E>
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     type Elem = E;
@@ -47,7 +50,7 @@ where
 
 impl<L,E> BitOr<Self> for AstSet<L,E>
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     type Output = Self;
@@ -63,7 +66,7 @@ where
 }
 impl<L,E> BitAnd<Self> for AstSet<L,E> 
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     type Output = Self;
@@ -79,7 +82,7 @@ where
 }
 impl<L,E> Div<Self> for AstSet<L,E> 
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     type Output = Self;
@@ -97,7 +100,7 @@ where
 
 impl<L,E> Container for AstSet<L,E> 
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized,
 {
     type Elem = E;
@@ -110,13 +113,13 @@ where
 
 impl<L,E> SetAlgebra for AstSet<L,E> 
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized
 {}
 
 impl<L,E> UncomparableSet<E> for AstSet<L,E>
 where
-    L: Container<Elem = E> + Clone,
+    L: Container<Elem = E>,
     E: ?Sized
 {}
 

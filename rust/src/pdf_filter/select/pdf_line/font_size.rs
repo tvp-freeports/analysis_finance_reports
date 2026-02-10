@@ -133,7 +133,7 @@ pub type FontSizeSet = Interval;
 pub type FontSizeInterval = FontSizeSet;
 
 impl FontSizeInterval {
-    fn new(a:f32,b:f32) -> Self {
+    pub fn new(a:f32,b:f32) -> Self {
         Self::from_atom(Limits::new(a,b))
     }
 }
