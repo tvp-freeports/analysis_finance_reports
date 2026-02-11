@@ -62,13 +62,13 @@ impl Rectangle {
         use RectOverlapping::*;
         let (x0,y0,x1,y1) = self.as_tuple();
         let (a0,b0,a1,b1) = other.as_tuple();
-        if x0<=a0 {
+        if x0<a0 {
             // BiggerRight SmallerRight TopRight BottomRight SmallerTop SmallerBottom Vertical
             if x1 <= a1 {
                 // BiggerRight SmallerRight TopRight BottomRight
-                if y0<=b0 {
+                if y0<b0 {
                     // SmallerRight BottomRight
-                    if b1 <= y1 {
+                    if b1 < y1 {
                         SmallerRight
                     } else {
                         BottomRight
@@ -98,9 +98,9 @@ impl Rectangle {
             // BiggerLeft SmallerLeft TopLeft BottomLeft BiggerTop BiggerBottom Horizontal
             if a1<=x1 {
                 // BiggerLeft SmallerLeft TopLeft BottomLeft
-                if y0<=b0 {
+                if y0<b0 {
                     // SmallerLeft BottomLeft
-                    if b1 <= y1 {
+                    if b1 < y1 {
                         SmallerLeft
                     } else {
                         BottomLeft
@@ -133,7 +133,8 @@ impl Rectangle {
         use RectOverlapping::*;
         let (x0,y0,x1,y1) = self.as_tuple();
         let (a0,b0,a1,b1) = other.as_tuple();
-        match ovrlt {
+        println!("galego");
+        match dbg!(ovrlt) {
             SmallerLeft => Three(
                 Self::new(x0,y0,x1,b0),
                 Self::new(a1,b0,x1,y1),
@@ -380,9 +381,25 @@ mod tests {
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,13.11,200.0,67.0);"bigger top")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,200.0,670.0);"bigger bottom")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopLeft,Rectangle::new(0.0,13.11,2.0,67.0);"top left")]
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopLeft,Rectangle::new(0.0,20.0,2.0,67.0);"top left up touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopLeft,Rectangle::new(0.0,20.0,2.0,67.0);"top left left touch")]
+
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopRight,Rectangle::new(41.41,13.11,200.0,67.0);"top right")]
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopRight,Rectangle::new(41.41,20.0,200.0,67.0);"top right up touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),TopRight,Rectangle::new(41.41,13.11,50.0,67.0);"top right right touch")]
+
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomLeft,Rectangle::new(0.1,25.11,26.0,670.0);"bottom left")]
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomLeft,Rectangle::new(0.1,25.11,26.0,80.0);"bottom left down touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomLeft,Rectangle::new(1.0,25.11,26.0,670.0);"bottom left left touch")]
+
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomRight,Rectangle::new(5.1,67.0,200.0,670.0);"bottom right")]
+
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomRight,Rectangle::new(5.1,67.0,200.0,80.0);"bottom right down touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BottomRight,Rectangle::new(5.1,67.0,50.0,670.0);"bottom right right touch")]
+
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Vertical,Rectangle::new(5.1,17.0,23.0,670.0);"vertical")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Horizontal,Rectangle::new(0.1,22.0,200.0,67.0);"horizontal")]
     fn type_overlap(a: Rectangle, ovrt: RectOverlapping, b: Rectangle) {

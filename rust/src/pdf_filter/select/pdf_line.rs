@@ -42,7 +42,7 @@ impl Container for AstLeafPdfLineSet {
             return false
         }
         if self.area.as_ref().is_some_and(|a| {
-            let rel = a.set_relation(area);
+            let rel = dbg!(a.set_relation(area));
             rel != SetRelation::Superset && rel != SetRelation::Equal
         }) {
             return false
@@ -213,5 +213,33 @@ mod tests {
     fn element_in_leaf(set: AstLeafPdfLineSet, ele: PdfLine) {
         assert!(set.contains(&ele))
     }
+
+
+    #[test_case(
+        AstLeafPdfLineSet::new(Some("fraktur sans-serif"),None,None,None),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"font"
+    )]
+    #[test_case(
+        AstLeafPdfLineSet::new(None,Some((30.0,40.0)),None,None),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"font size"
+    )]
+    #[test_case(
+        AstLeafPdfLineSet::new(None,None,Some("^rum$"),None),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"text"
+    )]
+    #[test_case(
+        AstLeafPdfLineSet::new(None,None,None,Some((0.1,0.0,2.0,2.0))),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"area"
+    )]
+    #[test_case(
+        AstLeafPdfLineSet::new(Some("ARIA"),Some((0.0,10.0)),Some("mirasdfsa"),Some((10.0,10.0,20.0,20.0))),
+        PdfLine::new("Arial\n",43.2,"rumi",(0.0,0.0,1.0,1.0));"all specified"
+    )]
+    fn element_not_in_leaf(set: AstLeafPdfLineSet, ele: PdfLine) {
+        assert!(!set.contains(&ele))
+    }
+
+
+
 
 }
