@@ -377,24 +377,28 @@ mod tests {
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerTop,Rectangle::new(1.1,13.11,2.0,67.0);"smaller top")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),SmallerBottom,Rectangle::new(1.1,67.0,2.0,670.0);"smaller bottom")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,13.11,2.0,670.0);"bigger left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(1.0,13.11,2.0,670.0);"bigger left touch left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,13.11,2.0,80.0);"bigger left touch down")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,20.0,2.0,670.0);"bigger left touch up")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,20.0,2.0,80.0);"bigger left touch up and down")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(1.0,13.11,2.0,80.0);"bigger left touch down and left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerLeft,Rectangle::new(0.0,20.0,2.0,670.0);"bigger left touch up and left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,200.0,670.0);"bigger right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,50.0,670.0);"bigger right touch right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,200.0,80.0);"bigger right touch down")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,20.0,200.0,670.0);"bigger right touch up")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,20.0,200.0,80.0);"bigger right touch up and down")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,13.11,50.0,80.0);"bigger right touch down and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerRight,Rectangle::new(16.0,20.0,50.0,670.0);"bigger right touch up and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,13.11,200.0,67.0);"bigger top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,20.0,200.0,67.0);"bigger top touch top")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(1.0,13.11,200.0,67.0);"bigger top touch left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,13.11,50.0,67.0);"bigger top touch right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(1.0,13.11,50.0,67.0);"bigger top touch left and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(1.0,20.0,200.0,67.0);"bigger top touch top and left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerTop,Rectangle::new(0.1,20.0,50.0,67.0);"bigger top touch top and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,200.0,670.0);"bigger bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,200.0,80.0);"bigger bottom touch bottom")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(1.0,67.0,200.0,670.0);"bigger bottom touch left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(0.1,67.0,50.0,670.0);"bigger bottom touch right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),BiggerBottom,Rectangle::new(1.0,67.0,50.0,670.0);"bigger bottom touch left and right")]
@@ -546,39 +550,147 @@ mod tests {
         Rectangle::new(40.0,20.0,50.0,80.0),
         Rectangle::new(1.0,70.0,40.0,80.0)
     );"top left corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.0,20.0,40.0,70.0),
+    Two(
+        Rectangle::new(40.0,20.0,50.0,80.0),
+        Rectangle::new(1.0,70.0,40.0,80.0)
+    );"top left corner up touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,2.0,40.0,70.0),
+    Two(
+        Rectangle::new(40.0,20.0,50.0,80.0),
+        Rectangle::new(1.0,70.0,40.0,80.0)
+    );"top left corner left touch")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,2.0,58.0,60.0),
     Two(
         Rectangle::new(1.0,60.0,50.0,80.0),
         Rectangle::new(1.0,20.0,10.0,60.0)
     );"top right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,20.0,58.0,60.0),
+    Two(
+        Rectangle::new(1.0,60.0,50.0,80.0),
+        Rectangle::new(1.0,20.0,10.0,60.0)
+    );"top right corner up touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,2.0,50.0,60.0),
+    Two(
+        Rectangle::new(1.0,60.0,50.0,80.0),
+        Rectangle::new(1.0,20.0,10.0,60.0)
+    );"top right corner right touch")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,25.5,58.0,800.0),
     Two(
         Rectangle::new(1.0,20.0,10.0,80.0),
         Rectangle::new(10.0,20.0,50.0,25.5)
     );"bottom right corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,25.5,58.0,80.0),
+    Two(
+        Rectangle::new(1.0,20.0,10.0,80.0),
+        Rectangle::new(10.0,20.0,50.0,25.5)
+    );"bottom right corner down touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(10.0,25.5,50.0,800.0),
+    Two(
+        Rectangle::new(1.0,20.0,10.0,80.0),
+        Rectangle::new(10.0,20.0,50.0,25.5)
+    );"bottom right corner right touch")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,25.2,40.0,89.0),
     Two(
         Rectangle::new(1.0,20.0,50.0,25.2),
         Rectangle::new(40.0,25.2,50.0,80.0)
     );"bottom left corner")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,25.2,40.0,80.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.2),
+        Rectangle::new(40.0,25.2,50.0,80.0)
+    );"bottom left corner down touch")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,25.2,40.0,89.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.2),
+        Rectangle::new(40.0,25.2,50.0,80.0)
+    );"bottom left corner left touch")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,12.0,30.0,90.0),
     Two(
         Rectangle::new(1.0,20.0,11.0,80.0),
         Rectangle::new(30.0,20.0,50.0,80.0)
     );"vertical crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,20.0,30.0,90.0),
+    Two(
+        Rectangle::new(1.0,20.0,11.0,80.0),
+        Rectangle::new(30.0,20.0,50.0,80.0)
+    );"vertical crossing touch up")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,12.0,30.0,80.0),
+    Two(
+        Rectangle::new(1.0,20.0,11.0,80.0),
+        Rectangle::new(30.0,20.0,50.0,80.0)
+    );"vertical crossing touch down")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.05,25.0,500.0,77.0),
     Two(
         Rectangle::new(1.0,20.0,50.0,25.0),
         Rectangle::new(1.0,77.0,50.0,80.0)
     );"horizontal crossing")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,25.0,500.0,77.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.0),
+        Rectangle::new(1.0,77.0,50.0,80.0)
+    );"horizontal crossing touch left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.05,25.0,50.0,77.0),
+    Two(
+        Rectangle::new(1.0,20.0,50.0,25.0),
+        Rectangle::new(1.0,77.0,50.0,80.0)
+    );"horizontal crossing touch right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,500.0,40.0),
     One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,20.0,500.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch top")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,2.0,500.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,50.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,2.0,50.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch left and right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,20.0,500.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch top and left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,20.0,50.0,40.0),
+    One(Rectangle::new(1.0,40.0,50.0,80.0));"bigger top touch top and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,500.0,86.0),
     One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,500.0,80.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch bottom")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,23.0,500.0,86.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,50.0,86.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,23.0,50.0,86.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch left and right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,23.0,500.0,80.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch bottom and left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,23.0,50.0,80.0),
+    One(Rectangle::new(1.0,20.0,50.0,23.0));"bigger bottom touch bottom and right")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,33.0,80.2),
     One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,2.0,33.0,80.2),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,2.0,33.0,80.0),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,20.0,33.0,80.2),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch up")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(0.2,20.0,33.0,80.0),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch up and down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,2.0,33.0,80.0),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch down and left")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(1.0,20.0,33.0,80.2),
+    One(Rectangle::new(33.0,20.0,50.0,80.0));"bigger left touch up and left")]
     #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,51.0,80.2),
     One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,50.0,80.2),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,51.0,80.0),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,20.0,51.0,80.2),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch up")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,20.0,51.0,80.0),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch up and down")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,2.2,50.0,80.0),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch down and right")]
+    #[test_case(Rectangle::new(1.0,20.0,50.0,80.0),Rectangle::new(11.0,20.0,50.0,80.2),
+    One(Rectangle::new(1.0,20.0,11.0,80.0));"bigger right touch up and right")]
     fn subtract_overlapping(a: Rectangle, b: Rectangle, exp: CompoundAtomOperationRes<Rectangle>){
         match (a.subtract_overlapping(&b).into(),exp) {
             (Four(ra,rb,rc,rd),Four(ea,eb,ec,ed)) => {
