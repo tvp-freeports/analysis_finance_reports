@@ -522,6 +522,71 @@ mod tests {
     ),Some(
         Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0) | Area::new(10.0,32.0,15.0,33.0)
     );"select area")]
+    #[test_case(RelativeArea::MoveWindow{
+        target: Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        }),
+        vec: (1.0,-0.6),
+        width_mult: 1.5,
+        height_mult: 0.5
+    },Some(
+        Area::new(65.0,18.6,110.0,20.6)
+    );"move window")]
+    #[test_case(RelativeArea::Bounds{
+        x0: Relative(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        })),
+        y0: Absolute(60.0),
+        x1: Absolute(70.0),
+        y1: Absolute(300.0)
+    },Some(
+        Area::new(65.0,60.0,70.0,300.0)
+    );"bounds left")]
+    #[test_case(RelativeArea::Bounds{
+        x0: Absolute(10.0),
+        y0: Absolute(60.0),
+        x1: Relative(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        })),
+        y1: Absolute(300.0)
+    },Some(
+        Area::new(10.0,60.0,35.0,300.0)
+    );"bounds right")]
+    #[test_case(RelativeArea::Bounds{  
+        x0: Absolute(10.0),
+        y0: Relative(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        })),
+        x1: Absolute(60.0),
+        y1: Absolute(300.0)
+    },Some(
+        Area::new(10.0,25.0,60.0,300.0)
+    );"bounds up")]
+    #[test_case(RelativeArea::Bounds{  
+        x0: Absolute(10.0),
+        y0: Absolute(3.0),
+        x1: Absolute(60.0),
+        y1: Relative(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        }))
+    },Some(
+        Area::new(10.0,3.0,60.0,21.0)
+    );"bounds down")]
     #[test_case(RelativeArea::Select(
         Box::new(RelativePdfLineSet{
             font: Absolute(None),
