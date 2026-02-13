@@ -113,6 +113,7 @@ where
         atoms.insert(atom);
         Self(atoms)
     }
+
     fn atom_union(&self, other: A) -> Self {
         use AtomOperationRes::*;
         use CompoundAtomOperationRes::*;

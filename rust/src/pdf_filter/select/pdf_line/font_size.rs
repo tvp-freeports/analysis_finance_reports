@@ -1,3 +1,5 @@
+use ordered_float::OrderedFloat;
+use std::cmp::max;
 use crate::commons::sets::{
     DisjointAtomsSet,
     Container,
@@ -136,6 +138,11 @@ impl FontSizeInterval {
     pub fn new(a:f32,b:f32) -> Self {
         Self::from_atom(Limits::new(a,b))
     }
+    pub fn from_precision(c:f32,prec:f32) -> Self {
+        let a = max(OrderedFloat(0.0),OrderedFloat(c-prec)).into_inner();
+        Self::from_atom(Limits::new(a,c+prec))
+    }
+
 }
 
 #[cfg(test)]
@@ -149,6 +156,12 @@ mod tests {
         let mut set = HashSet::new();
         set.insert(Limits::new(6.0,70.0));
         assert_eq!(FontSizeInterval::new(6.0,70.0).atoms(),&set);
+    }
+    fn fontset_from_precision() {
+        let (c,p) = (60.0,5.0);
+        let mut set = HashSet::new();
+        set.insert(Limits::new(c-p,c+p));
+        assert_eq!(FontSizeInterval::from_precision(c,p).atoms(),&set);
     }
 
     #[test_case(Limits::new(20.0,50.0),30.5;"common")]

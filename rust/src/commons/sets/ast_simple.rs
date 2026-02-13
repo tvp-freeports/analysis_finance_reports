@@ -11,6 +11,23 @@ where
     Branch(Box<AstNode<L,E>>, SetOps, Box<AstNode<L,E>>)
 }
 
+impl<L,E> PartialEq<Self> for AstNode<L,E>
+where
+    L: Container<Elem = E> + PartialEq,
+    E: ?Sized,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self,other) {
+            (Self::Leaf(a),Self::Leaf(b)) => a == b,
+            (
+                Self::Branch(box_a0,op_a,box_a1),
+                Self::Branch(box_b0,op_b,box_b1)
+            ) => op_a == op_b && box_a0 == box_b0 && box_a1 == box_b1,
+            _ => false
+        }
+    }
+}
+
 
 // #[derive(Clone)]
 pub struct AstSet<L,E>(AstNode<L,E>)

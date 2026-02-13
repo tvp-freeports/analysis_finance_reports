@@ -1,7 +1,7 @@
 use super::{Container,SetRelation,SetOps,UncomparableSet,SetAlgebra,Overlappable};
 use std::ops::{BitOr, BitAnd, Div};
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug)]
 pub enum SmartAstNode<L,E>
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
@@ -12,12 +12,62 @@ where
     Branch(Box<SmartAstNode<L,E>>, SetOps, Box<SmartAstNode<L,E>>)
 }
 
+
+impl<L,E> PartialEq<Self> for SmartAstNode<L,E>
+where
+    L: Container<Elem = E> + PartialEq + Clone + Overlappable<L>,
+    E: ?Sized,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self,other) {
+            (Self::EmptySet,Self::EmptySet) => true,
+            (Self::Leaf(a),Self::Leaf(b)) => a == b,
+            (
+                Self::Branch(box_a0,op_a,box_a1),
+                Self::Branch(box_b0,op_b,box_b1)
+            ) => op_a == op_b && box_a0 == box_b0 && box_a1 == box_b1,
+            _ => false
+        }
+    }
+}
+
+
+
+
+impl<L, E> Clone for SmartAstNode<L, E>
+where
+    L: Container<Elem = E> + Clone + Overlappable<L>,
+    E: ?Sized,
+{
+    fn clone(&self) -> Self {
+        match self {
+            SmartAstNode::Leaf(l) => SmartAstNode::Leaf(l.clone()),
+            SmartAstNode::EmptySet => SmartAstNode::EmptySet,
+            SmartAstNode::Branch(left, op, right) => SmartAstNode::Branch(
+                left.clone(),
+                op.clone(),
+                right.clone(),
+            ),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SmartAstSet<L,E>(SmartAstNode<L,E>)
 where
     L: Container<Elem = E> + Clone + Overlappable<L>,
     E: ?Sized
 ;
+
+impl<L,E> Clone for SmartAstSet<L,E>
+where
+    L: Container<Elem = E> + Clone + Overlappable<L>,
+    E: ?Sized
+{
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 impl<L,E> SmartAstSet<L,E> 
 where
@@ -185,24 +235,6 @@ mod tests {
                 TestSmartLeaf(HashSet::from(vec))
             ))
         }
-    }
-    impl Clone for TestSet {
-        fn clone(&self) -> Self {
-            Self(self.0.clone())
-        }
-    }
-    impl Clone for TestNode {
-        fn clone(&self) -> Self {
-            match self {
-                Self::EmptySet => Self::EmptySet,
-                Self::Leaf(a) => Self::Leaf(a.clone()),
-                Self::Branch(box_a,op,box_b) => Self::Branch(
-                    box_a.clone(),
-                    *op,
-                    box_b.clone()
-                )
-            }
-        }  
     }
     impl Overlappable<Self> for TestSmartLeaf {
         fn set_relation(&self, other: &Self) -> SetRelation {

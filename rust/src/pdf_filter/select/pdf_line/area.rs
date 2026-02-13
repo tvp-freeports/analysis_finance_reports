@@ -133,8 +133,7 @@ impl Rectangle {
         use RectOverlapping::*;
         let (x0,y0,x1,y1) = self.as_tuple();
         let (a0,b0,a1,b1) = other.as_tuple();
-        println!("galego");
-        match dbg!(ovrlt) {
+        match ovrlt {
             SmallerLeft => Three(
                 Self::new(x0,y0,x1,b0),
                 Self::new(a1,b0,x1,y1),
