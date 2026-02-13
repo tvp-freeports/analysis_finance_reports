@@ -434,36 +434,36 @@ mod tests {
     ),Some(
         TextSet::new("^text$") | TextSet::new("^with$")  | TextSet::new("^same$") | TextSet::new("^font$")
     );"select font")]
-    // #[test_case(RelativeFontSizeInterval::Select(
-    //     Box::new(RelativePdfLineSet{
-    //         font: Absolute(None),
-    //         font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
-    //         text: Absolute(None),
-    //         area: Absolute(None)
-    //     })
-    // ),Some(
-    //     FontSizeInterval::from_precision(1.3,1e-4) | FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4)
-    // );"select font size")]
-    // #[test_case(RelativeFontSizeInterval::Select(
-    //     Box::new(RelativePdfLineSet{
-    //         font: Absolute(None),
-    //         font_size: Absolute(None),
-    //         text: Absolute(Some(TextSet::new("size"))),
-    //         area: Absolute(None)
-    //     })
-    // ),Some(
-    //     FontSizeInterval::from_precision(1.13,1e-4) | FontSizeInterval::from_precision(14.13,1e-4)
-    // );"select text")]
-    // #[test_case(RelativeFontSizeInterval::Select(
-    //     Box::new(RelativePdfLineSet{
-    //         font: Absolute(None),
-    //         font_size: Absolute(None),
-    //         text: Absolute(None),
-    //         area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
-    //     })
-    // ),Some(
-    //     FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4) | FontSizeInterval::from_precision(0.3,1e-4)
-    // );"select area")]
+    #[test_case(RelativeTextSet::Select(
+        Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
+            text: Absolute(None),
+            area: Absolute(None)
+        })
+    ),Some(
+        TextSet::new("^text$") | TextSet::new("^with$") | TextSet::new("^similar$")
+    );"select font size")]
+    #[test_case(RelativeTextSet::Select(
+        Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("i"))),
+            area: Absolute(None)
+        })
+    ),Some(
+        TextSet::new("^with$") | TextSet::new("^similar$") | TextSet::new("^size$") | TextSet::new("^size$")
+    );"select text")]
+    #[test_case(RelativeTextSet::Select(
+        Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(None),
+            area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
+        })
+    ),Some(
+        TextSet::new("^same$") | TextSet::new("^font$") | TextSet::new("^-----$")
+    );"select area")]
     #[test_case(RelativeTextSet::Select(
         Box::new(RelativePdfLineSet{
             font: Absolute(None),
@@ -480,5 +480,64 @@ mod tests {
             _ => panic!("Unexpected result structure")
         };
     }
+
+
+    #[test_case(RelativeArea::Select(
+        Box::new(RelativePdfLineSet{
+            font: Absolute(Some(FontSet::new("A"))),
+            font_size: Absolute(None),
+            text: Absolute(None),
+            area: Absolute(None)
+        })
+    ),Some(
+        Area::new(10.0,10.0,15.0,11.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0)
+    );"select font")]
+    // #[test_case(RelativeArea::Select(
+    //     Box::new(RelativePdfLineSet{
+    //         font: Absolute(None),
+    //         font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
+    //         text: Absolute(None),
+    //         area: Absolute(None)
+    //     })
+    // ),Some(
+    //     FontSizeInterval::from_precision(1.3,1e-4) | FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4)
+    // );"select font size")]
+    // #[test_case(RelativeArea::Select(
+    //     Box::new(RelativePdfLineSet{
+    //         font: Absolute(None),
+    //         font_size: Absolute(None),
+    //         text: Absolute(Some(TextSet::new("size"))),
+    //         area: Absolute(None)
+    //     })
+    // ),Some(
+    //     FontSizeInterval::from_precision(1.13,1e-4) | FontSizeInterval::from_precision(14.13,1e-4)
+    // );"select text")]
+    // #[test_case(RelativeArea::Select(
+    //     Box::new(RelativePdfLineSet{
+    //         font: Absolute(None),
+    //         font_size: Absolute(None),
+    //         text: Absolute(None),
+    //         area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
+    //     })
+    // ),Some(
+    //     FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4) | FontSizeInterval::from_precision(0.3,1e-4)
+    // );"select area")]
+    #[test_case(RelativeArea::Select(
+        Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(None),
+            area: Absolute(Some(Area::new(800.0,30.0,2000.0,340.0)))
+        })
+    ),None;"no result")]
+    fn contextualize_area(rfs: RelativeArea, exp_fs: Option<Area>) {
+        let fs=rfs.contextualize(&LINES);
+        match (&fs,&exp_fs) {
+            (None,None) => (),
+            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
+            _ => panic!("Unexpected result structure")
+        };
+    }
+
 
 }
