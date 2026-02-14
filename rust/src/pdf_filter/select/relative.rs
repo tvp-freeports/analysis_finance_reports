@@ -605,4 +605,79 @@ mod tests {
     }
 
 
+
+    #[test_case(RelativePdfLineSet{
+        font: Relative(RelativeFontSet::Select(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        }))),
+        font_size: Absolute(None),
+        text: Absolute(None),
+        area: Absolute(None)
+    },PdfLineSet::new(Some("Fracktur"),None,None,None);"font")]
+    #[test_case(RelativePdfLineSet{
+        font: Absolute(None),
+        font_size: Relative(RelativeFontSizeInterval::Select(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        }))),
+        text: Absolute(None),
+        area: Absolute(None)
+    },PdfLineSet::new(None,Some((40.0-1e-4,40.0+1e-4)),None,None);"font size")]
+    #[test_case(RelativePdfLineSet{
+        font: Absolute(None),
+        font_size: Absolute(None),
+        text: Relative(RelativeTextSet::Select(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECT"))),
+            area: Absolute(None)
+        }))),
+        area: Absolute(None)
+    },PdfLineSet::new(None,None,Some("^SECTION 2$"),None);"text")]
+    #[test_case(RelativePdfLineSet{
+        font: Absolute(None),
+        font_size: Absolute(None),
+        text: Absolute(None),
+        area: Relative(RelativeArea::Select(Box::new(RelativePdfLineSet{
+            font: Absolute(None),
+            font_size: Absolute(None),
+            text: Absolute(Some(TextSet::new("SECTION 2"))),
+            area: Absolute(None)
+        })))
+    },PdfLineSet::new(None,None,None,Some((35.0,21.0,65.0,25.0)));"area")]
+    fn contextualize_relativepdflineset(rls: RelativePdfLineSet ,exp_ls: PdfLineSet) {
+        use SetRelation::*;
+        let ls=rls.contextualize(&LINES);
+        let (AstNode::Leaf(leaf),AstNode::Leaf(eleaf)) = (ls.ast(),exp_ls.ast()) else {
+            panic!("Unexpected result structure")
+        };
+        match (&leaf.font,&eleaf.font) {
+            (None,None) => (),
+            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
+            _ => panic!("Unexpected result structure")
+        };
+        match (&leaf.font_size,&eleaf.font_size) {
+            (None,None) => (),
+            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
+            _ => panic!("Unexpected result structure")
+        };
+        match (&leaf.area,&eleaf.area) {
+            (None,None) => (),
+            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
+            _ => panic!("Unexpected result structure")
+        };
+        match (&leaf.text,&eleaf.text) {
+            (None,None) => (),
+            (Some(a),Some(b)) => assert_eq!(a.ast(),b.ast()),
+            _ => panic!("Unexpected result structure")
+        };
+        
+    }
+
+
 }
