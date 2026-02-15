@@ -31,7 +31,7 @@ impl SetOps {
 
 
 #[derive(Clone,Copy,Debug,PartialEq)]
-enum SetOps{
+pub enum SetOps{
     Union,
     Inter,
     Sub
