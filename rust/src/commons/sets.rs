@@ -42,10 +42,83 @@ pub trait Container {
     fn contains(&self,e: &Self::Elem) -> bool;
 }
 
-pub trait Overlappable<Rhs>: {
+pub trait Overlappable<Rhs> {
     fn set_relation(&self,other: &Rhs) -> SetRelation;
 }
 
+pub enum Set<S,E>
+where
+    S: Container<Elem=E> + SetAlgebra,
+    E: ?Sized
+{
+    Empty,
+    Universe,
+    Set(S)
+}
+
+impl<S,E> Container for Set<S,E>
+where
+    S: Container<Elem=E> + SetAlgebra,
+    E: ?Sized
+{
+    type Elem = E;
+    fn contains(&self,ele: &Self::Elem) -> bool {
+        match self {
+            Self::Empty => false,
+            Self::Universe => true,
+            Self::Set(set) => set.contains(ele)
+        }
+    }
+}
+
+impl<S,E> BitOr<Self> for Set<S,E>
+where
+    S: Container<Elem=E> + SetAlgebra,
+    E: ?Sized
+{
+    type Output=Self;
+    fn bitor(self,rhs: Self) -> Self {
+        match (self,rhs) {
+            (Self::Universe,_) => Self::Universe,
+            (_,Self::Universe) => Self::Universe,
+            (a,Self::Empty) => a,
+            (Self::Empty,b) => b,
+            (Self::Set(a),Self::Set(b)) => Self::Set(a | b)
+        }
+    }
+}
+impl<S,E> BitAnd<Self> for Set<S,E>
+where
+    S: Container<Elem=E> + SetAlgebra,
+    E: ?Sized
+{
+    type Output=Self;
+    fn bitand(self,rhs: Self) -> Self {
+        match (self,rhs) {
+            (a,Self::Universe) => a,
+            (Self::Universe,b) => b,
+            (Self::Empty,_) => Self::Empty,
+            (_,Self::Empty) => Self::Empty,
+            (Self::Set(a),Self::Set(b)) => Self::Set(a & b)
+        }
+    }
+}
+impl<S,E> Div<Self> for Set<S,E>
+where
+    S: Container<Elem=E> + SetAlgebra,
+    E: ?Sized
+{
+    type Output=Self;
+    fn div(self,rhs: Self) -> Self {
+        match (self,rhs) {
+            (Self::Universe,_) => todo!(),
+            (_,Self::Universe) => Self::Empty,
+            (a,Self::Empty) => a,
+            (Self::Empty,_) => Self::Empty,
+            (Self::Set(a),Self::Set(b)) => Self::Set(a / b)
+        }
+    }
+}
 
 
 
@@ -60,7 +133,7 @@ Container<Elem=E> +
 SetAlgebra 
 where E: ?Sized {}
 
-trait Set<E>:
+trait ComparableSet<E>:
 Container<Elem=E> +
 SetAlgebra +
 Overlappable<Self>

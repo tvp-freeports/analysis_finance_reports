@@ -1,12 +1,9 @@
-mod relative_ast;
+// mod relative_ast;
 
 use std::cmp::max;
+use std::ops::{BitOr,BitAnd,Div};
 use ordered_float::OrderedFloat;
-use crate::commons::sets::{
-    Container,
-    SetRelation,
-    AstNode
-};
+use crate::commons::sets::{SetOps,Container};
 use super::pdf_line::{
     area::{Area},
     font::{FontSet},
@@ -14,12 +11,13 @@ use super::pdf_line::{
     text::{TextSet}
 };
 
-use super::pdf_line::{PdfLineSet,PdfLine};
+use super::pdf_line::{SelectPdfLineSet,PdfLineSet,PdfLine};
 
 trait RelativeInfo<V> {
     fn contextualize(self,lines: &[PdfLine]) -> V;
 }
 
+// #[derive(Debug)]
 enum OptionallyRelative<V,R> {
     Absolute(V),
     Relative(R)
@@ -39,80 +37,255 @@ where
     }
 }
 
-struct RelativePdfLineSet {
-    font: OptRel<Option<FontSet>,RelativeFontSet>,
-    font_size: OptRel<Option<FontSizeInterval>,RelativeFontSizeInterval>,
-    text: OptRel<Option<TextSet>,RelativeTextSet>,
-    area: OptRel<Option<Area>,RelativeArea>
 
+// #[derive(Debug)]
+enum RelativeSelectPdfLineSet {
+    Font(RelativeFontSet),
+    FontSize(RelativeFontSizeInterval),
+    Text(RelativeTextSet),
+    Area(RelativeArea)
 }
 
-impl RelativeInfo<PdfLineSet> for RelativePdfLineSet {
+impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet{
+    fn contextualize(self, lines: &[PdfLine]) -> SelectPdfLineSet {
+        use SelectPdfLineSet::*;
+        match self {
+            Self::Font(rf) => Font(rf.contextualize(lines)),
+            Self::FontSize(rfs) => FontSize(rfs.contextualize(lines)),
+            Self::Text(rt) => Text(rt.contextualize(lines)),
+            Self::Area(ra) => Area(ra.contextualize(lines)),
+        }
+    }
+}
+
+type LeafType = OptRel<SelectPdfLineSet,RelativeSelectPdfLineSet>;
+
+// #[derive(Debug)]
+enum NodeRelativePdfLineSet {
+    Leaf(LeafType),
+    Branch(Box<NodeRelativePdfLineSet>, SetOps, Box<NodeRelativePdfLineSet>)
+}
+
+
+impl RelativeInfo<PdfLineSet> for NodeRelativePdfLineSet {
     fn contextualize(self,lines: &[PdfLine]) -> PdfLineSet {
-        let font = self.font.contextualize(lines);
-        let font_size = self.font_size.contextualize(lines);
-        let text = self.text.contextualize(lines);
-        let area = self.area.contextualize(lines);
-        PdfLineSet::from_sets(font,font_size,text,area)
+        use SetOps::*;
+        match self {
+            Self::Leaf(leaf) => PdfLineSet::from_leaf(leaf.contextualize(lines)),
+            Self::Branch(box_x,op,box_y) => {
+                let a = box_x.contextualize(lines);
+                let b = box_y.contextualize(lines);
+                match op {
+                    Union => a | b,
+                    Inter => a & b,
+                    Sub => a / b
+                }
+            }
+        }
     }
 }
 
 
 
+// #[derive(Debug)]
+pub struct RelativePdfLineSet(NodeRelativePdfLineSet);
+
+impl RelativeInfo<PdfLineSet> for RelativePdfLineSet {
+    fn contextualize(self,lines: &[PdfLine]) -> PdfLineSet {
+        self.0.contextualize(lines)
+    }
+}
+
+impl BitOr<Self> for RelativePdfLineSet {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(
+            NodeRelativePdfLineSet::Branch(
+                Box::new(self.0),
+                SetOps::Union,
+                Box::new(rhs.0)
+            )
+        )
+    }
+}
+impl BitAnd<Self> for RelativePdfLineSet {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self(
+            NodeRelativePdfLineSet::Branch(
+                Box::new(self.0),
+                SetOps::Inter,
+                Box::new(rhs.0)
+            )
+        )
+    }
+}
+impl Div<Self> for RelativePdfLineSet {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(
+            NodeRelativePdfLineSet::Branch(
+                Box::new(self.0),
+                SetOps::Sub,
+                Box::new(rhs.0)
+            )
+        )
+    }
+}
+
+
+impl RelativePdfLineSet {
+    pub fn from_font(f: OptRel<FontSet,RelativeFontSet>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet as R;
+        use SelectPdfLineSet::*;
+        match f {
+            Absolute(af) => Self::from_leaf(Absolute(Font(af))),
+            Relative(rf) => Self::from_leaf(Relative(R::Font(rf)))
+        }
+    }
+    pub fn from_fontsize(fs: OptRel<FontSizeInterval,RelativeFontSizeInterval>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet as R;
+        use SelectPdfLineSet::*;
+        match fs {
+            Absolute(afs) => Self::from_leaf(Absolute(FontSize(afs))),
+            Relative(rfs) => Self::from_leaf(Relative(R::FontSize(rfs)))
+        }
+    }
+    pub fn from_text(t: OptRel<TextSet,RelativeTextSet>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet as R;
+        use SelectPdfLineSet::*;
+        match t {
+            Absolute(at) => Self::from_leaf(Absolute(Text(at))),
+            Relative(rt) => Self::from_leaf(Relative(R::Text(rt)))
+        }
+    }
+    pub fn from_area(a: OptRel<Area,RelativeArea>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet as R;
+        use SelectPdfLineSet::*;
+        match a {
+            Absolute(aa) => Self::from_leaf(Absolute(Area(aa))),
+            Relative(ra) => Self::from_leaf(Relative(R::Area(ra)))
+        }
+    }
+
+    pub fn from_leaf(leaf: LeafType) -> Self {
+        Self(NodeRelativePdfLineSet::Leaf(leaf))
+    }
+    pub fn ast(&self) -> &NodeRelativePdfLineSet {
+        &self.0
+    }
+}
+
+pub type PdfLineSelection = OptRel<PdfLineSet,RelativePdfLineSet>;
+
+impl PdfLineSelection {
+    pub fn from_font(f: OptRel<FontSet,RelativeFontSet>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet::*;
+        match f {
+            Absolute(af) => Absolute(PdfLineSet::font(af)),
+            Relative(rf) => Relative(RelativePdfLineSet::from_font(Relative(rf)))
+        }
+    }
+    pub fn from_fontsize(fs: OptRel<FontSizeInterval,RelativeFontSizeInterval>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet::*;
+        match fs {
+            Absolute(afs) => Absolute(PdfLineSet::fontsize(afs)),
+            Relative(rfs) => Relative(RelativePdfLineSet::from_fontsize(Relative(rfs)))
+        }
+    }
+    pub fn from_text(t: OptRel<TextSet,RelativeTextSet>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet::*;
+        match t {
+            Absolute(at) => Absolute(PdfLineSet::text(at)),
+            Relative(rt) => Relative(RelativePdfLineSet::from_text(Relative(rt)))
+        }
+    }
+    pub fn from_area(a: OptRel<Area,RelativeArea>) -> Self {
+        use OptionallyRelative::*;
+        use RelativeSelectPdfLineSet::*;
+        match a {
+            Absolute(aa) => Absolute(PdfLineSet::area(aa)),
+            Relative(ra) => Relative(RelativePdfLineSet::from_area(Relative(ra)))
+        }
+    }
+}
+
 enum RelativeArea {
-    Select(Box<RelativePdfLineSet>),
+    Select(Box<PdfLineSelection>),
     MoveWindow{
-        target: Box<RelativePdfLineSet>,
+        target: Box<PdfLineSelection>,
         vec: (f32,f32),
         width_mult: f32,
         height_mult: f32
     },
     Bounds{
-        x0: OptRel<f32,Box<RelativePdfLineSet>>,
-        y0: OptRel<f32,Box<RelativePdfLineSet>>,
-        x1: OptRel<f32,Box<RelativePdfLineSet>>,
-        y1: OptRel<f32,Box<RelativePdfLineSet>>
+        x0: OptRel<f32,Box<PdfLineSelection>>,
+        y0: OptRel<f32,Box<PdfLineSelection>>,
+        x1: OptRel<f32,Box<PdfLineSelection>>,
+        y1: OptRel<f32,Box<PdfLineSelection>>
     }
 
 }
 
 enum RelativeFontSet {
-    Select(Box<RelativePdfLineSet>)
+    Select(Box<PdfLineSelection>)
+}
+impl RelativeFontSet {
+    fn from_selection(select: PdfLineSelection) -> Self {
+        Self::Select(Box::new(select))
+    }
 }
 
+
 enum RelativeFontSizeInterval {
-    Select(Box<RelativePdfLineSet>)
+    Select(Box<PdfLineSelection>)
+}
+impl RelativeFontSizeInterval {
+    fn from_selection(select: PdfLineSelection) -> Self {
+        Self::Select(Box::new(select))
+    }
 }
 
 enum RelativeTextSet {
-    Select(Box<RelativePdfLineSet>)
+    Select(Box<PdfLineSelection>)
+}
+impl RelativeTextSet {
+    fn from_selection(select: PdfLineSelection) -> Self {
+        Self::Select(Box::new(select))
+    }
 }
 
-
-impl RelativeInfo<Option<FontSet>> for RelativeFontSet {
-    fn contextualize(self,lines: &[PdfLine]) -> Option<FontSet> {
+impl RelativeInfo<FontSet> for RelativeFontSet {
+    fn contextualize(self,lines: &[PdfLine]) -> FontSet {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
         lines.iter()
         .filter(|l| line_set.contains(l))
         .map(|l| FontSet::from_atom(l.font().clone()))
-        .reduce(|a,b| a | b)
+        .reduce(|a,b| a | b).unwrap_or(FontSet::empty())
     }
 }
 
-impl RelativeInfo<Option<TextSet>> for RelativeTextSet {
-    fn contextualize(self,lines: &[PdfLine]) -> Option<TextSet> {
+impl RelativeInfo<TextSet> for RelativeTextSet {
+    fn contextualize(self,lines: &[PdfLine]) -> TextSet {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
         lines.iter()
         .filter(|l| line_set.contains(l))
         .map(|l| TextSet::new(&format!("^{}$",l.text())))
-        .reduce(|a,b| a | b)
+        .reduce(|a,b| a | b).unwrap_or(TextSet::empty())
     }
 }
 
-impl RelativeInfo<Option<FontSizeInterval>> for RelativeFontSizeInterval {
-    fn contextualize(self,lines: &[PdfLine]) -> Option<FontSizeInterval> {
+impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
+    fn contextualize(self,lines: &[PdfLine]) -> FontSizeInterval {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
         lines.iter()
@@ -122,19 +295,21 @@ impl RelativeInfo<Option<FontSizeInterval>> for RelativeFontSizeInterval {
             let a = max(OrderedFloat(0.0),OrderedFloat(fs-1e-4)).into_inner();
             FontSizeInterval::new(a,fs+1e-4)
         })
-        .reduce(|a,b| a | b)
+        .reduce(|a,b| a | b).unwrap_or(FontSizeInterval::empty())
     }
 }
 
-
 impl RelativeArea {
-    fn from_movewindow(
+    fn from_selection(select: PdfLineSelection) -> Self {
+        Self::Select(Box::new(select))
+    }
+    fn contextualize_movewindow(
         lines: &[PdfLine],
-        target: RelativePdfLineSet,
+        target: PdfLineSelection,
         vec: (f32,f32),
         width_mult: f32,
         height_mult: f32
-    ) -> Option<Area> {
+    ) -> Area {
         let line_set = target.contextualize(lines);
         let (x,y) = vec;
         lines.iter()
@@ -144,15 +319,17 @@ impl RelativeArea {
             let w = x1-x0;
             let h = y1-y0;
             Area::new(x0+x*w,y0+y*h,x0+(width_mult+x)*w,y0+(height_mult+y)*h)
-        })
+        }).unwrap_or(
+            Area::empty()
+        )
     }
-    fn from_bounds(
+    fn contextualize_bounds(
         lines: &[PdfLine],
-        x0: OptRel<f32,Box<RelativePdfLineSet>>,
-        y0: OptRel<f32,Box<RelativePdfLineSet>>,
-        x1: OptRel<f32,Box<RelativePdfLineSet>>,
-        y1: OptRel<f32,Box<RelativePdfLineSet>>
-    ) -> Option<Area> {
+        x0: OptRel<f32,Box<PdfLineSelection>>,
+        y0: OptRel<f32,Box<PdfLineSelection>>,
+        x1: OptRel<f32,Box<PdfLineSelection>>,
+        y1: OptRel<f32,Box<PdfLineSelection>>
+    ) -> Area {
         let left=match x0 {
             OptionallyRelative::Absolute(x) => x,
             OptionallyRelative::Relative(rls) => {
@@ -205,28 +382,28 @@ impl RelativeArea {
                 }
             }
         };
-        Some(Area::new(left,up,right,bottom))
+        Area::new(left,up,right,bottom)
     }
-    fn from_selection(lines: &[PdfLine], set: RelativePdfLineSet) -> Option<Area> {
+    fn contextualize_selection(lines: &[PdfLine], set: PdfLineSelection) -> Area {
         let line_set = set.contextualize(lines);
         lines.iter()
         .filter(|l| line_set.contains(l))
         .map(|l| Area::from_atom(*l.bbox()))
-        .reduce(|a,b| a | b)
+        .reduce(|a,b| a | b).unwrap_or(Area::empty())
     }
 }
 
-impl RelativeInfo<Option<Area>> for RelativeArea {
-    fn contextualize(self,lines: &[PdfLine]) -> Option<Area> {
+impl RelativeInfo<Area> for RelativeArea {
+    fn contextualize(self,lines: &[PdfLine]) -> Area {
         match self {
-            Self::Select(r) => Self::from_selection(lines,*r),
+            Self::Select(r) => Self::contextualize_selection(lines,*r),
             Self::MoveWindow{
                 target,
                 vec,
                 width_mult,
                 height_mult
-            } => Self::from_movewindow(lines,*target,vec,width_mult,height_mult),
-            Self::Bounds{x0,y0,x1,y1} => Self::from_bounds(lines,x0,y0,x1,y1)
+            } => Self::contextualize_movewindow(lines,*target,vec,width_mult,height_mult),
+            Self::Bounds{x0,y0,x1,y1} => Self::contextualize_bounds(lines,x0,y0,x1,y1)
         }
     }
 }
@@ -253,433 +430,139 @@ mod tests {
         PdfLine::new("DDD",14.1,"font",(10.0,33.0,15.0,34.0)),
         PdfLine::new("EEE",14.13,"size",(10.0,34.0,15.0,35.0))
     ]);
-    
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(None),
-        text: Absolute(None),
-        area: Absolute(None)
-    },PdfLineSet::new(None,None,None,None);"universe")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(Some(FontSet::new("Gamino"))),
-        font_size: Absolute(None),
-        text: Absolute(None),
-        area: Absolute(None)
-    },PdfLineSet::new(Some("Gamino"),None,None,None);"font")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(Some(FontSizeInterval::new(0.1,20.0))),
-        text: Absolute(None),
-        area: Absolute(None)
-    },PdfLineSet::new(None,Some((0.1,20.0)),None,None);"font size")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(None),
-        text: Absolute(Some(TextSet::new("^hul$"))),
-        area: Absolute(None)
-    },PdfLineSet::new(None,None,Some("^hul$"),None);"text")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(None),
-        text: Absolute(None),
-        area: Absolute(Some(Area::new(0.0,0.0,40.0,45.0)))
-    },PdfLineSet::new(None,None,None,Some((0.0,0.0,40.0,45.0)));"area")]
-    fn contextualize_trivial_relativepdflineset(rls: RelativePdfLineSet ,exp_ls: PdfLineSet) {
-        use SetRelation::*;
-        let ls=rls.contextualize(&LINES);
-        let (AstNode::Leaf(leaf),AstNode::Leaf(eleaf)) = (ls.ast(),exp_ls.ast()) else {
-            panic!("Unexpected result structure")
-        };
-        match (&leaf.font,&eleaf.font) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.font_size,&eleaf.font_size) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.area,&eleaf.area) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.text,&eleaf.text) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.ast(),b.ast()),
-            _ => panic!("Unexpected result structure")
-        };
-        
-    }
 
-    #[test_case(RelativeFontSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(Some(FontSet::new("A"))),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(FontSet::new("A"));"select font")]
-    #[test_case(RelativeFontSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(Some(FontSizeInterval::new(1.09,1.8))),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        FontSet::new("A") | FontSet::new("C") | FontSet::new("D") | FontSet::new("E")
-    );"select font size")]
-    #[test_case(RelativeFontSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("fon"))),
-            area: Absolute(None)
-        })
-    ),Some(
-        FontSet::new("A") | FontSet::new("D") | FontSet::new("DDD")
-    );"select text")]
-    #[test_case(RelativeFontSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(0.0,30.0,20.0,34.0)))
-        })
-    ),Some(
-        FontSet::new("A") | FontSet::new("B") | FontSet::new("DDD") 
-    );"select area")]
-    #[test_case(RelativeFontSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(800.0,30.0,2000.0,340.0)))
-        })
-    ),None;"no result")]
-    fn contextualize_fontset(rf: RelativeFontSet, exp_f: Option<FontSet>) {
+    #[test_case(RelativeFontSet::from_selection(
+        PdfLineSelection::from_font(Absolute(FontSet::new("A")))
+    ),FontSet::new("A");"select font")]
+    #[test_case(RelativeFontSet::from_selection(
+        PdfLineSelection::from_fontsize(Absolute(FontSizeInterval::new(1.09,1.8)))
+    ), FontSet::new("A") | FontSet::new("C") | FontSet::new("D") | FontSet::new("E")
+    ;"select font size")]
+    #[test_case(RelativeFontSet::from_selection(
+        PdfLineSelection::from_text(Absolute(TextSet::new("fon")))
+    ), FontSet::new("A") | FontSet::new("D") | FontSet::new("DDD")
+    ;"select text")]
+    #[test_case(RelativeFontSet::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(0.0,30.0,20.0,34.0)))
+    ), FontSet::new("A") | FontSet::new("B") | FontSet::new("DDD")
+    ;"select area")]
+    #[test_case(RelativeFontSet::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(800.0,30.0,2000.0,340.0)))
+    ), FontSet::empty();"no result")]
+    fn contextualize_fontset(rf: RelativeFontSet, exp_f: FontSet) {
         let f=rf.contextualize(&LINES);
-        match (&f,&exp_f) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
+        assert_eq!(f.atoms(),exp_f.atoms());
     }
 
-
-    #[test_case(RelativeFontSizeInterval::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(Some(FontSet::new("A"))),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4) | FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4)
-    );"select font")]
-    #[test_case(RelativeFontSizeInterval::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        FontSizeInterval::from_precision(1.3,1e-4) | FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4)
-    );"select font size")]
-    #[test_case(RelativeFontSizeInterval::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("size"))),
-            area: Absolute(None)
-        })
-    ),Some(
-        FontSizeInterval::from_precision(1.13,1e-4) | FontSizeInterval::from_precision(14.13,1e-4)
-    );"select text")]
-    #[test_case(RelativeFontSizeInterval::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
-        })
-    ),Some(
-        FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4) | FontSizeInterval::from_precision(0.3,1e-4)
-    );"select area")]
-    #[test_case(RelativeFontSizeInterval::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(800.0,30.0,2000.0,340.0)))
-        })
-    ),None;"no result")]
-    fn contextualize_fontsizeinterval(rfs: RelativeFontSizeInterval, exp_fs: Option<FontSizeInterval>) {
+    #[test_case(RelativeFontSizeInterval::from_selection(
+        PdfLineSelection::from_font(Absolute(FontSet::new("A")))
+    ), FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4) | FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4)
+    ;"select font")]
+    #[test_case(RelativeFontSizeInterval::from_selection(
+        PdfLineSelection::from_fontsize(Absolute(FontSizeInterval::new(1.14,1.8)))
+    ), FontSizeInterval::from_precision(1.3,1e-4) | FontSizeInterval::from_precision(1.5,1e-4) | FontSizeInterval::from_precision(1.7,1e-4)
+    ;"select font size")]
+    #[test_case(RelativeFontSizeInterval::from_selection(
+        PdfLineSelection::from_text(Absolute(TextSet::new("size")))
+    ), FontSizeInterval::from_precision(1.13,1e-4) | FontSizeInterval::from_precision(14.13,1e-4)
+    ;"select text")]
+    #[test_case(RelativeFontSizeInterval::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(0.0,30.0,20.0,33.0)))
+    ), FontSizeInterval::from_precision(14.5,1e-4) | FontSizeInterval::from_precision(188.7,1e-4) | FontSizeInterval::from_precision(0.3,1e-4)
+    ;"select area")]
+    #[test_case(RelativeFontSizeInterval::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(800.0,30.0,2000.0,340.0)))
+    ), FontSizeInterval::empty();"no result")]
+    fn contextualize_fontsizeinterval(rfs: RelativeFontSizeInterval, exp_fs: FontSizeInterval) {
         let fs=rfs.contextualize(&LINES);
-        match (&fs,&exp_fs) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
+        assert_eq!(fs.atoms(),exp_fs.atoms());
     }
 
-    #[test_case(RelativeTextSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(Some(FontSet::new("A"))),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        TextSet::new("^text$") | TextSet::new("^with$")  | TextSet::new("^same$") | TextSet::new("^font$")
-    );"select font")]
-    #[test_case(RelativeTextSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        TextSet::new("^text$") | TextSet::new("^with$") | TextSet::new("^similar$")
-    );"select font size")]
-    #[test_case(RelativeTextSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("i"))),
-            area: Absolute(None)
-        })
-    ),Some(
-        TextSet::new("^with$") | TextSet::new("^similar$") | TextSet::new("^size$") | TextSet::new("^size$")
-    );"select text")]
-    #[test_case(RelativeTextSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
-        })
-    ),Some(
-        TextSet::new("^same$") | TextSet::new("^font$") | TextSet::new("^-----$")
-    );"select area")]
-    #[test_case(RelativeTextSet::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(800.0,30.0,2000.0,340.0)))
-        })
-    ),None;"no result")]
-    fn contextualize_textset(rt: RelativeTextSet, exp_t: Option<TextSet>) {
+    #[test_case(RelativeTextSet::from_selection(
+        PdfLineSelection::from_font(Absolute(FontSet::new("A")))
+    ), TextSet::new("^text$") | TextSet::new("^with$")  | TextSet::new("^same$") | TextSet::new("^font$")
+    ;"select font")]
+    #[test_case(RelativeTextSet::from_selection(
+        PdfLineSelection::from_fontsize(Absolute(FontSizeInterval::new(1.14,1.8)))
+    ), TextSet::new("^text$") | TextSet::new("^with$") | TextSet::new("^similar$")
+    ;"select font size")]
+    #[test_case(RelativeTextSet::from_selection(
+        PdfLineSelection::from_text(Absolute(TextSet::new("i")))
+    ), TextSet::new("^with$") | TextSet::new("^similar$") | TextSet::new("^size$") | TextSet::new("^size$")
+    ;"select text")]
+    #[test_case(RelativeTextSet::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(0.0,30.0,20.0,33.0)))
+    ), TextSet::new("^same$") | TextSet::new("^font$") | TextSet::new("^-----$")
+    ;"select area")]
+    #[test_case(RelativeTextSet::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(800.0,30.0,2000.0,340.0)))
+    ), TextSet::empty();"no result")]
+    fn contextualize_textset(rt: RelativeTextSet, exp_t: TextSet) {
         let t=rt.contextualize(&LINES);
-        match (&t,&exp_t) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.ast(),b.ast()),
-            _ => panic!("Unexpected result structure")
-        };
+        assert_eq!(t.ast(),exp_t.ast());
     }
 
 
-    #[test_case(RelativeArea::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(Some(FontSet::new("A"))),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        Area::new(10.0,10.0,15.0,11.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0)
-    );"select font")]
-    #[test_case(RelativeArea::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(Some(FontSizeInterval::new(1.2,1.8))),
-            text: Absolute(None),
-            area: Absolute(None)
-        })
-    ),Some(
-        Area::new(10.0,12.0,15.0,13.0) | Area::new(10.0,10.0,15.0,11.0) | Area::new(10.0,11.0,15.0,12.0)
-    );"select font size")]
-    #[test_case(RelativeArea::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("size"))),
-            area: Absolute(None)
-        })
-    ),Some(
-        Area::new(10.0,14.0,15.0,15.0) | Area::new(10.0,34.0,15.0,35.0)
-    );"select text")]
-    #[test_case(RelativeArea::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(0.0,30.0,20.0,33.0)))
-        })
-    ),Some(
-        Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0) | Area::new(10.0,32.0,15.0,33.0)
-    );"select area")]
+    #[test_case(RelativeArea::from_selection(
+        PdfLineSelection::from_font(Absolute(FontSet::new("A")))
+    ), Area::new(10.0,10.0,15.0,11.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,11.0,15.0,12.0) | Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0)
+    ;"select font")]
+    #[test_case(RelativeArea::from_selection(
+        PdfLineSelection::from_fontsize(Absolute(FontSizeInterval::new(1.14,1.8)))
+    ), Area::new(10.0,12.0,15.0,13.0) | Area::new(10.0,10.0,15.0,11.0) | Area::new(10.0,11.0,15.0,12.0)
+    ;"select font size")]
+    #[test_case(RelativeArea::from_selection(
+        PdfLineSelection::from_text(Absolute(TextSet::new("size")))
+    ), Area::new(10.0,14.0,15.0,15.0) | Area::new(10.0,34.0,15.0,35.0)
+    ;"select text")]
+    #[test_case(RelativeArea::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(0.0,30.0,20.0,33.0)))
+    ), Area::new(10.0,30.0,15.0,31.0) | Area::new(10.0,31.0,15.0,32.0) | Area::new(10.0,32.0,15.0,33.0)
+    ;"select area")]
     #[test_case(RelativeArea::MoveWindow{
-        target: Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        }),
+        target: Box::new(PdfLineSelection::from_text(Absolute(TextSet::new("SECTION 2")))),
         vec: (1.0,-0.6),
         width_mult: 1.5,
         height_mult: 0.5
-    },Some(
-        Area::new(65.0,18.6,110.0,20.6)
-    );"move window")]
+    },Area::new(65.0,18.6,110.0,20.6);"move window")]
     #[test_case(RelativeArea::Bounds{
-        x0: Relative(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        })),
+        x0: Relative(Box::new(
+            PdfLineSelection::from_text(Absolute(TextSet::new("SECTION 2")))
+        )),
         y0: Absolute(60.0),
         x1: Absolute(70.0),
         y1: Absolute(300.0)
-    },Some(
-        Area::new(65.0,60.0,70.0,300.0)
-    );"bounds left")]
+    },Area::new(65.0,60.0,70.0,300.0);"bounds left")]
     #[test_case(RelativeArea::Bounds{
         x0: Absolute(10.0),
         y0: Absolute(60.0),
-        x1: Relative(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        })),
+        x1: Relative(Box::new(
+            PdfLineSelection::from_text(Absolute(TextSet::new("SECTION 2")))
+        )),
         y1: Absolute(300.0)
-    },Some(
-        Area::new(10.0,60.0,35.0,300.0)
-    );"bounds right")]
+    },Area::new(10.0,60.0,35.0,300.0);"bounds right")]
     #[test_case(RelativeArea::Bounds{  
         x0: Absolute(10.0),
-        y0: Relative(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        })),
+        y0: Relative(Box::new(
+            PdfLineSelection::from_text(Absolute(TextSet::new("SECTION 2")))
+        )),
         x1: Absolute(60.0),
         y1: Absolute(300.0)
-    },Some(
-        Area::new(10.0,25.0,60.0,300.0)
-    );"bounds up")]
+    },Area::new(10.0,25.0,60.0,300.0);"bounds up")]
     #[test_case(RelativeArea::Bounds{  
         x0: Absolute(10.0),
         y0: Absolute(3.0),
         x1: Absolute(60.0),
-        y1: Relative(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        }))
-    },Some(
-        Area::new(10.0,3.0,60.0,21.0)
-    );"bounds down")]
-    #[test_case(RelativeArea::Select(
-        Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(None),
-            area: Absolute(Some(Area::new(800.0,30.0,2000.0,340.0)))
-        })
-    ),None;"no result")]
-    fn contextualize_area(rfs: RelativeArea, exp_fs: Option<Area>) {
-        let fs=rfs.contextualize(&LINES);
-        match (&fs,&exp_fs) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
+        y1: Relative(Box::new(
+            PdfLineSelection::from_text(Absolute(TextSet::new("SECTION 2")))
+        ))
+    },Area::new(10.0,3.0,60.0,21.0);"bounds down")]  
+    #[test_case(RelativeArea::from_selection(
+        PdfLineSelection::from_area(Absolute(Area::new(800.0,30.0,2000.0,340.0)))
+    ), Area::empty();"no result")]
+    fn contextualize_area(ra: RelativeArea, exp_a: Area) {
+        let a=ra.contextualize(&LINES);
+        assert_eq!(a.atoms(),exp_a.atoms());
     }
-
-
-
-    #[test_case(RelativePdfLineSet{
-        font: Relative(RelativeFontSet::Select(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        }))),
-        font_size: Absolute(None),
-        text: Absolute(None),
-        area: Absolute(None)
-    },PdfLineSet::new(Some("Fracktur"),None,None,None);"font")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Relative(RelativeFontSizeInterval::Select(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        }))),
-        text: Absolute(None),
-        area: Absolute(None)
-    },PdfLineSet::new(None,Some((40.0-1e-4,40.0+1e-4)),None,None);"font size")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(None),
-        text: Relative(RelativeTextSet::Select(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECT"))),
-            area: Absolute(None)
-        }))),
-        area: Absolute(None)
-    },PdfLineSet::new(None,None,Some("^SECTION 2$"),None);"text")]
-    #[test_case(RelativePdfLineSet{
-        font: Absolute(None),
-        font_size: Absolute(None),
-        text: Absolute(None),
-        area: Relative(RelativeArea::Select(Box::new(RelativePdfLineSet{
-            font: Absolute(None),
-            font_size: Absolute(None),
-            text: Absolute(Some(TextSet::new("SECTION 2"))),
-            area: Absolute(None)
-        })))
-    },PdfLineSet::new(None,None,None,Some((35.0,21.0,65.0,25.0)));"area")]
-    fn contextualize_relativepdflineset(rls: RelativePdfLineSet ,exp_ls: PdfLineSet) {
-        use SetRelation::*;
-        let ls=rls.contextualize(&LINES);
-        let (AstNode::Leaf(leaf),AstNode::Leaf(eleaf)) = (ls.ast(),exp_ls.ast()) else {
-            panic!("Unexpected result structure")
-        };
-        match (&leaf.font,&eleaf.font) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.font_size,&eleaf.font_size) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.area,&eleaf.area) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.atoms(),b.atoms()),
-            _ => panic!("Unexpected result structure")
-        };
-        match (&leaf.text,&eleaf.text) {
-            (None,None) => (),
-            (Some(a),Some(b)) => assert_eq!(a.ast(),b.ast()),
-            _ => panic!("Unexpected result structure")
-        };
-        
-    }
-
 
 }

@@ -77,6 +77,9 @@ where
     pub fn from_leaf(leaf: L) -> Self {
         Self(SmartAstNode::Leaf(leaf))
     }
+    pub fn empty() -> Self {
+        Self(SmartAstNode::EmptySet)
+    }
     pub fn ast(&self) -> &SmartAstNode<L,E> {
         &self.0
     }

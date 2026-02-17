@@ -1,4 +1,4 @@
-use super::{Container,Overlappable,SetRelation,Set,SetAlgebra};
+use super::{Container,Overlappable,SetRelation,ComparableSet,SetAlgebra};
 use std::fmt::Debug;
 use std::ops::{BitOr, BitAnd, Div};
 use std::collections::HashSet;
@@ -112,6 +112,9 @@ where
         let mut atoms = HashSet::new();
         atoms.insert(atom);
         Self(atoms)
+    }
+    pub fn empty() -> Self {
+        Self(HashSet::new())
     }
 
     fn atom_union(&self, other: A) -> Self {
@@ -335,7 +338,7 @@ where
     }
 }
 
-impl<A,E> Set<E> for DisjointAtomsSet<A,E>
+impl<A,E> ComparableSet<E> for DisjointAtomsSet<A,E>
 where
     A: AtomAlgebra + Container<Elem = E> + Clone + Debug + Eq + Hash,
     E: ?Sized
