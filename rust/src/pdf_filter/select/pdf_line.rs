@@ -8,16 +8,9 @@ use text::TextSet;
 use area::Area;
 use font_size::FontSizeInterval;
 use crate::commons::geometry::{Rectangle};
-use crate::commons::sets::{Container,Overlappable,AstSet,SetRelation,AstNode,SmartAstNode};
-use std::ops::{BitAnd,BitOr,Div};
+use crate::commons::sets::{Container,Overlappable,AstSet,SetRelation};
 
-// #[derive(Debug)]
-// pub struct AstLeafPdfLineSet{
-//     font: FontSet,
-//     font_size: FontSizeInterval,
-//     text: TextSet,
-//     area: Area
-// }
+
 
 #[derive(Debug)]
 pub enum SelectPdfLineSet {
@@ -27,24 +20,6 @@ pub enum SelectPdfLineSet {
     Area(Area)
 }
 
-// impl AstLeafPdfLineSet {
-//     fn new(font: &str,font_size: (f32,f32),text: &str,area: (f32,f32,f32,f32)) -> Self {
-//         Self{
-//             font: FontSet::new(font),
-//             font_size: FontSizeInterval::new(font_size.0,font_size.1),
-//             text: TextSet::new(text),
-//             area: Area::new(area.0,area.1,area.2,area.3)
-//         }
-//     }
-//     fn from_sets(font: FontSet,font_size: FontSizeInterval,text: TextSet,area: Area) -> Self {
-//         Self{
-//             font,
-//             font_size,
-//             text,
-//             area
-//         }
-//     }
-// }
 
 impl Container for SelectPdfLineSet {
     type Elem = PdfLine;
@@ -191,7 +166,7 @@ impl PdfLine {
         }
         Self{
             font: Font::new(font),
-            font_size: font_size,
+            font_size,
             text: text.to_string(),
             bbox: Rectangle::new(
                 area.0,
@@ -247,31 +222,6 @@ mod tests {
         assert_eq!(res_bbox.as_tuple(),(x0,y0,x1,y1));
     }
 
-    // #[test_case(None,None,None,None;"universe")]
-    // #[test_case(Some("Arial"),None,None,None;"font")]
-    // #[test_case(None,Some((45.3,60.0)),None,None;"font_size")]
-    // #[test_case(None,None,Some("^calipso]"),None;"text")]
-    // #[test_case(None,None,None,Some((2.0,3.0,4.0,6.0));"area")]
-    // #[test_case(Some("Fraktur-Black Bold"),Some((0.1,4.0)),Some("tubis$"),Some((0.0,0.0,10.0,20.0));"all specified")]
-    // fn new_pdflineset(font: Option<&str>, font_size: Option<(f32,f32)>, text: Option<&str>, area: Option<(f32,f32,f32,f32)>) {
-    //     let set = PdfLineSet::new(font,font_size,text,area);
-
-    // }
-
-    // #[test_case(None,None,None,None;"no set")]
-    // #[test_case(Some(FontSet::new("Arial")),None,None,None;"fontset")]
-    // #[test_case(None,Some(FontSizeInterval::new(45.3,60.0)),None,None;"font_size interval")]
-    // #[test_case(None,None,Some(TextSet::new("^calipso]")),None;"textset")]
-    // #[test_case(None,None,None,Some(Area::new(2.0,3.0,4.0,6.0));"area")]
-    // #[test_case(
-    //     Some(FontSet::new("Fraktur-Black Bold")),
-    //     Some(FontSizeInterval::new(0.1,4.0)),
-    //     Some(TextSet::new("tubis$")),
-    //     Some(Area::new(0.0,0.0,10.0,20.0))
-    // ;"all specified")]
-    // fn pdflineset_from_sets(font: Option<FontSet>, font_size: Option<FontSizeInterval>, text: Option<TextSet>, area: Option<Area>) {
-    //     let set = PdfLineSet::from_sets(font.clone(),font_size.clone(),text.clone(),area.clone());
-    // }
 
     #[test]
     #[should_panic(expected="Font size of a PdfLine cannot be negative")]

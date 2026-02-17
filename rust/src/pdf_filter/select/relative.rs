@@ -185,7 +185,6 @@ pub type PdfLineSelection = OptRel<PdfLineSet,RelativePdfLineSet>;
 impl PdfLineSelection {
     pub fn from_font(f: OptRel<FontSet,RelativeFontSet>) -> Self {
         use OptionallyRelative::*;
-        use RelativeSelectPdfLineSet::*;
         match f {
             Absolute(af) => Absolute(PdfLineSet::font(af)),
             Relative(rf) => Relative(RelativePdfLineSet::from_font(Relative(rf)))
@@ -193,7 +192,6 @@ impl PdfLineSelection {
     }
     pub fn from_fontsize(fs: OptRel<FontSizeInterval,RelativeFontSizeInterval>) -> Self {
         use OptionallyRelative::*;
-        use RelativeSelectPdfLineSet::*;
         match fs {
             Absolute(afs) => Absolute(PdfLineSet::fontsize(afs)),
             Relative(rfs) => Relative(RelativePdfLineSet::from_fontsize(Relative(rfs)))
@@ -201,7 +199,6 @@ impl PdfLineSelection {
     }
     pub fn from_text(t: OptRel<TextSet,RelativeTextSet>) -> Self {
         use OptionallyRelative::*;
-        use RelativeSelectPdfLineSet::*;
         match t {
             Absolute(at) => Absolute(PdfLineSet::text(at)),
             Relative(rt) => Relative(RelativePdfLineSet::from_text(Relative(rt)))
@@ -209,7 +206,6 @@ impl PdfLineSelection {
     }
     pub fn from_area(a: OptRel<Area,RelativeArea>) -> Self {
         use OptionallyRelative::*;
-        use RelativeSelectPdfLineSet::*;
         match a {
             Absolute(aa) => Absolute(PdfLineSet::area(aa)),
             Relative(ra) => Relative(RelativePdfLineSet::from_area(Relative(ra)))

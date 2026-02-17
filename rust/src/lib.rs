@@ -29,6 +29,14 @@ mod freeports_lib {
                 py_collapse_table_rows
             };
         }
+        #[pyo3::pymodule]
+        mod select {
+            // #[pymodule_export]
+            // use crate::pdf_filter::select::{
+            //     PyPdfLineSelection,
+            // };
+        }
+
     }
     #[pyo3::pymodule]
     mod text_extract {

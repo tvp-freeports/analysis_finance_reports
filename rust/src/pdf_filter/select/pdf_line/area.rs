@@ -29,9 +29,9 @@ impl Overlappable<Self> for Rectangle {
             Disjoint
         } else if (x0,y0,x1,y1) == (a0,b0,a1,b1) {
             Equal
-        } else if (a0<=x0 && x1<=a1 && b0<=y0 && y1<=b1) {
+        } else if a0<=x0 && x1<=a1 && b0<=y0 && y1<=b1 {
             Subset
-        } else if (x0<=a0 && a1<=x1 && y0<=b0 && b1<=y1) {
+        } else if x0<=a0 && a1<=x1 && y0<=b0 && b1<=y1 {
             Superset
         } else {
             Overlapping

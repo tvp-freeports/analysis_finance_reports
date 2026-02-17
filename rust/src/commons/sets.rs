@@ -122,18 +122,18 @@ where
 
 
 
-trait SetAlgebra: 
+pub trait SetAlgebra: 
 BitOr<Self,Output=Self> +
 BitAnd<Self,Output=Self> +
 Div<Self,Output=Self> +
 Sized {}
 
-trait UncomparableSet<E>:
+pub trait UncomparableSet<E>:
 Container<Elem=E> +
 SetAlgebra 
 where E: ?Sized {}
 
-trait ComparableSet<E>:
+pub trait ComparableSet<E>:
 Container<Elem=E> +
 SetAlgebra +
 Overlappable<Self>

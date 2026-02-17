@@ -45,7 +45,6 @@ pub trait AtomAlgebra: Overlappable<Self> + AtomOperations {
     fn union(&self, other: &Self) -> AtomOperationRes<Self> {
         use SetRelation::*;
         use AtomOperationRes::*;
-        use CompoundAtomOperationRes::*;
         match self.set_relation(&other) {
             Equal | Superset => Lhs,
             Subset => Rhs,
