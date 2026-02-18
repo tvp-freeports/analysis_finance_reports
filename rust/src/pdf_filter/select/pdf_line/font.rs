@@ -45,6 +45,9 @@ impl Font {
         }
         Self(out)
     }
+    pub fn inner(&self) -> &str {
+        &self.0
+    }
 }
 
 impl Container for Font {

@@ -1,5 +1,3 @@
-// mod relative_ast;
-
 use std::cmp::max;
 use std::ops::{BitOr,BitAnd,Div};
 use ordered_float::OrderedFloat;
@@ -18,7 +16,7 @@ trait RelativeInfo<V> {
 }
 
 // #[derive(Debug)]
-enum OptionallyRelative<V,R> {
+pub enum OptionallyRelative<V,R> {
     Absolute(V),
     Relative(R)
 }
