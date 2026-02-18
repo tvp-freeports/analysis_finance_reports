@@ -54,6 +54,7 @@ impl PyPdfLine {
 #[pymethods]
 impl PyPdfLineSelection {
     #[new]
+    #[pyo3(signature = (font=None,font_size=None,text=None,area=None))]
     fn new(font: Option<&str>, font_size: Option<(f32,f32)>, text: Option<&str>, area: Option<(f32,f32,f32,f32)>) -> Self {
         match (font,font_size,text,area) {
             (None,None,None,None) => Self::font_size(0.0,1e6),
@@ -185,14 +186,6 @@ impl PyPdfLineSelection {
         .map(|l| PyPdfLine(l)).collect();
         PyList::new(py,res)
     }
-    // fn font_of(target: Self) -> Self {
-    //     use OptionallyRelative::*;
-    //     Self(RelativePdfLineSet::from_leaf(Relative(RelativePdfLineSet::from_font(
-    //         Relative(RelativePdfLineSet::Select(
-    //             Box()
-    //         ))
-    //     ))))
-    // }
 }
 
 

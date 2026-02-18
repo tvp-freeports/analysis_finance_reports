@@ -4,7 +4,7 @@ This module provides a high-level interface for working with PDF document elemen
 by wrapping raw XML structures into Python objects with intuitive properties and
 methods. The main classes include:
 
-- `PdfLine`: Base class representing a PDF line with font, size, and area properties
+- `PdfLineBaseClass`: Base class representing a PDF line with font, size, and area properties
 - `ExtractedPdfLine`: Concrete implementation that extracts data from XML elements
 - `PdfLineSet`: Complex set operations for filtering PDF lines based on multiple criteria
 
@@ -32,6 +32,7 @@ All coordinates are in PDF points (1/72 inch).
 from typing import Optional, Tuple, Annotated, Callable, Any, List
 import re
 import ast
+import freeports_lib
 from operator import or_, and_, sub, truediv
 from functools import reduce
 from lxml import etree
@@ -45,7 +46,11 @@ from .position import InputArea
 from ..xml import xpath_queries as xpath
 
 
-class PdfLine:
+PdfLineSelection = freeports_lib.pdf_filter.select.PdfLineSelection
+PdfLine = freeports_lib.pdf_filter.select.PdfLine
+
+
+class PdfLineBaseClass:
     """A class representing a PDF line with geometric and typographic properties.
 
     This class provides a friendly interface to access geometric properties,
@@ -84,7 +89,7 @@ class PdfLine:
 
     Examples
     --------
-    >>> line = PdfLine(text="Hello World", font="Arial", font_size=12.0)
+    >>> line = PdfLineBaseClass(text="Hello World", font="Arial", font_size=12.0)
     >>> print(line.font)
     Arial
     >>> print(line.area)
@@ -175,12 +180,12 @@ class PdfLine:
         return string
 
 
-class ExtractedPdfLine(PdfLine):
+class ExtractedPdfLine(PdfLineBaseClass):
     """Concrete PDF line implementation that extracts data from XML elements.
 
-    This class extends PdfLine by automatically extracting line properties
+    This class extends PdfLineBaseClass by automatically extracting line properties
     from XML elements representing PDF content. It provides the bridge between
-    raw PDF XML data and the high-level PdfLine interface.
+    raw PDF XML data and the high-level PdfLineBaseClass interface.
 
     Parameters
     ----------
