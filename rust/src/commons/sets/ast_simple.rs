@@ -185,23 +185,7 @@ mod tests {
             ))
         }
     }
-    impl Clone for TestSet {
-        fn clone(&self) -> Self {
-            Self(self.0.clone())
-        }
-    }
-    impl Clone for TestNode {
-        fn clone(&self) -> Self {
-            match self {
-                AstNode::Leaf(a) => Self::Leaf(a.clone()),
-                AstNode::Branch(box_a,op,box_b) => Self::Branch(
-                    box_a.clone(),
-                    *op,
-                    box_b.clone()
-                )
-            }
-        }  
-    }
+
     #[test]
     fn new() {
         let l = HashSet::from(["nilpo".to_string(),"grummo".to_string(),"sabbo".to_string()]);

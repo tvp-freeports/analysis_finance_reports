@@ -53,11 +53,29 @@ impl PyPdfLine {
 
 #[pymethods]
 impl PyPdfLineSelection {
-    // #[new]
-    // fn new(font: Option<&str>, font_size: Option<f32>, text: Option<&str>, area: Option<(f32,f32,f32,f32)>) -> Self {
-    //     use OptionallyRelative::*;
-    //     Self(RelativePdfLineSet::from_leaf(Absolute(SelectPdfLineSet::new(font,font_size,text,area)))
-    // }
+    #[new]
+    fn new(font: Option<&str>, font_size: Option<(f32,f32)>, text: Option<&str>, area: Option<(f32,f32,f32,f32)>) -> Self {
+        match (font,font_size,text,area) {
+            (None,None,None,None) => Self::font_size(0.0,1e6),
+            (Some(f),None,None,None) => Self::font(f),
+            (None,Some((a,b)),None,None) => Self::font_size(a,b),
+            (None,None,Some(t),None) => Self::text(t),
+            (None,None,None,Some((x0,y0,x1,y1))) => Self::area(x0,y0,x1,y1),
+            (Some(f),Some((a,b)),None,None) => Self::font(f).__and__(Self::font_size(a,b)),
+            (Some(f),None,Some(t),None) => Self::font(f).__and__(Self::text(t)),
+            (Some(f),None,None,Some((x0,y0,x1,y1))) => Self::font(f).__and__(Self::area(x0,y0,x1,y1)),
+            (None,Some((a,b)),Some(t),None) => Self::font_size(a,b).__and__(Self::text(t)),
+            (None,Some((a,b)),None,Some((x0,y0,x1,y1))) => Self::font_size(a,b).__and__(Self::area(x0,y0,x1,y1)),
+            (None,None,Some(t),Some((x0,y0,x1,y1))) => Self::text(t).__and__(Self::area(x0,y0,x1,y1)),
+            (Some(f),Some((a,b)),Some(t),None) => Self::font(f).__and__(Self::font_size(a,b)).__and__(Self::text(t)),
+            (Some(f),Some((a,b)),None,Some((x0,y0,x1,y1))) => Self::font(f).__and__(Self::font_size(a,b)).__and__(Self::area(x0,y0,x1,y1)),
+            (Some(f),None,Some(t),Some((x0,y0,x1,y1))) => Self::font(f).__and__(Self::text(t)).__and__(Self::area(x0,y0,x1,y1)),
+            (None,Some((a,b)),Some(t),Some((x0,y0,x1,y1))) => Self::font_size(a,b).__and__(Self::text(t)).__and__(Self::area(x0,y0,x1,y1)),
+            (Some(f),Some((a,b)),Some(t),Some((x0,y0,x1,y1))) => {
+                Self::font(f).__and__(Self::font_size(a,b)).__and__(Self::text(t)).__and__(Self::area(x0,y0,x1,y1))
+            }
+        }
+    }
     #[staticmethod]
     fn font_of(target: Self) -> Self {
         use OptionallyRelative::*;
@@ -185,3 +203,5 @@ impl PyPdfLineSet {
     }
 
 }
+
+
