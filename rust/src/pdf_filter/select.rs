@@ -25,7 +25,7 @@ impl PyPdfLine {
         let PyPdfLine(l) = self;
         let a = l.bbox().as_tuple();
         format!(
-            "PdfLine{{{font}[{font_size}]\"{text}\"(({x0}:{x1})({y0}:{y1}))}}",
+            "PdfLine(font=\"{font}\",font_size={font_size},text=\"{text}\",bbox=({x0},{y0},{x1},{y1}))",
             font=l.font().inner(),
             font_size=l.font_size(),
             text=l.text(),
