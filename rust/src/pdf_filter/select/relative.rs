@@ -11,7 +11,7 @@ use super::pdf_line::{
 
 use super::pdf_line::{SelectPdfLineSet,PdfLineSet,PdfLine};
 
-trait RelativeInfo<V> {
+pub trait RelativeInfo<V> {
     fn contextualize(self,lines: &[PdfLine]) -> V;
 }
 
@@ -20,6 +20,20 @@ pub enum OptionallyRelative<V,R> {
     Absolute(V),
     Relative(R)
 }
+
+impl<V,R> Clone for OptionallyRelative<V,R> 
+where
+    V: Clone,
+    R: Clone
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Absolute(a) => Self::Absolute(a.clone()),
+            Self::Relative(a) => Self::Relative(a.clone())
+        }        
+    }
+}
+
 
 type OptRel<V,R> = OptionallyRelative<V,R>;
 
@@ -37,11 +51,27 @@ where
 
 
 // #[derive(Debug)]
-enum RelativeSelectPdfLineSet {
+#[derive(Clone)]
+pub enum RelativeSelectPdfLineSet {
     Font(RelativeFontSet),
     FontSize(RelativeFontSizeInterval),
     Text(RelativeTextSet),
     Area(RelativeArea)
+}
+
+impl RelativeSelectPdfLineSet {
+    pub fn select_font_of(target: PdfLineSelection) -> Self {
+        Self::Font(RelativeFontSet::from_selection(target))
+    }
+    pub fn select_fontsize_of(target: PdfLineSelection) -> Self {
+        Self::FontSize(RelativeFontSizeInterval::from_selection(target))
+    }
+    pub fn select_text_of(target: PdfLineSelection) -> Self {
+        Self::Text(RelativeTextSet::from_selection(target))
+    }
+    pub fn select_area_of(target: PdfLineSelection) -> Self {
+        Self::Area(RelativeArea::from_selection(target))
+    }
 }
 
 impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet{
@@ -58,10 +88,21 @@ impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet{
 
 type LeafType = OptRel<SelectPdfLineSet,RelativeSelectPdfLineSet>;
 
+
+
 // #[derive(Debug)]
 enum NodeRelativePdfLineSet {
     Leaf(LeafType),
     Branch(Box<NodeRelativePdfLineSet>, SetOps, Box<NodeRelativePdfLineSet>)
+}
+
+impl Clone for NodeRelativePdfLineSet {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Leaf(a) => Self::Leaf(a.clone()),
+            Self::Branch(a,ops,b) => Self::Branch(a.clone(),ops.clone(),b.clone())
+        }
+    }
 }
 
 
@@ -87,6 +128,15 @@ impl RelativeInfo<PdfLineSet> for NodeRelativePdfLineSet {
 
 // #[derive(Debug)]
 pub struct RelativePdfLineSet(NodeRelativePdfLineSet);
+
+
+impl Clone for RelativePdfLineSet {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+
 
 impl RelativeInfo<PdfLineSet> for RelativePdfLineSet {
     fn contextualize(self,lines: &[PdfLine]) -> PdfLineSet {
@@ -211,6 +261,7 @@ impl PdfLineSelection {
     }
 }
 
+#[derive(Clone)]
 enum RelativeArea {
     Select(Box<PdfLineSelection>),
     MoveWindow{
@@ -227,7 +278,7 @@ enum RelativeArea {
     }
 
 }
-
+#[derive(Clone)]
 enum RelativeFontSet {
     Select(Box<PdfLineSelection>)
 }
@@ -237,7 +288,7 @@ impl RelativeFontSet {
     }
 }
 
-
+#[derive(Clone)]
 enum RelativeFontSizeInterval {
     Select(Box<PdfLineSelection>)
 }
@@ -246,7 +297,7 @@ impl RelativeFontSizeInterval {
         Self::Select(Box::new(select))
     }
 }
-
+#[derive(Clone)]
 enum RelativeTextSet {
     Select(Box<PdfLineSelection>)
 }

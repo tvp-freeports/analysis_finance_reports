@@ -12,7 +12,7 @@ use crate::commons::sets::{Container,Overlappable,AstSet,SetRelation};
 
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum SelectPdfLineSet {
     Font(FontSet),
     FontSize(FontSizeInterval),
@@ -37,16 +37,16 @@ impl Container for SelectPdfLineSet {
 }
 
 impl SelectPdfLineSet {
-    fn select_font(font: &str) -> Self {
+    pub fn select_font(font: &str) -> Self {
         Self::Font(FontSet::new(font))
     }
-    fn select_fontsize(a: f32, b: f32) -> Self {
+    pub fn select_fontsize(a: f32, b: f32) -> Self {
         Self::FontSize(FontSizeInterval::new(a,b))
     }
-    fn select_text(text: &str) -> Self {
+    pub fn select_text(text: &str) -> Self {
         Self::Text(TextSet::new(text))
     }
-    fn select_area(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
+    pub fn select_area(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
         Self::Area(Area::new(x0,y0,x1,y1))
     }
     fn font(font: FontSet) -> Self {
@@ -150,7 +150,7 @@ impl PdfLineSet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct PdfLine {
     font: Font,
     font_size: f32,

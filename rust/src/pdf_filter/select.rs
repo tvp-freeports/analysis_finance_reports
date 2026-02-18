@@ -2,18 +2,34 @@ pub mod pdf_line;
 pub mod relative;
 
 use pyo3::prelude::*;
+use pyo3::types::{PyList};
 
-pub use relative::PdfLineSelection;
-pub use pdf_line::PdfLine;
+use crate::commons::sets::Container;
+use relative::{
+    RelativePdfLineSet,
+    OptionallyRelative,
+    RelativeInfo,
+    RelativeSelectPdfLineSet
+};
+use pdf_line::{PdfLine,PdfLineSet,SelectPdfLineSet};
 
 #[pyclass]
 #[pyo3(name = "PdfLineSelection")]
-pub struct PyPdfLineSelection(PdfLineSelection);
+#[derive(Clone)]
+pub struct PyPdfLineSelection(RelativePdfLineSet);
 
 
 #[pyclass]
+#[pyo3(name = "PdfLineSet")]
+pub struct PyPdfLineSet(PdfLineSet);
+
+#[pyclass]
 #[pyo3(name = "PdfLine")]
+#[derive(Clone)]
 pub struct PyPdfLine(PdfLine);
+
+
+
 
 #[pymethods]
 impl PyPdfLine {
@@ -32,4 +48,140 @@ impl PyPdfLine {
             x0=a.0,y0=a.1,x1=a.2,y1=a.3
         )
     }
+}
+
+
+#[pymethods]
+impl PyPdfLineSelection {
+    // #[new]
+    // fn new(font: Option<&str>, font_size: Option<f32>, text: Option<&str>, area: Option<(f32,f32,f32,f32)>) -> Self {
+    //     use OptionallyRelative::*;
+    //     Self(RelativePdfLineSet::from_leaf(Absolute(SelectPdfLineSet::new(font,font_size,text,area)))
+    // }
+    #[staticmethod]
+    fn font_of(target: Self) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::select_font_of(Relative(target.0))
+                )
+            )
+        )
+    }
+    #[staticmethod]
+    fn font_size_of(target: Self) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::select_fontsize_of(Relative(target.0))
+                )
+            )
+        )
+    }
+    #[staticmethod]
+    fn text_of(target: Self) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::select_text_of(Relative(target.0))
+                )
+            )
+        )
+    }
+    #[staticmethod]
+    fn area_of(target: Self) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::select_area_of(Relative(target.0))
+                )
+            )
+        )
+    }
+    #[staticmethod]
+    fn font(font: &str) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Absolute(SelectPdfLineSet::select_font(font))
+            )
+        )
+    }
+    #[staticmethod]
+    fn font_size(a: f32, b: f32) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Absolute(SelectPdfLineSet::select_fontsize(a,b))
+            )
+        )
+    }
+    #[staticmethod]
+    fn text(text: &str) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Absolute(SelectPdfLineSet::select_text(text))
+            )
+        )
+    }
+    #[staticmethod]
+    fn area(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Absolute(SelectPdfLineSet::select_area(x0,y0,x1,y1))
+            )
+        )
+    }
+    fn __or__(&self,other: Self) -> Self {
+        Self(self.0.clone() | other.0.clone())
+    }
+    fn __and__(&self,other: Self) -> Self {
+        Self(self.0.clone() & other.0.clone())
+    }
+    fn __truediv__(&self,other: Self) -> Self {
+        Self(self.0.clone() / other.0.clone())
+    }
+    fn __add__(&self,other: Self) -> Self {
+        self.__or__(other)
+    }
+    fn __sub__(&self,other: Self) -> Self {
+        self.__and__(other)
+    }
+    fn contextualize<'py>(&self,py_lines: &Bound<'py,PyList>) -> PyResult<PyPdfLineSet> {
+        let lin: Vec<PyPdfLine> = py_lines.extract()?;
+        let lines: Vec<PdfLine> = lin.into_iter().map(|a| a.0).collect();
+        Ok(PyPdfLineSet(self.0.clone().contextualize(&lines)))
+    }
+    fn select<'py>(&self, py: Python<'py>, py_lines: &Bound<'py,PyList>) -> PyResult<Bound<'py, PyList>> {
+        let lin: Vec<PyPdfLine> = py_lines.extract()?;
+        let lines: Vec<PdfLine> = lin.into_iter().map(|a| a.0).collect();
+        let set=self.0.clone().contextualize(&lines);
+        let res: Vec<PyPdfLine> = lines.into_iter()
+        .filter(|l| set.contains(&l))
+        .map(|l| PyPdfLine(l)).collect();
+        PyList::new(py,res)
+    }
+    // fn font_of(target: Self) -> Self {
+    //     use OptionallyRelative::*;
+    //     Self(RelativePdfLineSet::from_leaf(Relative(RelativePdfLineSet::from_font(
+    //         Relative(RelativePdfLineSet::Select(
+    //             Box()
+    //         ))
+    //     ))))
+    // }
+}
+
+
+#[pymethods]
+impl PyPdfLineSet {
+    fn __contains__(&self,line: PyPdfLine) -> PyResult<bool> {
+        Ok(self.0.contains(&line.0))
+    }
+
 }

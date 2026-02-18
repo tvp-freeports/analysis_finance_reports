@@ -11,6 +11,19 @@ where
     Branch(Box<AstNode<L,E>>, SetOps, Box<AstNode<L,E>>)
 }
 
+impl<L,E> Clone for AstNode<L,E>
+where
+    L: Container<Elem = E> + Clone,
+    E: ?Sized,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Leaf(l) => Self::Leaf(l.clone()),
+            Self::Branch(a,ops,b) => Self::Branch(a.clone(),ops.clone(),b.clone())
+        }
+    }
+}
+
 impl<L,E> PartialEq<Self> for AstNode<L,E>
 where
     L: Container<Elem = E> + PartialEq,
@@ -35,6 +48,17 @@ where
     L: Container<Elem = E>,
     E: ?Sized
 ;
+
+impl <L,E> Clone for AstSet<L,E> 
+where
+    L: Container<Elem = E> + Clone,
+    E: ?Sized
+{
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
 
 impl<L,E> AstSet<L,E> 
 where
