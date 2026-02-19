@@ -6,16 +6,4 @@ configfile: pyproject.toml
 plugins: cov-7.0.0, benchmark-5.2.3, typeguard-4.4.4
 collected 167 items / 136 deselected / 31 selected
 
-tests/formats/algorithms/AMUNDI-EN24/test.py .                           [  3%]
-tests/formats/algorithms/AMUNDI-IT24/test.py .                           [  6%]
-tests/formats/algorithms/ANIMA-EN23/test.py .                            [  9%]
-tests/formats/algorithms/ANIMA_SGR-IT24/1/test.py .                      [ 12%]
-tests/formats/algorithms/ANIMA_SGR-IT24/2/test.py .                      [ 16%]
-tests/formats/algorithms/ANIMA_SGR-IT24/3/test.py .                      [ 19%]
-tests/formats/algorithms/ANIMA_SGR-IT24/4/test.py .                      [ 22%]
-tests/formats/algorithms/ANIMA_SICAV-EN24/test.py .                      [ 25%]
-tests/formats/algorithms/ARCA-IT24/1/test.py .                           [ 29%]
-tests/formats/algorithms/ARCA-IT24/2/test.py .                           [ 32%]
-tests/formats/algorithms/ASTERIA-EN23/test.py .                          [ 35%]
-tests/formats/algorithms/ASTERIA-EN24/test.py .                          [ 38%]
-tests/formats/algorithms/CARNE-EN23/test.py 
+tests/formats/algorithms/AMUNDI-EN24/test.py 

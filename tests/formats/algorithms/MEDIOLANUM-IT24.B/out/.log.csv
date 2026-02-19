@@ -1,8 +1,8 @@
 Page,Matched Company,Company,Field name,Row,Column,Message
-292,BOTS ZC,BOTS ZC 01/25 \n,quantity,5,1,"Expected field not found, replacing with None..."
-292,BOTS ZC,BOTS ZC 03/25 \n,quantity,6,1,"Expected field not found, replacing with None..."
-292,BOTS ZC,BOTS ZC 02/25 \n,quantity,7,1,"Expected field not found, replacing with None..."
-292,ITALY BTPS,BTPS 0.35 02/25 \n,quantity,8,1,"Expected field not found, replacing with None..."
+292,BOTS ZC,BOTS ZC 01/25,quantity,5,1,"Expected field not found, replacing with None..."
+292,BOTS ZC,BOTS ZC 03/25,quantity,6,1,"Expected field not found, replacing with None..."
+292,BOTS ZC,BOTS ZC 02/25,quantity,7,1,"Expected field not found, replacing with None..."
+292,ITALY BTPS,BTPS 0.35 02/25,quantity,8,1,"Expected field not found, replacing with None..."
 292,,,,,,Cast error
 292,,,,,,"2 validation errors for Bond\nperc_net_assets.is-instance[Promise]\n  Input should be an instance of Promise [type=is_instance_of, input_value=138903.55, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/is_instance_of\nperc_net_assets.constrained-float\n  Input should be less than 1 [type=less_than, input_value=138903.55, input_type=float]\n    For further information visit https://errors.pydantic.dev/2.12/v/less_than"
 292,,,,,,Skipping line...
