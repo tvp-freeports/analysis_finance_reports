@@ -8,7 +8,7 @@ from typing import List, Optional, Callable, Any
 from pydantic import BaseModel
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
     InputPdfLineSet,
-    PdfLineSet,
+    pdfline_selection_from_dict,
 )
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
@@ -80,12 +80,14 @@ def standard_cost_curr(arg: InputStandardCostCurr) -> Callable[[Any], Any]:
     """
     return standard_pdf_filtering(
         deselection_list=[
-            PdfLineSet.from_dict(il.model_dump()) for il in arg.deselection_list
+            pdfline_selection_from_dict(il.model_dump()) for il in arg.deselection_list
         ],
-        header_set=[PdfLineSet.from_dict(il.model_dump()) for il in arg.header_set],
-        subfund_set=PdfLineSet.from_dict(arg.subfund_set.model_dump()),
+        header_set=[
+            pdfline_selection_from_dict(il.model_dump()) for il in arg.header_set
+        ],
+        subfund_set=pdfline_selection_from_dict(arg.subfund_set.model_dump()),
         currency_set=arg.currency,
-        body_set=PdfLineSet.from_dict(arg.body_set.model_dump()),
+        body_set=pdfline_selection_from_dict(arg.body_set.model_dump()),
         algorithm_flags=arg.algorithm_flags,
         tolerance=arg.tolerance,
         row_algorithm_flags=arg.row_algorithm_flags,

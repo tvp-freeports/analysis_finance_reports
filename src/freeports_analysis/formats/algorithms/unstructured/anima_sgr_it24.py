@@ -1,65 +1,66 @@
 """Custom pipeline for ANIMA_SGR-IT24"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
-    FontSet,
-    FontSizeSet,
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
+
+
+h_font_selection = (
+    PdfLineSelection.font("Lato,Bold")
+    | PdfLineSelection.font("TrebuchetMS-Bold")
+    | PdfLineSelection.font("Open Sans,Bold")
+)
+s_font_selection = (
+    PdfLineSelection.font("Lato")
+    | PdfLineSelection.font("Open Sans")
+    | PdfLineSelection.font("Lato-Regular")
 )
 
 header_set = [
-    PdfLineSet(
-        font=FontSet('Lato,Bold','TrebuchetMS-Bold','Open Sans,Bold'),
-        text="Titoli"
-    ),
-    PdfLineSet(
-        font=FontSet('Lato,Bold','TrebuchetMS-Bold','Open Sans,Bold'),
-        text="Divisa"
-    ),
+    PdfLineSelection.text("Titoli") & h_font_selection,
+    PdfLineSelection.text("Divisa") & h_font_selection,
 ]
 
-manco_set = PdfLineSet(
-    text="di Gestione del Risparmio",
-    font=FontSet("Lato","Open Sans", "Lato-Regular")
-    )
+manco_set = PdfLineSelection.text("di Gestione del Risparmio") & s_font_selection
 
-subfund_set = PdfLineSet(
-    font=FontSet("Lato","Open Sans","Lato-Regular"),
-    area={
-        "x_min": manco_set,
-        "x_max": None,
-        "y_min": None,
-        "y_max": header_set[0],
-    },
+subfund_set = (
+    PdfLineSelection.area_from_bounds(x0=manco_set, y1=header_set[0]) & s_font_selection
 )
 
-currency_font = FontSet("Lato,Bold","TrebuchetMS-Bold","Open Sans,Bold")
+
+currency_font = (
+    PdfLineSelection.font("Lato,Bold")
+    | PdfLineSelection.font("TrebuchetMS-Bold")
+    | PdfLineSelection.font("Open Sans,Bold")
+)
 
 currency_set = (
-    PdfLineSet(font=currency_font, text="Controvalore in ") - PdfLineSet(text="in $")
-) | PdfLineSet(
-    font=currency_font,
-    area=(
-        PdfLineSet(font=currency_font, text="Controvalore in "),
-        (0, 1),
-        (1.2, 1.2),
-    ),
+    PdfLineSelection(text="Controvalore in ")
+    & currency_font - PdfLineSelection(text="in $")
+) | (
+    PdfLineSelection.area_from_movewindow(
+        PdfLineSelection(text="Controvalore in ") & currency_font,
+        vec=(0.0, 1.0),
+        width_mult=1.2,
+        height_mult=1.2,
+    )
+    & currency_font
 )
 
-body_set = PdfLineSet(
-    font=FontSet("Lato","TrebuchetMS","Open Sans"),
-    font_size=FontSizeSet.from_range(6.8, 7.2),
-    area={
-        "x_min": None,
-        "x_max": None,
-        "y_min": PdfLineSet(
-            font=FontSet("Lato","TrebuchetMS","Open Sans"),
-            text="Elenco analitico",
-            font_size=FontSizeSet.from_range(11,13),
-        ),
-        "y_max": None,
-    },
+b_font_selection = (
+    PdfLineSelection.font("Lato")
+    | PdfLineSelection.font("TrebuchetMS")
+    | PdfLineSelection.font("Open Sans")
 )
+
+body_set = (
+    PdfLineSelection.area_from_bounds(
+        y0=PdfLineSelection(text="Elenco analitico", font_size=(11, 13))
+        & b_font_selection
+    )
+    & PdfLineSelection.font_size(6.8, 7.2)
+    & b_font_selection
+)
+
 
 @standard_pdf_filtering(
     header_set=header_set,

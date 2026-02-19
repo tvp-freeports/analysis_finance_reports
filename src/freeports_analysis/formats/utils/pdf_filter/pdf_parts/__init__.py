@@ -902,6 +902,35 @@ class PdfLineSet:
         return concrete
 
 
+def pdfline_selection_from_dict(data):
+    ls = InputPdfLineSet(**data)
+    input_area = ls.area.model_dump() if ls.area is not None else None
+    fonts = [ls.font] if isinstance(ls.font, str) else ls.font
+    selection = PdfLineSelection(
+        font_size=(max(ls.font_size - 1e-3, 0.0), ls.font_size + 1e-3)
+        if ls.font_size is not None
+        else None,
+        area=(
+            input_area["x_min"] if input_area["x_min"] is not None else 0.0,
+            input_area["y_min"] if input_area["y_min"] is not None else 0.0,
+            input_area["x_max"] if input_area["x_max"] is not None else +1e6,
+            input_area["y_max"] if input_area["y_max"] is not None else +1e6,
+        )
+        if input_area is not None
+        else None,
+        text=ls.text,
+    )
+    if fonts is None:
+        return selection
+    else:
+        return (
+            reduce(
+                lambda sa, sb: sa | sb, map(lambda f: PdfLineSelection.font(f), fonts)
+            )
+            & selection
+        )
+
+
 def pdfline_selection_from_str(string):
     matched = _LINE_SET_REGEXP.match(string).groupdict()
     area = None

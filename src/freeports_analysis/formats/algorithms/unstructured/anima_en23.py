@@ -11,8 +11,8 @@ from freeports_analysis.formats.utils.text_extract import (
     EquityBondTextBlockType,
 )
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
-    PdfLineSet,
-    ExtractedPdfLine,
+    PdfLineSelection,
+    pdfline_from_xml,
 )
 from freeports_analysis.formats.utils.pdf_filter.xml.font import (
     get_lines_with_txt_font,
@@ -30,11 +30,13 @@ TextBlockType: TypeAlias = EquityBondTextBlockType
 
 
 options = {
-    "header_set": PdfLineSet(
-        "Helvetica-Bold",
+    "header_set": PdfLineSelection(
+        font="Helvetica-Bold",
         text="Holdings",
     ),
-    "subfund_set": PdfLineSet("Helvetica-Condensed-Blac", area=(62, 82)),
+    "subfund_set": PdfLineSelection(
+        font="Helvetica-Condensed-Blac", area=(0.0, 62.0, 0.0, 82.0)
+    ),
 }
 
 
@@ -69,34 +71,32 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
         return []
     ((x0, x1), (y0, y1)) = get_bounds(fair_value_line)
     y_offset = 10
-    currency_set = PdfLineSet(
-        "Helvetica-Bold",
+    currency_set = PdfLineSelection(
+        font="Helvetica-Bold",
         font_size=8.9802,
-        area=box(x0 - 5, y0 + y_offset, x1 + 5, y1 + y_offset + 10),
+        area=(x0 - 5, y0 + y_offset, x1 + 5, y1 + y_offset + 10),
     )
     skeleton = get_lines_with_font(xml_root, "Helvetica-Bold")
-    skeleton = [ExtractedPdfLine(line) for line in skeleton]
-    tables = [
-        line for line in skeleton if line in PdfLineSet(area=box(-1e6, -1e6, 105, 1e6))
-    ]
+    skeleton = [pdfline_from_xml(line) for line in skeleton]
+    tables = PdfLineSelection(area=(-1e6, -1e6, 105, 1e6)).select(skeleton)
     if len(tables) == 0:
         return []
     if len(tables) == 1:
         area = None
     else:
         if tables[-1].text == "Holdings":
-            y0 = tables[-1].area.bounds[1]
+            y0 = tables[-1].bbox[1]
             y1 = -1e6
         else:
             for i, table in enumerate(tables):
                 if table.text == "Holdings":
-                    y0 = table.area.bounds[1]
-                    y1 = tables[i + 1].area.bounds[1]
+                    y0 = table.bbox[1]
+                    y1 = tables[i + 1].bbox[1]
         area = box(-1e6, y0, 1e6, y1)
 
     @standard_pdf_filtering(
         **options,
-        body_set=PdfLineSet("Helvetica-Light", area=area),
+        body_set=PdfLineSelection(font="Helvetica-Light", area=area),
         currency_set=currency_set,
     )
     def filter_page(xml_root):
