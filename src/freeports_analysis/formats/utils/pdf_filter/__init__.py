@@ -120,14 +120,12 @@ def standard_extraction_subfund(
     """
 
     def decorator(old_page_metadata):
-        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
+        def new_page_metadata(lines) -> List[PdfBlock]:
             xml_lines = None
             subfund = None
             if isinstance(subfund_set, Promise):
                 subfund = subfund_set
             else:
-                xml_lines = xml_root.findall(".//line")
-                lines = [pdfline_from_xml(blk) for blk in xml_lines]
                 try:
                     subfund = subfund_set.select(lines)[0].text
                 except IndexError as exc:
@@ -141,7 +139,7 @@ def standard_extraction_subfund(
                     raise ExpectedPdfBlockNotFound(
                         _("Subfund block on top of page not found")
                     ) from exc
-            metadata = old_page_metadata(xml_root)
+            metadata = old_page_metadata(lines)
             metadata["subfund"] = subfund
             return metadata
 
@@ -171,8 +169,8 @@ def standard_extraction_currency(
     """
 
     def decorator(old_page_metadata):
-        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
-            metadata = old_page_metadata(xml_root)
+        def new_page_metadata(lines) -> List[PdfBlock]:
+            metadata = old_page_metadata(lines)
             if isinstance(currency_set, str):
                 metadata["currency"] = Currency[currency_set]
                 return metadata
@@ -180,8 +178,6 @@ def standard_extraction_currency(
                 metadata["currency"] = currency_set
                 return metadata
 
-            xml_lines = xml_root.findall(".//line")
-            lines = [pdfline_from_xml(blk) for blk in xml_lines]
             try:
                 currency = currency_set.select(lines)[0].text
             except IndexError as exc:
@@ -219,12 +215,10 @@ def standard_extraction_manco(
     """
 
     def decorator(old_page_metadata):
-        def new_page_metadata(xml_root: etree.Element) -> List[PdfBlock]:
-            metadata = old_page_metadata(xml_root)
+        def new_page_metadata(lines) -> List[PdfBlock]:
+            metadata = old_page_metadata(lines)
             xml_lines = None
             manco = None
-            xml_lines = xml_root.findall(".//line")
-            lines = [pdfline_from_xml(blk) for blk in xml_lines]
             try:
                 manco = manco_set.select(lines)[0].text
             except IndexError as exc:
@@ -354,9 +348,7 @@ def standard_pdf_filtering(
             def page_metadata(_: etree.Element) -> dict:
                 return {}
 
-        def _is_header(xml_root, header_set) -> bool:
-            rows = xml_root.findall(".//line")
-            lines = [pdfline_from_xml(line) for line in rows]
+        def _is_header(lines, header_set) -> bool:
             if not isinstance(header_set, list):
                 header_set = [header_set]
             for hsa in header_set:
@@ -365,17 +357,14 @@ def standard_pdf_filtering(
             return True
 
         @filter_page_if(lambda x: _is_header(x, header_set))
-        def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+        def pdf_filter(rows) -> List[PdfBlock]:
             _algorithm_flags = algorithm_flags
             _row_algorithm_flags = row_algorithm_flags
             metadata = {}
             try:
-                metadata = page_metadata(xml_root)
+                metadata = page_metadata(rows)
             except ExpectedPdfBlockNotFound as e:
                 raise PageParseFail(e) from e
-
-            rows = xml_root.findall(".//line")
-            rows = [pdfline_from_xml(r) for r in rows]
             table_rows = body_set.select(rows)
             # Check if the whole table is empty
             if table_rows == []:
@@ -440,6 +429,10 @@ def standard_pdf_filtering(
                 for i, table_row in enumerate(table_rows)
             ]
 
-        return pdf_filter
+        def pdf_filter_xml(xml_root):
+            lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+            return pdf_filter(lines)
+
+        return pdf_filter_xml
 
     return decorator
