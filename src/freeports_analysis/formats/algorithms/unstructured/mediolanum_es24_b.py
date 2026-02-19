@@ -12,7 +12,7 @@ from freeports_analysis.formats.utils.pdf_filter import (
 )
 from freeports_analysis.formats.utils.pdf_filter.xml.position import get_lines_contained
 from freeports_analysis.formats.utils.pdf_filter.xml.font import is_present_txt_font
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.utils.text_extract import (
     standard_text_extraction,
 )
@@ -70,12 +70,12 @@ def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
 
     @standard_pdf_filtering(
         header_set=[
-            PdfLineSet("Helvetica-Bold", text="Descripc"),
-            PdfLineSet("Helvetica-Bold", text="Divisa"),
-            PdfLineSet("Helvetica-Bold", text="Periodo actual"),
+            PdfLineSelection(font="Helvetica-Bold", text="Descripc"),
+            PdfLineSelection(font="Helvetica-Bold", text="Divisa"),
+            PdfLineSelection(font="Helvetica-Bold", text="Periodo actual"),
         ],
         subfund_set=Promise("title document"),
-        body_set=PdfLineSet("Helvetica"),
+        body_set=PdfLineSelection.font("Helvetica"),
         currency_set=Currency.EUR,
     )
     def standard_pdf_filter(xml_root):

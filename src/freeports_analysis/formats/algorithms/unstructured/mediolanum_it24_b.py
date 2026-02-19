@@ -2,7 +2,7 @@
 
 from freeports_analysis.formats.utils.pdf_filter import (
     standard_pdf_filtering,
-    PdfLineSet,
+    PdfLineSelection,
 )
 from freeports_analysis.consts import Currency
 from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt_font
@@ -22,19 +22,19 @@ def pdf_filter(xml_root):
 
     @standard_pdf_filtering(
         header_set=[
-            PdfLineSet(text="Titolo", font="Helvetica-Bold"),
-            PdfLineSet(text="Controvalore", font="Helvetica-Bold"),
+            PdfLineSelection(text="Titolo", font="Helvetica-Bold"),
+            PdfLineSelection(text="Controvalore", font="Helvetica-Bold"),
         ],
-        subfund_set=PdfLineSet(
+        subfund_set=PdfLineSelection(
             font="Helvetica",
-            area=((150, None), (67, 76)),
+            area=(150, 67, 1e6, 76),
         ),
-        body_set=PdfLineSet(
+        body_set=PdfLineSelection(
             font="Helvetica",
-            area=(100, body_low_limit),
+            area=(0.0, 100.0, 1e6, body_low_limit),
         ),
         currency_set=Currency.EUR,
-        deselection_list=[PdfLineSet(text="^ ")],
+        deselection_list=[PdfLineSelection.text("^ ")],
     )
     def _pdf_filter(xml_root):
         raise NotImplementedError

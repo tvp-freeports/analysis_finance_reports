@@ -23,7 +23,8 @@ header_set = [
 manco_set = PdfLineSelection.text("di Gestione del Risparmio") & s_font_selection
 
 subfund_set = (
-    PdfLineSelection.area_from_bounds(x0=manco_set, y1=header_set[0]) & s_font_selection
+    PdfLineSelection.area_from_bounds(x0=manco_set, y1=header_set[0], x1=1e6, y0=0.0)
+    & s_font_selection
 )
 
 
@@ -54,8 +55,11 @@ b_font_selection = (
 
 body_set = (
     PdfLineSelection.area_from_bounds(
+        x0=0.0,
+        x1=1e6,
+        y1=1e6,
         y0=PdfLineSelection(text="Elenco analitico", font_size=(11, 13))
-        & b_font_selection
+        & b_font_selection,
     )
     & PdfLineSelection.font_size(6.8, 7.2)
     & b_font_selection

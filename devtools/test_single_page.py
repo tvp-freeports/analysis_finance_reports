@@ -4,7 +4,10 @@ import copy
 import textwrap
 from typing import List, Optional
 from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_filter import PdfLineSet, ExtractedPdfLine
+from freeports_analysis.formats.utils.pdf_filter import (
+    PdfLineSelection,
+    pdfline_from_xml,
+)
 from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt
 from freeports_analysis.formats import PdfBlock
 from freeports_analysis.formats.utils.text_extract import PdfBlocksTable
@@ -127,21 +130,17 @@ def print_pdf_line_sets(page, strings, mode="structured"):
     first_string = True
     for txt in strings:
         exl = [
-            ExtractedPdfLine(ln) for ln in get_lines_with_txt(page, txt, all_elem=True)
+            pdfline_from_xml(ln) for ln in get_lines_with_txt(page, txt, all_elem=True)
         ]
-        ls = [
-            PdfLineSet(font=el.font, font_size=el.font_size, text=el.text, area=el.area)
-            for el in exl
-        ]
+
         if not first_string:
             print("-----------------------------")
         first_string = False
-        for ln in ls:
-            ln = ln._left
-            x_min, y_min, x_max, y_max = ln.area.bounds
-            txt = list(ln.text._left)[0]
-            fs = (ln.font_size.upper + ln.font_size.lower) / 2
-            font = list(ln.font)[0]
+        for el in exl:
+            x_min, y_min, x_max, y_max = el.bbox
+            txt = el.text
+            fs = el.font_size
+            font = el.font_name
             if mode in "structured":
                 area = f"(({x_min}:{x_max})({y_min}:{y_max}))"
                 print(f'{font}[{fs}]{area} "{txt}"')

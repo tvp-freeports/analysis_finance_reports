@@ -1,32 +1,33 @@
 """Custom pdf filter for ARCA-IT24 format"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+    pdfline_selection_from_str,
+    PdfLineSelection,
+)
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
 
 header_set = [
-    PdfLineSet.from_str('TrebuchetMS-Bold "Titoli"'),
-    PdfLineSet.from_str('TrebuchetMS-Bold "Divisa"'),
+    pdfline_selection_from_str('TrebuchetMS-Bold "Titoli"'),
+    pdfline_selection_from_str('TrebuchetMS-Bold "Divisa"'),
 ]
 
-subfund_set = PdfLineSet(
-    font=FontSet("Calibri", "Lato-Regular"),
-    area={"x_min": None, "x_max": None, "y_min": None, "y_max": 60},
+subfund_set = PdfLineSelection.area(0.0, 0.0, 1e6, 60.0) & (
+    PdfLineSelection.font("Calibri") | PdfLineSelection.font("Lato-Regular")
 )
 
-body_set = PdfLineSet(
-    font="TrebuchetMS",
-    font_size=6.96,
-    area={
-        "x_min": None,
-        "x_max": None,
-        "y_min": PdfLineSet(
-            font="Lato-Regular",
-            text="Elenco analitico dei principali strumenti finanziari detenuti dal Fondo",
-            font_size=12,
-        ),
-        "y_max": None,
-    },
+
+body_set = PdfLineSelection(
+    font="TrebuchetMS", font_size=(6.95, 6.97)
+) & PdfLineSelection.area_from_bounds(
+    x0=0.0,
+    y0=PdfLineSelection(
+        font="Lato-Regular",
+        text="Elenco analitico dei principali strumenti finanziari detenuti dal Fondo",
+        font_size=(11.9, 12.1),
+    ),
+    x1=1e6,
+    y1=1e6,
 )
 
 

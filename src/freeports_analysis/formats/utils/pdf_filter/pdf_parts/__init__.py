@@ -287,6 +287,10 @@ def pdfline_from_xml(blk: etree.Element):
     5. Stores reference to original XML element
     """
     bounds = get_bounds(blk)
+    if bounds[0][0] == bounds[0][1]:
+        bounds = ((bounds[0][0], bounds[0][1] + 1e-3), bounds[1])
+    if bounds[1][0] == bounds[1][1]:
+        bounds = (bounds[0], (bounds[1][0], bounds[1][1] + 1e-3))
     return PdfLine(
         text=xpath.text(blk),
         font=xpath.font_name(blk),

@@ -609,7 +609,7 @@ def standard_text_extraction(
                     metadata, pos, name, pdf_blocks_table
                 )
 
-            content = pdf_blocks_table[i].content.replace("\n", "")
+            content = pdf_blocks_table[i].content.replace("\n", " ")
             instrument = EquityBondTextBlockType.EQUITY_TARGET
             for reg in perc_regexes:
                 interest_rate_match = re.match(reg, content, re.DOTALL)

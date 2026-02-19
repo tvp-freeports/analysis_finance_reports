@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.2 max_time=7 calibration_precision=10 warmup=True warmup_iterations=100000)
+rootdir: /home/giuly/Desktop/Progetti/freeports-AMUNDI
+configfile: pyproject.toml
+plugins: cov-7.0.0, benchmark-5.2.3, typeguard-4.4.4
+collected 167 items / 136 deselected / 31 selected
+
+tests/formats/algorithms/AMUNDI-EN24/test.py .                           [  3%]
+tests/formats/algorithms/AMUNDI-IT24/test.py .                           [  6%]
+tests/formats/algorithms/ANIMA-EN23/test.py .                            [  9%]
+tests/formats/algorithms/ANIMA_SGR-IT24/1/test.py .                      [ 12%]
+tests/formats/algorithms/ANIMA_SGR-IT24/2/test.py .                      [ 16%]
+tests/formats/algorithms/ANIMA_SGR-IT24/3/test.py .                      [ 19%]
+tests/formats/algorithms/ANIMA_SGR-IT24/4/test.py .                      [ 22%]
+tests/formats/algorithms/ANIMA_SICAV-EN24/test.py .                      [ 25%]
+tests/formats/algorithms/ARCA-IT24/1/test.py .                           [ 29%]
+tests/formats/algorithms/ARCA-IT24/2/test.py .                           [ 32%]
+tests/formats/algorithms/ASTERIA-EN23/test.py .                          [ 35%]
+tests/formats/algorithms/ASTERIA-EN24/test.py .                          [ 38%]
+tests/formats/algorithms/CARNE-EN23/test.py 

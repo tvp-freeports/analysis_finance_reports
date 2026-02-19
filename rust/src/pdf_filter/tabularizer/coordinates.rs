@@ -269,7 +269,7 @@ mod tests {
         #[test]
         #[should_panic(expected="Invalid horizontal interval:")]
         fn panic_horizontal_interval() {
-            CellGeometry::new((-0.1,2.0,40.0,22.0),43.0);
+            CellGeometry::new((110.1,2.0,40.0,22.0),43.0);
         }
         #[test]
         #[should_panic(expected="Invalid vertical interval:")]

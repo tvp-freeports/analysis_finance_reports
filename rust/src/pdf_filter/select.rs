@@ -2,14 +2,15 @@ pub mod pdf_line;
 pub mod relative;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyList};
+use pyo3::types::{PyList,PyFloat};
 
 use crate::commons::sets::Container;
 use relative::{
     RelativePdfLineSet,
     OptionallyRelative,
     RelativeInfo,
-    RelativeSelectPdfLineSet
+    RelativeSelectPdfLineSet,
+    PdfLineSelection
 };
 use pdf_line::{PdfLine,PdfLineSet,SelectPdfLineSet};
 
@@ -156,6 +157,35 @@ impl PyPdfLineSelection {
         )
     }
     #[staticmethod]
+    fn area_from_bounds(x0: Bound<'_, PyAny>, y0: Bound<'_, PyAny>, x1: Bound<'_, PyAny>, y1: Bound<'_, PyAny>) -> PyResult<Self> {
+        use OptionallyRelative::*;
+        // Helper function to convert PyAny to OptionallyRelative
+        fn to_optionally_relative(obj: Bound<'_, PyAny>) -> PyResult<OptionallyRelative<f32, PdfLineSelection>> {
+            use OptionallyRelative::*;
+            match obj.extract::<f32>() {
+                Ok(val) => Ok(Absolute(val)),
+                Err(_) => {
+                    match obj.extract::<PyPdfLineSelection>() {
+                        Ok(sel) => Ok(Relative(Relative(sel.0))),
+                        Err(e) => Err(e.into()),
+                    }
+                }
+            }
+        }
+        let x0 = to_optionally_relative(x0)?;
+        let y0 = to_optionally_relative(y0)?;
+        let x1 = to_optionally_relative(x1)?;
+        let y1 = to_optionally_relative(y1)?;
+        Ok(Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::area_from_bounds(x0,y0,x1,y1)
+                )
+            )
+        ))
+
+    }
+    #[staticmethod]
     fn font(font: &str) -> Self {
         use OptionallyRelative::*;
         Self(
@@ -204,7 +234,7 @@ impl PyPdfLineSelection {
         self.__or__(other)
     }
     fn __sub__(&self,other: Self) -> Self {
-        self.__and__(other)
+        self.__truediv__(other)
     }
     fn contextualize<'py>(&self,py_lines: &Bound<'py,PyList>) -> PyResult<PyPdfLineSet> {
         let lin: Vec<PyPdfLine> = py_lines.extract()?;

@@ -35,7 +35,7 @@ options = {
         text="Holdings",
     ),
     "subfund_set": PdfLineSelection(
-        font="Helvetica-Condensed-Blac", area=(0.0, 62.0, 0.0, 82.0)
+        font="Helvetica-Condensed-Blac", area=(0.0, 62.0, 1e6, 82.0)
     ),
 }
 
@@ -73,12 +73,12 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
     y_offset = 10
     currency_set = PdfLineSelection(
         font="Helvetica-Bold",
-        font_size=8.9802,
+        font_size=(8.9800, 8.9804),
         area=(x0 - 5, y0 + y_offset, x1 + 5, y1 + y_offset + 10),
     )
     skeleton = get_lines_with_font(xml_root, "Helvetica-Bold")
     skeleton = [pdfline_from_xml(line) for line in skeleton]
-    tables = PdfLineSelection(area=(-1e6, -1e6, 105, 1e6)).select(skeleton)
+    tables = PdfLineSelection.area(0.0, 0.0, 105, 1e6).select(skeleton)
     if len(tables) == 0:
         return []
     if len(tables) == 1:
@@ -86,13 +86,13 @@ def pdf_filter(xml_root) -> List[PdfBlock]:
     else:
         if tables[-1].text == "Holdings":
             y0 = tables[-1].bbox[1]
-            y1 = -1e6
+            y1 = 1e6
         else:
             for i, table in enumerate(tables):
                 if table.text == "Holdings":
                     y0 = table.bbox[1]
                     y1 = tables[i + 1].bbox[1]
-        area = box(-1e6, y0, 1e6, y1)
+        area = (0.0, y0, 1e6, y1)
 
     @standard_pdf_filtering(
         **options,

@@ -1,52 +1,56 @@
 """Custom pdf filter for FINECO-EN23[IR] format"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
     FontSet,
     TextSet,
     FontSizeSet,
 )
 
+tnrb = PdfLineSelection.font("TimesNewRoman,Bold")
+
 header_set = [
-    PdfLineSet.from_str('TimesNewRoman,Bold "Domicile"'),
-    PdfLineSet.from_str('TimesNewRoman,Bold "Shares/"'),
+    PdfLineSelection.text("Domicile") & tnrb,
+    PdfLineSelection.text("Shares/") & tnrb,
 ]
-subfund_set = PdfLineSet(
-    font="TimesNewRoman,Bold",
-    font_size=FontSizeSet.from_range(9.95, 10.03),
-    area={
-        "x_min": None,
-        "x_max": None,
-        "y_min": PdfLineSet(
-            font="TimesNewRoman,Bold", text="Condensed Schedule of Investments"
-        ),
-        "y_max": PdfLineSet(font="TimesNewRoman,Bold", text="Domicile"),
-    },
-)
-currency_set = PdfLineSet(
-    font="TimesNewRoman,Bold",
-    area=(
-        PdfLineSet(font="TimesNewRoman,Bold", text="Fair Value"),
-        (0, 1),
-        (1.2, 1.2),
-    ),
-)
-body_set = (
-    PdfLineSet(
-        font=FontSet("TimesNewRoman", "TimesNewRoman,Bold"),
-        font_size=FontSizeSet.from_range(9.95, 10.03),
-        area={
-            "x_min": 135,
-            "x_max": None,
-            "y_min": 185,
-            "y_max": PdfLineSet(
-                text=TextSet("SWAPS", "FORWARDS", "FUTURES"), font="TimesNewRoman,Bold"
-            ),
-        },
+subfund_set = (
+    PdfLineSelection.font_size(9.95, 10.03)
+    & PdfLineSelection.area_from_bounds(
+        x0=0.0,
+        x1=1e6,
+        y0=PdfLineSelection.text("Condensed Schedule of Investments") & tnrb,
+        y1=PdfLineSelection.text("Domicile") & tnrb,
     )
-    - PdfLineSet(text="-$")
-) & PdfLineSet(area=(None, 750))
+    & tnrb
+)
+
+currency_set = (
+    PdfLineSelection.area_from_movewindow(
+        target=PdfLineSelection.text("Fair Value") & tnrb,
+        vec=(0.0, 1.0),
+        width_mult=1.2,
+        height_mult=1.2,
+    )
+    & tnrb
+)
+
+body_set = (
+    (PdfLineSelection.font("TimesNewRoman") | tnrb)
+    & PdfLineSelection.font_size(9.95, 10.03)
+    & PdfLineSelection.area_from_bounds(
+        x0=135.0,
+        x1=1e6,
+        y0=185.0,
+        y1=(
+            PdfLineSelection.text("SWAPS")
+            | PdfLineSelection.text("FORWARDS")
+            | PdfLineSelection.text("FEATURES")
+        )
+        & tnrb,
+    )
+    / PdfLineSelection.text("-$")
+) & PdfLineSelection.area(0.0, 0.0, 1e6, 750)
 
 
 @standard_pdf_filtering(

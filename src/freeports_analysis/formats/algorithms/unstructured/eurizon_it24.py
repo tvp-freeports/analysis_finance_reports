@@ -1,33 +1,25 @@
 """Custom pdf filter for EURIZON-IT24"""
 
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet, TextSet
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
-    FontSet,
-    FontSizeSet,
-)
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.consts import Currency
 
 header_set = [
-    PdfLineSet(font=FontSet("TrebuchetMSBold", "TrebuchetMS,Bold"), text="Titolo"),
-    PdfLineSet(
-        font=FontSet("TrebuchetMSBold", "TrebuchetMS,Bold"), text="Controvalore in"
-    ),
+    PdfLineSelection(font="TrebuchetMSBold", text="Titolo"),
+    PdfLineSelection(font="TrebuchetMSBold", text="Controvalore in"),
 ]
 
-subfund_set = PdfLineSet(
-    font=FontSet("TrebuchetMSItalic", "TrebuchetMS,Italic"),
-    font_size=FontSizeSet.from_range(4, 6.5),
-    area=((270, 595), (700, 805)),
+subfund_set = PdfLineSelection(
+    font="TrebuchetMSItalic", font_size=(4, 6.5), area=(270, 700, 595, 805)
 )
 
 currency_set = Currency.EUR
 
-body_set = PdfLineSet(font="TrebuchetMS")
+body_set = PdfLineSelection.font("TrebuchetMS")
 
 deselection_list = [
-    PdfLineSet(font="TrebuchetMS", text="Totale"),
-    PdfLineSet(font="TrebuchetMS", text="Altri strumenti finanziari"),
+    PdfLineSelection(font="TrebuchetMS", text="Totale"),
+    PdfLineSelection(font="TrebuchetMS", text="Altri strumenti finanziari"),
 ]
 
 

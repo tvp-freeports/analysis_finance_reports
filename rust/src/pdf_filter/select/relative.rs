@@ -75,6 +75,14 @@ impl RelativeSelectPdfLineSet {
     pub fn area_from_movewindow(target: PdfLineSelection,vec: (f32,f32), width_mult: f32, height_mult: f32) -> Self {
         Self::Area(RelativeArea::from_movewindow(target,vec,width_mult,height_mult))
     }
+    pub fn area_from_bounds(
+        x0: OptRel<f32,PdfLineSelection>,
+        y0: OptRel<f32,PdfLineSelection>,
+        x1: OptRel<f32,PdfLineSelection>,
+        y1: OptRel<f32,PdfLineSelection>
+    ) -> Self {
+        Self::Area(RelativeArea::from_bounds(x0,y0,x1,y1))
+    }
 }
 
 impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet{
@@ -357,6 +365,26 @@ impl RelativeArea {
             vec,
             width_mult,
             height_mult,
+        }
+    }
+    fn from_bounds(
+        x0: OptRel<f32,PdfLineSelection>,
+        y0: OptRel<f32,PdfLineSelection>,
+        x1: OptRel<f32,PdfLineSelection>,
+        y1: OptRel<f32,PdfLineSelection>
+    ) -> Self {
+        fn map_bound(b: OptRel<f32,PdfLineSelection>) -> OptRel<f32,Box<PdfLineSelection>> {
+            use OptionallyRelative::*;
+            match b {
+                Absolute(x) => Absolute(x),
+                Relative(select) => Relative(Box::new(select))
+            }
+        }
+        Self::Bounds{
+            x0: map_bound(x0),
+            y0: map_bound(y0),
+            x1: map_bound(x1),
+            y1: map_bound(y1)
         }
     }
     fn contextualize_movewindow(

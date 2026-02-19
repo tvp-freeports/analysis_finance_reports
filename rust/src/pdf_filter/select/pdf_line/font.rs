@@ -26,7 +26,8 @@ impl Font {
                 '&' => Some("and".into()),
                 '{' | '(' => Some('['.into()),
                 '}' | ')' => Some(']'.into()),
-                ',' | '–'  | '/' | '.' => Some('-'.into()),
+                '–'  | '/' | '.' => Some('-'.into()),
+                ',' => None, // This is used is formats like EURIZON-IT24 and is deliberate
                 c if c.is_whitespace() => Some('-'.into()),
                 c => Some(c.to_lowercase().to_string()),
             };
@@ -100,7 +101,7 @@ mod tests {
     #[test_case("áàâäéèêëíìîïóòôöúùûü","aaaaeeeeiiiioooouuuu"; "axcents")]
     #[test_case("oba{pes}li(cu)[b]","oba[pes]li[cu][b]"; "parenthesis")]
     #[test_case("&","and"; "some unusual chars")]
-    #[test_case("ooo,oooo–o/ooo.oo","ooo-oooo-o-ooo-oo"; "separating chars")]
+    #[test_case("ooo,oooo–o/ooo.oo","ooooooo-o-ooo-oo"; "separating chars")]
     #[test_case("\t \n gattopardo \n\n","gattopardo"; "trim")]
     fn new_font(input: &str, res: &str) {
         assert_eq!(Font::new(input).0,res.to_string());
@@ -119,7 +120,7 @@ mod tests {
     #[test]
     fn element_in_atom() {
         let font_set=Font::new("casa Sapaforica/L");
-        let font=Font::new("CASA,SAPAFORICA,l");
+        let font=Font::new("CASA-SAPAFORICA-l");
         assert!(font_set.contains(&font));
     }
     #[test]

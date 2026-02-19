@@ -359,11 +359,8 @@ def standard_pdf_filtering(
             lines = [pdfline_from_xml(line) for line in rows]
             if not isinstance(header_set, list):
                 header_set = [header_set]
-            flines = lines
             for hsa in header_set:
-                hset = hsa.contextualize(lines)
-                flines = [l for l in flines if l in hset]
-                if len(flines) == 0:
+                if len(hsa.select(lines)) == 0:
                     return False
             return True
 
