@@ -266,6 +266,35 @@ class ExtractedPdfLine(PdfLineBaseClass):
         return self._blk
 
 
+def pdfline_from_xml(blk: etree.Element):
+    """Initialize the ExtractedPdfLine from an XML element.
+
+    Parameters
+    ----------
+    blk : etree.Element
+        The XML element containing the line data. Must have:
+        - 'bbox' attribute with format "x0 y0 x1 y1"
+        - Font information accessible via xpath queries
+        - Text content in 'text' attribute
+
+    Notes
+    -----
+    The initialization process:
+    1. Extracts bounding box coordinates and creates Polygon
+    2. Extracts font name and creates Font object
+    3. Extracts font size and creates FontSize object
+    4. Extracts text content
+    5. Stores reference to original XML element
+    """
+    bounds = get_bounds(blk)
+    return PdfLine(
+        text=xpath.text(blk),
+        font=xpath.font_name(blk),
+        font_size=float(xpath.font_size(blk)),
+        bbox=(bounds[0][0], bounds[1][0], bounds[0][1], bounds[1][1]),
+    )
+
+
 class InputPdfLineSet(BaseModel):
     text: Optional[str] = None
     font: Optional[str | List[str]] = None
@@ -871,6 +900,46 @@ class PdfLineSet:
             op, right = self._right
             concrete._right = (op, right.contextualize(xml_root))
         return concrete
+
+
+def pdfline_selection_from_str(string):
+    matched = _LINE_SET_REGEXP.match(string).groupdict()
+    area = None
+    tmp_area = matched["area"]
+    tmp_range = matched["y_range"]
+
+    def _to_floats(x):
+        return (
+            (float(c) if c != "" else None)
+            for c in x.replace("(", "").replace(")", "").split(":")
+        )
+
+    if tmp_area is not None:
+        x_range, y_range = tmp_area.split(")(")
+        x_min, x_max = _to_floats(x_range)
+        y_min, y_max = _to_floats(y_range)
+        area = (
+            x_min if x_min is not None else 0.0,
+            y_min if y_min is not None else 0.0,
+            x_max if x_max is not None else +1e6,
+            y_max if y_max is not None else +1e6,
+        )
+    elif tmp_range is not None:
+        y_min, y_max = _to_floats(tmp_range)
+        area = (
+            0.0,
+            y_min if y_min is not None else 0.0,
+            1e6,
+            y_max if y_max is not None else +1e6,
+        )
+    fs = matched["font_size"]
+    fs = float(fs) if fs is not None else None
+    return PdfLineSelection(
+        font=matched["font"].strip() if matched["font"] is not None else None,
+        font_size=(max(fs - 1e-3, 0.0), fs + 1e-3) if fs is not None else None,
+        area=area,
+        text=matched["text"] if matched["text"] is not None else None,
+    )
 
 
 def _pdf_line_set_aggregator(attribute):

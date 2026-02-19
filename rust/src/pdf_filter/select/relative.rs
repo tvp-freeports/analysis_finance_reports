@@ -72,6 +72,9 @@ impl RelativeSelectPdfLineSet {
     pub fn select_area_of(target: PdfLineSelection) -> Self {
         Self::Area(RelativeArea::from_selection(target))
     }
+    pub fn area_from_movewindow(target: PdfLineSelection,vec: (f32,f32), width_mult: f32, height_mult: f32) -> Self {
+        Self::Area(RelativeArea::from_movewindow(target,vec,width_mult,height_mult))
+    }
 }
 
 impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet{
@@ -347,6 +350,14 @@ impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
 impl RelativeArea {
     fn from_selection(select: PdfLineSelection) -> Self {
         Self::Select(Box::new(select))
+    }
+    fn from_movewindow(target: PdfLineSelection, vec: (f32,f32), width_mult: f32, height_mult: f32) -> Self{
+        Self::MoveWindow{
+            target: Box::new(target),
+            vec,
+            width_mult,
+            height_mult,
+        }
     }
     fn contextualize_movewindow(
         lines: &[PdfLine],

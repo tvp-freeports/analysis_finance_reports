@@ -34,8 +34,8 @@ pub struct PyPdfLine(PdfLine);
 #[pymethods]
 impl PyPdfLine {
     #[new]
-    fn new(font: &str, font_size: f32, text: &str, area: (f32,f32,f32,f32)) -> Self {
-        Self(PdfLine::new(font,font_size,text,area))
+    fn new(font: &str, font_size: f32, text: &str, bbox: (f32,f32,f32,f32)) -> Self {
+        Self(PdfLine::new(font,font_size,text,bbox))
     }
     fn __repr__(&self) -> String {
         let PyPdfLine(l) = self;
@@ -48,6 +48,23 @@ impl PyPdfLine {
             x0=a.0,y0=a.1,x1=a.2,y1=a.3
         )
     }
+    #[getter]
+    fn text(&self) -> String {
+        self.0.text().to_string()
+    }
+    #[getter]
+    fn bbox(&self) -> (f32,f32,f32,f32) {
+        self.0.bbox().as_tuple()
+    }
+    #[getter]
+    fn font_name(&self) -> String {
+        self.0.font().inner().to_string()
+    }
+    #[getter]
+    fn font_size(&self) -> f32 {
+        *self.0.font_size()
+    }
+
 }
 
 
@@ -117,6 +134,23 @@ impl PyPdfLineSelection {
             RelativePdfLineSet::from_leaf(
                 Relative(
                     RelativeSelectPdfLineSet::select_area_of(Relative(target.0))
+                )
+            )
+        )
+    }
+    #[staticmethod]
+    #[pyo3(signature = (target,vec=(0.0,0.0),width_mult=1.0,height_mult=1.0))]
+    fn area_from_movewindow(target: Self, vec: (f32,f32), width_mult: f32, height_mult:f32) -> Self {
+        use OptionallyRelative::*;
+        Self(
+            RelativePdfLineSet::from_leaf(
+                Relative(
+                    RelativeSelectPdfLineSet::area_from_movewindow(
+                        Relative(target.0),
+                        vec,
+                        width_mult,
+                        height_mult
+                    )
                 )
             )
         )

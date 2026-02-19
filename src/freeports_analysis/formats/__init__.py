@@ -121,7 +121,7 @@ class PdfBlock:
         self,
         type_block: Enum,
         metadata: dict,
-        xml_ele: Union[etree.Element, List[etree.Element]],
+        text: str,
     ):
         """Initialize a PdfBlock instance.
 
@@ -136,13 +136,13 @@ class PdfBlock:
         """
         self.type_block = type_block
         self.metadata = metadata
-        txt = ""
-        if isinstance(xml_ele, list):
-            for ele in xml_ele:
-                txt += self._text_form_element(ele)
-        else:
-            txt = self._text_form_element(xml_ele)
-        self.content = txt
+        # txt = ""
+        # if isinstance(xml_ele, list):
+        #     for ele in xml_ele:
+        #         txt += self._text_form_element(ele)
+        # else:
+        #     txt = self._text_form_element(xml_ele)
+        self.content = text
 
     def __str__(self) -> str:
         """Return string representation of the PdfBlock.

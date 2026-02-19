@@ -225,7 +225,7 @@ def get_table_coordinates(
 ) -> List[Tuple[int, int]]:
     cells = [
         CellGeometry(
-            l.area.bounds,
+            l.bbox,
             tolerance
             if (tolerance_mu == TablePosMeasureUnit.PT)
             else tolerance * (l.bounds[2] - l.bounds[0])

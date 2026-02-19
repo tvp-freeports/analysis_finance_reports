@@ -13,7 +13,9 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEX
 from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSet
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+    pdfline_selection_from_str,
+)
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
@@ -311,14 +313,16 @@ def get_pipes(
         # PDF Filter segment
         if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
             pdf_filter_args = {
-                "header_set": [PdfLineSet.from_str(s) for s in arg["Header sets"]],
-                "subfund_set": PdfLineSet.from_str(arg["Subfund set"]),
-                "body_set": PdfLineSet.from_str(arg["Body set"]),
-                "currency_set": PdfLineSet.from_str(arg["Currency set"]),
+                "header_set": [
+                    pdfline_selection_from_str(s) for s in arg["Header sets"]
+                ],
+                "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
+                "body_set": pdfline_selection_from_str(arg["Body set"]),
+                "currency_set": pdfline_selection_from_str(arg["Currency set"]),
             }
             if isinstance(arg["Deselection set"], list):
                 pdf_filter_args["deselection_list"] = [
-                    PdfLineSet.from_str(s) for s in arg["Deselection set"]
+                    pdfline_selection_from_str(s) for s in arg["Deselection set"]
                 ]
             if not pd.isna(arg["Algorithm flags"]):
                 pdf_filter_args["algorithm_flags"] = TablePosAlgorithm.from_dict(

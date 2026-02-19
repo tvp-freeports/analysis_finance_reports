@@ -25,7 +25,7 @@ from .select_position import (
     TableConfig,
     ColumnConfig,
 )
-from .pdf_parts import ExtractedPdfLine, PdfLineSet
+from .pdf_parts import pdfline_from_xml, PdfLineSelection
 from .. import overwrite_if_implemented
 
 
@@ -102,7 +102,7 @@ def filter_page_if(
 
 
 def standard_extraction_subfund(
-    subfund_set: PdfLineSet,
+    subfund_set: PdfLineSelection,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
     """Decorator for extracting subfund text and updating metadata.
 
@@ -126,18 +126,13 @@ def standard_extraction_subfund(
             if isinstance(subfund_set, Promise):
                 subfund = subfund_set
             else:
-                subfund_set_c = subfund_set.contextualize(xml_root)
-                if subfund_set_c.is_simple and subfund_set_c._left.font is not None:
-                    xml_lines = get_lines_with_font(xml_root, subfund_set_c._left.font)
-                else:
-                    xml_lines = xml_root.findall(".//line")
-                lines = [ExtractedPdfLine(blk) for blk in xml_lines]
+                xml_lines = xml_root.findall(".//line")
+                lines = [pdfline_from_xml(blk) for blk in xml_lines]
                 try:
-                    subfund = [line.text for line in lines if line in subfund_set_c][0]
+                    subfund = subfund_set.select(lines)[0].text
                 except IndexError as exc:
                     logger.error(exc)
                     logger.debug("Subfund set:")
-                    logger.debug(str(subfund_set_c))
                     logger.debug("First lines where:")
                     logger.debug(
                         "%s",
@@ -156,15 +151,15 @@ def standard_extraction_subfund(
 
 
 def standard_extraction_currency(
-    currency_set: PdfLineSet | Currency | str,
+    currency_set: PdfLineSelection | Currency | str,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
     """Decorator for extracting currency information and updating metadata.
 
     Parameters
     ----------
-    currency_set : PdfLineSet | Currency | str
+    currency_set : PdfLineSelection | Currency | str
         The source of currency information. It can be:
-        - a PdfLineSet containing raw text lines to search for a currency,
+        - a PdfLineSelection containing raw text lines to search for a currency,
         - a Currency object directly,
         - or a string representing the currency code (e.g., "USD").
 
@@ -185,21 +180,13 @@ def standard_extraction_currency(
                 metadata["currency"] = currency_set
                 return metadata
 
-            xml_lines = None
-            currency_set_c = currency_set.contextualize(xml_root)
-            if currency_set_c.is_simple and currency_set_c._left.font is not None:
-                xml_lines = get_lines_with_font(xml_root, currency_set_c._left.font)
-            else:
-                xml_lines = xml_root.findall(".//line")
-
-            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
-            currency = None
+            xml_lines = xml_root.findall(".//line")
+            lines = [pdfline_from_xml(blk) for blk in xml_lines]
             try:
-                currency = [line.text for line in lines if line in currency_set_c][0]
+                currency = currency_set.select(lines)[0].text
             except IndexError as exc:
                 logger.error(exc)
                 logger.debug("Currency set:")
-                logger.debug(str(currency_set_c))
                 logger.debug("First lines where:")
                 logger.debug(
                     "%s",
@@ -216,13 +203,13 @@ def standard_extraction_currency(
 
 
 def standard_extraction_manco(
-    manco_set: PdfLineSet,
+    manco_set: PdfLineSelection,
 ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
     """ "Decorator for extracting the management company (manco) text and updating metadata.
 
     Parameters
     ----------
-    manco_set : PdfLineSet
+    manco_set : PdfLineSelection
         Criteria for extracting manco information from the page.
 
     Returns
@@ -236,19 +223,10 @@ def standard_extraction_manco(
             metadata = old_page_metadata(xml_root)
             xml_lines = None
             manco = None
-
-            manco_set_c = manco_set.contextualize(xml_root)
-
-            if manco_set_c.is_simple and manco_set_c._left.font is not None:
-                xml_lines = get_lines_with_font(xml_root, manco_set_c._left.font)
-            else:
-                xml_lines = xml_root.findall(".//line")
-
-            lines = [ExtractedPdfLine(blk) for blk in xml_lines]
-
+            xml_lines = xml_root.findall(".//line")
+            lines = [pdfline_from_xml(blk) for blk in xml_lines]
             try:
-                manco = [line.text for line in lines if line in manco_set_c][0]
-
+                manco = manco_set.select(lines)[0].text
             except IndexError as exc:
                 logger.error(exc)
                 logger.debug("Manco set:")
@@ -271,12 +249,12 @@ def standard_extraction_manco(
 
 
 def standard_pdf_filtering(
-    header_set: PdfLineSet | List[PdfLineSet],
-    subfund_set: PdfLineSet,
-    body_set: PdfLineSet,
-    currency_set: PdfLineSet | Currency | str,
-    manco_set: Optional[PdfLineSet] = None,
-    deselection_list: Optional[List[PdfLineSet]] = None,
+    header_set: PdfLineSelection | List[PdfLineSelection],
+    subfund_set: PdfLineSelection,
+    body_set: PdfLineSelection,
+    currency_set: PdfLineSelection | Currency | str,
+    manco_set: Optional[PdfLineSelection] = None,
+    deselection_list: Optional[List[PdfLineSelection]] = None,
     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
     tolerance: float = 0.0,
     row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
@@ -294,19 +272,19 @@ def standard_pdf_filtering(
 
     Parameters
     ----------
-    header_set : PdfLineSet | List[PdfLineSet]
+    header_set : PdfLineSelection | List[PdfLineSelection]
         Criteria for identifying page headers. Can be a single set or list of sets
         for multiple header conditions. Pages must match all header criteria.
-    subfund_set : PdfLineSet
+    subfund_set : PdfLineSelection
         Criteria for extracting subfund information from the page.
-    body_set : PdfLineSet
+    body_set : PdfLineSelection
         Criteria for identifying the main body content (tabular data).
-    currency_set : PdfLineSet | Currency | str
+    currency_set : PdfLineSelection | Currency | str
         Source of currency information. Can be:
-        - PdfLineSet: Extract currency from page content
+        - PdfLineSelection: Extract currency from page content
         - Currency: Use fixed currency value
         - str: Currency code (e.g., "USD")
-    deselection_list : Optional[List[PdfLineSet]], optional
+    deselection_list : Optional[List[PdfLineSelection]], optional
         List of criteria for content to exclude from extraction.
         Default is empty list.
     algorithm_flags : List | TablePosAlgorithm, optional
@@ -344,11 +322,11 @@ def standard_pdf_filtering(
     Examples
     --------
     >>> @standard_pdf_filtering(
-    ...     header_set=PdfLineSet(font="Arial-Bold", text="PORTFOLIO HOLDINGS"),
-    ...     subfund_set=PdfLineSet(font="Arial", area=((0, 100), (700, 750))),
-    ...     body_set=PdfLineSet(font="Arial", font_size=10),
+    ...     header_set=PdfLineSelection(font="Arial-Bold", text="PORTFOLIO HOLDINGS"),
+    ...     subfund_set=PdfLineSelection(font="Arial", area=((0, 100), (700, 750))),
+    ...     body_set=PdfLineSelection(font="Arial", font_size=10),
     ...     currency_set="USD",
-    ...     deselection_list=[PdfLineSet(text="TOTAL")]
+    ...     deselection_list=[PdfLineSelection(text="TOTAL")]
     ... )
     >>> def my_pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
     ...     # Custom page metadata extraction
@@ -377,35 +355,20 @@ def standard_pdf_filtering(
                 return {}
 
         def _is_header(xml_root, header_set) -> bool:
+            rows = xml_root.findall(".//line")
+            lines = [pdfline_from_xml(line) for line in rows]
             if not isinstance(header_set, list):
                 header_set = [header_set]
+            flines = lines
             for hsa in header_set:
-                hs = hsa.contextualize(xml_root)
-                if (
-                    hs.is_simple
-                    and hs._left.font is not None
-                    and len(hs._left.font) == 1
-                ):
-                    if hs._left.text is not None and hs._left.text.is_simple:
-                        rows = get_lines_with_txt_font(
-                            xml_root,
-                            list(hs._left.text._left)[0],
-                            list(hs._left.font)[0],
-                            all_elem=True,
-                        )
-                    else:
-                        rows = get_lines_with_font(xml_root, list(hs._left.font)[0])
-                else:
-                    rows = xml_root.findall(".//line")
-                lines = [ExtractedPdfLine(line) for line in rows]
-                lines = [line for line in lines if line in hs]
-                if len(lines) == 0:
+                hset = hsa.contextualize(lines)
+                flines = [l for l in flines if l in hset]
+                if len(flines) == 0:
                     return False
             return True
 
         @filter_page_if(lambda x: _is_header(x, header_set))
         def pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
-            body_set_c = body_set.contextualize(xml_root)
             _algorithm_flags = algorithm_flags
             _row_algorithm_flags = row_algorithm_flags
             metadata = {}
@@ -414,17 +377,9 @@ def standard_pdf_filtering(
             except ExpectedPdfBlockNotFound as e:
                 raise PageParseFail(e) from e
 
-            rows = []
-            if (
-                (body_set_c.is_simple)
-                and (body_set_c._left.font is not None)
-                and len(body_set_c._left.font) == 1
-            ):
-                rows = get_lines_with_font(xml_root, list(body_set_c._left.font)[0])
-            else:
-                rows = xml_root.findall(".//line")
-            rows = [ExtractedPdfLine(r) for r in rows]
-            table_rows = [row for row in rows if row in body_set_c]
+            rows = xml_root.findall(".//line")
+            rows = [pdfline_from_xml(r) for r in rows]
+            table_rows = body_set.select(rows)
             # Check if the whole table is empty
             if table_rows == []:
                 return []
@@ -468,11 +423,10 @@ def standard_pdf_filtering(
             )
             table_row_positions, table_col_positions = zip(*coords)
 
-            def _width(area):
-                bounds = area.bounds
+            def _width(bounds):
                 return bounds[2] - bounds[0]
 
-            table_cell_widths = [_width(table_row.area) for table_row in table_rows]
+            table_cell_widths = [_width(table_row.bbox) for table_row in table_rows]
             max_width = max(table_cell_widths)
             is_max_width = [width == max_width for width in table_cell_widths]
             return [
@@ -484,7 +438,7 @@ def standard_pdf_filtering(
                         "table-col": table_col_positions[i],
                         "is-max-width": is_max_width[i],
                     },
-                    table_row.xml_blk,
+                    table_row.text,
                 )
                 for i, table_row in enumerate(table_rows)
             ]

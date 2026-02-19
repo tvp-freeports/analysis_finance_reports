@@ -1,4 +1,4 @@
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import ExtractedPdfLine
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import pdfline_from_xml
 from freeports_analysis.formats.algorithms import get_pipelines
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     get_table_coordinates,
@@ -12,7 +12,7 @@ pdf_filter = get_pipelines("CARNE-EN23")[""][0][0]
 @pytest.mark.benchmarks
 def test_ExtractedPdfLine(benchmark):
     def init_ExtractedPdfLine(blks):
-        return [ExtractedPdfLine(blk) for blk in blks]
+        return [pdfline_from_xml(blk) for blk in blks]
 
     result = benchmark(init_ExtractedPdfLine, xml_blks)
 
