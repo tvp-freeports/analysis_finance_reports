@@ -1,9 +1,0 @@
-============================= test session starts ==============================
-platform linux -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0
-benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.2 max_time=7 calibration_precision=10 warmup=True warmup_iterations=100000)
-rootdir: /home/giuly/Desktop/Progetti/freeports-AMUNDI
-configfile: pyproject.toml
-plugins: cov-7.0.0, benchmark-5.2.3, typeguard-4.4.4
-collected 167 items / 136 deselected / 31 selected
-
-tests/formats/algorithms/AMUNDI-EN24/test.py 
