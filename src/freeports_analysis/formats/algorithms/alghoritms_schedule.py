@@ -32,3 +32,8 @@ def get_alghoritms_schedule() -> pd.DataFrame:
     df = pd.read_csv(data / "alghoritms_schedule.csv")
     df = create_index_format_name_pipe(df)
     return alghoritms_schedule_schema.validate(df)
+
+
+def get_schedule_of(format_name: str):
+    df = get_alghoritms_schedule()
+    return df.loc[format_name]

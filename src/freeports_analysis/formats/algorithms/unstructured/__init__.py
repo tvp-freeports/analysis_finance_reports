@@ -80,7 +80,7 @@ def get_pipes(
             named_pipelines = module.pipelines
         except AttributeError:
             pass
-        modules = {pipe.__name__: pipe for pipe in named_pipelines}
+        modules = {pipe.__name__.split(".")[-1]: pipe for pipe in named_pipelines}
         modules |= {"": module}
         pdf_filter_segment = _get_segment("pdf_filter", modules)
         text_extract_segment = _get_segment("text_extract", modules)
