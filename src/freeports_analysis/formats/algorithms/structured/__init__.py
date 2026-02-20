@@ -178,9 +178,11 @@ def validate_partial_pipes(
     def validate_columns(args: pd.DataFrame) -> pd.Series:
         """Validate that disabled segments don't have associated configuration."""
         columns_not_empty = False
+        pd.set_option("future.no_silent_downcasting", True)
+        pipe_present = args[segment].fillna(True, inplace=False)
         for col in columns:
             columns_not_empty = columns_not_empty | ~args[col].isna()
-        invalid_mask = (~args[segment].isna() & ~args[segment]) & columns_not_empty
+        invalid_mask = ~pipe_present & columns_not_empty
         return ~invalid_mask
 
     return validate_columns
