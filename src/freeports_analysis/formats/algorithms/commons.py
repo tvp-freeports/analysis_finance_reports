@@ -183,3 +183,45 @@ class DeserializeSegment(PipelineSegement):
 
     def __call__(self, txt_blks):
         return [pipe(blk) for blk in txt_blks for pipe in self]
+
+
+class PageClassificationTextFilterSegment(PipelineSegement):
+    """Text Filter"""
+
+    def __call__(self, pdf_blks):
+        one_result = False
+        res = None
+        for pipe in self:
+            new_res = pipe(pdf_blks)
+            if new_res is not None:
+                one_result = True
+                res = new_res
+                if one_result:
+                    raise Exception(
+                        "Page classification text filter cannot give more than one result"
+                    )
+        return res
+
+
+class PageClassificationDeserializeSegment:
+    pipe = None
+
+    def __init__(self, deserialize):
+        self.pipe = deserialize
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}{repr(self.pipe)}"
+
+    def __call__(self, txt_blk, page_classes):
+        if txt_blk is None:
+            return None
+        res = self.pipe(txt_blk)
+        if not isinstance(res, str):
+            raise Exception(
+                f"Invalid type result of page classification {type(res)} (expected `str`)"
+            )
+        if res not in page_classes:
+            raise Exception(
+                f"Invalid result of page classification `{res}` not in {page_classes}"
+            )
+        return res

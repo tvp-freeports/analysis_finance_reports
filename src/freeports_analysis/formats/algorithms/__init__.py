@@ -123,6 +123,21 @@ class Pipeline:
         return self.deserialize(txt_blks)
 
 
+class PageClassificationPipeline(Pipeline):
+    def __call__(self, page, page_classes):
+        pdf_blks = self.pdf_extract(page)
+        txt_blk = self.text_filter(pdf_blks)
+        return self.deserialize(txt_blk, page_classes)
+
+    def __repr__(self):
+        return "{}: =[{}--{}--{}]=>".format(
+            self.__class__.__name__,
+            repr(self.pdf_extract.pipes),
+            repr(self.text_filter.pipes),
+            repr(self.deserialize.pipe),
+        )
+
+
 def _exec_segment(
     i_batch_page: int,
     n_pages: int,
