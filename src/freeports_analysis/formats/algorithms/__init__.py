@@ -77,53 +77,6 @@ class LogFormatterWithPage(log.Formatter):
         return string
 
 
-class PipelineSegement:
-    pipes = set()
-
-    def add_pipe(self, pipe):
-        self.pipes.add(pipe)
-
-    def __init__(self):
-        self.pipes = set()
-
-    def __repr__(self):
-        return "{}{}".format(self.__class__.__name__, repr(self.pipes))
-
-    def __iter__(self):
-        return iter(self.pipes)
-
-    def __add__(self, other):
-        cls = self.__class__
-        if not isinstance(other, cls):
-            raise Exception(
-                f"Cannot sum segments of different type. First is {self.__class__.__name__}, second {other.__class__.__name__}"
-            )
-        new_seg = cls()
-        new_seg.pipes = self.pipes.union(other.pipes)
-        return new_seg
-
-
-class PdfExtractSegment(PipelineSegement):
-    """Pdf Extract"""
-
-    def __call__(self, page):
-        return [pdf_blk for pipe in self for pdf_blk in pipe(page)]
-
-
-class TextFilterSegment(PipelineSegement):
-    """Text Filter"""
-
-    def __call__(self, pdf_blks, filter_data):
-        return [txt_blk for pipe in self for txt_blk in pipe(pdf_blks, filter_data)]
-
-
-class DeserializeSegment(PipelineSegement):
-    """Deserialize"""
-
-    def __call__(self, txt_blks):
-        return [pipe(blk) for blk in txt_blks for pipe in self]
-
-
 class Pipeline:
     pdf_extract: PdfExtractSegment
     text_filter: TextFilterSegment

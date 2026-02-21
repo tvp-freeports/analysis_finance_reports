@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
+from freeports_analysis.formats.utils.pdf_filter import StandardInvestmentsPdfFilter
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
@@ -19,7 +19,13 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
-from ..commons import create_index_format_name_pipe, index_format_pipe
+from ..commons import (
+    create_index_format_name_pipe,
+    index_format_pipe,
+    PdfExtractSegment,
+    TextFilterSegment,
+    DeserializeSegment,
+)
 
 data = Path(__file__).parent
 
@@ -333,12 +339,10 @@ def get_pipes(
             pdf_filter_args = _set_if_not_na(
                 pdf_filter_args, "tolerance", arg, "Tolerance"
             )
-            pdf_filter = standard_pdf_filtering(**pdf_filter_args)(
-                lambda xml_root: None
-            )
+            pdf_filter = StandardInvestmentsPdfFilter(**pdf_filter_args)
             if pipeline not in pdf_filter_segment:
-                pdf_filter_segment[pipeline] = []
-            pdf_filter_segment[pipeline].append(pdf_filter)
+                pdf_filter_segment[pipeline] = PdfExtractSegment()
+            pdf_filter_segment[pipeline].add_pipe(pdf_filter)
 
         # Text Extract segment
         if pd.isna(arg["text_extract"]) or arg["text_extract"]:
@@ -368,8 +372,8 @@ def get_pipes(
                 lambda blks, targets: None
             )
             if pipeline not in text_extract_segment:
-                text_extract_segment[pipeline] = []
-            text_extract_segment[pipeline].append(text_extract)
+                text_extract_segment[pipeline] = TextFilterSegment()
+            text_extract_segment[pipeline].add_pipe(text_extract)
 
         # Deserialize segment
         if pd.isna(arg["deserialize"]) or arg["deserialize"]:
@@ -390,6 +394,6 @@ def get_pipes(
                 lambda blk, targets: None
             )
             if pipeline not in deserialize_segment:
-                deserialize_segment[pipeline] = []
-            deserialize_segment[pipeline].append(deserialize)
+                deserialize_segment[pipeline] = DeserializeSegment()
+            deserialize_segment[pipeline].add_pipe(deserialize)
     return pdf_filter_segment, text_extract_segment, deserialize_segment
