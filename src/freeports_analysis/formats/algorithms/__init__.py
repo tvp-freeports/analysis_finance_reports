@@ -92,6 +92,16 @@ class PipelineSegement:
     def __iter__(self):
         return iter(self.pipes)
 
+    def __add__(self, other):
+        cls = self.__class__
+        if not isinstance(other, cls):
+            raise Exception(
+                f"Cannot sum segments of different type. First is {self.__class__.__name__}, second {other.__class__.__name__}"
+            )
+        new_seg = cls()
+        new_seg.pipes = self.pipes.union(other.pipes)
+        return new_seg
+
 
 class PdfExtractSegment(PipelineSegement):
     """Pdf Extract"""
@@ -119,7 +129,26 @@ class Pipeline:
     text_filter: TextFilterSegment
     deserialize: DeserializeSegment
 
-    def __init__(self, pdf_extract, text_filter, deserialize):
+    def __init__(
+        self,
+        pdf_extract=None,
+        text_filter=None,
+        deserialize=None,
+        allow_partial_pipelines=False,
+    ):
+        if not allow_partial_pipelines and (
+            pdf_extract is None or text_filter is None or deserialize is None
+        ):
+            name = (
+                "pdf_extract"
+                if pdf_extract is None
+                else "text_filter"
+                if text_filter is None
+                else "deserialize"
+            )
+            raise Exception(
+                f"Partial pipelines not allowed, found {name} to be partial. To allow partial pipelines set `allow_partial_pipelines=True`"
+            )
         self.pdf_extract = pdf_extract
         self.text_filter = text_filter
         self.deserialize = deserialize
