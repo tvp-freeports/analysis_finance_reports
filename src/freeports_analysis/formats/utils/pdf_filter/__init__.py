@@ -52,6 +52,168 @@ Functions that process XML elements and return lists of relevant PDF blocks.
 logger = logging.getLogger(__name__)
 
 
+class StandardPageClassify:
+    header_set: PdfLineSelection | List[PdfLineSelection]
+
+    def __init__(self, header_set):
+        if not isinstance(header_set, list):
+            header_set = [header_set]
+        self.header_set = header_set
+
+    def __call__(self, xml_root):
+        lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+        for hsa in header_set:
+            if len(hsa.select(lines)) == 0:
+                return False
+        return True
+
+
+class StandardInvestmentsPdfFilter:
+    subfund_set: PdfLineSelection
+    body_set: PdfLineSelection
+    currency_set: PdfLineSelection | Currency | str
+    manco_set: Optional[PdfLineSelection] = None
+    deselection_list: Optional[List[PdfLineSelection]] = None
+    algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0)
+    tolerance: float = 0.0
+    row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0)
+    row_tolerance: float = 0.0
+    company_index: Optional[int] = None
+
+    def __init__(
+        self,
+        subfund_set,
+        body_set,
+        currency_set,
+        manco_set,
+        deselection_list,
+        algorithm_flags,
+        tolerance,
+        row_algorithm_flags,
+        row_tolerance,
+        company_index,
+    ):
+        self.subfund_filter = StandardPageMetadataFilter(subfund_set, "Subfund")
+        self.manco_filter = StandardPageMetadataFilter(manco_set, "Management company")
+        self.currency_filter = StandardPageMetadataFilter(currency_set, "Currency")
+        for dl in deselection_list:
+            body_set /= dl
+        self.body_set = body_set
+        self.algorithm_flags = algorithm_flags
+        self.tolerance = tolerance
+        self.row_algorithm_flags = row_algorithm_flags
+        self.row_tolerance = row_tolerance
+        self.company_index = company_index
+
+    def __call__(self, xml_root):
+        lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+        _algorithm_flags = self.algorithm_flags
+        _row_algorithm_flags = self.row_algorithm_flags
+        try:
+            metadata = dict()
+            metadata["currency"] = None
+            if isinstance(self.currency_filter.selection, str):
+                metadata["currency"] = Currency[self.currency_filter.selection]
+            if isinstance(self.currency_filter.selection, Currency):
+                metadata["currency"] = self.currency_filter.selection
+            if metadata["currency"] is None:
+                metadata["currency"] = self.currency_filter(lines)
+            metadata["subfund"] = self.subfund_filter(lines)
+            metadata["manco"] = (
+                self.manco_filter(lines)
+                if self.manco_filter.selection is not None
+                else None
+            )
+        except ExpectedPdfBlockNotFound as e:
+            raise PageParseFail(e) from e
+
+        table_rows = self.body_set.select(lines)
+        # Check if the whole table is empty
+        if table_rows == []:
+            return []
+        if isinstance(_algorithm_flags, list):
+            all_flags = [
+                TablePosAlgorithm.RETURN_ROWS,
+                TablePosAlgorithm.BIG_CELL_RULE,
+                TablePosAlgorithm.USE_RULER_AREA,
+                TablePosAlgorithm.USE_TES_POS,
+            ]
+            algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+            for flag, enabled in zip(all_flags, _algorithm_flags):
+                if enabled:
+                    algo |= flag
+            _algorithm_flags = algo
+        if isinstance(_row_algorithm_flags, list):
+            all_flags = [
+                TablePosAlgorithm.RETURN_ROWS,
+                TablePosAlgorithm.BIG_CELL_RULE,
+                TablePosAlgorithm.USE_RULER_AREA,
+                TablePosAlgorithm.USE_TES_POS,
+            ]
+            algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+            for flag, enabled in zip(all_flags, _row_algorithm_flags):
+                if enabled:
+                    algo |= flag
+            _row_algorithm_flags = algo
+
+        cfg = TableConfig()
+        # cfg.cols=[]
+        collapse_alg = CollapseAlgorithm.GEOMETRY
+        coords = get_table_coordinates(
+            table_rows,
+            cfg,
+            _algorithm_flags,
+            collapse_alg,
+            tolerance=self.row_tolerance,
+            company_col=self.company_index,
+            collapse=False,
+        )
+        table_row_positions, table_col_positions = zip(*coords)
+
+        def _width(bounds):
+            return bounds[2] - bounds[0]
+
+        table_cell_widths = [_width(table_row.bbox) for table_row in table_rows]
+        max_width = max(table_cell_widths)
+        is_max_width = [width == max_width for width in table_cell_widths]
+        return [
+            PdfBlock(
+                OnePdfBlockType.RELEVANT_BLOCK,
+                {
+                    **metadata,
+                    "table-row": table_row_positions[i],
+                    "table-col": table_col_positions[i],
+                    "is-max-width": is_max_width[i],
+                },
+                table_row.text,
+            )
+            for i, table_row in enumerate(table_rows)
+        ]
+
+
+class StandardPageMetadataFilter:
+    selection: PdfLineSelection
+    name: str
+
+    def __init__(self, selection, name):
+        self.selection = selection
+        self.name = name
+
+    def __call__(self, lines):
+        if isinstance(self.selection, Promise):
+            return self.selection
+        try:
+            return self.selection.select(lines)[0].text
+        except IndexError as exc:
+            logger.error(exc)
+            logger.debug("First lines where:")
+            logger.debug(
+                "%s",
+                str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+            )
+            raise ExpectedPdfBlockNotFound(_("{name} not found")) from exc
+
+
 class OnePdfBlockType(Enum):
     """Enum representing types of PDF blocks in document processing.
 
@@ -101,338 +263,336 @@ def filter_page_if(
     return wrapper
 
 
-def standard_extraction_subfund(
-    subfund_set: PdfLineSelection,
-) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
-    """Decorator for extracting subfund text and updating metadata.
+# def standard_extraction_subfund(
+#     subfund_set: PdfLineSelection,
+# ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+#     """Decorator for extracting subfund text and updating metadata.
 
-    Parameters
-    ----------
-    subfund_height : YRange
-        The vertical range in which the subfund text is expected.
-    subfund_font : str
-        The font used by the subfund text.
+#     Parameters
+#     ----------
+#     subfund_height : YRange
+#         The vertical range in which the subfund text is expected.
+#     subfund_font : str
+#         The font used by the subfund text.
 
-    Returns
-    -------
-    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
-        A decorator that updates metadata with the extracted subfund text.
-    """
+#     Returns
+#     -------
+#     Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+#         A decorator that updates metadata with the extracted subfund text.
+#     """
 
-    def decorator(old_page_metadata):
-        def new_page_metadata(lines) -> List[PdfBlock]:
-            xml_lines = None
-            subfund = None
-            if isinstance(subfund_set, Promise):
-                subfund = subfund_set
-            else:
-                try:
-                    subfund = subfund_set.select(lines)[0].text
-                except IndexError as exc:
-                    logger.error(exc)
-                    logger.debug("Subfund set:")
-                    logger.debug("First lines where:")
-                    logger.debug(
-                        "%s",
-                        str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
-                    )
-                    raise ExpectedPdfBlockNotFound(
-                        _("Subfund block on top of page not found")
-                    ) from exc
-            metadata = old_page_metadata(lines)
-            metadata["subfund"] = subfund
-            return metadata
+#     def decorator(old_page_metadata):
+#         def new_page_metadata(lines) -> List[PdfBlock]:
+#             xml_lines = None
+#             subfund = None
+#             if isinstance(subfund_set, Promise):
+#                 subfund = subfund_set
+#             else:
+#                 try:
+#                     subfund = subfund_set.select(lines)[0].text
+#                 except IndexError as exc:
+#                     logger.error(exc)
+#                     logger.debug("Subfund set:")
+#                     logger.debug("First lines where:")
+#                     logger.debug(
+#                         "%s",
+#                         str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+#                     )
+#                     raise ExpectedPdfBlockNotFound(
+#                         _("Subfund block on top of page not found")
+#                     ) from exc
+#             metadata = old_page_metadata(lines)
+#             metadata["subfund"] = subfund
+#             return metadata
 
-        return new_page_metadata
+#         return new_page_metadata
 
-    return decorator
-
-
-def standard_extraction_currency(
-    currency_set: PdfLineSelection | Currency | str,
-) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
-    """Decorator for extracting currency information and updating metadata.
-
-    Parameters
-    ----------
-    currency_set : PdfLineSelection | Currency | str
-        The source of currency information. It can be:
-        - a PdfLineSelection containing raw text lines to search for a currency,
-        - a Currency object directly,
-        - or a string representing the currency code (e.g., "USD").
-
-    Returns
-    -------
-    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
-        A decorator that enhances a metadata update function by extracting
-        the currency and storing it in the metadata.
-    """
-
-    def decorator(old_page_metadata):
-        def new_page_metadata(lines) -> List[PdfBlock]:
-            metadata = old_page_metadata(lines)
-            if isinstance(currency_set, str):
-                metadata["currency"] = Currency[currency_set]
-                return metadata
-            if isinstance(currency_set, Currency):
-                metadata["currency"] = currency_set
-                return metadata
-
-            try:
-                currency = currency_set.select(lines)[0].text
-            except IndexError as exc:
-                logger.error(exc)
-                logger.debug("Currency set:")
-                logger.debug("First lines where:")
-                logger.debug(
-                    "%s",
-                    str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
-                )
-                raise ExpectedPdfBlockNotFound(_("Currency block  not found")) from exc
-
-            metadata["currency"] = currency
-            return metadata
-
-        return new_page_metadata
-
-    return decorator
+#     return decorator
 
 
-def standard_extraction_manco(
-    manco_set: PdfLineSelection,
-) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
-    """ "Decorator for extracting the management company (manco) text and updating metadata.
+# def standard_extraction_currency(
+#     currency_set: PdfLineSelection | Currency | str,
+# ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+#     """Decorator for extracting currency information and updating metadata.
 
-    Parameters
-    ----------
-    manco_set : PdfLineSelection
-        Criteria for extracting manco information from the page.
+#     Parameters
+#     ----------
+#     currency_set : PdfLineSelection | Currency | str
+#         The source of currency information. It can be:
+#         - a PdfLineSelection containing raw text lines to search for a currency,
+#         - a Currency object directly,
+#         - or a string representing the currency code (e.g., "USD").
 
-    Returns
-    -------
-    Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
-        A decorator that updates metadata with the extracted manco text.
-    """
+#     Returns
+#     -------
+#     Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+#         A decorator that enhances a metadata update function by extracting
+#         the currency and storing it in the metadata.
+#     """
 
-    def decorator(old_page_metadata):
-        def new_page_metadata(lines) -> List[PdfBlock]:
-            metadata = old_page_metadata(lines)
-            xml_lines = None
-            manco = None
-            try:
-                manco = manco_set.select(lines)[0].text
-            except IndexError as exc:
-                logger.error(exc)
-                logger.debug("Manco set:")
-                logger.debug(str(manco_set_c))
-                logger.debug("First lines where:")
-                logger.debug(
-                    "%s",
-                    str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
-                )
-                raise ExpectedPdfBlockNotFound(
-                    _("Management company block not found")
-                ) from exc
+#     def decorator(old_page_metadata):
+#         def new_page_metadata(lines) -> List[PdfBlock]:
+#             metadata = old_page_metadata(lines)
+#             if isinstance(currency_set, str):
+#                 metadata["currency"] = Currency[currency_set]
+#                 return metadata
+#             if isinstance(currency_set, Currency):
+#                 metadata["currency"] = currency_set
+#                 return metadata
 
-            metadata["manco"] = manco
-            return metadata
+#             try:
+#                 currency = currency_set.select(lines)[0].text
+#             except IndexError as exc:
+#                 logger.error(exc)
+#                 logger.debug("Currency set:")
+#                 logger.debug("First lines where:")
+#                 logger.debug(
+#                     "%s",
+#                     str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+#                 )
+#                 raise ExpectedPdfBlockNotFound(_("Currency block  not found")) from exc
 
-        return new_page_metadata
+#             metadata["currency"] = currency
+#             return metadata
 
-    return decorator
+#         return new_page_metadata
+
+#     return decorator
 
 
-def standard_pdf_filtering(
-    header_set: PdfLineSelection | List[PdfLineSelection],
-    subfund_set: PdfLineSelection,
-    body_set: PdfLineSelection,
-    currency_set: PdfLineSelection | Currency | str,
-    manco_set: Optional[PdfLineSelection] = None,
-    deselection_list: Optional[List[PdfLineSelection]] = None,
-    algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
-    tolerance: float = 0.0,
-    row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
-    row_tolerance: float = 0.0,
-    company_index: Optional[int] = None,
-) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
-    """Decorator factory for creating PDF filters with standardized processing.
+# def standard_extraction_manco(
+#     manco_set: PdfLineSelection,
+# ) -> Callable[[UpdateMetadataFunc], UpdateMetadataFunc]:
+#     """ "Decorator for extracting the management company (manco) text and updating metadata.
 
-    This decorator factory creates a comprehensive PDF processing pipeline that:
-    - Identifies relevant pages based on header criteria
-    - Extracts structured data from tabular content
-    - Handles subfund and currency information
-    - Applies geometric analysis for table detection
-    - Supports deselection of unwanted content
+#     Parameters
+#     ----------
+#     manco_set : PdfLineSelection
+#         Criteria for extracting manco information from the page.
 
-    Parameters
-    ----------
-    header_set : PdfLineSelection | List[PdfLineSelection]
-        Criteria for identifying page headers. Can be a single set or list of sets
-        for multiple header conditions. Pages must match all header criteria.
-    subfund_set : PdfLineSelection
-        Criteria for extracting subfund information from the page.
-    body_set : PdfLineSelection
-        Criteria for identifying the main body content (tabular data).
-    currency_set : PdfLineSelection | Currency | str
-        Source of currency information. Can be:
-        - PdfLineSelection: Extract currency from page content
-        - Currency: Use fixed currency value
-        - str: Currency code (e.g., "USD")
-    deselection_list : Optional[List[PdfLineSelection]], optional
-        List of criteria for content to exclude from extraction.
-        Default is empty list.
-    algorithm_flags : List | TablePosAlgorithm, optional
-        Algorithm flags for column position detection.
-        Default is TablePosAlgorithm(0) - no special flags.
-    tolerance : float, optional
-        Tolerance for column position matching.
-        Default is 0.0.
-    row_algorithm_flags : List | TablePosAlgorithm, optional
-        Algorithm flags for row position detection.
-        Default is TablePosAlgorithm(0) - no special flags.
-    row_tolerance : float, optional
-        Tolerance for row position matching.
-        Default is 0.0.
+#     Returns
+#     -------
+#     Callable[[UpdateMetadataFunc], UpdateMetadataFunc]
+#         A decorator that updates metadata with the extracted manco text.
+#     """
 
-    Returns
-    -------
-    Callable[[PdfFilterFunc], PdfFilterFunc]
-        A decorator that applies the standardized PDF filter processing.
+#     def decorator(old_page_metadata):
+#         def new_page_metadata(lines) -> List[PdfBlock]:
+#             metadata = old_page_metadata(lines)
+#             xml_lines = None
+#             manco = None
+#             try:
+#                 manco = manco_set.select(lines)[0].text
+#             except IndexError as exc:
+#                 logger.error(exc)
+#                 logger.debug("Manco set:")
+#                 logger.debug(str(manco_set_c))
+#                 logger.debug("First lines where:")
+#                 logger.debug(
+#                     "%s",
+#                     str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+#                 )
+#                 raise ExpectedPdfBlockNotFound(
+#                     _("Management company block not found")
+#                 ) from exc
 
-    Notes
-    -----
-    The created filter performs the following operations:
-    1. **Header Detection**: Checks if page contains specified header(s)
-    2. **Subfund Extraction**: Extracts subfund information from specified area
-    3. **Currency Extraction**: Determines currency for financial data
-    4. **Body Content Filtering**: Identifies relevant tabular content
-    5. **Table Structure Analysis**: Detects rows and columns using geometric algorithms
-    6. **Deselection**: Removes unwanted content based on deselection criteria
-    7. **Metadata Enrichment**: Adds table position information to blocks
+#             metadata["manco"] = manco
+#             return metadata
 
-    The algorithm supports complex table layouts through configurable
-    position detection algorithms and tolerance settings.
+#         return new_page_metadata
 
-    Examples
-    --------
-    >>> @standard_pdf_filtering(
-    ...     header_set=PdfLineSelection(font="Arial-Bold", text="PORTFOLIO HOLDINGS"),
-    ...     subfund_set=PdfLineSelection(font="Arial", area=((0, 100), (700, 750))),
-    ...     body_set=PdfLineSelection(font="Arial", font_size=10),
-    ...     currency_set="USD",
-    ...     deselection_list=[PdfLineSelection(text="TOTAL")]
-    ... )
-    >>> def my_pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
-    ...     # Custom page metadata extraction
-    ...     return {}
-    """
-    if deselection_list is None:
-        deselection_list = []
-    for deselection_set in deselection_list:
-        body_set = body_set / deselection_set
+#     return decorator
 
-    def decorator(f):
-        if manco_set is not None:
 
-            @standard_extraction_subfund(subfund_set)
-            @standard_extraction_currency(currency_set)
-            @standard_extraction_manco(manco_set)
-            @overwrite_if_implemented(f)
-            def page_metadata(_: etree.Element) -> dict:
-                return {}
-        else:
-            # Original without manco (backward compatible)
-            @standard_extraction_subfund(subfund_set)
-            @standard_extraction_currency(currency_set)
-            @overwrite_if_implemented(f)
-            def page_metadata(_: etree.Element) -> dict:
-                return {}
+# def standard_pdf_filtering(
+#     header_set: PdfLineSelection | List[PdfLineSelection],
+#     subfund_set: PdfLineSelection,
+#     body_set: PdfLineSelection,
+#     currency_set: PdfLineSelection | Currency | str,
+#     manco_set: Optional[PdfLineSelection] = None,
+#     deselection_list: Optional[List[PdfLineSelection]] = None,
+#     algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
+#     tolerance: float = 0.0,
+#     row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0),
+#     row_tolerance: float = 0.0,
+#     company_index: Optional[int] = None,
+# ) -> Callable[[PdfFilterFunc], PdfFilterFunc]:
+#     """Decorator factory for creating PDF filters with standardized processing.
 
-        def _is_header(lines, header_set) -> bool:
-            if not isinstance(header_set, list):
-                header_set = [header_set]
-            for hsa in header_set:
-                if len(hsa.select(lines)) == 0:
-                    return False
-            return True
+#     This decorator factory creates a comprehensive PDF processing pipeline that:
+#     - Identifies relevant pages based on header criteria
+#     - Extracts structured data from tabular content
+#     - Handles subfund and currency information
+#     - Applies geometric analysis for table detection
+#     - Supports deselection of unwanted content
 
-        @filter_page_if(lambda x: _is_header(x, header_set))
-        def pdf_filter(rows) -> List[PdfBlock]:
-            _algorithm_flags = algorithm_flags
-            _row_algorithm_flags = row_algorithm_flags
-            metadata = {}
-            try:
-                metadata = page_metadata(rows)
-            except ExpectedPdfBlockNotFound as e:
-                raise PageParseFail(e) from e
-            table_rows = body_set.select(rows)
-            # Check if the whole table is empty
-            if table_rows == []:
-                return []
+#     Parameters
+#     ----------
+#     header_set : PdfLineSelection | List[PdfLineSelection]
+#         Criteria for identifying page headers. Can be a single set or list of sets
+#         for multiple header conditions. Pages must match all header criteria.
+#     subfund_set : PdfLineSelection
+#         Criteria for extracting subfund information from the page.
+#     body_set : PdfLineSelection
+#         Criteria for identifying the main body content (tabular data).
+#     currency_set : PdfLineSelection | Currency | str
+#         Source of currency information. Can be:
+#         - PdfLineSelection: Extract currency from page content
+#         - Currency: Use fixed currency value
+#         - str: Currency code (e.g., "USD")
+#     deselection_list : Optional[List[PdfLineSelection]], optional
+#         List of criteria for content to exclude from extraction.
+#         Default is empty list.
+#     algorithm_flags : List | TablePosAlgorithm, optional
+#         Algorithm flags for column position detection.
+#         Default is TablePosAlgorithm(0) - no special flags.
+#     tolerance : float, optional
+#         Tolerance for column position matching.
+#         Default is 0.0.
+#     row_algorithm_flags : List | TablePosAlgorithm, optional
+#         Algorithm flags for row position detection.
+#         Default is TablePosAlgorithm(0) - no special flags.
+#     row_tolerance : float, optional
+#         Tolerance for row position matching.
+#         Default is 0.0.
 
-            if isinstance(_algorithm_flags, list):
-                all_flags = [
-                    TablePosAlgorithm.RETURN_ROWS,
-                    TablePosAlgorithm.BIG_CELL_RULE,
-                    TablePosAlgorithm.USE_RULER_AREA,
-                    TablePosAlgorithm.USE_TES_POS,
-                ]
-                algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
-                for flag, enabled in zip(all_flags, _algorithm_flags):
-                    if enabled:
-                        algo |= flag
-                _algorithm_flags = algo
-            if isinstance(_row_algorithm_flags, list):
-                all_flags = [
-                    TablePosAlgorithm.RETURN_ROWS,
-                    TablePosAlgorithm.BIG_CELL_RULE,
-                    TablePosAlgorithm.USE_RULER_AREA,
-                    TablePosAlgorithm.USE_TES_POS,
-                ]
-                algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
-                for flag, enabled in zip(all_flags, _row_algorithm_flags):
-                    if enabled:
-                        algo |= flag
-                _row_algorithm_flags = algo
+#     Returns
+#     -------
+#     Callable[[PdfFilterFunc], PdfFilterFunc]
+#         A decorator that applies the standardized PDF filter processing.
 
-            cfg = TableConfig()
-            # cfg.cols=[]
-            collapse_alg = CollapseAlgorithm.GEOMETRY
-            coords = get_table_coordinates(
-                table_rows,
-                cfg,
-                _algorithm_flags,
-                collapse_alg,
-                tolerance=row_tolerance,
-                company_col=company_index,
-                collapse=False,
-            )
-            table_row_positions, table_col_positions = zip(*coords)
+#     Notes
+#     -----
+#     The created filter performs the following operations:
+#     1. **Header Detection**: Checks if page contains specified header(s)
+#     2. **Subfund Extraction**: Extracts subfund information from specified area
+#     3. **Currency Extraction**: Determines currency for financial data
+#     4. **Body Content Filtering**: Identifies relevant tabular content
+#     5. **Table Structure Analysis**: Detects rows and columns using geometric algorithms
+#     6. **Deselection**: Removes unwanted content based on deselection criteria
+#     7. **Metadata Enrichment**: Adds table position information to blocks
 
-            def _width(bounds):
-                return bounds[2] - bounds[0]
+#     The algorithm supports complex table layouts through configurable
+#     position detection algorithms and tolerance settings.
 
-            table_cell_widths = [_width(table_row.bbox) for table_row in table_rows]
-            max_width = max(table_cell_widths)
-            is_max_width = [width == max_width for width in table_cell_widths]
-            return [
-                PdfBlock(
-                    OnePdfBlockType.RELEVANT_BLOCK,
-                    {
-                        **metadata,
-                        "table-row": table_row_positions[i],
-                        "table-col": table_col_positions[i],
-                        "is-max-width": is_max_width[i],
-                    },
-                    table_row.text,
-                )
-                for i, table_row in enumerate(table_rows)
-            ]
+#     Examples
+#     --------
+#     >>> @standard_pdf_filtering(
+#     ...     header_set=PdfLineSelection(font="Arial-Bold", text="PORTFOLIO HOLDINGS"),
+#     ...     subfund_set=PdfLineSelection(font="Arial", area=((0, 100), (700, 750))),
+#     ...     body_set=PdfLineSelection(font="Arial", font_size=10),
+#     ...     currency_set="USD",
+#     ...     deselection_list=[PdfLineSelection(text="TOTAL")]
+#     ... )
+#     >>> def my_pdf_filter(xml_root: etree.Element) -> List[PdfBlock]:
+#     ...     # Custom page metadata extraction
+#     ...     return {}
+#     """
+#     if deselection_list is None:
+#         deselection_list = []
+#     for deselection_set in deselection_list:
+#         body_set = body_set / deselection_set
 
-        def pdf_filter_xml(xml_root):
-            lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
-            return pdf_filter(lines)
+#     def decorator(f):
+#         if manco_set is not None:
 
-        return pdf_filter_xml
+#             @standard_extraction_subfund(subfund_set)
+#             @standard_extraction_currency(currency_set)
+#             @standard_extraction_manco(manco_set)
+#             @overwrite_if_implemented(f)
+#             def page_metadata(_: etree.Element) -> dict:
+#                 return {}
+#         else:
+#             # Original without manco (backward compatible)
+#             @standard_extraction_subfund(subfund_set)
+#             @standard_extraction_currency(currency_set)
+#             @overwrite_if_implemented(f)
+#             def page_metadata(_: etree.Element) -> dict:
+#                 return {}
 
-    return decorator
+#         def _is_header(lines, header_set) -> bool:
+#             if not isinstance(header_set, list):
+#                 header_set = [header_set]
+#             for hsa in header_set:
+#                 if len(hsa.select(lines)) == 0:
+#                     return False
+#             return True
+
+#         @filter_page_if(lambda x: _is_header(x, header_set))
+#         def pdf_filter(rows) -> List[PdfBlock]:
+#             _algorithm_flags = algorithm_flags
+#             _row_algorithm_flags = row_algorithm_flags
+#             metadata = {}
+#             try:
+#                 metadata = page_metadata(rows)
+#             except ExpectedPdfBlockNotFound as e:
+#                 raise PageParseFail(e) from e
+#             table_rows = body_set.select(rows)
+#             # Check if the whole table is empty
+#             if table_rows == []:
+#                 return []
+
+#             if isinstance(_algorithm_flags, list):
+#                 all_flags = [
+#                     TablePosAlgorithm.RETURN_ROWS,
+#                     TablePosAlgorithm.BIG_CELL_RULE,
+#                     TablePosAlgorithm.USE_RULER_AREA,
+#                     TablePosAlgorithm.USE_TES_POS,
+#                 ]
+#                 algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+#                 for flag, enabled in zip(all_flags, _algorithm_flags):
+#                     if enabled:
+#                         algo |= flag
+#                 _algorithm_flags = algo
+#             if isinstance(_row_algorithm_flags, list):
+#                 all_flags = [
+#                     TablePosAlgorithm.RETURN_ROWS,
+#                     TablePosAlgorithm.BIG_CELL_RULE,
+#                     TablePosAlgorithm.USE_RULER_AREA,
+#                     TablePosAlgorithm.USE_TES_POS,
+#                 ]
+#                 algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
+#                 for flag, enabled in zip(all_flags, _row_algorithm_flags):
+#                     if enabled:
+#                         algo |= flag
+#                 _row_algorithm_flags = algo
+
+#             cfg = TableConfig()
+#             # cfg.cols=[]
+#             collapse_alg = CollapseAlgorithm.GEOMETRY
+#             coords = get_table_coordinates(
+#                 table_rows,
+#                 cfg,
+#                 _algorithm_flags,
+#                 collapse_alg,
+#                 tolerance=row_tolerance,
+#                 company_col=company_index,
+#                 collapse=False,
+#             )
+#             table_row_positions, table_col_positions = zip(*coords)
+
+#             def _width(bounds):
+#                 return bounds[2] - bounds[0]
+
+#             table_cell_widths = [_width(table_row.bbox) for table_row in table_rows]
+#             max_width = max(table_cell_widths)
+#             is_max_width = [width == max_width for width in table_cell_widths]
+#             return [
+#                 PdfBlock(
+#                     OnePdfBlockType.RELEVANT_BLOCK,
+#                     {
+#                         **metadata,
+#                         "table-row": table_row_positions[i],
+#                         "table-col": table_col_positions[i],
+#                         "is-max-width": is_max_width[i],
+#                     },
+#                     table_row.text,
+#                 )
+#                 for i, table_row in enumerate(table_rows)
+#             ]
+#         def pdf_filter_xml(xml_root):
+#             lines=[pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+#             return pdf_filter(lines)
+#         return pdf_filter_xml
+
+#     return decorator
