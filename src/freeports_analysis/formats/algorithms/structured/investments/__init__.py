@@ -20,8 +20,7 @@ from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
 from freeports_analysis.formats.algorithms.commons import (
-    PipeIndexMode,
-    MissingIndexPolicy,
+    FKRelation,
     create_index_format_name_pipe,
     index_format_pipe,
     PdfExtractSegment,
@@ -32,6 +31,7 @@ from freeports_analysis.formats.algorithms.commons import (
 from .. import column_line_set
 
 data = Path(__file__).parent
+pipeline_default = data.name
 
 args_schema = pa.DataFrameSchema(
     {
@@ -46,7 +46,7 @@ args_schema = pa.DataFrameSchema(
     },
     strict=True,
     coerce=True,
-    index=index_format_pipe(PipeIndexMode.INFER),
+    index=index_format_pipe(FKRelation.ONE_TO_ONE),
 )
 
 
@@ -60,16 +60,11 @@ def get_args() -> pd.DataFrame:
     """
     df = pd.read_csv(data / "args.csv")
     df = create_index_format_name_pipe(
-        df, pipeline_default="investments", mode=PipeIndexMode.INFER
+        df,
+        pipeline_default=pipeline_default,
+        relation_to_principal=FKRelation.ONE_TO_ONE,
     )
     return args_schema.validate(df)
-
-
-VALID_ALGORITHM_ID = get_args().index.get_level_values("ID").to_list()
-
-id_index = index = pa.Index(
-    pd.StringDtype, checks=[pa.Check(lambda x: x.isin(VALID_ALGORITHM_ID))], name="ID"
-)
 
 
 additional_args_schema = pa.DataFrameSchema(
@@ -83,7 +78,7 @@ additional_args_schema = pa.DataFrameSchema(
     },
     coerce=True,
     strict=True,
-    index=id_index,
+    index=index_format_pipe(FKRelation.ONE_TO_MAYBE),
 )
 
 
@@ -95,30 +90,37 @@ def get_additional_args() -> pd.DataFrame:
     pd.DataFrame
         Validated DataFrame
     """
-    df = pd.read_csv(data / "additional_args.csv", index_col=["ID"])
-    # return additional_args_schema.validate(df)
-    return df
+    df = pd.read_csv(data / "additional_args.csv")
+    df = create_index_format_name_pipe(
+        df,
+        pipeline_default=pipeline_default,
+        relation_to_principal=FKRelation.ONE_TO_MAYBE,
+    )
+    return additional_args_schema.validate(df)
 
 
-additional_headers_schema = pa.DataFrameSchema(
-    {"Header set": column_line_set}, coerce=True, strict=True, index=id_index
-)
+# additional_headers_schema = pa.DataFrameSchema(
+#     {"Header set": column_line_set}, coerce=True, strict=True, index=None
+# )
 
 
-def get_additional_headers() -> pd.DataFrame:
-    """Gets and validates the additional headers table
+# def get_additional_headers() -> pd.DataFrame:
+#     """Gets and validates the additional headers table
 
-    Returns
-    -------
-    pd.DataFrame
-        Validated DataFrame
-    """
-    df = pd.read_csv(data / "additional_headers.csv", index_col=["ID"])
-    return additional_headers_schema.validate(df)
+#     Returns
+#     -------
+#     pd.DataFrame
+#         Validated DataFrame
+#     """
+#     df = pd.read_csv(data / "additional_headers.csv", index_col=["ID"])
+#     return additional_headers_schema.validate(df)
 
 
 deselection_list_schema = pa.DataFrameSchema(
-    {"Deselection set": column_line_set}, coerce=True, strict=True, index=id_index
+    {"Deselection set": column_line_set},
+    coerce=True,
+    strict=True,
+    index=index_format_pipe(FKRelation.ONE_TO_MANY),
 )
 
 
@@ -130,7 +132,13 @@ def get_deselection_lists() -> pd.DataFrame:
     pd.DataFrame
         Validated DataFrame
     """
-    df = pd.read_csv(data / "deselection_lists.csv", index_col=["ID"])
+    df = pd.read_csv(data / "deselection_lists.csv")
+    df = create_index_format_name_pipe(
+        df,
+        pipeline_default=pipeline_default,
+        mode=PipeIndexMode.EXPLICIT,
+        missing_index_policy=MissingIndexPolicy.ZERO,
+    )
     return deselection_list_schema.validate(df)
 
 
@@ -142,7 +150,7 @@ partial_pipes_schema = pa.DataFrameSchema(
     },
     coerce=True,
     strict=True,
-    index=id_index,
+    index=None,
 )
 
 

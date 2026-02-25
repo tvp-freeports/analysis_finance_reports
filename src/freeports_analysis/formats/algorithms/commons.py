@@ -33,6 +33,12 @@ class MissingIndexPolicy(Enum):
     INFER = "infer"
 
 
+class FKRelation(Enum):
+    ONE_TO_MAYBE = "one to maybe one"
+    ONE_TO_ONE = "one to one"
+    ONE_TO_MANY = "one to many"
+
+
 # ============================================================
 # Regular expressions
 # ============================================================
@@ -87,9 +93,7 @@ def add_pipeline_name(
 
 
 def add_pipe_index(
-    df: pd.DataFrame,
-    mode: PipeIndexMode = PipeIndexMode.INFER,
-    missing_index_policy: MissingIndexPolicy = MissingIndexPolicy.ZERO,
+    df: pd.DataFrame, relation_to_principal: FKRelation.ONE_TO_ONE
 ) -> pd.DataFrame:
     """
     Add 'Pipe index' column.
@@ -104,7 +108,16 @@ def add_pipe_index(
         MissingIndexPolicy.ZERO
         MissingIndexPolicy.INFER
     """
-
+    mode = (
+        PipeIndexMode.INFER
+        if relation_to_principal == FKRelation.ONE_TO_ONE
+        else PipeIndexMode.EXPLICIT
+    )
+    missing_index_policy = (
+        MissingIndexPolicy.ZERO
+        if relation_to_principal == FKRelation.ONE_TO_MANY
+        else MissingIndexPolicy.INFER
+    )
     df = df.copy()
 
     if mode is PipeIndexMode.EXPLICIT:
@@ -137,8 +150,7 @@ def add_pipe_index(
 def create_index_format_name_pipe(
     df: pd.DataFrame,
     pipeline_default: Optional[str] = None,
-    mode: PipeIndexMode = PipeIndexMode.INFER,
-    missing_index_policy: MissingIndexPolicy = MissingIndexPolicy.ZERO,
+    relation_to_principal: FKRelation = FKRelation.ONE_TO_ONE,
 ) -> pd.DataFrame:
     """
     Full pipeline:
@@ -152,14 +164,18 @@ def create_index_format_name_pipe(
     df = add_pipeline_name(df, default=pipeline_default)
     df = add_pipe_index(
         df,
-        mode=mode,
         missing_index_policy=missing_index_policy,
     )
 
     return df.set_index(["Format name", "Pipeline name", "Pipe index", "ID"])
 
 
-def index_format_pipe(mode: PipeIndexMode):
+def index_format_pipe(relation_to_principal: FKRelation.ONE_TO_ONE):
+    mode = (
+        PipeIndexMode.INFER
+        if relation_to_principal == FKRelation.ONE_TO_ONE
+        else PipeIndexMode.EXPLICIT
+    )
     # Pandera schema for validating format-pipeline index structure
     reg = (
         format_algorithm_id_regexp
