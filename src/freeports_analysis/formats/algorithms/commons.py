@@ -170,7 +170,7 @@ index_format_pipe: pa.MultiIndex = pa.MultiIndex(
             nullable=True,
         ),
         pa.Index(
-            pd.Int32Dtype,
+            pd.UInt16Dtype,
             name="Pipe index",
         ),
         pa.Index(
