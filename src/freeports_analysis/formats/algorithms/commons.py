@@ -162,10 +162,7 @@ def create_index_format_name_pipe(
 
     df = add_format_name(df)
     df = add_pipeline_name(df, default=pipeline_default)
-    df = add_pipe_index(
-        df,
-        missing_index_policy=missing_index_policy,
-    )
+    df = add_pipe_index(df, relation_to_principal=relation_to_principal)
 
     return df.set_index(["Format name", "Pipeline name", "Pipe index", "ID"])
 

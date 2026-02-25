@@ -136,8 +136,7 @@ def get_deselection_lists() -> pd.DataFrame:
     df = create_index_format_name_pipe(
         df,
         pipeline_default=pipeline_default,
-        mode=PipeIndexMode.EXPLICIT,
-        missing_index_policy=MissingIndexPolicy.ZERO,
+        relation_to_principal=FKRelation.ONE_TO_MANY,
     )
     return deselection_list_schema.validate(df)
 
