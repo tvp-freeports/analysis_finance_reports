@@ -30,6 +30,6 @@ deselection_list = [
     body_set=body_set,
     deselection_list=deselection_list,
 )
-def pdf_filter(xml_root):
+def pdf_extract(xml_root):
     """Custom PDF filter that use a relative reference area for the subfund and for the currency"""
     raise NotImplementedError

@@ -6,6 +6,7 @@ identifiers, including validation schemas and index manipulation utilities.
 
 import pandera.pandas as pa
 import pandas as pd
+from typing import Optional
 from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
 
 # Regular expressions for pipeline naming conventions
@@ -15,6 +16,27 @@ format_algorithm_id_regexp: str = f"{FORMAT_NAME_REGEXP}({pipe_regexp})?"
 
 # Pandera schema for validating format-pipeline index structure
 index_format_pipe: pa.MultiIndex = pa.MultiIndex(
+    [
+        pa.Index(
+            pd.StringDtype,
+            [pa.Check(lambda x: x.isin(VALID_FORMATS))],
+            name="Format name",
+        ),
+        pa.Index(
+            pd.StringDtype,
+            [pa.Check(lambda x: x.str.match(f"^{pipe_name_regexp}$"))],
+            name="Pipe name",
+            nullable=True,
+        ),
+        pa.Index(
+            pd.StringDtype,
+            [pa.Check(lambda x: x.str.match(f"^{format_algorithm_id_regexp}$"))],
+            name="ID",
+        ),
+    ]
+)
+
+index_format_pipe_foreign_key: pa.MultiIndex = pa.MultiIndex(
     [
         pa.Index(
             pd.StringDtype,
@@ -142,10 +164,24 @@ class PipelineSegement:
     pipes = set()
 
     def add_pipe(self, pipe):
+        if not callable(pipe):
+            raise Exception(
+                f"Pipe added to {self.__class__.__name__} has to be callable"
+            )
         self.pipes.add(pipe)
 
-    def __init__(self):
+    def __init__(self, pipes=None):
         self.pipes = set()
+        try:
+            for p in pipes:
+                self.add_pipe(p)
+        except TypeError:
+            if callable(pipes):
+                self.add_pipe(pipes)
+            elif pipes is not None:
+                raise Exception(
+                    f"Specified pipes {pipes} is nor an iterable or a callable"
+                )
 
     def __repr__(self):
         return "{}{}".format(self.__class__.__name__, repr(self.pipes))
@@ -185,43 +221,64 @@ class DeserializeSegment(PipelineSegement):
         return [pipe(blk) for blk in txt_blks for pipe in self]
 
 
-class PageClassificationTextFilterSegment(PipelineSegement):
-    """Text Filter"""
+class Pipeline:
+    pdf_extract: PdfExtractSegment
+    text_filter: TextFilterSegment
+    deserialize: DeserializeSegment
 
-    def __call__(self, pdf_blks):
-        one_result = False
-        res = None
-        for pipe in self:
-            new_res = pipe(pdf_blks)
-            if new_res is not None:
-                one_result = True
-                res = new_res
-                if one_result:
-                    raise Exception(
-                        "Page classification text filter cannot give more than one result"
-                    )
-        return res
+    def __init__(self, pdf_extract=None, text_filter=None, deserialize=None):
+        self.pdf_extract = (
+            pdf_extract
+            if isinstance(pdf_extract, PdfExtractSegment)
+            else PdfExtractSegment(pdf_extract)
+        )
+        self.text_filter = (
+            text_filter
+            if isinstance(text_filter, TextFilterSegment)
+            else TextFilterSegment(text_filter)
+        )
+        self.deserialize = (
+            deserialize
+            if isinstance(deserialize, DeserializeSegment)
+            else DeserializeSegment(deserialize)
+        )
 
+    def add_pdf_extract(self, pdf_extract):
+        self.pdf_extract.add_pipe(pdf_extract)
 
-class PageClassificationDeserializeSegment:
-    pipe = None
+    def add_text_filter(self, text_filter):
+        self.text_filter.add_pipe(text_filter)
 
-    def __init__(self, deserialize):
-        self.pipe = deserialize
+    def add_deserialize(self, deserialize):
+        self.deserialize.add_pipe(deserialize)
+
+    def complete(self) -> bool:
+        return all(map(lambda seg: len(seg.pipes) > 0, self))
+
+    def __iter__(self):
+        return iter((self.pdf_extract, self.text_filter, self.deserialize))
 
     def __repr__(self):
-        return f"{self.__class__.__name__}{repr(self.pipe)}"
+        return "{}: =[{}--{}--{}]=>".format(
+            self.__class__.__name__,
+            repr(self.pdf_extract.pipes),
+            repr(self.text_filter.pipes),
+            repr(self.deserialize.pipes),
+        )
 
-    def __call__(self, txt_blk, page_classes):
-        if txt_blk is None:
-            return None
-        res = self.pipe(txt_blk)
-        if not isinstance(res, str):
+    def __call__(self, page, filter_data):
+        pdf_blks = self.pdf_extract(page)
+        txt_blks = self.text_filter(pdf_blks, filter_data)
+        return self.deserialize(txt_blks)
+
+    def __add__(self, other):
+        cls = self.__class__
+        if not isinstance(other, cls):
             raise Exception(
-                f"Invalid type result of page classification {type(res)} (expected `str`)"
+                f"Cannot sum segments of different type. First is {self.__class__.__name__}, second {other.__class__.__name__}"
             )
-        if res not in page_classes:
-            raise Exception(
-                f"Invalid result of page classification `{res}` not in {page_classes}"
-            )
-        return res
+        return cls(
+            pdf_extract=self.pdf_extract + other.extract,
+            text_filter=self.text_filter + other.text_filter,
+            deserialize=self.deserialize + other.deserialize,
+        )

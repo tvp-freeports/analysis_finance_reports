@@ -82,30 +82,6 @@ class Pipeline:
     text_filter: TextFilterSegment
     deserialize: DeserializeSegment
 
-    def __init__(
-        self,
-        pdf_extract=None,
-        text_filter=None,
-        deserialize=None,
-        allow_partial_pipelines=False,
-    ):
-        if not allow_partial_pipelines and (
-            pdf_extract is None or text_filter is None or deserialize is None
-        ):
-            name = (
-                "pdf_extract"
-                if pdf_extract is None
-                else "text_filter"
-                if text_filter is None
-                else "deserialize"
-            )
-            raise Exception(
-                f"Partial pipelines not allowed, found {name} to be partial. To allow partial pipelines set `allow_partial_pipelines=True`"
-            )
-        self.pdf_extract = pdf_extract
-        self.text_filter = text_filter
-        self.deserialize = deserialize
-
     def __iter__(self):
         return iter((self.pdf_extract, self.text_filter, self.deserialize))
 

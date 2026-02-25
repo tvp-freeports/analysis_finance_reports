@@ -19,24 +19,18 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
-from ..commons import (
+from freeports_analysis.formats.algorithms.commons import (
     create_index_format_name_pipe,
     index_format_pipe,
     PdfExtractSegment,
     TextFilterSegment,
     DeserializeSegment,
 )
+from .. import column_line_set
 
 data = Path(__file__).parent
 
 
-column_line_set = pa.Column(
-    pd.StringDtype,
-    checks=[
-        pa.Check(lambda x: x.str.match(f"^{LINE_SET_REGEXP}$")),
-    ],
-    nullable=True,
-)
 args_schema = pa.DataFrameSchema(
     {
         "Subfund set": column_line_set,
