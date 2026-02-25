@@ -4,15 +4,156 @@ This module provides shared functionality for handling format and pipeline
 identifiers, including validation schemas and index manipulation utilities.
 """
 
+# import pandera.pandas as pa
+# import pandas as pd
+# from typing import Optional
+# from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
+
+# # Regular expressions for pipeline naming conventions
+# pipeline_name_regexp: str = "[0-9a-z_]*"
+# pipeline_regexp: str = rf"\({pipe_name_regexp}\)"
+# index_regexp: str = rf"/[0-9]+"
+# format_algorithm_id_regexp: str = f"{FORMAT_NAME_REGEXP}({pipe_regexp})?({index_regexp})?"
+
 import pandera.pandas as pa
 import pandas as pd
+from enum import Enum
 from typing import Optional
+
 from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
 
-# Regular expressions for pipeline naming conventions
-pipe_name_regexp: str = "[0-9a-z_]*"
-pipe_regexp: str = rf"\({pipe_name_regexp}\)"
-format_algorithm_id_regexp: str = f"{FORMAT_NAME_REGEXP}({pipe_regexp})?"
+
+class PipeIndexMode(Enum):
+    INFER = "infer"
+    EXPLICIT = "explicit"
+
+
+class MissingIndexPolicy(Enum):
+    ZERO = "zero"
+    INFER = "infer"
+
+
+# ============================================================
+# Regular expressions
+# ============================================================
+
+pipeline_name_regexp: str = r"[0-9a-z_]*"
+pipeline_regexp: str = rf"\(({pipeline_name_regexp})\)"
+index_regexp: str = r"/([0-9]+)"
+
+format_algorithm_id_regexp: str = (
+    rf"{FORMAT_NAME_REGEXP}"
+    rf"({pipeline_regexp})?"
+    rf"({index_regexp})?"
+)
+
+
+def add_format_name(df: pd.DataFrame) -> pd.DataFrame:
+    """Extract format name from ID (removes pipeline and index suffix)."""
+
+    df = df.assign(
+        format_name=lambda x: (
+            x["ID"]
+            .str.replace(rf"{pipeline_regexp}{index_regexp}?$", "", regex=True)
+            .str.replace(rf"{index_regexp}$", "", regex=True)
+        )
+    )
+
+    return df.rename(columns={"format_name": "Format name"})
+
+
+def add_pipeline_name(
+    df: pd.DataFrame,
+    default: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Extract pipeline name from ID.
+
+    If missing, fill with `default`.
+    """
+
+    df = df.assign(
+        pipeline_name=lambda x: x["ID"].str.extract(rf"\(({pipeline_name_regexp})\)")[0]
+    )
+
+    if default is not None:
+        df["pipeline_name"] = df["pipeline_name"].fillna(default)
+
+    return df.rename(columns={"pipeline_name": "Pipeline name"})
+
+
+def add_pipe_index(
+    df: pd.DataFrame,
+    mode: PipeIndexMode = PipeIndexMode.INFER,
+    missing_index_policy: MissingIndexPolicy = MissingIndexPolicy.ZERO,
+) -> pd.DataFrame:
+    """
+    Add 'Pipe index' column.
+
+    Parameters
+    ----------
+    mode:
+        PipeIndexMode.INFER
+        PipeIndexMode.EXPLICIT
+
+    missing_index_policy (only for EXPLICIT mode):
+        MissingIndexPolicy.ZERO
+        MissingIndexPolicy.INFER
+    """
+
+    df = df.copy()
+
+    if mode is PipeIndexMode.EXPLICIT:
+        extracted = df["ID"].str.extract(rf"{index_regexp}$")[0]
+        df["Pipe index"] = extracted.astype("Int32")
+
+        if missing_index_policy is MissingIndexPolicy.ZERO:
+            df["Pipe index"] = df["Pipe index"].fillna(0)
+
+        elif missing_index_policy is MissingIndexPolicy.INFER:
+            mask_missing = df["Pipe index"].isna()
+
+            df.loc[mask_missing, "Pipe index"] = (
+                df[mask_missing].groupby(["Format name", "Pipeline name"]).cumcount()
+            )
+
+        df["Pipe index"] = df["Pipe index"].astype("Int32")
+
+    elif mode is PipeIndexMode.INFER:
+        df["Pipe index"] = (
+            df.groupby(["Format name", "Pipeline name"]).cumcount().astype("Int32")
+        )
+
+    else:
+        raise ValueError(f"Unsupported PipeIndexMode: {mode}")
+
+    return df
+
+
+def create_index_format_name_pipe(
+    df: pd.DataFrame,
+    pipeline_default: Optional[str] = None,
+    mode: PipeIndexMode = PipeIndexMode.INFER,
+    missing_index_policy: MissingIndexPolicy = MissingIndexPolicy.ZERO,
+) -> pd.DataFrame:
+    """
+    Full pipeline:
+        1. Add Format name
+        2. Add Pipeline name
+        3. Add Pipe index
+        4. Set MultiIndex
+    """
+
+    df = add_format_name(df)
+    df = add_pipeline_name(df, default=pipeline_default)
+    df = add_pipe_index(
+        df,
+        mode=mode,
+        missing_index_policy=missing_index_policy,
+    )
+
+    return df.set_index(["Format name", "Pipeline name", "Pipe index", "ID"])
+
 
 # Pandera schema for validating format-pipeline index structure
 index_format_pipe: pa.MultiIndex = pa.MultiIndex(
@@ -24,30 +165,13 @@ index_format_pipe: pa.MultiIndex = pa.MultiIndex(
         ),
         pa.Index(
             pd.StringDtype,
-            [pa.Check(lambda x: x.str.match(f"^{pipe_name_regexp}$"))],
-            name="Pipe name",
+            [pa.Check(lambda x: x.str.match(f"^{pipeline_name_regexp}$"))],
+            name="Pipeline name",
             nullable=True,
         ),
         pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.str.match(f"^{format_algorithm_id_regexp}$"))],
-            name="ID",
-        ),
-    ]
-)
-
-index_format_pipe_foreign_key: pa.MultiIndex = pa.MultiIndex(
-    [
-        pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.isin(VALID_FORMATS))],
-            name="Format name",
-        ),
-        pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.str.match(f"^{pipe_name_regexp}$"))],
-            name="Pipe name",
-            nullable=True,
+            pd.Int32Dtype,
+            name="Pipe index",
         ),
         pa.Index(
             pd.StringDtype,
@@ -58,106 +182,106 @@ index_format_pipe_foreign_key: pa.MultiIndex = pa.MultiIndex(
 )
 
 
-def add_format_name_index(df: pd.DataFrame) -> pd.DataFrame:
-    """Extract format name from ID column and add as separate column.
+# def add_format_name_index(df: pd.DataFrame) -> pd.DataFrame:
+#     """Extract format name from ID column and add as separate column.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing algorithm IDs in 'ID' column
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         DataFrame containing algorithm IDs in 'ID' column
 
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with added 'Format name' column
+#     Returns
+#     -------
+#     pd.DataFrame
+#         DataFrame with added 'Format name' column
 
-    Notes
-    -----
-    The format name is extracted by removing any pipeline suffix from the ID.
-    For example, 'Amundi-IT23' becomes 'Amundi-IT23' and 'Amundi-IT23(pipeline1)'
-    also becomes 'Amundi-IT23'.
-    """
-    df = df.assign(
-        format_name=lambda x: x["ID"].str.replace(f"{pipe_regexp}$", "", regex=True)
-    )
-    df.rename(columns={"format_name": "Format name"}, inplace=True)
-    return df
-
-
-def add_pipe_name(df: pd.DataFrame) -> pd.DataFrame:
-    """Extract pipe name from ID column and add as separate column.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing algorithm IDs in 'ID' column
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with added 'Pipe name' column
-
-    Notes
-    -----
-    The pipe name is extracted from the pipeline suffix in parentheses.
-    For example, 'Amundi-IT23(pipeline1)' becomes 'pipeline1', while
-    'Amundi-IT23' without a pipeline suffix becomes NaN.
-    """
-    df = df.assign(
-        pipe_name=lambda x: x["ID"].str.extract(f"\(({pipe_name_regexp})\)$")
-    )
-    df.rename(columns={"pipe_name": "Pipe name"}, inplace=True)
-    return df
+#     Notes
+#     -----
+#     The format name is extracted by removing any pipeline suffix from the ID.
+#     For example, 'Amundi-IT23' becomes 'Amundi-IT23' and 'Amundi-IT23(pipeline1)'
+#     also becomes 'Amundi-IT23'.
+#     """
+#     df = df.assign(
+#         format_name=lambda x: x["ID"].str.replace(f"{pipe_regexp}$", "", regex=True)
+#     )
+#     df.rename(columns={"format_name": "Format name"}, inplace=True)
+#     return df
 
 
-def set_index_format_name_pipe(df: pd.DataFrame) -> pd.DataFrame:
-    """Set multi-index using Format name, Pipe name, and ID columns.
+# def add_pipeline_name(df: pd.DataFrame) -> pd.DataFrame:
+#     """Extract pipe name from ID column and add as separate column.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame with 'Format name', 'Pipe name', and 'ID' columns
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         DataFrame containing algorithm IDs in 'ID' column
 
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with multi-index set to (Format name, Pipe name, ID)
+#     Returns
+#     -------
+#     pd.DataFrame
+#         DataFrame with added 'Pipe name' column
 
-    Notes
-    -----
-    This creates a hierarchical index that allows efficient lookup of
-    algorithms by format name, pipeline name, and algorithm ID.
-    """
-    return df.set_index(["Format name", "Pipe name", "ID"])
+#     Notes
+#     -----
+#     The pipe name is extracted from the pipeline suffix in parentheses.
+#     For example, 'Amundi-IT23(pipeline1)' becomes 'pipeline1', while
+#     'Amundi-IT23' without a pipeline suffix becomes NaN.
+#     """
+#     df = df.assign(
+#         pipeline_name=lambda x: x["ID"].str.extract(f"\(({pipe_name_regexp})\)$")
+#     )
+#     df.rename(columns={"pipeline_name": "Pipeline name"}, inplace=True)
+#     return df
 
 
-def create_index_format_name_pipe(df: pd.DataFrame) -> pd.DataFrame:
-    """Create complete format-pipe-name index from ID column.
+# def set_index_format_name_pipe(df: pd.DataFrame) -> pd.DataFrame:
+#     """Set multi-index using Format name, Pipe name, and ID columns.
 
-    This is a convenience function that combines:
-    1. Extracting format name from ID
-    2. Extracting pipe name from ID
-    3. Setting the multi-index
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         DataFrame with 'Format name', 'Pipe name', and 'ID' columns
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing algorithm IDs in 'ID' column
+#     Returns
+#     -------
+#     pd.DataFrame
+#         DataFrame with multi-index set to (Format name, Pipe name, ID)
 
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with multi-index set to (Format name, Pipe name, ID)
+#     Notes
+#     -----
+#     This creates a hierarchical index that allows efficient lookup of
+#     algorithms by format name, pipeline name, and algorithm ID.
+#     """
+#     return df.set_index(["Format name","Pipeline name","Pipe index","ID"])
 
-    Notes
-    -----
-    This function provides a complete pipeline for converting algorithm IDs
-    into a structured multi-index format suitable for algorithm lookup and
-    management. It handles both formats with and without pipeline names.
-    """
-    df = add_format_name_index(df)
-    df = add_pipe_name(df)
-    return set_index_format_name_pipe(df)
+
+# def create_index_format_name_pipe(df: pd.DataFrame) -> pd.DataFrame:
+#     """Create complete format-pipe-name index from ID column.
+
+#     This is a convenience function that combines:
+#     1. Extracting format name from ID
+#     2. Extracting pipe name from ID
+#     3. Setting the multi-index
+
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         DataFrame containing algorithm IDs in 'ID' column
+
+#     Returns
+#     -------
+#     pd.DataFrame
+#         DataFrame with multi-index set to (Format name, Pipe name, ID)
+
+#     Notes
+#     -----
+#     This function provides a complete pipeline for converting algorithm IDs
+#     into a structured multi-index format suitable for algorithm lookup and
+#     management. It handles both formats with and without pipeline names.
+#     """
+#     df = add_format_name_index(df)
+#     df = add_pipeline_name(df)
+#     return set_index_format_name_pipe(df)
 
 
 class PipelineSegement:

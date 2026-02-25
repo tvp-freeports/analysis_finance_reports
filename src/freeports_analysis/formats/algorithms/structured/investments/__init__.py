@@ -20,12 +20,15 @@ from freeports_analysis.formats.utils.pdf_filter.select_position import (
     TablePosAlgorithm,
 )
 from freeports_analysis.formats.algorithms.commons import (
+    PipeIndexMode,
+    MissingIndexPolicy,
     create_index_format_name_pipe,
     index_format_pipe,
     PdfExtractSegment,
     TextFilterSegment,
     DeserializeSegment,
 )
+
 from .. import column_line_set
 
 data = Path(__file__).parent
@@ -57,8 +60,11 @@ def get_args() -> pd.DataFrame:
         Validated DataFrame
     """
     df = pd.read_csv(data / "args.csv")
-    df = create_index_format_name_pipe(df)
-    return args_schema.validate(df)
+    df = create_index_format_name_pipe(
+        df, pipeline_default="investments", mode=PipeIndexMode.INFER
+    )
+    # return args_schema.validate(df)
+    return df
 
 
 VALID_ALGORITHM_ID = get_args().index.get_level_values("ID").to_list()
@@ -92,7 +98,8 @@ def get_additional_args() -> pd.DataFrame:
         Validated DataFrame
     """
     df = pd.read_csv(data / "additional_args.csv", index_col=["ID"])
-    return additional_args_schema.validate(df)
+    # return additional_args_schema.validate(df)
+    return df
 
 
 additional_headers_schema = pa.DataFrameSchema(

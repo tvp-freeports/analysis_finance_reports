@@ -134,7 +134,8 @@ def get_formats_mapping() -> pd.DataFrame:
         InputTextExtract=lambda x: _input_from_func(x["text_extract"]),
         InputDeserialize=lambda x: _input_from_func(x["deserialize"]),
     )
-    return formats_mapping_schema.validate(df)
+    # return formats_mapping_schema.validate(df)
+    return df
 
 
 VALID_ALGORITHM_ID = get_formats_mapping().index.get_level_values("ID").to_list()

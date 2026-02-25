@@ -1,5 +1,5 @@
 ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous
-AMUNDI-IT24(investments/0),,,TRUE,FALSE,,TRUE
+AMUNDI-IT24(investments)/0,,,TRUE,FALSE,,TRUE
 EURIZON-EN21/0,,,,FALSE,,
 EURIZON-EN23.A/0,,,TRUE,FALSE,,
 EURIZON-EN23.B/0,,,TRUE,FALSE,,TRUE

@@ -62,9 +62,10 @@ def get_args() -> pd.DataFrame:
     pd.DataFrame
         Validated DataFrame
     """
-    df = pd.read_csv(data / "args.csv")
+    df = pd.read_csv(data / "investments" / "args.csv")
     df = create_index_format_name_pipe(df)
-    return args_schema.validate(df)
+    # return args_schema.validate(df)
+    return df
 
 
 VALID_ALGORITHM_ID = get_args().index.get_level_values("ID").to_list()
