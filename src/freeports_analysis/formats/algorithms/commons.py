@@ -46,6 +46,10 @@ format_algorithm_id_regexp: str = (
     rf"({pipeline_regexp})?"
     rf"({index_regexp})?"
 )
+format_algorithm_id_regexp_no_index: str = (
+    rf"{FORMAT_NAME_REGEXP}"
+    rf"({pipeline_regexp})?"
+)
 
 
 def add_format_name(df: pd.DataFrame) -> pd.DataFrame:
@@ -53,9 +57,9 @@ def add_format_name(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.assign(
         format_name=lambda x: (
-            x["ID"]
-            .str.replace(rf"{pipeline_regexp}{index_regexp}?$", "", regex=True)
-            .str.replace(rf"{index_regexp}$", "", regex=True)
+            x["ID"].str.replace(
+                rf"({pipeline_regexp})?({index_regexp})?$", "", regex=True
+            )
         )
     )
 
@@ -155,31 +159,38 @@ def create_index_format_name_pipe(
     return df.set_index(["Format name", "Pipeline name", "Pipe index", "ID"])
 
 
-# Pandera schema for validating format-pipeline index structure
-index_format_pipe: pa.MultiIndex = pa.MultiIndex(
-    [
-        pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.isin(VALID_FORMATS))],
-            name="Format name",
-        ),
-        pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.str.match(f"^{pipeline_name_regexp}$"))],
-            name="Pipeline name",
-            nullable=True,
-        ),
-        pa.Index(
-            pd.UInt16Dtype,
-            name="Pipe index",
-        ),
-        pa.Index(
-            pd.StringDtype,
-            [pa.Check(lambda x: x.str.match(f"^{format_algorithm_id_regexp}$"))],
-            name="ID",
-        ),
-    ]
-)
+def index_format_pipe(mode: PipeIndexMode):
+    # Pandera schema for validating format-pipeline index structure
+    reg = (
+        format_algorithm_id_regexp
+        if mode == PipeIndexMode.EXPLICIT
+        else format_algorithm_id_regexp_no_index
+    )
+    index_format_pipe_multindex: pa.MultiIndex = pa.MultiIndex(
+        [
+            pa.Index(
+                pd.StringDtype,
+                [pa.Check(lambda x: x.isin(VALID_FORMATS))],
+                name="Format name",
+            ),
+            pa.Index(
+                pd.StringDtype,
+                [pa.Check(lambda x: x.str.match(f"^{pipeline_name_regexp}$"))],
+                name="Pipeline name",
+                nullable=True,
+            ),
+            pa.Index(
+                pd.UInt16Dtype,
+                name="Pipe index",
+            ),
+            pa.Index(
+                pd.StringDtype,
+                [pa.Check(lambda x: x.str.match(f"^{reg}$"))],
+                name="ID",
+            ),
+        ]
+    )
+    return index_format_pipe_multindex
 
 
 # def add_format_name_index(df: pd.DataFrame) -> pd.DataFrame:

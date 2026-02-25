@@ -33,7 +33,6 @@ from .. import column_line_set
 
 data = Path(__file__).parent
 
-
 args_schema = pa.DataFrameSchema(
     {
         "Subfund set": column_line_set,
@@ -47,7 +46,7 @@ args_schema = pa.DataFrameSchema(
     },
     strict=True,
     coerce=True,
-    index=index_format_pipe,
+    index=index_format_pipe(PipeIndexMode.INFER),
 )
 
 
@@ -63,8 +62,7 @@ def get_args() -> pd.DataFrame:
     df = create_index_format_name_pipe(
         df, pipeline_default="investments", mode=PipeIndexMode.INFER
     )
-    # return args_schema.validate(df)
-    return df
+    return args_schema.validate(df)
 
 
 VALID_ALGORITHM_ID = get_args().index.get_level_values("ID").to_list()

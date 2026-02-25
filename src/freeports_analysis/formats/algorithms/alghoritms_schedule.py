@@ -14,7 +14,7 @@ from .commons import create_index_format_name_pipe, index_format_pipe
 
 data = Path(__file__).parent
 
-FORMAT_NAME_REGEXP = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\.]+)?"
+FORMAT_NAME_REGEXP = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\./]+)?"
 
 # Schema for validating the list of formats
 alghoritms_schedule_schema = pa.DataFrameSchema(
