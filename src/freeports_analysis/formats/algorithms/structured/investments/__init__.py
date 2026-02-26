@@ -149,7 +149,7 @@ partial_pipes_schema = pa.DataFrameSchema(
     },
     coerce=True,
     strict=True,
-    index=None,
+    index=index_format_pipe(FKRelation.ONE_TO_MAYBE),
 )
 
 
@@ -161,7 +161,8 @@ def get_partial_pipes() -> pd.DataFrame:
     pd.DataFrame
         Validated DataFrame
     """
-    df = pd.read_csv(data / "partial_pipes.csv", index_col=["ID"])
+    df = pd.read_csv(data / "partial_pipes.csv")
+    df = create_index_format_name_pipe(df, pipeline_default, FKRelation.ONE_TO_MAYBE)
     return partial_pipes_schema.validate(df)
 
 
@@ -205,7 +206,6 @@ structured_formats_schema = pa.DataFrameSchema(
             validate_partial_pipes(
                 "pdf_filter",
                 [
-                    "Header sets",
                     "Subfund set",
                     "Currency set",
                     "Body set",
