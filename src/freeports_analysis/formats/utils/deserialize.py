@@ -442,3 +442,105 @@ def standard_deserialization(
         return deserialize
 
     return wrapper
+
+
+class DeserializerInvestmentStandard:
+    cost_and_value_interpret_int: bool = True
+    quantity_interpret_float: bool = False
+
+    def __init__(
+        self,
+        cost_and_value_interpret_int: bool = True,
+        quantity_interpret_float: bool = False,
+    ):
+        self.cost_and_value_interpret_int = cost_and_value_interpret_int
+        self.quantity_interpret_float = quantity_interpret_float
+
+    def __call__(self, txt_blk):
+        """Transform TextBlock metadata into a typed dictionary.
+
+        Parameters
+        ----------
+        blk : TextBlock
+            The text block containing metadata to deserialize
+        targets : List[str]
+            List of target companies used as validation when initializing
+            the financial data object
+
+        Returns
+        -------
+            Finantial data deserialized from text block
+        """
+        md = txt_blk.metadata
+        LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
+        LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
+
+        def float_cast(x):
+            if cost_and_value_interpret_int:
+                return float(to_int(x))
+            return to_float(x)
+
+        def quantity_cast(x):
+            if quantity_interpret_float:
+                return to_float(x)
+            return float(to_int(x))
+
+        def try_cast(md, key, cast_func):
+            LOG_ADAPT_INVESTMENT_INFOS.field = key
+            if key not in md or md[key] is None:
+                LOG_ADAPT_INVESTMENT_INFOS.field = None
+                return None
+            try:
+                tmp = cast_func(md[key])
+                LOG_ADAPT_INVESTMENT_INFOS.field = None
+                return tmp
+            except ValueError:
+                logger.error(
+                    _("Error casting, found: %s"),
+                    str(md[key]).replace("\n", "\\n"),
+                )
+                logger.warning(_("Skipping field"))
+                logger.debug(str(md))
+                LOG_ADAPT_INVESTMENT_INFOS.field = None
+                return None
+
+        try:
+            args = {
+                "company": to_str(md["company"]),
+                "company_match": to_str(md["company match"]),
+                "subfund": to_str(md["subfund"]).upper()
+                if not isinstance(md["subfund"], Promise)
+                else md["subfund"],
+                "manco": to_str(md["manco"]) if md.get("manco") else None,
+                "market_value": float_cast(md["market value"]),
+                "currency": to_currency(md["currency"]),
+                "nominal_quantity": try_cast(md, "quantity", quantity_cast),
+                "perc_net_assets": try_cast(md, "% net assets", perc_to_float),
+                "acquisition_cost": try_cast(md, "acquisition cost", float_cast),
+                "acquisition_currency": try_cast(
+                    md, "acquisition currency", to_currency
+                ),
+            }
+            if txt_blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
+                LOG_ADAPT_INVESTMENT_INFOS.company = None
+                LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+                return Equity(**args)
+            if txt_blk.type_block == EquityBondTextBlockType.BOND_TARGET:
+                LOG_ADAPT_INVESTMENT_INFOS.company = None
+                LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+                return Bond(
+                    **args,
+                    maturity=to_date(md["maturity"]) if "maturity" in md else None,
+                    interest_rate=perc_to_float(md["interest rate"])
+                    if "interest rate" in md
+                    else None,
+                )
+            tmp = default_other_txt_blk_deserializer(txt_blk)
+            LOG_ADAPT_INVESTMENT_INFOS.company = None
+            LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+            return tmp
+        except ValueError as e:
+            logger.error(_("Cast error"))
+            LOG_ADAPT_INVESTMENT_INFOS.company = None
+            LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+            raise LineParseFail(e) from e
