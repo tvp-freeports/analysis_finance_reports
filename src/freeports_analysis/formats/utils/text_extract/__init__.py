@@ -821,7 +821,7 @@ class TextFilterInvestmentsStandard:
                     instrument = EquityBondTextBlockType.BOND_TARGET
                     metadata["maturity"] = date_match[1]
                     break
-            metadata.update(add_metadata(pdf_blocks_table, i))
+            # metadata.update(add_metadata(pdf_blocks_table, i))
             return TextBlock(instrument, metadata, pdf_blocks_table[i])
 
         self.__txt_filter = text_filter

@@ -476,12 +476,12 @@ class DeserializerInvestmentStandard:
         LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
 
         def float_cast(x):
-            if cost_and_value_interpret_int:
+            if self.cost_and_value_interpret_int:
                 return float(to_int(x))
             return to_float(x)
 
         def quantity_cast(x):
-            if quantity_interpret_float:
+            if self.quantity_interpret_float:
                 return to_float(x)
             return float(to_int(x))
 
@@ -535,10 +535,10 @@ class DeserializerInvestmentStandard:
                     if "interest rate" in md
                     else None,
                 )
-            tmp = default_other_txt_blk_deserializer(txt_blk)
-            LOG_ADAPT_INVESTMENT_INFOS.company = None
-            LOG_ADAPT_INVESTMENT_INFOS.company_match = None
-            return tmp
+            # tmp=default_other_txt_blk_deserializer(txt_blk)
+            # LOG_ADAPT_INVESTMENT_INFOS.company = None
+            # LOG_ADAPT_INVESTMENT_INFOS.company_match = None
+            # return tmp
         except ValueError as e:
             logger.error(_("Cast error"))
             LOG_ADAPT_INVESTMENT_INFOS.company = None
