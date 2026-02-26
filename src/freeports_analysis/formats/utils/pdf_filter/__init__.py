@@ -4,7 +4,7 @@ This module provides decorators and utilities for filtering and processing PDF c
 based on XML elements, fonts, and positional data.
 """
 
-from typing import List, Optional, TypeAlias, Callable
+from typing import List, Optional, TypeAlias, Callable, Set
 from enum import Enum, auto
 import logging
 from lxml import etree
@@ -52,20 +52,25 @@ Functions that process XML elements and return lists of relevant PDF blocks.
 logger = logging.getLogger(__name__)
 
 
-class StandardPageClassify:
-    header_set: PdfLineSelection | List[PdfLineSelection]
+class PdfExtractPageClassifyStandard:
+    header_sets: Set[PdfLineSelection]
 
-    def __init__(self, header_set):
-        if not isinstance(header_set, list):
-            header_set = [header_set]
-        self.header_set = header_set
+    def __init__(self, header_sets):
+        self.header_set = set()
+        try:
+            for h in header_set:
+                self.header_sets.add(h)
+        except TypeError:
+            self.header_sets.add(header_sets)
 
     def __call__(self, xml_root):
         lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
         for hsa in header_set:
             if len(hsa.select(lines)) == 0:
-                return False
-        return True
+                return []
+        return [
+            PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"page_type": "investments"}, "")
+        ]
 
 
 class PdfExtractInvestmentsStandard:

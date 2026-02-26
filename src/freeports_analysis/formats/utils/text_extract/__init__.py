@@ -31,6 +31,10 @@ from .. import overwrite_if_implemented
 logger = logging.getLogger(__name__)
 
 
+class OneTextBlockType(Enum):
+    RELEVANT_BLOCK = auto()
+
+
 class EquityBondTextBlockType(Enum):
     """Enum representing two type of text blocks in document processing.
 
@@ -629,6 +633,15 @@ def standard_text_extraction(
         return text_extract
 
     return wrapper
+
+
+class TextFilterPageClassifyStandard:
+    def __call__(self, pdf_blks, _):
+        if len(pdf_blks) == 0:
+            return []
+        else:
+            blk = pdf_blks[0]
+            return TextBlock(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, blk)
 
 
 class TextFilterInvestmentsStandard:

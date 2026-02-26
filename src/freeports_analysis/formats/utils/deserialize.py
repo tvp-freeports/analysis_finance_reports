@@ -444,6 +444,11 @@ def standard_deserialization(
     return wrapper
 
 
+class DeserializerPageClassifyStandard:
+    def __call__(self, txt_blk):
+        return txt_blk.metadata["page_type"]
+
+
 class DeserializerInvestmentStandard:
     cost_and_value_interpret_int: bool = True
     quantity_interpret_float: bool = False
