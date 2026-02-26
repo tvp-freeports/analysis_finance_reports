@@ -445,7 +445,7 @@ class Pipeline:
                 f"Cannot sum segments of different type. First is {self.__class__.__name__}, second {other.__class__.__name__}"
             )
         return cls(
-            pdf_extract=self.pdf_extract + other.extract,
+            pdf_extract=self.pdf_extract + other.pdf_extract,
             text_filter=self.text_filter + other.text_filter,
             deserialize=self.deserialize + other.deserialize,
         )
