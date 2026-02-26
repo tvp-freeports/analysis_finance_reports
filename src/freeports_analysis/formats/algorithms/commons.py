@@ -47,16 +47,6 @@ pipeline_name_regexp: str = r"[0-9a-z_]*"
 pipeline_regexp: str = rf"\(({pipeline_name_regexp})\)"
 index_regexp: str = r"/([0-9]+)"
 
-# format_algorithm_id_regexp: str = (
-#     rf"{FORMAT_NAME_REGEXP}"
-#     rf"({pipeline_regexp})?"
-#     rf"({index_regexp})?"
-# )
-# format_algorithm_id_regexp_no_index: str = (
-#     rf"{FORMAT_NAME_REGEXP}"
-#     rf"({pipeline_regexp})?"
-# )
-
 
 class IDFormat(Enum):
     EXPANDIBLE_NO_INDEX = 0

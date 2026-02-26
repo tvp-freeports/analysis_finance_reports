@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_filter import StandardInvestmentsPdfFilter
+from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
@@ -340,7 +340,7 @@ def get_pipes(
             pdf_filter_args = _set_if_not_na(
                 pdf_filter_args, "tolerance", arg, "Tolerance"
             )
-            pdf_filter = StandardInvestmentsPdfFilter(**pdf_filter_args)
+            pdf_filter = PdfExtractInvestmentsStandard(**pdf_filter_args)
             if pipeline not in pdf_filter_segment:
                 pdf_filter_segment[pipeline] = PdfExtractSegment()
             pdf_filter_segment[pipeline].add_pipe(pdf_filter)

@@ -10,7 +10,7 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
     InputPdfLineSet,
     pdfline_selection_from_dict,
 )
-from freeports_analysis.formats.utils.pdf_filter import StandardInvestmentsPdfFilter
+from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.utils.pdf_filter.select_position import (
     InputTablePosAlgorithm,
     TablePosAlgorithm,
@@ -78,7 +78,7 @@ def standard_cost_curr(arg: InputStandardCostCurr) -> Callable[[Any], Any]:
     The function converts input line sets to internal representations and
     applies the standard PDF filtering algorithm with the specified parameters.
     """
-    return StandardInvestmentsPdfFilter(
+    return PdfExtractInvestmentsStandard(
         deselection_list=[
             pdfline_selection_from_dict(il.model_dump()) for il in arg.deselection_list
         ],

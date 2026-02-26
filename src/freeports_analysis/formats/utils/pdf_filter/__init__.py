@@ -68,30 +68,30 @@ class StandardPageClassify:
         return True
 
 
-class StandardInvestmentsPdfFilter:
+class PdfExtractInvestmentsStandard:
     subfund_set: PdfLineSelection
     body_set: PdfLineSelection
     currency_set: PdfLineSelection | Currency | str
-    manco_set: Optional[PdfLineSelection] = None
-    deselection_list: Optional[List[PdfLineSelection]] = None
-    algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0)
-    tolerance: float = 0.0
-    row_algorithm_flags: List | TablePosAlgorithm = TablePosAlgorithm(0)
-    row_tolerance: float = 0.0
-    company_index: Optional[int] = None
+    manco_set: Optional[PdfLineSelection]
+    deselection_list: Optional[List[PdfLineSelection]]
+    algorithm_flags: List | TablePosAlgorithm
+    tolerance: float
+    row_algorithm_flags: List | TablePosAlgorithm
+    row_tolerance: float
+    company_index: Optional[int]
 
     def __init__(
         self,
         subfund_set,
         body_set,
         currency_set,
-        manco_set,
-        deselection_list,
-        algorithm_flags,
-        tolerance,
-        row_algorithm_flags,
-        row_tolerance,
-        company_index,
+        manco_set=None,
+        deselection_list=[],
+        algorithm_flags=TablePosAlgorithm(0),
+        tolerance=0.0,
+        row_algorithm_flags=TablePosAlgorithm(0),
+        row_tolerance=0.0,
+        company_index=None,
     ):
         self.subfund_filter = StandardPageMetadataFilter(subfund_set, "Subfund")
         self.manco_filter = StandardPageMetadataFilter(manco_set, "Management company")

@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_filter import StandardInvestmentsPdfFilter
+from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.utils.text_extract import standard_text_extraction
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
@@ -27,6 +27,7 @@ from freeports_analysis.formats.algorithms.commons import (
     PdfExtractSegment,
     TextFilterSegment,
     DeserializeSegment,
+    Pipeline,
 )
 
 from .. import column_line_set
@@ -279,7 +280,7 @@ def get_structured_formats() -> pd.DataFrame:
     return structured_formats_schema.validate(result)
 
 
-def get_pipes(
+def get_pipelines(
     format_name: str,
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
@@ -310,23 +311,16 @@ def get_pipes(
         ]
     except KeyError:
         pass
-    pdf_filter_segment: Dict[str, List[Callable]] = {}
-    text_extract_segment: Dict[str, List[Callable]] = {}
-    deserialize_segment: Dict[str, List[Callable]] = {}
+    pipelines = {}
 
-    for pipeline, arg in args:
+    def _set_if_not_na(func_arg_dict, key, args, key_value):
+        if not pd.isna(args[key_value]):
+            func_arg_dict[key] = args[key_value]
+        return func_arg_dict
 
-        def _set_if_not_na(func_arg_dict, key, args, key_value):
-            if not pd.isna(args[key_value]):
-                func_arg_dict[key] = args[key_value]
-            return func_arg_dict
-
-        # PDF Filter segment
+    for pipeline_name, arg in args:
         if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
             pdf_filter_args = {
-                "header_set": [
-                    pdfline_selection_from_str(s) for s in arg["Header sets"]
-                ],
                 "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
                 "body_set": pdfline_selection_from_str(arg["Body set"]),
                 "currency_set": pdfline_selection_from_str(arg["Currency set"]),
@@ -342,61 +336,94 @@ def get_pipes(
             pdf_filter_args = _set_if_not_na(
                 pdf_filter_args, "tolerance", arg, "Tolerance"
             )
-            pdf_filter = StandardInvestmentsPdfFilter(**pdf_filter_args)
-            if pipeline not in pdf_filter_segment:
-                pdf_filter_segment[pipeline] = PdfExtractSegment()
-            pdf_filter_segment[pipeline].add_pipe(pdf_filter)
+            pdf_extract = PdfExtractInvestmentsStandard(**pdf_filter_args)
+            if pipeline_name not in pipelines:
+                pipelines[pipeline_name] = Pipeline()
+            pipelines[pipeline_name].add_pdf_extract(pdf_extract)
 
-        # Text Extract segment
-        if pd.isna(arg["text_extract"]) or arg["text_extract"]:
-            text_extract_args = {"market_value_pos": arg["Market value"]}
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "geometrical_indexes", arg, "Geometrical indexing"
-            )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "merge_prev", arg, "Merge previous"
-            )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "nominal_quantity_pos", arg, "Quantity"
-            )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "perc_net_assets_pos", arg, "% net assets"
-            )
-            text_extract_args = _set_if_not_na(
-                text_extract_args,
-                "acquisition_currency_pos",
-                arg,
-                "Acquisition currency",
-            )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "acquisition_cost_pos", arg, "Acquisition cost"
-            )
-            text_extract = standard_text_extraction(**text_extract_args)(
-                lambda blks, targets: None
-            )
-            if pipeline not in text_extract_segment:
-                text_extract_segment[pipeline] = TextFilterSegment()
-            text_extract_segment[pipeline].add_pipe(text_extract)
+    return pipelines
+    # pdf_filter_segment: Dict[str, List[Callable]] = {}
+    # text_extract_segment: Dict[str, List[Callable]] = {}
+    # deserialize_segment: Dict[str, List[Callable]] = {}
 
-        # Deserialize segment
-        if pd.isna(arg["deserialize"]) or arg["deserialize"]:
-            deserialize_args = {}
-            deserialize_args = _set_if_not_na(
-                deserialize_args,
-                "quantity_interpret_float",
-                arg,
-                "Interpret quantity as float",
-            )
-            deserialize_args = _set_if_not_na(
-                deserialize_args,
-                "cost_and_value_interpret_int",
-                arg,
-                "Interpret cost and value as int",
-            )
-            deserialize = standard_deserialization(**deserialize_args)(
-                lambda blk, targets: None
-            )
-            if pipeline not in deserialize_segment:
-                deserialize_segment[pipeline] = DeserializeSegment()
-            deserialize_segment[pipeline].add_pipe(deserialize)
-    return pdf_filter_segment, text_extract_segment, deserialize_segment
+    # for pipeline, arg in args:
+
+    #     # PDF Filter segment
+    #     if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
+    #         pdf_filter_args = {
+    #             "header_set": [
+    #                 pdfline_selection_from_str(s) for s in arg["Header sets"]
+    #             ],
+    #             "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
+    #             "body_set": pdfline_selection_from_str(arg["Body set"]),
+    #             "currency_set": pdfline_selection_from_str(arg["Currency set"]),
+    #         }
+    #         if isinstance(arg["Deselection set"], list):
+    #             pdf_filter_args["deselection_list"] = [
+    #                 pdfline_selection_from_str(s) for s in arg["Deselection set"]
+    #             ]
+    #         if not pd.isna(arg["Algorithm flags"]):
+    #             pdf_filter_args["algorithm_flags"] = TablePosAlgorithm.from_dict(
+    #                 arg["Algorithm flags"]
+    #             )
+    #         pdf_filter_args = _set_if_not_na(
+    #             pdf_filter_args, "tolerance", arg, "Tolerance"
+    #         )
+    #         pdf_filter = PdfExtractInvestmentsStandard(**pdf_filter_args)
+    #         if pipeline not in pdf_filter_segment:
+    #             pdf_filter_segment[pipeline] = PdfExtractSegment()
+    #         pdf_filter_segment[pipeline].add_pipe(pdf_filter)
+
+    #     # Text Extract segment
+    #     if pd.isna(arg["text_extract"]) or arg["text_extract"]:
+    #         text_extract_args = {"market_value_pos": arg["Market value"]}
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args, "geometrical_indexes", arg, "Geometrical indexing"
+    #         )
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args, "merge_prev", arg, "Merge previous"
+    #         )
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args, "nominal_quantity_pos", arg, "Quantity"
+    #         )
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args, "perc_net_assets_pos", arg, "% net assets"
+    #         )
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args,
+    #             "acquisition_currency_pos",
+    #             arg,
+    #             "Acquisition currency",
+    #         )
+    #         text_extract_args = _set_if_not_na(
+    #             text_extract_args, "acquisition_cost_pos", arg, "Acquisition cost"
+    #         )
+    #         text_extract = standard_text_extraction(**text_extract_args)(
+    #             lambda blks, targets: None
+    #         )
+    #         if pipeline not in text_extract_segment:
+    #             text_extract_segment[pipeline] = TextFilterSegment()
+    #         text_extract_segment[pipeline].add_pipe(text_extract)
+
+    #     # Deserialize segment
+    #     if pd.isna(arg["deserialize"]) or arg["deserialize"]:
+    #         deserialize_args = {}
+    #         deserialize_args = _set_if_not_na(
+    #             deserialize_args,
+    #             "quantity_interpret_float",
+    #             arg,
+    #             "Interpret quantity as float",
+    #         )
+    #         deserialize_args = _set_if_not_na(
+    #             deserialize_args,
+    #             "cost_and_value_interpret_int",
+    #             arg,
+    #             "Interpret cost and value as int",
+    #         )
+    #         deserialize = standard_deserialization(**deserialize_args)(
+    #             lambda blk, targets: None
+    #         )
+    #         if pipeline not in deserialize_segment:
+    #             deserialize_segment[pipeline] = DeserializeSegment()
+    #         deserialize_segment[pipeline].add_pipe(deserialize)
+    # return pdf_filter_segment, text_extract_segment, deserialize_segment
