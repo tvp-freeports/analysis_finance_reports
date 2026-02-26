@@ -1,8 +1,8 @@
 ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous
 AMUNDI-IT24(investments)/0,,,TRUE,FALSE,,TRUE
 EURIZON-EN21/0,,,,FALSE,,
-EURIZON-EN23.A(sgrummo)/1,,,TRUE,FALSE,,
-EURIZON-EN23.B/1,,,TRUE,FALSE,,TRUE
+EURIZON-EN23.A/0,,,TRUE,FALSE,,
+EURIZON-EN23.B/0,,,TRUE,FALSE,,TRUE
 ASTERIA-EN24/0,,,,,,TRUE
 DANSKEINVEST-EN24,,,,,,TRUE
 DANSKEINVEST-EN24,,,,,,TRUE

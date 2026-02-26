@@ -21,6 +21,7 @@ from freeports_analysis.formats.utils.pdf_filter.select_position import (
 )
 from ..commons import (
     create_index_format_name_pipe,
+    column_id_format_pipe,
     index_format_pipe,
     PdfExtractSegment,
     TextFilterSegment,
@@ -68,7 +69,7 @@ def get_args() -> pd.DataFrame:
     return df
 
 
-VALID_ALGORITHM_ID = get_args().index.get_level_values("ID").to_list()
+VALID_ALGORITHM_ID = get_args().index.get_level_values("Computed ID").to_list()
 
 id_index = index = pa.Index(
     pd.StringDtype, checks=[pa.Check(lambda x: x.isin(VALID_ALGORITHM_ID))], name="ID"

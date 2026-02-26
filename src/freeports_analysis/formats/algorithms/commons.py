@@ -47,15 +47,31 @@ pipeline_name_regexp: str = r"[0-9a-z_]*"
 pipeline_regexp: str = rf"\(({pipeline_name_regexp})\)"
 index_regexp: str = r"/([0-9]+)"
 
-format_algorithm_id_regexp: str = (
-    rf"{FORMAT_NAME_REGEXP}"
-    rf"({pipeline_regexp})?"
-    rf"({index_regexp})?"
-)
-format_algorithm_id_regexp_no_index: str = (
-    rf"{FORMAT_NAME_REGEXP}"
-    rf"({pipeline_regexp})?"
-)
+# format_algorithm_id_regexp: str = (
+#     rf"{FORMAT_NAME_REGEXP}"
+#     rf"({pipeline_regexp})?"
+#     rf"({index_regexp})?"
+# )
+# format_algorithm_id_regexp_no_index: str = (
+#     rf"{FORMAT_NAME_REGEXP}"
+#     rf"({pipeline_regexp})?"
+# )
+
+
+class IDFormat(Enum):
+    EXPANDIBLE_NO_INDEX = 0
+    EXPANDIBLE = 1
+    COMPLETE = 2
+
+
+def check_id_column(id_format: IDFormat):
+    reg = rf"{FORMAT_NAME_REGEXP}{pipeline_regexp}{index_regexp}"
+    if id_format == IDFormat.EXPANDIBLE:
+        reg = rf"{FORMAT_NAME_REGEXP}({pipeline_regexp})?({index_regexp})?"
+    elif id_format == IDFormat.EXPANDIBLE_NO_INDEX:
+        reg = rf"{FORMAT_NAME_REGEXP}({pipeline_regexp})?"
+
+    return pa.Check(lambda x: x.str.match(f"^{reg}$"))
 
 
 def add_format_name(df: pd.DataFrame) -> pd.DataFrame:
@@ -163,22 +179,35 @@ def create_index_format_name_pipe(
     df = add_format_name(df)
     df = add_pipeline_name(df, default=pipeline_default)
     df = add_pipe_index(df, relation_to_principal=relation_to_principal)
-
-    return df.set_index(["Format name", "Pipeline name", "Pipe index", "ID"])
-
-
-def index_format_pipe(relation_to_principal: FKRelation.ONE_TO_ONE):
-    mode = (
-        PipeIndexMode.INFER
-        if relation_to_principal == FKRelation.ONE_TO_ONE
-        else PipeIndexMode.EXPLICIT
+    df["Computed ID"] = (
+        df["Format name"]
+        + "("
+        + df["Pipeline name"]
+        + ")/"
+        + df["Pipe index"].astype(str)
     )
+    return df.set_index(["Format name", "Pipeline name", "Pipe index", "Computed ID"])
+
+
+def column_id_format_pipe(relation_to_principal: FKRelation.ONE_TO_ONE):
+    return pa.Column(
+        pd.StringDtype,
+        checks=[
+            check_id_column(
+                IDFormat.EXPANDIBLE_NO_INDEX
+                if relation_to_principal == FKRelation.ONE_TO_ONE
+                else IDFormat.EXPANDIBLE
+            )
+        ],
+        nullable=True,
+    )
+
+
+def index_format_pipe(id_principal_table=None):
     # Pandera schema for validating format-pipeline index structure
-    reg = (
-        format_algorithm_id_regexp
-        if mode == PipeIndexMode.EXPLICIT
-        else format_algorithm_id_regexp_no_index
-    )
+    checks_id_idx = [check_id_column(IDFormat.COMPLETE)]
+    if id_principal_table is not None:
+        checks_id_idx.append(pa.Check(lambda x: x.isin(id_principal_table)))
     index_format_pipe_multindex: pa.MultiIndex = pa.MultiIndex(
         [
             pa.Index(
@@ -198,8 +227,8 @@ def index_format_pipe(relation_to_principal: FKRelation.ONE_TO_ONE):
             ),
             pa.Index(
                 pd.StringDtype,
-                [pa.Check(lambda x: x.str.match(f"^{reg}$"))],
-                name="ID",
+                checks_id_idx,
+                name="Computed ID",
             ),
         ]
     )

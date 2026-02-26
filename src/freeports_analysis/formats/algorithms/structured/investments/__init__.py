@@ -22,6 +22,7 @@ from freeports_analysis.formats.utils.pdf_filter.select_position import (
 from freeports_analysis.formats.algorithms.commons import (
     FKRelation,
     create_index_format_name_pipe,
+    column_id_format_pipe,
     index_format_pipe,
     PdfExtractSegment,
     TextFilterSegment,
@@ -35,6 +36,7 @@ pipeline_default = data.name
 
 args_schema = pa.DataFrameSchema(
     {
+        "ID": column_id_format_pipe(FKRelation.ONE_TO_ONE),
         "Subfund set": column_line_set,
         "Currency set": column_line_set,
         "Body set": column_line_set,
@@ -46,7 +48,7 @@ args_schema = pa.DataFrameSchema(
     },
     strict=True,
     coerce=True,
-    index=index_format_pipe(FKRelation.ONE_TO_ONE),
+    index=index_format_pipe(),
 )
 
 
@@ -67,8 +69,12 @@ def get_args() -> pd.DataFrame:
     return args_schema.validate(df)
 
 
+VALID_ALGORITHM_ID = get_args().index.get_level_values("Computed ID").to_list()
+
+
 additional_args_schema = pa.DataFrameSchema(
     {
+        "ID": column_id_format_pipe(FKRelation.ONE_TO_MAYBE),
         "Algorithm flags": pa.Column(pd.StringDtype, nullable=True),
         "Tolerance": pa.Column(pd.Float32Dtype, nullable=True),
         "Interpret quantity as float": pa.Column(pd.BooleanDtype, nullable=True),
@@ -78,7 +84,7 @@ additional_args_schema = pa.DataFrameSchema(
     },
     coerce=True,
     strict=True,
-    index=index_format_pipe(FKRelation.ONE_TO_MAYBE),
+    index=index_format_pipe(VALID_ALGORITHM_ID),
 )
 
 
@@ -117,10 +123,13 @@ def get_additional_args() -> pd.DataFrame:
 
 
 deselection_list_schema = pa.DataFrameSchema(
-    {"Deselection set": column_line_set},
+    {
+        "ID": column_id_format_pipe(FKRelation.ONE_TO_MANY),
+        "Deselection set": column_line_set,
+    },
     coerce=True,
     strict=True,
-    index=index_format_pipe(FKRelation.ONE_TO_MANY),
+    index=index_format_pipe(VALID_ALGORITHM_ID),
 )
 
 
@@ -143,13 +152,14 @@ def get_deselection_lists() -> pd.DataFrame:
 
 partial_pipes_schema = pa.DataFrameSchema(
     {
+        "ID": column_id_format_pipe(FKRelation.ONE_TO_MAYBE),
         "pdf_filter": pa.Column(pd.BooleanDtype),
         "text_extract": pa.Column(pd.BooleanDtype),
         "deserialize": pa.Column(pd.BooleanDtype),
     },
     coerce=True,
     strict=True,
-    index=index_format_pipe(FKRelation.ONE_TO_MAYBE),
+    index=index_format_pipe(VALID_ALGORITHM_ID),
 )
 
 
@@ -253,31 +263,19 @@ def get_structured_formats() -> pd.DataFrame:
     comprehensive DataFrame with all parameters needed for structured
     PDF processing algorithms.
     """
-    args = get_args()
-    add_args = get_additional_args()
-    add_headers = get_additional_headers()
-    deselection_list = get_deselection_lists()
-    partial_pipes = get_partial_pipes()
-    deselection_list_agg = deselection_list.groupby(by="ID").agg(
-        {"Deselection set": list}
-    )
-    add_headers_agg = add_headers.groupby(by="ID").agg({"Header set": list})
+    args = get_args().drop(columns="ID")
+    add_args = get_additional_args().drop(columns="ID")
+    deselection_list = get_deselection_lists().drop(columns="ID")
+    partial_pipes = get_partial_pipes().drop(columns="ID")
+    deselection_list_agg = deselection_list.groupby(
+        by=["Format name", "Pipeline name", "Pipe index", "Computed ID"]
+    ).agg({"Deselection set": list})
     result = (
         args.join(add_args, how="left", validate="one_to_one")
         .join(deselection_list_agg, how="left", validate="one_to_one")
-        .join(
-            add_headers_agg, how="left", validate="one_to_one", rsuffix="s additional"
-        )
         .join(partial_pipes, how="left", validate="one_to_one")
     )
-    result["Header sets additional"] = [
-        x if isinstance(x, list) else [] for x in result["Header sets additional"]
-    ]
-    result["Header sets"] = [
-        [main] + add if not pd.isna(main) else pd.NA
-        for main, add in zip(result["Header set"], result["Header sets additional"])
-    ]
-    result.drop(columns=["Header set", "Header sets additional"], inplace=True)
+
     return structured_formats_schema.validate(result)
 
 

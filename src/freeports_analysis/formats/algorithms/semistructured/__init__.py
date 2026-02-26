@@ -138,7 +138,9 @@ def get_formats_mapping() -> pd.DataFrame:
     return df
 
 
-VALID_ALGORITHM_ID = get_formats_mapping().index.get_level_values("ID").to_list()
+VALID_ALGORITHM_ID = (
+    get_formats_mapping().index.get_level_values("Computed ID").to_list()
+)
 
 
 def _get_segment(
