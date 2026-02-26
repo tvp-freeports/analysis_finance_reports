@@ -56,16 +56,16 @@ class PdfExtractPageClassifyStandard:
     header_sets: Set[PdfLineSelection]
 
     def __init__(self, header_sets):
-        self.header_set = set()
+        self.header_sets = set()
         try:
-            for h in header_set:
+            for h in header_sets:
                 self.header_sets.add(h)
         except TypeError:
             self.header_sets.add(header_sets)
 
     def __call__(self, xml_root):
         lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
-        for hsa in header_set:
+        for hsa in self.header_set:
             if len(hsa.select(lines)) == 0:
                 return []
         return [
