@@ -82,7 +82,6 @@ def standard_cost_curr(arg: InputStandardCostCurr) -> Callable[[Any], Any]:
         deselection_list=[
             pdfline_selection_from_dict(il.model_dump()) for il in arg.deselection_list
         ],
-        # header_set=[pdfline_selection_from_dict(il.model_dump()) for il in arg.header_set],
         subfund_set=pdfline_selection_from_dict(arg.subfund_set.model_dump()),
         currency_set=arg.currency,
         body_set=pdfline_selection_from_dict(arg.body_set.model_dump()),
