@@ -11,7 +11,7 @@ import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
 from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
-from freeports_analysis.formats.utils.text_extract import standard_text_extraction
+from freeports_analysis.formats.utils.text_extract import TextFilterInvestmentsStandard
 from freeports_analysis.formats.utils.deserialize import standard_deserialization
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
     pdfline_selection_from_str,
@@ -319,6 +319,8 @@ def get_pipelines(
         return func_arg_dict
 
     for pipeline_name, arg in args:
+        if pipeline_name not in pipelines:
+            pipelines[pipeline_name] = Pipeline()
         if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
             pdf_filter_args = {
                 "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
@@ -337,9 +339,33 @@ def get_pipelines(
                 pdf_filter_args, "tolerance", arg, "Tolerance"
             )
             pdf_extract = PdfExtractInvestmentsStandard(**pdf_filter_args)
-            if pipeline_name not in pipelines:
-                pipelines[pipeline_name] = Pipeline()
             pipelines[pipeline_name].add_pdf_extract(pdf_extract)
+
+        if pd.isna(arg["text_extract"]) or arg["text_extract"]:
+            text_extract_args = {"market_value_pos": arg["Market value"]}
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "geometrical_indexes", arg, "Geometrical indexing"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "merge_prev", arg, "Merge previous"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "nominal_quantity_pos", arg, "Quantity"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "perc_net_assets_pos", arg, "% net assets"
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args,
+                "acquisition_currency_pos",
+                arg,
+                "Acquisition currency",
+            )
+            text_extract_args = _set_if_not_na(
+                text_extract_args, "acquisition_cost_pos", arg, "Acquisition cost"
+            )
+            text_filter = TextFilterInvestmentsStandard(**text_extract_args)
+            pipelines[pipeline_name].add_text_filter(text_filter)
 
     return pipelines
     # pdf_filter_segment: Dict[str, List[Callable]] = {}

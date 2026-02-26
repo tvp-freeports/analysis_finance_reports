@@ -629,3 +629,202 @@ def standard_text_extraction(
         return text_extract
 
     return wrapper
+
+
+class TextFilterInvestmentsStandard:
+    market_value_pos: int
+    nominal_quantity_pos: Optional[int]
+    perc_net_assets_pos: Optional[int]
+    acquisition_currency_pos: Optional[int]
+    acquisition_cost_pos: Optional[int]
+    geometrical_indexes: bool
+    merge_prev: bool
+
+    def __init__(
+        self,
+        market_value_pos: int,
+        nominal_quantity_pos: Optional[int] = None,
+        perc_net_assets_pos: Optional[int] = None,
+        acquisition_currency_pos: Optional[int] = None,
+        acquisition_cost_pos: Optional[int] = None,
+        geometrical_indexes: bool = True,
+        merge_prev: bool = False,
+    ):
+        if nominal_quantity_pos is not None and perc_net_assets_pos is not None:
+            if (
+                nominal_quantity_pos == market_value_pos
+                or nominal_quantity_pos == perc_net_assets_pos
+                or market_value_pos == perc_net_assets_pos
+            ):
+                raise ValueError(_("All positions should be different"))
+        self.market_value_pos = market_value_pos
+        self.nominal_quantity_pos = nominal_quantity_pos
+        self.perc_net_assets_pos = perc_net_assets_pos
+        self.acquisition_currency_pos = acquisition_currency_pos
+        self.acquisition_cost_pos = acquisition_cost_pos
+        self.geometrical_indexes = geometrical_indexes
+        self.merge_prev = merge_prev
+
+        @standard_text_extraction_loop(self.geometrical_indexes, self.merge_prev)
+        def text_filter(
+            pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
+        ) -> TextBlock:
+            def abs_idx(offset: int | Tuple[int, int]) -> int | Tuple[int, int]:
+                """Convert relative offset to absolute index in PDF blocks table.
+
+                Parameters
+                ----------
+                offset : int | Tuple[int, int]
+                    Relative offset from current position. Can be:
+                    - int: linear offset in flattened table
+                    - Tuple[int, int]: (row_offset, column_offset) in 2D table
+
+                Returns
+                -------
+                int | Tuple[int, int]
+                    Absolute index in the table structure
+                """
+                if isinstance(i, tuple):
+                    ro, co = (None, None)
+                    r, c = i
+                    if isinstance(offset, tuple):
+                        ro, co = offset
+                    else:
+                        nc = pdf_blocks_table.shape[1]
+                        co = (c + offset) % nc - c
+                        ro = (c + offset) // nc
+                    return (r + ro, c + co)
+                return i + offset
+
+            def try_extraction_of_field(
+                metadata: dict,
+                pos: int | Tuple[int, int] | None,
+                name: str,
+                pdf_blocks_table: PdfBlocksTable,
+            ) -> dict:
+                """Attempt to extract field content from PDF blocks table.
+
+                Parameters
+                ----------
+                metadata : dict
+                    Metadata dictionary to update
+                pos : int | Tuple[int, int] | None
+                    Position of the field in the table
+                name : str
+                    Name of the field to extract
+                pdf_blocks_table : PdfBlocksTable
+                    Table structure containing PDF blocks
+
+                Returns
+                -------
+                dict
+                    Updated metadata dictionary
+                """
+                if pos is not None:
+                    try:
+                        metadata[name] = pdf_blocks_table[abs_idx(pos)].content
+                    except (KeyError, AttributeError):
+                        row = None
+                        col = None
+                        if isinstance(abs_idx(pos), tuple):
+                            row, col = abs_idx(pos)
+                        logger.error(
+                            _("Expected field not found, replacing with None..."),
+                            extra={"col": col, "row": row, "field": name},
+                        )
+                        metadata[name] = None
+                return metadata
+
+            metadata = {}
+
+            metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
+
+            try:
+                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
+            except AttributeError as e:
+                logger.error(e)
+                debug_msg = ""
+                debug_msg += _("Line next to it (on row {}):\n").format(i[0])
+                debug_msg += _("Column {}:\n").format(i[1] - 1)
+                debug_msg += str(pdf_blocks_table[(i[0], i[1] - 1)])
+                debug_msg += _("\nMatching column:\n")
+                debug_msg += str(pdf_blocks_table[i])
+                debug_msg += _("\nColumn {}:\n").format(i[1] + 1)
+                debug_msg += str(pdf_blocks_table[(i[0], i[1] + 1)])
+                logger.debug(debug_msg)
+                raise ExpectedTextBlockNotFound(
+                    _("Matching text block not found")
+                ) from e
+            try:
+                metadata["market value"] = pdf_blocks_table[
+                    abs_idx(self.market_value_pos)
+                ].content
+            except (KeyError, AttributeError) as e:
+                logger.error("Field not found", extra={"field": "Market value"})
+                logger.debug(_("Current metadata:\n%s"), str(metadata))
+                logger.debug(_('Current content: "%s"'), pdf_blocks_table[i].content)
+                logger.debug(
+                    _("Requested index: %s"), str(abs_idx(self.market_value_pos))
+                )
+                raise ExpectedTextBlockNotFound from e
+
+            curr = pdf_blocks_table[i].metadata["currency"]
+            if isinstance(curr, Currency):
+                metadata["currency"] = curr
+            else:
+                currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+                found = False
+                for curr_cand in currency_candidates:
+                    try:
+                        metadata["currency"] = Currency[curr_cand]
+                        found = True
+                        break
+                    except KeyError:
+                        pass
+                if not found:
+                    curr = curr.upper()
+                    for c in Currency.__members__:
+                        currency_candidates = re.findall(r"\b" + c + r"\b", curr)
+                        for curr_cand in currency_candidates:
+                            try:
+                                metadata["currency"] = Currency[curr_cand]
+                                found = True
+                                break
+                            except KeyError:
+                                pass
+                if not found:
+                    raise ExpectedTextBlockNotFound(
+                        _('Currency not found in string: "%s"'), curr
+                    )
+
+            for pos, name in [
+                (self.perc_net_assets_pos, "% net assets"),
+                (self.nominal_quantity_pos, "quantity"),
+                (self.acquisition_currency_pos, "acquisition currency"),
+                (self.acquisition_cost_pos, "acquisition cost"),
+            ]:
+                metadata = try_extraction_of_field(
+                    metadata, pos, name, pdf_blocks_table
+                )
+
+            content = pdf_blocks_table[i].content.replace("\n", "")
+            instrument = EquityBondTextBlockType.EQUITY_TARGET
+            for reg in perc_regexes:
+                interest_rate_match = re.match(reg, content, re.DOTALL)
+                if interest_rate_match:
+                    instrument = EquityBondTextBlockType.BOND_TARGET
+                    metadata["interest rate"] = interest_rate_match[1]
+                    break
+            for reg in date_regexes:
+                date_match = re.match(reg, content, re.DOTALL)
+                if date_match:
+                    instrument = EquityBondTextBlockType.BOND_TARGET
+                    metadata["maturity"] = date_match[1]
+                    break
+            metadata.update(add_metadata(pdf_blocks_table, i))
+            return TextBlock(instrument, metadata, pdf_blocks_table[i])
+
+        self.__txt_filter = text_filter
+
+    def __call__(self, pdf_blks, filter_data):
+        return self.__txt_filter(pdf_blks, filter_data)
