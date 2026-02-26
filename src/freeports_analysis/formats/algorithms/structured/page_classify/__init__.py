@@ -32,7 +32,7 @@ from freeports_analysis.formats.algorithms.commons import (
     Pipeline,
 )
 
-from .. import column_line_set
+from ..commons import column_line_set
 
 data = Path(__file__).parent
 pipeline_default = ""

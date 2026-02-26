@@ -17,7 +17,9 @@ from freeports_analysis.formats.algorithms.unstructured import (
 from freeports_analysis.formats.algorithms.semistructured import (
     get_pipes as get_semistructured,
 )
-from freeports_analysis.formats.algorithms.structured import get_pipes as get_structured
+from freeports_analysis.formats.algorithms.structured import (
+    get_pipelines as get_structured,
+)
 from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
 from freeports_analysis.output import Investment
