@@ -1,18 +1,16 @@
 AMUNDI-IT24(investments):
-  - deselection_list:
-      - font: TrebuchetMS
-        text: "^ "
-    body_set:
-      font: TrebuchetMS
-    subfund_set:
-      font: Arial-BoldItalicMT
-      area:
-        y_max: 60
-    currency: EUR
-    # algorithm-flags:
-    #   - USE_RULER_AREA
-    tolerance: 1.0
-    row_tolerance: 0.5
+  deselection_list:
+    - font: TrebuchetMS
+      text: "^ "
+  body_set:
+    font: TrebuchetMS
+  subfund_set:
+    font: Arial-BoldItalicMT
+    area:
+      y_max: 60
+  currency: EUR
+  tolerance: 1.0
+  row_tolerance: 0.5
 
 FIDEURAM-IT24(investments):
   body_set:
