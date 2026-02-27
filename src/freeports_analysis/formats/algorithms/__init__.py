@@ -12,7 +12,7 @@ from typing import List, Callable, Dict, Tuple, Union, Any, Optional
 import logging as log
 import freeports_lib
 from freeports_analysis.formats.algorithms.unstructured import (
-    get_pipes as get_unstructured,
+    get_pipelines as get_unstructured,
 )
 from freeports_analysis.formats.algorithms.semistructured import (
     get_pipelines as get_semistructured,

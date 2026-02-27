@@ -8,42 +8,30 @@ that require custom parsing logic.
 import logging
 import importlib
 from typing import Dict, List, Tuple, Callable, Any
+from ..data import get_pageclassify_pipeline
+from ..commons import Pipeline
 
 logger = logging.getLogger(__name__)
 
 
-def _get_segment(
-    segment_name: str, pipeline_modules: Dict[str, Any]
-) -> Dict[str, List[Callable]]:
-    """Extract processing functions from pipeline modules.
-
-    Parameters
-    ----------
-    segment_name : str
-        Name of the processing segment ('pdf_filter', 'text_extract', 'deserialize')
-    pipeline_modules : Dict[str, Any]
-        Dictionary mapping pipeline names to module objects
-
-    Returns
-    -------
-    Dict[str, List[Callable]]
-        Dictionary mapping pipeline names to lists of processing functions
-
-    Notes
-    -----
-    If a module doesn't have the specified segment function, it is silently skipped.
-    """
-    segment: Dict[str, List[Callable]] = {}
-    for pipeline, module in pipeline_modules.items():
-        try:
-            funcs = getattr(module, segment_name)
-            segment[pipeline] = funcs if isinstance(funcs, list) else [funcs]
-        except AttributeError:
-            pass
-    return segment
+def get_module(format_name: str):
+    module_name = (
+        format_name.lower().replace("-", "_").replace(".", "_").replace("@", "_")
+    )
+    try:
+        module = importlib.import_module(
+            f"{__name__}.{module_name}",
+            package=__package__,
+        )
+        return module
+    except ModuleNotFoundError as e:
+        if f"No module named '{__name__}.{module_name}'" in str(e):
+            return None
+        else:
+            raise e
 
 
-def get_pipes(
+def get_pipelines(
     format_name: str,
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
@@ -66,25 +54,33 @@ def get_pipes(
     The function dynamically imports format-specific modules and extracts processing
     functions. Returns empty dictionaries if the format module is not found.
     """
-    module_name = (
-        format_name.lower().replace("-", "_").replace(".", "_").replace("@", "_")
-    )
-    modules: Dict[str, Any] = {}
+    module = get_module(format_name)
+    if module is None:
+        return {}
     try:
-        module = importlib.import_module(
-            f"{__name__}.{module_name}",
-            package=__package__,
-        )
-        named_pipelines = []
-        try:
-            named_pipelines = module.pipelines
-        except AttributeError:
-            pass
-        modules = {pipe.__name__.split(".")[-1]: pipe for pipe in named_pipelines}
-        modules |= {"": module}
-        pdf_filter_segment = _get_segment("pdf_filter", modules)
-        text_extract_segment = _get_segment("text_extract", modules)
-        deserialize_segment = _get_segment("deserialize", modules)
-        return pdf_filter_segment, text_extract_segment, deserialize_segment
-    except ModuleNotFoundError:
-        return {}, {}, {}
+        pp = module.pipelines
+        for n, p in pp.items():
+            if not isinstance(p, Pipeline):
+                raise Exception(
+                    f"Unstructured alghoritm with name `{n}` is not a Pipeline, but {type(p)}"
+                )
+        return pp
+    except AttributeError:
+        return {}
+
+
+def standard_compute_page_class(page_classification):
+    return page_classification
+
+
+def get_compute_page_class(format_name: str):
+    module = get_module(format_name)
+    if module is None:
+        return standard_compute_page_class
+    try:
+        cpc = module.compute_page_class
+        if not callable(cpc):
+            raise Exception(f"Unstructured compute_page_class should be callable")
+        return cpc
+    except AttributeError:
+        return standard_compute_page_class
