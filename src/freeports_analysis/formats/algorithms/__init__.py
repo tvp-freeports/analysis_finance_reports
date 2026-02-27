@@ -26,6 +26,7 @@ from freeports_analysis.output import Investment
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_CONTEXTUAL_INFOS, LOG_ADAPT_INVESTMENT_INFOS
 from .. import PdfBlock, TextBlock
+from .commons import Pipeline
 
 logger_source = log.getLogger(__name__)
 logger = log.getLogger("freeports_analysis.formats.utils")
@@ -77,28 +78,6 @@ class LogFormatterWithPage(log.Formatter):
         """
         string = self._parent_fmt.format(record).replace(":", f"{{pag. {self.page}}}:")
         return string
-
-
-class Pipeline:
-    pdf_extract: PdfExtractSegment
-    text_filter: TextFilterSegment
-    deserialize: DeserializeSegment
-
-    def __iter__(self):
-        return iter((self.pdf_extract, self.text_filter, self.deserialize))
-
-    def __repr__(self):
-        return "{}: =[{}--{}--{}]=>".format(
-            self.__class__.__name__,
-            repr(self.pdf_extract.pipes),
-            repr(self.text_filter.pipes),
-            repr(self.deserialize.pipes),
-        )
-
-    def __call__(self, page, filter_data):
-        pdf_blks = self.pdf_extract(page)
-        txt_blks = self.text_filter(pdf_blks, filter_data)
-        return self.deserialize(txt_blks)
 
 
 class PageClassificationPipeline(Pipeline):
@@ -346,36 +325,17 @@ def get_pipelines(
     semistruct = get_semistructured(format_name)
     unstruct = get_unstructured(format_name)
 
-    # Combine dictionaries by category
-    categories = ["pdf_filters", "text_extract", "deserialize"]
-    combined: Dict[str, Dict[str, List[Callable]]] = {}
+    pipelines_names = set(struct) | set(semistruct) | set(unstruct)
 
-    for i, category in enumerate(categories):
-        combined[category] = {**struct[i], **semistruct[i], **unstruct[i]}
+    pipelines = {
+        name: struct.get(name, Pipeline())
+        + semistruct.get(name, Pipeline())
+        + unstruct.get(name, Pipeline())
+        for name in pipelines_names
+    }
+    if not allow_partial_pipelines:
+        for p in pipelines.values():
+            if not p.complete():
+                raise ValueError(_("List of {} cannot be empty").format(category))
 
-    # Verify dictionaries are not empty
-    for category, data in combined.items():
-        if not data and not allow_partial_pipelines:
-            raise ValueError(_("List of {} cannot be empty").format(category))
-
-    # Create final result with validation
-    result: Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]] = {}
-    for key in set(
-        key for category_data in combined.values() for key in category_data.keys()
-    ):
-        pdf_filters = combined["pdf_filters"].get(key, [])
-        text_extract = combined["text_extract"].get(key, [])
-        deserialize = combined["deserialize"].get(key, [])
-
-        # Verify no list is empty
-        if not allow_partial_pipelines:
-            if not pdf_filters:
-                raise ValueError(f"Pipeline '{key}': pdf_filters cannot be empty")
-            if not text_extract:
-                raise ValueError(f"Pipeline '{key}': text_extract cannot be empty")
-            if not deserialize:
-                raise ValueError(f"Pipeline '{key}': deserialize cannot be empty")
-
-        result[key] = (pdf_filters, text_extract, deserialize)
-
-    return result
+    return pipelines
