@@ -20,6 +20,7 @@ from ..commons import (
     create_index_format_name_pipe,
     FKRelation,
     column_id_format_pipe,
+    Pipeline,
 )
 
 data = Path(__file__).parent
@@ -143,101 +144,115 @@ def get_formats_mapping() -> pd.DataFrame:
     return formats_mapping_schema.validate(df)
 
 
-# VALID_ALGORITHM_ID = get_formats_mapping().index.get_level_values("Computed ID").to_list()
+VALID_ALGORITHM_ID = (
+    get_formats_mapping().index.get_level_values("Computed ID").to_list()
+)
 
 
-# def _get_segment(
-#     format_name: str, segment_name: str, pipes_mapping: List[Tuple[str, pd.Series]]
-# ) -> Dict[str, List[Callable]]:
-#     """Get processing segment functions for a given format and segment type.
+def _get_segment(
+    format_name: str, segment_name: str, pipes_mapping: List[Tuple[str, pd.Series]]
+) -> Dict[str, List[Callable]]:
+    """Get processing segment functions for a given format and segment type.
 
-#     Parameters
-#     ----------
-#     format_name : str
-#         Name of the format to process
-#     segment_name : str
-#         Type of segment ('pdf_filter', 'text_extract', or 'deserialize')
-#     pipes_mapping : List[Tuple[str, pd.Series]]
-#         List of pipeline mappings with pipeline names and corresponding series
+    Parameters
+    ----------
+    format_name : str
+        Name of the format to process
+    segment_name : str
+        Type of segment ('pdf_filter', 'text_extract', or 'deserialize')
+    pipes_mapping : List[Tuple[str, pd.Series]]
+        List of pipeline mappings with pipeline names and corresponding series
 
-#     Returns
-#     -------
-#     Dict[str, List[Callable]]
-#         Dictionary mapping pipeline names to lists of processing functions
+    Returns
+    -------
+    Dict[str, List[Callable]]
+        Dictionary mapping pipeline names to lists of processing functions
 
-#     Raises
-#     ------
-#     KeyError
-#         If algorithm configuration is not found for the given format and pipeline
-#     """
-#     segment: Dict[str, List[Callable]] = {}
-#     input_segment = "Input" + segment_name.title().replace("_", "")
-#     args = yaml.safe_load((data / segment_name / "args.yaml").open("r"))
+    Raises
+    ------
+    KeyError
+        If algorithm configuration is not found for the given format and pipeline
+    """
+    segment: Dict[str, List[Callable]] = {}
+    input_segment = "Input" + segment_name.title().replace("_", "")
+    args = yaml.safe_load((data / segment_name / "args.yaml").open("r"))
 
-#     for pipeline, mapping in pipes_mapping:
-#         algorithm_id = f"{format_name}({pipeline})"
-#         if pd.isna(mapping[segment_name]):
-#             continue
-#         if pipeline not in segment:
-#             segment[pipeline] = []
-#         selected_args = None
-#         try:
-#             selected_args = args[algorithm_id]
-#         except KeyError:
-#             if pipeline == "":
-#                 selected_args = args[format_name]
-#             else:
-#                 raise
-#         arg = (
-#             selected_args[len(segment[pipeline])]
-#             if isinstance(selected_args, list)
-#             else selected_args
-#         )
-#         selected_func = getattr(p, mapping[segment_name])
-#         selected_input = getattr(p, mapping[input_segment])
-#         func = selected_func(selected_input(**arg))(lambda xml_root: None)
-#         segment[pipeline].append(func)
-#     return segment
-
-
-# def get_pipes(
-#     format_name: str,
-# ) -> Tuple[
-#     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
-# ]:
-#     """Get processing pipelines for a specific format.
-
-#     Parameters
-#     ----------
-#     format_name : str
-#         Name of the format to get pipelines for
-
-#     Returns
-#     -------
-#     Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
-#         Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
-#         Each dictionary maps pipeline names to lists of processing functions.
-
-#     Notes
-#     -----
-#     Returns empty dictionaries if the format name is not found in the mapping.
-#     """
-#     pipes_mapping: List[Tuple[str, pd.Series]] = []
-#     try:
-#         selected_row = get_formats_mapping().loc[format_name]
-#         pipes_mapping = [
-#             (idx[0] if not pd.isna(idx[0]) else "", row)
-#             for idx, row in selected_row.iterrows()
-#         ]
-#     except KeyError:
-#         pass
-
-#     pdf_filter_segment = _get_segment(format_name, "pdf_filter", pipes_mapping)
-#     text_extract_segment = _get_segment(format_name, "text_extract", pipes_mapping)
-#     deserialize_segment = _get_segment(format_name, "deserialize", pipes_mapping)
-
-#     return pdf_filter_segment, text_extract_segment, deserialize_segment
+    for pipeline, mapping in pipes_mapping:
+        algorithm_id = f"{format_name}({pipeline})"
+        if pd.isna(mapping[segment_name]):
+            continue
+        if pipeline not in segment:
+            segment[pipeline] = []
+        selected_args = None
+        try:
+            selected_args = args[algorithm_id]
+        except KeyError:
+            if pipeline == "":
+                selected_args = args[format_name]
+            else:
+                raise
+        arg = (
+            selected_args[len(segment[pipeline])]
+            if isinstance(selected_args, list)
+            else selected_args
+        )
+        selected_func = getattr(p, mapping[segment_name])
+        selected_input = getattr(p, mapping[input_segment])
+        func = selected_func(selected_input(**arg))
+        segment[pipeline].append(func)
+    return segment
 
 
-def get_pipes():
-    pass
+def get_pipelines(
+    format_name: str,
+) -> Tuple[
+    Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
+]:
+    """Get processing pipelines for a specific format.
+
+    Parameters
+    ----------
+    format_name : str
+        Name of the format to get pipelines for
+
+    Returns
+    -------
+    Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
+        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Each dictionary maps pipeline names to lists of processing functions.
+
+    Notes
+    -----
+    Returns empty dictionaries if the format name is not found in the mapping.
+    """
+    pipes_mapping: List[Tuple[str, pd.Series]] = []
+    try:
+        selected_row = get_formats_mapping().loc[format_name]
+        pipes_mapping = [
+            (idx[0] if not pd.isna(idx[0]) else "", row)
+            for idx, row in selected_row.iterrows()
+        ]
+    except KeyError:
+        pass
+
+    pdf_filter_segment = _get_segment(format_name, "pdf_filter", pipes_mapping)
+    text_extract_segment = _get_segment(format_name, "text_extract", pipes_mapping)
+    deserialize_segment = _get_segment(format_name, "deserialize", pipes_mapping)
+
+    pdf_extract_pipelines_names = set(pdf_filter_segment)
+    text_filter_pipelines_names = set(text_extract_segment)
+    deserialize_pipelines_names = set(deserialize_segment)
+
+    pipeline_names = (
+        pdf_extract_pipelines_names
+        | text_filter_pipelines_names
+        | deserialize_pipelines_names
+    )
+    pipelines = {}
+    for pn in pipeline_names:
+        pipelines[pn] = Pipeline(
+            pdf_extract=pdf_filter_segment.get(pn),
+            text_filter=text_extract_segment.get(pn),
+            deserialize=deserialize_segment.get(pn),
+        )
+    return pipelines

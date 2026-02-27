@@ -1,15 +1,3 @@
-AMUNDI-IT24:
-  header_set:
-    - font: TrebuchetMS-Bold
-      text: "Titolo"
-
-FIDEURAM-IT24:
-  header_set:
-    - font: Tahoma,Bold
-      text: "Titolo"
-    - font: Tahoma,Bold
-      text: "Controvalore"
-
 AMUNDI-IT24(investments):
   - deselection_list:
       - font: TrebuchetMS
@@ -27,11 +15,6 @@ AMUNDI-IT24(investments):
     row_tolerance: 0.5
 
 FIDEURAM-IT24(investments):
-  header_set:
-    - font: Tahoma,Bold
-      text: "Titolo"
-    - font: Tahoma,Bold
-      text: "Controvalore"
   body_set:
     font: Tahoma
     font_size: 6.96

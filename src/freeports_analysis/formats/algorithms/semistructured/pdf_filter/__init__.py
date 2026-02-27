@@ -28,8 +28,6 @@ class InputStandardCostCurr(BaseModel):
     ----------
     deselection_list : Optional[List[InputPdfLineSet]], optional
         List of line sets to exclude from processing, by default []
-    header_set : List[InputPdfLineSet]
-        Line sets representing document headers
     body_set : InputPdfLineSet
         Line set representing the main body content
     subfund_set : InputPdfLineSet
@@ -47,7 +45,6 @@ class InputStandardCostCurr(BaseModel):
     """
 
     deselection_list: Optional[List[InputPdfLineSet]] = []
-    header_set: List[InputPdfLineSet]
     body_set: InputPdfLineSet
     subfund_set: InputPdfLineSet
     currency: Currency

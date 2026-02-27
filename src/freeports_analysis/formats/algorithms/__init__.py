@@ -15,7 +15,7 @@ from freeports_analysis.formats.algorithms.unstructured import (
     get_pipes as get_unstructured,
 )
 from freeports_analysis.formats.algorithms.semistructured import (
-    get_pipes as get_semistructured,
+    get_pipelines as get_semistructured,
 )
 from freeports_analysis.formats.algorithms.structured import (
     get_pipelines as get_structured,
