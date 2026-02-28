@@ -10,6 +10,7 @@ import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
 
+
 from freeports_analysis.formats.data import VALID_FORMATS
 
 from ..commons import (
@@ -28,53 +29,37 @@ data = Path(__file__).parent
 # Schema for validating the list of formats
 alghoritms_schedule_schema = pa.DataFrameSchema(
     columns={
-        "ID": column_id_format_pipe(FKRelation.ONE_TO_ONE),
         "Page type": pa.Column(pd.StringDtype),
         "Filter next iteration": pa.Column(pd.BooleanDtype),
     },
     coerce=True,
     strict=True,
-    index=pa.MultiIndex(
-        [
-            pa.Index(
-                pd.StringDtype,
-                [pa.Check(lambda x: x.isin(VALID_FORMATS))],
-                name="Format name",
-            ),
-            pa.Index(
-                pd.StringDtype,
-                [pa.Check(lambda x: x.str.match(f"^{pipeline_name_regexp}$"))],
-                name="Pipeline name",
-                nullable=False,
-            ),
-        ]
+    index=pa.Index(
+        pd.StringDtype,
+        [pa.Check(lambda x: x.isin(VALID_FORMATS))],
+        name="Format name",
     ),
 )
 
 
 def get_alghoritms_schedule() -> pd.DataFrame:
     df = pd.read_csv(data / "alghoritms_schedule.csv")
-    df = add_format_name(df)
-    df = add_pipeline_name(df)
-    df = df.set_index(["Format name", "Pipeline name"])
+    df = df.set_index(["Format name"])
     pd.set_option("future.no_silent_downcasting", True)
     df["Filter next iteration"] = df["Filter next iteration"].fillna(False)
     return alghoritms_schedule_schema.validate(df)
 
 
-def get_schedule_of(format_name: str):
+def get_schedule(format_name: str):
     df = get_alghoritms_schedule()
-    df = df.drop(columns=["ID"])
     df_select = df.loc[format_name]
     schedule = [set()]
-    d = dict()
     for i, r in df_select.iterrows():
         schedule[-1].add(r["Page type"])
         if r["Filter next iteration"]:
             schedule.append(set())
-        d[r["Page type"]] = i
 
-    return schedule, d
+    return schedule
 
 
 # Schema for validating the list of formats
@@ -105,7 +90,54 @@ def get_pageclassify_overwrite() -> pd.DataFrame:
     return pageclassify_overwrite_schema.validate(df)
 
 
-def get_pageclassify_pipeline(format_name: str):
+def get_pageclassify_pipelines(format_name: str):
     df = get_pageclassify_overwrite()
     df_agg = df.groupby(by="Format name").agg({"Pipeline name": set})
     return df_agg.loc[format_name]["Pipeline name"]
+
+
+def get_pageclassify_pipeline():
+    pass
+
+
+def get_schedule_of():
+    pass
+
+
+mapping_schema = pa.DataFrameSchema(
+    columns={
+        "ID": column_id_format_pipe(FKRelation.ONE_TO_ONE),
+        "Pipeline name": pa.Column(pd.StringDtype),
+    },
+    coerce=True,
+    strict=True,
+    index=pa.MultiIndex(
+        [
+            pa.Index(
+                pd.StringDtype,
+                checks=[pa.Check(lambda x: x.isin(VALID_FORMATS))],
+                name="Format name",
+            ),
+            pa.Index(pd.StringDtype, name="Page type"),
+        ]
+    ),
+)
+
+
+def get_mapping_table():
+    df = pd.read_csv(data / "mapping.csv")
+    df = add_format_name(df)
+    df = add_pipeline_name(df)
+    df = df.set_index(["Format name", "Page type"])
+    return mapping_schema.validate(df)
+
+
+def get_mapping(format_name):
+    df = get_mapping_table()
+    df = df.drop(columns="ID")
+    df = df.groupby(["Format name", "Page type"]).agg({"Pipeline name": set})
+    res_df = df.loc[format_name]
+    mapping = {}
+    for page_type, pipeline_names in res_df.iterrows():
+        mapping[page_type] = pipeline_names["Pipeline name"]
+    return mapping

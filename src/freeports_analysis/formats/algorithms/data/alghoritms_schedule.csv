@@ -1,5 +1,5 @@
-ID,Page type,Filter next iteration
-EURIZON-IT24(investments),investments table odd,
-EURIZON-IT24(investments),investments table even,TRUE
-EURIZON-IT24(manco),index,
-ANIMA-EN23(investments),investments table,
+Format name,Page type,Filter next iteration
+EURIZON-IT24,investments table odd,
+EURIZON-IT24,investments table even,TRUE
+EURIZON-IT24,index,
+ANIMA-EN23,investments table,

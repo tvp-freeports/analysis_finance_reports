@@ -106,23 +106,6 @@ def get_additional_args() -> pd.DataFrame:
     return additional_args_schema.validate(df)
 
 
-# additional_headers_schema = pa.DataFrameSchema(
-#     {"Header set": column_line_set}, coerce=True, strict=True, index=None
-# )
-
-
-# def get_additional_headers() -> pd.DataFrame:
-#     """Gets and validates the additional headers table
-
-#     Returns
-#     -------
-#     pd.DataFrame
-#         Validated DataFrame
-#     """
-#     df = pd.read_csv(data / "additional_headers.csv", index_col=["ID"])
-#     return additional_headers_schema.validate(df)
-
-
 deselection_list_schema = pa.DataFrameSchema(
     {
         "ID": column_id_format_pipe(FKRelation.ONE_TO_MANY),

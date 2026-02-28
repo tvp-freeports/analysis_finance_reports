@@ -8,17 +8,24 @@ This module provides the main execution functions for the three-stage processing
 The module also handles pipeline composition and execution coordination.
 """
 
-from typing import List, Callable, Dict, Tuple, Union, Any, Optional
+from typing import List, Callable, Dict, Tuple, Union, Any, Optional, Set
 import logging as log
+from multiprocessing import Pool
 import freeports_lib
 from freeports_analysis.formats.algorithms.unstructured import (
     get_pipelines as get_unstructured,
+    get_pageclassify_pipeline,
+    get_compute_page_class,
 )
 from freeports_analysis.formats.algorithms.semistructured import (
     get_pipelines as get_semistructured,
 )
 from freeports_analysis.formats.algorithms.structured import (
     get_pipelines as get_structured,
+)
+from freeports_analysis.formats.algorithms.data import (
+    get_schedule_of,
+    get_pageclassify_pipelines,
 )
 from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
@@ -339,3 +346,71 @@ def get_pipelines(
                 raise ValueError(_("List of {} cannot be empty").format(category))
 
     return pipelines
+
+
+type PageType = str
+
+
+class PoolWorkersSettings:
+    documents: int
+    pages: int
+    pipelines: int
+    pipes: int
+
+
+class Alghoritm:
+    page_classify_pipeline: Set[Pipeline]
+    page_classify_finalizer: Callable[Any, PageType]
+    schedule: List[Set[PageType]]
+    mapping: Dict[PageType, Pipeline]
+    workers: PoolWorkersSettings
+
+    def __init__(
+        self,
+        page_classify_pipeline: Set[Pipeline],
+        page_classify_finalizer: Callable[Any, PageType],
+        schedule: List[Set[PageType]],
+        mapping: Dict[PageType, Pipeline],
+        workers: PoolWorkersSettings,
+    ):
+        self.page_classify_pipeline = page_classify_pipeline
+        self.page_classify_finalizer = page_classify_finalizer
+        self.schedule = schedule
+        self.mapping = mapping
+        self.workers = workers
+
+    def __call__(pages, n_workers):
+        page_classification_raw = []
+        with Pool(self.workers.pages) as p:
+            p.map(self.page_classify_pipeline, pages)
+        for page in pages:
+            for p in self.page_classify_pipeline:
+                page_classification_raw.extend(p(page))
+        page_classification = self.page_classify_finalizer(page_classification_raw)
+
+
+def get_algorithm(format_name: str):
+    pipelines = get_pipelines(format_name)
+    schedule, mapping = get_schedule_of(format_name)
+    pc_pipelines_names = get_pageclassify_pipelines(format_name)
+    pc_pipelines = set()
+    page_classify = get_compute_page_class(format_name)
+    if len(pc_pipelines_names) == 0:
+        try:
+            pc_pipelines.add(pipelines[""])
+        except KeyError as e:
+            logger.critical("page classification pipeline should be present")
+            raise e
+    else:
+        for n in pc_pipelines_names:
+            try:
+                pc_pipelines.add(pipelines[n])
+            except KeyError as e:
+                logger.critical(
+                    f"not found a pipeline named `{n}` required for page classification"
+                )
+                raise e
+    algorithm = [
+        set([pipelines[mapping[page_type]] for page_type in step]) for step in schedule
+    ]
+    return pc_pipelines, page_classify, algorithm
