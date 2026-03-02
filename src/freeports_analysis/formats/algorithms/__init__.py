@@ -389,7 +389,6 @@ class Alghoritm:
     page_classify_finalizer: Callable[Any, PageType]
     schedule: List[Set[PageType]]
     bundles_mapping: Dict[PageType, PipelinesBundle]
-    stream: List[Set[PipelinesBundle]]
 
     def __init__(
         self,
@@ -443,9 +442,6 @@ class Alghoritm:
             )
             for pt, pipeline_names in page_type_pipelines_mapping.items()
         }
-        self.stream = [
-            set([self.bundles_mapping[pt] for pt in step]) for step in self.schedule
-        ]
         self._page_classes = set([pt for step in self.schedule for pt in step])
         self._page_classes.add(None)
 
@@ -463,10 +459,7 @@ class Alghoritm:
         page_classification = [
             c for p in pages for c in self.page_classify_bundle(p, None)
         ]
-        print(page_classification)
         page_classification = self.page_classify_finalizer(page_classification)
-        print(page_classification)
-        raise Exception
         if len(page_classification) != len(pages):
             raise Exception(
                 "Number of pages unclassified must be equal of number of page classified"
@@ -478,31 +471,36 @@ class Alghoritm:
             )
         pages_scheduled = [
             {
-                i: pages[i]
-                for i, page in enumerate(pages)
-                if page_classification[i] in step
+                pt: {
+                    i: pages[i]
+                    for i, page in enumerate(pages)
+                    if page_classification[i] == pt
+                }
+                for step in self.schedule
+                for pt in step
             }
-            for step in self.schedule
         ]
         return pages_scheduled
 
-    def __call__(self, pages, target_companies):
-        pages_scheduled = self.schedule_pages(pages)
+    def __call__(self, list_pages, target_companies):
+        pages_scheduled = self.schedule_pages(list_pages)
         res = {}
         new_filter_data = []
-        for page_n, page in pages_scheduled[0]:
-            list_res = stream[0](page, target_companies)
-            new_filter_data.extend(list_res)
-            res[page_n] = list_res
+        for pages_type, pages in pages_scheduled[0].items():
+            for page_n, page in pages.items():
+                list_res = self.bundles_mapping[pages_type](page, target_companies)
+                new_filter_data.extend(list_res)
+                res[page_n] = list_res
         filter_data = new_filter_data
         for i in range(1, len(self.schedule)):
             new_filter_data = []
-            for page_n, page in pages_scheduled[i]:
-                list_res = stream[i](page, filter_data)
-                new_filter_data.extend(list_res)
-                res[page_n] = list_res
+            for pages_type, pages in pages_scheduled[i].items():
+                for page_n, page in pages.items():
+                    list_res = self.bundles_mapping[pages_type](page, filter_data)
+                    new_filter_data.extend(list_res)
+                    res[page_n] = list_res
             filter_data = new_filter_data
-        return [res[i] for i in range(len(res))]
+        return res
 
 
 # def get_algorithm(format_name: str):
