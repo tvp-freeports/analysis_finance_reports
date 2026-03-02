@@ -14,7 +14,6 @@ from multiprocessing import Pool
 import freeports_lib
 from freeports_analysis.formats.algorithms.unstructured import (
     get_pipelines as get_unstructured,
-    get_pageclassify_pipeline,
     get_compute_page_class,
 )
 from freeports_analysis.formats.algorithms.semistructured import (
@@ -24,8 +23,9 @@ from freeports_analysis.formats.algorithms.structured import (
     get_pipelines as get_structured,
 )
 from freeports_analysis.formats.algorithms.data import (
-    get_schedule_of,
+    get_schedule,
     get_pageclassify_pipelines,
+    get_mapping,
 )
 from freeports_analysis.consts import PromisesResolutionContext
 from freeports_analysis.formats import LineParseFail, PageParseFail
@@ -343,7 +343,7 @@ def get_pipelines(
     if not allow_partial_pipelines:
         for p in pipelines.values():
             if not p.complete():
-                raise ValueError(_("List of {} cannot be empty").format(category))
+                raise ValueError(_("Pipeline is incomplete: \n{}").format(p))
 
     return pipelines
 
@@ -358,59 +358,175 @@ class PoolWorkersSettings:
     pipes: int
 
 
+class PipelinesBundle:
+    pipelines: Set[Pipeline]
+
+    def __init__(self, pipelines=None):
+        self.pipelines = set()
+        if pipelines is not None:
+            if isinstance(pipelines, Pipeline):
+                self.pipelines.add(Pipeline)
+            else:
+                for p in pipelines:
+                    self.pipelines.add(p)
+
+    def __call__(self, page, filter_data):
+        return [r for p in self.pipelines for r in p(page, filter_data)]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({len(self.pipelines)} pipelines)"
+
+    def add_pipeline(self, pipeline: Pipeline):
+        if not isinstance(pipeline, Pipeline):
+            raise Exception(
+                f"Pipelines bundle can contain only Pipeline, tried to add `{type(pipeline)}`"
+            )
+        self.pipelines.add(pipeline)
+
+
 class Alghoritm:
-    page_classify_pipeline: Set[Pipeline]
+    page_classify_bundle: PipelinesBundle
     page_classify_finalizer: Callable[Any, PageType]
     schedule: List[Set[PageType]]
-    mapping: Dict[PageType, Pipeline]
-    workers: PoolWorkersSettings
+    bundles_mapping: Dict[PageType, PipelinesBundle]
+    stream: List[Set[PipelinesBundle]]
 
     def __init__(
         self,
-        page_classify_pipeline: Set[Pipeline],
+        pipelines_map: Dict[str, Pipeline],
+        page_classify_pipelines: Set[str],
         page_classify_finalizer: Callable[Any, PageType],
         schedule: List[Set[PageType]],
-        mapping: Dict[PageType, Pipeline],
-        workers: PoolWorkersSettings,
+        page_type_pipelines_mapping: Dict[PageType, Set[str]],
     ):
-        self.page_classify_pipeline = page_classify_pipeline
+        known_pipelines = set(pipelines_map.keys())
+        if not page_classify_pipelines.issubset(known_pipelines):
+            unknown = page_classify_pipelines - know_pipelines
+            raise Exception(
+                f"Some page classify pipelines names have no mapping to pipeline implementation: {unknown}"
+            )
+        self.page_classify_bundle = PipelinesBundle(
+            set(map(lambda name: pipelines_map[name], page_classify_pipelines))
+        )
         self.page_classify_finalizer = page_classify_finalizer
         self.schedule = schedule
-        self.mapping = mapping
-        self.workers = workers
+        self._page_classes = set([pt for step in self.schedule for pt in step])
+        page_types_mapped_to_pipelines = set(page_type_pipelines_mapping)
+        if self._page_classes != page_types_mapped_to_pipelines:
+            diff = self._page_classes.symmetric_difference(
+                page_types_mapped_to_pipelines
+            )
+            raise Exception(
+                f"Page classes in schedule have to be mapped to pipelines names. The difference is {diff}"
+            )
+        pipelines_mapped_to_pagetype = set(
+            [
+                pn
+                for pipeline_names in page_type_pipelines_mapping.values()
+                for pn in pipeline_names
+            ]
+        )
 
-    def __call__(pages, n_workers):
-        page_classification_raw = []
-        with Pool(self.workers.pages) as p:
-            p.map(self.page_classify_pipeline, pages)
-        for page in pages:
-            for p in self.page_classify_pipeline:
-                page_classification_raw.extend(p(page))
-        page_classification = self.page_classify_finalizer(page_classification_raw)
+        tot_pipelines_names = pipelines_mapped_to_pagetype.union(
+            page_classify_pipelines
+        )
+        if tot_pipelines_names != known_pipelines:
+            unknown = tot_pipelines_names - known_pipelines
+            useless = known_pipelines - tot_pipelines_names
+            raise Exception(
+                f"There are pipeline names not mapped to implementation or mapped and not used. Unmapped: {unknown} Not used: {useless}"
+            )
+
+        self.bundles_mapping = {
+            pt: PipelinesBundle(
+                set(map(lambda name: pipelines_map[name], pipeline_names))
+            )
+            for pt, pipeline_names in page_type_pipelines_mapping.items()
+        }
+        self.stream = [
+            set([self.bundles_mapping[pt] for pt in step]) for step in self.schedule
+        ]
+        self._page_classes = set([pt for step in self.schedule for pt in step])
+        self._page_classes.add(None)
+
+    @classmethod
+    def load(cls, format_name: str):
+        return cls(
+            pipelines_map=get_pipelines(format_name, allow_partial_pipelines=False),
+            page_classify_pipelines=get_pageclassify_pipelines(format_name),
+            page_classify_finalizer=get_compute_page_class(format_name),
+            schedule=get_schedule(format_name),
+            page_type_pipelines_mapping=get_mapping(format_name),
+        )
+
+    def schedule_pages(self, pages):
+        page_classification = [
+            c for p in pages for c in self.page_classify_bundle(p, None)
+        ]
+        print(page_classification)
+        page_classification = self.page_classify_finalizer(page_classification)
+        print(page_classification)
+        raise Exception
+        if len(page_classification) != len(pages):
+            raise Exception(
+                "Number of pages unclassified must be equal of number of page classified"
+            )
+        if not set(page_classification).issubset(self._page_classes):
+            not_present = set(page_classification) - page_classes
+            raise Exception(
+                f"All pages have to enter in some point in the schedule, {not_present} are not part of the schedule"
+            )
+        pages_scheduled = [
+            {
+                i: pages[i]
+                for i, page in enumerate(pages)
+                if page_classification[i] in step
+            }
+            for step in self.schedule
+        ]
+        return pages_scheduled
+
+    def __call__(self, pages, target_companies):
+        pages_scheduled = self.schedule_pages(pages)
+        res = {}
+        new_filter_data = []
+        for page_n, page in pages_scheduled[0]:
+            list_res = stream[0](page, target_companies)
+            new_filter_data.extend(list_res)
+            res[page_n] = list_res
+        filter_data = new_filter_data
+        for i in range(1, len(self.schedule)):
+            new_filter_data = []
+            for page_n, page in pages_scheduled[i]:
+                list_res = stream[i](page, filter_data)
+                new_filter_data.extend(list_res)
+                res[page_n] = list_res
+            filter_data = new_filter_data
+        return [res[i] for i in range(len(res))]
 
 
-def get_algorithm(format_name: str):
-    pipelines = get_pipelines(format_name)
-    schedule, mapping = get_schedule_of(format_name)
-    pc_pipelines_names = get_pageclassify_pipelines(format_name)
-    pc_pipelines = set()
-    page_classify = get_compute_page_class(format_name)
-    if len(pc_pipelines_names) == 0:
-        try:
-            pc_pipelines.add(pipelines[""])
-        except KeyError as e:
-            logger.critical("page classification pipeline should be present")
-            raise e
-    else:
-        for n in pc_pipelines_names:
-            try:
-                pc_pipelines.add(pipelines[n])
-            except KeyError as e:
-                logger.critical(
-                    f"not found a pipeline named `{n}` required for page classification"
-                )
-                raise e
-    algorithm = [
-        set([pipelines[mapping[page_type]] for page_type in step]) for step in schedule
-    ]
-    return pc_pipelines, page_classify, algorithm
+# def get_algorithm(format_name: str):
+#     pipelines=get_pipelines(format_name)
+#     schedule,mapping = get_schedule_of(format_name)
+#     pc_pipelines_names = get_pageclassify_pipelines(format_name)
+#     pc_pipelines = set()
+#     page_classify = get_compute_page_class(format_name)
+#     if len(pc_pipelines_names) == 0:
+#         try:
+#             pc_pipelines.add(pipelines[""])
+#         except KeyError as e:
+#             logger.critical("page classification pipeline should be present")
+#             raise e
+#     else:
+#         for n in pc_pipelines_names:
+#             try:
+#                 pc_pipelines.add(pipelines[n])
+#             except KeyError as e:
+#                 logger.critical(f"not found a pipeline named `{n}` required for page classification")
+#                 raise e
+#     algorithm = [
+#         set([
+#             pipelines[mapping[page_type]] for page_type in step
+#         ]) for step in schedule
+#     ]
+#     return pc_pipelines,page_classify,algorithm

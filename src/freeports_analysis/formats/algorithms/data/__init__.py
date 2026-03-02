@@ -52,7 +52,7 @@ def get_alghoritms_schedule() -> pd.DataFrame:
 
 def get_schedule(format_name: str):
     df = get_alghoritms_schedule()
-    df_select = df.loc[format_name]
+    df_select = df.loc[[format_name]]
     schedule = [set()]
     for i, r in df_select.iterrows():
         schedule[-1].add(r["Page type"])
@@ -93,15 +93,10 @@ def get_pageclassify_overwrite() -> pd.DataFrame:
 def get_pageclassify_pipelines(format_name: str):
     df = get_pageclassify_overwrite()
     df_agg = df.groupby(by="Format name").agg({"Pipeline name": set})
-    return df_agg.loc[format_name]["Pipeline name"]
-
-
-def get_pageclassify_pipeline():
-    pass
-
-
-def get_schedule_of():
-    pass
+    try:
+        return df_agg.loc[format_name]["Pipeline name"]
+    except KeyError:
+        return set([""])
 
 
 mapping_schema = pa.DataFrameSchema(
@@ -128,6 +123,8 @@ def get_mapping_table():
     df = pd.read_csv(data / "mapping.csv")
     df = add_format_name(df)
     df = add_pipeline_name(df)
+    pd.set_option("future.no_silent_downcasting", True)
+    df["Pipeline name"] = df["Pipeline name"].fillna("")
     df = df.set_index(["Format name", "Page type"])
     return mapping_schema.validate(df)
 

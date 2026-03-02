@@ -637,11 +637,8 @@ def standard_text_extraction(
 
 class TextFilterPageClassifyStandard:
     def __call__(self, pdf_blks, _):
-        if len(pdf_blks) == 0:
-            return []
-        else:
-            blk = pdf_blks[0]
-            return TextBlock(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, blk)
+        blk = pdf_blks[0]
+        return [TextBlock(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, blk)]
 
 
 class TextFilterInvestmentsStandard:

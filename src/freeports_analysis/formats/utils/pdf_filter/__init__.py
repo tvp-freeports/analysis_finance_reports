@@ -65,12 +65,12 @@ class PdfExtractPageClassifyStandard:
 
     def __call__(self, xml_root):
         lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
-        for hsa in self.header_set:
+        page_type = "investments"
+        for hsa in self.header_sets:
             if len(hsa.select(lines)) == 0:
-                return []
-        return [
-            PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"page_type": "investments"}, "")
-        ]
+                page_type = None
+                break
+        return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"page_type": page_type}, "")]
 
 
 class PdfExtractInvestmentsStandard:

@@ -259,7 +259,6 @@ def get_structured_formats() -> pd.DataFrame:
         .join(deselection_list_agg, how="left", validate="one_to_one")
         .join(partial_pipes, how="left", validate="one_to_one")
     )
-
     return structured_formats_schema.validate(result)
 
 
