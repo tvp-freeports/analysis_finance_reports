@@ -301,32 +301,25 @@ def _main_job(
     logger.debug(_("End decoding pdf to python dict!"))
     targets = get_target_companies(job_config["TARGET_LISTS"])
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
-    n_pages = len(pdf_file_dict)
-
     results = alghoritm(pdf_file_dict, targets)
-    print(results)
-    raise Exception
-
-    results_batches = [pipeline_batch(*batches[0])]
     promises_resolution_map = {}
-    results = []
-    for results_batch in results_batches:
-        for results_page in results_batch:
-            extracted_data_page = []
-            for result in results_page:
-                if isinstance(result, dict):
-                    promises_resolution_map |= result
-                else:
-                    extracted_data_page.append(result)
-            results.append(extracted_data_page)
+    results_per_page = []
+    for pn in range(1, len(pdf_file_dict) + 1):
+        extracted_data_page = []
+        for r in results.get(pn, []):
+            if isinstance(r, dict):
+                promises_resolution_map |= r
+            else:
+                extracted_data_page.append(r)
+        results_per_page.append(extracted_data_page)
     promises_resolution_map = flatten_promise_map(promises_resolution_map)
-    for results_page in results:
+    for results_page in results_per_page:
         for res in results_page:
             res.fulfill_promises(promises_resolution_map)
     format_utils.removeHandler(handler_csv)
     LOGGING_TABLE.removeHandler(handler_csv)
     LOG_CONTEXTUAL_INFOS.report = None
-    return results, job_config["FORMAT"], job_config["PREFIX_OUT"]
+    return results_per_page, job_config["FORMAT"], job_config["PREFIX_OUT"]
 
 
 def main(main_config: Dict[str, Any]) -> None:
