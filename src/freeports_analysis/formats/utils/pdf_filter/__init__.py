@@ -25,7 +25,7 @@ from .select_position import (
     TableConfig,
     ColumnConfig,
 )
-from .pdf_parts import pdfline_from_xml, PdfLineSelection
+from .pdf_parts import pdflines_from_pagedict, PdfLineSelection
 from .. import overwrite_if_implemented
 
 
@@ -63,8 +63,8 @@ class PdfExtractPageClassifyStandard:
         except TypeError:
             self.header_sets.add(header_sets)
 
-    def __call__(self, xml_root):
-        lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+    def __call__(self, dict_root):
+        lines = pdflines_from_pagedict(dict_root)
         page_type = "investments"
         for hsa in self.header_sets:
             if len(hsa.select(lines)) == 0:
@@ -110,8 +110,8 @@ class PdfExtractInvestmentsStandard:
         self.row_tolerance = row_tolerance
         self.company_index = company_index
 
-    def __call__(self, xml_root):
-        lines = [pdfline_from_xml(blk) for blk in xml_root.findall(".//line")]
+    def __call__(self, dict_root):
+        lines = pdflines_from_pagedict(dict_root)
         _algorithm_flags = self.algorithm_flags
         _row_algorithm_flags = self.row_algorithm_flags
         try:

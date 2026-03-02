@@ -4,7 +4,7 @@ import copy
 import textwrap
 from typing import List, Optional
 from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
     PdfLineSelection,
     pdfline_from_xml,
 )

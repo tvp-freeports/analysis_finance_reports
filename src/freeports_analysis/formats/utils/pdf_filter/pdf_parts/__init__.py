@@ -266,6 +266,51 @@ class ExtractedPdfLine(PdfLineBaseClass):
         return self._blk
 
 
+def collapsedspans_from_line(l, treshold=1e-1):
+    res = []
+    last_font = None
+    last_size = None
+    collapse = True
+    sum_font_size = 0.0
+    n_spans = 0
+    text = ""
+    for s in l["spans"]:
+        font = s["font"]
+        font_size = s["size"]
+        sum_font_size += font_size
+        text += s["text"]
+        if last_font is not None and last_size is not None:
+            if font != last_font or abs(font_size - last_size) > treshold:
+                collapse = False
+        last_font = font
+        last_size = font_size
+        n_spans += 1
+        res.append(
+            {"font_size": font_size, "bbox": s["bbox"], "font": font, "text": s["text"]}
+        )
+    if collapse:
+        res = [
+            {
+                "font_size": sum_font_size / n_spans,
+                "bbox": l["bbox"],
+                "font": last_font,
+                "text": text,
+            }
+        ]
+    return res
+
+
+def pdflines_from_pagedict(page):
+    lines = [l for blk in page["blocks"] if "lines" in blk for l in blk["lines"]]
+    args = [s for l in list(map(collapsedspans_from_line, lines)) for s in l]
+    return [
+        PdfLine(
+            font=s["font"], font_size=s["font_size"], text=s["text"], bbox=s["bbox"]
+        )
+        for s in args
+    ]
+
+
 def pdfline_from_xml(blk: etree.Element):
     """Initialize the ExtractedPdfLine from an XML element.
 
