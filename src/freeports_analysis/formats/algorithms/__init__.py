@@ -384,7 +384,7 @@ class PipelinesBundle:
         self.pipelines.add(pipeline)
 
 
-class Alghoritm:
+class Algorithm:
     page_classify_bundle: PipelinesBundle
     page_classify_finalizer: Callable[Any, PageType]
     schedule: List[Set[PageType]]
@@ -483,12 +483,19 @@ class Alghoritm:
         return pages_scheduled
 
     def __call__(self, list_pages, target_companies):
+        compiled_target_companies = (
+            freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+                target_companies
+            )
+        )
         pages_scheduled = self.schedule_pages(list_pages)
         res = {}
         new_filter_data = []
         for pages_type, pages in pages_scheduled[0].items():
             for page_n, page in pages.items():
-                list_res = self.bundles_mapping[pages_type](page, target_companies)
+                list_res = self.bundles_mapping[pages_type](
+                    page, compiled_target_companies
+                )
                 new_filter_data.extend(list_res)
                 res[page_n + 1] = list_res
         filter_data = new_filter_data

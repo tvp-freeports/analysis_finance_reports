@@ -24,12 +24,7 @@ from freeports_analysis.data import get_target_companies
 from freeports_analysis.output import transform_to_files_schema, write_files, Investment
 from freeports_analysis import download as dw
 from freeports_analysis.consts import PromisesResolutionContext, flatten_promise_map
-from freeports_analysis.formats.algorithms import (
-    pdf_filter_exec,
-    text_extract_exec,
-    deserialize_exec,
-    get_pipelines,
-)
+from freeports_analysis.formats.algorithms import Algorithm
 from freeports_analysis.conf_parse import (
     DEFAULT_CONFIG,
     DEFAULT_CONFIG_LOCATION,
@@ -299,30 +294,20 @@ def _main_job(
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
     logger.debug(_("Starting job with configuration %s"), str(job_config))
+    alghoritm = Algorithm.load(job_config["FORMAT"])
     pdf_file = _get_document(job_config)
-    logger.info(_("Starting decoding pdf to xml..."))
-    pdf_file_xml = [page.get_text("xml").encode() for page in pdf_file]
-    logger.debug(_("End decoding pdf to xml!"))
+    logger.info(_("Starting decoding pdf to python dict..."))
+    pdf_file_dict = [page.get_text("dict") for page in pdf_file]
+    logger.debug(_("End decoding pdf to python dict!"))
     targets = get_target_companies(job_config["TARGET_LISTS"])
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
-    n_pages = len(pdf_file_xml)
-    batch_size = (n_pages + n_workers - 1) // n_workers
-    batches = []
-    for i in range(n_workers):
-        start_idx = i * batch_size
-        end_idx = min((i + 1) * batch_size, n_pages)
-        batch_pages = pdf_file_xml[start_idx:end_idx]
-        batches.append(
-            (batch_pages, start_idx + 1, n_pages, targets, job_config["FORMAT"])
-        )
-    results_batches = None
-    if n_workers > 1:
-        LOG_CONTEXTUAL_INFOS.mproc = True
-        with Pool(processes=n_workers) as pool:
-            results_batches = pool.starmap(pipeline_batch, batches)
-        LOG_CONTEXTUAL_INFOS.mproc = False
-    else:
-        results_batches = [pipeline_batch(*batches[0])]
+    n_pages = len(pdf_file_dict)
+
+    results = alghoritm(pdf_file_dict, targets)
+    print(results)
+    raise Exception
+
+    results_batches = [pipeline_batch(*batches[0])]
     promises_resolution_map = {}
     results = []
     for results_batch in results_batches:
