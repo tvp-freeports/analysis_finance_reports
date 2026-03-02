@@ -13,7 +13,7 @@ from tests.conftest import out_dir, xml_parser, targets, conf
 
 
 def get_segment(fmt, pipeline_name, segment_index):
-    return get_pipelines(fmt)[pipeline_name][segment_index]
+    return [seg for seg in get_pipelines(fmt)[pipeline_name]][segment_index]
 
 
 def get_fmt_pipeline_name(path):
@@ -42,11 +42,10 @@ def generic_test_pdf_filter(page, path):
     current_path = Path(path)
     current_dir = current_path.parent
     pdf = Document(current_dir / "report.pdf")
-    xml_str = pdf[page - 1].get_text("xml")
-    xml_tree = etree.fromstring(xml_str.encode(), parser=xml_parser)
+    page_dict = pdf[page - 1].get_text("dict")
     fmt, pipeline_name = get_fmt_pipeline_name(path)
-    pdf_filters = get_segment(fmt, pipeline_name, 0)
-    pdf_blks = [blk for pdf_filter in pdf_filters for blk in pdf_filter(xml_tree)]
+    pdf_filter = get_segment(fmt, pipeline_name, 0)
+    pdf_blks = pdf_filter(page_dict)
     # dill.dump(pdf_blks,(current_dir / "pages" / f"{page}-pdf_blks.pkl").open("wb"))
     reference_pdf_blks = None
     with (current_dir / "pages" / f"{page}-pdf_blks.pkl").open("rb") as f:
@@ -62,15 +61,13 @@ def generic_test_text_extract(page, path):
     with (current_dir / "pages" / f"{page}-pdf_blks.pkl").open("rb") as f:
         pdf_blks = dill.load(f)
     fmt, pipeline_name = get_fmt_pipeline_name(path)
-    text_extracts = get_segment(fmt, pipeline_name, 1)
+    text_extract = get_segment(fmt, pipeline_name, 1)
     trgs = None
     trgs = freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
         targets
     )
+    txt_blks = text_extract(pdf_blks, trgs)
 
-    txt_blks = [
-        blk for text_extract in text_extracts for blk in text_extract(pdf_blks, trgs)
-    ]
     # dill.dump(txt_blks,(current_dir / "pages" / f"{page}-txt_blks.pkl").open("wb"))
     reference_txt_blks = None
     with (current_dir / "pages" / f"{page}-txt_blks.pkl").open("rb") as f:
@@ -86,10 +83,8 @@ def generic_test_deserialize(page, path):
     with (current_dir / "pages" / f"{page}-txt_blks.pkl").open("rb") as f:
         txt_blks = dill.load(f)
     fmt, pipeline_name = get_fmt_pipeline_name(path)
-    deserializes = get_segment(fmt, pipeline_name, 2)
-    results = [
-        deserialize(txt_blk) for deserialize in deserializes for txt_blk in txt_blks
-    ]
+    deserialize = get_segment(fmt, pipeline_name, 2)
+    results = [deserialize(txt_blks) for txt_blk in txt_blks]
     # dill.dump(results,(current_dir / "pages" / f"{page}-results.pkl").open("wb"))
     reference_results = None
     with (current_dir / "pages" / f"{page}-results.pkl").open("rb") as f:

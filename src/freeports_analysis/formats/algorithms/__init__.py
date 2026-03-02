@@ -509,29 +509,11 @@ class Algorithm:
             filter_data = new_filter_data
         return res
 
+    def classify_page(self, pages, page_number):
+        page_classification = [
+            c for p in pages for c in self.page_classify_bundle(p, None)
+        ]
+        return self.page_classify_finalizer(page_classification)[page_number - 1]
 
-# def get_algorithm(format_name: str):
-#     pipelines=get_pipelines(format_name)
-#     schedule,mapping = get_schedule_of(format_name)
-#     pc_pipelines_names = get_pageclassify_pipelines(format_name)
-#     pc_pipelines = set()
-#     page_classify = get_compute_page_class(format_name)
-#     if len(pc_pipelines_names) == 0:
-#         try:
-#             pc_pipelines.add(pipelines[""])
-#         except KeyError as e:
-#             logger.critical("page classification pipeline should be present")
-#             raise e
-#     else:
-#         for n in pc_pipelines_names:
-#             try:
-#                 pc_pipelines.add(pipelines[n])
-#             except KeyError as e:
-#                 logger.critical(f"not found a pipeline named `{n}` required for page classification")
-#                 raise e
-#     algorithm = [
-#         set([
-#             pipelines[mapping[page_type]] for page_type in step
-#         ]) for step in schedule
-#     ]
-#     return pc_pipelines,page_classify,algorithm
+    def apply_to_page(self, pages, page_number, filter_data, page_class):
+        return self.bundles_mapping[page_class](pages[page_number - 1], filter_data)
