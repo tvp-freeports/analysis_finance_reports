@@ -1,19 +1,10 @@
 """Custom pdf filter for FINECO-EN23[IR] format"""
 
-from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
+from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import (
-    FontSet,
-    TextSet,
-    FontSizeSet,
-)
+from freeports_analysis.formats.algorithms.commons import Pipeline
 
-tnrb = PdfLineSelection.font("TimesNewRoman,Bold")
 
-header_set = [
-    PdfLineSelection.text("Domicile") & tnrb,
-    PdfLineSelection.text("Shares/") & tnrb,
-]
 subfund_set = (
     PdfLineSelection.font_size(9.95, 10.03)
     & PdfLineSelection.area_from_bounds(
@@ -52,13 +43,10 @@ body_set = (
     / PdfLineSelection.text("-$")
 ) & PdfLineSelection.area(0.0, 0.0, 1e6, 750)
 
-
-@standard_pdf_filtering(
-    header_set=header_set,
-    subfund_set=subfund_set,
-    currency_set=currency_set,
-    body_set=body_set,
-)
-def pdf_filter(xml_root):
-    """A pdf filter that use relative areas and set algebra"""
-    raise NotImplementedError
+pipelines = {
+    "investments": Pipeline(
+        pdf_extract=PdfExtractInvestmentsStandard(
+            subfund_set=subfund_set, currency_set=currency_set, body_set=body_set
+        )
+    )
+}

@@ -1,30 +1,28 @@
 """MEDIOLANUM_IT24_B format submodule"""
 
 from freeports_analysis.formats.utils.pdf_filter import (
-    standard_pdf_filtering,
+    PdfExtractInvestmentsStandard,
     PdfLineSelection,
+    pdflines_from_pagedict,
 )
+from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.consts import Currency
-from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt_font
-from freeports_analysis.formats.utils.pdf_filter.xml.position import get_bounds
 
 
-def pdf_filter(xml_root):
+def pdf_extract(dict_root):
     """This pdf filter calculate dynamically the sixe of the table using some bound text"""
-    next_table = get_lines_with_txt_font(
-        xml_root, "Strumenti finanziari quotati", "Helvetica-Bold"
-    )
-    if next_table is None:
-        next_table = get_lines_with_txt_font(
-            xml_root, "STRUMENTI FINANZIARI QUOTATI", "Helvetica-Bold"
-        )
-    body_low_limit = 700 if next_table is None else get_bounds(next_table)[1][1]
+    lines = pdflines_from_pagedict(dict_root)
+    next_table = PdfLineSelection(
+        font="Helvetica-Bold", text="Strumenti finanziari quotati"
+    ).select(lines)
 
-    @standard_pdf_filtering(
-        header_set=[
-            PdfLineSelection(text="Titolo", font="Helvetica-Bold"),
-            PdfLineSelection(text="Controvalore", font="Helvetica-Bold"),
-        ],
+    if len(next_table) == 0:
+        next_table = PdfLineSelection(
+            font="Helvetica-Bold", text="STRUMENTI FINANZIARI QUOTATI"
+        ).select(lines)
+
+    body_low_limit = 700 if len(next_table) == 0 else next_table.bbox[3]
+    std = PdfExtractInvestmentsStandard(
         subfund_set=PdfLineSelection(
             font="Helvetica",
             area=(150, 67, 1e6, 76),
@@ -36,7 +34,8 @@ def pdf_filter(xml_root):
         currency_set=Currency.EUR,
         deselection_list=[PdfLineSelection.text("^ ")],
     )
-    def _pdf_filter(xml_root):
-        raise NotImplementedError
 
-    return _pdf_filter(xml_root)
+    return std(dict_root)
+
+
+pipelines = {"investments": Pipeline(pdf_extract=pdf_extract)}

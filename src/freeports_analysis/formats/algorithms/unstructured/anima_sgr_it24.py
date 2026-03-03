@@ -1,24 +1,18 @@
 """Custom pipeline for ANIMA_SGR-IT24"""
 
-from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
-
-
-h_font_selection = (
-    PdfLineSelection.font("Lato,Bold")
-    | PdfLineSelection.font("TrebuchetMS-Bold")
-    | PdfLineSelection.font("Open Sans,Bold")
+from freeports_analysis.formats.utils.pdf_filter import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractPageClassifyStandard,
 )
+from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.algorithms.commons import Pipeline
+
+
 s_font_selection = (
     PdfLineSelection.font("Lato")
     | PdfLineSelection.font("Open Sans")
     | PdfLineSelection.font("Lato-Regular")
 )
-
-header_set = [
-    PdfLineSelection.text("Titoli") & h_font_selection,
-    PdfLineSelection.text("Divisa") & h_font_selection,
-]
 
 manco_set = PdfLineSelection.text("di Gestione del Risparmio") & s_font_selection
 
@@ -66,13 +60,27 @@ body_set = (
 )
 
 
-@standard_pdf_filtering(
-    header_set=header_set,
-    subfund_set=subfund_set,
-    currency_set=currency_set,
-    body_set=body_set,
-    manco_set=manco_set,
+h_font_selection = (
+    PdfLineSelection.font("Lato,Bold")
+    | PdfLineSelection.font("TrebuchetMS-Bold")
+    | PdfLineSelection.font("Open Sans,Bold")
 )
-def pdf_filter(xml_root):
-    """Pdf filter that takes the subfund and the currency relative to different cells"""
-    raise NotImplementedError
+
+pipelines = {
+    "": Pipeline(
+        pdf_extract=PdfExtractPageClassifyStandard(
+            header_sets=[
+                PdfLineSelection.text("Titoli") & h_font_selection,
+                PdfLineSelection.text("Divisa") & h_font_selection,
+            ]
+        )
+    ),
+    "investments": Pipeline(
+        pdf_extract=PdfExtractInvestmentsStandard(
+            subfund_set=subfund_set,
+            currency_set=currency_set,
+            body_set=body_set,
+            manco_set=manco_set,
+        )
+    ),
+}

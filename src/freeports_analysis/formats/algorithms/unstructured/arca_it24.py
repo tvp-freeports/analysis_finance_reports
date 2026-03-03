@@ -1,16 +1,13 @@
 """Custom pdf filter for ARCA-IT24 format"""
 
-from freeports_analysis.formats.utils.pdf_filter import standard_pdf_filtering
+from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
     pdfline_selection_from_str,
     PdfLineSelection,
 )
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts.font import FontSet
+from freeports_analysis.formats.algorithms.commons import Pipeline
 
-header_set = [
-    pdfline_selection_from_str('TrebuchetMS-Bold "Titoli"'),
-    pdfline_selection_from_str('TrebuchetMS-Bold "Divisa"'),
-]
 
 subfund_set = PdfLineSelection.area(0.0, 0.0, 1e6, 60.0) & (
     PdfLineSelection.font("Calibri") | PdfLineSelection.font("Lato-Regular")
@@ -30,15 +27,12 @@ body_set = PdfLineSelection(
     y1=1e6,
 )
 
-
-@standard_pdf_filtering(
-    header_set=header_set,
-    subfund_set=subfund_set,
-    currency_set="EUR",
-    body_set=body_set,
-)
-def pdf_filter(xml_root):
-    """A pdf filter that set constant currency to EUR and takes
-    the area of the body relative to another cell
-    """
-    raise NotImplementedError
+pipelines = {
+    "investments": Pipeline(
+        pdf_extract=PdfExtractInvestmentsStandard(
+            subfund_set=subfund_set,
+            currency_set="EUR",
+            body_set=body_set,
+        )
+    )
+}
