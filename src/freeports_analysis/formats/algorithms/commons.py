@@ -9,6 +9,7 @@ import pandas as pd
 from enum import Enum
 from typing import Optional
 
+
 from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
 
 

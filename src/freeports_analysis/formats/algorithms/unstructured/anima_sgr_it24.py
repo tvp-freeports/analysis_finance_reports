@@ -11,6 +11,15 @@ from freeports_analysis.formats.utils.deserialize import (
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
+h_font_selection = (
+    PdfLineSelection.font("Lato,Bold")
+    | PdfLineSelection.font("TrebuchetMS-Bold")
+    | PdfLineSelection.font("Open Sans,Bold")
+)
+header_sets = [
+    PdfLineSelection.text("Titoli") & h_font_selection,
+    PdfLineSelection.text("Divisa") & h_font_selection,
+]
 
 s_font_selection = (
     PdfLineSelection.font("Lato")
@@ -21,7 +30,7 @@ s_font_selection = (
 manco_set = PdfLineSelection.text("di Gestione del Risparmio") & s_font_selection
 
 subfund_set = (
-    PdfLineSelection.area_from_bounds(x0=manco_set, y1=header_set[0], x1=1e6, y0=0.0)
+    PdfLineSelection.area_from_bounds(x0=manco_set, y1=header_sets[0], x1=1e6, y0=0.0)
     & s_font_selection
 )
 
@@ -64,20 +73,10 @@ body_set = (
 )
 
 
-h_font_selection = (
-    PdfLineSelection.font("Lato,Bold")
-    | PdfLineSelection.font("TrebuchetMS-Bold")
-    | PdfLineSelection.font("Open Sans,Bold")
-)
-
 pipelines = {
     "": Pipeline(
         pdf_extract=PdfExtractPageClassifyStandard(
-            header_sets=[
-                PdfLineSelection.text("Titoli") & h_font_selection,
-                PdfLineSelection.text("Divisa") & h_font_selection,
-            ],
-            page_type="investments",
+            header_sets=header_sets, page_type="investments"
         ),
         text_filter=TextFilterPageClassifyStandard(),
         deserialize=DeserializerPageClassifyStandard(),

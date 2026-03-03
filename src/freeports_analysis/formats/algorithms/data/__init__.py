@@ -12,7 +12,7 @@ from freeports_analysis.i18n import _
 
 
 from freeports_analysis.formats.data import VALID_FORMATS
-
+from ..pipelines import get_pipelines
 from ..commons import (
     create_index_format_name_pipe,
     column_id_format_pipe,
@@ -52,14 +52,18 @@ def get_alghoritms_schedule() -> pd.DataFrame:
 
 def get_schedule(format_name: str):
     df = get_alghoritms_schedule()
-    df_select = df.loc[[format_name]]
-    schedule = [set()]
-    for i, r in df_select.iterrows():
-        schedule[-1].add(r["Page type"])
-        if r["Filter next iteration"]:
-            schedule.append(set())
+    try:
+        df_select = df.loc[[format_name]]
+        schedule = [set()]
+        for i, r in df_select.iterrows():
+            schedule[-1].add(r["Page type"])
+            if r["Filter next iteration"]:
+                schedule.append(set())
 
-    return schedule
+        return schedule
+    except KeyError:
+        mapping = get_mapping(format_name)
+        return [set([pt for pt in mapping])]
 
 
 # Schema for validating the list of formats
@@ -133,8 +137,14 @@ def get_mapping(format_name):
     df = get_mapping_table()
     df = df.drop(columns="ID")
     df = df.groupby(["Format name", "Page type"]).agg({"Pipeline name": set})
-    res_df = df.loc[format_name]
-    mapping = {}
-    for page_type, pipeline_names in res_df.iterrows():
-        mapping[page_type] = pipeline_names["Pipeline name"]
-    return mapping
+    res_df = None
+    try:
+        res_df = df.loc[format_name]
+        mapping = {}
+        for page_type, pipeline_names in res_df.iterrows():
+            mapping[page_type] = pipeline_names["Pipeline name"]
+        return mapping
+    except KeyError:
+        pp = get_pipelines(format_name)
+        pcpp = get_pageclassify_pipelines(format_name)
+        return {pn: set([pn]) for pn in pp if pn not in pcpp}

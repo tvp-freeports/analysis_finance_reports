@@ -12,16 +12,7 @@ from typing import List, Callable, Dict, Tuple, Union, Any, Optional, Set
 import logging as log
 from multiprocessing import Pool
 import freeports_lib
-from freeports_analysis.formats.algorithms.unstructured import (
-    get_pipelines as get_unstructured,
-    get_compute_page_class,
-)
-from freeports_analysis.formats.algorithms.semistructured import (
-    get_pipelines as get_semistructured,
-)
-from freeports_analysis.formats.algorithms.structured import (
-    get_pipelines as get_structured,
-)
+from .unstructured import get_compute_page_class
 from freeports_analysis.formats.algorithms.data import (
     get_schedule,
     get_pageclassify_pipelines,
@@ -34,6 +25,7 @@ from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_CONTEXTUAL_INFOS, LOG_ADAPT_INVESTMENT_INFOS
 from .. import PdfBlock, TextBlock
 from .commons import Pipeline
+from .pipelines import get_pipelines
 
 logger_source = log.getLogger(__name__)
 logger = log.getLogger("freeports_analysis.formats.utils")
@@ -292,60 +284,6 @@ def deserialize_exec(
         i_batch_page, n_pages, text_blocks_batch, deserialize_funcs_blks
     )
     return batch_results
-
-
-def get_pipelines(
-    format_name: str, allow_partial_pipelines: bool = False
-) -> Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]:
-    """Get processing pipelines for a specific format.
-
-    Combines structured, semi-structured, and unstructured pipelines for the given format.
-
-    Parameters
-    ----------
-    format_name : str
-        Name of the format to get pipelines for
-    allow_partial_pipelines : bool
-        Whether to allow pipelines with missing components
-
-    Returns
-    -------
-    Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]
-        Dictionary mapping pipeline names to (pdf_filters, text_extract, deserialize) tuples
-
-    Raises
-    ------
-    ValueError
-        If required pipeline components are missing and allow_partial_pipelines is False
-
-    Notes
-    -----
-    Each pipeline consists of three components:
-    - pdf_filters: Functions that extract relevant blocks from PDF XML
-    - text_extract: Functions that convert PDF blocks to text blocks with company matching
-    - deserialize: Functions that convert text blocks to structured financial data
-
-    The function combines pipelines from structured, semi-structured, and unstructured
-    processing approaches to provide comprehensive format support.
-    """
-    struct = get_structured(format_name)
-    semistruct = get_semistructured(format_name)
-    unstruct = get_unstructured(format_name)
-
-    pipelines_names = set(struct) | set(semistruct) | set(unstruct)
-
-    pipelines = {
-        name: struct.get(name, Pipeline())
-        + semistruct.get(name, Pipeline())
-        + unstruct.get(name, Pipeline())
-        for name in pipelines_names
-    }
-    if not allow_partial_pipelines:
-        for p in pipelines.values():
-            if not p.complete():
-                raise ValueError(_("Pipeline is incomplete: \n{}").format(p))
-
-    return pipelines
 
 
 type PageType = str

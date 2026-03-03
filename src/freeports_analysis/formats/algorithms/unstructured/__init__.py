@@ -8,7 +8,6 @@ that require custom parsing logic.
 import logging
 import importlib
 from typing import Dict, List, Tuple, Callable, Any
-from ..data import get_pageclassify_pipelines
 from ..commons import Pipeline
 
 logger = logging.getLogger(__name__)
