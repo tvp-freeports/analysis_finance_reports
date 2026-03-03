@@ -637,8 +637,21 @@ def standard_text_extraction(
 
 class TextFilterPageClassifyStandard:
     def __call__(self, pdf_blks, _):
-        blk = pdf_blks[0]
-        return [TextBlock(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, blk)]
+        page_classification = None
+        for blk in pdf_blks:
+            page_type = blk.metadata["page_type"]
+            if page_type is not None:
+                if page_classification is None:
+                    page_classification = page_type
+                else:
+                    raise Exception(
+                        f"page cannot be classified both as `{page_classification}` and `{page_type}`"
+                    )
+        return [
+            TextBlock(
+                OneTextBlockType.RELEVANT_BLOCK, {"page_type": page_classification}, blk
+            )
+        ]
 
 
 class TextFilterInvestmentsStandard:

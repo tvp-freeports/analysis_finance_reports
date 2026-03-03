@@ -5,6 +5,10 @@ from freeports_analysis.formats.utils.pdf_filter import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
 )
+from freeports_analysis.formats.utils.text_extract import TextFilterPageClassifyStandard
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerPageClassifyStandard,
+)
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
@@ -14,8 +18,11 @@ curr_set = PdfLineSelection(font_size=(8.9, 9.1), text="(expresado en") & h_font
 pipelines = {
     "": Pipeline(
         pdf_extract=PdfExtractPageClassifyStandard(
-            header_sets=[PdfLineSelection.text("Descripci") & h_font, curr_set]
-        )
+            header_sets=[PdfLineSelection.text("Descripci") & h_font, curr_set],
+            page_type="investments",
+        ),
+        text_filter=TextFilterPageClassifyStandard(),
+        deserialize=DeserializerPageClassifyStandard(),
     ),
     "investments": Pipeline(
         pdf_extract=PdfExtractInvestmentsStandard(

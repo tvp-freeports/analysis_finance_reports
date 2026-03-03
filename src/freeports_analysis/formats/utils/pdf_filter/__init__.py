@@ -54,18 +54,20 @@ logger = logging.getLogger(__name__)
 
 class PdfExtractPageClassifyStandard:
     header_sets: Set[PdfLineSelection]
+    page_type: str
 
-    def __init__(self, header_sets):
+    def __init__(self, header_sets, page_type):
         self.header_sets = set()
         try:
             for h in header_sets:
                 self.header_sets.add(h)
         except TypeError:
             self.header_sets.add(header_sets)
+        self.page_type = page_type
 
     def __call__(self, dict_root):
         lines = pdflines_from_pagedict(dict_root)
-        page_type = "investments"
+        page_type = self.page_type
         for hsa in self.header_sets:
             if len(hsa.select(lines)) == 0:
                 page_type = None

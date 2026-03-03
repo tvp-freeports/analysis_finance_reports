@@ -4,6 +4,10 @@ from freeports_analysis.formats.utils.pdf_filter import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
 )
+from freeports_analysis.formats.utils.text_extract import TextFilterPageClassifyStandard
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerPageClassifyStandard,
+)
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
@@ -72,8 +76,11 @@ pipelines = {
             header_sets=[
                 PdfLineSelection.text("Titoli") & h_font_selection,
                 PdfLineSelection.text("Divisa") & h_font_selection,
-            ]
-        )
+            ],
+            page_type="investments",
+        ),
+        text_filter=TextFilterPageClassifyStandard(),
+        deserialize=DeserializerPageClassifyStandard(),
     ),
     "investments": Pipeline(
         pdf_extract=PdfExtractInvestmentsStandard(

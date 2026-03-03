@@ -1,37 +1,42 @@
-ID,Header set
-CARNE-EN23,"Arial-BoldMT ""Description"""
-CARNE-EN23,"Arial-BoldMT ""Currency"""
-EURIZON-EN23.A,"Frutiger-Light ""Nominal /"""
-EURIZON-EN23.A,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT"""
-EURIZON-EN23.B,"Frutiger-Light ""Nominal /"""
-EURIZON-EN23.B,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT"""
-EURIZON-IT24,"TrebuchetMSBold ""Titolo"""
-EURIZON-IT24,"TrebuchetMSBold ""Controvalore in"""
-UBS-EN23,"Frutiger45LightBold ""Nominal """
-MEDIOLANUM-IT24.A,"""Valutazione """
-MEDIOLANUM-IT24.C,"""Valutazione """
-AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at"""
-AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo"""
-ANIMA-EN23,"Helvetica-Bold ""Holdings"""
-ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/"""
-ARCA-IT24,"TrebuchetMS-Bold ""Titoli"""
-ARCA-IT24,"TrebuchetMS-Bold ""Divisa"""
-ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/"""
-ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock"""
-DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments"""
-EURIZON-EN21,"ArialMT-Bold ""Face value/"""
-FIDEURAM-EN23,"Arial ""Country"""
-FIDEURAM-IT24,"Tahoma,Bold ""Titolo"""
-FIDEURAM-IT24,"Tahoma,Bold ""Controvalore"""
-MEDIOLANUM-ES24.B,"Helvetica-Bold ""Cartera Exerior"""
-MEDIOLANUM-IT24.A,"[8.037657] ""Descrizione"""
-MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo"""
-MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore"""
-MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione"""
-MEDIOLANUM-EN24,"[8.04] ""Face value"""
-FINECO-EN23@IR,"TimesNewRoman,Bold ""Domicile"""
-FINECO-EN23@IR,"TimesNewRoman,Bold ""Shares"""
-FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """
-KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal"""
-UBS-EN23,"Frutiger45LightBold ""Description """
-MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments"""
+ID,Header set,Class
+CARNE-EN23,"Arial-BoldMT ""Description""",
+CARNE-EN23,"Arial-BoldMT ""Currency""",
+EURIZON-EN23.A,"Frutiger-Light ""Nominal /""",
+EURIZON-EN23.A,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-EN23.B,"Frutiger-Light ""Nominal /""",
+EURIZON-EN23.B,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-IT24,"TrebuchetMSBold ""Titolo""",
+EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",
+UBS-EN23,"Frutiger45LightBold ""Nominal """,
+MEDIOLANUM-IT24.A,"""Valutazione """,
+MEDIOLANUM-IT24.C,"""Valutazione """,
+AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",
+AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo""",
+ANIMA-EN23,"Helvetica-Bold ""Holdings""",
+ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",
+ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",
+ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",
+ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",
+ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",
+DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",
+EURIZON-EN21,"ArialMT-Bold ""Face value/""",
+FIDEURAM-EN23,"Arial ""Country""",
+FIDEURAM-IT24,"Tahoma,Bold ""Titolo""",
+FIDEURAM-IT24,"Tahoma,Bold ""Controvalore""",
+MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Cartera Exerior""",
+MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Descripc""",
+MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Divisa""",
+MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Periodo actual""",
+MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Registro CNMV:""",cover
+MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Grupo Gestora:""",cover
+MEDIOLANUM-IT24.A,"[8.037657] ""Descrizione""",
+MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",
+MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",
+MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",
+MEDIOLANUM-EN24,"[8.04] ""Face value""",
+FINECO-EN23@IR,"TimesNewRoman,Bold ""Domicile""",
+FINECO-EN23@IR,"TimesNewRoman,Bold ""Shares""",
+FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,
+KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",
+UBS-EN23,"Frutiger45LightBold ""Description """,
+MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",

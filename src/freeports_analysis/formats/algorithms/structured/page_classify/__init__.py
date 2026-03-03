@@ -41,6 +41,7 @@ args_schema = pa.DataFrameSchema(
     {
         "ID": column_id_format_pipe(FKRelation.ONE_TO_MANY),
         "Header set": column_line_set,
+        "Class": pa.Column(pd.StringDtype),
     },
     strict=True,
     coerce=True,
@@ -57,6 +58,8 @@ def get_args() -> pd.DataFrame:
         Validated DataFrame
     """
     df = pd.read_csv(data / "args.csv")
+    pd.set_option("future.no_silent_downcasting", True)
+    df["Class"] = df["Class"].fillna("investments")
     df = create_index_format_name_pipe(
         df,
         pipeline_default=pipeline_default,
@@ -80,9 +83,16 @@ def get_structured_formats() -> pd.DataFrame:
     PDF processing algorithms.
     """
     args = get_args().drop(columns="ID")
+
+    def aggregate_classes(classes):
+        res = set(classes)
+        if len(res) != 1:
+            raise Exception("Same computed ID require same class")
+        return list(res)[0]
+
     args_agg = args.groupby(
         by=["Format name", "Pipeline name", "Pipe index", "Computed ID"]
-    ).agg({"Header set": list})
+    ).agg({"Class": aggregate_classes, "Header set": list})
     result = args_agg.rename(columns={"Header set": "Header sets"})
     return result
 
@@ -120,12 +130,25 @@ def get_pipelines(
         pass
     pipelines = {}
     for pipeline_name, arg in args:
-        pipelines[pipeline_name] = Pipeline(
-            pdf_extract=PdfExtractPageClassifyStandard(
-                header_sets=[pdfline_selection_from_str(s) for s in arg["Header sets"]]
-            ),
-            text_filter=TextFilterPageClassifyStandard(),
-            deserialize=DeserializerPageClassifyStandard(),
-        )
+        if pipeline_name not in pipelines:
+            pipelines[pipeline_name] = Pipeline(
+                pdf_extract=PdfExtractPageClassifyStandard(
+                    header_sets=[
+                        pdfline_selection_from_str(s) for s in arg["Header sets"]
+                    ],
+                    page_type=arg["Class"],
+                ),
+                text_filter=TextFilterPageClassifyStandard(),
+                deserialize=DeserializerPageClassifyStandard(),
+            )
+        else:
+            pipelines[pipeline_name].pdf_extract.add_pipe(
+                PdfExtractPageClassifyStandard(
+                    header_sets=[
+                        pdfline_selection_from_str(s) for s in arg["Header sets"]
+                    ],
+                    page_type=arg["Class"],
+                )
+            )
 
     return pipelines
