@@ -154,6 +154,16 @@ class PdfBlock:
         """
         return _str_blocks(self)
 
+    def __repr__(self) -> str:
+        """Return string representation of the PdfBlock.
+
+        Returns
+        -------
+        str
+            String representation
+        """
+        return _str_blocks(self)
+
 
 class TextBlock:
     """Represents a processed text block derived from a PdfBlock.

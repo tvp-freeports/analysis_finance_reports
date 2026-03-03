@@ -13,6 +13,7 @@ from tests.conftest import out_dir, xml_parser, targets, conf
 
 
 def get_segment(fmt, pipeline_name, segment_index):
+    print(get_pipelines(fmt))
     return [seg for seg in get_pipelines(fmt)[pipeline_name]][segment_index]
 
 
