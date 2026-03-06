@@ -79,6 +79,7 @@ binding = "PyO3"         # Default value, can be omitted
 [tool.pytest.ini_options]
 pythonpath = "src/"
 markers = [
+    "path: if given __file__ as an argument rapresent the location of the test (it's usued by fixtures to set the content)",
     "integration_tests: mark test as an integration test (supposingly slow) to avoid running on each commit",
     "online_tests: mark test as an test that requires an internet conncetion to avoid running on each commit",
     "benchmarks: mark a test like a benchmark that record statistics about the execution time"

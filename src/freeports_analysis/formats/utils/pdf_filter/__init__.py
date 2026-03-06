@@ -126,11 +126,8 @@ class PdfExtractInvestmentsStandard:
             if metadata["currency"] is None:
                 metadata["currency"] = self.currency_filter(lines)
             metadata["subfund"] = self.subfund_filter(lines)
-            metadata["manco"] = (
-                self.manco_filter(lines)
-                if self.manco_filter.selection is not None
-                else None
-            )
+            if self.manco_filter.selection is not None:
+                metadata["manco"] = self.manco_filter(lines)
         except ExpectedPdfBlockNotFound as e:
             raise PageParseFail(e) from e
 

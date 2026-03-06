@@ -311,6 +311,15 @@ class PipelinesBundle:
     def __call__(self, page, filter_data):
         return [r for p in self.pipelines for r in p(page, filter_data)]
 
+    def apply_pdf_extract(self, page):
+        return [r for p in self.pipelines for r in p.pdf_extract(page)]
+
+    def apply_text_filter(self, pdf_blks, filter_data):
+        return [r for p in self.pipelines for r in p.text_filter(pdf_blks, filter_data)]
+
+    def apply_deserialize(self, text_blks):
+        return [r for p in self.pipelines for r in p.deserialize(text_blks)]
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({len(self.pipelines)} pipelines)"
 
@@ -455,3 +464,12 @@ class Algorithm:
 
     def apply_to_page(self, pages, page_number, filter_data, page_class):
         return self.bundles_mapping[page_class](pages[page_number - 1], filter_data)
+
+    def apply_pdf_extract(self, page, page_class):
+        return self.bundles_mapping[page_class].apply_pdf_extract(page)
+
+    def apply_text_filter(self, pdf_blks, filter_data, page_class):
+        return self.bundles_mapping[page_class].apply_text_filter(pdf_blks, filter_data)
+
+    def apply_deserialize(self, txt_blks, page_class):
+        return self.bundles_mapping[page_class].apply_deserialize(txt_blks)

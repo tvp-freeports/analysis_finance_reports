@@ -11,6 +11,11 @@ pages = get_pages(__file__)
 
 
 @pytest.mark.parametrize("page", pages)
+def test_page_classification(page):
+    generic_test_page_classification(page, __file__)
+
+
+@pytest.mark.parametrize("page", pages)
 def test_pdf_filter(page):
     generic_test_pdf_filter(page, __file__)
 
