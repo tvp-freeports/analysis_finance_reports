@@ -38,6 +38,14 @@ def test_deserialize(page, expected_results, deserialize):
     assert expected_results(page) == deserialize(page)
 
 
-# @pytest.mark.integration_tests
-# def test_pipeline():
-#     generic_test_pipelines(__file__)
+@pytest.mark.path(__file__)
+@pytest.mark.integration_tests
+def test_pipeline(
+    pdf_data,
+    algorithm,
+    expected_log,
+    expected_investments,
+    expected_investments_add_infos,
+):
+    algorithm()
+    generic_test_pipelines(__file__)

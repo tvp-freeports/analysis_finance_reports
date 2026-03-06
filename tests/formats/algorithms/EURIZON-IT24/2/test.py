@@ -20,7 +20,7 @@ expected_text_blocks = get_expected_text_blocks(__file__, pages_type)
 expected_results = get_expected_results(__file__, pages_type)
 
 
-@pytest.mark.parametrize("page,page_type", pages_type)
+@pytest.mark.parametrize("page,ge_type", pages_type)
 def test_page_classification(page, page_type):
     assert page_type == a.classify_page(doc, page)
 
