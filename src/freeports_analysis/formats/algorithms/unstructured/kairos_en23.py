@@ -23,7 +23,7 @@ def text_filter(pdf_blks, target_companies):
     for txt_blk in txt_blks:
         c = txt_blk.content
         m = market_value_regex.match(c)
-        txt_blk.metadta |= {"quantity": m[0]}
+        txt_blk.metadata |= {"quantity": m[0]}
     return txt_blks
 
 

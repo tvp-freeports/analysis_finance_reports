@@ -39,7 +39,7 @@ class TextBlockType(Enum):
     EQUITY_TARGET = auto()
 
 
-class FirstBlockTextBlockType(Enum):
+class FirstPageTextBlockType(Enum):
     """Types of text blocks for MEDIOLANUM_ES24_B format."""
 
     SUBFUND = auto()
@@ -49,7 +49,7 @@ def pdf_extract_first_page(dict_root) -> List[PdfBlock]:
     lines = pdflines_from_pagedict(dict_root)
     sl = PdfLineSelection.area(0, 88, 1e6, 102).select(lines)[0]
     subfund = sl.text.strip().upper()
-    return [PdfBlock(PdfBlockType.RELEVANT_BLOCK, {"subfund": subfund}, blk)]
+    return [PdfBlock(PdfBlockType.RELEVANT_BLOCK, {"subfund": subfund}, sl.text)]
 
 
 def text_filter_first_page(
@@ -58,7 +58,7 @@ def text_filter_first_page(
     if len(pdf_blocks) == 1 and pdf_blocks[0].type_block == PdfBlockType.RELEVANT_BLOCK:
         return [
             TextBlock(
-                TextBlockType.SUBFUND,
+                FirstPageTextBlockType.SUBFUND,
                 {"subfund": pdf_blocks[0].metadata["subfund"]},
                 pdf_blocks[0],
             )

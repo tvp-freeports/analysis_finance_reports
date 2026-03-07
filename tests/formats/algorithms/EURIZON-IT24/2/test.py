@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 from tests.formats.algorithms import (
     get_algorithm,
     get_pages_with_type,
@@ -10,6 +11,8 @@ from tests.formats.algorithms import (
     apply_text_filter,
     apply_deserialize,
     test_companies,
+    run_alghoritm,
+    get_output,
 )
 
 a = get_algorithm(__file__)
@@ -20,7 +23,7 @@ expected_text_blocks = get_expected_text_blocks(__file__, pages_type)
 expected_results = get_expected_results(__file__, pages_type)
 
 
-@pytest.mark.parametrize("page,ge_type", pages_type)
+@pytest.mark.parametrize("page,page_type", pages_type)
 def test_page_classification(page, page_type):
     assert page_type == a.classify_page(doc, page)
 
@@ -44,51 +47,24 @@ def test_deserialize(page, page_type):
     )
 
 
-# import pytest
-# from tests.formats.algorithms import (
-#     generic_test_pdf_filter,
-#     generic_test_text_extract,
-#     generic_test_deserialize,
-#     generic_test_pipelines,
-#     get_pages,
-# )
-
-# pages = get_pages(__file__)
-
-
-# @pytest.mark.parametrize("page", pages)
-# def test_pdf_filter(page):
-#     generic_test_pdf_filter(page, __file__)
-
-
-# @pytest.mark.parametrize("page", pages)
-# def test_text_extract(page):
-#     generic_test_text_extract(page, __file__)
-
-
-# @pytest.mark.parametrize("page", pages)
-# def test_deserialize(page):
-#     generic_test_deserialize(page, __file__)
-
-
-# @pytest.mark.integration_tests
-# def test_pipeline():
-#     generic_test_pipelines(__file__)
-
-
-# @pytest.mark.path(__file__)
-# def test_page_classification(page,expected_page_type,pdf_document,algorithm):
-#     assert expected_page_type(page) == algorithm.classify_page(pdf_document,page)
-
-# @pytest.mark.path(__file__)
-# def test_pdf_extract(page,expected_pdf_blocks,pdf_extract):
-#     assert expected_pdf_blocks(page) == pdf_extract(page)
-
-# @pytest.mark.path(__file__)
-# def test_text_filter(page,expected_text_blocks,text_filter,test_targets):
-#     assert expected_text_blocks(page) == text_filter(page,test_targets)
-
-
-# @pytest.mark.path(__file__)
-# def test_deserialize(page,expected_results,deserialize):
-#     assert expected_results(page) == deserialize(page)
+@pytest.mark.integration_tests
+def test_pipeline():
+    res = run_alghoritm(__file__)
+    expected = get_output(__file__)
+    pd.testing.assert_frame_equal(
+        res["investments"]
+        .sort_values(by=res["investments"].columns.tolist())
+        .reset_index(drop=True),
+        expected["investments"]
+        .sort_values(by=expected["investments"].columns.tolist())
+        .reset_index(drop=True),
+    )
+    assert (
+        res["investments additional infos"] == expected["investments additional infos"]
+    )
+    pd.testing.assert_frame_equal(
+        res["log"].sort_values(by=res["log"].columns.tolist()).reset_index(drop=True),
+        expected["log"]
+        .sort_values(by=expected["log"].columns.tolist())
+        .reset_index(drop=True),
+    )

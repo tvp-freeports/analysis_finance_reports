@@ -73,7 +73,7 @@ def pdf_extract(dict_root) -> List[PdfBlock]:
         area=(x0 - 5, y0 + y_offset, x1 + 5, y1 + y_offset + 10),
     )
     tables = PdfLineSelection(font="Helvetica-Bold", area=(0.0, 0.0, 105, 1e6)).select(
-        root_dict
+        lines
     )
     if len(tables) == 0:
         return []

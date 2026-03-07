@@ -215,7 +215,7 @@ class StandardPageMetadataFilter:
                 "%s",
                 str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
             )
-            raise ExpectedPdfBlockNotFound(_("{name} not found")) from exc
+            raise ExpectedPdfBlockNotFound(_(f"{self.name} not found")) from exc
 
 
 class OnePdfBlockType(Enum):
