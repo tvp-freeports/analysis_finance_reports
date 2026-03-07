@@ -25,4 +25,4 @@ target_companies = (
         df_target_companies
     )
 )
-pdf_blks = pdf_filter(xml_tree)
+pdf_blks = pdf_filter(root_dict)
