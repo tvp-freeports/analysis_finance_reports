@@ -4,6 +4,7 @@ from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsSta
 from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
+tnrb = PdfLineSelection.font("TimesNewRoman,Bold")
 
 subfund_set = (
     PdfLineSelection.font_size(9.95, 10.03)
