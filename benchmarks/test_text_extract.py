@@ -4,7 +4,7 @@ from .conftest import pdf_blks, target_companies
 import pytest
 
 
-text_extract = get_pipelines("CARNE-EN23")[""][1][0]
+text_extract = get_pipelines("CARNE-EN23")[""].text_filter
 
 
 @pytest.mark.benchmarks

@@ -6,7 +6,7 @@ from freeports_analysis.formats.utils.pdf_filter.select_position import (
 from .conftest import xml_blks, xml_tree, body_blks
 import pytest
 
-pdf_filter = get_pipelines("CARNE-EN23")[""][0][0]
+pdf_filter = get_pipelines("CARNE-EN23")[""].pdf_extract
 
 
 @pytest.mark.benchmarks

@@ -10,7 +10,7 @@ from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
 )
 from freeports_analysis.data import get_target_companies
 
-pdf_filter = get_pipelines("CARNE-EN23")[""][0][0]
+pdf_filter = get_pipelines("CARNE-EN23")[""].pdf_extract
 
 root_dir = Path(__file__).parent
 pdf_file = pypdf.Document(root_dir / "report.pdf")

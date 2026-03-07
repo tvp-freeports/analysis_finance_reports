@@ -21,7 +21,7 @@ long_documents = [
 #     "FINECO-EN23@IR",
 #     "MEDIOLANUM-IT24.A",
 #     "MEDIOLANUM-IT24.C",
-#     "EURIZON-EN23.A",
+#     "EURIZON-EN23",
 #     "DANSKEINVEST-EN24",
 # ]
 short_documents = [

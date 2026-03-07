@@ -1,10 +1,8 @@
 ID,Header set,Class
 CARNE-EN23,"Arial-BoldMT ""Description""",
 CARNE-EN23,"Arial-BoldMT ""Currency""",
-EURIZON-EN23.A,"Frutiger-Light ""Nominal /""",
-EURIZON-EN23.A,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
-EURIZON-EN23.B,"Frutiger-Light ""Nominal /""",
-EURIZON-EN23.B,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-EN23,"Frutiger-Light ""Nominal /""",
+EURIZON-EN23,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
 EURIZON-IT24,"TrebuchetMSBold ""Titolo""",
 EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",
 UBS-EN23,"Frutiger45LightBold ""Nominal """,
