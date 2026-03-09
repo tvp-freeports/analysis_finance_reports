@@ -115,7 +115,10 @@ class PdfBlock:
         bool
             True if blocks are equal, False otherwise
         """
-        return _eq_blocks(self, other)
+        return isinstance(self, type(other)) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash((self.type_block, frozenset(self.metadata.items()), self.content))
 
     def __init__(
         self,
@@ -228,9 +231,11 @@ class TextBlock:
         bool
             True if blocks are equal, False otherwise
         """
-        equal = _eq_blocks(self, other)
-        equal = equal and self.pdf_block == other.pdf_block
-        return equal
+
+        return isinstance(self, type(other)) and hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash((self.type_block, frozenset(self.metadata.items()), self.content))
 
 
 class ExpectedPdfBlockNotFound(Exception):
