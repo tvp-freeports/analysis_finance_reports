@@ -515,3 +515,18 @@ def get_results(
         ).open("rb") as f:
             reference_results = dill.load(f)
         return results, reference_results
+
+
+def relative_movewindow_area(vec, width_mult, height_mult):
+    def context(x0, y0, x1, y1):
+        w = x1 - x0
+        h = y1 - y0
+        x, y = vec
+        return (
+            x0 + x * w,
+            y0 + y * h,
+            x0 + (width_mult + x) * w,
+            y0 + (height_mult + y) * h,
+        )
+
+    return context

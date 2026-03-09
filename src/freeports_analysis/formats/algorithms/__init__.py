@@ -440,19 +440,33 @@ class Algorithm:
         new_filter_data = []
         for pages_type, pages in pages_scheduled[0].items():
             for page_n, page in pages.items():
-                list_res = self.bundles_mapping[pages_type](
-                    page, compiled_target_companies
-                )
+                LOG_CONTEXTUAL_INFOS.page = page_n
+                list_res = []
+                try:
+                    list_res = self.bundles_mapping[pages_type](
+                        page, compiled_target_companies
+                    )
+                except PageParseFail as e:
+                    logger_source.error(e)
+                    logger.warning(_("Skipping page..."))
                 new_filter_data.extend(list_res)
                 res[page_n + 1] = list_res
+                LOG_CONTEXTUAL_INFOS.page = None
         filter_data = new_filter_data
         for i in range(1, len(self.schedule)):
             new_filter_data = []
             for pages_type, pages in pages_scheduled[i].items():
                 for page_n, page in pages.items():
-                    list_res = self.bundles_mapping[pages_type](page, filter_data)
+                    LOG_CONTEXTUAL_INFOS.page = page_n
+                    list_res = []
+                    try:
+                        list_res = self.bundles_mapping[pages_type](page, filter_data)
+                    except PageParseFail as e:
+                        logger_source.error(e)
+                        logger.warning(_("Skipping page..."))
                     new_filter_data.extend(list_res)
                     res[page_n + 1] = list_res
+                    LOG_CONTEXTUAL_INFOS.page = None
             filter_data = new_filter_data
         return res
 

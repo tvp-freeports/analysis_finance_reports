@@ -11,8 +11,8 @@ subfund_set = PdfLineSelection(
     font="ArialMT", font_size=(6.95, 6.97)
 ) & PdfLineSelection.area_from_movewindow(
     target=pdfline_selection_from_str('ArialMT[6.96] "^Annual report including"'),
-    vec=(0, 0.8),
-    width_mult=1.1,
+    vec=(0.1, 0.8),
+    width_mult=2.0,
     height_mult=1.4,
 )
 
