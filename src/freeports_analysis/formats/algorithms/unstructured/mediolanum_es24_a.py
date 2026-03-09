@@ -27,7 +27,7 @@ pipelines = {
     "investments": Pipeline(
         pdf_extract=PdfExtractInvestmentsStandard(
             subfund_set=PdfLineSelection.area(0.0, 58.0, 1e6, 82.0) & h_font,
-            body_set=PdfLineSelection.area(0.0, 0.0, 1e6, 795.0)
+            body_set=PdfLineSelection.area(0.0, 0.0, 1e6, 767.0)
             & h_font / PdfLineSelection.text("^ "),
             currency_set=curr_set,
         )
