@@ -760,9 +760,8 @@ class TextFilterInvestmentsStandard:
 
             metadata = {}
 
-            metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
-
             try:
+                metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
                 metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
             except AttributeError as e:
                 logger.error(e)

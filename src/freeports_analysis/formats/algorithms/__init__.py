@@ -419,7 +419,7 @@ class Algorithm:
         pages_scheduled = [
             {
                 pt: {
-                    i: pages[i]
+                    i + 1: pages[i]
                     for i, page in enumerate(pages)
                     if page_classification[i] == pt
                 }
@@ -450,7 +450,7 @@ class Algorithm:
                     logger_source.error(e)
                     logger.warning(_("Skipping page..."))
                 new_filter_data.extend(list_res)
-                res[page_n + 1] = list_res
+                res[page_n] = list_res
                 LOG_CONTEXTUAL_INFOS.page = None
         filter_data = new_filter_data
         for i in range(1, len(self.schedule)):
@@ -465,7 +465,7 @@ class Algorithm:
                         logger_source.error(e)
                         logger.warning(_("Skipping page..."))
                     new_filter_data.extend(list_res)
-                    res[page_n + 1] = list_res
+                    res[page_n] = list_res
                     LOG_CONTEXTUAL_INFOS.page = None
             filter_data = new_filter_data
         return res
