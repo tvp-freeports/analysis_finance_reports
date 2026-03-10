@@ -82,3 +82,15 @@
 42:
   interest_rate: null
   maturity: '2049-12-01'
+43:
+  interest_rate: null
+  maturity: '2025-01-01'
+44:
+  interest_rate: null
+  maturity: '2025-03-01'
+45:
+  interest_rate: null
+  maturity: '2025-02-01'
+46:
+  interest_rate: 0.0034999999999999996
+  maturity: '2025-02-01'
