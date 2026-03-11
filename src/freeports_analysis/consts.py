@@ -386,6 +386,9 @@ class Promise:
         """
         return f'{self.__class__.__name__}("{str(self)}")'
 
+    def __hash__(self):
+        return hash(self._id)
+
     def __eq__(self, other: object) -> bool:
         """Check equality with another promise.
 
@@ -401,7 +404,7 @@ class Promise:
         """
         if not isinstance(other, Promise):
             return False
-        return self._id == other._id
+        return hash(self) == hash(other)
 
     def __format__(self, fmt: str) -> str:
         """Format the promise for string formatting.

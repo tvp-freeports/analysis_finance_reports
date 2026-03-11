@@ -100,6 +100,10 @@ pipelines = {
             subfund_set=Promise("title document"),
             body_set=PdfLineSelection.font("Helvetica"),
             currency_set=Currency.EUR,
+            deselection_list=[
+                PdfLineSelection.text("Cartera de inversiones financieras a"),
+                PdfLineSelection(text="-$", font="Helvetica"),
+            ],
         ),
         deserialize=deserialize,
     ),
