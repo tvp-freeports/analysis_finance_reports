@@ -21,5 +21,5 @@ freeports\_analysis.formats.utils
    :recursive:
 
    deserialize
-   pdf_filter
-   text_extract
+   pdf_extract
+   text_filter

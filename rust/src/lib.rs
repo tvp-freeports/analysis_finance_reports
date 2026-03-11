@@ -4,12 +4,12 @@ pub mod commons {
     pub mod sets;
 }
 
-pub mod pdf_filter {
+pub mod pdf_extract {
     pub mod tabularizer;
     pub mod select;
 }
 
-pub mod text_extract {
+pub mod text_filter {
     pub mod matcher;
 }
 
@@ -19,11 +19,11 @@ pub mod text_extract {
 #[pyo3::pymodule]
 mod freeports_lib {
     #[pyo3::pymodule]
-    mod pdf_filter {
+    mod pdf_extract {
         #[pyo3::pymodule]
         mod tabularizer {
             #[pymodule_export]
-            use crate::pdf_filter::tabularizer::{
+            use crate::pdf_extract::tabularizer::{
                 py_get_table_coordinates,
                 py_collapse_table_rows
             };
@@ -31,7 +31,7 @@ mod freeports_lib {
         #[pyo3::pymodule]
         mod select {
             #[pymodule_export]
-            use crate::pdf_filter::select::{
+            use crate::pdf_extract::select::{
                 PyPdfLineSelection,
                 PyPdfLine
             };
@@ -39,11 +39,11 @@ mod freeports_lib {
 
     }
     #[pyo3::pymodule]
-    mod text_extract {
+    mod text_filter {
         #[pyo3::pymodule]
         mod matcher {
             #[pymodule_export]
-            use crate::text_extract::matcher::{
+            use crate::text_filter::matcher::{
                 py_match_company,
                 CompanyMatchInfos
             };

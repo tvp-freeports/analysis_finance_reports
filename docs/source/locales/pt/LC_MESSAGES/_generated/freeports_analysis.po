@@ -87,7 +87,7 @@ msgstr ""
 #: ../../source/_generated/freeports_analysis.rst:21:<autosummary>:1
 msgid ""
 "Utilities of general interest common to all formats and that can be used "
-"for creating `pdf_filter` or `text_extract` or `deserialize` functions"
+"for creating `pdf_extract` or `text_filter` or `deserialize` functions"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.rst:21:<autosummary>:1

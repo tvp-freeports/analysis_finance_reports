@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.utils.text_extract.match &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils.text_filter.match &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
@@ -21,7 +21,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="freeports_analysis.i18n" href="freeports_analysis.i18n.html" />
-    <link rel="prev" title="freeports_analysis.formats.utils.text_extract" href="freeports_analysis.formats.utils.text_extract.html" /> 
+    <link rel="prev" title="freeports_analysis.formats.utils.text_filter" href="freeports_analysis.formats.utils.text_filter.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -100,10 +100,10 @@
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.text_extract.html">freeports_analysis.formats.utils.text_extract</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.utils.text_extract.match</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.text_filter.html">freeports_analysis.formats.utils.text_filter</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.text_filter.match</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.utils.text_extract.match.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.text_filter.match.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -111,8 +111,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.utils.text_extract.match">
-<span id="freeports-analysis-formats-utils-text-extract-match"></span><h1>freeports_analysis.formats.utils.text_extract.match<a class="headerlink" href="#module-freeports_analysis.formats.utils.text_extract.match" title="Link to this heading"></a></h1>
+  <section id="module-freeports_analysis.formats.utils.text_filter.match">
+<span id="freeports-analysis-formats-utils-text-extract-match"></span><h1>freeports_analysis.formats.utils.text_filter.match<a class="headerlink" href="#module-freeports_analysis.formats.utils.text_filter.match" title="Link to this heading"></a></h1>
 <p>Target matching algorithms for company name extraction.</p>
 <p>This module provides functions for matching text against target companies
 using various matching strategies including exact matches, regex patterns,
@@ -120,20 +120,20 @@ and symbol-based matching.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.match.dataframe_to_match" title="freeports_analysis.formats.utils.text_extract.match.dataframe_to_match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_match</span></code></a>(target_companies)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_filter.match.dataframe_to_match" title="freeports_analysis.formats.utils.text_filter.match.dataframe_to_match"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_match</span></code></a>(target_companies)</p></td>
 <td><p>Prepare target company data for matching.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.match.match_company" title="freeports_analysis.formats.utils.text_extract.match.match_company"><code class="xref py py-obj docutils literal notranslate"><span class="pre">match_company</span></code></a>(text, target_companies)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_filter.match.match_company" title="freeports_analysis.formats.utils.text_filter.match.match_company"><code class="xref py py-obj docutils literal notranslate"><span class="pre">match_company</span></code></a>(text, target_companies)</p></td>
 <td><p>Match text against target companies using multiple matching strategies.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_extract.match.normalize_string" title="freeports_analysis.formats.utils.text_extract.match.normalize_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_string</span></code></a>(string)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.text_filter.match.normalize_string" title="freeports_analysis.formats.utils.text_filter.match.normalize_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_string</span></code></a>(string)</p></td>
 <td><p>Normalize a string by making it lowercase and removing accents.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.match.dataframe_to_match">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.match.</span></span><span class="sig-name descname"><span class="pre">dataframe_to_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_companies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.match.dataframe_to_match" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_filter.match.dataframe_to_match">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_filter.match.</span></span><span class="sig-name descname"><span class="pre">dataframe_to_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_companies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_filter.match.dataframe_to_match" title="Link to this definition"></a></dt>
 <dd><p>Prepare target company data for matching.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -156,8 +156,8 @@ and symbol-based matching.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.match.match_company">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.match.</span></span><span class="sig-name descname"><span class="pre">match_company</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_companies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.match.match_company" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_filter.match.match_company">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_filter.match.</span></span><span class="sig-name descname"><span class="pre">match_company</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_companies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_filter.match.match_company" title="Link to this definition"></a></dt>
 <dd><p>Match text against target companies using multiple matching strategies.</p>
 <p>This function implements a sophisticated multi-stage matching algorithm
 that balances accuracy and performance by trying different matching
@@ -211,8 +211,8 @@ The identifier corresponds to the index in the original target dataframe.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_extract.match.normalize_string">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_extract.match.</span></span><span class="sig-name descname"><span class="pre">normalize_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_extract.match.normalize_string" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.text_filter.match.normalize_string">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.text_filter.match.</span></span><span class="sig-name descname"><span class="pre">normalize_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.text_filter.match.normalize_string" title="Link to this definition"></a></dt>
 <dd><p>Normalize a string by making it lowercase and removing accents.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -241,7 +241,7 @@ The identifier corresponds to the index in the original target dataframe.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.utils.text_extract.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.text_extract" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.text_filter.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.text_filter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="freeports_analysis.i18n.html" class="btn btn-neutral float-right" title="freeports_analysis.i18n" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

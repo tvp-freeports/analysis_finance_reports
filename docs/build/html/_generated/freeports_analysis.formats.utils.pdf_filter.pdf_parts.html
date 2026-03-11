@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.utils.pdf_filter.pdf_parts &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils.pdf_extract.pdf_parts &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html" />
-    <link rel="prev" title="freeports_analysis.formats.utils.pdf_filter" href="freeports_analysis.formats.utils.pdf_filter.html" /> 
+    <link rel="next" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils.pdf_extract" href="freeports_analysis.formats.utils.pdf_extract.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -100,10 +100,10 @@
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_filter.html">freeports_analysis.formats.utils.pdf_filter</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_filter.pdf_parts</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_extract.html">freeports_analysis.formats.utils.pdf_extract</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_extract.pdf_parts</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_filter.pdf_parts.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_extract.pdf_parts.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -111,8 +111,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.utils.pdf_filter.pdf_parts">
-<span id="freeports-analysis-formats-utils-pdf-filter-pdf-parts"></span><h1>freeports_analysis.formats.utils.pdf_filter.pdf_parts<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_filter.pdf_parts" title="Link to this heading"></a></h1>
+  <section id="module-freeports_analysis.formats.utils.pdf_extract.pdf_parts">
+<span id="freeports-analysis-formats-utils-pdf-filter-pdf-parts"></span><h1>freeports_analysis.formats.utils.pdf_extract.pdf_parts<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_extract.pdf_parts" title="Link to this heading"></a></h1>
 <p>PDF XML parts in a friendly format (custom Python classes).</p>
 <p>This module provides a high-level interface for working with PDF document elements
 by wrapping raw XML structures into Python objects with intuitive properties and
@@ -142,23 +142,23 @@ All coordinates are in PDF points (1/72 inch).</p>
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExtractedPdfLine</span></code></a>(blk)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExtractedPdfLine</span></code></a>(blk)</p></td>
 <td><p>Concrete PDF line implementation that extracts data from XML elements.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputPdfLineSet</span></code></a>(*[, text, font, font_size, area])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputPdfLineSet</span></code></a>(*[, text, font, font_size, area])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfLine</span></code></a>([font, font_size, area, text])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfLine</span></code></a>([font, font_size, area, text])</p></td>
 <td><p>A class representing a PDF line with geometric and typographic properties.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfLineSet</span></code></a>([font, font_size, area, text])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PdfLineSet</span></code></a>([font, font_size, area, text])</p></td>
 <td><p>A set-like container for filtering PDF lines based on multiple criteria.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">ExtractedPdfLine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">ExtractedPdfLine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">blk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Element</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="Link to this definition"></a></dt>
 <dd><p>Concrete PDF line implementation that extracts data from XML elements.</p>
 <p>This class extends PdfLine by automatically extracting line properties
 from XML elements representing PDF content. It provides the bridge between
@@ -172,8 +172,8 @@ raw PDF XML data and the high-level PdfLine interface.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine.xml_blk">
-<span class="sig-name descname"><span class="pre">xml_blk</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine.xml_blk" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine.xml_blk">
+<span class="sig-name descname"><span class="pre">xml_blk</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine.xml_blk" title="Link to this definition"></a></dt>
 <dd><p>Read-only property returning the original XML element</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -221,19 +221,19 @@ operations that require direct XML manipulation.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">InputPdfLineSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.InputArea" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.InputArea"><span class="pre">InputArea</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">InputPdfLineSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.InputArea" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.InputArea"><span class="pre">InputArea</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet" title="Link to this definition"></a></dt>
 <dd><dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet.model_config">
-<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.InputPdfLineSet.model_config" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.InputPdfLineSet.model_config" title="Link to this definition"></a></dt>
 <dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">PdfLine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><span class="pre">Font</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize"><span class="pre">FontSize</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">PdfLine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><span class="pre">Font</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize"><span class="pre">FontSize</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine" title="Link to this definition"></a></dt>
 <dd><p>A class representing a PDF line with geometric and typographic properties.</p>
 <p>This class provides a friendly interface to access geometric properties,
 font information, and text size of a line in a PDF document. It serves as
@@ -243,16 +243,16 @@ for all PDF line types.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The text content of the line. If None, indicates the line has no text content.</p></li>
-<li><p><strong>font</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><em>Font</em></a><em>]</em>) – The font used in the line. If None, font information is not available.</p></li>
-<li><p><strong>font_size</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize"><em>FontSize</em></a><em>]</em>) – The text size of the line in points. If None, size information is not available.</p></li>
+<li><p><strong>font</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><em>Font</em></a><em>]</em>) – The font used in the line. If None, font information is not available.</p></li>
+<li><p><strong>font_size</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize"><em>FontSize</em></a><em>]</em>) – The text size of the line in points. If None, size information is not available.</p></li>
 <li><p><strong>area</strong> (<em>Optional</em><em>[</em><em>Polygon</em><em>]</em>) – The geometric area (bounding box) in which the line is contained.
 If None, geometric information is not available.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.area">
-<span class="sig-name descname"><span class="pre">area</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.area" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.area">
+<span class="sig-name descname"><span class="pre">area</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.area" title="Link to this definition"></a></dt>
 <dd><p>Read-only property returning the line’s bounding box area</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -262,30 +262,30 @@ If None, geometric information is not available.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.font">
-<span class="sig-name descname"><span class="pre">font</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.font" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.font">
+<span class="sig-name descname"><span class="pre">font</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.font" title="Link to this definition"></a></dt>
 <dd><p>Read-only property returning the line’s font</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font">Font</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font">Font</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.font_size">
-<span class="sig-name descname"><span class="pre">font_size</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.font_size" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.font_size">
+<span class="sig-name descname"><span class="pre">font_size</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.font_size" title="Link to this definition"></a></dt>
 <dd><p>Read-only property returning the line’s font size</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize">FontSize</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize">FontSize</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.text">
-<span class="sig-name descname"><span class="pre">text</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLine.text" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.text">
+<span class="sig-name descname"><span class="pre">text</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLine.text" title="Link to this definition"></a></dt>
 <dd><p>Read-only property returning the line’s text content</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -324,28 +324,28 @@ If None, geometric information is not available.</p></li>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="id2">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">font</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><span class="pre">Font</span></a></em><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">font</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><span class="pre">Font</span></a></em><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
 <dd><p>Get the font used in the line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The font used in the line.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font">Font</a></p>
+<dd class="field-even"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font">Font</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="id3">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">font_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize"><span class="pre">FontSize</span></a></em><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">font_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize"><span class="pre">FontSize</span></a></em><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
 <dd><p>Get the text size used in the line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The text size used in the line.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize">FontSize</a></p>
+<dd class="field-even"><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize">FontSize</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -367,8 +367,8 @@ If None, geometric information is not available.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">PdfLineSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet"><span class="pre">FontSet</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval"><span class="pre">FontSizeInterval</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet"><span class="pre">TextSet</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.</span></span><span class="sig-name descname"><span class="pre">PdfLineSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">font</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet"><span class="pre">FontSet</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">font_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval"><span class="pre">FontSizeInterval</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet"><span class="pre">TextSet</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.conf_parse.html#freeports_analysis.conf_parse.ParitalConfiguration.None" title="freeports_analysis.conf_parse.ParitalConfiguration.None"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet" title="Link to this definition"></a></dt>
 <dd><p>A set-like container for filtering PDF lines based on multiple criteria.</p>
 <p>This class provides sophisticated filtering capabilities for PDF lines using
 geometric, typographic, and textual criteria. It supports complex set operations
@@ -377,7 +377,7 @@ PDF content.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>font</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet"><em>FontSet</em></a><em>]</em><em>, </em><em>optional</em>) – Font criteria for filtering. Can be a single font name or FontSet.
+<li><p><strong>font</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet"><em>FontSet</em></a><em>]</em><em>, </em><em>optional</em>) – Font criteria for filtering. Can be a single font name or FontSet.
 If None, no font filtering is applied.</p></li>
 <li><p><strong>font_size</strong> (<em>Optional</em><em>[</em><em>FontSizeSet</em><em>]</em><em>, </em><em>optional</em>) – Font size criteria for filtering. Can be a single size or size range.
 If None, no size filtering is applied.</p></li>
@@ -386,14 +386,14 @@ If None, no size filtering is applied.</p></li>
 - Tuple[Tuple[float, float], Tuple[float, float]]: ((xmin, xmax), (ymin, ymax))
 - Tuple[float, float]: (ymin, ymax) with x-range unbounded
 If None, no area filtering is applied.</p></li>
-<li><p><strong>text</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet"><em>TextSet</em></a><em>]</em><em>, </em><em>optional</em>) – Text content criteria. Can be exact text, regex patterns, or TextSet.
+<li><p><strong>text</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet"><em>TextSet</em></a><em>]</em><em>, </em><em>optional</em>) – Text content criteria. Can be exact text, regex patterns, or TextSet.
 If None, no text filtering is applied.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.is_simple">
-<span class="sig-name descname"><span class="pre">is_simple</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.is_simple" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.is_simple">
+<span class="sig-name descname"><span class="pre">is_simple</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.is_simple" title="Link to this definition"></a></dt>
 <dd><p>True if the set represents a simple (non-compound) filter</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -403,8 +403,8 @@ If None, no text filtering is applied.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.is_concrete">
-<span class="sig-name descname"><span class="pre">is_concrete</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.is_concrete" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.is_concrete">
+<span class="sig-name descname"><span class="pre">is_concrete</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.is_concrete" title="Link to this definition"></a></dt>
 <dd><p>True if all criteria are concrete (not references to other sets)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -414,8 +414,8 @@ If None, no text filtering is applied.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.one_d">
-<span class="sig-name descname"><span class="pre">one_d</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.PdfLineSet.one_d" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.one_d">
+<span class="sig-name descname"><span class="pre">one_d</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.PdfLineSet.one_d" title="Link to this definition"></a></dt>
 <dd><p>True if the set filters on exactly one dimension</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -468,10 +468,10 @@ Compound sets have binary operations stored in _right.</p>
 <p class="rubric">Modules</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#module-freeports_analysis.formats.utils.pdf_filter.pdf_parts.font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">font</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#module-freeports_analysis.formats.utils.pdf_extract.pdf_parts.font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">font</span></code></a></p></td>
 <td><p>Definition of types for identifying characteristics related to typographic aspects of PDF lines.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html#module-freeports_analysis.formats.utils.pdf_filter.pdf_parts.position" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html#module-freeports_analysis.formats.utils.pdf_extract.pdf_parts.position" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position</span></code></a></p></td>
 <td><p>Definition of types for identifying characteristics related to geometrical aspects of lines.</p></td>
 </tr>
 </tbody>
@@ -482,8 +482,8 @@ Compound sets have binary operations stored in _right.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.utils.pdf_filter.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_filter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_extract" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

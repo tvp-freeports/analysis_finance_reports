@@ -9,16 +9,16 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractPageClassifyStandard
-from freeports_analysis.formats.utils.text_extract import TextFilterPageClassifyStandard
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import LINE_SET_REGEXP
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractPageClassifyStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterPageClassifyStandard
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerPageClassifyStandard,
 )
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
 )
-from freeports_analysis.formats.utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TablePosAlgorithm,
 )
 from freeports_analysis.formats.algorithms.commons import (
@@ -112,7 +112,7 @@ def get_pipelines(
     Returns
     -------
     Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
-        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Tuple containing three dictionaries for pdf_extract, text_filter, and deserialize segments.
         Each dictionary maps pipeline names to lists of processing functions.
 
     Notes

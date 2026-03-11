@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.utils.pdf_filter.pdf_parts.font &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils.pdf_extract.pdf_parts.font &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html" />
-    <link rel="prev" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html" /> 
+    <link rel="next" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -100,11 +100,11 @@
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_filter.html">freeports_analysis.formats.utils.pdf_filter</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html">freeports_analysis.formats.utils.pdf_filter.pdf_parts</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_extract.html">freeports_analysis.formats.utils.pdf_extract</a></li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html">freeports_analysis.formats.utils.pdf_extract.pdf_parts</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -112,15 +112,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.utils.pdf_filter.pdf_parts.font">
-<span id="freeports-analysis-formats-utils-pdf-filter-pdf-parts-font"></span><h1>freeports_analysis.formats.utils.pdf_filter.pdf_parts.font<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_filter.pdf_parts.font" title="Link to this heading"></a></h1>
+  <section id="module-freeports_analysis.formats.utils.pdf_extract.pdf_parts.font">
+<span id="freeports-analysis-formats-utils-pdf-filter-pdf-parts-font"></span><h1>freeports_analysis.formats.utils.pdf_extract.pdf_parts.font<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_extract.pdf_parts.font" title="Link to this heading"></a></h1>
 <p>Definition of types for identifying characteristics related to typographic aspects of PDF lines.</p>
 <p>This module provides classes for working with font properties in PDF documents,
 including font names, font sizes, and text content matching with regex support.</p>
 <p class="rubric">Module Attributes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeSet</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeSet</span></code></a></p></td>
 <td><p>Type alias for FontSizeInterval for backward compatibility and clarity.</p></td>
 </tr>
 </tbody>
@@ -128,48 +128,48 @@ including font names, font sizes, and text content matching with regex support.<
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.AllFonts" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.AllFonts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AllFonts</span></code></a>(*elements)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.AllFonts" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.AllFonts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AllFonts</span></code></a>(*elements)</p></td>
 <td><p>A special FontSet that matches all fonts.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Font</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Font</span></code></a></p></td>
 <td><p>A string-based representation of a font name.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSet</span></code></a>(*elements)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSet</span></code></a>(*elements)</p></td>
 <td><p>A set of font names for filtering PDF lines by font.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSize</span></code></a>(value)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSize</span></code></a>(value)</p></td>
 <td><p>A class representing a font size in points.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeInterval</span></code></a>(*intervals)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeInterval</span></code></a>(*intervals)</p></td>
 <td><p>An interval representation for font size ranges.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeSet</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FontSizeSet</span></code></a></p></td>
 <td><p>Type alias for FontSizeInterval for backward compatibility and clarity.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextSet</span></code></a>(*elements)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextSet</span></code></a>(*elements)</p></td>
 <td><p>A set-like container for text patterns with set operations.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.AllFonts">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">AllFonts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.AllFonts" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.AllFonts">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">AllFonts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.AllFonts" title="Link to this definition"></a></dt>
 <dd><p>A special FontSet that matches all fonts.</p>
 <p>This class represents a universal font set that will match any font
 when used in PDF line filtering operations.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">Font</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">Font</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="Link to this definition"></a></dt>
 <dd><p>A string-based representation of a font name.</p>
 <p>This class extends str to provide type safety for font names while
 maintaining all string functionality.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSet" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSet" title="Link to this definition"></a></dt>
 <dd><p>A set of font names for filtering PDF lines by font.</p>
 <p>This class extends set to provide specialized font filtering capabilities.</p>
 <dl class="field-list simple">
@@ -180,8 +180,8 @@ maintaining all string functionality.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSize" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSize" title="Link to this definition"></a></dt>
 <dd><p>A class representing a font size in points.</p>
 <p>This class extends float to provide type safety for font sizes
 while maintaining all float functionality.</p>
@@ -196,14 +196,14 @@ while maintaining all float functionality.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSizeInterval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">intervals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSizeInterval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">intervals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="Link to this definition"></a></dt>
 <dd><p>An interval representation for font size ranges.</p>
 <p>This class extends Interval to provide specialized functionality
 for working with font size ranges in PDF line filtering.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval.from_atomic">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_atomic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval.from_atomic" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval.from_atomic">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_atomic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval.from_atomic" title="Link to this definition"></a></dt>
 <dd><p>Create a FontSizeInterval from atomic bounds.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -218,14 +218,14 @@ for working with font size ranges in PDF line filtering.</p>
 <dd class="field-even"><p>A new FontSizeInterval instance</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval">FontSizeInterval</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval">FontSizeInterval</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval.from_range">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lower</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval"><span class="pre">FontSizeInterval</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval.from_range" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval.from_range">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lower</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval"><span class="pre">FontSizeInterval</span></a></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval.from_range" title="Link to this definition"></a></dt>
 <dd><p>Create a FontSizeInterval from a range of values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -238,7 +238,7 @@ for working with font size ranges in PDF line filtering.</p>
 <dd class="field-even"><p>A new FontSizeInterval representing the specified range</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeInterval">FontSizeInterval</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeInterval">FontSizeInterval</a></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -252,14 +252,14 @@ for working with font size ranges in PDF line filtering.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSizeSet</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.FontSizeSet" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">FontSizeSet</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.FontSizeSet" title="Link to this definition"></a></dt>
 <dd><p>Type alias for FontSizeInterval for backward compatibility and clarity.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">TextSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.</span></span><span class="sig-name descname"><span class="pre">TextSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">elements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet" title="Link to this definition"></a></dt>
 <dd><p>A set-like container for text patterns with set operations.</p>
 <p>This class provides sophisticated text matching capabilities with
 support for set operations (union, intersection, difference).</p>
@@ -269,8 +269,8 @@ support for set operations (union, intersection, difference).</p>
 </dd>
 </dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet.is_simple">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_simple</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.TextSet.is_simple" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet.is_simple">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_simple</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.TextSet.is_simple" title="Link to this definition"></a></dt>
 <dd><p>Check if this is a simple (non-compound) text set.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -290,8 +290,8 @@ support for set operations (union, intersection, difference).</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

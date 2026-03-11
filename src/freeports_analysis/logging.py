@@ -345,7 +345,7 @@ class AdaptStandardInvesmentInfos(logging.Filter):
     """Filter that adds algorithm-specific investment information to LogRecords.
 
     This filter adds information specific to the standard PDF processing algorithms
-    (`standard_pdf_filtering`, `standard_text_extracting`, `standard_deserialization`)
+    (`standard_pdf_extracting`, `standard_text_filtering`, `standard_deserialization`)
     and converts it to a less algorithm-dependent format suitable for the
     `AddContextualInfos` filter.
 

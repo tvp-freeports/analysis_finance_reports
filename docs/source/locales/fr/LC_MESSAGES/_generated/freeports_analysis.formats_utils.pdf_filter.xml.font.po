@@ -20,134 +20,134 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.font.rst:2
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.font.rst:2
 msgid "freeports\\_analysis.formats\\_utils.pdf\\_filter.xml.font"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font:1 of
+#: freeports_analysis.formats_utils.pdf_extract.xml.font:1 of
 msgid ""
 "Low level utilities for handling typographic related aspects of the xml "
 "tree."
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.font.rst:9
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.font.rst:9
 msgid "Functions"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
 #: of
 msgid ""
 ":py:obj:`get_lines_with_font "
-"<freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font>`\\"
+"<freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font>`\\"
 " \\(blk\\, font\\)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
 #: of
 msgid "Return all the line with a certain font in a tree"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
 #: of
 msgid ""
 ":py:obj:`get_lines_with_txt_font "
-"<freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font>`\\"
+"<freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font>`\\"
 " \\(blk\\, txt\\, font\\[\\, ...\\]\\)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:1
 #: of
 msgid "Get lines with a certain txt and font"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
 #: of
 msgid ""
 ":py:obj:`is_present_txt_font "
-"<freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font>`\\"
+"<freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font>`\\"
 " \\(blk\\, txt\\, font\\)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:1:<autosummary>:1
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font:1
 #: of
 msgid ""
 "Return if a certain pdf block with a specific text and font is present in"
 " the tree"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.font.rst
 msgid "Parameters"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:3
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:3
 #: of
 msgid "tree from which extract lines"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:5
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:5
 #: of
 msgid "font to extract"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.font.rst
 msgid "Returns"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_font:8
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_font:8
 #: of
 msgid "list of relevant blocks"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.font.rst
 msgid "Return type"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:3
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:3
 #: of
 msgid "xml tree structure"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:5
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:5
 #: of
 msgid "text to search for"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:7
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:7
 #: of
 msgid "font to search for"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:9
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:9
 #: of
 msgid ""
 "if `True` return a list with all matches, if `False` just the first as a "
 "scalar element"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.get_lines_with_txt_font:13
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.get_lines_with_txt_font:13
 #: of
 msgid "matching lines"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font:3
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font:3
 #: of
 msgid "tree to search in"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font:5
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font:5
 #: of
 msgid "text to search"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font:7
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font:7
 #: of
 msgid "font to search"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.xml.font.is_present_txt_font:10
+#: freeports_analysis.formats_utils.pdf_extract.xml.font.is_present_txt_font:10
 #: of
 msgid "boolean describing if the block is present or not"
 msgstr ""

@@ -8,7 +8,7 @@ This module provides functionality for:
 
 Key components:
 - Decorators for text block type definition (one_txt_blk, EquityBondTextBlockType)
-- Standard text extraction functionality through standard_text_extraction decorator
+- Standard text extraction functionality through standard_text_filterion decorator
 """
 
 from enum import Enum, auto
@@ -25,7 +25,6 @@ from freeports_analysis.formats import (
     LineParseFail,
 )
 from freeports_analysis.consts import Currency
-from .. import overwrite_if_implemented
 
 
 logger = logging.getLogger(__name__)
@@ -276,11 +275,11 @@ class PdfBlocksTable:
         self.pop(j)
 
 
-def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
+def standard_text_filterion_loop(geometrical_indexes=True, merge_prev=False):
     """Decorator for standard text extraction loop.
 
     This decorator wraps the function provided in the usual loop that gives a simplified
-    and higher level context to the decorated `text_extraction` function.
+    and higher level context to the decorated `text_filterion` function.
     Specifically it expects that in the metadata of each `PdfBlock` is present
     an indicator of which column it is located graphically in the main table of the
     PDF page (it assumes that the data was tabular in some way) `table-col`.
@@ -311,7 +310,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
     """
 
     def decorator(f):
-        def text_extract(
+        def text_filter(
             pdf_blocks: List[PdfBlock], targets: List[str]
         ) -> List[TextBlock]:
             text_part_list = []
@@ -351,7 +350,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                         if cell_width or (len(content) > 0 and content[-1] in " \n"):
                             content += next_block.content
                 company = None
-                company = freeports_lib.text_extract.matcher.match_company(
+                company = freeports_lib.text_filter.matcher.match_company(
                     content, targets
                 )
 
@@ -384,7 +383,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
                 LOG_ADAPT_INVESTMENT_INFOS.row = row
                 content = pdf_blocks_table[-1].content
                 company = None
-                company = freeports_lib.text_extract.matcher.match_company(
+                company = freeports_lib.text_filter.matcher.match_company(
                     content, targets
                 )
 
@@ -406,7 +405,7 @@ def standard_text_extraction_loop(geometrical_indexes=True, merge_prev=False):
             LOG_ADAPT_INVESTMENT_INFOS.row = None
             return text_part_list
 
-        return text_extract
+        return text_filter
 
     return decorator
 
@@ -418,221 +417,6 @@ date_regexes = [
     r".*\s(\d{2}[/\-]\d{2})\s.*",
 ]
 perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s*).*"]
-
-
-def standard_text_extraction(
-    market_value_pos: int,
-    nominal_quantity_pos: Optional[int] = None,
-    perc_net_assets_pos: Optional[int] = None,
-    acquisition_currency_pos: Optional[int] = None,
-    acquisition_cost_pos: Optional[int] = None,
-    geometrical_indexes=True,
-    merge_prev=False,
-):
-    """Decorator for defining standard text extraction logic
-    from PDF blocks based on target matches.
-
-    Parameters
-    ----------
-    nominal_quantity_pos : Optional[int], optional
-        Relative position for nominal quantity metadata
-    market_value_pos : int
-        Relative position for market value metadata
-    perc_net_assets_pos : Optional[int], optional
-        Relative position for percentage of net assets metadata
-    acquisition_currency_pos : Optional[Currency], optional
-        Either relative position for currency metadata or Currency enum value, by default None
-    acquisition_cost_pos : Optional[int], optional
-        Relative position for acquisition cost metadata, by default None
-
-    Returns
-    -------
-    callable
-        A wrapped text extraction function that processes PDF blocks
-        and returns matched TextBlock objects
-    Notes
-    -----
-    The decorated function can optionally be specified with
-    the purpose of including additional metadata.
-    The extraction process:
-    1. Normalizes and matches text against targets using the specified match_func
-    2. Extracts metadata from surrounding blocks based on extract_positions
-    3. Creates TextBlock objects for successful matches
-    """
-
-    def wrapper(f):
-        @overwrite_if_implemented(f)
-        def add_metadata(blks: PdfBlocksTable, i: int | Tuple[int, int]) -> dict:
-            return {}
-
-        @standard_text_extraction_loop(geometrical_indexes, merge_prev)
-        def text_extract(
-            pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
-        ) -> TextBlock:
-            if nominal_quantity_pos is not None and perc_net_assets_pos is not None:
-                if (
-                    nominal_quantity_pos == market_value_pos
-                    or nominal_quantity_pos == perc_net_assets_pos
-                    or market_value_pos == perc_net_assets_pos
-                ):
-                    raise ValueError(_("All positions should be different"))
-
-            def abs_idx(offset: int | Tuple[int, int]) -> int | Tuple[int, int]:
-                """Convert relative offset to absolute index in PDF blocks table.
-
-                Parameters
-                ----------
-                offset : int | Tuple[int, int]
-                    Relative offset from current position. Can be:
-                    - int: linear offset in flattened table
-                    - Tuple[int, int]: (row_offset, column_offset) in 2D table
-
-                Returns
-                -------
-                int | Tuple[int, int]
-                    Absolute index in the table structure
-                """
-                if isinstance(i, tuple):
-                    ro, co = (None, None)
-                    r, c = i
-                    if isinstance(offset, tuple):
-                        ro, co = offset
-                    else:
-                        nc = pdf_blocks_table.shape[1]
-                        co = (c + offset) % nc - c
-                        ro = (c + offset) // nc
-                    return (r + ro, c + co)
-                return i + offset
-
-            def try_extraction_of_field(
-                metadata: dict,
-                pos: int | Tuple[int, int] | None,
-                name: str,
-                pdf_blocks_table: PdfBlocksTable,
-            ) -> dict:
-                """Attempt to extract field content from PDF blocks table.
-
-                Parameters
-                ----------
-                metadata : dict
-                    Metadata dictionary to update
-                pos : int | Tuple[int, int] | None
-                    Position of the field in the table
-                name : str
-                    Name of the field to extract
-                pdf_blocks_table : PdfBlocksTable
-                    Table structure containing PDF blocks
-
-                Returns
-                -------
-                dict
-                    Updated metadata dictionary
-                """
-                if pos is not None:
-                    try:
-                        metadata[name] = pdf_blocks_table[abs_idx(pos)].content
-                    except (KeyError, AttributeError):
-                        row = None
-                        col = None
-                        if isinstance(abs_idx(pos), tuple):
-                            row, col = abs_idx(pos)
-                        logger.error(
-                            _("Expected field not found, replacing with None..."),
-                            extra={"col": col, "row": row, "field": name},
-                        )
-                        metadata[name] = None
-                return metadata
-
-            metadata = {}
-
-            metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
-
-            try:
-                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
-            except AttributeError as e:
-                logger.error(e)
-                debug_msg = ""
-                debug_msg += _("Line next to it (on row {}):\n").format(i[0])
-                debug_msg += _("Column {}:\n").format(i[1] - 1)
-                debug_msg += str(pdf_blocks_table[(i[0], i[1] - 1)])
-                debug_msg += _("\nMatching column:\n")
-                debug_msg += str(pdf_blocks_table[i])
-                debug_msg += _("\nColumn {}:\n").format(i[1] + 1)
-                debug_msg += str(pdf_blocks_table[(i[0], i[1] + 1)])
-                logger.debug(debug_msg)
-                raise ExpectedTextBlockNotFound(
-                    _("Matching text block not found")
-                ) from e
-            try:
-                metadata["market value"] = pdf_blocks_table[
-                    abs_idx(market_value_pos)
-                ].content
-            except (KeyError, AttributeError) as e:
-                logger.error("Field not found", extra={"field": "Market value"})
-                logger.debug(_("Current metadata:\n%s"), str(metadata))
-                logger.debug(_('Current content: "%s"'), pdf_blocks_table[i].content)
-                logger.debug(_("Requested index: %s"), str(abs_idx(market_value_pos)))
-                raise ExpectedTextBlockNotFound from e
-
-            curr = pdf_blocks_table[i].metadata["currency"]
-            if isinstance(curr, Currency):
-                metadata["currency"] = curr
-            else:
-                currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
-                found = False
-                for curr_cand in currency_candidates:
-                    try:
-                        metadata["currency"] = Currency[curr_cand]
-                        found = True
-                        break
-                    except KeyError:
-                        pass
-                if not found:
-                    curr = curr.upper()
-                    for c in Currency.__members__:
-                        currency_candidates = re.findall(r"\b" + c + r"\b", curr)
-                        for curr_cand in currency_candidates:
-                            try:
-                                metadata["currency"] = Currency[curr_cand]
-                                found = True
-                                break
-                            except KeyError:
-                                pass
-                if not found:
-                    raise ExpectedTextBlockNotFound(
-                        _('Currency not found in string: "%s"'), curr
-                    )
-
-            for pos, name in [
-                (perc_net_assets_pos, "% net assets"),
-                (nominal_quantity_pos, "quantity"),
-                (acquisition_currency_pos, "acquisition currency"),
-                (acquisition_cost_pos, "acquisition cost"),
-            ]:
-                metadata = try_extraction_of_field(
-                    metadata, pos, name, pdf_blocks_table
-                )
-
-            content = pdf_blocks_table[i].content.replace("\n", "")
-            instrument = EquityBondTextBlockType.EQUITY_TARGET
-            for reg in perc_regexes:
-                interest_rate_match = re.match(reg, content, re.DOTALL)
-                if interest_rate_match:
-                    instrument = EquityBondTextBlockType.BOND_TARGET
-                    metadata["interest rate"] = interest_rate_match[1]
-                    break
-            for reg in date_regexes:
-                date_match = re.match(reg, content, re.DOTALL)
-                if date_match:
-                    instrument = EquityBondTextBlockType.BOND_TARGET
-                    metadata["maturity"] = date_match[1]
-                    break
-            metadata.update(add_metadata(pdf_blocks_table, i))
-            return TextBlock(instrument, metadata, pdf_blocks_table[i])
-
-        return text_extract
-
-    return wrapper
 
 
 class TextFilterPageClassifyStandard:
@@ -688,7 +472,7 @@ class TextFilterInvestmentsStandard:
         self.geometrical_indexes = geometrical_indexes
         self.merge_prev = merge_prev
 
-        @standard_text_extraction_loop(self.geometrical_indexes, self.merge_prev)
+        @standard_text_filterion_loop(self.geometrical_indexes, self.merge_prev)
         def text_filter(
             pdf_blocks_table: PdfBlocksTable, i: int | Tuple[int, int]
         ) -> TextBlock:

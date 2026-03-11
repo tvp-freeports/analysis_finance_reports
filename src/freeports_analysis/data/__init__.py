@@ -13,7 +13,7 @@ from typing import List, Union
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
-from freeports_analysis.formats.utils.text_extract.match import normalize_string
+from freeports_analysis.formats.utils.text_filter.match import normalize_string
 
 logger = log.getLogger()
 

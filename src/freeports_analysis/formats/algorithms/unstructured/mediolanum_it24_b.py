@@ -1,6 +1,6 @@
 """MEDIOLANUM_IT24_B format submodule"""
 
-from freeports_analysis.formats.utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfLineSelection,
     pdflines_from_pagedict,

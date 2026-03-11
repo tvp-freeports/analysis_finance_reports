@@ -14,7 +14,7 @@ from tests.conftest import out_dir, targets, conf
 
 df = get_target_companies(["TEST"])
 test_companies = (
-    freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(df)
+    freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(df)
 )
 
 
@@ -69,27 +69,35 @@ def get_pages_with_type(path):
     return [(p, pt) for pt, pages in classified_pages.items() for p in pages]
 
 
-# def compute_expected_page_type(path,page):
-#     classified_pages=get_classified_pages(path)
-#     for pt,pages in classified_pages.items():
-#         if page in pages:
-#             return pt
-
-
 def get_expected_pdf_blocks(path, page_types):
     current_dir = get_current_dir(path)
     reference_pdf_blks = {}
+    # a = get_algorithm(path)
+    # doc = get_pdf_document(path)
+    # for page, pages_type in page_types:
+    #     pdf_blks = apply_pdf_extract(a,doc,page,pages_type)
+    #     with open(current_dir / "pages" / pages_type / f"{page}-pdf_blks.pkl", "wb") as f:
+    #         dill.dump(pdf_blks, f)
     for page, page_type in page_types:
         with (current_dir / "pages" / page_type / f"{page}-pdf_blks.pkl").open(
             "rb"
         ) as f:
             reference_pdf_blks[page] = dill.load(f)
+
     return reference_pdf_blks
 
 
 def get_expected_text_blocks(path, page_types):
     current_dir = get_current_dir(path)
     reference_txt_blks = {}
+    # a = get_algorithm(path)
+    # pdf_blks = get_expected_pdf_blocks(path,page_types)
+    # for page, pages_type in page_types:
+    #     txt_blks = apply_text_filter(
+    #         a,pdf_blks[page],test_companies,pages_type
+    #     )
+    #     with open(current_dir / "pages" / pages_type / f"{page}-txt_blks.pkl", "wb") as f:
+    #         dill.dump(txt_blks, f)
     for page, page_type in page_types:
         with (current_dir / "pages" / page_type / f"{page}-txt_blks.pkl").open(
             "rb"
@@ -101,6 +109,13 @@ def get_expected_text_blocks(path, page_types):
 def get_expected_results(path, page_types):
     current_dir = get_current_dir(path)
     reference_results = {}
+    # a = get_algorithm(path)
+    # doc = get_pdf_document(path)
+    # txt_blks = get_expected_text_blocks(path,page_types)
+    # for page, pages_type in page_types:
+    #     results = apply_deserialize(a,txt_blks[page],pages_type)
+    #     with open(current_dir / "pages" / pages_type / f"{page}-results.pkl", "wb") as f:
+    #         dill.dump(results, f)
     for page, page_type in page_types:
         with (current_dir / "pages" / page_type / f"{page}-results.pkl").open(
             "rb"
@@ -188,7 +203,7 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope="session")
 def test_targets():
     df = get_target_companies(["TEST"])
-    return freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+    return freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
         df
     )
 

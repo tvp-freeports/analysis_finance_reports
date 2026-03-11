@@ -1,4 +1,4 @@
-ID,pdf_filter,text_extract,deserialize
+ID,pdf_extract,text_filter,deserialize
 AMUNDI-IT24,FALSE,TRUE,TRUE
 ARCA-IT24,FALSE,TRUE,TRUE
 EURIZON-IT24,FALSE,TRUE,TRUE

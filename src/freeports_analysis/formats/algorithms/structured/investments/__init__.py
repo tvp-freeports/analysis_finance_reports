@@ -9,14 +9,14 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
-from freeports_analysis.formats.utils.text_extract import TextFilterInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import LINE_SET_REGEXP
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
 from freeports_analysis.formats.utils.deserialize import DeserializerInvestmentStandard
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
 )
-from freeports_analysis.formats.utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TablePosAlgorithm,
 )
 from freeports_analysis.formats.algorithms.commons import (
@@ -137,8 +137,8 @@ def get_deselection_lists() -> pd.DataFrame:
 partial_pipes_schema = pa.DataFrameSchema(
     {
         "ID": column_id_format_pipe(FKRelation.ONE_TO_MAYBE),
-        "pdf_filter": pa.Column(pd.BooleanDtype),
-        "text_extract": pa.Column(pd.BooleanDtype),
+        "pdf_extract": pa.Column(pd.BooleanDtype),
+        "text_filter": pa.Column(pd.BooleanDtype),
         "deserialize": pa.Column(pd.BooleanDtype),
     },
     coerce=True,
@@ -171,7 +171,7 @@ def validate_partial_pipes(
     Parameters
     ----------
     segment : str
-        Name of the pipeline segment ('pdf_filter', 'text_extract', or 'deserialize')
+        Name of the pipeline segment ('pdf_extract', 'text_filter', or 'deserialize')
     columns : List[str]
         List of column names that should be empty when the segment is disabled
 
@@ -198,7 +198,7 @@ structured_formats_schema = pa.DataFrameSchema(
     checks=[
         pa.Check(
             validate_partial_pipes(
-                "pdf_filter",
+                "pdf_extract",
                 [
                     "Subfund set",
                     "Currency set",
@@ -211,7 +211,7 @@ structured_formats_schema = pa.DataFrameSchema(
         ),
         pa.Check(
             validate_partial_pipes(
-                "text_extract",
+                "text_filter",
                 [
                     "Market value",
                     "Quantity",
@@ -277,7 +277,7 @@ def get_pipelines(
     Returns
     -------
     Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
-        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Tuple containing three dictionaries for pdf_extract, text_filter, and deserialize segments.
         Each dictionary maps pipeline names to lists of processing functions.
 
     Notes
@@ -303,50 +303,50 @@ def get_pipelines(
     for pipeline_name, arg in args:
         if pipeline_name not in pipelines:
             pipelines[pipeline_name] = Pipeline()
-        if pd.isna(arg["pdf_filter"]) or arg["pdf_filter"]:
-            pdf_filter_args = {
+        if pd.isna(arg["pdf_extract"]) or arg["pdf_extract"]:
+            pdf_extract_args = {
                 "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
                 "body_set": pdfline_selection_from_str(arg["Body set"]),
                 "currency_set": pdfline_selection_from_str(arg["Currency set"]),
             }
             if isinstance(arg["Deselection set"], list):
-                pdf_filter_args["deselection_list"] = [
+                pdf_extract_args["deselection_list"] = [
                     pdfline_selection_from_str(s) for s in arg["Deselection set"]
                 ]
             if not pd.isna(arg["Algorithm flags"]):
-                pdf_filter_args["algorithm_flags"] = TablePosAlgorithm.from_dict(
+                pdf_extract_args["algorithm_flags"] = TablePosAlgorithm.from_dict(
                     arg["Algorithm flags"]
                 )
-            pdf_filter_args = _set_if_not_na(
-                pdf_filter_args, "tolerance", arg, "Tolerance"
+            pdf_extract_args = _set_if_not_na(
+                pdf_extract_args, "tolerance", arg, "Tolerance"
             )
-            pdf_extract = PdfExtractInvestmentsStandard(**pdf_filter_args)
+            pdf_extract = PdfExtractInvestmentsStandard(**pdf_extract_args)
             pipelines[pipeline_name].add_pdf_extract(pdf_extract)
 
-        if pd.isna(arg["text_extract"]) or arg["text_extract"]:
-            text_extract_args = {"market_value_pos": arg["Market value"]}
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "geometrical_indexes", arg, "Geometrical indexing"
+        if pd.isna(arg["text_filter"]) or arg["text_filter"]:
+            text_filter_args = {"market_value_pos": arg["Market value"]}
+            text_filter_args = _set_if_not_na(
+                text_filter_args, "geometrical_indexes", arg, "Geometrical indexing"
             )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "merge_prev", arg, "Merge previous"
+            text_filter_args = _set_if_not_na(
+                text_filter_args, "merge_prev", arg, "Merge previous"
             )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "nominal_quantity_pos", arg, "Quantity"
+            text_filter_args = _set_if_not_na(
+                text_filter_args, "nominal_quantity_pos", arg, "Quantity"
             )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "perc_net_assets_pos", arg, "% net assets"
+            text_filter_args = _set_if_not_na(
+                text_filter_args, "perc_net_assets_pos", arg, "% net assets"
             )
-            text_extract_args = _set_if_not_na(
-                text_extract_args,
+            text_filter_args = _set_if_not_na(
+                text_filter_args,
                 "acquisition_currency_pos",
                 arg,
                 "Acquisition currency",
             )
-            text_extract_args = _set_if_not_na(
-                text_extract_args, "acquisition_cost_pos", arg, "Acquisition cost"
+            text_filter_args = _set_if_not_na(
+                text_filter_args, "acquisition_cost_pos", arg, "Acquisition cost"
             )
-            text_filter = TextFilterInvestmentsStandard(**text_extract_args)
+            text_filter = TextFilterInvestmentsStandard(**text_filter_args)
             pipelines[pipeline_name].add_text_filter(text_filter)
         if pd.isna(arg["deserialize"]) or arg["deserialize"]:
             deserialize_args = {}

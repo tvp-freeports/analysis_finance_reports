@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils.pdf\_filter
 =============================================
 
-.. automodule:: freeports_analysis.formats.utils.pdf_filter
+.. automodule:: freeports_analysis.formats.utils.pdf_extract
    :members:
    
    
@@ -20,7 +20,7 @@ freeports\_analysis.formats.utils.pdf\_filter
       filter_page_if
       standard_extraction_currency
       standard_extraction_subfund
-      standard_pdf_filtering
+      standard_pdf_extracting
    
    .. rubric:: Classes
 

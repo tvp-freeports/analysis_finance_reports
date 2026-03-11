@@ -10,8 +10,8 @@ freeports\_analysis.formats.algorithms.unstructured.mediolanum\_es24\_b
    .. autosummary::
    
       deserialize
-      pdf_filter
-      text_extract
+      pdf_extract
+      text_filter
    
    .. rubric:: Classes
 

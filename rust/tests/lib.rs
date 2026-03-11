@@ -1,3 +1,3 @@
-mod pdf_filter {
+mod pdf_extract {
     mod select;
 }

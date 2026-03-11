@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.utils.pdf_filter.select_position &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils.pdf_extract.select_position &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.utils.pdf_filter.xml" href="freeports_analysis.formats.utils.pdf_filter.xml.html" />
-    <link rel="prev" title="freeports_analysis.formats.utils.pdf_filter.select_font" href="freeports_analysis.formats.utils.pdf_filter.select_font.html" /> 
+    <link rel="next" title="freeports_analysis.formats.utils.pdf_extract.xml" href="freeports_analysis.formats.utils.pdf_extract.xml.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils.pdf_extract.select_font" href="freeports_analysis.formats.utils.pdf_extract.select_font.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -100,10 +100,10 @@
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_filter.html">freeports_analysis.formats.utils.pdf_filter</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_filter.select_position</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_extract.html">freeports_analysis.formats.utils.pdf_extract</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_extract.select_position</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_filter.select_position.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_extract.select_position.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -111,13 +111,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.utils.pdf_filter.select_position">
-<span id="freeports-analysis-formats-utils-pdf-filter-select-position"></span><h1>freeports_analysis.formats.utils.pdf_filter.select_position<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_filter.select_position" title="Link to this heading"></a></h1>
+  <section id="module-freeports_analysis.formats.utils.pdf_extract.select_position">
+<span id="freeports-analysis-formats-utils-pdf-filter-select-position"></span><h1>freeports_analysis.formats.utils.pdf_extract.select_position<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_extract.select_position" title="Link to this heading"></a></h1>
 <p>Utilities for selecting or deselecting lines or getting infos based of geometrical information</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions" title="freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_positions</span></code></a>(lines[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.get_table_positions" title="freeports_analysis.formats.utils.pdf_extract.select_position.get_table_positions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_table_positions</span></code></a>(lines[, ...])</p></td>
 <td><p>Compute either row or column indexes for areas in a tabular layout.</p></td>
 </tr>
 </tbody>
@@ -125,65 +125,65 @@
 <p class="rubric">Classes</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosAlgorithm</span></code></a>(*values)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosAlgorithm</span></code></a>(*values)</p></td>
 <td><p>Algorithm flags for table position detection.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosMeasureUnit</span></code></a>(*values)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TablePosMeasureUnit</span></code></a>(*values)</p></td>
 <td><p>Measurement units for position tolerance.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosAlgorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosAlgorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="Link to this definition"></a></dt>
 <dd><p>Algorithm flags for table position detection.</p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.RETURN_ROWS">
-<span class="sig-name descname"><span class="pre">RETURN_ROWS</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.RETURN_ROWS" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.RETURN_ROWS">
+<span class="sig-name descname"><span class="pre">RETURN_ROWS</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.RETURN_ROWS" title="Link to this definition"></a></dt>
 <dd><p>Calculate row positions (vertical axis)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.BIG_CELL_RULE">
-<span class="sig-name descname"><span class="pre">BIG_CELL_RULE</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.BIG_CELL_RULE" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.BIG_CELL_RULE">
+<span class="sig-name descname"><span class="pre">BIG_CELL_RULE</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.BIG_CELL_RULE" title="Link to this definition"></a></dt>
 <dd><p>Use largest areas as rulers instead of smallest</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.USE_RULER_AREA">
-<span class="sig-name descname"><span class="pre">USE_RULER_AREA</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.USE_RULER_AREA" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.USE_RULER_AREA">
+<span class="sig-name descname"><span class="pre">USE_RULER_AREA</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.USE_RULER_AREA" title="Link to this definition"></a></dt>
 <dd><p>Match based on ruler area intersection</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.USE_TES_POS">
-<span class="sig-name descname"><span class="pre">USE_TES_POS</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.USE_TES_POS" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.USE_TES_POS">
+<span class="sig-name descname"><span class="pre">USE_TES_POS</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.USE_TES_POS" title="Link to this definition"></a></dt>
 <dd><p>Match based on test element position</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.from_dict">
-<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm.from_dict" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.from_dict">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm.from_dict" title="Link to this definition"></a></dt>
 <dd><p>Create TablePosAlgorithm from string or list representation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -193,7 +193,7 @@
 <dd class="field-even"><p>Combined flags object</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm">TablePosAlgorithm</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -201,38 +201,38 @@
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosMeasureUnit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.select_position.</span></span><span class="sig-name descname"><span class="pre">TablePosMeasureUnit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="Link to this definition"></a></dt>
 <dd><p>Measurement units for position tolerance.</p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.EM">
-<span class="sig-name descname"><span class="pre">EM</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.EM" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.EM">
+<span class="sig-name descname"><span class="pre">EM</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.EM" title="Link to this definition"></a></dt>
 <dd><p>Relative to font size (em units)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PERC">
-<span class="sig-name descname"><span class="pre">PERC</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PERC" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.PERC">
+<span class="sig-name descname"><span class="pre">PERC</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.PERC" title="Link to this definition"></a></dt>
 <dd><p>Percentage of element size</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PT">
-<span class="sig-name descname"><span class="pre">PT</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit.PT" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.PT">
+<span class="sig-name descname"><span class="pre">PT</span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit.PT" title="Link to this definition"></a></dt>
 <dd><p>Absolute points</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
+<dd class="field-odd"><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit">TablePosMeasureUnit</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -240,16 +240,16 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_position.</span></span><span class="sig-name descname"><span class="pre">get_table_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">lines:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine],</span> <span class="pre">algorithm_flags:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">tolerance_mu:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit</span> <span class="pre">=</span> <span class="pre">TablePosMeasureUnit.EM</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_position.get_table_positions" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_position.get_table_positions">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.select_position.</span></span><span class="sig-name descname"><span class="pre">get_table_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">lines:</span> <span class="pre">~typing.List[~freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine],</span> <span class="pre">algorithm_flags:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm</span> <span class="pre">=</span> <span class="pre">&lt;TablePosAlgorithm:</span> <span class="pre">0&gt;,</span> <span class="pre">tolerance:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">tolerance_mu:</span> <span class="pre">~freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit</span> <span class="pre">=</span> <span class="pre">TablePosMeasureUnit.EM</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_position.get_table_positions" title="Link to this definition"></a></dt>
 <dd><p>Compute either row or column indexes for areas in a tabular layout.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to analyze</p></li>
-<li><p><strong>algorithm_flags</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosAlgorithm"><em>TablePosAlgorithm</em></a><em>, </em><em>optional</em>) – Algorithm flags controlling position calculation behavior, by default TablePosAlgorithm(0)</p></li>
+<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to analyze</p></li>
+<li><p><strong>algorithm_flags</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosAlgorithm"><em>TablePosAlgorithm</em></a><em>, </em><em>optional</em>) – Algorithm flags controlling position calculation behavior, by default TablePosAlgorithm(0)</p></li>
 <li><p><strong>tolerance</strong> (<em>float</em><em>, </em><em>optional</em>) – Tolerance value for position matching, by default 0</p></li>
-<li><p><strong>tolerance_mu</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_filter.select_position.TablePosMeasureUnit"><em>TablePosMeasureUnit</em></a><em>, </em><em>optional</em>) – Tolerance measurement unit, by default TablePosMeasureUnit.EM</p></li>
+<li><p><strong>tolerance_mu</strong> (<a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit" title="freeports_analysis.formats.utils.pdf_extract.select_position.TablePosMeasureUnit"><em>TablePosMeasureUnit</em></a><em>, </em><em>optional</em>) – Tolerance measurement unit, by default TablePosMeasureUnit.EM</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -273,8 +273,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.utils.pdf_filter.select_font.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_filter.select_font" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.utils.pdf_filter.xml.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_filter.xml" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.select_font.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_extract.select_font" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.xml.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_extract.xml" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

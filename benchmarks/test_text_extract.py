@@ -4,18 +4,16 @@ from .conftest import pdf_blks, target_companies
 import pytest
 
 
-text_extract = get_pipelines("CARNE-EN23")[""].text_filter
+text_filter = get_pipelines("CARNE-EN23")[""].text_filter
 
 
 @pytest.mark.benchmarks
-def test_text_extract(benchmark):
-    result = benchmark(text_extract, pdf_blks, target_companies)
+def test_text_filter(benchmark):
+    result = benchmark(text_filter, pdf_blks, target_companies)
 
 
 @pytest.mark.benchmarks
 def test_match_company(benchmark):
     result = benchmark(
-        freeports_lib.text_extract.matcher.match_company,
-        "fjdlsajfals",
-        target_companies,
+        freeports_lib.text_filter.matcher.match_company, "fjdlsajfals", target_companies
     )

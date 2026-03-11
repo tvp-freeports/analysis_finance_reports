@@ -20,11 +20,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.pdf_parts.font.rst:2
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.pdf_parts.font.rst:2
 msgid "freeports\\_analysis.formats\\_utils.pdf\\_filter.pdf\\_parts.font"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.pdf_parts.font:1 of
+#: freeports_analysis.formats_utils.pdf_extract.pdf_parts.font:1 of
 msgid ""
 "Definition of types for identify carateristic related with typographic "
 "aspect of the line"

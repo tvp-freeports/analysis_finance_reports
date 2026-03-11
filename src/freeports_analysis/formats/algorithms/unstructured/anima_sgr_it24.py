@@ -1,14 +1,14 @@
 """Custom pipeline for ANIMA_SGR-IT24"""
 
-from freeports_analysis.formats.utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
 )
-from freeports_analysis.formats.utils.text_extract import TextFilterPageClassifyStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterPageClassifyStandard
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerPageClassifyStandard,
 )
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 h_font_selection = (

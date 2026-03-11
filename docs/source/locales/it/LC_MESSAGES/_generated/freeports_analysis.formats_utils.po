@@ -27,7 +27,7 @@ msgstr ""
 #: freeports_analysis.formats_utils:1 of
 msgid ""
 "Utilities of general interest common to all formats and that can be used "
-"for creating `pdf_filter` or `text_extract` or `deserialize` functions"
+"for creating `pdf_extract` or `text_filter` or `deserialize` functions"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats_utils.rst:9
@@ -172,15 +172,15 @@ msgid "Utils for creating deserialize routines and functions"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats_utils.rst:25:<autosummary>:1
-msgid ":py:obj:`pdf_filter <freeports_analysis.formats_utils.pdf_filter>`\\"
+msgid ":py:obj:`pdf_extract <freeports_analysis.formats_utils.pdf_extract>`\\"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats_utils.rst:25:<autosummary>:1
-msgid "Utilities for writing `pdf_filter` functions."
+msgid "Utilities for writing `pdf_extract` functions."
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats_utils.rst:25:<autosummary>:1
-msgid ":py:obj:`text_extract <freeports_analysis.formats_utils.text_extract>`\\"
+msgid ":py:obj:`text_filter <freeports_analysis.formats_utils.text_filter>`\\"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats_utils.rst:25:<autosummary>:1

@@ -1,8 +1,8 @@
 """Custom pdf filter for EURIZON-IT24"""
 
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
 from freeports_analysis.formats.algorithms.commons import Pipeline
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.consts import Currency
 
 subfund_set = PdfLineSelection(

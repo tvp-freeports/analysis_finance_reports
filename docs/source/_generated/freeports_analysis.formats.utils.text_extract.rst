@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils.text\_extract
 ===============================================
 
-.. automodule:: freeports_analysis.formats.utils.text_extract
+.. automodule:: freeports_analysis.formats.utils.text_filter
    :members:
    
    
@@ -9,8 +9,8 @@ freeports\_analysis.formats.utils.text\_extract
 
    .. autosummary::
    
-      standard_text_extraction
-      standard_text_extraction_loop
+      standard_text_filterion
+      standard_text_filterion_loop
    
    .. rubric:: Classes
 

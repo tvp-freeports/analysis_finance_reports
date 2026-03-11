@@ -29,9 +29,9 @@ Statistics
 +----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.algorithms.semistructured.deserialize     | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.algorithms.semistructured.pdf_filter      | 100.00%  | 0            |
+| freeports_analysis.formats.algorithms.semistructured.pdf_extract      | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.algorithms.semistructured.text_extract    | 100.00%  | 0            |
+| freeports_analysis.formats.algorithms.semistructured.text_filter    | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.algorithms.structured                     | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
@@ -65,29 +65,29 @@ Statistics
 +----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.formats.utils.deserialize                         | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter                          | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract                          | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.pdf_parts                | 0.00%    | 4            |
+| freeports_analysis.formats.utils.pdf_extract.pdf_parts                | 0.00%    | 4            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.pdf_parts.font           | 50.00%   | 2            |
+| freeports_analysis.formats.utils.pdf_extract.pdf_parts.font           | 50.00%   | 2            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.pdf_parts.position       | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.pdf_parts.position       | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.select_font              | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.select_font              | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.select_position          | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.select_position          | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.xml                      | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.xml                      | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.xml.font                 | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.xml.font                 | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.xml.position             | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.xml.position             | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.pdf_filter.xml.xpath_queries        | 100.00%  | 0            |
+| freeports_analysis.formats.utils.pdf_extract.xml.xpath_queries        | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.text_extract                        | 100.00%  | 0            |
+| freeports_analysis.formats.utils.text_filter                        | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
-| freeports_analysis.formats.utils.text_extract.match                  | 100.00%  | 0            |
+| freeports_analysis.formats.utils.text_filter.match                  | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
 | freeports_analysis.i18n                                              | 100.00%  | 0            |
 +----------------------------------------------------------------------+----------+--------------+
@@ -102,7 +102,7 @@ Statistics
 | TOTAL                                                                | 95.08%   | 6            |
 +----------------------------------------------------------------------+----------+--------------+
 
-freeports_analysis.formats.utils.pdf_filter.pdf_parts
+freeports_analysis.formats.utils.pdf_extract.pdf_parts
 -----------------------------------------------------
 
 Classes:
@@ -113,7 +113,7 @@ Classes:
    - from_dict
    - from_str
 
-freeports_analysis.formats.utils.pdf_filter.pdf_parts.font
+freeports_analysis.formats.utils.pdf_extract.pdf_parts.font
 ----------------------------------------------------------
 
 Classes:

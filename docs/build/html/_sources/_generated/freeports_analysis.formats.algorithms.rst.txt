@@ -11,8 +11,8 @@ freeports\_analysis.formats.algorithms
    
       deserialize_exec
       get_pipelines
-      pdf_filter_exec
-      text_extract_exec
+      pdf_extract_exec
+      text_filter_exec
    
    .. rubric:: Classes
 

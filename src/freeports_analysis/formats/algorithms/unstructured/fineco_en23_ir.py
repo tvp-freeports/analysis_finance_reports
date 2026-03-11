@@ -1,7 +1,7 @@
 """Custom pdf filter for FINECO-EN23[IR] format"""
 
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 tnrb = PdfLineSelection.font("TimesNewRoman,Bold")

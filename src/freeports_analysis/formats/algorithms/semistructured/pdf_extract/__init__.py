@@ -6,12 +6,12 @@ semi-structured documents, including cost and currency extraction.
 
 from typing import List, Optional, Callable, Any
 from pydantic import BaseModel
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     InputPdfLineSet,
     pdfline_selection_from_dict,
 )
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
-from freeports_analysis.formats.utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
     InputTablePosAlgorithm,
     TablePosAlgorithm,
 )

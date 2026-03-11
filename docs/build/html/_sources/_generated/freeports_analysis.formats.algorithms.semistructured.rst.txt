@@ -19,5 +19,5 @@ freeports\_analysis.formats.algorithms.semistructured
    :recursive:
 
    deserialize
-   pdf_filter
-   text_extract
+   pdf_extract
+   text_filter

@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import List, Optional
 import dill
 from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
 from freeports_analysis.formats.algorithms import Algorithm
-from freeports_analysis.formats.utils.pdf_filter.xml.font import get_lines_with_txt
+from freeports_analysis.formats.utils.pdf_extract.xml.font import get_lines_with_txt
 from freeports_analysis.formats import PdfBlock
-from freeports_analysis.formats.utils.text_extract import PdfBlocksTable
+from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
 from collections.abc import Callable
 
 
@@ -109,7 +109,7 @@ get_page = get_page_dict
 #         the pdf format needed
 #     index_segment : int
 #         the function needed:
-#         1: pdf_filter
+#         1: pdf_extract
 #         2: text extract
 #         3: deserialize
 #     pipeline_name : str, optional

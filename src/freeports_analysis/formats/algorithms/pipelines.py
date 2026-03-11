@@ -27,7 +27,7 @@ def get_pipelines(
     Returns
     -------
     Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]
-        Dictionary mapping pipeline names to (pdf_filters, text_extract, deserialize) tuples
+        Dictionary mapping pipeline names to (pdf_extracts, text_filter, deserialize) tuples
 
     Raises
     ------
@@ -37,8 +37,8 @@ def get_pipelines(
     Notes
     -----
     Each pipeline consists of three components:
-    - pdf_filters: Functions that extract relevant blocks from PDF XML
-    - text_extract: Functions that convert PDF blocks to text blocks with company matching
+    - pdf_extracts: Functions that extract relevant blocks from PDF XML
+    - text_filter: Functions that convert PDF blocks to text blocks with company matching
     - deserialize: Functions that convert text blocks to structured financial data
 
     The function combines pipelines from structured, semi-structured, and unstructured

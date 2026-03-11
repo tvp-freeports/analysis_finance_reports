@@ -1,7 +1,7 @@
 """CANE-EN23 custom functions"""
 
-from freeports_analysis.formats.utils.pdf_filter import PdfExtractInvestmentsStandard
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
     PdfLineSelection,
 )

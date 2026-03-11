@@ -93,7 +93,7 @@ def pipeline_batch(
 
     results = []
     for pipeline_name, pipeline in pipelines.items():
-        (pdf_filter_funcs, text_extract_funcs, deserialize_funcs) = pipeline
+        (pdf_extract_funcs, text_filter_funcs, deserialize_funcs) = pipeline
         if pipeline_name != "":
             logger.info(_("Selected named pipeline ({})").format(pipeline_name))
         logger.info(
@@ -101,15 +101,13 @@ def pipeline_batch(
             i_page_batch,
             end_page_batch,
         )
-        blks = pdf_filter_exec(i_page_batch, n_pages, batch_pages, pdf_filter_funcs)
+        blks = pdf_extract_exec(i_page_batch, n_pages, batch_pages, pdf_extract_funcs)
         logger.info(
             _("Extracting relevant blocks of text from page %i to %i..."),
             i_page_batch,
             end_page_batch,
         )
-        blks = text_extract_exec(
-            i_page_batch, n_pages, blks, targets, text_extract_funcs
-        )
+        blks = text_filter_exec(i_page_batch, n_pages, blks, targets, text_filter_funcs)
         results += deserialize_exec(i_page_batch, n_pages, blks, deserialize_funcs)
 
     return results

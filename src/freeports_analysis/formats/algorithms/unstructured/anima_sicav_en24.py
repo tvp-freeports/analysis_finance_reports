@@ -1,8 +1,8 @@
 """ANIMA_SICAV-EN24 format submodule"""
 
 import re
-from freeports_analysis.formats.utils.text_extract import TextFilterInvestmentsStandard
-from freeports_analysis.formats.utils.text_extract import PdfBlocksTable
+from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
+from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")

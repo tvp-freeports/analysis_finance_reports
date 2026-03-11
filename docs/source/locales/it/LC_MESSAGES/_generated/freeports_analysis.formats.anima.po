@@ -34,8 +34,8 @@ msgstr "Funzioni"
 
 #: ../../source/_generated/freeports_analysis.formats.anima.rst:12:<autosummary>:1
 msgid ""
-":py:obj:`pdf_filter <freeports_analysis.formats.anima.pdf_filter>`\\ "
+":py:obj:`pdf_extract <freeports_analysis.formats.anima.pdf_extract>`\\ "
 "\\(xml\\_root\\)"
 msgstr ""
-":py:obj:`pdf_filter <freeports_analysis.formats.anima.pdf_filter>`\\ "
+":py:obj:`pdf_extract <freeports_analysis.formats.anima.pdf_extract>`\\ "
 "\\(xml\\_root\\)"

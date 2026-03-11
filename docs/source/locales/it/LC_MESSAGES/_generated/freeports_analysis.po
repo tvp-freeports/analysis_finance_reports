@@ -96,10 +96,10 @@ msgstr ":py:obj:`formats_utils <freeports_analysis.formats_utils>`\\"
 #: ../../source/_generated/freeports_analysis.rst:21:<autosummary>:1
 msgid ""
 "Utilities of general interest common to all formats and that can be used "
-"for creating `pdf_filter` or `text_extract` or `deserialize` functions"
+"for creating `pdf_extract` or `text_filter` or `deserialize` functions"
 msgstr ""
 "Strumenti generalisti utili e comuni a tutti i formati e che possono essere usati per "
-"creare le funzioni `pdf_filter`, `text_extract` o `deserialize`"
+"creare le funzioni `pdf_extract`, `text_filter` o `deserialize`"
 
 #: ../../source/_generated/freeports_analysis.rst:21:<autosummary>:1
 msgid ":py:obj:`i18n <freeports_analysis.i18n>`\\"

@@ -20,31 +20,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:2
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:2
 msgid "freeports\\_analysis.formats\\_utils.pdf\\_filter.xml"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:9
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:9
 msgid "Modules"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:15:<autosummary>:1
-msgid ":py:obj:`font <freeports_analysis.formats_utils.pdf_filter.xml.font>`\\"
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:15:<autosummary>:1
+msgid ":py:obj:`font <freeports_analysis.formats_utils.pdf_extract.xml.font>`\\"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:15:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:15:<autosummary>:1
 msgid ""
 "Low level utilities for handling typographic related aspects of the xml "
 "tree."
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:15:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:15:<autosummary>:1
 msgid ""
 ":py:obj:`position "
-"<freeports_analysis.formats_utils.pdf_filter.xml.position>`\\"
+"<freeports_analysis.formats_utils.pdf_extract.xml.position>`\\"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.xml.rst:15:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.xml.rst:15:<autosummary>:1
 msgid "PDF block element utilities for spatial analysis and manipulation."
 msgstr ""
 

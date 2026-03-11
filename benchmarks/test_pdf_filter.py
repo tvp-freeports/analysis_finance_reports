@@ -1,12 +1,14 @@
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import pdflines_from_pagedict
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
+    pdflines_from_pagedict,
+)
 from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_filter.select_position import (
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
 )
 from .conftest import root_dict, body_blks
 import pytest
 
-pdf_filter = get_pipelines("CARNE-EN23")[""].pdf_extract
+pdf_extract = get_pipelines("CARNE-EN23")[""].pdf_extract
 
 
 @pytest.mark.benchmarks
@@ -18,8 +20,8 @@ def test_ExtractedPdfLine(benchmark):
 
 
 @pytest.mark.benchmarks
-def test_pdf_filter(benchmark):
-    result = benchmark(pdf_filter, root_dict)
+def test_pdf_extract(benchmark):
+    result = benchmark(pdf_extract, root_dict)
 
 
 @pytest.mark.benchmarks

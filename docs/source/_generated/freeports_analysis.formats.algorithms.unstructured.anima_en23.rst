@@ -9,5 +9,5 @@ freeports\_analysis.formats.algorithms.unstructured.anima\_en23
 
    .. autosummary::
    
-      pdf_filter
+      pdf_extract
    

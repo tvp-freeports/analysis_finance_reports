@@ -50,12 +50,12 @@ msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats.rst:15:<autosummary>:1
 msgid ""
-":py:obj:`pdf_filter_exec <freeports_analysis.formats.pdf_filter_exec>`\\ "
+":py:obj:`pdf_extract_exec <freeports_analysis.formats.pdf_extract_exec>`\\ "
 "\\(batch\\_pages\\, i\\_batch\\_page\\, ...\\)"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats.rst:15:<autosummary>:1
-#: freeports_analysis.formats.pdf_filter_exec:1 of
+#: freeports_analysis.formats.pdf_extract_exec:1 of
 msgid ""
 "Processes a PDF document through a filter function to extract relevant "
 "blocks."
@@ -63,13 +63,13 @@ msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats.rst:15:<autosummary>:1
 msgid ""
-":py:obj:`text_extract_exec "
-"<freeports_analysis.formats.text_extract_exec>`\\ \\(pdf\\_blocks\\, "
+":py:obj:`text_filter_exec "
+"<freeports_analysis.formats.text_filter_exec>`\\ \\(pdf\\_blocks\\, "
 "targets\\, ...\\)"
 msgstr ""
 
 #: ../../source/_generated/freeports_analysis.formats.rst:15:<autosummary>:1
-#: freeports_analysis.formats.text_extract_exec:1 of
+#: freeports_analysis.formats.text_filter_exec:1 of
 msgid ""
 "Extracts text content from PDF blocks using a specified extraction "
 "function."
@@ -244,43 +244,43 @@ msgid ""
 "resolving deferred values"
 msgstr ""
 
-#: freeports_analysis.formats.pdf_filter_exec:3 of
+#: freeports_analysis.formats.pdf_extract_exec:3 of
 msgid "The PDF document to process as a list of xml pages."
 msgstr ""
 
-#: freeports_analysis.formats.pdf_filter_exec:5 of
+#: freeports_analysis.formats.pdf_extract_exec:5 of
 msgid ""
-"Starting page of the batch processed by the instance of `pdf_filter_exec`"
+"Starting page of the batch processed by the instance of `pdf_extract_exec`"
 " function, used for informative purposes"
 msgstr ""
 
-#: freeports_analysis.formats.pdf_filter_exec:8 of
+#: freeports_analysis.formats.pdf_extract_exec:8 of
 msgid "Total number of pages in the document, used for informative purposes."
 msgstr ""
 
-#: freeports_analysis.formats.pdf_filter_exec:10 of
+#: freeports_analysis.formats.pdf_extract_exec:10 of
 msgid ""
 "A function that takes an XML element and returns a list of relevant "
 "PdfBlock."
 msgstr ""
 
-#: freeports_analysis.formats.pdf_filter_exec:13 of
+#: freeports_analysis.formats.pdf_extract_exec:13 of
 msgid "PdfBlock objects containing the filtered content."
 msgstr ""
 
-#: freeports_analysis.formats.text_extract_exec:3 of
+#: freeports_analysis.formats.text_filter_exec:3 of
 msgid "PdfBlock objects to process."
 msgstr ""
 
-#: freeports_analysis.formats.text_extract_exec:5 of
+#: freeports_analysis.formats.text_filter_exec:5 of
 msgid "Target companies identified for extraction."
 msgstr ""
 
-#: freeports_analysis.formats.text_extract_exec:7 of
+#: freeports_analysis.formats.text_filter_exec:7 of
 msgid "Function that processes PdfBlocks and targets into TextBlocks."
 msgstr ""
 
-#: freeports_analysis.formats.text_extract_exec:10 of
+#: freeports_analysis.formats.text_filter_exec:10 of
 msgid "TextBlock objects containing the extracted content."
 msgstr ""
 

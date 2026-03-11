@@ -20,15 +20,15 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:2
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:2
 msgid "freeports\\_analysis.formats\\_utils.text\\_extract"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract:1 of
+#: freeports_analysis.formats_utils.text_filter:1 of
 msgid "Module for text block processing and extraction in document analysis."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract:3 of
+#: freeports_analysis.formats_utils.text_filter:3 of
 msgid ""
 "This module provides functionality for: - Defining text block types "
 "through enumerations - Matching text against targets using various "
@@ -37,129 +37,129 @@ msgid ""
 "prefix-based)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract:9 of
+#: freeports_analysis.formats_utils.text_filter:9 of
 msgid ""
 "Key components: - Matching functions (target_match, target_fuzzy_match, "
 "target_prefix_match) - Decorators for text block type definition "
 "(one_txt_blk, EquityBondTextBlockType) - Standard text extraction "
-"functionality through standard_text_extraction decorator"
+"functionality through standard_text_filterion decorator"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:9
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:9
 msgid "Functions"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:14:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:14:<autosummary>:1
 msgid ""
-":py:obj:`standard_text_extraction "
-"<freeports_analysis.formats_utils.text_extract.standard_text_extraction>`\\"
+":py:obj:`standard_text_filterion "
+"<freeports_analysis.formats_utils.text_filter.standard_text_filterion>`\\"
 " \\(...\\[\\, currency\\, ...\\]\\)"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:14:<autosummary>:1
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:1 of
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:14:<autosummary>:1
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:1 of
 msgid ""
 "Decorator for defining standard text extraction logic from PDF blocks "
 "based on target matches."
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:14:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:14:<autosummary>:1
 msgid ""
-":py:obj:`standard_text_extraction_loop "
-"<freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop>`\\"
+":py:obj:`standard_text_filterion_loop "
+"<freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop>`\\"
 " \\(\\[match\\_func\\]\\)"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:14:<autosummary>:1
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:1
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:14:<autosummary>:1
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:1
 #: of
 msgid "Decorator for standard text extraction loop."
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:16
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:16
 msgid "Classes"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:1:<autosummary>:1
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:1:<autosummary>:1
 #: of
 msgid ""
 ":py:obj:`EquityBondTextBlockType "
-"<freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType>`\\"
+"<freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType>`\\"
 " \\(\\*values\\)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:1
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:1:<autosummary>:1
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:1
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:1:<autosummary>:1
 #: of
 msgid "Enum representing two type of text blocks in document processing."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:5 of
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:5 of
 msgid "Text block containing target `Bond` row."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType of
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType of
 msgid "type"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:7
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:13 of
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:7
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:13 of
 msgid "enum"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.EquityBondTextBlockType:11 of
+#: freeports_analysis.formats_utils.text_filter.EquityBondTextBlockType:11 of
 msgid "Text block containing target `Equity` row."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion of
 msgid "Parameters"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:4 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:4 of
 msgid "Relative position for nominal quantity metadata"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:6 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:6 of
 msgid "Relative position for market value metadata"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:8 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:8 of
 msgid "Relative position for percentage of net assets metadata"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:10 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:10 of
 msgid ""
 "Either relative position for currency metadata or Currency enum value, by"
 " default None"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:12 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:12 of
 msgid "Relative position for acquisition cost metadata, by default None"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:14 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:14 of
 msgid "Matching function to compare text against targets, by default target_match"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion of
 msgid "Returns"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:17 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:17 of
 msgid ""
 "A wrapped text extraction function that processes PDF blocks and returns "
 "matched TextBlock objects"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion of
 msgid "Return type"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:22 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:22 of
 msgid "Notes"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction:23 of
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion:23 of
 msgid ""
 "The decorated function can optionally be specified with the purpose of "
 "including additional metadata. The extraction process: 1. Normalizes and "
@@ -168,11 +168,11 @@ msgid ""
 "TextBlock objects for successful matches"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:3
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:3
 #: of
 msgid ""
 "This decorator wrap the function provide in the usual loop that give a "
-"simplify and higher level context to the decorated `text_extraction` "
+"simplify and higher level context to the decorated `text_filterion` "
 "function. Specifically it expect that in the metadata of each `PdfBlock` "
 "is present an indicator of which column it is located graphycally in the "
 "main table of the pdf page (it suppose that the data was tabular in some "
@@ -180,31 +180,31 @@ msgid ""
 " the subsequent if"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:10
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:10
 #: of
 msgid "they are on the same column."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:11
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:11
 #: of
 msgid ""
 "Use `match_func` to see if one between the target provided to the "
 "extraction function match with the content  of the block."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:13
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:13
 #: of
 msgid ""
 "If it does it overwrite the list of `PdfBlock` to persist the "
 "concatenation of the block with is subsequent."
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:15
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:15
 #: of
 msgid "Add `company` metadata with the match"
 msgstr ""
 
-#: freeports_analysis.formats_utils.text_extract.standard_text_extraction_loop:16
+#: freeports_analysis.formats_utils.text_filter.standard_text_filterion_loop:16
 #: of
 msgid ""
 "It create a `TextBlock` addint the metadata provided by the wrapped "
@@ -213,15 +213,15 @@ msgid ""
 "content for block in the same column that matches the target."
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:22
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:22
 msgid "Modules"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:27:<autosummary>:1
-msgid ":py:obj:`match <freeports_analysis.formats_utils.text_extract.match>`\\"
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:27:<autosummary>:1
+msgid ":py:obj:`match <freeports_analysis.formats_utils.text_filter.match>`\\"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.text_extract.rst:27:<autosummary>:1
+#: ../../source/_generated/freeports_analysis.formats_utils.text_filter.rst:27:<autosummary>:1
 msgid "Functions for different target matching algorithms"
 msgstr ""
 

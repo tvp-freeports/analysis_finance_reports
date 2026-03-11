@@ -9,5 +9,5 @@ freeports\_analysis.formats.algorithms.unstructured.mediolanum\_it24\_b
 
    .. autosummary::
    
-      pdf_filter
+      pdf_extract
    

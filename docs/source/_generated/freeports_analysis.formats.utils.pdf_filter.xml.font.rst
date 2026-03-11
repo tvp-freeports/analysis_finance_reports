@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils.pdf\_filter.xml.font
 ======================================================
 
-.. automodule:: freeports_analysis.formats.utils.pdf_filter.xml.font
+.. automodule:: freeports_analysis.formats.utils.pdf_extract.xml.font
    :members:
    
    

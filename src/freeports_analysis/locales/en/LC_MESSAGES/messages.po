@@ -336,19 +336,19 @@ msgstr ""
 msgid "Skipping page"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/pdf_filter/__init__.py:98
+#: src/freeports_analysis/formats_utils/pdf_extract/__init__.py:98
 msgid "subfund block on top of page not found"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/pdf_filter/pdf_parts/__init__.py:113
+#: src/freeports_analysis/formats_utils/pdf_extract/pdf_parts/__init__.py:113
 msgid "Line PDF - Font"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/text_extract/__init__.py:170
+#: src/freeports_analysis/formats_utils/text_filter/__init__.py:170
 msgid "All positions must be non-zero"
 msgstr ""
 
-#: src/freeports_analysis/formats_utils/text_extract/__init__.py:176
+#: src/freeports_analysis/formats_utils/text_filter/__init__.py:176
 msgid "All positions should be different"
 msgstr ""
 

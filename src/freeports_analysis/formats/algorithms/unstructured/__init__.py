@@ -45,7 +45,7 @@ def get_pipelines(
     Returns
     -------
     Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
-        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Tuple containing three dictionaries for pdf_extract, text_filter, and deserialize segments.
         Each dictionary maps pipeline names to lists of processing functions.
 
     Notes

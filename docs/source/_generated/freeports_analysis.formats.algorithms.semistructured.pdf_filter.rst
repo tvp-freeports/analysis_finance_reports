@@ -1,7 +1,7 @@
 ﻿freeports\_analysis.formats.algorithms.semistructured.pdf\_filter
 =================================================================
 
-.. automodule:: freeports_analysis.formats.algorithms.semistructured.pdf_filter
+.. automodule:: freeports_analysis.formats.algorithms.semistructured.pdf_extract
    :members:
    
    

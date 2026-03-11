@@ -22,7 +22,7 @@ def overwrite_pkl_one_page(
     if filter_data is None:
         targets = get_target_companies(["TEST"])
         filter_data = (
-            freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+            freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
                 targets
             )
         )
@@ -69,15 +69,15 @@ def overwrite_pkl_one_page(
 
 def create_plk_one_page(
     page_n,
-    pdf_filter_func,
-    text_extract_func,
+    pdf_extract_func,
+    text_filter_func,
     deserialize_func,
     print_financial_data=True,
     print_txt_blks=False,
     print_pdf_blks=False,
 ):
     page = get_page("report.pdf", page_n)
-    blks = pdf_filter_func(page)
+    blks = pdf_extract_func(page)
     if print_pdf_blks:
         for blk in blks:
             print(blk)
@@ -87,11 +87,11 @@ def create_plk_one_page(
         dill.dump(blks, f)
     targets = get_target_companies(TARGET_LISTS)
     targets = (
-        freeports_lib.text_extract.matcher.CompanyMatchInfos.compile_from_pandas_df(
+        freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
             targets
         )
     )
-    blks = text_extract_func(blks, targets)
+    blks = text_filter_func(blks, targets)
     if print_txt_blks:
         for blk in blks:
             print(blk)

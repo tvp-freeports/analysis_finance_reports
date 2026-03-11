@@ -12,8 +12,8 @@ import inspect
 import yaml
 import pandera.pandas as pa
 import pandas as pd
-import freeports_analysis.formats.algorithms.semistructured.pdf_filter as p
-import freeports_analysis.formats.algorithms.semistructured.text_extract as t
+import freeports_analysis.formats.algorithms.semistructured.pdf_extract as p
+import freeports_analysis.formats.algorithms.semistructured.text_filter as t
 import freeports_analysis.formats.algorithms.semistructured.deserialize as d
 from ..commons import (
     index_format_pipe,
@@ -48,20 +48,20 @@ def _get_defined_list(module: Any, condition: Callable) -> List[str]:
     ]
 
 
-pdf_filter_funcs = _get_defined_list(p, inspect.isfunction)
-pdf_filter_cls = _get_defined_list(p, inspect.isclass)
+pdf_extract_funcs = _get_defined_list(p, inspect.isfunction)
+pdf_extract_cls = _get_defined_list(p, inspect.isclass)
 
-text_extract_funcs = _get_defined_list(t, inspect.isfunction)
-text_extract_cls = _get_defined_list(t, inspect.isclass)
+text_filter_funcs = _get_defined_list(t, inspect.isfunction)
+text_filter_cls = _get_defined_list(t, inspect.isclass)
 
 deserialize_funcs = _get_defined_list(d, inspect.isfunction)
 deserialize_cls = _get_defined_list(d, inspect.isclass)
 
-algorithms_with_pdf_filter_args = yaml.safe_load(
-    (data / "pdf_filter" / "args.yaml").open("r")
+algorithms_with_pdf_extract_args = yaml.safe_load(
+    (data / "pdf_extract" / "args.yaml").open("r")
 ).keys()
-algorithms_with_text_extract_args = yaml.safe_load(
-    (data / "text_extract" / "args.yaml").open("r")
+algorithms_with_text_filter_args = yaml.safe_load(
+    (data / "text_filter" / "args.yaml").open("r")
 ).keys()
 algorithms_with_deserialize_args = yaml.safe_load(
     (data / "deserialize" / "args.yaml").open("r")
@@ -70,22 +70,22 @@ algorithms_with_deserialize_args = yaml.safe_load(
 formats_mapping_schema = pa.DataFrameSchema(
     {
         "ID": column_id_format_pipe(FKRelation.ONE_TO_ONE),
-        "pdf_filter": pa.Column(
+        "pdf_extract": pa.Column(
             pd.StringDtype,
-            [pa.Check(lambda x: x.isin(pdf_filter_funcs))],
+            [pa.Check(lambda x: x.isin(pdf_extract_funcs))],
             nullable=True,
         ),
-        "InputPdfFilter": pa.Column(
-            pd.StringDtype, [pa.Check(lambda x: x.isin(pdf_filter_cls))], nullable=True
+        "InputPdfExtract": pa.Column(
+            pd.StringDtype, [pa.Check(lambda x: x.isin(pdf_extract_cls))], nullable=True
         ),
-        "text_extract": pa.Column(
+        "text_filter": pa.Column(
             pd.StringDtype,
-            [pa.Check(lambda x: x.isin(text_extract_funcs))],
+            [pa.Check(lambda x: x.isin(text_filter_funcs))],
             nullable=True,
         ),
-        "InputTextExtract": pa.Column(
+        "InputTextFilter": pa.Column(
             pd.StringDtype,
-            [pa.Check(lambda x: x.isin(text_extract_cls))],
+            [pa.Check(lambda x: x.isin(text_filter_cls))],
             nullable=True,
         ),
         "deserialize": pa.Column(
@@ -137,8 +137,8 @@ def get_formats_mapping() -> pd.DataFrame:
         )
 
     df = df.assign(
-        InputPdfFilter=lambda x: _input_from_func(x["pdf_filter"]),
-        InputTextExtract=lambda x: _input_from_func(x["text_extract"]),
+        InputPdfExtract=lambda x: _input_from_func(x["pdf_extract"]),
+        InputTextFilter=lambda x: _input_from_func(x["text_filter"]),
         InputDeserialize=lambda x: _input_from_func(x["deserialize"]),
     )
     return formats_mapping_schema.validate(df)
@@ -159,7 +159,7 @@ def _get_segment(
     format_name : str
         Name of the format to process
     segment_name : str
-        Type of segment ('pdf_filter', 'text_extract', or 'deserialize')
+        Type of segment ('pdf_extract', 'text_filter', or 'deserialize')
     pipes_mapping : List[Tuple[str, pd.Series]]
         List of pipeline mappings with pipeline names and corresponding series
 
@@ -218,7 +218,7 @@ def get_pipelines(
     Returns
     -------
     Tuple[Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]]
-        Tuple containing three dictionaries for pdf_filter, text_extract, and deserialize segments.
+        Tuple containing three dictionaries for pdf_extract, text_filter, and deserialize segments.
         Each dictionary maps pipeline names to lists of processing functions.
 
     Notes
@@ -235,12 +235,12 @@ def get_pipelines(
     except KeyError:
         pass
 
-    pdf_filter_segment = _get_segment(format_name, "pdf_filter", pipes_mapping)
-    text_extract_segment = _get_segment(format_name, "text_extract", pipes_mapping)
+    pdf_extract_segment = _get_segment(format_name, "pdf_extract", pipes_mapping)
+    text_filter_segment = _get_segment(format_name, "text_filter", pipes_mapping)
     deserialize_segment = _get_segment(format_name, "deserialize", pipes_mapping)
 
-    pdf_extract_pipelines_names = set(pdf_filter_segment)
-    text_filter_pipelines_names = set(text_extract_segment)
+    pdf_extract_pipelines_names = set(pdf_extract_segment)
+    text_filter_pipelines_names = set(text_filter_segment)
     deserialize_pipelines_names = set(deserialize_segment)
 
     pipeline_names = (
@@ -251,8 +251,8 @@ def get_pipelines(
     pipelines = {}
     for pn in pipeline_names:
         pipelines[pn] = Pipeline(
-            pdf_extract=pdf_filter_segment.get(pn),
-            text_filter=text_extract_segment.get(pn),
+            pdf_extract=pdf_extract_segment.get(pn),
+            text_filter=text_filter_segment.get(pn),
             deserialize=deserialize_segment.get(pn),
         )
     return pipelines

@@ -20,58 +20,58 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.select_font.rst:2
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.select_font.rst:2
 msgid "freeports\\_analysis.formats\\_utils.pdf\\_filter.select\\_font"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font:1 of
+#: freeports_analysis.formats_utils.pdf_extract.select_font:1 of
 msgid ""
 "Utilities for selecting or deselecting lines based of font and text "
 "information"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.select_font.rst:9
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.select_font.rst:9
 msgid "Functions"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:1:<autosummary>:1
 #: of
 msgid ""
 ":py:obj:`deselect_txt_font "
-"<freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font>`\\"
+"<freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font>`\\"
 " \\(lines\\, deselection\\_list\\)"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:1
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:1:<autosummary>:1
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:1
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:1:<autosummary>:1
 #: of
 msgid "Deselect text with a certain font and text combination"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.select_font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.select_font.rst
 msgid "Parameters"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:3
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:3
 #: of
 msgid "list to filter"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:5
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:5
 #: of
 msgid "list of text and font to search for"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.select_font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.select_font.rst
 msgid "Returns"
 msgstr ""
 
-#: freeports_analysis.formats_utils.pdf_filter.select_font.deselect_txt_font:8
+#: freeports_analysis.formats_utils.pdf_extract.select_font.deselect_txt_font:8
 #: of
 msgid "filtered list"
 msgstr ""
 
-#: ../../source/_generated/freeports_analysis.formats_utils.pdf_filter.select_font.rst
+#: ../../source/_generated/freeports_analysis.formats_utils.pdf_extract.select_font.rst
 msgid "Return type"
 msgstr ""
 

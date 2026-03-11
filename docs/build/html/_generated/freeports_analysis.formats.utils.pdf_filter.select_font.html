@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>freeports_analysis.formats.utils.pdf_filter.select_font &mdash; freeports_analysis 0.0.3 documentation</title>
+  <title>freeports_analysis.formats.utils.pdf_extract.select_font &mdash; freeports_analysis 0.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/colors.css?v=c9ec9885" />
@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="freeports_analysis.formats.utils.pdf_filter.select_position" href="freeports_analysis.formats.utils.pdf_filter.select_position.html" />
-    <link rel="prev" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html" /> 
+    <link rel="next" title="freeports_analysis.formats.utils.pdf_extract.select_position" href="freeports_analysis.formats.utils.pdf_extract.select_position.html" />
+    <link rel="prev" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -100,10 +100,10 @@
           <li class="breadcrumb-item"><a href="freeports_analysis.html">freeports_analysis</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.html">freeports_analysis.formats</a></li>
           <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.html">freeports_analysis.formats.utils</a></li>
-          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_filter.html">freeports_analysis.formats.utils.pdf_filter</a></li>
-      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_filter.select_font</li>
+          <li class="breadcrumb-item"><a href="freeports_analysis.formats.utils.pdf_extract.html">freeports_analysis.formats.utils.pdf_extract</a></li>
+      <li class="breadcrumb-item active">freeports_analysis.formats.utils.pdf_extract.select_font</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_filter.select_font.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_generated/freeports_analysis.formats.utils.pdf_extract.select_font.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -111,37 +111,37 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-freeports_analysis.formats.utils.pdf_filter.select_font">
-<span id="freeports-analysis-formats-utils-pdf-filter-select-font"></span><h1>freeports_analysis.formats.utils.pdf_filter.select_font<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_filter.select_font" title="Link to this heading"></a></h1>
+  <section id="module-freeports_analysis.formats.utils.pdf_extract.select_font">
+<span id="freeports-analysis-formats-utils-pdf-filter-select-font"></span><h1>freeports_analysis.formats.utils.pdf_extract.select_font<a class="headerlink" href="#module-freeports_analysis.formats.utils.pdf_extract.select_font" title="Link to this heading"></a></h1>
 <p>Font-based selection utilities for PDF text filtering.</p>
 <p>This module provides functions for filtering PDF text elements based on
 font properties and text content combinations.</p>
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font" title="freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deselect_txt_font</span></code></a>(lines, deselection_list)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#freeports_analysis.formats.utils.pdf_extract.select_font.deselect_txt_font" title="freeports_analysis.formats.utils.pdf_extract.select_font.deselect_txt_font"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deselect_txt_font</span></code></a>(lines, deselection_list)</p></td>
 <td><p>Filter out lines matching specific text-font combinations.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py function">
-<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font">
-<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_filter.select_font.</span></span><span class="sig-name descname"><span class="pre">deselect_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deselection_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><span class="pre">Font</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_filter.select_font.deselect_txt_font" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="freeports_analysis.formats.utils.pdf_extract.select_font.deselect_txt_font">
+<span class="sig-prename descclassname"><span class="pre">freeports_analysis.formats.utils.pdf_extract.select_font.</span></span><span class="sig-name descname"><span class="pre">deselect_txt_font</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deselection_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><span class="pre">Font</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine"><span class="pre">ExtractedPdfLine</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#freeports_analysis.formats.utils.pdf_extract.select_font.deselect_txt_font" title="Link to this definition"></a></dt>
 <dd><p>Filter out lines matching specific text-font combinations.</p>
 <p>Removes PDF lines that match any of the specified text and font pairs
 from the deselection list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to filter</p></li>
-<li><p><strong>deselection_list</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.font.Font"><em>Font</em></a><em>]</em><em>]</em>) – List of (text, font) pairs to exclude from results</p></li>
+<li><p><strong>lines</strong> (<em>List</em><em>[</em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine"><em>ExtractedPdfLine</em></a><em>]</em>) – List of PDF text lines to filter</p></li>
+<li><p><strong>deselection_list</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.font.Font"><em>Font</em></a><em>]</em><em>]</em>) – List of (text, font) pairs to exclude from results</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Filtered list of PDF lines excluding deselected combinations</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.html#freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.ExtractedPdfLine">ExtractedPdfLine</a>]</p>
+<dd class="field-odd"><p>List[<a class="reference internal" href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.html#freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.ExtractedPdfLine">ExtractedPdfLine</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -152,8 +152,8 @@ from the deselection list.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_filter.pdf_parts.position" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="freeports_analysis.formats.utils.pdf_filter.select_position.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_filter.select_position" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position.html" class="btn btn-neutral float-left" title="freeports_analysis.formats.utils.pdf_extract.pdf_parts.position" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="freeports_analysis.formats.utils.pdf_extract.select_position.html" class="btn btn-neutral float-right" title="freeports_analysis.formats.utils.pdf_extract.select_position" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

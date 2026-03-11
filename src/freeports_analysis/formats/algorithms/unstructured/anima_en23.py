@@ -5,14 +5,14 @@ from typing import List, TypeAlias
 
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
-from freeports_analysis.formats.utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_extract import (
     OnePdfBlockType,
     PdfExtractInvestmentsStandard,
 )
-from freeports_analysis.formats.utils.text_extract import (
+from freeports_analysis.formats.utils.text_filter import (
     EquityBondTextBlockType,
 )
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )

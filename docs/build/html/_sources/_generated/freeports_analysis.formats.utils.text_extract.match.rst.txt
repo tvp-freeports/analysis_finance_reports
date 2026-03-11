@@ -1,7 +1,7 @@
 freeports\_analysis.formats.utils.text\_extract.match
 =====================================================
 
-.. automodule:: freeports_analysis.formats.utils.text_extract.match
+.. automodule:: freeports_analysis.formats.utils.text_filter.match
    :members:
    
    

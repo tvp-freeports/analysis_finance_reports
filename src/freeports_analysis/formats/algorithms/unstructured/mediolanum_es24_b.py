@@ -8,15 +8,15 @@ from typing import List, Optional, Any
 from enum import auto, Enum
 from lxml import etree
 from freeports_analysis.formats.algorithms.commons import Pipeline
-from freeports_analysis.formats.utils.pdf_filter import (
+from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
 )
-from freeports_analysis.formats.utils.pdf_filter.pdf_parts import (
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
-from freeports_analysis.formats.utils.text_extract import TextFilterInvestmentsStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
 from freeports_analysis.formats.utils.deserialize import DeserializerInvestmentStandard
 from freeports_analysis.consts import (
     Promise,
