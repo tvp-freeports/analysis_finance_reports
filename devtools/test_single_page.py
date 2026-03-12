@@ -11,7 +11,6 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
 )
 from freeports_analysis.formats.algorithms import Algorithm
-from freeports_analysis.formats.utils.pdf_extract.xml.font import get_lines_with_txt
 from freeports_analysis.formats import PdfBlock
 from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
 from collections.abc import Callable

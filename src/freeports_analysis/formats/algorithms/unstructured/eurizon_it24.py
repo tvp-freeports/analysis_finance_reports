@@ -18,7 +18,6 @@ deselection_list = [
     PdfLineSelection(font="TrebuchetMS", text="Altri strumenti finanziari"),
 ]
 
-
 pipelines = {
     "investments": Pipeline(
         pdf_extract=PdfExtractInvestmentsStandard(
