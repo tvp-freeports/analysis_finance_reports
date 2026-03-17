@@ -463,7 +463,7 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
         _map_names = {
             "verbosity": "VERBOSITY",
             "separate_out": "SEPARATE_OUT_FILES",
-            "out_path": "OPUT_PATH",
+            "out_path": "OUT_PATH",
             "n_workers": "N_WORKERS",
             "batch_file": "BATCH_FILE",
             "save_pdf": "SAVE_PDF",

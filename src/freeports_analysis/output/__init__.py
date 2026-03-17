@@ -34,7 +34,67 @@ from freeports_analysis.conf_parse import (
 from freeports_analysis.data import COMPANIES
 from freeports_analysis.consts import Promise, Currency, PromisesResolutionMap
 from freeports_analysis.i18n import _
-from .files_schema import investments_schema, BondAdditionalInfos
+from .files_schema import (
+    investments_schema,
+    assets_managers_schema,
+    funds_schema,
+    investments_managers_schema,
+    BondAdditionalInfos,
+)
+
+
+class PageResults:
+    investments: List[Equity | Bond]
+    assets_managers: List[ManagementCompany | InvestmentsManager]
+
+    def __init__(self):
+        self.investments = []
+        self.assets_managers = []
+
+    def fulfill_promises(self, promises_resolution_map):
+        for i in self.investments:
+            i.fulfill_promises(promises_resolution_map)
+        for a in self.assets_managers:
+            a.fulfill_promises(promises_resolution_map)
+
+
+class PageIndexable:
+    data_per_page: List[Any]
+
+    def __init__(self, data: List[Any]):
+        self.data_per_page = data
+
+    def __getitem__(self, page_n):
+        return self.data_per_page[page_n - 1]
+
+
+class DocumentResults:
+    prefix_out: str
+    algorithm: str
+    results: List[PageResults]
+
+    def __init__(self, prefix_out: str, algorithm: str):
+        self.prefix_out = (prefix_out,)
+        self.algorithm = algorithm
+        self.results = []
+
+    @property
+    def investment():
+        return PageIndexable(list(map(lambda x: x.investment), self.results))
+
+    @property
+    def assets_managers():
+        return PageIndexable(list(map(lambda x: x.assets_managers), self.results))
+
+    def __getitem__(self, page_n):
+        return self.results[page_n - 1]
+
+    def __iter__(self):
+        return iter(self.results)
+
+    def fulfill_promises(self, promises_resolution_map):
+        for pr in self:
+            pr.fulfill_promises(promises_resolution_map)
 
 
 def validate_company(value: str) -> str:
@@ -284,8 +344,27 @@ class Bond(Investment):
         return string
 
 
+class AssetsManager(ABC, BaseModel):
+    name: str
+    managed_funds: List[str]
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}("{self.name}")'
+
+
+class ManagementCompany(AssetsManager):
+    """Rappresent the manager"""
+
+
+class InvestmentsManager(AssetsManager):
+    """Rappresent the InvestmentsManager"""
+
+
 def transform_to_files_schema(
-    result_documents: List[Tuple[List[List[Investment]], str, Optional[str]]],
+    results: List[DocumentResults],
     batch_mode: bool,
 ) -> Dict[str, Any]:
     """Transform investment results into structured data for file output.
@@ -314,34 +393,111 @@ def transform_to_files_schema(
     """
     add_infos: Dict[int, Dict[str, Any]] = {}
     investments: List[Dict[str, Any]] = []
-    _id = 1
-    for result_pages, format_name, prefix_out in result_documents:
-        for page, result_page in enumerate(result_pages, start=1):
-            for res in result_page:
-                d = res.model_dump(mode="json")
+    assets_managers: List[Dict[str, Any]] = []
+    funds: List[Dict[str, Any]] = []
+    asset_managers_to_funds: List[Dict[str, Any]] = []
+
+    _id_investments = 1
+    _id_funds = 1
+    _id_assets_managers = 1
+    new_funds = {}
+    for document_results in results:
+        for page_n, page_results in enumerate(document_results, start=1):
+            for i in page_results.investments:
+                d = i.model_dump(mode="json")
                 if batch_mode:
-                    d["Format"] = format_name
-                    d["Document"] = prefix_out
-                d["Financial instrument"] = res.__class__.__name__.upper()
-                d["Report page"] = page
-                d["ID"] = _id
-                _id += 1
-                if isinstance(res, Bond):
+                    d["Format"] = document_results.algorithm
+                    d["Document"] = document_results.prefix_out
+                d["Financial instrument"] = i.__class__.__name__.upper()
+                d["Report page"] = page_n
+                d["ID"] = _id_investments
+                s = d["subfund"]
+                if s not in new_funds:
+                    new_funds[s] = {
+                        "ID": _id_funds,
+                        "Managment company ID": None,
+                        "Name": s,
+                    }
+                    _id_funds += 1
+                d["Fund ID"] = new_funds[s]["ID"]
+
+                if isinstance(i, Bond):
                     infos = ["maturity", "interest_rate"]
                     add_infos[d["ID"]] = BondAdditionalInfos(
                         **{k: v for k, v in d.items() if k in infos}
                     ).model_dump(mode="json")
                     d = {k: v for k, v in d.items() if k not in infos}
                 investments.append(d)
-    df_investments = pd.DataFrame.from_dict(investments)
-    if df_investments.shape[0] == 0:
-        return {"investments": df_investments, "additional_infos": add_infos}
+                _id_investments += 1
+            for a in page_results.assets_managers:
+                d = a.model_dump(mode="json")
+                for s in d["managed_funds"]:
+                    if s not in new_funds:
+                        new_funds[s] = {
+                            "ID": _id_funds,
+                            "Managment company ID": None,
+                            "Name": s,
+                        }
+                        _id_funds += 1
+                    if isinstance(a, ManagementCompany):
+                        new_funds[s]["Managment company ID"] = _id_assets_managers
+                    if isinstance(a, InvestmentsManager):
+                        asset_managers_to_funds.append(
+                            {
+                                "Investment manager ID": _id_assets_managers,
+                                "Fund ID": new_funds[s]["ID"],
+                            }
+                        )
+                if batch_mode:
+                    d["Format"] = document_results.algorithm
+                    d["Document"] = document_results.prefix_out
+                d["Report page"] = page_n
+                d["ID"] = _id_assets_managers
+                assets_managers.append(d)
+                _id_assets_managers += 1
+    funds = list(new_funds.values())
+    df_investments = (
+        pd.DataFrame.from_dict(investments)
+        if len(investments) > 0
+        else pd.DataFrame(
+            columns=[
+                "ID",
+                "company",
+                "company_match",
+                "Fund ID",
+                "subfund",
+                "manco",
+                "nominal_quantity",
+                "market_value",
+                "perc_net_assets",
+                "Currency",
+                "acquisition_cost",
+                "acquisition_currency",
+            ]
+        )
+    )
+    df_investments_managers = (
+        pd.DataFrame.from_dict(asset_managers_to_funds)
+        if len(asset_managers_to_funds)
+        else pd.DataFrame(columns=["Investment manager ID", "Fund ID"])
+    )
+    df_funds = (
+        pd.DataFrame.from_dict(funds)
+        if len(funds) > 0
+        else pd.DataFrame(columns=["ID", "Managment company ID", "Name"])
+    )
+    df_assets_managers = (
+        pd.DataFrame.from_dict(assets_managers)
+        if len(assets_managers) > 0
+        else pd.DataFrame(columns=["ID", "funds", "name"])
+    )
+
     df_investments.set_index("ID", inplace=True)
+    df_investments.drop(columns=["subfund"], inplace=True)
     df_investments.rename(
         columns={
             "company": "Company",
             "company_match": "Matched company",
-            "subfund": "Subfund",
             "manco": "Management company",
             "nominal_quantity": "Nominal/Quantity",
             "market_value": "Market value",
@@ -352,9 +508,27 @@ def transform_to_files_schema(
         },
         inplace=True,
     )
-    df_investments = investments_schema.validate(df_investments)
+    df_assets_managers.set_index("ID", inplace=True)
+    df_assets_managers.drop(columns="funds", inplace=True)
+    df_assets_managers.rename(columns={"name": "Name"}, inplace=True)
+    df_funds.set_index(["ID", "Managment company ID"], inplace=True)
+    df_investments_managers.set_index(
+        ["Investment manager ID", "Fund ID"], inplace=True
+    )
 
-    return {"investments": df_investments, "additional_infos": add_infos}
+    df_investments = investments_schema.validate(df_investments)
+    df_assets_managers = assets_managers_schema.validate(df_assets_managers)
+    df_funds = funds_schema.validate(df_funds)
+    df_investments_managers = investments_managers_schema.validate(
+        df_investments_managers
+    )
+    return {
+        "investments": df_investments,
+        "assets_managers": df_assets_managers,
+        "funds": df_funds,
+        "investments_managers": df_investments_managers,
+        "additional_infos": add_infos,
+    }
 
 
 def _write_structured(
@@ -479,7 +653,12 @@ def write_files(
     if profile == profiles_cls.REGULAR:
         _write_regular(
             data,
-            {"investments": "investments.csv"},
+            {
+                "investments": "investments.csv",
+                "funds": "funds.csv",
+                "assets_managers": "assets_managers.csv",
+                "investments_managers": "investments_managers_to_funds.csv",
+            },
             {"additional_infos": "investments_add_infos.yaml"},
             out_path,
         )

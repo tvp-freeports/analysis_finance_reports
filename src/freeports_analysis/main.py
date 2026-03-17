@@ -21,7 +21,17 @@ import pymupdf as pypdf
 import pandas as pd
 from freeports_analysis.i18n import _
 from freeports_analysis.data import get_target_companies
-from freeports_analysis.output import transform_to_files_schema, write_files, Investment
+from freeports_analysis.output import (
+    transform_to_files_schema,
+    write_files,
+    Investment,
+    Equity,
+    Bond,
+    AssetsManager,
+    InvestmentsManager,
+    DocumentResults,
+    PageResults,
+)
 from freeports_analysis import download as dw
 from freeports_analysis.consts import PromisesResolutionContext, flatten_promise_map
 from freeports_analysis.formats.algorithms import Algorithm
@@ -52,65 +62,6 @@ class NoPDFormatDetected(Exception):
     This exception is raised when no explicit format is specified and the program
     cannot automatically determine the appropriate format for decoding the PDF.
     """
-
-
-def pipeline_batch(
-    batch_pages: List[str],
-    i_page_batch: int,
-    n_pages: int,
-    targets: pd.DataFrame,
-    format_name: str,
-) -> List[Union[Investment, PromisesResolutionContext]]:
-    """Apply the pipeline of actions to extract financial data from PDF pages.
-
-    Parameters
-    ----------
-    batch_pages : List[str]
-        List of XML strings representing PDF pages to process
-    i_page_batch : int
-        Starting page number of this batch (1-based index)
-    n_pages : int
-        Total number of pages in the document
-    targets : pd.DataFrame
-        Table containing information of relevant companies to extract from the report
-    format_name : str
-        Name of the format containing format-specific parsing functions
-
-    Returns
-    -------
-    List[Union[Investment, PromisesResolutionContext]]
-        List of extracted financial data objects or promise resolution contexts
-    """
-    end_page_batch = i_page_batch + len(batch_pages)
-    logger.info(
-        _("Starting batch form page %i to %i"),
-        i_page_batch,
-        end_page_batch,
-    )
-    parser = etree.XMLParser(recover=True)
-    batch_pages = [etree.fromstring(page, parser=parser) for page in batch_pages]
-    pipelines = get_pipelines(format_name)
-
-    results = []
-    for pipeline_name, pipeline in pipelines.items():
-        (pdf_extract_funcs, text_filter_funcs, deserialize_funcs) = pipeline
-        if pipeline_name != "":
-            logger.info(_("Selected named pipeline ({})").format(pipeline_name))
-        logger.info(
-            _("Filtering relevant blocks of pdf from page %i to %i..."),
-            i_page_batch,
-            end_page_batch,
-        )
-        blks = pdf_extract_exec(i_page_batch, n_pages, batch_pages, pdf_extract_funcs)
-        logger.info(
-            _("Extracting relevant blocks of text from page %i to %i..."),
-            i_page_batch,
-            end_page_batch,
-        )
-        blks = text_filter_exec(i_page_batch, n_pages, blks, targets, text_filter_funcs)
-        results += deserialize_exec(i_page_batch, n_pages, blks, deserialize_funcs)
-
-    return results
 
 
 def batch_job_confs(job_config: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -301,23 +252,25 @@ def _main_job(
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
     results = alghoritm(pdf_file_dict, targets)
     promises_resolution_map = {}
-    results_per_page = []
+    doc_results = DocumentResults(job_config["PREFIX_OUT"], job_config["FORMAT"])
     for pn in range(1, len(pdf_file_dict) + 1):
-        extracted_data_page = []
+        doc_results.results.append(PageResults())
         for r in results.get(pn, []):
             if isinstance(r, dict):
                 promises_resolution_map |= r
+            elif isinstance(r, Investment):
+                doc_results.results[-1].investments.append(r)
+            elif isinstance(r, AssetsManager):
+                doc_results.results[-1].assets_managers.append(r)
             else:
-                extracted_data_page.append(r)
-        results_per_page.append(extracted_data_page)
+                raise Exception(f"Not recognized type of result {type(r)}")
+
     promises_resolution_map = flatten_promise_map(promises_resolution_map)
-    for results_page in results_per_page:
-        for res in results_page:
-            res.fulfill_promises(promises_resolution_map)
+    doc_results.fulfill_promises(promises_resolution_map)
     format_utils.removeHandler(handler_csv)
     LOGGING_TABLE.removeHandler(handler_csv)
     LOG_CONTEXTUAL_INFOS.report = None
-    return results_per_page, job_config["FORMAT"], job_config["PREFIX_OUT"]
+    return doc_results
 
 
 def main(main_config: Dict[str, Any]) -> None:

@@ -1,0 +1,4 @@
+**/*
+!*.template.ipynb
+!*.py
+!.gitignore

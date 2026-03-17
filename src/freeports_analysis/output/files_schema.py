@@ -27,7 +27,7 @@ investments_schema = pa.DataFrameSchema(
         "Financial instrument": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(list_of_instruments)
         ),
-        "Subfund": pa.Column(pd.StringDtype),
+        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
         "Management company": pa.Column(pd.StringDtype, nullable=True),
         "Nominal/Quantity": pa.Column(
             pd.Float32Dtype, checks=pa.Check.greater_than(0), nullable=True
@@ -64,6 +64,51 @@ investments_schema = pa.DataFrameSchema(
             ("Format" in df and "Document" in df)
             or ("Format" not in df and "Document" not in df)
         )
+    ),
+)
+
+funds_schema = pa.DataFrameSchema(
+    {"Name": pa.Column(pd.StringDtype, unique=True)},
+    strict=True,
+    coerce=True,
+    index=pa.MultiIndex(
+        [
+            pa.Index(
+                pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
+            ),
+            pa.Index(
+                pd.Int32Dtype,
+                checks=pa.Check.greater_than(0),
+                name="Managment company ID",
+                nullable=True,
+            ),
+        ]
+    ),
+)
+
+
+assets_managers_schema = pa.DataFrameSchema(
+    {"Name": pa.Column(pd.StringDtype, unique=True)},
+    strict=True,
+    coerce=True,
+    index=pa.Index(
+        pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
+    ),
+)
+
+investments_managers_schema = pa.DataFrameSchema(
+    {},
+    strict=True,
+    coerce=True,
+    index=pa.MultiIndex(
+        [
+            pa.Index(
+                pd.Int32Dtype,
+                checks=pa.Check.greater_than(0),
+                name="Investment manager ID",
+            ),
+            pa.Index(pd.Int32Dtype, checks=pa.Check.greater_than(0), name="Fund ID"),
+        ]
     ),
 )
 
