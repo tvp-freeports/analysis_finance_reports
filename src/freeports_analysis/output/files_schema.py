@@ -88,7 +88,14 @@ funds_schema = pa.DataFrameSchema(
 
 
 assets_managers_schema = pa.DataFrameSchema(
-    {"Name": pa.Column(pd.StringDtype, unique=True)},
+    {
+        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+        "Name": pa.Column(pd.StringDtype, unique=True),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
+        "Document": pa.Column(pd.StringDtype, required=False),
+    },
     strict=True,
     coerce=True,
     index=pa.Index(

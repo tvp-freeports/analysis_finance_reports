@@ -344,15 +344,38 @@ class Bond(Investment):
         return string
 
 
-class AssetsManager(ABC, BaseModel):
+class AssetsManager(BaseModel, ABC):
+    model_config = ConfigDict(
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+    )
     name: str
     managed_funds: List[str]
 
-    def __init__(self, name: str):
-        self.name = name
-
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.name}")'
+
+    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
+        """Resolve all promise objects in this financial data instance.
+
+        Processes each attribute that may contain a Promise object, resolving it
+        using the provided mapping and performing validation where required.
+
+        Parameters
+        ----------
+        mapping : PromisesResolutionMap
+            Dictionary containing values to resolve promises from.
+
+        Notes
+        -----
+        For attributes that require validation (perc_net_assets, company),
+        the resolved values will be validated before assignment. This method
+        iterates through all model attributes and resolves any Promise objects
+        found, updating the instance in place.
+        """
+        for k, v in self.model_dump().items():
+            if isinstance(v, Promise):
+                setattr(self, k, v.fulfill_with(mapping))
 
 
 class ManagementCompany(AssetsManager):
@@ -489,7 +512,7 @@ def transform_to_files_schema(
     df_assets_managers = (
         pd.DataFrame.from_dict(assets_managers)
         if len(assets_managers) > 0
-        else pd.DataFrame(columns=["ID", "funds", "name"])
+        else pd.DataFrame(columns=["ID", "managed_funds", "name"])
     )
 
     df_investments.set_index("ID", inplace=True)
@@ -509,7 +532,7 @@ def transform_to_files_schema(
         inplace=True,
     )
     df_assets_managers.set_index("ID", inplace=True)
-    df_assets_managers.drop(columns="funds", inplace=True)
+    df_assets_managers.drop(columns="managed_funds", inplace=True)
     df_assets_managers.rename(columns={"name": "Name"}, inplace=True)
     df_funds.set_index(["ID", "Managment company ID"], inplace=True)
     df_investments_managers.set_index(

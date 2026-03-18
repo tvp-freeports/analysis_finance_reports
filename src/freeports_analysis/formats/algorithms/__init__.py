@@ -231,9 +231,9 @@ class Algorithm:
                     for i, page in enumerate(pages)
                     if page_classification[i] == pt
                 }
-                for step in self.schedule
                 for pt in step
             }
+            for step in self.schedule
         ]
         return pages_scheduled
 
@@ -260,9 +260,8 @@ class Algorithm:
                 new_filter_data.extend(list_res)
                 res[page_n] = list_res
                 LOG_CONTEXTUAL_INFOS.page = None
-        filter_data = new_filter_data
+        filter_data = [n for n in new_filter_data]
         for i in range(1, len(self.schedule)):
-            new_filter_data = []
             for pages_type, pages in pages_scheduled[i].items():
                 for page_n, page in pages.items():
                     LOG_CONTEXTUAL_INFOS.page = page_n
@@ -275,7 +274,7 @@ class Algorithm:
                     new_filter_data.extend(list_res)
                     res[page_n] = list_res
                     LOG_CONTEXTUAL_INFOS.page = None
-            filter_data = new_filter_data
+            filter_data.extend([n for n in new_filter_data])
         return res
 
     def classify_page(self, pages, page_number):

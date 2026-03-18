@@ -1,8 +1,10 @@
 ID,Header set,Class
 CARNE-EN23,"Arial-BoldMT ""Description""",
 CARNE-EN23,"Arial-BoldMT ""Currency""",
-EURIZON-EN23,"Frutiger-Light ""Nominal /""",
-EURIZON-EN23,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-EN23/0,"Frutiger-Light ""Nominal /""",
+EURIZON-EN23/0,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-EN23/1,"frutiger-lightitalic ""MANAGEMENT COMPANY AND PROMOTER""",manco
+EURIZON-EN23/1,"frutiger-black ""ORGANISATION OF THE FUND""",manco
 EURIZON-IT24,"TrebuchetMSBold ""Titolo""",
 EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",
 UBS-EN23,"Frutiger45LightBold ""Nominal """,
