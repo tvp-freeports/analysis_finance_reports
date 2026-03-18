@@ -2,5 +2,7 @@ Format name,Page type,Filter next iteration
 MEDIOLANUM-ES24.B,cover,
 MEDIOLANUM-ES24.B,investments,
 EURIZON-EN23,investments,TRUE
+EURIZON-EN23,inv_managers_end,
 EURIZON-EN23,inv_managers,TRUE
-EURIZON-EN23,manco
+EURIZON-EN23,inv_managers_begin,TRUE
+EURIZON-EN23,manco,

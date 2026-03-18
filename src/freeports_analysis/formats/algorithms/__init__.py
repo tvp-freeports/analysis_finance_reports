@@ -277,11 +277,11 @@ class Algorithm:
             filter_data.extend([n for n in new_filter_data])
         return res
 
-    def classify_page(self, pages, page_number):
+    def classify_pages(self, pages):
         page_classification = [
             c for p in pages for c in self.page_classify_bundle(p, None)
         ]
-        return self.page_classify_finalizer(page_classification)[page_number - 1]
+        return self.page_classify_finalizer(page_classification)
 
     def apply_to_page(self, pages, page_number, filter_data, page_class):
         return self.bundles_mapping[page_class](pages[page_number - 1], filter_data)

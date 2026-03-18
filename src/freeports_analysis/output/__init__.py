@@ -424,6 +424,7 @@ def transform_to_files_schema(
     _id_funds = 1
     _id_assets_managers = 1
     new_funds = {}
+    asset_managers_names = set()
     for document_results in results:
         for page_n, page_results in enumerate(document_results, start=1):
             for i in page_results.investments:
@@ -476,8 +477,10 @@ def transform_to_files_schema(
                     d["Document"] = document_results.prefix_out
                 d["Report page"] = page_n
                 d["ID"] = _id_assets_managers
-                assets_managers.append(d)
-                _id_assets_managers += 1
+                if a.name not in asset_managers_names:
+                    asset_managers_names.add(a.name)
+                    assets_managers.append(d)
+                    _id_assets_managers += 1
     funds = list(new_funds.values())
     df_investments = (
         pd.DataFrame.from_dict(investments)
