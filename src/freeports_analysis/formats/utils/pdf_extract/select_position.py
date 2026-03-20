@@ -28,19 +28,47 @@ class SplittingState(Enum):
 class RowConfig:
     limits: Optional[Limits]
 
+    def __init__(self, limits: Optional[Limits] = None):
+        self.limits = limits
+
 
 class ColumnConfig:
-    limits: Optional[Limits] = None
-    nullable: Optional[NullableState] = None
-    splitting: Optional[SplittingState] = None
+    limits: Optional[Limits]
+    nullable: Optional[NullableState]
+    splitting: Optional[SplittingState]
 
-    def __init__(self):
-        self.splitting = SplittingState.DISALLOW
+    def __init__(
+        self,
+        limits: Optional[Limits] = None,
+        nullable: Optional[NullableState] = None,
+        splitting: Optional[NullableState] = SplittingState.DISALLOW,
+    ):
+        self.limits = limits
+        self.nullable = nullable
+        self.splitting = splitting
 
 
 class TableConfig:
     cols: Optional[List] = None
     rows: Optional[List] = None
+
+    def __init__(self, cols=None, rows=None):
+        if cols is None:
+            self.cols = cols
+        elif isinstance(cols, ColumnConfig):
+            self.cols = [cols]
+        else:
+            self.cols = []
+            for c in cols:
+                self.cols.append(c)
+        if rows is None:
+            self.rows = rows
+        elif isinstance(rows, RowConfig):
+            self.rows = [rows]
+        else:
+            self.rows = []
+            for c in rows:
+                self.rows.append(c)
 
 
 class CollapseAlgorithm(Enum):
@@ -61,14 +89,14 @@ class TablePosAlgorithm(Flag):
         Use largest areas as rulers instead of smallest
     USE_RULER_AREA : TablePosAlgorithm
         Match based on ruler area intersection
-    USE_TES_POS : TablePosAlgorithm
+    USE_TEST_POS : TablePosAlgorithm
         Match based on test element position
     """
 
     RETURN_ROWS = auto()
     BIG_CELL_RULE = auto()
     USE_RULER_AREA = auto()
-    USE_TES_POS = auto()
+    USE_TEST_POS = auto()
 
     @classmethod
     def from_dict(cls, v: str | list):

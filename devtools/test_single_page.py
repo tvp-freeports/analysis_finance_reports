@@ -397,7 +397,7 @@ def print_pdf_blks_table_ASCII(
             if line_idx == 0:
                 row_line = row_line[:-1] + f"| {str(r).rjust(2)}"
             else:
-                row_line = row_line[:-1] + "   |"
+                row_line = row_line[:-1] + "|"
             print(row_line)
 
         # Print border after each row

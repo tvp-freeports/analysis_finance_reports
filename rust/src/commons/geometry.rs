@@ -6,6 +6,7 @@ use ordered_float::OrderedFloat;
 #[derive(Debug,Clone,Copy,Hash,Eq,PartialEq)]
 pub struct Limits(OrderedFloat<f32>,OrderedFloat<f32>);
 
+
 #[derive(Debug,Clone,Copy,Hash,Eq,PartialEq)]
 pub struct PositiveLimits(Limits);
 
