@@ -205,6 +205,15 @@ class TextBlock:
         self.pdf_block = pdf_block
         self.content = pdf_block.content
 
+    @classmethod
+    def from_content(cls, type_block: Enum, metadata: dict, content: str):
+        new_blk = cls.__new__(cls)
+        new_blk.type_block = type_block
+        new_blk.metadata = metadata
+        new_blk.pdf_block = None
+        new_blk.content = content
+        return new_blk
+
     def __repr__(self) -> str:
         return str(self)
 

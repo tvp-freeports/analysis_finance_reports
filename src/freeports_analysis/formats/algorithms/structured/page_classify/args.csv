@@ -41,8 +41,14 @@ MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",
 MEDIOLANUM-EN24,"[8.04] ""Face value""",
-FINECO-EN23@IR,"TimesNewRoman,Bold ""Domicile""",
-FINECO-EN23@IR,"TimesNewRoman,Bold ""Shares""",
+FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Domicile""",
+FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Shares""",
+FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Notes to the Financial Statements""",inv_managers_table
+FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Sub-Fund""",inv_managers_table
+FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Investment Manager""",inv_managers_table
+FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Date of Commencement""",inv_managers_table
+FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""","manco"
+FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""","manco"
 FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,
 KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",
 UBS-EN23,"Frutiger45LightBold ""Description """,
