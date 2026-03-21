@@ -25,7 +25,7 @@ expected_results = get_expected_results(__file__, pages_type)
 
 @pytest.mark.parametrize("page,page_type", pages_type)
 def test_page_classification(page, page_type):
-    assert page_type == a.classify_page(doc, page)
+    assert page_type == a.classify_pages(doc)[page - 1]
 
 
 @pytest.mark.parametrize("page,page_type", pages_type)
