@@ -9,11 +9,14 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
+from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
 from freeports_analysis.output import (
     ManagementCompany,
     InvestmentsManager,
     Investment,
     AssetsManager,
+    Fund,
 )
 from enum import Enum, auto
 
@@ -117,8 +120,8 @@ def pdf_extract_manco(page):
     return [PdfBlock(TipiBlocco.MAN, {}, l.text) for l in lines]
 
 
-def text_filter_inv_managers(blocks, investments):
-    subfunds = set([normalize_string(i.subfund) for i in investments])
+def text_filter_inv_managers(blocks, results):
+    inv_funds = set(filter(lambda x: isinstance(x, Fund), results))
 
     final = []
     inv = [b for b in blocks if b.type_block == TipiBlocco.INV]
@@ -131,23 +134,26 @@ def text_filter_inv_managers(blocks, investments):
         )
     funds = []
     for s in final:
-        funds.append([])
+        funds.append(set())
         s[0] = s[0].split("for the Sub-Funds")[-1].strip()
         for sub in s:
-            funds[-1].extend(sub.split("and"))
-    return [
-        TextBlock(TipiBlocco.INV, {"funds": s}, i)
-        for i, s in zip(inv, funds)
-        if any(normalize_string(x) in subfunds for x in s)
-    ]
+            funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
+    res = []
+    for i, s in zip(inv, funds):
+        if not s.isdisjoint(inv_funds):
+            res.append(TextBlock(TipiBlocco.INV, {"funds": s}, i))
+            for f in s:
+                res.append(
+                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                )
+    return res
 
 
 def text_filter_inv_managers_begin(blocks, results):
-    i_subfunds = set([i.subfund for i in results if isinstance(i, Investment)])
-    i_subfunds_n = [normalize_string(s) for s in i_subfunds]
-    a_subfunds = set(
-        [s for a in results if isinstance(a, AssetsManager) for s in a.managed_funds]
-    )
+    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
+    inv_managers = set(filter(lambda x: isinstance(x, InvestmentsManager), results))
+    a_subfunds = set([f for inv in inv_managers for f in inv.funds])
+    i_funds = filter_funds - a_subfunds
 
     final = []
     inv = [b for b in blocks if b.type_block == TipiBlocco.INV]
@@ -160,48 +166,55 @@ def text_filter_inv_managers_begin(blocks, results):
         )
     funds = []
     for s in final:
-        funds.append([])
+        funds.append(set())
         s[0] = s[0].split("for the Sub-Funds")[-1].strip()
         for sub in s:
-            funds[-1].extend(sub.split("and"))
+            funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
 
-    additional_a_subfunds = set([s for inv in funds for s in inv])
-    funds[0] = list(i_subfunds - a_subfunds - additional_a_subfunds)
+    additional_funds = set([f for inv in funds for f in inv])
+    funds[0] = i_funds - additional_funds
 
-    return [
+    res = [
         TextBlock(TipiBlocco.INV, {"funds": s}, i)
         for i, s in zip(inv, funds)
-        if any(normalize_string(x) in i_subfunds_n for x in s)
+        if not s.isdisjoint(i_funds)
     ]
+    res.extend(
+        [
+            TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+            for f in additional_funds
+        ]
+    )
+
+    return res
 
 
 def text_filter_manco(blocks, results):
-
-    subfunds = [i.subfund for i in results if isinstance(i, Investment)]
-    subfunds.extend(
-        [s for a in results if isinstance(a, AssetsManager) for s in a.managed_funds]
-    )
-    subfunds = set(subfunds)
+    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
 
     return [
-        TextBlock(TipiBlocco.MAN, {"funds": list(subfunds)}, b)
+        TextBlock(TipiBlocco.MAN, {"funds": filter_funds}, b)
         for b in blocks
         if b.type_block == TipiBlocco.MAN
     ]
 
 
 def deserialize_inv_managers(text_block):
-    return InvestmentsManager(
-        name=text_block.content, managed_funds=text_block.metadata["funds"]
-    )
+    if text_block.type_block == TipiBlocco.INV:
+        return InvestmentsManager(
+            name=text_block.content,
+            managed_funds=set((f.name for f in text_block.metadata["funds"])),
+        )
 
 
 def deserialize_manco(text_block):
     return ManagementCompany(
-        name=text_block.content, managed_funds=text_block.metadata["funds"]
+        name=text_block.content,
+        managed_funds=set((f.name for f in text_block.metadata["funds"])),
     )
 
 
+deserialize_fund = DeserializerFundStandard()
 pipelines = {
     "manco": Pipeline(
         pdf_extract=pdf_extract_manco,
@@ -211,16 +224,16 @@ pipelines = {
     "inv_managers_begin": Pipeline(
         pdf_extract=pdf_extract_inv_managers_begin,
         text_filter=text_filter_inv_managers_begin,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
     "inv_managers": Pipeline(
         pdf_extract=pdf_extract_inv_managers,
         text_filter=text_filter_inv_managers,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
     "inv_managers_end": Pipeline(
         pdf_extract=pdf_extract_inv_managers_end,
         text_filter=text_filter_inv_managers,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
 }

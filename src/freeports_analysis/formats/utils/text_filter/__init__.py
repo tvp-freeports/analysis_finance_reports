@@ -7,7 +7,7 @@ This module provides functionality for:
 - Supporting different matching methods (exact, fuzzy, prefix-based)
 
 Key components:
-- Decorators for text block type definition (one_txt_blk, EquityBondTextBlockType)
+- Decorators for text block type definition (one_txt_blk, ResultStandardExtraction)
 - Standard text extraction functionality through standard_text_filterion decorator
 """
 
@@ -24,6 +24,7 @@ from freeports_analysis.formats import (
     ExpectedTextBlockNotFound,
     LineParseFail,
 )
+from freeports_analysis.formats.utils.pdf_extract import ResultStandardExtraction
 from freeports_analysis.consts import Currency
 
 
@@ -34,7 +35,7 @@ class OneTextBlockType(Enum):
     RELEVANT_BLOCK = auto()
 
 
-class EquityBondTextBlockType(Enum):
+class ResultStandardFiltering(Enum):
     """Enum representing two type of text blocks in document processing.
 
     Attributes
@@ -47,6 +48,8 @@ class EquityBondTextBlockType(Enum):
 
     BOND_TARGET = auto()
     EQUITY_TARGET = auto()
+    FUND = auto()
+    CURRENCY = auto()
 
 
 class PdfBlocksTable:
@@ -546,7 +549,6 @@ class TextFilterInvestmentsStandard:
 
             try:
                 metadata["manco"] = pdf_blocks_table[i].metadata.get("manco")
-                metadata["subfund"] = pdf_blocks_table[i].metadata["subfund"]
             except AttributeError as e:
                 logger.error(e)
                 debug_msg = ""
@@ -614,17 +616,17 @@ class TextFilterInvestmentsStandard:
                 )
 
             content = pdf_blocks_table[i].content.replace("\n", "")
-            instrument = EquityBondTextBlockType.EQUITY_TARGET
+            instrument = ResultStandardFiltering.EQUITY_TARGET
             for reg in perc_regexes:
                 interest_rate_match = re.match(reg, content, re.DOTALL)
                 if interest_rate_match:
-                    instrument = EquityBondTextBlockType.BOND_TARGET
+                    instrument = ResultStandardFiltering.BOND_TARGET
                     metadata["interest rate"] = interest_rate_match[1]
                     break
             for reg in date_regexes:
                 date_match = re.match(reg, content, re.DOTALL)
                 if date_match:
-                    instrument = EquityBondTextBlockType.BOND_TARGET
+                    instrument = ResultStandardFiltering.BOND_TARGET
                     metadata["maturity"] = date_match[1]
                     break
             # metadata.update(add_metadata(pdf_blocks_table, i))
@@ -633,4 +635,23 @@ class TextFilterInvestmentsStandard:
         self.__txt_filter = text_filter
 
     def __call__(self, pdf_blks, filter_data):
-        return self.__txt_filter(pdf_blks, filter_data)
+        investments_blks = []
+        fund_found = False
+        results = []
+        for b in pdf_blks:
+            if b.type_block == ResultStandardExtraction.FUND_NAME:
+                if fund_found:
+                    raise Exception("Fund two subfunds in same page")
+                fund_found = True
+                results.append(TextBlock(ResultStandardFiltering.FUND, {}, b))
+
+            elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
+                pass
+            else:
+                investments_blks.append(b)
+        inv = self.__txt_filter(investments_blks, filter_data)
+        results.extend(inv)
+        if len(inv) > 0:
+            return results
+        else:
+            return []

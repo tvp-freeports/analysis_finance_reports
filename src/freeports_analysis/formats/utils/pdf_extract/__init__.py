@@ -50,6 +50,48 @@ Functions that process XML elements and return lists of relevant PDF blocks.
 logger = logging.getLogger(__name__)
 
 
+class SelectExpectedText:
+    selection: PdfLineSelection
+    name: str
+
+    def __init__(self, selection, name="expected text"):
+        self.selection = selection
+        self.name = name
+
+    def __call__(self, lines):
+        try:
+            return self.selection.select(lines)[0].text
+        except IndexError as exc:
+            logger.error(exc)
+            logger.debug("First lines where:")
+            logger.debug(
+                "%s",
+                str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
+            )
+            raise ExpectedPdfBlockNot
+
+
+class ResultStandardExtraction(Enum):
+    FUND_NAME = auto()
+    CURRENCY_STATEMENT = auto()
+    TABLE_BODY = auto()
+
+
+class PdfExtractFundStandard:
+    extractor: SelectExpectedText
+
+    def __init__(self, selection: PdfLineSelection):
+        self.extractor = SelectExpectedText(selection, "fund")
+
+    def __call__(self, dict_root):
+        lines = pdflines_from_pagedict(dict_root)
+        try:
+            fund_name = self.extractor(lines)
+        except ExpectedPdfBlockNotFound as e:
+            raise PageParseFail(e) from e
+        return [PdfBlock(ResultStandardExtraction.FUND_NAME, {}, fund_name)]
+
+
 class PdfExtractPageClassifyStandard:
     header_sets: Set[PdfLineSelection]
     page_type: str
@@ -74,7 +116,6 @@ class PdfExtractPageClassifyStandard:
 
 
 class PdfExtractInvestmentsStandard:
-    subfund_set: PdfLineSelection
     body_set: PdfLineSelection
     currency_set: PdfLineSelection | Currency | str
     manco_set: Optional[PdfLineSelection]
@@ -87,9 +128,9 @@ class PdfExtractInvestmentsStandard:
 
     def __init__(
         self,
-        subfund_set,
         body_set,
         currency_set,
+        subfund_set,
         manco_set=None,
         deselection_list=[],
         algorithm_flags=TablePosAlgorithm(0),
@@ -98,7 +139,6 @@ class PdfExtractInvestmentsStandard:
         row_tolerance=0.0,
         company_index=None,
     ):
-        self.subfund_filter = StandardPageMetadataFilter(subfund_set, "Subfund")
         self.manco_filter = StandardPageMetadataFilter(manco_set, "Management company")
         self.currency_filter = StandardPageMetadataFilter(currency_set, "Currency")
         for dl in deselection_list:
@@ -123,7 +163,6 @@ class PdfExtractInvestmentsStandard:
                 metadata["currency"] = self.currency_filter.selection
             if metadata["currency"] is None:
                 metadata["currency"] = self.currency_filter(lines)
-            metadata["subfund"] = self.subfund_filter(lines)
             if self.manco_filter.selection is not None:
                 metadata["manco"] = self.manco_filter(lines)
         except ExpectedPdfBlockNotFound as e:
@@ -180,7 +219,7 @@ class PdfExtractInvestmentsStandard:
         is_max_width = [width == max_width for width in table_cell_widths]
         return [
             PdfBlock(
-                OnePdfBlockType.RELEVANT_BLOCK,
+                ResultStandardExtraction.TABLE_BODY,
                 {
                     **metadata,
                     "table-row": table_row_positions[i],

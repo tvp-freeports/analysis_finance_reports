@@ -251,9 +251,13 @@ class Algorithm:
                 LOG_CONTEXTUAL_INFOS.page = page_n
                 list_res = []
                 try:
-                    list_res = self.bundles_mapping[pages_type](
-                        page, compiled_target_companies
-                    )
+                    list_res = [
+                        r
+                        for r in self.bundles_mapping[pages_type](
+                            page, compiled_target_companies
+                        )
+                        if r is not None
+                    ]
                 except PageParseFail as e:
                     logger_source.error(e)
                     logger.warning(_("Skipping page..."))
@@ -261,13 +265,18 @@ class Algorithm:
                 res[page_n] = list_res
                 LOG_CONTEXTUAL_INFOS.page = None
         filter_data = [n for n in new_filter_data]
+
         for i in range(1, len(self.schedule)):
             for pages_type, pages in pages_scheduled[i].items():
                 for page_n, page in pages.items():
                     LOG_CONTEXTUAL_INFOS.page = page_n
                     list_res = []
                     try:
-                        list_res = self.bundles_mapping[pages_type](page, filter_data)
+                        list_res = [
+                            r
+                            for r in self.bundles_mapping[pages_type](page, filter_data)
+                            if r is not None
+                        ]
                     except PageParseFail as e:
                         logger_source.error(e)
                         logger.warning(_("Skipping page..."))
@@ -275,6 +284,7 @@ class Algorithm:
                     res[page_n] = list_res
                     LOG_CONTEXTUAL_INFOS.page = None
             filter_data.extend([n for n in new_filter_data])
+
         return res
 
     def classify_pages(self, pages):

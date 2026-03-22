@@ -13,7 +13,7 @@ import gzip
 import shutil
 import os
 from pathlib import Path
-from typing import Optional, Annotated, Union, Dict, Any, List, Tuple
+from typing import Optional, Annotated, Union, Dict, Any, List, Tuple, Set
 import yaml
 from pydantic import (
     BaseModel,
@@ -31,6 +31,7 @@ from freeports_analysis.conf_parse import (
     OutFlagsBatchMode,
     OutFlagsNormalMode,
 )
+from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.data import COMPANIES
 from freeports_analysis.consts import Promise, Currency, PromisesResolutionMap
 from freeports_analysis.i18n import _
@@ -46,16 +47,20 @@ from .files_schema import (
 class PageResults:
     investments: List[Equity | Bond]
     assets_managers: List[ManagementCompany | InvestmentsManager]
+    funds: List[Fund]
 
     def __init__(self):
         self.investments = []
         self.assets_managers = []
+        self.funds = []
 
     def fulfill_promises(self, promises_resolution_map):
         for i in self.investments:
             i.fulfill_promises(promises_resolution_map)
         for a in self.assets_managers:
             a.fulfill_promises(promises_resolution_map)
+        for f in self.funds:
+            f.fulfill_promises(promises_resolution_map)
 
 
 class PageIndexable:
@@ -85,6 +90,10 @@ class DocumentResults:
     @property
     def assets_managers():
         return PageIndexable(list(map(lambda x: x.assets_managers), self.results))
+
+    @property
+    def funds():
+        return PageIndexable(list(map(lambda x: x.funds), self.results))
 
     def __getitem__(self, page_n):
         return self.results[page_n - 1]
@@ -182,8 +191,6 @@ class Investment(BaseModel, ABC):
         Validated company name from predefined list
     company_match : str
         Original company name as matched in the source document
-    subfund : PromisedSubfund
-        Subfund identifier, may be a Promise for deferred resolution
     nominal_quantity : Optional[PositiveFloat]
         Number of units/shares held
     market_value : PromisedMarketValue
@@ -211,7 +218,6 @@ class Investment(BaseModel, ABC):
     )
     company: Company
     company_match: str
-    subfund: PromisedSubfund
     manco: Optional[str] = None
     nominal_quantity: Optional[PositiveFloat] = None
     market_value: PromisedMarketValue
@@ -229,8 +235,6 @@ class Investment(BaseModel, ABC):
             Formatted multi-line string with investment details
         """
         string = f"{self.__class__.__name__}:\n"
-        translated_field = _("Subfund")
-        string += f"\t{translated_field}:\t{self.subfund}\n"
         translated_field = _("Company")
         string += f"\t{translated_field}:\t{self.company_match}\t[{self.company}]\n"
         translated_field = _("Currency")
@@ -350,7 +354,7 @@ class AssetsManager(BaseModel, ABC):
         arbitrary_types_allowed=True,
     )
     name: str
-    managed_funds: List[str]
+    managed_funds: Set[str]
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.name}")'
@@ -384,6 +388,52 @@ class ManagementCompany(AssetsManager):
 
 class InvestmentsManager(AssetsManager):
     """Rappresent the InvestmentsManager"""
+
+
+class Fund(BaseModel):
+    name: str
+    _n_name: str
+
+    def __str__(self):
+        return self._n_name
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if isinstance(self.name, Promise):
+            self._n_name = self.name
+        else:
+            self._n_name = normalize_string(self.name)
+
+    def __hash__(self):
+        return hash(self._n_name)
+
+    def __eq__(self, other):
+        return isinstance(self, other.__class__) and hash(self) == hash(other)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}("{self.name}")'
+
+    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
+        """Resolve all promise objects in this financial data instance.
+
+        Processes each attribute that may contain a Promise object, resolving it
+        using the provided mapping and performing validation where required.
+
+        Parameters
+        ----------
+        mapping : PromisesResolutionMap
+            Dictionary containing values to resolve promises from.
+
+        Notes
+        -----
+        For attributes that require validation (perc_net_assets, company),
+        the resolved values will be validated before assignment. This method
+        iterates through all model attributes and resolves any Promise objects
+        found, updating the instance in place.
+        """
+        for k, v in self.model_dump().items():
+            if isinstance(v, Promise):
+                setattr(self, k, v.fulfill_with(mapping))
 
 
 def transform_to_files_schema(
@@ -425,8 +475,22 @@ def transform_to_files_schema(
     _id_assets_managers = 1
     new_funds = {}
     asset_managers_names = set()
+
     for document_results in results:
         for page_n, page_results in enumerate(document_results, start=1):
+            page_fund_id = None
+            for f in page_results.funds:
+                if f not in new_funds:
+                    d = f.model_dump(mode="json")
+                    d["ID"] = _id_funds
+                    d["Managment company ID"] = None
+                    if batch_mode:
+                        d["Format"] = document_results.algorithm
+                        d["Document"] = document_results.prefix_out
+                    d["Report page"] = page_n
+                    new_funds[f] = d
+                    _id_funds += 1
+                page_fund_id = new_funds[f]["ID"]
             for i in page_results.investments:
                 d = i.model_dump(mode="json")
                 if batch_mode:
@@ -435,15 +499,7 @@ def transform_to_files_schema(
                 d["Financial instrument"] = i.__class__.__name__.upper()
                 d["Report page"] = page_n
                 d["ID"] = _id_investments
-                s = d["subfund"]
-                if s not in new_funds:
-                    new_funds[s] = {
-                        "ID": _id_funds,
-                        "Managment company ID": None,
-                        "Name": s,
-                    }
-                    _id_funds += 1
-                d["Fund ID"] = new_funds[s]["ID"]
+                d["Fund ID"] = page_fund_id
 
                 if isinstance(i, Bond):
                     infos = ["maturity", "interest_rate"]
@@ -453,23 +509,19 @@ def transform_to_files_schema(
                     d = {k: v for k, v in d.items() if k not in infos}
                 investments.append(d)
                 _id_investments += 1
+        for page_n, page_results in enumerate(document_results, start=1):
             for a in page_results.assets_managers:
                 d = a.model_dump(mode="json")
                 for s in d["managed_funds"]:
-                    if s not in new_funds:
-                        new_funds[s] = {
-                            "ID": _id_funds,
-                            "Managment company ID": None,
-                            "Name": s,
-                        }
-                        _id_funds += 1
                     if isinstance(a, ManagementCompany):
-                        new_funds[s]["Managment company ID"] = _id_assets_managers
+                        new_funds[Fund(name=s)]["Managment company ID"] = (
+                            _id_assets_managers
+                        )
                     if isinstance(a, InvestmentsManager):
                         asset_managers_to_funds.append(
                             {
                                 "Investment manager ID": _id_assets_managers,
-                                "Fund ID": new_funds[s]["ID"],
+                                "Fund ID": new_funds[Fund(name=s)]["ID"],
                             }
                         )
                 if batch_mode:
@@ -491,7 +543,6 @@ def transform_to_files_schema(
                 "company",
                 "company_match",
                 "Fund ID",
-                "subfund",
                 "manco",
                 "nominal_quantity",
                 "market_value",
@@ -519,7 +570,6 @@ def transform_to_files_schema(
     )
 
     df_investments.set_index("ID", inplace=True)
-    df_investments.drop(columns=["subfund"], inplace=True)
     df_investments.rename(
         columns={
             "company": "Company",
@@ -537,6 +587,7 @@ def transform_to_files_schema(
     df_assets_managers.set_index("ID", inplace=True)
     df_assets_managers.drop(columns="managed_funds", inplace=True)
     df_assets_managers.rename(columns={"name": "Name"}, inplace=True)
+    df_funds.rename(columns={"name": "Name"}, inplace=True)
     df_funds.set_index(["ID", "Managment company ID"], inplace=True)
     df_investments_managers.set_index(
         ["Investment manager ID", "Fund ID"], inplace=True

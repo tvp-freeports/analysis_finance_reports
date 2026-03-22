@@ -58,10 +58,8 @@ def add_format_name(df: pd.DataFrame) -> pd.DataFrame:
     """Extract format name from ID (removes pipeline and index suffix)."""
 
     df = df.assign(
-        format_name=lambda x: (
-            x["ID"].str.replace(
-                rf"({pipeline_regexp})?({index_regexp})?$", "", regex=True
-            )
+        format_name=lambda x: x["ID"].str.replace(
+            rf"({pipeline_regexp})?({index_regexp})?$", "", regex=True
         )
     )
 
@@ -273,7 +271,7 @@ class DeserializeSegment(PipelineSegement):
     """Deserialize"""
 
     def __call__(self, txt_blks):
-        return [pipe(blk) for blk in txt_blks for pipe in self]
+        return [pipe(blk) for pipe in self for blk in txt_blks]
 
 
 class Pipeline:

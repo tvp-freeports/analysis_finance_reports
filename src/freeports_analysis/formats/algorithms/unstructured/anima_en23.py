@@ -10,7 +10,7 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
 )
 from freeports_analysis.formats.utils.text_filter import (
-    EquityBondTextBlockType,
+    ResultStandardFiltering,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
@@ -24,7 +24,7 @@ logger = log.getLogger(__name__)
 
 
 PdfBlockType: TypeAlias = OnePdfBlockType
-TextBlockType: TypeAlias = EquityBondTextBlockType
+TextBlockType: TypeAlias = ResultStandardFiltering
 
 
 options = {

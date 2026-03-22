@@ -6,10 +6,10 @@ from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency, Promise
-from freeports_analysis.output import Equity, Bond
+from freeports_analysis.output import Equity, Bond, Fund
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
-from .text_filter import EquityBondTextBlockType
+from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
 from . import normalize_word, normalize_string
 
 logger = getLogger(__name__)
@@ -287,6 +287,12 @@ class DeserializerPageClassifyStandard:
         return txt_blk.metadata["page_type"]
 
 
+class DeserializerFundStandard:
+    def __call__(self, txt_blk):
+        if txt_blk.type_block == ResultStandardFiltering.FUND:
+            return Fund(name=txt_blk.content)
+
+
 class DeserializerInvestmentStandard:
     cost_and_value_interpret_int: bool = True
     quantity_interpret_float: bool = False
@@ -314,6 +320,11 @@ class DeserializerInvestmentStandard:
         -------
             Finantial data deserialized from text block
         """
+        if (
+            txt_blk.type_block != ResultStandardFiltering.BOND_TARGET
+            and txt_blk.type_block != ResultStandardFiltering.EQUITY_TARGET
+        ):
+            return None
         md = txt_blk.metadata
         LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
         LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
@@ -351,9 +362,6 @@ class DeserializerInvestmentStandard:
             args = {
                 "company": to_str(md["company"]),
                 "company_match": to_str(md["company match"]),
-                "subfund": to_str(md["subfund"]).upper()
-                if not isinstance(md["subfund"], Promise)
-                else md["subfund"],
                 "manco": to_str(md["manco"]) if md.get("manco") else None,
                 "market_value": float_cast(md["market value"]),
                 "currency": to_currency(md["currency"]),
@@ -364,11 +372,11 @@ class DeserializerInvestmentStandard:
                     md, "acquisition currency", to_currency
                 ),
             }
-            if txt_blk.type_block == EquityBondTextBlockType.EQUITY_TARGET:
+            if txt_blk.type_block == ResultStandardFiltering.EQUITY_TARGET:
                 LOG_ADAPT_INVESTMENT_INFOS.company = None
                 LOG_ADAPT_INVESTMENT_INFOS.company_match = None
                 return Equity(**args)
-            if txt_blk.type_block == EquityBondTextBlockType.BOND_TARGET:
+            if txt_blk.type_block == ResultStandardFiltering.BOND_TARGET:
                 LOG_ADAPT_INVESTMENT_INFOS.company = None
                 LOG_ADAPT_INVESTMENT_INFOS.company_match = None
                 return Bond(
@@ -378,10 +386,7 @@ class DeserializerInvestmentStandard:
                     if "interest rate" in md
                     else None,
                 )
-            # tmp=default_other_txt_blk_deserializer(txt_blk)
-            # LOG_ADAPT_INVESTMENT_INFOS.company = None
-            # LOG_ADAPT_INVESTMENT_INFOS.company_match = None
-            # return tmp
+
         except ValueError as e:
             logger.error(_("Cast error"))
             LOG_ADAPT_INVESTMENT_INFOS.company = None
