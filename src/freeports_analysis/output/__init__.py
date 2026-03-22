@@ -483,13 +483,15 @@ def transform_to_files_schema(
                 if f not in new_funds:
                     d = f.model_dump(mode="json")
                     d["ID"] = _id_funds
-                    d["Managment company ID"] = None
-                    if batch_mode:
-                        d["Format"] = document_results.algorithm
-                        d["Document"] = document_results.prefix_out
-                    d["Report page"] = page_n
-                    new_funds[f] = d
                     _id_funds += 1
+                    new_funds[f] = d
+                if "Report page" not in new_funds[f]:
+                    if batch_mode:
+                        new_funds[f]["Format"] = document_results.algorithm
+                        new_funds[f]["Document"] = document_results.prefix_out
+                    new_funds[f]["Report page"] = page_n
+                if "Managment company ID" not in new_funds[f]:
+                    new_funds[f]["Managment company ID"] = None
                 page_fund_id = new_funds[f]["ID"]
             for i in page_results.investments:
                 d = i.model_dump(mode="json")
@@ -509,19 +511,22 @@ def transform_to_files_schema(
                     d = {k: v for k, v in d.items() if k not in infos}
                 investments.append(d)
                 _id_investments += 1
-        for page_n, page_results in enumerate(document_results, start=1):
             for a in page_results.assets_managers:
                 d = a.model_dump(mode="json")
                 for s in d["managed_funds"]:
+                    f = Fund(name=s)
+                    if f not in new_funds:
+                        df = f.model_dump(mode="json")
+                        df["ID"] = _id_funds
+                        _id_funds += 1
+                        new_funds[f] = df
                     if isinstance(a, ManagementCompany):
-                        new_funds[Fund(name=s)]["Managment company ID"] = (
-                            _id_assets_managers
-                        )
+                        new_funds[f]["Managment company ID"] = _id_assets_managers
                     if isinstance(a, InvestmentsManager):
                         asset_managers_to_funds.append(
                             {
                                 "Investment manager ID": _id_assets_managers,
-                                "Fund ID": new_funds[Fund(name=s)]["ID"],
+                                "Fund ID": new_funds[f]["ID"],
                             }
                         )
                 if batch_mode:
