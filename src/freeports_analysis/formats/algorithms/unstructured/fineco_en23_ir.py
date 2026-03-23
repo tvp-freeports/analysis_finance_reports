@@ -1,6 +1,9 @@
 """Custom pdf filter for FINECO-EN23[IR] format"""
 
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractFundStandard,
+)
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
@@ -9,6 +12,8 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
 )
 from freeports_analysis.formats.utils.text_filter.match import normalize_string
+from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.output import (
@@ -16,6 +21,7 @@ from freeports_analysis.output import (
     InvestmentsManager,
     Investment,
     AssetsManager,
+    Fund,
 )
 from enum import Enum, auto
 
@@ -110,28 +116,33 @@ def pdf_filter_inv_man(page):
 
 
 def text_extract_manco(blks, filter_data):
-    i_subfunds = set([i.subfund for i in filter_data if isinstance(i, Investment)])
-    a_subfunds = set(
-        [
-            s
-            for a in filter_data
-            if isinstance(a, InvestmentsManager)
-            for s in a.managed_funds
-        ]
+    inv_funds = set(
+        Fund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, Investment), filter_data)
+    )
+    a_funds = set(
+        Fund(name=n)
+        for inv in filter(lambda x: isinstance(x, InvestmentsManager), filter_data)
+        for n in inv.managed_funds
     )
     return [
         TextBlock.from_content(
-            BlockType.MANCO, {"funds": i_subfunds.union(a_subfunds)}, blks[0].content
+            BlockType.MANCO,
+            {"funds": set(f.name for f in inv_funds.union(a_funds))},
+            blks[0].content,
         ),
         TextBlock.from_content(
-            BlockType.INV_MAN, {"funds": i_subfunds - a_subfunds}, blks[0].content
+            BlockType.INV_MAN,
+            {"funds": set(f.name for f in (inv_funds - a_funds))},
+            blks[0].content,
         ),
     ]
 
 
 def text_extract_inv_man(blks, filter_data):
-    subfunds = set(
-        [normalize_string(i.subfund) for i in filter_data if isinstance(i, Investment)]
+    filter_funds = set(
+        Fund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, Investment), filter_data)
     )
     funds = [b.content for b in blks if b.metadata["table-col"] == 0]
     inv_man = [b.content for b in blks if b.metadata["table-col"] == 2]
@@ -141,31 +152,41 @@ def text_extract_inv_man(blks, filter_data):
             inv_managers[i] = [f]
         else:
             inv_managers[i].append(f)
-    return [
-        TextBlock.from_content(BlockType.INV_MAN, {"funds": funds}, i)
-        for i, funds in inv_managers.items()
-    ]
+    res = []
+    for i, ifunds in inv_managers.items():
+        obj_ifunds = set(Fund(name=f) for f in ifunds)
+        if not obj_ifunds.isdisjoint(filter_funds):
+            res.append(TextBlock.from_content(BlockType.INV_MAN, {"funds": ifunds}, i))
+            for f in obj_ifunds - filter_funds:
+                res.append(
+                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                )
+    return res
 
 
 def deserialize_manco(blk):
     if blk.type_block == BlockType.INV_MAN:
         return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
-    else:
+    elif blk.type_block == BlockType.MANCO:
         return ManagementCompany(name=blk.content, managed_funds=blk.metadata["funds"])
 
 
 def deserialize_inv_man(blk):
-    return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
+    if blk.type_block == BlockType.INV_MAN:
+        return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
 
 
 pipelines = {
     "investments": Pipeline(
-        pdf_extract=PdfExtractInvestmentsStandard(
-            subfund_set=subfund_set, currency_set=currency_set, body_set=body_set
+        pdf_extract=(
+            PdfExtractInvestmentsStandard(currency_set=currency_set, body_set=body_set),
+            PdfExtractFundStandard(selection=subfund_set),
         )
     ),
     "inv_managers_table": Pipeline(
-        pdf_filter_inv_man, text_extract_inv_man, deserialize_inv_man
+        pdf_filter_inv_man,
+        text_extract_inv_man,
+        (deserialize_inv_man, DeserializerFundStandard()),
     ),
     "manco": Pipeline(pdf_filter_manco, text_extract_manco, deserialize_manco),
 }
