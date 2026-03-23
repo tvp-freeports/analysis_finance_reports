@@ -362,6 +362,7 @@ class DeserializerInvestmentStandard:
             args = {
                 "company": to_str(md["company"]),
                 "company_match": to_str(md["company match"]),
+                "fund": md["fund"],
                 "manco": to_str(md["manco"]) if md.get("manco") else None,
                 "market_value": float_cast(md["market value"]),
                 "currency": to_currency(md["currency"]),

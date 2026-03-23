@@ -130,7 +130,6 @@ class PdfExtractInvestmentsStandard:
         self,
         body_set,
         currency_set,
-        subfund_set,
         manco_set=None,
         deselection_list=[],
         algorithm_flags=TablePosAlgorithm(0),

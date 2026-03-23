@@ -121,7 +121,9 @@ def pdf_extract_manco(page):
 
 
 def text_filter_inv_managers(blocks, results):
-    inv_funds = set(filter(lambda x: isinstance(x, Fund), results))
+    inv_funds = set(
+        Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
+    )
 
     final = []
     inv = [b for b in blocks if b.type_block == TipiBlocco.INV]
@@ -142,18 +144,21 @@ def text_filter_inv_managers(blocks, results):
     for i, s in zip(inv, funds):
         if not s.isdisjoint(inv_funds):
             res.append(TextBlock(TipiBlocco.INV, {"funds": s}, i))
-            for f in s:
-                res.append(
-                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
-                )
+            res.extend(
+                [TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)]
+                for f in s
+                if f not in inv_funds
+            )
     return res
 
 
 def text_filter_inv_managers_begin(blocks, results):
-    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
+    filter_funds = set(
+        Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
+    )
     inv_managers = set(filter(lambda x: isinstance(x, InvestmentsManager), results))
     a_subfunds = set([f for inv in inv_managers for f in inv.funds])
-    i_funds = filter_funds - a_subfunds
+    residual_funds = filter_funds - a_subfunds
 
     final = []
     inv = [b for b in blocks if b.type_block == TipiBlocco.INV]
@@ -171,18 +176,20 @@ def text_filter_inv_managers_begin(blocks, results):
         for sub in s:
             funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
 
-    additional_funds = set([f for inv in funds for f in inv])
-    funds[0] = i_funds - additional_funds
+    additional_funds = set([f for im in funds for f in im])
+    funds[0] = residual_funds - additional_funds
 
     res = [
         TextBlock(TipiBlocco.INV, {"funds": s}, i)
         for i, s in zip(inv, funds)
-        if not s.isdisjoint(i_funds)
+        if not s.isdisjoint(filter_funds)
     ]
     res.extend(
         [
             TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
-            for f in additional_funds
+            for im in funds
+            for f in im
+            if f not in filter_funds
         ]
     )
 

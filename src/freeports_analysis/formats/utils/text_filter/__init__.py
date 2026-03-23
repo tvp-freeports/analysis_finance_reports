@@ -636,13 +636,13 @@ class TextFilterInvestmentsStandard:
 
     def __call__(self, pdf_blks, filter_data):
         investments_blks = []
-        fund_found = False
+        fund_found = None
         results = []
         for b in pdf_blks:
             if b.type_block == ResultStandardExtraction.FUND_NAME:
-                if fund_found:
+                if fund_found is not None:
                     raise Exception("Fund two subfunds in same page")
-                fund_found = True
+                fund_found = b.content
                 results.append(TextBlock(ResultStandardFiltering.FUND, {}, b))
 
             elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
@@ -650,6 +650,8 @@ class TextFilterInvestmentsStandard:
             else:
                 investments_blks.append(b)
         inv = self.__txt_filter(investments_blks, filter_data)
+        for i in inv:
+            i.metadata["fund"] = fund_found
         results.extend(inv)
         if len(inv) > 0:
             return results

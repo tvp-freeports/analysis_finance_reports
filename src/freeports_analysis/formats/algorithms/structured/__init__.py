@@ -10,7 +10,6 @@ from typing import Dict, List, Tuple, Any, Callable
 
 from . import investments as i
 from . import page_classify as p
-from . import fund as f
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 
@@ -36,11 +35,8 @@ def get_pipelines(
     """
     i_pipelines = i.get_pipelines(format_name)
     p_pipelines = p.get_pipelines(format_name)
-    f_pipelines = f.get_pipelines(format_name)
-    all_keys = set(i_pipelines) | set(p_pipelines) | set(f_pipelines)
+    all_keys = set(i_pipelines) | set(p_pipelines)
     return {
-        key: i_pipelines.get(key, Pipeline())
-        + p_pipelines.get(key, Pipeline())
-        + f_pipelines.get(key, Pipeline())
+        key: i_pipelines.get(key, Pipeline()) + p_pipelines.get(key, Pipeline())
         for key in all_keys
     }

@@ -9,6 +9,8 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
+from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TableConfig,
     ColumnConfig,
@@ -20,6 +22,7 @@ from freeports_analysis.output import (
     InvestmentsManager,
     Investment,
     AssetsManager,
+    Fund,
 )
 from enum import Enum, auto
 
@@ -77,14 +80,14 @@ def pdf_extract_body(body, type_block=TipiBlocco.INV):
 
 def pdf_extract_inv_managers_begin(page):
     lines = pdflines_from_pagedict(page)
-    t = PdfLineSelection.text("^INVESTMENT ").select(lines)[0].bbox[1]
+    t = PdfLineSelection.text("^INVESTMENT ").select(lines)[0].bbox[1] - 8.0
     manco_selection = PdfLineSelection.area(l, 70.0, r, t) / deselection
     b = 705.0
     body_selection = PdfLineSelection.area(l, t, r, b) / deselection
     body = body_selection.select(lines)
     manco = manco_selection.select(lines)
     res = pdf_extract_body(manco, TipiBlocco.MAN)
-    res.extend(pdf_extract_body(body))
+    res.extend(pdf_extract_body(body, TipiBlocco.INV))
     return res
 
 
@@ -103,10 +106,10 @@ def pdf_extract_inv_managers_end(page):
     b = PdfLineSelection.text("^BANCA ").select(lines)[0].bbox[1]
     body_selection = PdfLineSelection.area(l, t, r, b) / deselection
     body = body_selection.select(lines)
-    return pdf_extract_body(body)
+    return pdf_extract_body(body, TipiBlocco.INV)
 
 
-def text_filter_inv_managers_with_subfunds(blocks, investments_subfunds):
+def text_filter_inv_managers_with_subfunds(blocks, subfunds):
     inv_line = True
     invs = {}
     invs_blks = {}
@@ -125,53 +128,67 @@ def text_filter_inv_managers_with_subfunds(blocks, investments_subfunds):
             current_fund = r.replace("(", "")
             fund_line = True
             if r.endswith(")"):
-                invs[current_inv] = [
-                    s.strip() for s in current_fund.replace(")", "").split(",")
-                ]
+                invs[current_inv] = set(
+                    (
+                        Fund(name=s.strip())
+                        for s in current_fund.replace(")", "").split(",")
+                    )
+                )
                 fund_line = False
 
         else:
             if fund_line:
                 current_fund += " " + r
                 if r.endswith(")"):
-                    invs[current_inv] = [
-                        s.strip() for s in current_fund.replace(")", "").split(",")
-                    ]
+                    invs[current_inv] = set(
+                        (
+                            Fund(name=s.strip())
+                            for s in current_fund.replace(")", "").split(",")
+                        )
+                    )
                     fund_line = False
+    res = []
+    for i, s in invs.items():
+        if not s.isdisjoint(subfunds):
+            res.append(
+                TextBlock.from_content(
+                    TipiBlocco.INV, {"funds": set([f.name for f in s])}, i
+                )
+            )
+            res.extend(
+                [
+                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                    for f in s
+                    if f not in subfunds
+                ]
+            )
+    return res
 
-    return [
-        TextBlock(TipiBlocco.INV, {"funds": funds}, invs_blks[i])
-        for i, funds in invs.items()
-        if any(normalize_string(f) in investments_subfunds for f in funds)
-    ]
 
-
-def text_filter_inv_managers(blocks, investments):
-    subfunds = set([normalize_string(i.subfund) for i in investments])
-    return text_filter_inv_managers_with_subfunds(blocks, subfunds)
+def text_filter_inv_managers(blocks, results):
+    funds = set(filter(lambda x: isinstance(x, Fund), results))
+    return text_filter_inv_managers_with_subfunds(blocks, funds)
 
 
 def text_filter_inv_managers_begin(blocks, results):
-    i_subfunds = set([i.subfund for i in results if isinstance(i, Investment)])
-    investments = [i for i in results if isinstance(i, Investment)]
-    i_subfunds_n = [normalize_string(s) for s in i_subfunds]
-    a_subfunds = set(
-        [s for a in results if isinstance(a, AssetsManager) for s in a.managed_funds]
-    )
+    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
+    inv_managers = list(filter(lambda x: isinstance(x, InvestmentsManager), results))
+    a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
+    residual_funds = filter_funds - a_subfunds
 
     inv_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.INV]
     manco_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.MAN]
 
-    res_inv = text_filter_inv_managers_with_subfunds(inv_blocks, i_subfunds)
-    res_manco = text_filter_inv_managers_with_subfunds(manco_blocks, i_subfunds)
-    additional_a_subfunds = set([s for inv in res_inv for s in inv.metadata["funds"]])
+    res_inv = text_filter_inv_managers_with_subfunds(inv_blocks, filter_funds)
+    res_manco = text_filter_inv_managers_with_subfunds(manco_blocks, filter_funds)
+    additional_a_subfunds = set(
+        [Fund(name=s) for inv in res_inv for s in inv.metadata["funds"]]
+    )
     additional_manco_subfunds = set(
-        [s for inv in res_manco for s in inv.metadata["funds"]]
+        [Fund(name=s) for inv in res_manco for s in inv.metadata["funds"]]
     )
 
-    funds_manco = list(
-        i_subfunds - a_subfunds - additional_a_subfunds - additional_manco_subfunds
-    )
+    funds_manco = residual_funds - additional_a_subfunds - additional_manco_subfunds
 
     res = res_inv
     res.extend(res_manco)
@@ -179,21 +196,23 @@ def text_filter_inv_managers_begin(blocks, results):
     res.append(
         TextBlock(
             TipiBlocco.INV,
-            {
-                "funds": list(
-                    i_subfunds
-                    - a_subfunds
-                    - additional_a_subfunds
-                    - additional_manco_subfunds
-                )
-            },
+            {"funds": set([f.name for f in funds_manco])},
             manco_blocks[0],
         )
     )
     res.append(
         TextBlock(
             TipiBlocco.MAN,
-            {"funds": list(i_subfunds.union(additional_a_subfunds).union(a_subfunds))},
+            {
+                "funds": set(
+                    (
+                        f.name
+                        for f in filter_funds.union(additional_a_subfunds).union(
+                            additional_manco_subfunds
+                        )
+                    )
+                )
+            },
             manco_blocks[0],
         )
     )
@@ -205,26 +224,27 @@ def deserialize_inv_managers(text_block):
         return InvestmentsManager(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
         )
-    else:
+    elif text_block.type_block == TipiBlocco.MAN:
         return ManagementCompany(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
         )
 
 
+deserialize_fund = DeserializerFundStandard()
 pipelines = {
     "inv_managers_begin": Pipeline(
         pdf_extract=pdf_extract_inv_managers_begin,
         text_filter=text_filter_inv_managers_begin,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
     "inv_managers": Pipeline(
         pdf_extract=pdf_extract_inv_managers,
         text_filter=text_filter_inv_managers,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
     "inv_managers_end": Pipeline(
         pdf_extract=pdf_extract_inv_managers_end,
         text_filter=text_filter_inv_managers,
-        deserialize=deserialize_inv_managers,
+        deserialize=(deserialize_inv_managers, deserialize_fund),
     ),
 }

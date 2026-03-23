@@ -10,9 +10,15 @@ from typing import Dict, List, Tuple, Any, Callable
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import LINE_SET_REGEXP
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractFundStandard,
+)
 from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
-from freeports_analysis.formats.utils.deserialize import DeserializerInvestmentStandard
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerInvestmentStandard,
+    DeserializerFundStandard,
+)
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
 )
@@ -305,7 +311,6 @@ def get_pipelines(
             pipelines[pipeline_name] = Pipeline()
         if pd.isna(arg["pdf_extract"]) or arg["pdf_extract"]:
             pdf_extract_args = {
-                "subfund_set": pdfline_selection_from_str(arg["Subfund set"]),
                 "body_set": pdfline_selection_from_str(arg["Body set"]),
                 "currency_set": pdfline_selection_from_str(arg["Currency set"]),
             }
@@ -320,8 +325,12 @@ def get_pipelines(
             pdf_extract_args = _set_if_not_na(
                 pdf_extract_args, "tolerance", arg, "Tolerance"
             )
-            pdf_extract = PdfExtractInvestmentsStandard(**pdf_extract_args)
-            pipelines[pipeline_name].add_pdf_extract(pdf_extract)
+            pdf_extract_investments = PdfExtractInvestmentsStandard(**pdf_extract_args)
+            pdf_extract_fund = PdfExtractFundStandard(
+                selection=pdfline_selection_from_str(arg["Subfund set"])
+            )
+            pipelines[pipeline_name].add_pdf_extract(pdf_extract_investments)
+            pipelines[pipeline_name].add_pdf_extract(pdf_extract_fund)
 
         if pd.isna(arg["text_filter"]) or arg["text_filter"]:
             text_filter_args = {"market_value_pos": arg["Market value"]}
@@ -362,6 +371,8 @@ def get_pipelines(
                 arg,
                 "Interpret cost and value as int",
             )
-            deserialize = DeserializerInvestmentStandard(**deserialize_args)
-            pipelines[pipeline_name].add_deserialize(deserialize)
+            deserialize_investment = DeserializerInvestmentStandard(**deserialize_args)
+            deserialize_fund = DeserializerFundStandard()
+            pipelines[pipeline_name].add_deserialize(deserialize_investment)
+            pipelines[pipeline_name].add_deserialize(deserialize_fund)
     return pipelines

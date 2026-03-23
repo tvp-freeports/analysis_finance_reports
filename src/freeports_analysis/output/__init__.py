@@ -218,6 +218,7 @@ class Investment(BaseModel, ABC):
     )
     company: Company
     company_match: str
+    fund: str
     manco: Optional[str] = None
     nominal_quantity: Optional[PositiveFloat] = None
     market_value: PromisedMarketValue
@@ -478,7 +479,6 @@ def transform_to_files_schema(
 
     for document_results in results:
         for page_n, page_results in enumerate(document_results, start=1):
-            page_fund_id = None
             for f in page_results.funds:
                 if f not in new_funds:
                     d = f.model_dump(mode="json")
@@ -492,16 +492,21 @@ def transform_to_files_schema(
                     new_funds[f]["Report page"] = page_n
                 if "Managment company ID" not in new_funds[f]:
                     new_funds[f]["Managment company ID"] = None
-                page_fund_id = new_funds[f]["ID"]
             for i in page_results.investments:
                 d = i.model_dump(mode="json")
+                f = Fund(name=d["fund"])
+                if f not in new_funds:
+                    df = f.model_dump(mode="json")
+                    df["ID"] = _id_funds
+                    _id_funds += 1
+                    new_funds[f] = df
                 if batch_mode:
                     d["Format"] = document_results.algorithm
                     d["Document"] = document_results.prefix_out
                 d["Financial instrument"] = i.__class__.__name__.upper()
                 d["Report page"] = page_n
                 d["ID"] = _id_investments
-                d["Fund ID"] = page_fund_id
+                d["Fund ID"] = new_funds[f]["ID"]
 
                 if isinstance(i, Bond):
                     infos = ["maturity", "interest_rate"]
@@ -546,6 +551,7 @@ def transform_to_files_schema(
             columns=[
                 "ID",
                 "company",
+                "fund",
                 "company_match",
                 "Fund ID",
                 "manco",
@@ -575,6 +581,7 @@ def transform_to_files_schema(
     )
 
     df_investments.set_index("ID", inplace=True)
+    df_investments.drop(columns="fund", inplace=True)
     df_investments.rename(
         columns={
             "company": "Company",
