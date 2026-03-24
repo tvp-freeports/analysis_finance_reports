@@ -70,7 +70,7 @@ class SelectExpectedText:
             )
             raise ExpectedPdfBlockNotFound(
                 f'Pdf block during extraction of "{self.name}" not found'
-            )
+            ) from exc
 
 
 class ResultStandardExtraction(Enum):
