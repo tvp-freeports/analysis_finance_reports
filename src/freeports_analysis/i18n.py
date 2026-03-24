@@ -32,6 +32,10 @@ elif os.name == "nt":
 if LOC is None:
     LOC = "en_US.UFT-8"
 lang = LOC.split("_")[0]
+if not lang or lang == "C":
+    lang = "en"
+# lang = "en"
+print(lang)
 TRANSLATION = None
 with tempfile.TemporaryDirectory() as tmp_dir:
     for f in (files("freeports_analysis.locales") / lang / "LC_MESSAGES").iterdir():
