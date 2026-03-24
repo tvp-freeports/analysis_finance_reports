@@ -92,6 +92,21 @@ class PdfExtractFundStandard:
         return [PdfBlock(ResultStandardExtraction.FUND_NAME, {}, fund_name)]
 
 
+class PdfExtractCurrencyStandard:
+    extractor: SelectExpectedText
+
+    def __init__(self, selection: PdfLineSelection):
+        self.extractor = SelectExpectedText(selection, "currency")
+
+    def __call__(self, dict_root):
+        lines = pdflines_from_pagedict(dict_root)
+        try:
+            fund_name = self.extractor(lines)
+        except ExpectedPdfBlockNotFound as e:
+            raise PageParseFail(e) from e
+        return [PdfBlock(ResultStandardExtraction.CURRENCY_STATEMENT, {}, fund_name)]
+
+
 class PdfExtractPageClassifyStandard:
     header_sets: Set[PdfLineSelection]
     page_type: str

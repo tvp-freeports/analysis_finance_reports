@@ -121,8 +121,7 @@ def pdf_extract_manco(page):
 
 
 def text_filter_inv_managers(blocks, results):
-    for n in filter(lambda x: isinstance(x, Investment), results):
-        print(n)
+
     inv_funds = set(
         Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
     )

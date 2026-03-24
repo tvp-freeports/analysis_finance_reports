@@ -13,6 +13,7 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import LINE_SET_REGE
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractFundStandard,
+    PdfExtractCurrencyStandard,
 )
 from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
 from freeports_analysis.formats.utils.deserialize import (
@@ -329,8 +330,12 @@ def get_pipelines(
             pdf_extract_fund = PdfExtractFundStandard(
                 selection=pdfline_selection_from_str(arg["Subfund set"])
             )
+            pdf_extract_currency = PdfExtractCurrencyStandard(
+                selection=pdfline_selection_from_str(arg["Currency set"])
+            )
             pipelines[pipeline_name].add_pdf_extract(pdf_extract_investments)
             pipelines[pipeline_name].add_pdf_extract(pdf_extract_fund)
+            pipelines[pipeline_name].add_pdf_extract(pdf_extract_currency)
 
         if pd.isna(arg["text_filter"]) or arg["text_filter"]:
             text_filter_args = {"market_value_pos": arg["Market value"]}

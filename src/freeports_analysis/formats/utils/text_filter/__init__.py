@@ -49,7 +49,6 @@ class ResultStandardFiltering(Enum):
     BOND_TARGET = auto()
     EQUITY_TARGET = auto()
     FUND = auto()
-    CURRENCY = auto()
 
 
 class PdfBlocksTable:
@@ -441,6 +440,37 @@ class TextFilterPageClassifyStandard:
         ]
 
 
+def extract_currency_from_text(txt: str) -> Currency:
+    curr = txt
+    res = None
+    if isinstance(curr, Currency):
+        res = curr
+    else:
+        currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
+        found = False
+        for curr_cand in currency_candidates:
+            try:
+                res = Currency[curr_cand]
+                break
+            except KeyError:
+                pass
+        if not found:
+            curr = curr.upper()
+            for c in Currency.__members__:
+                currency_candidates = re.findall(r"\b" + c + r"\b", curr)
+                for curr_cand in currency_candidates:
+                    try:
+                        res = Currency[curr_cand]
+                        break
+                    except KeyError:
+                        pass
+        if res is None:
+            raise ExpectedTextBlockNotFound(
+                _('Currency not found in string: "%s"'), curr
+            )
+    return res
+
+
 class TextFilterInvestmentsStandard:
     market_value_pos: int
     nominal_quantity_pos: Optional[int]
@@ -576,35 +606,6 @@ class TextFilterInvestmentsStandard:
                 )
                 raise ExpectedTextBlockNotFound from e
 
-            curr = pdf_blocks_table[i].metadata["currency"]
-            if isinstance(curr, Currency):
-                metadata["currency"] = curr
-            else:
-                currency_candidates = re.findall(r"\b[A-Z]{3}\b", curr)
-                found = False
-                for curr_cand in currency_candidates:
-                    try:
-                        metadata["currency"] = Currency[curr_cand]
-                        found = True
-                        break
-                    except KeyError:
-                        pass
-                if not found:
-                    curr = curr.upper()
-                    for c in Currency.__members__:
-                        currency_candidates = re.findall(r"\b" + c + r"\b", curr)
-                        for curr_cand in currency_candidates:
-                            try:
-                                metadata["currency"] = Currency[curr_cand]
-                                found = True
-                                break
-                            except KeyError:
-                                pass
-                if not found:
-                    raise ExpectedTextBlockNotFound(
-                        _('Currency not found in string: "%s"'), curr
-                    )
-
             for pos, name in [
                 (self.perc_net_assets_pos, "% net assets"),
                 (self.nominal_quantity_pos, "quantity"),
@@ -637,6 +638,7 @@ class TextFilterInvestmentsStandard:
     def __call__(self, pdf_blks, filter_data):
         investments_blks = []
         fund_found = None
+        currency_found = None
         results = []
         for b in pdf_blks:
             if b.type_block == ResultStandardExtraction.FUND_NAME:
@@ -646,12 +648,15 @@ class TextFilterInvestmentsStandard:
                 results.append(TextBlock(ResultStandardFiltering.FUND, {}, b))
 
             elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
-                pass
+                if currency_found is not None:
+                    raise Exception("Fund two currency in same page")
+                currency_found = extract_currency_from_text(b.content)
             else:
                 investments_blks.append(b)
         inv = self.__txt_filter(investments_blks, filter_data)
         for i in inv:
             i.metadata["fund"] = fund_found
+            i.metadata["currency"] = currency_found
         results.extend(inv)
         if len(inv) > 0:
             return results
