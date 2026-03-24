@@ -37,6 +37,8 @@ MEDIOLANUM-IT24.A/1,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_begin
 MEDIOLANUM-IT24.A/1,"[9.477175] ""SOCIETÀ DI GESTIONE E""",inv_managers_begin
 MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
 MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/DEPOSITARIO""",inv_managers_end
+MEDIOLANUM-IT24.A/3,"(:70) ""STATO PATRIMONIALE""",fund_assets
+MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",
@@ -47,8 +49,8 @@ FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Notes to the Financial Statements
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Sub-Fund""",inv_managers_table
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Investment Manager""",inv_managers_table
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Date of Commencement""",inv_managers_table
-FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""","manco"
-FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""","manco"
+FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""",manco
+FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""",manco
 FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,
 KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",
 UBS-EN23,"Frutiger45LightBold ""Description """,

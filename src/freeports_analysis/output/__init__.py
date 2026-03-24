@@ -22,6 +22,7 @@ from pydantic import (
     confloat,
     AfterValidator,
     ConfigDict,
+    model_validator,
 )
 from pydantic.types import Strict
 import pandas as pd
@@ -38,6 +39,7 @@ from freeports_analysis.i18n import _
 from .files_schema import (
     investments_schema,
     assets_managers_schema,
+    funds_assets_schema,
     funds_schema,
     investments_managers_schema,
     BondAdditionalInfos,
@@ -48,11 +50,13 @@ class PageResults:
     investments: List[Equity | Bond]
     assets_managers: List[ManagementCompany | InvestmentsManager]
     funds: List[Fund]
+    funds_assets: List[FundAssets]
 
     def __init__(self):
         self.investments = []
         self.assets_managers = []
         self.funds = []
+        self.funds_assets = []
 
     def fulfill_promises(self, promises_resolution_map):
         for i in self.investments:
@@ -61,6 +65,8 @@ class PageResults:
             a.fulfill_promises(promises_resolution_map)
         for f in self.funds:
             f.fulfill_promises(promises_resolution_map)
+        for fa in self.funds_assets:
+            fa.fulfill_promises(promises_resolution_map)
 
 
 class PageIndexable:
@@ -94,6 +100,10 @@ class DocumentResults:
     @property
     def funds():
         return PageIndexable(list(map(lambda x: x.funds), self.results))
+
+    @property
+    def funds_assets():
+        return PageIndexable(list(map(lambda x: x.funds_assets), self.results))
 
     def __getitem__(self, page_n):
         return self.results[page_n - 1]
@@ -437,6 +447,54 @@ class Fund(BaseModel):
                 setattr(self, k, v.fulfill_with(mapping))
 
 
+class FundAssets(BaseModel):
+    model_config = ConfigDict(
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+    )
+    fund: str
+    tot_assets: PositiveFloat
+    liabilities: PositiveFloat
+    net_assets: PositiveFloat
+    currency: PromisedCurrency
+
+    @model_validator(mode="after")
+    def validate_assets_equation(self) -> "FundAssets":
+        if (
+            abs(self.liabilities + self.net_assets - self.tot_assets) > 1e-4
+        ):  # Tolerance for float comparison
+            raise ValueError(
+                f"liabilities ({self.liabilities}) + net_assets ({self.net_assets}) "
+                f"must equal tot_assets ({self.tot_assets})"
+            )
+        return self
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}(fund="{self.fund}",tot_assets={self.tot_assets},liabilities={self.liabilities},net_assets={self.net_assets})'
+
+    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
+        """Resolve all promise objects in this financial data instance.
+
+        Processes each attribute that may contain a Promise object, resolving it
+        using the provided mapping and performing validation where required.
+
+        Parameters
+        ----------
+        mapping : PromisesResolutionMap
+            Dictionary containing values to resolve promises from.
+
+        Notes
+        -----
+        For attributes that require validation (perc_net_assets, company),
+        the resolved values will be validated before assignment. This method
+        iterates through all model attributes and resolves any Promise objects
+        found, updating the instance in place.
+        """
+        for k, v in self.model_dump().items():
+            if isinstance(v, Promise):
+                setattr(self, k, v.fulfill_with(mapping))
+
+
 def transform_to_files_schema(
     results: List[DocumentResults],
     batch_mode: bool,
@@ -470,6 +528,7 @@ def transform_to_files_schema(
     assets_managers: List[Dict[str, Any]] = []
     funds: List[Dict[str, Any]] = []
     asset_managers_to_funds: List[Dict[str, Any]] = []
+    funds_assets: List[Dict[str, Any]] = []
 
     _id_investments = 1
     _id_funds = 1
@@ -492,6 +551,20 @@ def transform_to_files_schema(
                     new_funds[f]["Report page"] = page_n
                 if "Managment company ID" not in new_funds[f]:
                     new_funds[f]["Managment company ID"] = None
+            for fa in page_results.funds_assets:
+                d = fa.model_dump(mode="json")
+                f = Fund(name=d["fund"])
+                if f not in new_funds:
+                    df = f.model_dump(mode="json")
+                    df["ID"] = _id_funds
+                    _id_funds += 1
+                    new_funds[f] = df
+                if batch_mode:
+                    d["Format"] = document_results.algorithm
+                    d["Document"] = document_results.prefix_out
+                d["Report page"] = page_n
+                d["Fund ID"] = new_funds[f]["ID"]
+                funds_assets.append(d)
             for i in page_results.investments:
                 d = i.model_dump(mode="json")
                 f = Fund(name=d["fund"])
@@ -561,6 +634,7 @@ def transform_to_files_schema(
                 "Currency",
                 "acquisition_cost",
                 "acquisition_currency",
+                "Report page",
             ]
         )
     )
@@ -569,15 +643,30 @@ def transform_to_files_schema(
         if len(asset_managers_to_funds)
         else pd.DataFrame(columns=["Investment manager ID", "Fund ID"])
     )
+    df_funds_assets = (
+        pd.DataFrame.from_dict(funds_assets)
+        if len(funds_assets) > 0
+        else pd.DataFrame(
+            columns=[
+                "Fund ID",
+                "fund",
+                "tot_assets",
+                "net_assets",
+                "liabilities",
+                "currency",
+                "Report page",
+            ]
+        )
+    )
     df_funds = (
         pd.DataFrame.from_dict(funds)
         if len(funds) > 0
-        else pd.DataFrame(columns=["ID", "Managment company ID", "Name"])
+        else pd.DataFrame(columns=["ID", "Managment company ID", "Name", "Report page"])
     )
     df_assets_managers = (
         pd.DataFrame.from_dict(assets_managers)
         if len(assets_managers) > 0
-        else pd.DataFrame(columns=["ID", "managed_funds", "name"])
+        else pd.DataFrame(columns=["ID", "managed_funds", "name", "Report page"])
     )
 
     df_investments.set_index("ID", inplace=True)
@@ -599,14 +688,29 @@ def transform_to_files_schema(
     df_assets_managers.set_index("ID", inplace=True)
     df_assets_managers.drop(columns="managed_funds", inplace=True)
     df_assets_managers.rename(columns={"name": "Name"}, inplace=True)
+
+    df_funds_assets.drop(columns="fund", inplace=True)
+    df_funds_assets.rename(
+        columns={
+            "tot_assets": "Total assets",
+            "net_assets": "Total net assets",
+            "liabilities": "Total liabilities",
+            "currency": "Currency",
+        },
+        inplace=True,
+    )
+    df_funds_assets.set_index(["Fund ID"], inplace=True)
+
     df_funds.rename(columns={"name": "Name"}, inplace=True)
     df_funds.set_index(["ID", "Managment company ID"], inplace=True)
+
     df_investments_managers.set_index(
         ["Investment manager ID", "Fund ID"], inplace=True
     )
 
     df_investments = investments_schema.validate(df_investments)
     df_assets_managers = assets_managers_schema.validate(df_assets_managers)
+    df_funds_assets = funds_assets_schema.validate(df_funds_assets)
     df_funds = funds_schema.validate(df_funds)
     df_investments_managers = investments_managers_schema.validate(
         df_investments_managers
@@ -615,6 +719,7 @@ def transform_to_files_schema(
         "investments": df_investments,
         "assets_managers": df_assets_managers,
         "funds": df_funds,
+        "funds_assets": df_funds_assets,
         "investments_managers": df_investments_managers,
         "additional_infos": add_infos,
     }
@@ -744,6 +849,7 @@ def write_files(
             data,
             {
                 "investments": "investments.csv",
+                "funds_assets": "funds_assets.csv",
                 "funds": "funds.csv",
                 "assets_managers": "assets_managers.csv",
                 "investments_managers": "investments_managers_to_funds.csv",

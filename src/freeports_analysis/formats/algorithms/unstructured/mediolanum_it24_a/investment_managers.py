@@ -37,18 +37,6 @@ r = 1e6
 table_cfg = TableConfig(ColumnConfig(limits=(l, r)))
 
 
-def compute_page_class(classification):
-    inv_managers = False
-    for i, val in enumerate(classification):
-        if inv_managers and val is None:
-            classification[i] = "inv_managers"
-        elif val == "inv_managers_begin":
-            inv_managers = True
-        elif val == "inv_managers_end":
-            inv_managers = False
-    return classification
-
-
 deselection = (
     PdfLineSelection.text("^1$")
     | PdfLineSelection.text("^2$")
@@ -78,7 +66,7 @@ def pdf_extract_body(body, type_block=TipiBlocco.INV):
     return [PdfBlock(type_block, {"row": r}, text) for r, text in enumerate(rows_text)]
 
 
-def pdf_extract_inv_managers_begin(page):
+def pdf_extract_begin_page(page):
     lines = pdflines_from_pagedict(page)
     t = PdfLineSelection.text("^INVESTMENT ").select(lines)[0].bbox[1] - 8.0
     manco_selection = PdfLineSelection.area(l, 70.0, r, t) / deselection
@@ -91,7 +79,7 @@ def pdf_extract_inv_managers_begin(page):
     return res
 
 
-def pdf_extract_inv_managers(page):
+def pdf_extract(page):
     lines = pdflines_from_pagedict(page)
     t = 70.0
     b = 705.0
@@ -100,7 +88,7 @@ def pdf_extract_inv_managers(page):
     return pdf_extract_body(body)
 
 
-def pdf_extract_inv_managers_end(page):
+def pdf_extract_end_page(page):
     lines = pdflines_from_pagedict(page)
     t = 70.0
     b = PdfLineSelection.text("^BANCA ").select(lines)[0].bbox[1]
@@ -109,7 +97,7 @@ def pdf_extract_inv_managers_end(page):
     return pdf_extract_body(body, TipiBlocco.INV)
 
 
-def text_filter_inv_managers_with_subfunds(blocks, subfunds):
+def text_filter_with_subfunds(blocks, subfunds):
     inv_line = True
     invs = {}
     invs_blks = {}
@@ -165,12 +153,12 @@ def text_filter_inv_managers_with_subfunds(blocks, subfunds):
     return res
 
 
-def text_filter_inv_managers(blocks, results):
+def text_filter(blocks, results):
     funds = set(filter(lambda x: isinstance(x, Fund), results))
-    return text_filter_inv_managers_with_subfunds(blocks, funds)
+    return text_filter_with_subfunds(blocks, funds)
 
 
-def text_filter_inv_managers_begin(blocks, results):
+def text_filter_begin_page(blocks, results):
     filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
     inv_managers = list(filter(lambda x: isinstance(x, InvestmentsManager), results))
     a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
@@ -179,8 +167,8 @@ def text_filter_inv_managers_begin(blocks, results):
     inv_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.INV]
     manco_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.MAN]
 
-    res_inv = text_filter_inv_managers_with_subfunds(inv_blocks, filter_funds)
-    res_manco = text_filter_inv_managers_with_subfunds(manco_blocks, filter_funds)
+    res_inv = text_filter_with_subfunds(inv_blocks, filter_funds)
+    res_manco = text_filter_with_subfunds(manco_blocks, filter_funds)
     additional_a_subfunds = set(
         [Fund(name=s) for inv in res_inv for s in inv.metadata["funds"]]
     )
@@ -219,7 +207,7 @@ def text_filter_inv_managers_begin(blocks, results):
     return res
 
 
-def deserialize_inv_managers(text_block):
+def deserialize(text_block):
     if text_block.type_block == TipiBlocco.INV:
         return InvestmentsManager(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
@@ -231,20 +219,3 @@ def deserialize_inv_managers(text_block):
 
 
 deserialize_fund = DeserializerFundStandard()
-pipelines = {
-    "inv_managers_begin": Pipeline(
-        pdf_extract=pdf_extract_inv_managers_begin,
-        text_filter=text_filter_inv_managers_begin,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-    "inv_managers": Pipeline(
-        pdf_extract=pdf_extract_inv_managers,
-        text_filter=text_filter_inv_managers,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-    "inv_managers_end": Pipeline(
-        pdf_extract=pdf_extract_inv_managers_end,
-        text_filter=text_filter_inv_managers,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-}

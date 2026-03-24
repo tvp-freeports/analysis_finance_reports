@@ -284,7 +284,6 @@ class Algorithm:
                     res[page_n] = list_res
                     LOG_CONTEXTUAL_INFOS.page = None
             filter_data.extend([n for n in new_filter_data])
-
         return res
 
     def classify_pages(self, pages):

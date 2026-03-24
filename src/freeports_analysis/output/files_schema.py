@@ -67,6 +67,31 @@ investments_schema = pa.DataFrameSchema(
     ),
 )
 
+
+funds_assets_schema = pa.DataFrameSchema(
+    {
+        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+        "Total assets": pa.Column(pd.Float32Dtype, checks=pa.Check.greater_than(0)),
+        "Total net assets": pa.Column(pd.Float32Dtype, checks=pa.Check.greater_than(0)),
+        "Total liabilities": pa.Column(
+            pd.Float32Dtype, checks=pa.Check.greater_than(0)
+        ),
+        "Currency": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin([e.value for e in Currency])
+        ),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
+        "Document": pa.Column(pd.StringDtype, required=False),
+    },
+    strict=True,
+    coerce=True,
+    index=pa.Index(
+        pd.Int32Dtype, checks=pa.Check.greater_than(0), name="Fund ID", unique=True
+    ),
+)
+
+
 funds_schema = pa.DataFrameSchema(
     {
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
