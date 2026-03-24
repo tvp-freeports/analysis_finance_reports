@@ -68,7 +68,9 @@ class SelectExpectedText:
                 "%s",
                 str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
             )
-            raise ExpectedPdfBlockNotFound(_(f"{self.name} not found")) from exc
+            raise ExpectedPdfBlockNotFound(
+                f'Pdf block during extraction of "{self.name}" not found'
+            ) from exc
 
 
 class ResultStandardExtraction(Enum):

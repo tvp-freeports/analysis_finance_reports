@@ -28,6 +28,7 @@ from freeports_analysis.output import (
     Equity,
     Bond,
     Fund,
+    FundAssets,
     AssetsManager,
     InvestmentsManager,
     DocumentResults,
@@ -265,6 +266,8 @@ def _main_job(
                 doc_results.results[-1].assets_managers.append(r)
             elif isinstance(r, Fund):
                 doc_results.results[-1].funds.append(r)
+            elif isinstance(r, FundAssets):
+                doc_results.results[-1].funds_assets.append(r)
             else:
                 raise Exception(f"Not recognized type of result {type(r)}")
 
