@@ -222,6 +222,7 @@ class Currency(Enum):
     AUD = "AUD"
     CAD = "CAD"
     CHF = "CHF"
+    CNH = "CNH"
     SEK = "SEK"
     NOK = "NOK"
     DKK = "DKK"
@@ -275,6 +276,7 @@ class Currency(Enum):
             "GBP": "£",
             "JPY": "¥",
             "CNY": "¥",
+            "CNH": "¥",
             "AUD": "$",
             "CAD": "$",
             "CHF": "CHF",

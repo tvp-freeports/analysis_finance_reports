@@ -23,6 +23,7 @@ from freeports_analysis.formats import (
     PdfBlock,
     ExpectedTextBlockNotFound,
     LineParseFail,
+    PageParseFail,
 )
 from freeports_analysis.formats.utils.pdf_extract import ResultStandardExtraction
 from freeports_analysis.consts import Currency
@@ -650,7 +651,10 @@ class TextFilterInvestmentsStandard:
             elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
                 if currency_found is not None:
                     raise Exception("Fund two currency in same page")
-                currency_found = extract_currency_from_text(b.content)
+                try:
+                    currency_found = extract_currency_from_text(b.content)
+                except ExpectedTextBlockNotFound as e:
+                    raise PageParseFail(e) from e
             else:
                 investments_blks.append(b)
         inv = self.__txt_filter(investments_blks, filter_data)

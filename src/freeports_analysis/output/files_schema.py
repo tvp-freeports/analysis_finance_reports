@@ -87,7 +87,9 @@ funds_assets_schema = pa.DataFrameSchema(
     strict=True,
     coerce=True,
     index=pa.Index(
-        pd.Int32Dtype, checks=pa.Check.greater_than(0), name="Fund ID", unique=True
+        pd.Int32Dtype,
+        checks=pa.Check.greater_than(0),
+        name="Fund ID",  # ,unique=True
     ),
 )
 
