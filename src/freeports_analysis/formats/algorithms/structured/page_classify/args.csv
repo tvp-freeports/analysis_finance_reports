@@ -51,6 +51,8 @@ FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Investment Manager""",inv_manager
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Date of Commencement""",inv_managers_table
 FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""",manco
 FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""",manco
+FINECO-EN23@IR/3,"timesnewromanbold [10.02] ""Statement of Financial Position""",fund_assets
+FINECO-EN23@IR/3,"timesnewromanbold [9] ""Total assets""",fund_assets
 FINECO-EN23@LUX,"ArialNarrow-Bold ""Nominal """,
 KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",
 UBS-EN23,"Frutiger45LightBold ""Description """,
