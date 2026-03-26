@@ -57,6 +57,8 @@ FINECO-EN23@IR/3,"timesnewromanbold [9] ""Total assets""",fund_assets
 FINECO-EN23@LUX/0,"ArialNarrow-Bold ""Nominal """,
 FINECO-EN23@LUX/1,"arialnarrow-bold [14] ""Organisation and Administration""",inv_managers
 FINECO-EN23@LUX/1,"arialnarrow-bold [11] ""Management Company and Global Distributor""",inv_managers
+FINECO-EN23@LUX/2,"arialnarrow-bold [14] (:100) ""Statement of Net Assets""",fund_assets
+FINECO-EN23@LUX/2,((400:)(150:750)),fund_assets
 KAIROS-EN23,"ArialNarrow-Bold[6] ""Nominal""",
 UBS-EN23,"Frutiger45LightBold ""Description """,
 MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",
