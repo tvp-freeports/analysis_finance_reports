@@ -628,6 +628,7 @@ def transform_to_files_schema(
                 "company_match",
                 "Fund ID",
                 "manco",
+                "Financial instrument",
                 "nominal_quantity",
                 "market_value",
                 "perc_net_assets",
