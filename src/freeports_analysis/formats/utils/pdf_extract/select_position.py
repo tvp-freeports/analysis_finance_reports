@@ -9,6 +9,8 @@ from freeports_analysis.consts import flag_from_string, input_flags
 Limits: TypeAlias = Tuple[float, float]
 NullableState: TypeAlias = bool
 
+PdfLine = freeports_lib.pdf_extract.select.PdfLine
+
 
 class CellGeometry:
     bounds: Tuple[float, float, float, float]
@@ -137,7 +139,7 @@ class TablePosMeasureUnit(Enum):
 
 
 def get_table_coordinates(
-    lines: List[ExtractedPdfLine],
+    lines: List[PdfLine],
     table_cfg=TableConfig(),
     algorithm_flags: TablePosAlgorithm = TablePosAlgorithm(0),
     collapse_alg=CollapseAlgorithm.GEOMETRY,
