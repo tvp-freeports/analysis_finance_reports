@@ -27,18 +27,6 @@ class TipiBlocco(Enum):
     SUB = auto()
 
 
-def compute_page_class(classification):
-    inv_managers = False
-    for i, val in enumerate(classification):
-        if inv_managers and val is None:
-            classification[i] = "inv_managers"
-        elif val == "inv_managers_begin":
-            inv_managers = True
-        elif val == "inv_managers_end":
-            inv_managers = False
-    return classification
-
-
 def pdf_extract_inv_managers_begin(page):
 
     lines = pdflines_from_pagedict(page)
@@ -223,25 +211,3 @@ def deserialize_manco(text_block):
 
 
 deserialize_fund = DeserializerFundStandard()
-pipelines = {
-    "manco": Pipeline(
-        pdf_extract=pdf_extract_manco,
-        text_filter=text_filter_manco,
-        deserialize=deserialize_manco,
-    ),
-    "inv_managers_begin": Pipeline(
-        pdf_extract=pdf_extract_inv_managers_begin,
-        text_filter=text_filter_inv_managers_begin,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-    "inv_managers": Pipeline(
-        pdf_extract=pdf_extract_inv_managers,
-        text_filter=text_filter_inv_managers,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-    "inv_managers_end": Pipeline(
-        pdf_extract=pdf_extract_inv_managers_end,
-        text_filter=text_filter_inv_managers,
-        deserialize=(deserialize_inv_managers, deserialize_fund),
-    ),
-}
