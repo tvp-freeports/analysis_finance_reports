@@ -239,43 +239,121 @@ class PipelineTest(Function):
         run_analysis(config)
 
         # Get actual results
-        actual_investments = self.parent.cache.csv.get_file(
+        org_actual_investments = self.parent.cache.csv.get_file(
             out_path / "investments.csv"
         )
-        actual_add_infos = self.parent.cache.yaml.get_file(
+        org_actual_add_infos = self.parent.cache.yaml.get_file(
             out_path / "investments_add_infos.yaml"
         )
-        actual_funds = self.parent.cache.csv.get_file(out_path / "funds.csv")
-        actual_funds_assets = self.parent.cache.csv.get_file(
+        org_actual_funds = self.parent.cache.csv.get_file(out_path / "funds.csv")
+        org_actual_funds_assets = self.parent.cache.csv.get_file(
             out_path / "funds_assets.csv"
         )
-        actual_assets_managers = self.parent.cache.csv.get_file(
+        org_actual_assets_managers = self.parent.cache.csv.get_file(
             out_path / "assets_managers.csv"
         )
-        actual_inv_to_funds = self.parent.cache.csv.get_file(
+        org_actual_inv_to_funds = self.parent.cache.csv.get_file(
             out_path / "investments_managers_to_funds.csv"
         )
-        actual_log = self.parent.cache.csv.get_file(out_path / ".log.csv")
+        org_actual_log = self.parent.cache.csv.get_file(out_path / ".log.csv")
+
+        actual_investments = org_actual_investments.join(
+            org_actual_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["ID", "Fund ID"])
+
+        actual_funds = org_actual_funds.join(
+            org_actual_assets_managers.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Asset manager name"}
+            ),
+            on="Managment company ID",
+        ).drop(columns=["ID", "Managment company ID"])
+
+        actual_funds_assets = org_actual_funds_assets.join(
+            org_actual_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["Fund ID"])
+
+        actual_inv_to_funds = (
+            org_actual_inv_to_funds.join(
+                org_actual_assets_managers.set_index("ID")[["Name"]].rename(
+                    columns={"Name": "Asset manager name"}
+                ),
+                on="Investment manager ID",
+            )
+            .join(
+                org_actual_funds.set_index("ID")[["Name"]].rename(
+                    columns={"Name": "Fund name"}
+                ),
+                on="Fund ID",
+            )
+            .drop(columns=["Fund ID", "Investment manager ID"])
+        )
+
+        actual_assets_managers = org_actual_assets_managers.drop(columns="ID")
 
         expected_dir = self.parent.path / "out"
 
-        expected_investments = self.parent.cache.csv.get_file(
+        org_expected_investments = self.parent.cache.csv.get_file(
             expected_dir / "investments.csv"
         )
-        expected_add_infos = self.parent.cache.yaml.get_file(
+        org_expected_add_infos = self.parent.cache.yaml.get_file(
             expected_dir / "investments_add_infos.yaml"
         )
-        expected_funds = self.parent.cache.csv.get_file(expected_dir / "funds.csv")
-        expected_funds_assets = self.parent.cache.csv.get_file(
+        org_expected_funds = self.parent.cache.csv.get_file(expected_dir / "funds.csv")
+        org_expected_funds_assets = self.parent.cache.csv.get_file(
             expected_dir / "funds_assets.csv"
         )
-        expected_assets_managers = self.parent.cache.csv.get_file(
+        org_expected_assets_managers = self.parent.cache.csv.get_file(
             expected_dir / "assets_managers.csv"
         )
-        expected_inv_to_funds = self.parent.cache.csv.get_file(
+        org_expected_inv_to_funds = self.parent.cache.csv.get_file(
             expected_dir / "investments_managers_to_funds.csv"
         )
-        expected_log = self.parent.cache.csv.get_file(expected_dir / ".log.csv")
+        org_expected_log = self.parent.cache.csv.get_file(expected_dir / ".log.csv")
+
+        expected_investments = org_expected_investments.join(
+            org_expected_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["ID", "Fund ID"])
+
+        expected_funds = org_expected_funds.join(
+            org_expected_assets_managers.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Asset manager name"}
+            ),
+            on="Managment company ID",
+        ).drop(columns=["ID", "Managment company ID"])
+
+        expected_funds_assets = org_expected_funds_assets.join(
+            org_expected_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["Fund ID"])
+
+        expected_inv_to_funds = (
+            org_expected_inv_to_funds.join(
+                org_expected_assets_managers.set_index("ID")[["Name"]].rename(
+                    columns={"Name": "Asset manager name"}
+                ),
+                on="Investment manager ID",
+            )
+            .join(
+                org_expected_funds.set_index("ID")[["Name"]].rename(
+                    columns={"Name": "Fund name"}
+                ),
+                on="Fund ID",
+            )
+            .drop(columns=["Fund ID", "Investment manager ID"])
+        )
+
+        expected_assets_managers = org_expected_assets_managers.drop(columns="ID")
 
         # Assertions
         pd.testing.assert_frame_equal(
@@ -288,7 +366,9 @@ class PipelineTest(Function):
             obj="investments.csv",
         )
         pd.testing.assert_frame_equal(
-            funds.sort_values(by=funds.columns.tolist()).reset_index(drop=True),
+            actual_funds.sort_values(by=actual_funds.columns.tolist()).reset_index(
+                drop=True
+            ),
             expected_funds.sort_values(by=expected_funds.columns.tolist()).reset_index(
                 drop=True
             ),
@@ -323,15 +403,17 @@ class PipelineTest(Function):
             obj="investments_managers_to_funds.csv",
         )
 
-        assert actual_dict == expected_dict, "investments_add_infos.yaml mismatch"
+        assert org_actual_add_infos == org_expected_add_infos, (
+            "investments_add_infos.yaml mismatch"
+        )
 
         pd.testing.assert_frame_equal(
-            actual_log.sort_values(by=actual_log.columns.tolist()).reset_index(
+            org_actual_log.sort_values(by=org_actual_log.columns.tolist()).reset_index(
                 drop=True
             ),
-            expected_log.sort_values(by=expected_log.columns.tolist()).reset_index(
-                drop=True
-            ),
+            org_expected_log.sort_values(
+                by=org_expected_log.columns.tolist()
+            ).reset_index(drop=True),
             obj=".log.csv",
         )
 
