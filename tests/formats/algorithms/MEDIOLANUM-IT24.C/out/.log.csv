@@ -1,4 +1,0 @@
-Page,Matched Company,Company,Field name,Row,Column,Message
-522,Blackrock,BlackRock Funding Inc,% net assets,,,Trying to cast to number but found '-' - forcing cast
-522,Blackrock,BlackRock Funding Inc,% net assets,,,"Error casting, found: - "
-522,Blackrock,BlackRock Funding Inc,% net assets,,,Skipping field

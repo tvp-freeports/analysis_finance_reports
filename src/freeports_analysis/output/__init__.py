@@ -283,6 +283,9 @@ class Investment(BaseModel, ABC):
         string += "\n"
         return string
 
+    def __hash__(self):
+        return hash(frozenset(self.model_dump(mode="json").items()))
+
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.
 

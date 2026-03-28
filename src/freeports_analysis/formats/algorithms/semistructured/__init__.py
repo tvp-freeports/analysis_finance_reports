@@ -199,7 +199,11 @@ def _get_segment(
         selected_func = getattr(p, mapping[segment_name])
         selected_input = getattr(p, mapping[input_segment])
         func = selected_func(selected_input(**arg))
-        segment[pipeline].append(func)
+        if callable(func):
+            segment[pipeline].append(func)
+        else:
+            for f in func:
+                segment[pipeline].append(f)
     return segment
 
 

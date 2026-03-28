@@ -10,7 +10,11 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     InputPdfLineSet,
     pdfline_selection_from_dict,
 )
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractCurrencyConstant,
+    PdfExtractFundStandard,
+)
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     InputTablePosAlgorithm,
     TablePosAlgorithm,
@@ -75,15 +79,21 @@ def standard_cost_curr(arg: InputStandardCostCurr) -> Callable[[Any], Any]:
     The function converts input line sets to internal representations and
     applies the standard PDF filtering algorithm with the specified parameters.
     """
-    return PdfExtractInvestmentsStandard(
-        deselection_list=[
-            pdfline_selection_from_dict(il.model_dump()) for il in arg.deselection_list
-        ],
-        subfund_set=pdfline_selection_from_dict(arg.subfund_set.model_dump()),
-        currency_set=arg.currency,
-        body_set=pdfline_selection_from_dict(arg.body_set.model_dump()),
-        algorithm_flags=arg.algorithm_flags,
-        tolerance=arg.tolerance,
-        row_algorithm_flags=arg.row_algorithm_flags,
-        row_tolerance=arg.row_tolerance,
+    return (
+        PdfExtractInvestmentsStandard(
+            deselection_list=[
+                pdfline_selection_from_dict(il.model_dump())
+                for il in arg.deselection_list
+            ],
+            body_set=pdfline_selection_from_dict(arg.body_set.model_dump()),
+            currency_set=arg.currency,
+            algorithm_flags=arg.algorithm_flags,
+            tolerance=arg.tolerance,
+            row_algorithm_flags=arg.row_algorithm_flags,
+            row_tolerance=arg.row_tolerance,
+        ),
+        PdfExtractFundStandard(
+            pdfline_selection_from_dict(arg.subfund_set.model_dump())
+        ),
+        PdfExtractCurrencyConstant(arg.currency),
     )
