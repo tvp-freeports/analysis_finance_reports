@@ -1,3 +1,5 @@
+from typing import Dict, List, Tuple, Callable
+
 from .commons import Pipeline
 from .semistructured import (
     get_pipelines as get_semistructured,

@@ -5,6 +5,8 @@ investment data extracted from PDF documents. It provides classes for representi
 financial instruments and functions for writing data in various output formats.
 """
 
+from __future__ import annotations
+
 from abc import ABC
 import datetime
 from enum import Enum, auto
@@ -631,6 +633,7 @@ def transform_to_files_schema(
                 "company_match",
                 "Fund ID",
                 "manco",
+                "Financial instrument",
                 "nominal_quantity",
                 "market_value",
                 "perc_net_assets",
