@@ -87,17 +87,15 @@ norecursedirs = [
     "out"
 ]
 markers = [
-    "path: if given __file__ as an argument rapresent the location of the test (it's usued by fixtures to set the content)",
     "integration_tests: mark test as an integration test (supposingly slow) to avoid running on each commit",
     "online_tests: mark test as an test that requires an internet conncetion to avoid running on each commit",
     "benchmarks: mark a test like a benchmark that record statistics about the execution time"
 ]
-filterwarnings = [
-    'ignore:builtin type .* has no __module__ attribute:DeprecationWarning'
-]
+
 python_files = ["test_*","test.py"]
 addopts = [
     "--import-mode=importlib",
+    "--benchmark-disable",
     "--benchmark-autosave",
     "--benchmark-min-time=0.2",
     "--benchmark-max-time=7",

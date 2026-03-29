@@ -39,6 +39,7 @@ from freeports_analysis.formats.algorithms.commons import (
 
 from ..commons import column_line_set
 
+
 data = Path(__file__).parent
 pipeline_default = data.name
 
@@ -191,7 +192,6 @@ def validate_partial_pipes(
     def validate_columns(args: pd.DataFrame) -> pd.Series:
         """Validate that disabled segments don't have associated configuration."""
         columns_not_empty = False
-        pd.set_option("future.no_silent_downcasting", True)
         pipe_present = args[segment].fillna(True, inplace=False)
         for col in columns:
             columns_not_empty = columns_not_empty | ~args[col].isna()

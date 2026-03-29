@@ -102,8 +102,8 @@ class FormatCache:
 
 
 class PdfExtractTest(Function):
-    def __init__(self, name, parent, page_num, page_type, format_name):
-        super().__init__(name=name, parent=parent, callobj=self.runtest)
+    def __init__(self, name, parent, page_num, page_type, format_name, **kwargs):
+        super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
@@ -132,8 +132,8 @@ class PdfExtractTest(Function):
 
 
 class TextFilterTest(Function):
-    def __init__(self, name, parent, page_num, page_type, format_name):
-        super().__init__(name=name, parent=parent, callobj=self.runtest)
+    def __init__(self, name, parent, page_num, page_type, format_name, **kwargs):
+        super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
@@ -173,8 +173,8 @@ class TextFilterTest(Function):
 
 
 class DeserializeTest(Function):
-    def __init__(self, name, parent, page_num, page_type, format_name):
-        super().__init__(name=name, parent=parent, callobj=self.runtest)
+    def __init__(self, name, parent, page_num, page_type, format_name, **kwargs):
+        super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
@@ -209,10 +209,10 @@ class DeserializeTest(Function):
 
 
 class PipelineTest(Function):
-    def __init__(self, name, parent, format_name):
-        super().__init__(name=name, parent=parent, callobj=self.runtest)
+    def __init__(self, name, parent, format_name, **kwargs):
+        super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
         self.format_name = format_name
-        self._request = fixtures.TopRequest(self)
+        self._request = fixtures.TopRequest(self, _ispytest=True)
 
     def runtest(self):
         # Run the full pipeline
@@ -419,8 +419,8 @@ class PipelineTest(Function):
 
 
 class FreeportsFormat(Directory):
-    def __init__(self, name, parent, format_name, path):
-        super().__init__(name=name, parent=parent, path=Path(path) / format_name)
+    def __init__(self, format_name, path, **kwargs):
+        super().__init__(path=Path(path) / format_name, **kwargs)
         self.format_name = format_name
         self.pdf_document = None
         self.cache = FormatCache()
@@ -525,7 +525,6 @@ class FreeportsFormat(Directory):
                         page_num=page,
                         page_type=page_type,
                         format_name=self.format_name,
-                        cache=cache,
                     )
 
                 if page in deserialize_enabled:
@@ -535,7 +534,6 @@ class FreeportsFormat(Directory):
                         page_num=page,
                         page_type=page_type,
                         format_name=self.format_name,
-                        cache=cache,
                     )
 
         if pipeline_enabled:
