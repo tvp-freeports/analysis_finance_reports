@@ -19,13 +19,6 @@ def overwrite_pkl_one_page(
     print_txt_blks=False,
     print_pdf_blks=False,
 ):
-    if filter_data is None:
-        targets = get_target_companies(["TEST"])
-        filter_data = (
-            freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
-                targets
-            )
-        )
     selected_dir = (
         Path("..")
         / "tests"
@@ -36,6 +29,17 @@ def overwrite_pkl_one_page(
         / "pages"
         / page_type
     )
+    if filter_data is None:
+        targets = get_target_companies(["TEST"])
+        filter_data = (
+            freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
+                targets
+            )
+        )
+    else:
+        with open(selected_dir / f"{n_page}-filter_data.pkl", "wb") as f:
+            dill.dump(blks, f)
+
     blks = get_pdf_blocks(fmt, document, page_type, n_page, only_computed=True)
     if print_pdf_blks:
         for blk in blks:
