@@ -137,6 +137,15 @@ class TextFilterTest(Function):
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
+        self.is_filter_data_global = (
+            self.parent.path / "pages" / self.page_type / "filter_data.pkl"
+        ).exists()
+        self.is_filter_data_specific = (
+            self.parent.path
+            / "pages"
+            / self.page_type
+            / f"{self.page_num}-filter_data.pkl"
+        ).exists()
 
     def runtest(self):
         algorithm = self.parent.cache.algorithm.load(self.format_name)
@@ -149,10 +158,25 @@ class TextFilterTest(Function):
             / f"{self.page_num}-pdf_blks.pkl"
         )
 
+        filter_data = None
+        if self.is_filter_data_specific:
+            filter_data = self.parent.cache.pkl.get_file(
+                self.parent.path
+                / "pages"
+                / self.page_type
+                / f"{self.page_num}-filter_data.pkl"
+            )
+        elif self.is_filter_data_global:
+            filter_data = self.parent.cache.pkl.get_file(
+                self.parent.path / "pages" / self.page_type / "filter_data.pkl"
+            )
+        else:
+            filter_data = test_companies
+
         pdf_blks = self.parent.cache.pkl.get_file(pdf_path)
 
         # Run test
-        result = algorithm.apply_text_filter(pdf_blks, test_companies, self.page_type)
+        result = algorithm.apply_text_filter(pdf_blks, filter_data, self.page_type)
 
         # Get expected text blocks
         expected_path = (
@@ -209,18 +233,24 @@ class DeserializeTest(Function):
 
 
 class PipelineTest(Function):
-    def __init__(self, name, parent, format_name, **kwargs):
+    def __init__(self, name, parent, format_name, document_variant, **kwargs):
         super().__init__(name=name, parent=parent, callobj=self.runtest, **kwargs)
         self.format_name = format_name
+        self.document_variant = document_variant
         self._request = fixtures.TopRequest(self, _ispytest=True)
 
     def runtest(self):
         # Run the full pipeline
         create_dir = self._request.getfixturevalue("tmp_path_factory")
+        tmp_dir = (
+            f"{self.format_name}" + ""
+            if self.document_variant is None
+            else f"__report_{self.document_variant}"
+        )
         config = {
             "PDF": self.parent.path / "report.pdf",
             "FORMAT": self.format_name,
-            "OUT_PATH": create_dir.mktemp(f"{self.format_name}", numbered=False),
+            "OUT_PATH": create_dir.mktemp(tmp_dir, numbered=False),
             "VERBOSITY": 2,
             "N_WORKERS": 1,
             "BATCH_FILE": None,
@@ -418,11 +448,11 @@ class PipelineTest(Function):
         )
 
 
-class FreeportsFormat(Directory):
-    def __init__(self, format_name, path, **kwargs):
-        super().__init__(path=Path(path) / format_name, **kwargs)
-        self.format_name = format_name
-        self.pdf_document = None
+class ReportVariant(Collector):
+    def __init__(self, name, document_variant, **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.document_variant = document_variant
+        self.format_name = self.parent.format_name
         self.cache = FormatCache()
 
     def get_document(self):
@@ -512,7 +542,7 @@ class FreeportsFormat(Directory):
                 if page in pdf_extract_enabled:
                     yield PdfExtractTest.from_parent(
                         parent=self,
-                        name=f"test_pdf_extract@{page_type}[{page}]",
+                        name=f"test_pdf_extract::[{page}]",
                         page_num=page,
                         page_type=page_type,
                         format_name=self.format_name,
@@ -521,7 +551,7 @@ class FreeportsFormat(Directory):
                 if page in text_filter_enabled:
                     yield TextFilterTest.from_parent(
                         parent=self,
-                        name=f"test_text_filter@{page_type}[{page}]",
+                        name=f"test_text_filter[{page}]",
                         page_num=page,
                         page_type=page_type,
                         format_name=self.format_name,
@@ -530,7 +560,7 @@ class FreeportsFormat(Directory):
                 if page in deserialize_enabled:
                     yield DeserializeTest.from_parent(
                         parent=self,
-                        name=f"test_deserialize@{page_type}[{page}]",
+                        name=f"test_deserialize[{page}]",
                         page_num=page,
                         page_type=page_type,
                         format_name=self.format_name,
@@ -538,10 +568,49 @@ class FreeportsFormat(Directory):
 
         if pipeline_enabled:
             test = PipelineTest.from_parent(
-                parent=self, name=f"test_pipeline", format_name=self.format_name
+                parent=self,
+                name=f"test_pipeline",
+                format_name=self.format_name,
+                document_variant=self.document_variant,
             )
             test.add_marker(pytest.mark.integration_tests)
             yield test
+
+
+class FreeportsFormat(Directory):
+    def __init__(self, format_name, **kwargs):
+        super().__init__(**kwargs)
+        self.format_name = format_name
+        self.cache = FormatCache()
+
+    def get_document(self):
+        return self.cache.doc.get_doc(self.path / "report.pdf", self.cache.pdf)
+
+    def get_page(self, page_n):
+        return self.cache.doc.get_page(self.path / "report.pdf", page_n, self.cache.pdf)
+
+    def collect(self):
+        directory = self.path
+        multiple_documents = True
+        documents = []
+        for document in os.listdir(directory):
+            if os.path.isdir(directory / document) and document not in ("pages", "out"):
+                documents.append(document)
+            else:
+                if os.path.isfile(directory / document) and document == "report.pdf":
+                    multiple_documents = False
+        if multiple_documents:
+            for document in documents:
+                yield ReportVariant.from_parent(
+                    parent=self,
+                    name=f"report[{document}]" if document is not None else None,
+                    path=self.path / document,
+                    document_variant=document,
+                )
+        else:
+            yield ReportVariant.from_parent(
+                parent=self, name="report", path=self.path, document_variant=None
+            )
 
 
 @pytest.hookimpl
@@ -555,7 +624,7 @@ def pytest_collect_directory(path, parent):
             parent=parent,
             name=f"FreeportsFormat[{dirname}]",
             format_name=dirname,
-            path=path.parent,  # Store parent path to access the format directory
+            path=path,
         )
 
     # Recurse into subdirectories
