@@ -126,7 +126,9 @@ class PipelinesBundle:
         return [r for p in self.pipelines for r in p.text_filter(pdf_blks, filter_data)]
 
     def apply_deserialize(self, text_blks):
-        return [r for p in self.pipelines for r in p.deserialize(text_blks)]
+        return [
+            r for p in self.pipelines for r in p.deserialize(text_blks) if r is not None
+        ]
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({len(self.pipelines)} pipelines)"

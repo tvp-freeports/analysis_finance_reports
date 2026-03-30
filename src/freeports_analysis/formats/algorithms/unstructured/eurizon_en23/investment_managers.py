@@ -117,7 +117,7 @@ def text_filter_inv_managers(blocks, results):
     final = []
     inv = [b for b in blocks if b.type_block == TipiBlocco.INV]
     sub = [b.content for b in blocks if b.type_block == TipiBlocco.SUB]
-    sub = "".join(sub)
+    sub = " ".join(sub)
     sub = sub.split(")")[:-1]
     for s in sub:
         final.append(
@@ -126,7 +126,12 @@ def text_filter_inv_managers(blocks, results):
     funds = []
     for s in final:
         funds.append(set())
-        s[0] = s[0].split("for the Sub-Funds")[-1].strip()
+        s[0] = (
+            s[0]
+            .replace("for the Sub-Funds", "for the Sub-Fund")
+            .split("for the Sub-Fund")[-1]
+            .strip()
+        )
         for sub in s:
             funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
     res = []
@@ -134,9 +139,11 @@ def text_filter_inv_managers(blocks, results):
         if not s.isdisjoint(inv_funds):
             res.append(TextBlock(TipiBlocco.INV, {"funds": s}, i))
             res.extend(
-                [TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)]
-                for f in s
-                if f not in inv_funds
+                [
+                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                    for f in s
+                    if f not in inv_funds
+                ]
             )
     return res
 

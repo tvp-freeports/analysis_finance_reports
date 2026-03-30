@@ -375,6 +375,9 @@ class AssetsManager(BaseModel, ABC):
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.name}")'
 
+    def __hash__(self):
+        return hash((self.name, frozenset(self.managed_funds)))
+
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.
 

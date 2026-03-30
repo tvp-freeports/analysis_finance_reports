@@ -244,6 +244,9 @@ class TextBlock:
         return isinstance(self, type(other)) and hash(self) == hash(other)
 
     def __hash__(self):
+        for k, v in self.metadata.items():
+            if isinstance(v, set):
+                self.metadata[k] = frozenset(v)
         return hash((self.type_block, frozenset(self.metadata.items()), self.content))
 
 
