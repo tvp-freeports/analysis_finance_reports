@@ -71,7 +71,9 @@ def text_extract(blks, filter_data):
     for i, ifunds in inv_managers.items():
         obj_ifunds = set(Fund(name=f) for f in ifunds)
         if not obj_ifunds.isdisjoint(filter_funds):
-            res.append(TextBlock.from_content(BlockType.INV_MAN, {"funds": ifunds}, i))
+            res.append(
+                TextBlock.from_content(BlockType.INV_MAN, {"funds": set(ifunds)}, i)
+            )
             for f in obj_ifunds - filter_funds:
                 res.append(
                     TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
