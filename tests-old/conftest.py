@@ -1,6 +1,28 @@
 from pathlib import Path
+import shutil
+from lxml import etree
+from freeports_analysis.data import get_target_companies, TARGET_LISTS
+from freeports_analysis.formats import PdfBlock, TextBlock
+from freeports_analysis.conf_parse import (
+    OutStructureNormalMode,
+    OutFlagsNormalMode,
+    FreeportsFileConfig,
+)
 
 root_dir = Path(__file__).parent
+out_dir = root_dir / "output/"
+
+
+try:
+    shutil.rmtree(out_dir)
+except FileNotFoundError:
+    pass
+out_dir.mkdir()
+
+import pytest
+
+pytest.register_assert_rewrite("tests.formats.algorithms")
+
 
 url_example_formats = {
     "AMUNDI-EN24": "https://www.amundi.com/dl/doc/annual-report/LU1883342377/ENG/ITA/20240630?inline",
@@ -11,4 +33,23 @@ url_example_formats = {
     "EURIZON-EN21": "https://www.fundsquare.net/download/dl?siteId=FSQ&v=8R3GVJJluMrT1vWzWKb2+2y6bAdM4PonP+u32Js1vq7RbUzoOUpWj9+xriJFNnBxAFS14hLTev85fvgpgbDFQEJJfw8puksMVK/oWiK71T9YU0KjYpAH3l1VIKUAV4rPjwPaPQ7DDY4yhqF+o4MlHw==",
     "MEDIOLANUM-IT24": "https://www.mediolanumgestionefondi.it/static-assets/documenti/file/it/2025/05/02//Relazione_di_gestione_annuale_al_%2030122024.pdf",
     "ARCA-IT24": "https://docs.arcafondi.it/docs/getdoc/documenti/RENDICONTO_ANNUALE_IT0005419103.pdf",
+}
+
+xml_parser = etree.XMLParser(recover=True)
+targets = get_target_companies(["TEST"])
+
+conf = {
+    "VERBOSITY": 2,
+    "N_WORKERS": 1,
+    "BATCH_FILE": None,
+    "OUT_PATH": None,
+    "SAVE_PDF": False,
+    "URL": None,
+    "PDF": None,
+    "FORMAT": None,
+    "CONFIG_FILE": FreeportsFileConfig.find_config(),
+    "PREFIX_OUT": None,
+    "TARGET_LISTS": ["TEST"],
+    "OUT_PROFILE": OutStructureNormalMode.REGULAR,
+    "OUT_FLAGS": OutFlagsNormalMode(0),
 }

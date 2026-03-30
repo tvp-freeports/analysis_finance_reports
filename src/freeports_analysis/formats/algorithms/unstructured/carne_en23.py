@@ -1,6 +1,10 @@
 """CANE-EN23 custom functions"""
 
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractCurrencyStandard,
+    PdfExtractFundStandard,
+)
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
     PdfLineSelection,
@@ -22,8 +26,10 @@ body_set = pdfline_selection_from_str("ArialMT[6.96](160:786)")
 
 pipelines = {
     "investments": Pipeline(
-        pdf_extract=PdfExtractInvestmentsStandard(
-            subfund_set=subfund_set, currency_set=currency_set, body_set=body_set
+        pdf_extract=(
+            PdfExtractInvestmentsStandard(currency_set=currency_set, body_set=body_set),
+            PdfExtractFundStandard(subfund_set),
+            PdfExtractCurrencyStandard(currency_set),
         )
     )
 }

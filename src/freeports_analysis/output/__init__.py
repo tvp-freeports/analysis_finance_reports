@@ -5,6 +5,8 @@ investment data extracted from PDF documents. It provides classes for representi
 financial instruments and functions for writing data in various output formats.
 """
 
+from __future__ import annotations
+
 from abc import ABC
 import datetime
 from enum import Enum, auto
@@ -282,6 +284,9 @@ class Investment(BaseModel, ABC):
             string += f"\t{translated_field}:\t{curr_name}"
         string += "\n"
         return string
+
+    def __hash__(self):
+        return hash(frozenset(self.model_dump(mode="json").items()))
 
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.

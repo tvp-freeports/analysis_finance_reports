@@ -45,7 +45,6 @@ alghoritms_schedule_schema = pa.DataFrameSchema(
 def get_alghoritms_schedule() -> pd.DataFrame:
     df = pd.read_csv(data / "alghoritms_schedule.csv")
     df = df.set_index(["Format name"])
-    pd.set_option("future.no_silent_downcasting", True)
     df["Filter next iteration"] = df["Filter next iteration"].fillna(False)
     return alghoritms_schedule_schema.validate(df)
 
@@ -127,7 +126,6 @@ def get_mapping_table():
     df = pd.read_csv(data / "mapping.csv")
     df = add_format_name(df)
     df = add_pipeline_name(df)
-    pd.set_option("future.no_silent_downcasting", True)
     df["Pipeline name"] = df["Pipeline name"].fillna("")
     df = df.set_index(["Format name", "Page type"])
     return mapping_schema.validate(df)

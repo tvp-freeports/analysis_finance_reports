@@ -1,2 +1,5 @@
-!data/**
-output/
+!/**/*.yaml
+!/**/*.csv
+!/**/*.pdf
+!/**/*.pkl
+/**/__pycache__

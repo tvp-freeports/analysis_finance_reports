@@ -94,6 +94,17 @@ class PdfExtractFundStandard:
         return [PdfBlock(ResultStandardExtraction.FUND_NAME, {}, fund_name)]
 
 
+class PdfExtractCurrencyConstant:
+    def __init__(self, currency: Currency):
+        self.currency = currency
+        self._blk = PdfBlock(
+            ResultStandardExtraction.CURRENCY_STATEMENT, {}, currency.name
+        )
+
+    def __call__(self, dict_root):
+        return [self._blk]
+
+
 class PdfExtractCurrencyStandard:
     extractor: SelectExpectedText
 
