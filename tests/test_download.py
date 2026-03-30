@@ -1,4 +1,4 @@
-from .conftest import out_dir, url_example_formats, root_dir
+from .conftest import url_example_formats, root_dir
 import pytest
 from freeports_analysis import download as dw
 from requests import ConnectionError
@@ -19,9 +19,9 @@ def test_download_pdf_200_OK_NO_SAVE():
 
 
 @pytest.mark.online_tests
-def test_download_pdf_200_OK_SAVE():
+def test_download_pdf_200_OK_SAVE(tmp_path):
     fmt = "ANIMA-EN23"
-    pdf_saved = out_dir / f"report-{fmt}.pdf"
+    pdf_saved = tmp_path / f"report-{fmt}.pdf"
     pdf = dw.download_pdf(url_example_formats[fmt], pdf_saved)
     pdf_reference = root_dir / "formats" / "algorithms" / fmt / "report.pdf"
     assert pdf.getvalue() == pdf_reference.read_bytes()
