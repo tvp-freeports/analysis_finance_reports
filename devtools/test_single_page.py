@@ -14,34 +14,41 @@ from freeports_analysis.formats.algorithms import Algorithm
 from freeports_analysis.formats import PdfBlock
 from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
 from collections.abc import Callable
+import os
+
+base_repo = Path(__file__).parent.parent
+
+tests_dir = base_repo / "tests"
+
+formats_tests = tests_dir / "formats" / "algorithms"
 
 
-def get_page_xml(file_name: str, page: int, offset: int = -1):
+def get_page_xml(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
     parser = etree.XMLParser(recover=True)
-    page_doc = pdf_file[page + offset]
+    page_doc = pdf_file[page - 1]
     xml_str = page_doc.get_text("xml")
     xml_tree = etree.fromstring(xml_str.encode(), parser=parser)
     return xml_tree
 
 
-def get_page_html(file_name: str, page: int, offset: int = 0):
+def get_page_html(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
-    page_doc = pdf_file[page + offset]
+    page_doc = pdf_file[page - 1]
     html_str = page_doc.get_text("html")
     return html_str
 
 
-def get_page_table(file_name: str, page: int, offset: int = 0):
+def get_page_table(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
-    page_doc = pdf_file[page + offset]
+    page_doc = pdf_file[page - 1]
     tabs = page_doc.find_tables()
     return tabs
 
 
-def get_page_dict(file_name: str, page: int, offset: int = 0):
+def get_page_dict(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
-    page_doc = pdf_file[page + offset]
+    page_doc = pdf_file[page - 1]
     page = page_doc.get_text("dict")
     return page
 
@@ -49,96 +56,14 @@ def get_page_dict(file_name: str, page: int, offset: int = 0):
 get_page = get_page_dict
 
 
-# def print_blocks(xml_tree: etree.Element, max_deeph: int = 0) -> None:
-#     """Print the content of a page until a certain depth
-
-#     Parameters
-#     ----------
-#     xml_tree : etree.Element
-#         page to be analized
-#     max_deeph : int, optional
-#         depth of the printed xml_tree:
-#         0: page margins and parameters
-#         1: blocks boxes coordinates
-#         2: line boxes coordinates and text
-#         3: text parameters (font, size)
-#         4: characters coordinates and parameters
-#         by default 0
-#     """
-#     etree_to_print = copy.deepcopy(xml_tree)
-
-#     def _remove_tree_to_depth(elem: etree.Element, depth: int = 0, max_depth: int = 0):
-#         for e in list(elem):
-#             if depth >= max_depth:
-#                 elem.remove(e)
-#             else:
-#                 _remove_tree_to_depth(e, depth + 1, max_depth)
-
-#     _remove_tree_to_depth(etree_to_print, depth=0, max_depth=max_deeph)
-#     xml_string = etree.tostring(etree_to_print, pretty_print=True).decode()
-#     lines = xml_string.split("\n")
-#     indented_lines = []
-#     indent_level = 0
-#     for line in lines:
-#         stripped = line.strip()
-#         if not stripped:
-#             continue
-#         if stripped.startswith("</"):
-#             indent_level -= 1
-#         indented_lines.append("|  " * indent_level + stripped)
-#         if (
-#             stripped.startswith("<")
-#             and not stripped.startswith("</")
-#             and not stripped.endswith("/>")
-#         ):
-#             indent_level += 1
-#     print("\n".join(indented_lines))
-#     del etree_to_print
-
-
-# what is the pipeline index?
-# def select_function(
-#     fmt: str, index_segment: int, pipeline_name: str = "", index: int = 0
-# ) -> Callable:
-#     """select an already written function to filter/extract/deserialize a specific format document
-
-#     Parameters
-#     ----------
-#     fmt : str
-#         the pdf format needed
-#     index_segment : int
-#         the function needed:
-#         1: pdf_extract
-#         2: text extract
-#         3: deserialize
-#     pipeline_name : str, optional
-#         the pipeline needed (if present), by default ""
-#     index : int, optional
-#         pipeline index, by default 0
-
-#     Returns
-#     -------
-#     function
-#         the selected function
-#     """
-#     pipeline = get_pipelines(fmt, allow_partial_pipelines=True)[pipeline_name]
-#     func = pipeline[index_segment][index]
-#     return func
-
-
-def get_pdf_from_tests(fmt, document=None):
-    _file = (
-        Path("../tests/formats/algorithms/")
-        / fmt
-        / ("" if document is None else f"{document}")
-        / "report.pdf"
-    )
+def get_pdf_from_tests(fmt, document=None, base_path=formats_tests):
+    _file = base_path / fmt / ("" if document is None else str(document)) / "report.pdf"
     pdf_file = pypdf.Document(_file)
     return pdf_file
 
 
-def get_doc_from_tests(fmt, document=None):
-    pdf = get_pdf_from_tests(fmt, document)
+def get_doc_from_tests(fmt, document=None, base_path=formats_tests):
+    pdf = get_pdf_from_tests(fmt, document, base_path=base_path)
     return [page.get_text("dict") for page in pdf]
 
 
@@ -406,24 +331,28 @@ def print_pdf_blks_table_ASCII(
 
 
 def get_pdf_blocks(
-    fmt, document, page_type, n_page, page=None, algorithm=None, only_computed=False
+    fmt,
+    document,
+    page_type,
+    n_page,
+    base_path=formats_tests,
+    page=None,
+    algorithm=None,
+    only_computed=False,
 ):
     if algorithm is None:
         algorithm = Algorithm.load(fmt)
     if page is None:
-        page = get_doc_from_tests(fmt, document)[n_page - 1]
+        page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
     pdf_blks = algorithm.apply_pdf_extract(page, page_type)
     if only_computed:
         return pdf_blks
     else:
         reference_pdf_blks = None
         with (
-            Path("..")
-            / "tests"
-            / "formats"
-            / "algorithms"
+            base_path
             / fmt
-            / ("" if document is None else f"{document}")
+            / ("" if document is None else str(document))
             / "pages"
             / page_type
             / f"{n_page}-pdf_blks.pkl"
@@ -438,6 +367,7 @@ def get_text_blocks(
     page_type,
     n_page,
     filter_data,
+    base_path=formats_tests,
     pdf_blks=None,
     algorithm=None,
     only_computed=False,
@@ -448,12 +378,9 @@ def get_text_blocks(
 
     if pdf_blks is None:
         with (
-            Path("..")
-            / "tests"
-            / "formats"
-            / "algorithms"
+            base_path
             / fmt
-            / ("" if document is None else f"{document}")
+            / ("" if document is None else str(document))
             / "pages"
             / page_type
             / f"{n_page}-pdf_blks.pkl"
@@ -464,12 +391,9 @@ def get_text_blocks(
         return txt_blks
     else:
         with (
-            Path("..")
-            / "tests"
-            / "formats"
-            / "algorithms"
+            base_path
             / fmt
-            / ("" if document is None else f"{document}")
+            / ("" if document is None else str(document))
             / "pages"
             / page_type
             / f"{n_page}-txt_blks.pkl"
@@ -479,18 +403,22 @@ def get_text_blocks(
 
 
 def get_results(
-    fmt, document, page_type, n_page, txt_blks=None, algorithm=None, only_computed=False
+    fmt,
+    document,
+    page_type,
+    n_page,
+    base_path=formats_tests,
+    txt_blks=None,
+    algorithm=None,
+    only_computed=False,
 ):
     if algorithm is None:
         algorithm = Algorithm.load(fmt)
     if txt_blks is None:
         with (
-            Path("..")
-            / "tests"
-            / "formats"
-            / "algorithms"
+            base_path
             / fmt
-            / ("" if document is None else f"{document}")
+            / ("" if document is None else str(document))
             / "pages"
             / page_type
             / f"{n_page}-txt_blks.pkl"
@@ -502,12 +430,9 @@ def get_results(
     else:
         reference_results = None
         with (
-            Path("..")
-            / "tests"
-            / "formats"
-            / "algorithms"
+            base_path
             / fmt
-            / ("" if document is None else f"{document}")
+            / ("" if document is None else str(document))
             / "pages"
             / page_type
             / f"{n_page}-results.pkl"

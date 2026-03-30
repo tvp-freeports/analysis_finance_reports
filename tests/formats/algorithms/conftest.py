@@ -126,7 +126,7 @@ class PdfExtractTest(Function):
 
         expected = self.parent.cache.pkl.get_file(expected_path)
 
-        assert set(result) == set(expected), (
+        assert frozenset(result) == frozenset(expected), (
             f"PDF extract failed for page {self.page_num} ({self.page_type})"
         )
 
@@ -137,14 +137,8 @@ class TextFilterTest(Function):
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
-        self.is_filter_data_global = (
+        self.is_filter_data = (
             self.parent.path / "pages" / self.page_type / "filter_data.pkl"
-        ).exists()
-        self.is_filter_data_specific = (
-            self.parent.path
-            / "pages"
-            / self.page_type
-            / f"{self.page_num}-filter_data.pkl"
         ).exists()
 
     def runtest(self):
@@ -158,20 +152,11 @@ class TextFilterTest(Function):
             / f"{self.page_num}-pdf_blks.pkl"
         )
 
-        filter_data = None
-        if self.is_filter_data_specific:
-            filter_data = self.parent.cache.pkl.get_file(
-                self.parent.path
-                / "pages"
-                / self.page_type
-                / f"{self.page_num}-filter_data.pkl"
-            )
-        elif self.is_filter_data_global:
+        filter_data = test_companies
+        if self.is_filter_data:
             filter_data = self.parent.cache.pkl.get_file(
                 self.parent.path / "pages" / self.page_type / "filter_data.pkl"
             )
-        else:
-            filter_data = test_companies
 
         pdf_blks = self.parent.cache.pkl.get_file(pdf_path)
 
@@ -190,8 +175,9 @@ class TextFilterTest(Function):
         #     dill.dump(result, f)
 
         expected = self.parent.cache.pkl.get_file(expected_path)
-
-        assert set(result) == set(expected), (
+        print(result)
+        print(expected)
+        assert frozenset(result) == frozenset(expected), (
             f"Text filter failed for page {self.page_num} ({self.page_type})"
         )
 
@@ -227,7 +213,7 @@ class DeserializeTest(Function):
 
         expected = self.parent.cache.pkl.get_file(expected_path)
 
-        assert set(result) == set(expected), (
+        assert frozenset(result) == frozenset(expected), (
             f"Deserialize failed for page {self.page_num} ({self.page_type})"
         )
 
