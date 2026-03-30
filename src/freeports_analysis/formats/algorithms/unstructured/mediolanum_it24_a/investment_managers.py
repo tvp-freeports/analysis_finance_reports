@@ -170,10 +170,20 @@ def text_filter_begin_page(blocks, results):
     res_inv = text_filter_with_subfunds(inv_blocks, filter_funds)
     res_manco = text_filter_with_subfunds(manco_blocks, filter_funds)
     additional_a_subfunds = set(
-        [Fund(name=s) for inv in res_inv for s in inv.metadata["funds"]]
+        [
+            Fund(name=s)
+            for inv in res_inv
+            if isinstance(inv, InvestmentsManager)
+            for s in inv.metadata["funds"]
+        ]
     )
     additional_manco_subfunds = set(
-        [Fund(name=s) for inv in res_manco for s in inv.metadata["funds"]]
+        [
+            Fund(name=s)
+            for inv in res_manco
+            if isinstance(inv, InvestmentsManager)
+            for s in inv.metadata["funds"]
+        ]
     )
 
     funds_manco = residual_funds - additional_a_subfunds - additional_manco_subfunds
