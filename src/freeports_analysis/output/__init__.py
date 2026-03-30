@@ -480,6 +480,17 @@ class FundAssets(BaseModel):
     def __repr__(self):
         return f'{self.__class__.__name__}(fund="{self.fund}",tot_assets={self.tot_assets},liabilities={self.liabilities},net_assets={self.net_assets},currency={self.currency})'
 
+    def __hash__(self):
+        return hash(
+            (
+                self.tot_assets,
+                self.liabilities,
+                self.net_assets,
+                self.currency,
+                self.fund,
+            )
+        )
+
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.
 

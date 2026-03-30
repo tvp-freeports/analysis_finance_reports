@@ -12,6 +12,7 @@ from freeports_analysis.formats.utils.deserialize import to_float
 from freeports_analysis.output import Fund, FundAssets
 from freeports_analysis.formats.algorithms import PdfBlock
 from freeports_analysis.formats.algorithms import TextBlock
+import copy
 from enum import Enum, auto
 
 
@@ -70,7 +71,7 @@ def text_filter(blocks, subfunds):
     if fund not in sub:
         return []
     currency = extract_currency_from_text(currency.content)
-    all_meta = ass.metadata
+    all_meta = copy.deepcopy(ass.metadata)
     all_meta["fund"] = fund.name
     all_meta["currency"] = currency
 
@@ -78,7 +79,7 @@ def text_filter(blocks, subfunds):
 
 
 def deserialize(text_block):
-    ass = text_block.metadata
+    ass = copy.deepcopy(text_block.metadata)
     ass["assets"] = to_float(ass["assets"])
     ass["liabilities"] = to_float(ass["liabilities"].replace("(", "").replace(")", ""))
     ass["net_assets"] = to_float(ass["net_assets"])
