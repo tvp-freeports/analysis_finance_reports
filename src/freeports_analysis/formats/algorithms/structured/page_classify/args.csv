@@ -17,7 +17,9 @@ MEDIOLANUM-IT24.A,"""Valutazione """,
 MEDIOLANUM-IT24.C,"""Valutazione """,
 AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",
 AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo""",
-ANIMA-EN23,"Helvetica-Bold ""Holdings""",
+ANIMA-EN23/0,"Helvetica-Bold ""Holdings""",
+ANIMA-EN23/1,"helvetica-condensed-bold ""^Statement of Financial Position""",fund_assets
+ANIMA-EN23/1,"helvetica-condensed-blac ""ANIMA Funds Plc""",fund_assets
 ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",
 ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",
 ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",
