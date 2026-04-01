@@ -27,7 +27,7 @@ from freeports_analysis.formats import (
 )
 from freeports_analysis.formats.utils.pdf_extract import ResultStandardExtraction
 from freeports_analysis.consts import Currency
-
+# from freeports_analysis.output import Fund
 
 logger = logging.getLogger(__name__)
 
@@ -666,3 +666,19 @@ class TextFilterInvestmentsStandard:
             return results
         else:
             return []
+
+
+class TextFilterAssetsStandard:
+    def __call__(self, blks, filter_data):
+        from freeports_analysis.output import Fund
+
+        filter_funds = set(filter(lambda x: isinstance(x, Fund), filter_data))
+        results = []
+        for blk in blks:
+            if Fund(name=blk.metadata["fund"]) in filter_funds:
+                md = {**blk.metadata}
+                md["currency"] = extract_currency_from_text(md["currency"])
+                results.append(
+                    TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, md, "")
+                )
+        return results

@@ -153,7 +153,7 @@ def text_filter_inv_managers_begin(blocks, results):
         Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
     )
     inv_managers = set(filter(lambda x: isinstance(x, InvestmentsManager), results))
-    a_subfunds = set([f for inv in inv_managers for f in inv.funds])
+    a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
     residual_funds = filter_funds - a_subfunds
 
     final = []

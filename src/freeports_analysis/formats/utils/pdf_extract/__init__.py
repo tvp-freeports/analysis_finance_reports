@@ -292,3 +292,115 @@ class OnePdfBlockType(Enum):
     """
 
     RELEVANT_BLOCK = auto()
+
+
+class PdfExtractAssetsStandard:
+    fund_set: PdfLineSelection
+    currency_set: Optional[PdfLineSelection]
+    net_assets_set: PdfLineSelection
+    liabilities_set: PdfLineSelection
+    tot_assets_set: PdfLineSelection
+    net_assets_vec: tuple[float, float]
+    liabilities_vec: tuple[float, float]
+    tot_assets_vec: tuple[float, float]
+    net_assets_mult: tuple[float, float]
+    liabilities_mult: tuple[float, float]
+    tot_assets_mult: tuple[float, float]
+
+    def __init__(
+        self,
+        fund_set,
+        currency_set,
+        net_assets_set,
+        liabilities_set,
+        tot_assets_set,
+        net_assets_vec=(1.2, 0.0),
+        liabilities_vec=(1.2, 0.0),
+        tot_assets_vec=(1.2, 0.0),
+        net_assets_mult=(100.0, 1.3),
+        liabilities_mult=(100.0, 1.3),
+        tot_assets_mult=(100.0, 1.3),
+    ):
+        if currency_set is not None:
+            self.fund_selection = SelectExpectedText(fund_set, "fund")
+            self.currency_selection = SelectExpectedText(currency_set, "currency")
+        else:
+            self.fund_selection = fund_set
+            self.currency_selection = None
+        self.tot_assets_selction = tot_assets_set
+        self.liabilities_selection = liabilities_set
+        self.net_assets_selection = net_assets_set
+        self.tot_assets_vector = tot_assets_vec
+        self.liabilities_vector = liabilities_vec
+        self.net_assets_vector = net_assets_vec
+        self.tot_assets_width = tot_assets_mult[0]
+        self.liabilities_width = liabilities_mult[0]
+        self.net_assets_width = net_assets_mult[0]
+        self.tot_assets_height = tot_assets_mult[1]
+        self.liabilities_height = liabilities_mult[1]
+        self.net_assets_height = net_assets_mult[1]
+
+    def __call__(self, dict_root):
+        lines = pdflines_from_pagedict(dict_root)
+
+        tot_assets = PdfLineSelection.area_from_movewindow(
+            self.tot_assets_selction,
+            self.tot_assets_vector,
+            self.tot_assets_width,
+            self.tot_assets_height,
+        ).select(lines)
+        liabilities = PdfLineSelection.area_from_movewindow(
+            self.liabilities_selection,
+            self.liabilities_vector,
+            self.liabilities_width,
+            self.liabilities_height,
+        ).select(lines)
+        net_assets = PdfLineSelection.area_from_movewindow(
+            self.net_assets_selection,
+            self.net_assets_vector,
+            self.net_assets_width,
+            self.net_assets_height,
+        ).select(lines)
+
+        if self.currency_selection is not None:
+            funds = [self.fund_selection(lines)]
+            currencies = [self.currency_selection(lines)]
+
+        elif self.currency_selection is None:
+            funds = self.fund_selection.select(lines)
+            _, cols = zip(
+                *get_table_coordinates(
+                    funds, algorithm_flags=TablePosAlgorithm.BIG_CELL_RULE
+                )
+            )
+            n_cols = max(cols) + 1
+            funds = [
+                " ".join((f.text.strip() for c, f in zip(cols, funds) if c == col))
+                for col in range(n_cols)
+            ]
+            funds, currencies = zip(
+                *((" ".join(f.split()[:-1]), f.split()[-1]) for f in funds)
+            )
+
+        else:
+            raise ValueError("Invalid configuration: fund_selection maybe None")
+
+        tot_assets = [t.text for t in tot_assets]
+        liabilities = [l.text for l in liabilities]
+        net_assets = [n.text for n in net_assets]
+        return [
+            PdfBlock(
+                OnePdfBlockType.RELEVANT_BLOCK,
+                {
+                    "fund": f,
+                    "currency": c,
+                    "tot_assets": t,
+                    "liabilities": l,
+                    "net_assets": n,
+                },
+                "",
+            )
+            for f, c, t, l, n in zip(
+                funds, currencies, tot_assets, liabilities, net_assets
+            )
+        ]

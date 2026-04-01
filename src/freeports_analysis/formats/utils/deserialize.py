@@ -6,7 +6,7 @@ from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency, Promise
-from freeports_analysis.output import Equity, Bond, Fund
+from freeports_analysis.output import Equity, Bond, Fund, FundAssets
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
@@ -393,3 +393,17 @@ class DeserializerInvestmentStandard:
             LOG_ADAPT_INVESTMENT_INFOS.company = None
             LOG_ADAPT_INVESTMENT_INFOS.company_match = None
             raise LineParseFail(e) from e
+
+
+class DeserializeAssetsStandard:
+    def __call__(self, blk):
+        md = {**blk.metadata}
+        return FundAssets(
+            fund=md["fund"],
+            currency=to_currency(md["currency"]),
+            tot_assets=float(to_float(md["tot_assets"])),
+            net_assets=float(to_float(md["net_assets"])),
+            liabilities=float(
+                to_float(md["liabilities"].replace("(", "").replace(")", ""))
+            ),
+        )
