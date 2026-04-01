@@ -1,11 +1,20 @@
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
+    PdfLineSelection,
 )
-from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractManagmentCompanyStandard,
+)
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
-from freeports_analysis.formats.utils.text_filter.match import MatchFund
-from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
+from freeports_analysis.formats.utils.text_filter import (
+    ResultStandardFiltering,
+    StandardManagmentCompanyTextBlock,
+)
+from freeports_analysis.formats.utils.text_filter import match
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerFundStandard,
+    DeserializerManagmentCompanyStandard,
+)
 from freeports_analysis import output
 from enum import Enum, auto
 
@@ -43,29 +52,24 @@ def pdf_extract(page):
     ]
 
 
-def pdf_extract_manco(page):
-    lines = pdflines_from_pagedict(page)
-    manco = (
-        PdfLineSelection.area_from_movewindow(
-            PdfLineSelection(
-                font="arialnarrow-bold",
-                font_size=(10.9, 11.1),
-                text="Management Company and Global Distributor ",
-            ),
-            (-0.2, 1.2),
-            width_mult=1.8,
-            height_mult=1.3,
-        )
-        .select(lines)[0]
-        .text
+pdf_extract_manco = PdfExtractManagmentCompanyStandard(
+    PdfLineSelection.area_from_movewindow(
+        PdfLineSelection(
+            font="arialnarrow-bold",
+            font_size=(10.9, 11.1),
+            text="Management Company and Global Distributor ",
+        ),
+        (-0.2, 1.2),
+        width_mult=1.8,
+        height_mult=1.3,
     )
-    return [PdfBlock(BlockType.MANCO, {}, manco)]
+)
 
 
 def text_filter(pdf_blocks, filter_data):
     subfunds = set(
         map(
-            lambda x: MatchFund(x.name),
+            lambda x: match.MatchFund(x.name),
             filter(lambda x: isinstance(x, output.Fund), filter_data),
         )
     )
@@ -75,7 +79,7 @@ def text_filter(pdf_blocks, filter_data):
         if b.type_block == BlockType.INV_MAN:
             blocks.append(b)
         else:
-            manco = TextBlock(BlockType.MANCO, {}, b)
+            manco = b
     current_funds = set()
     current_funds_text = ""
     current_inv_man = None
@@ -118,7 +122,7 @@ def text_filter(pdf_blocks, filter_data):
                     )
                     current_funds = set(
                         (
-                            MatchFund(name=s.strip())
+                            match.MatchFund(name=s.strip())
                             for s in current_funds_text.split(",")
                         )
                     )
@@ -130,8 +134,8 @@ def text_filter(pdf_blocks, filter_data):
                 state = ParseState.OTHER
         current_group = g
     invs_blks[current_inv_man] = current_funds
-    res = [manco]
     new_funds = set()
+    res = []
     for i, s in invs_blks.items():
         if not s.isdisjoint(subfunds):
             res.append(
@@ -145,7 +149,9 @@ def text_filter(pdf_blocks, filter_data):
                     res.append(
                         TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
                     )
-    res[0].metadata["funds"] = set(map(lambda x: x.name, subfunds.union(new_funds)))
+
+    manco = StandardManagmentCompanyTextBlock(manco, subfunds.union(new_funds))
+    res.append(manco)
     return res
 
 
@@ -156,11 +162,6 @@ def deserialize(blk):
         )
 
 
-def deserialize_manco(blk):
-    if blk.type_block == BlockType.MANCO:
-        return output.ManagementCompany(
-            name=blk.content, managed_funds=blk.metadata["funds"]
-        )
-
+deserialize_manco = DeserializerManagmentCompanyStandard()
 
 deserialize_fund = DeserializerFundStandard()

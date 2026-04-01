@@ -6,12 +6,17 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
     PdfLineSelection,
 )
-from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.text_filter import (
+    ResultStandardFiltering,
+    StandardManagmentCompanyTextBlock,
+)
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
-from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerFundStandard,
+    DeserializerManagmentCompanyStandard,
+)
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TableConfig,
     ColumnConfig,
@@ -30,7 +35,6 @@ class TipiBlocco(Enum):
 l = 190.0
 r = 1e6
 table_cfg = TableConfig(ColumnConfig(limits=(l, r)))
-
 
 deselection = (
     PdfLineSelection.text("^1$")
@@ -196,19 +200,9 @@ def text_filter_begin_page(blocks, results):
         )
     )
     res.append(
-        TextBlock(
-            TipiBlocco.MAN,
-            {
-                "funds": set(
-                    (
-                        f.name
-                        for f in filter_funds.union(additional_a_subfunds).union(
-                            additional_manco_subfunds
-                        )
-                    )
-                )
-            },
+        StandardManagmentCompanyTextBlock(
             manco_blocks[0],
+            filter_funds.union(additional_a_subfunds).union(additional_manco_subfunds),
         )
     )
     return res
@@ -219,10 +213,8 @@ def deserialize(text_block):
         return output.InvestmentsManager(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
         )
-    elif text_block.type_block == TipiBlocco.MAN:
-        return output.ManagementCompany(
-            name=text_block.content, managed_funds=text_block.metadata["funds"]
-        )
 
+
+deserialize_manco = DeserializerManagmentCompanyStandard()
 
 deserialize_fund = DeserializerFundStandard()

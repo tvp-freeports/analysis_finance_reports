@@ -1,7 +1,18 @@
 """KAIROS-EN23 format submodule"""
 
 import re
-from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
+from freeports_analysis.formats.utils.text_filter import (
+    TextFilterInvestmentsStandard,
+    TextFilterManagmentCompanyStandard,
+    ResultStandardFiltering,
+)
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractManagmentCompanyStandard,
+)
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerManagmentCompanyStandard,
+)
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")
@@ -21,10 +32,28 @@ def text_filter(pdf_blks, target_companies):
     """
     txt_blks = std(pdf_blks, target_companies)
     for txt_blk in txt_blks:
-        c = txt_blk.content
-        m = market_value_regex.match(c)
-        txt_blk.metadata |= {"quantity": m[0]}
+        if (
+            txt_blk.type_block == ResultStandardFiltering.BOND_TARGET
+            or txt_blk.type_block == ResultStandardFiltering.EQUITY_TARGET
+        ):
+            c = txt_blk.content
+            m = market_value_regex.match(c)
+            txt_blk.metadata |= {"quantity": m[0]}
     return txt_blks
 
 
-pipelines = {"investments": Pipeline(text_filter=text_filter)}
+pipelines = {
+    "investments": Pipeline(text_filter=text_filter),
+    "manco": Pipeline(
+        PdfExtractManagmentCompanyStandard(
+            PdfLineSelection.area_from_movewindow(
+                PdfLineSelection(font="arialnarrow-bold", text="Management Company"),
+                (-0.1, 1.0),
+                10.0,
+                1.2,
+            )
+        ),
+        TextFilterManagmentCompanyStandard(),
+        DeserializerManagmentCompanyStandard(),
+    ),
+}

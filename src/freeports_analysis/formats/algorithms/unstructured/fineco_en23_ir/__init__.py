@@ -24,7 +24,7 @@ pipelines = {
     "manco": Pipeline(
         managment_company.pdf_filter,
         managment_company.text_extract,
-        managment_company.deserialize,
+        (managment_company.deserialize, inv_managers.deserialize),
     ),
     "fund_assets": Pipeline(
         fund_assets.pdf_extract, fund_assets.text_filter, fund_assets.deserialize
