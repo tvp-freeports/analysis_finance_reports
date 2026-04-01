@@ -14,7 +14,7 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis import output
+from freeports_analysis import output, match
 from enum import Enum, auto
 
 
@@ -46,11 +46,11 @@ def pdf_filter(page):
 
 def text_extract(blks, filter_data):
     inv_funds = set(
-        MatchFund(name=n.fund)
+        match.MatchFund(name=n.fund)
         for n in filter(lambda x: isinstance(x, output.Investment), filter_data)
     )
     a_funds = set(
-        MatchFund(name=n)
+        match.MatchFund(name=n)
         for inv in filter(
             lambda x: isinstance(x, output.InvestmentsManager), filter_data
         )

@@ -332,7 +332,6 @@ class PdfExtractAssetsStandard:
 
     def __call__(self, dict_root):
         lines = pdflines_from_pagedict(dict_root)
-
         tot_assets = PdfLineSelection.area_from_movewindow(
             self.tot_assets_selction,
             self.tot_assets_vector,
@@ -360,7 +359,9 @@ class PdfExtractAssetsStandard:
             funds = self.fund_selection.select(lines)
             _, cols = zip(
                 *get_table_coordinates(
-                    funds, algorithm_flags=TablePosAlgorithm.BIG_CELL_RULE
+                    funds,
+                    algorithm_flags=TablePosAlgorithm.BIG_CELL_RULE
+                    | TablePosAlgorithm.USE_RULER_AREA,
                 )
             )
             n_cols = max(cols) + 1

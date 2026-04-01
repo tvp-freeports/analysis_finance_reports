@@ -414,14 +414,19 @@ class DeserializerInvestmentStandard:
 
 
 class DeserializeAssetsStandard:
+    converter: Callable[[str], float | int]
+
+    def __init__(self, converter):
+        self.converter = converter
+
     def __call__(self, blk):
         md = {**blk.metadata}
         return FundAssets(
             fund=md["fund"],
             currency=to_currency(md["currency"]),
-            tot_assets=float(to_float(md["tot_assets"])),
-            net_assets=float(to_float(md["net_assets"])),
+            tot_assets=float(self.converter(md["tot_assets"])),
+            net_assets=float(self.converter(md["net_assets"])),
             liabilities=float(
-                to_float(md["liabilities"].replace("(", "").replace(")", ""))
+                self.converter(md["liabilities"].replace("(", "").replace(")", ""))
             ),
         )
