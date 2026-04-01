@@ -80,7 +80,9 @@ def text_extract(blks, filter_data):
 
 def deserialize(blk):
     if blk.type_block == BlockType.INV_MAN:
-        return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
+        return output.InvestmentsManager(
+            name=blk.content, managed_funds=blk.metadata["funds"]
+        )
 
 
 deserialize_fund = DeserializerFundStandard()

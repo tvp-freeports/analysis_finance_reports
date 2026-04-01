@@ -87,7 +87,7 @@ def pdf_extract(page):
 def text_filter(blks, filter_data):
     filter_funds = set(
         map(
-            lambda x: MatchFund(name=x),
+            lambda x: MatchFund(name=x.name),
             filter(lambda x: isinstance(x, output.Fund), filter_data),
         )
     )
