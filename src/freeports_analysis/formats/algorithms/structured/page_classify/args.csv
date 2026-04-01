@@ -43,7 +43,8 @@ MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",
-MEDIOLANUM-EN24,"[8.04] ""Face value""",
+MEDIOLANUM-EN24/0,"[8.04] ""Face value""",
+MEDIOLANUM-EN24/1,"[9.48] ""MANAGER AND GLOBAL""",manco
 FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Domicile""",
 FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Shares""",
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Notes to the Financial Statements""",inv_managers_table
