@@ -102,7 +102,7 @@ def text_filter(pdf_blocks, filter_data):
                 .replace("and", ",")
             )
             current_funds = set(
-                (Fund(name=s.strip()) for s in current_funds_text.split(","))
+                (MatchFund(name=s.strip()) for s in current_funds_text.split(","))
             )
             state = ParseState.OTHER
         elif r.startswith("(Only in respect of"):
