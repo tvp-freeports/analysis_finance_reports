@@ -27,6 +27,7 @@ pipelines = {
         deserialize=(
             investment_managers.deserialize,
             investment_managers.deserialize_fund,
+            investment_managers.deserialize_manco,
         ),
     ),
     "inv_managers": Pipeline(
