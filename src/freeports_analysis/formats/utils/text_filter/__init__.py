@@ -15,7 +15,7 @@ from enum import Enum, auto
 import re
 import logging
 import freeports_lib
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Set
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports_analysis.formats import (
@@ -26,7 +26,9 @@ from freeports_analysis.formats import (
     PageParseFail,
 )
 from freeports_analysis.formats.utils.pdf_extract import ResultStandardExtraction
+from . import match
 from freeports_analysis.consts import Currency
+from freeports_analysis import output
 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,8 @@ class ResultStandardFiltering(Enum):
     BOND_TARGET = auto()
     EQUITY_TARGET = auto()
     FUND = auto()
+    MANAGEMENT_COMPANY = auto()
+    INVESTMENT_MANAGER = auto()
 
 
 class PdfBlocksTable:
@@ -666,3 +670,37 @@ class TextFilterInvestmentsStandard:
             return results
         else:
             return []
+
+
+class StandardManagmentCompanyTextBlock(TextBlock):
+    def __init__(self, pdf_blk: PdfBlock, funds: Set[match.MatchFund]):
+        super().__init__(
+            ResultStandardFiltering.MANAGEMENT_COMPANY,
+            {"managed_funds": set((f.name for f in funds))},
+            pdf_blk,
+        )
+
+    @classmethod
+    def from_name(cls, name, funds: Set[match.MatchFund]):
+        return super().from_content(
+            ResultStandardFiltering.MANAGEMENT_COMPANY,
+            {"managed_funds": set((f.name for f in funds))},
+            name,
+        )
+
+
+class TextFilterManagmentCompanyStandard:
+    def __call__(self, pdf_blks, filter_data):
+        filter_funds = set(
+            map(
+                lambda x: match.MatchFund(x.name),
+                filter(lambda x: isinstance(x, output.Fund), filter_data),
+            )
+        )
+        manco_block = next(
+            filter(
+                lambda x: x.type_block == ResultStandardExtraction.MANAGEMENT_COMPANY,
+                pdf_blks,
+            )
+        )
+        return [StandardManagmentCompanyTextBlock(manco_block, filter_funds)]

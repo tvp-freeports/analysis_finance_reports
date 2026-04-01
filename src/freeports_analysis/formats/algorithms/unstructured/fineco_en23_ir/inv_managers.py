@@ -11,18 +11,15 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
 )
-from freeports_analysis.formats.utils.text_filter.match import normalize_string
+from freeports_analysis.formats.utils.text_filter.match import (
+    normalize_string,
+    MatchFund,
+)
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
 from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.output import (
-    ManagementCompany,
-    InvestmentsManager,
-    Investment,
-    AssetsManager,
-    Fund,
-)
+from freeports_analysis import output
 from enum import Enum, auto
 
 
@@ -56,8 +53,8 @@ def pdf_filter(page):
 
 def text_extract(blks, filter_data):
     filter_funds = set(
-        Fund(name=n.fund)
-        for n in filter(lambda x: isinstance(x, Investment), filter_data)
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, output.Investment), filter_data)
     )
     funds = [b.content for b in blks if b.metadata["table-col"] == 0]
     inv_man = [b.content for b in blks if b.metadata["table-col"] == 2]
@@ -69,7 +66,7 @@ def text_extract(blks, filter_data):
             inv_managers[i].append(f)
     res = []
     for i, ifunds in inv_managers.items():
-        obj_ifunds = set(Fund(name=f) for f in ifunds)
+        obj_ifunds = set(MatchFund(name=f) for f in ifunds)
         if not obj_ifunds.isdisjoint(filter_funds):
             res.append(
                 TextBlock.from_content(BlockType.INV_MAN, {"funds": set(ifunds)}, i)

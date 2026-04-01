@@ -7,6 +7,7 @@ based on XML elements, fonts, and positional data.
 from typing import List, Optional, TypeAlias, Callable, Set
 from enum import Enum, auto
 import logging
+from abc import ABC
 from lxml import etree
 from freeports_analysis.formats import (
     PdfBlock,
@@ -54,7 +55,7 @@ class SelectExpectedText:
     selection: PdfLineSelection
     name: str
 
-    def __init__(self, selection, name="expected text"):
+    def __init__(self, selection: PdfLineSelection, name="expected text"):
         self.selection = selection
         self.name = name
 
@@ -77,21 +78,51 @@ class ResultStandardExtraction(Enum):
     FUND_NAME = auto()
     CURRENCY_STATEMENT = auto()
     TABLE_BODY = auto()
+    MANAGEMENT_COMPANY = auto()
 
 
-class PdfExtractFundStandard:
+class ExtractTextBlockOrFailPage:
     extractor: SelectExpectedText
+    type_block: Enum
 
-    def __init__(self, selection: PdfLineSelection):
-        self.extractor = SelectExpectedText(selection, "fund")
+    def __init__(self, selection: PdfLineSelection, name: str, type_block: Enum):
+        self.extractor = SelectExpectedText(selection, name)
+        self.type_block = type_block
 
     def __call__(self, dict_root):
         lines = pdflines_from_pagedict(dict_root)
         try:
-            fund_name = self.extractor(lines)
+            text = self.extractor(lines)
         except ExpectedPdfBlockNotFound as e:
             raise PageParseFail(e) from e
-        return [PdfBlock(ResultStandardExtraction.FUND_NAME, {}, fund_name)]
+        return [PdfBlock(self.type_block, {}, text)]
+
+
+class PdfExtractFundStandard(ExtractTextBlockOrFailPage):
+    def __init__(self, selection: PdfLineSelection):
+        super().__init__(
+            selection=selection,
+            name="fund",
+            type_block=ResultStandardExtraction.FUND_NAME,
+        )
+
+
+class PdfExtractCurrencyStandard(ExtractTextBlockOrFailPage):
+    def __init__(self, selection: PdfLineSelection):
+        super().__init__(
+            selection=selection,
+            name="currency",
+            type_block=ResultStandardExtraction.CURRENCY_STATEMENT,
+        )
+
+
+class PdfExtractManagmentCompanyStandard(ExtractTextBlockOrFailPage):
+    def __init__(self, selection: PdfLineSelection):
+        super().__init__(
+            selection=selection,
+            name="managment company",
+            type_block=ResultStandardExtraction.MANAGEMENT_COMPANY,
+        )
 
 
 class PdfExtractCurrencyConstant:
@@ -103,21 +134,6 @@ class PdfExtractCurrencyConstant:
 
     def __call__(self, dict_root):
         return [self._blk]
-
-
-class PdfExtractCurrencyStandard:
-    extractor: SelectExpectedText
-
-    def __init__(self, selection: PdfLineSelection):
-        self.extractor = SelectExpectedText(selection, "currency")
-
-    def __call__(self, dict_root):
-        lines = pdflines_from_pagedict(dict_root)
-        try:
-            fund_name = self.extractor(lines)
-        except ExpectedPdfBlockNotFound as e:
-            raise PageParseFail(e) from e
-        return [PdfBlock(ResultStandardExtraction.CURRENCY_STATEMENT, {}, fund_name)]
 
 
 class PdfExtractPageClassifyStandard:
@@ -157,8 +173,8 @@ class PdfExtractInvestmentsStandard:
     def __init__(
         self,
         body_set,
-        currency_set,
         manco_set=None,
+        currency_set=None,
         deselection_list=[],
         algorithm_flags=TablePosAlgorithm(0),
         tolerance=0.0,
@@ -166,8 +182,6 @@ class PdfExtractInvestmentsStandard:
         row_tolerance=0.0,
         company_index=None,
     ):
-        self.manco_filter = StandardPageMetadataFilter(manco_set, "Management company")
-        self.currency_filter = StandardPageMetadataFilter(currency_set, "Currency")
         for dl in deselection_list:
             body_set /= dl
         self.body_set = body_set
@@ -181,19 +195,19 @@ class PdfExtractInvestmentsStandard:
         lines = pdflines_from_pagedict(dict_root)
         _algorithm_flags = self.algorithm_flags
         _row_algorithm_flags = self.row_algorithm_flags
-        try:
-            metadata = dict()
-            metadata["currency"] = None
-            if isinstance(self.currency_filter.selection, str):
-                metadata["currency"] = Currency[self.currency_filter.selection]
-            if isinstance(self.currency_filter.selection, Currency):
-                metadata["currency"] = self.currency_filter.selection
-            if metadata["currency"] is None:
-                metadata["currency"] = self.currency_filter(lines)
-            if self.manco_filter.selection is not None:
-                metadata["manco"] = self.manco_filter(lines)
-        except ExpectedPdfBlockNotFound as e:
-            raise PageParseFail(e) from e
+        # try:
+        #     metadata = dict()
+        #     metadata["currency"] = None
+        #     if isinstance(self.currency_filter.selection, str):
+        #         metadata["currency"] = Currency[self.currency_filter.selection]
+        #     if isinstance(self.currency_filter.selection, Currency):
+        #         metadata["currency"] = self.currency_filter.selection
+        #     if metadata["currency"] is None:
+        #         metadata["currency"] = self.currency_filter(lines)
+        #     if self.manco_filter.selection is not None:
+        #         metadata["manco"] = self.manco_filter(lines)
+        # except ExpectedPdfBlockNotFound as e:
+        #     raise PageParseFail(e) from e
 
         table_rows = self.body_set.select(lines)
         # Check if the whole table is empty
@@ -248,7 +262,6 @@ class PdfExtractInvestmentsStandard:
             PdfBlock(
                 ResultStandardExtraction.TABLE_BODY,
                 {
-                    **metadata,
                     "table-row": table_row_positions[i],
                     "table-col": table_col_positions[i],
                     "is-max-width": is_max_width[i],
@@ -257,29 +270,6 @@ class PdfExtractInvestmentsStandard:
             )
             for i, table_row in enumerate(table_rows)
         ]
-
-
-class StandardPageMetadataFilter:
-    selection: PdfLineSelection
-    name: str
-
-    def __init__(self, selection, name):
-        self.selection = selection
-        self.name = name
-
-    def __call__(self, lines):
-        if isinstance(self.selection, Promise):
-            return self.selection
-        try:
-            return self.selection.select(lines)[0].text
-        except IndexError as exc:
-            logger.error(exc)
-            logger.debug("First lines where:")
-            logger.debug(
-                "%s",
-                str(list(map(lambda x: x.text, lines))[: min(10, len(lines))]),
-            )
-            raise ExpectedPdfBlockNotFound(_(f"{self.name} not found")) from exc
 
 
 class OnePdfBlockType(Enum):

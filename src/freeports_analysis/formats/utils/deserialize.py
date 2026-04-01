@@ -6,7 +6,13 @@ from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency, Promise
-from freeports_analysis.output import Equity, Bond, Fund
+from freeports_analysis.output import (
+    Equity,
+    Bond,
+    Fund,
+    ManagementCompany,
+    InvestmentsManager,
+)
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
@@ -291,6 +297,24 @@ class DeserializerFundStandard:
     def __call__(self, txt_blk):
         if txt_blk.type_block == ResultStandardFiltering.FUND:
             return Fund(name=txt_blk.content)
+
+
+class DeserializerManagmentCompanyStandard:
+    def __call__(self, txt_blk):
+        if txt_blk.type_block == ResultStandardFiltering.MANAGEMENT_COMPANY:
+            return ManagementCompany(
+                name=" ".join(txt_blk.content.strip().split()),
+                managed_funds=set(txt_blk.metadata["managed_funds"]),
+            )
+
+
+class DeserializerInvestmentManagerStandard:
+    def __call__(self, txt_blk):
+        if txt_blk.type_block == ResultStandardFiltering.INVESTMENT_MANAGER:
+            return ManagementCompany(
+                name=" ".join(txt_blk.content.strip().split()),
+                managed_funds=set(txt_blk.metadata["managed_funds"]),
+            )
 
 
 class DeserializerInvestmentStandard:

@@ -8,8 +8,9 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
 )
 from freeports_analysis.formats.utils.text_filter import extract_currency_from_text
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import to_float
-from freeports_analysis.output import Fund, FundAssets
+from freeports_analysis import output
 from freeports_analysis.formats.algorithms import PdfBlock
 from freeports_analysis.formats.algorithms import TextBlock
 import copy
@@ -66,8 +67,13 @@ def text_filter(blocks, subfunds):
         b for b in blocks if b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT
     ][0]
     ass = [b for b in blocks if b.type_block == TipiBlocco.ASS][0]
-    sub = set(filter(lambda x: isinstance(x, Fund), subfunds))
-    fund = Fund(name=fund.content)
+    sub = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, output.Fund), subfunds),
+        )
+    )
+    fund = MatchFund(name=fund.content)
     if fund not in sub:
         return []
     currency = extract_currency_from_text(currency.content)
@@ -83,7 +89,7 @@ def deserialize(text_block):
     ass["assets"] = to_float(ass["assets"])
     ass["liabilities"] = to_float(ass["liabilities"].replace("(", "").replace(")", ""))
     ass["net_assets"] = to_float(ass["net_assets"])
-    return FundAssets(
+    return output.FundAssets(
         tot_assets=ass["assets"],
         liabilities=ass["liabilities"],
         net_assets=ass["net_assets"],

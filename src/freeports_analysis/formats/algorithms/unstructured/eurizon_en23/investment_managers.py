@@ -1,6 +1,7 @@
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
+    PdfExtractManagmentCompanyStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
@@ -9,15 +10,16 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
-from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
-from freeports_analysis.output import (
-    ManagementCompany,
-    InvestmentsManager,
-    Investment,
-    AssetsManager,
-    Fund,
+from freeports_analysis.formats.utils.text_filter import (
+    ResultStandardFiltering,
+    TextFilterManagmentCompanyStandard,
 )
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerFundStandard,
+    DeserializerManagmentCompanyStandard,
+)
+from freeports_analysis import output
 from enum import Enum, auto
 
 
@@ -89,11 +91,9 @@ def pdf_extract_inv_managers_end(page):
     return v1
 
 
-def pdf_extract_manco(page):
-    lines = pdflines_from_pagedict(page)
-    bold_text = PdfLineSelection(
-        font="frutiger-black", font_size=(8.98, 8.99)
-    ) & PdfLineSelection.area_from_bounds(
+pdf_extract_manco = PdfExtractManagmentCompanyStandard(
+    PdfLineSelection(font="frutiger-black", font_size=(8.98, 8.99))
+    & PdfLineSelection.area_from_bounds(
         x0=0,
         y0=PdfLineSelection(
             text="MANAGEMENT COMPANY AND PROMOTER", font="frutiger-lightitalic"
@@ -104,14 +104,14 @@ def pdf_extract_manco(page):
             font="frutiger-lightitalic",
         ),
     )
-    lines = bold_text.select(lines)
-    return [PdfBlock(TipiBlocco.MAN, {}, l.text) for l in lines]
+)
 
 
 def text_filter_inv_managers(blocks, results):
 
     inv_funds = set(
-        Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, output.Investment), results)
     )
 
     final = []
@@ -133,7 +133,9 @@ def text_filter_inv_managers(blocks, results):
             .strip()
         )
         for sub in s:
-            funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
+            funds[-1] = funds[-1].union(
+                set([MatchFund(name=f) for f in sub.split("and")])
+            )
     res = []
     for i, s in zip(inv, funds):
         if not s.isdisjoint(inv_funds):
@@ -150,10 +152,13 @@ def text_filter_inv_managers(blocks, results):
 
 def text_filter_inv_managers_begin(blocks, results):
     filter_funds = set(
-        Fund(name=n.fund) for n in filter(lambda x: isinstance(x, Investment), results)
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, output.Investment), results)
     )
-    inv_managers = set(filter(lambda x: isinstance(x, InvestmentsManager), results))
-    a_subfunds = set([f for inv in inv_managers for f in inv.funds])
+    inv_managers = set(
+        filter(lambda x: isinstance(x, output.InvestmentsManager), results)
+    )
+    a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
     residual_funds = filter_funds - a_subfunds
 
     final = []
@@ -170,7 +175,9 @@ def text_filter_inv_managers_begin(blocks, results):
         funds.append(set())
         s[0] = s[0].split("for the Sub-Funds")[-1].strip()
         for sub in s:
-            funds[-1] = funds[-1].union(set([Fund(name=f) for f in sub.split("and")]))
+            funds[-1] = funds[-1].union(
+                set([MatchFund(name=f) for f in sub.split("and")])
+            )
 
     additional_funds = set([f for im in funds for f in im])
     funds[0] = residual_funds - additional_funds
@@ -192,29 +199,17 @@ def text_filter_inv_managers_begin(blocks, results):
     return res
 
 
-def text_filter_manco(blocks, results):
-    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
-
-    return [
-        TextBlock(TipiBlocco.MAN, {"funds": filter_funds}, b)
-        for b in blocks
-        if b.type_block == TipiBlocco.MAN
-    ]
+text_filter_manco = TextFilterManagmentCompanyStandard()
 
 
 def deserialize_inv_managers(text_block):
     if text_block.type_block == TipiBlocco.INV:
-        return InvestmentsManager(
+        return output.InvestmentsManager(
             name=text_block.content,
             managed_funds=set((f.name for f in text_block.metadata["funds"])),
         )
 
 
-def deserialize_manco(text_block):
-    return ManagementCompany(
-        name=text_block.content,
-        managed_funds=set((f.name for f in text_block.metadata["funds"])),
-    )
-
+deserialize_manco = DeserializerManagmentCompanyStandard()
 
 deserialize_fund = DeserializerFundStandard()
