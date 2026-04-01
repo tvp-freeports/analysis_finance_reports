@@ -17,11 +17,7 @@ def compute_page_class(classification):
 
 pipelines = {
     "fund_assets": Pipeline(
-        pdf_extract=(
-            fund_assets.pdf_extract,
-            fund_assets.pdf_extract_fund,
-            fund_assets.pdf_extract_currency,
-        ),
+        pdf_extract=(fund_assets.pdf_extract,),
         text_filter=fund_assets.text_filter,
         deserialize=fund_assets.deserialize,
     ),

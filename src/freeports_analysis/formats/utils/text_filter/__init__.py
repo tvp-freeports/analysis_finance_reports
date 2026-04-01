@@ -672,6 +672,26 @@ class TextFilterInvestmentsStandard:
             return []
 
 
+class TextFilterAssetsStandard:
+    def __call__(self, blks, filter_data):
+
+        filter_funds = set(
+            map(
+                lambda x: match.MatchFund(name=x.name),
+                filter(lambda x: isinstance(x, output.Fund), filter_data),
+            )
+        )
+        results = []
+        for blk in blks:
+            if match.MatchFund(name=blk.metadata["fund"]) in filter_funds:
+                md = {**blk.metadata}
+                md["currency"] = extract_currency_from_text(md["currency"])
+                results.append(
+                    TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, md, "")
+                )
+        return results
+
+
 class StandardManagmentCompanyTextBlock(TextBlock):
     def __init__(self, pdf_blk: PdfBlock, funds: Set[match.MatchFund]):
         super().__init__(

@@ -6,10 +6,18 @@
 # it wants to stop the commit.
 #
 # To enable this hook, rename this file to "pre-commit".
-if [ "$(basename $VIRTUAL_ENV)" != "freeports-dev" ] ; then
-	echo "You have to activate \`freeports-dev\` virtual env to commit" 1>&2
-	echo "In order to do so, execute \`source venv/freeports-dev/bin/activate\`" 1>&2
-	exit 1
+# if [ "$(basename $VIRTUAL_ENV)" != "freeports-dev" ] ; then
+# 	echo "You have to activate \`freeports-dev\` virtual env to commit" 1>&2
+# 	echo "In order to do so, execute \`source venv/freeports-dev/bin/activate\`" 1>&2
+# 	exit 1
+# fi
+
+if [ "$(basename "${VIRTUAL_ENV:-}")" != "freeports-dev" ] && [ "${CONDA_DEFAULT_ENV:-}" != "freeports-dev" ]; then
+    echo "You have to activate \`freeports-dev\` environment to commit" 1>&2
+    echo "In order to do so, execute one of the following:" 1>&2
+    echo "  - venv  →  source venv/freeports-dev/bin/activate" 1>&2
+    echo "  - conda →  conda activate freeports-dev" 1>&2
+    exit 1
 fi
 
 # (
