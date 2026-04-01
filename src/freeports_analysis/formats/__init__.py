@@ -8,6 +8,7 @@ from typing import Optional, List, Union
 from enum import Enum
 from lxml import etree
 from freeports_analysis.i18n import _
+import copy
 
 
 def _str_blocks(blk: Union["PdfBlock", "TextBlock"]) -> str:

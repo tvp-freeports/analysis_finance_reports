@@ -3,12 +3,6 @@ from freeports_analysis.formats.utils.text_filter import TextFilterAssetsStandar
 from freeports_analysis.formats.utils.deserialize import DeserializeAssetsStandard
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 
-from enum import Enum, auto
-
-
-class TipiBlocco(Enum):
-    ASS = auto()
-
 
 condition_text = PdfLineSelection(
     text="STATEMENT OF NET ASSETS AS AT", font="frutiger-black"

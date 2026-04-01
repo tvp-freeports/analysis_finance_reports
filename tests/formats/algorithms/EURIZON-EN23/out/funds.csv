@@ -1,85 +1,86 @@
 ID,Managment company ID,Name,Report page
-1,1,Eurizon Fund - Bond Corporate Smart ESG,364
-2,1,Eurizon Fund - Equity World Smart Volatility,428
-3,1,Eurizon Fund - Bond Corporate EUR,490
-4,1,Eurizon Fund - Equity Europe ESG LTE,226
-5,1,Eurizon Fund - Equity USA ESG LTE,252
-6,1,Eurizon Fund - Bond Flexible,913
-7,1,Eurizon Fund - Asian Debt Opportunities,897
-8,1,Eurizon Fund - Conservative Allocation,950
-9,1,Eurizon Fund - ChinaCredit Opportunities,9
-10,1,Eurizon Fund - China Opportunity,944
-11,1,Eurizon Fund - Asian Equity Opportunities,738
-12,1,Eurizon Fund - Sustainable Multiasset,1057
-13,1,Eurizon Fund - Equity China Smart Volatility,399
-14,1,Eurizon Fund - Bond Corporate EUR Short Term LTE,176
-15,1,Eurizon Fund - Inflation Strategy,1033
-16,1,Eurizon Fund - Equity North America LTE,268
-17,1,Eurizon Fund - Equity Euro LTE,198
-18,1,Eurizon Fund - Money Market USD T1,451
-19,1,Eurizon Fund - Equity USA,714
-20,1,Eurizon Fund - Equity USA ESG Leaders LTE,242
-21,1,Eurizon Fund - Equity Innovation,783
-22,1,Eurizon Fund - Sustainable Global Equity,761
-23,1,Eurizon Fund - Cash EUR,461
-24,1,EurizonFund - Bond Emerging Markets in Local Currencies ESG,9
-25,1,Eurizon Fund - Dynamic Asset Allocation,965
-26,1,Eurizon Fund - GreenEuro Credit,9
-27,1,Eurizon Fund - FlexibleMultistrategy,9
-28,1,Eurizon Fund - Italian Equity Opportunities,691
-29,1,Eurizon Fund - Bond USD LTE,107
-30,1, Eurizon Fund -Bond Aggregate RMB,9
-31,1,Eurizon Fund - Equity World ESG Leaders LTE,341
-32,1,Eurizon Fund - Bond High Yield,613
-33,1,Eurizon Fund - Equity Japan LTE,290
-34,1,Eurizon Fund - Global Multi Credit,1012
-35,1,Eurizon Fund - Bond Aggregate EUR,537
-36,1,Eurizon Fund - Bond Aggregate EUR Short Term,526
-37,1,Eurizon Fund - BondCorporate EUR Short Term,9
-38,1,Eurizon Fund - Equity Emerging Markets LTE,312
-39,1,Eurizon Fund - European Union Bonds,9
-40,1,Eurizon Fund - Flexible US Strategy,1008
-41,1,Eurizon Fund - Absolute High Yield,843
-42,1,Eurizon Fund - Absolute Active,814
-43,1,Eurizon Fund - Flexible Allocation,982
-44,1,Eurizon Fund - Securitized Bond Fund,1046
-45,1,Eurizon Fund - Top European Research,697
-46,1,Eurizon Fund - BondAggregate EUR,9
-47,1,Eurizon Fund - Equity People,791
-48,1,Eurizon Fund - Global Bond,582
-49,1,Eurizon Fund - SustainableGlobal Equity,9
-50,1,Eurizon Fund - Equity High Dividend,807
-51,1,Eurizon Fund - Green Euro Credit,514
-52,1,Eurizon Fund - SLJ Local Emerging Markets Debt ,9
-53,1,Eurizon Fund - Azioni Strategia Flessibile,902
-54,1,Eurizon Fund - Absolute HighYield,9
-55,1,Eurizon Fund - Absolute Prudent,854
-56,1,Eurizon Fund - Bond Emerging Markets,634
-57,1,Eurizon Fund - Bond EUR Medium Term LTE,35
-58,1,Eurizon Fund - Equity Small Mid Cap Europe,705
-59,1,Eurizon Fund - Equity Planet,771
-60,1,Eurizon Fund - Bond EUR Long Term LTE,42
-61,1,EurizonFund - Equity People,9
-62,1,Eurizon Fund - Bond Short Term EUR T1,454
-63,1,Eurizon Fund - Global Bond LTE,127
-64,1,Eurizon Fund - Flexible Europe Strategy,992
-65,1,Eurizon Fund - Equity Circular Economy,799
-66,1,Eurizon Fund - Equity Emerging Markets Smart Volatility,405
-67,1, EurizonFund - Sustainable Multiasset,9
-68,1,Eurizon Fund - Flexible Multistrategy,1000
-69,1,Eurizon Fund - Active Allocation,881
-70,1,Eurizon Fund - Bond Euro High Yield,602
-71,1,Eurizon Fund - Money Market EUR T1,448
-72,1,Eurizon Fund - Bond Corporate EUR Short Term,472
-73,1,Eurizon Fund - Absolute Return Solution,865
-74,1,Eurizon Fund - SLJ FlexibleGlobal Macro,9
-75,1,Eurizon Fund - EquityHigh Dividend,9
-76,1,Eurizon Fund - Bond Inflation Linked,9
-77,1,Eurizon Fund - Bond EUR Short Term LTE,31
-78,1,Eurizon Fund - EuroEmerging Markets Bonds,9
-79,1,Eurizon Fund - Sustainable Japan Equity,725
-80,1,Eurizon Fund - Absolute Green Bonds,825
-81,1,Eurizon Fund - Equity Italy Smart Volatility,389
-82,1,Eurizon Fund - Equity Europe LTE,209
-83,1,Eurizon Fund - Global Bond Inflation Linked,9
-84,1,Eurizon Fund - Bond USD Short Term LTE,114
+1,1,Eurizon Fund - Azioni Strategia Flessibile,902
+2,1,Eurizon Fund - Bond Flexible,913
+3,1,Eurizon Fund - Sustainable Japan Equity,725
+4,1,Eurizon Fund - Bond Aggregate EUR Short Term,526
+5,1,Eurizon Fund - Equity Emerging Markets LTE,312
+6,1,Eurizon Fund - Equity China A ,10
+7,1,Eurizon Fund - Money Market USD T1,451
+8,1,Eurizon Fund - Bond Inflation Linked,9
+9,1,Eurizon Fund - Bond USD Short Term LTE,114
+10,1,Eurizon Fund - Equity Italy Smart Volatility,389
+11,1,Eurizon Fund - Sustainable Multiasset,1057
+12,1,Eurizon Fund - Green Euro Credit,514
+13,1,Eurizon Fund - Global Multi Credit,1012
+14,1, Eurizon Fund -Bond Aggregate RMB,9
+15,1,Eurizon Fund - Bond Corporate EUR Short Term LTE,176
+16,1,Eurizon Fund - GreenEuro Credit,9
+17,1,Eurizon Fund - Bond USD LTE,107
+18,1,Eurizon Fund - Bond EUR Long Term LTE,42
+19,1,Eurizon Fund - EuroEmerging Markets Bonds,9
+20,1,Eurizon Fund - Equity World Smart Volatility,428
+21,1,Eurizon Fund - Inflation Strategy,1033
+22,1,Eurizon Fund - Global Bond LTE,127
+23,1,Eurizon Fund - FlexibleMultistrategy,9
+24,1, EurizonFund - Sustainable Multiasset,9
+25,1,Eurizon Fund - European Union Bonds,9
+26,1,Eurizon Fund - Equity China Smart Volatility,399
+27,1,Eurizon Fund - Equity Europe LTE,209
+28,1,Eurizon Fund - BondAggregate EUR,9
+29,1,Eurizon Fund - Equity People,791
+30,1,Eurizon Fund - Italian Equity Opportunities,691
+31,1,Eurizon Fund - Bond Euro High Yield,602
+32,1,Eurizon Fund - Absolute Green Bonds,825
+33,1,Eurizon Fund - Bond Corporate EUR,490
+34,1,Eurizon Fund - BondCorporate EUR Short Term,9
+35,1,Eurizon Fund - Flexible Allocation,982
+36,1,EurizonFund - Equity People,9
+37,1,Eurizon Fund - China Opportunity,944
+38,1,Eurizon Fund - Bond Aggregate EUR,537
+39,1,Eurizon Fund - Absolute Return Solution,865
+40,1,Eurizon Fund - Absolute High Yield,843
+41,1,Eurizon Fund - Bond High Yield,613
+42,1,Eurizon Fund - Equity Innovation,783
+43,1,Eurizon Fund - Asian Debt Opportunities,897
+44,1,Eurizon Fund - Equity Circular Economy,799
+45,1,Eurizon Fund - Absolute Prudent,854
+46,1,Eurizon Fund - Sustainable Global Equity,761
+47,1,Eurizon Fund - Global Bond Inflation Linked,9
+48,1,Eurizon Fund - Active Allocation,881
+49,1,Eurizon Fund - Equity USA ESG LTE,252
+50,1,Eurizon Fund - Flexible US Strategy,1008
+51,1,Eurizon Fund - Bond Corporate EUR Short Term,472
+52,1,Eurizon Fund - Equity Europe ESG LTE,226
+53,1,Eurizon Fund - Flexible Europe Strategy,992
+54,1,Eurizon Fund - Equity Planet,771
+55,1,Eurizon Fund - Equity Emerging Markets Smart Volatility,405
+56,1,Eurizon Fund - SLJ Local Emerging Markets Debt ,9
+57,1,Eurizon Fund - Cash EUR,461
+58,1,Eurizon Fund - Bond EUR Short Term LTE,31
+59,1,Eurizon Fund - Equity Japan LTE,290
+60,1,Eurizon Fund - Bond EUR Medium Term LTE,35
+61,1,Eurizon Fund - Global Bond,582
+62,1,Eurizon Fund - Equity Small Mid Cap Europe,705
+63,1,Eurizon Fund - ChinaCredit Opportunities,9
+64,1,Eurizon Fund - Equity USA,714
+65,1,Eurizon Fund - SustainableGlobal Equity,9
+66,1,Eurizon Fund - Flexible Multistrategy,1000
+67,1,Eurizon Fund - Top European Research,697
+68,1,Eurizon Fund - Equity USA ESG Leaders LTE,242
+69,1,Eurizon Fund - Securitized Bond Fund,1046
+70,1,EurizonFund - Bond Emerging Markets in Local Currencies ESG,9
+71,1,Eurizon Fund - Equity Euro LTE,198
+72,1,Eurizon Fund - Equity North America LTE,268
+73,1,Eurizon Fund - Bond Emerging Markets,634
+74,1,Eurizon Fund - Conservative Allocation,950
+75,1,Eurizon Fund - SLJ FlexibleGlobal Macro,9
+76,1,Eurizon Fund - Equity World ESG Leaders LTE,341
+77,1,Eurizon Fund - EquityHigh Dividend,9
+78,1,Eurizon Fund - Bond Short Term EUR T1,454
+79,1,Eurizon Fund - Equity High Dividend,807
+80,1,Eurizon Fund - Absolute HighYield,9
+81,1,Eurizon Fund - Asian Equity Opportunities,738
+82,1,Eurizon Fund - Bond Corporate Smart ESG,364
+83,1,Eurizon Fund - Money Market EUR T1,448
+84,1,Eurizon Fund - Dynamic Asset Allocation,965
+85,1,Eurizon Fund - Absolute Active,814

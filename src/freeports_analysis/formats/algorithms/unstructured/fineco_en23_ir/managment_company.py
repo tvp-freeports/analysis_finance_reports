@@ -14,13 +14,7 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.output import (
-    ManagementCompany,
-    InvestmentsManager,
-    Investment,
-    AssetsManager,
-    Fund,
-)
+from freeports_analysis import output
 from enum import Enum, auto
 
 
@@ -52,12 +46,14 @@ def pdf_filter(page):
 
 def text_extract(blks, filter_data):
     inv_funds = set(
-        Fund(name=n.fund)
-        for n in filter(lambda x: isinstance(x, Investment), filter_data)
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, output.Investment), filter_data)
     )
     a_funds = set(
-        Fund(name=n)
-        for inv in filter(lambda x: isinstance(x, InvestmentsManager), filter_data)
+        MatchFund(name=n)
+        for inv in filter(
+            lambda x: isinstance(x, output.InvestmentsManager), filter_data
+        )
         for n in inv.managed_funds
     )
     return [
@@ -76,6 +72,10 @@ def text_extract(blks, filter_data):
 
 def deserialize(blk):
     if blk.type_block == BlockType.INV_MAN:
-        return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
+        return output.InvestmentsManager(
+            name=blk.content, managed_funds=blk.metadata["funds"]
+        )
     elif blk.type_block == BlockType.MANCO:
-        return ManagementCompany(name=blk.content, managed_funds=blk.metadata["funds"])
+        return output.ManagementCompany(
+            name=blk.content, managed_funds=blk.metadata["funds"]
+        )

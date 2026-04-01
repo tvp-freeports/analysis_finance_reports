@@ -12,10 +12,11 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractFundStandard,
 )
 from freeports_analysis.formats.utils.text_filter import OneTextBlockType
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import to_currency, to_int
 from freeports_analysis.consts import Currency
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
-from freeports_analysis.output import FundAssets, Fund
+from freeports_analysis import output
 
 
 def pdf_extract(page):
@@ -84,17 +85,22 @@ def pdf_extract(page):
 
 
 def text_filter(blks, filter_data):
-    filter_funds = set(filter(lambda x: isinstance(x, Fund), filter_data))
+    filter_funds = set(
+        map(
+            lambda x: MatchFund(name=x),
+            filter(lambda x: isinstance(x, output.Fund), filter_data),
+        )
+    )
     return [
         TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, "")
         for blk in blks
-        if Fund(name=blk.metadata["fund"]) in filter_funds
+        if MatchFund(name=blk.metadata["fund"]) in filter_funds
     ]
 
 
 def deserialize(blk):
     md = blk.metadata
-    return FundAssets(
+    return output.FundAssets(
         fund=md["fund"],
         currency=to_currency(md["currency"]),
         tot_assets=float(to_int(md["tot_assets"])),

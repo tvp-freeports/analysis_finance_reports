@@ -34,10 +34,11 @@ from freeports_analysis.conf_parse import (
     OutFlagsBatchMode,
     OutFlagsNormalMode,
 )
-from freeports_analysis.formats.utils.text_filter.match import normalize_string
+from freeports_analysis.formats.utils.text_filter import match
 from freeports_analysis.data import COMPANIES
 from freeports_analysis.consts import Promise, Currency, PromisesResolutionMap
 from freeports_analysis.i18n import _
+from freeports_analysis import match
 from .files_schema import (
     investments_schema,
     assets_managers_schema,
@@ -191,7 +192,31 @@ PromisedAcquisitionCurrency = Annotated[
 PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
 
 
-class Investment(BaseModel, ABC):
+class PromisableDict:
+    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
+        """Resolve all promise objects in this financial data instance.
+
+        Processes each attribute that may contain a Promise object, resolving it
+        using the provided mapping and performing validation where required.
+
+        Parameters
+        ----------
+        mapping : PromisesResolutionMap
+            Dictionary containing values to resolve promises from.
+
+        Notes
+        -----
+        For attributes that require validation (perc_net_assets, company),
+        the resolved values will be validated before assignment. This method
+        iterates through all model attributes and resolves any Promise objects
+        found, updating the instance in place.
+        """
+        for k, v in self.model_dump().items():
+            if isinstance(v, Promise):
+                setattr(self, k, v.fulfill_with(mapping))
+
+
+class Investment(BaseModel, ABC, PromisableDict):
     """Abstract base class representing a financial investment.
 
     This class serves as the foundation for different types of financial
@@ -288,28 +313,6 @@ class Investment(BaseModel, ABC):
     def __hash__(self):
         return hash(frozenset(self.model_dump(mode="json").items()))
 
-    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
-        """Resolve all promise objects in this financial data instance.
-
-        Processes each attribute that may contain a Promise object, resolving it
-        using the provided mapping and performing validation where required.
-
-        Parameters
-        ----------
-        mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
-
-        Notes
-        -----
-        For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment. This method
-        iterates through all model attributes and resolves any Promise objects
-        found, updating the instance in place.
-        """
-        for k, v in self.model_dump().items():
-            if isinstance(v, Promise):
-                setattr(self, k, v.fulfill_with(mapping))
-
 
 class Equity(Investment):
     """Represents an equity investment (stocks, shares)."""
@@ -364,7 +367,7 @@ class Bond(Investment):
         return string
 
 
-class AssetsManager(BaseModel, ABC):
+class AssetsManager(BaseModel, ABC, PromisableDict):
     model_config = ConfigDict(
         validate_assignment=True,
         arbitrary_types_allowed=True,
@@ -378,28 +381,6 @@ class AssetsManager(BaseModel, ABC):
     def __hash__(self):
         return hash((self.name, frozenset(self.managed_funds)))
 
-    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
-        """Resolve all promise objects in this financial data instance.
-
-        Processes each attribute that may contain a Promise object, resolving it
-        using the provided mapping and performing validation where required.
-
-        Parameters
-        ----------
-        mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
-
-        Notes
-        -----
-        For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment. This method
-        iterates through all model attributes and resolves any Promise objects
-        found, updating the instance in place.
-        """
-        for k, v in self.model_dump().items():
-            if isinstance(v, Promise):
-                setattr(self, k, v.fulfill_with(mapping))
-
 
 class ManagementCompany(AssetsManager):
     """Rappresent the manager"""
@@ -409,53 +390,21 @@ class InvestmentsManager(AssetsManager):
     """Rappresent the InvestmentsManager"""
 
 
-class Fund(BaseModel):
+class Fund(BaseModel, match.MatchFund, PromisableDict):
     name: str
-    _n_name: str
 
-    def __str__(self):
-        return self._n_name
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if isinstance(self.name, Promise):
-            self._n_name = self.name
-        else:
-            self._n_name = normalize_string(self.name)
+    def __init__(self, name):
+        BaseModel.__init__(self, name=name)
+        match.MatchFund.__init__(self, name)
 
     def __hash__(self):
-        return hash(self._n_name)
+        return match.MatchFund.__hash__(self)
 
     def __eq__(self, other):
-        return isinstance(self, other.__class__) and hash(self) == hash(other)
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}("{self.name}")'
-
-    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
-        """Resolve all promise objects in this financial data instance.
-
-        Processes each attribute that may contain a Promise object, resolving it
-        using the provided mapping and performing validation where required.
-
-        Parameters
-        ----------
-        mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
-
-        Notes
-        -----
-        For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment. This method
-        iterates through all model attributes and resolves any Promise objects
-        found, updating the instance in place.
-        """
-        for k, v in self.model_dump().items():
-            if isinstance(v, Promise):
-                setattr(self, k, v.fulfill_with(mapping))
+        return match.MatchFund.__eq__(self, other)
 
 
-class FundAssets(BaseModel):
+class FundAssets(BaseModel, PromisableDict):
     model_config = ConfigDict(
         validate_assignment=True,
         arbitrary_types_allowed=True,
@@ -480,27 +429,16 @@ class FundAssets(BaseModel):
     def __repr__(self):
         return f'{self.__class__.__name__}(fund="{self.fund}",tot_assets={self.tot_assets},liabilities={self.liabilities},net_assets={self.net_assets},currency={self.currency})'
 
-    def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
-        """Resolve all promise objects in this financial data instance.
-
-        Processes each attribute that may contain a Promise object, resolving it
-        using the provided mapping and performing validation where required.
-
-        Parameters
-        ----------
-        mapping : PromisesResolutionMap
-            Dictionary containing values to resolve promises from.
-
-        Notes
-        -----
-        For attributes that require validation (perc_net_assets, company),
-        the resolved values will be validated before assignment. This method
-        iterates through all model attributes and resolves any Promise objects
-        found, updating the instance in place.
-        """
-        for k, v in self.model_dump().items():
-            if isinstance(v, Promise):
-                setattr(self, k, v.fulfill_with(mapping))
+    def __hash__(self):
+        return hash(
+            (
+                self.tot_assets,
+                self.liabilities,
+                self.net_assets,
+                self.currency,
+                self.fund,
+            )
+        )
 
 
 def transform_to_files_schema(

@@ -4,8 +4,9 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
-from freeports_analysis.output import Fund, InvestmentsManager, ManagementCompany
+from freeports_analysis import output
 from enum import Enum, auto
 
 
@@ -62,7 +63,12 @@ def pdf_extract_manco(page):
 
 
 def text_filter(pdf_blocks, filter_data):
-    subfunds = set(filter(lambda x: isinstance(x, Fund), filter_data))
+    subfunds = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, output.Fund), filter_data),
+        )
+    )
     blocks = []
     manco = None
     for b in pdf_blocks:
@@ -142,12 +148,16 @@ def text_filter(pdf_blocks, filter_data):
 
 def deserialize(blk):
     if blk.type_block == BlockType.INV_MAN:
-        return InvestmentsManager(name=blk.content, managed_funds=blk.metadata["funds"])
+        return output.InvestmentsManager(
+            name=blk.content, managed_funds=blk.metadata["funds"]
+        )
 
 
 def deserialize_manco(blk):
     if blk.type_block == BlockType.MANCO:
-        return ManagementCompany(name=blk.content, managed_funds=blk.metadata["funds"])
+        return output.ManagementCompany(
+            name=blk.content, managed_funds=blk.metadata["funds"]
+        )
 
 
 deserialize_fund = DeserializerFundStandard()

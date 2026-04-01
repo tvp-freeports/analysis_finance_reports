@@ -13,7 +13,7 @@ from typing import List, Union
 import pandera.pandas as pa
 import pandas as pd
 from freeports_analysis.i18n import _
-from freeports_analysis.formats.utils.text_filter.match import normalize_string
+from freeports_analysis import match
 
 logger = log.getLogger()
 
@@ -45,7 +45,10 @@ def _stem_contained_in_name(df: pd.DataFrame) -> bool:
 
     if not valid_rows.empty:
         check_mask = valid_rows.apply(
-            lambda row: normalize_string(row["Bud"]) in normalize_string(row["Name"]),
+            lambda row: (
+                match.normalize_string(row["Bud"])
+                in match.normalize_string(row["Name"])
+            ),
             axis=1,
         )
         if not check_mask.all():
@@ -79,7 +82,8 @@ def _regex_match_name(df: pd.DataFrame) -> bool:
 
     if not valid_rows.empty:
         check_mask = valid_rows.apply(
-            lambda row: re.match(row["Regex"], normalize_string(row["Name"])), axis=1
+            lambda row: re.match(row["Regex"], match.normalize_string(row["Name"])),
+            axis=1,
         )
         if not check_mask.all():
             invalid_rows = valid_rows[~check_mask]
@@ -94,11 +98,11 @@ companies_schema = pa.DataFrameSchema(
     columns={
         "Name": pa.Column(
             pd.StringDtype,
-            checks=pa.Check(lambda x: x.apply(normalize_string) == x),
+            checks=pa.Check(lambda x: x.apply(match.normalize_string) == x),
         ),
         "Bud": pa.Column(
             pd.StringDtype,
-            checks=pa.Check(lambda x: x.apply(normalize_string) == x),
+            checks=pa.Check(lambda x: x.apply(match.normalize_string) == x),
             nullable=True,
         ),
         "Regex": pa.Column(pd.StringDtype, nullable=True),
@@ -124,7 +128,7 @@ def get_companies() -> pd.DataFrame:
     """
     df = pd.read_csv(data / "companies.csv")
     df.set_index("Name", drop=False, inplace=True)
-    df["Name"] = df["Name"].apply(normalize_string)
+    df["Name"] = df["Name"].apply(match.normalize_string)
     return companies_schema.validate(df)
 
 
@@ -174,7 +178,7 @@ companies_additional_buds_schema = pa.DataFrameSchema(
     columns={
         "Bud": pa.Column(
             pd.StringDtype,
-            checks=pa.Check(lambda x: x.apply(normalize_string) == x),
+            checks=pa.Check(lambda x: x.apply(match.normalize_string) == x),
         )
     },
     coerce=True,

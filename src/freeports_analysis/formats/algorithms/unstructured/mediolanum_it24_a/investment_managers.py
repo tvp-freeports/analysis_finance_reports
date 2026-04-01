@@ -10,6 +10,7 @@ from freeports_analysis.formats.utils.text_filter.match import normalize_string
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import DeserializerFundStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TableConfig,
@@ -17,13 +18,7 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
     TablePosAlgorithm,
 )
-from freeports_analysis.output import (
-    ManagementCompany,
-    InvestmentsManager,
-    Investment,
-    AssetsManager,
-    Fund,
-)
+from freeports_analysis import output
 from enum import Enum, auto
 
 
@@ -118,7 +113,7 @@ def text_filter_with_subfunds(blocks, subfunds):
             if r.endswith(")"):
                 invs[current_inv] = set(
                     (
-                        Fund(name=s.strip())
+                        MatchFund(name=s.strip())
                         for s in current_fund.replace(")", "").split(",")
                     )
                 )
@@ -130,7 +125,7 @@ def text_filter_with_subfunds(blocks, subfunds):
                 if r.endswith(")"):
                     invs[current_inv] = set(
                         (
-                            Fund(name=s.strip())
+                            MatchFund(name=s.strip())
                             for s in current_fund.replace(")", "").split(",")
                         )
                     )
@@ -154,13 +149,15 @@ def text_filter_with_subfunds(blocks, subfunds):
 
 
 def text_filter(blocks, results):
-    funds = set(filter(lambda x: isinstance(x, Fund), results))
+    funds = set(filter(lambda x: isinstance(x, output.Fund), results))
     return text_filter_with_subfunds(blocks, funds)
 
 
 def text_filter_begin_page(blocks, results):
-    filter_funds = set(filter(lambda x: isinstance(x, Fund), results))
-    inv_managers = list(filter(lambda x: isinstance(x, InvestmentsManager), results))
+    filter_funds = set(filter(lambda x: isinstance(x, output.Fund), results))
+    inv_managers = list(
+        filter(lambda x: isinstance(x, output.InvestmentsManager), results)
+    )
     a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
     residual_funds = filter_funds - a_subfunds
 
@@ -170,10 +167,20 @@ def text_filter_begin_page(blocks, results):
     res_inv = text_filter_with_subfunds(inv_blocks, filter_funds)
     res_manco = text_filter_with_subfunds(manco_blocks, filter_funds)
     additional_a_subfunds = set(
-        [Fund(name=s) for inv in res_inv for s in inv.metadata["funds"]]
+        [
+            MatchFund(name=s)
+            for inv in res_inv
+            if isinstance(inv, output.InvestmentsManager)
+            for s in inv.metadata["funds"]
+        ]
     )
     additional_manco_subfunds = set(
-        [Fund(name=s) for inv in res_manco for s in inv.metadata["funds"]]
+        [
+            MatchFund(name=s)
+            for inv in res_manco
+            if isinstance(inv, output.InvestmentsManager)
+            for s in inv.metadata["funds"]
+        ]
     )
 
     funds_manco = residual_funds - additional_a_subfunds - additional_manco_subfunds
@@ -209,11 +216,11 @@ def text_filter_begin_page(blocks, results):
 
 def deserialize(text_block):
     if text_block.type_block == TipiBlocco.INV:
-        return InvestmentsManager(
+        return output.InvestmentsManager(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
         )
     elif text_block.type_block == TipiBlocco.MAN:
-        return ManagementCompany(
+        return output.ManagementCompany(
             name=text_block.content, managed_funds=text_block.metadata["funds"]
         )
 

@@ -22,7 +22,7 @@ from pydantic import (
     TypeAdapter,
 )
 
-from freeports_analysis.data import TARGET_LISTS
+from freeports_analysis import data
 from freeports_analysis.formats.data import VALID_FORMATS, url_to_format
 from freeports_analysis.i18n import _
 
@@ -492,7 +492,7 @@ DEFAULT_CONFIG = {
     "FORMAT": None,
     "CONFIG_FILE": FreeportsFileConfig.find_config(),
     "SAVE_PDF": True,
-    "TARGET_LISTS": TARGET_LISTS,
+    "TARGET_LISTS": data.TARGET_LISTS,
     "VERBOSITY": 2,
     "N_WORKERS": os.process_cpu_count() if (os.name == "posix") else os.cpu_count(),
     "BATCH_FILE": None,
