@@ -351,10 +351,6 @@ class PdfExtractAssetsStandard:
             self.net_assets_height,
         ).select(lines)
 
-        print("tot_assets", tot_assets)
-        print("liabilities", liabilities)
-        print("net_assets", net_assets)
-
         if self.currency_selection is not None:
             funds = [self.fund_selection(lines)]
             currencies = [self.currency_selection(lines)]
