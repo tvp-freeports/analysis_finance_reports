@@ -105,6 +105,8 @@ def rotate_lines_inplace(lines, width, height):
     D0 = (width, 0.0)
     for line in lines:
         c, s = line["dir"]
+        if c == 1.0 and s == 0.0:
+            continue
         new_left = min(map(lambda p: c * p[0] + s * p[1], (A0, B0, C0, D0)))
         new_top = min(map(lambda p: c * p[1] - s * p[0], (A0, B0, C0, D0)))
         line["bbox"] = rotate_bbox(line["bbox"], c, s, new_left, new_top)
