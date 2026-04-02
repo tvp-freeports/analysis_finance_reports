@@ -41,6 +41,7 @@ from shapely import Polygon, box
 from portion.interval import Interval
 from freeports_analysis.i18n import _
 from .position import InputArea
+import copy
 
 PdfLineSelection = freeports_lib.pdf_extract.select.PdfLineSelection
 PdfLine = freeports_lib.pdf_extract.select.PdfLine
@@ -80,14 +81,14 @@ def collapsedspans_from_line(l, treshold=1e-1):
     return res
 
 
-def rotate_bbox(bbox, c, s, new_left, new_top):
+def rotate_bbox(bbox, cs, sn, new_left, new_top):
     x0, y0, x1, y1 = bbox
     a = (x0, y0)
     b = (x0, y1)
     c = (x1, y1)
     d = (x1, y0)
-    new_Xs1 = map(lambda p: c * p[0] - s * p[1], (a, b, c, d))
-    new_Ys1 = map(lambda p: c * p[1] + s * p[0], (a, b, c, d))
+    new_Xs1 = map(lambda p: cs * p[0] + sn * p[1], (a, b, c, d))
+    new_Ys1 = map(lambda p: cs * p[1] - sn * p[0], (a, b, c, d))
     new_Xs2 = copy.deepcopy(new_Xs1)
     new_Ys2 = copy.deepcopy(new_Ys1)
     new_x0 = min(new_Xs1)
@@ -104,8 +105,8 @@ def rotate_lines_inplace(lines, width, height):
     D0 = (width, 0.0)
     for line in lines:
         c, s = line["dir"]
-        new_left = min(map(lambda p: c * p[0] - s * p[1], (A0, B0, C0, D0)))
-        new_top = min(map(lambda p: c * p[1] + s * p[0], (A0, B0, C0, D0)))
+        new_left = min(map(lambda p: c * p[0] + s * p[1], (A0, B0, C0, D0)))
+        new_top = min(map(lambda p: c * p[1] - s * p[0], (A0, B0, C0, D0)))
         line["bbox"] = rotate_bbox(line["bbox"], c, s, new_left, new_top)
         for span in line["spans"]:
             span["bbox"] = rotate_bbox(span["bbox"], c, s, new_left, new_top)
