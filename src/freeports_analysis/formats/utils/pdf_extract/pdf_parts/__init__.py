@@ -80,8 +80,42 @@ def collapsedspans_from_line(l, treshold=1e-1):
     return res
 
 
-def pdflines_from_pagedict(page):
+def rotate_bbox(bbox, c, s, new_left, new_top):
+    x0, y0, x1, y1 = bbox
+    a = (x0, y0)
+    b = (x0, y1)
+    c = (x1, y1)
+    d = (x1, y0)
+    new_Xs1 = map(lambda p: c * p[0] - s * p[1], (a, b, c, d))
+    new_Ys1 = map(lambda p: c * p[1] + s * p[0], (a, b, c, d))
+    new_Xs2 = copy.deepcopy(new_Xs1)
+    new_Ys2 = copy.deepcopy(new_Ys1)
+    new_x0 = min(new_Xs1)
+    new_x1 = max(new_Xs2)
+    new_y0 = min(new_Ys1)
+    new_y1 = max(new_Ys2)
+    return (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
+
+
+def rotate_lines_inplace(lines, width, height):
+    A0 = (0.0, 0.0)
+    B0 = (0.0, height)
+    C0 = (width, height)
+    D0 = (width, 0.0)
+    for line in lines:
+        c, s = line["dir"]
+        new_left = min(map(lambda p: c * p[0] - s * p[1], (A0, B0, C0, D0)))
+        new_top = min(map(lambda p: c * p[1] + s * p[0], (A0, B0, C0, D0)))
+        line["bbox"] = rotate_bbox(line["bbox"], c, s, new_left, new_top)
+        for span in line["spans"]:
+            span["bbox"] = rotate_bbox(span["bbox"], c, s, new_left, new_top)
+        line["dir"] = (1.0, 0.0)
+
+
+def pdflines_from_pagedict(page, auto_rotate=True):
     lines = [l for blk in page["blocks"] if "lines" in blk for l in blk["lines"]]
+    if auto_rotate:
+        rotate_lines_inplace(lines, page["width"], page["height"])
     args = [s for l in list(map(collapsedspans_from_line, lines)) for s in l]
     return [
         PdfLine(
