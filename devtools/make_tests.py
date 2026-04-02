@@ -260,7 +260,7 @@ def add_page_test(
             with open(txt_blks_file, "wb") as f:
                 dill.dump(txt_blks, f)
                 print(f"Saved {len(txt_blks)} text blocks in {txt_blks_file}...")
-        if filter_data_file is not None:
+        if out_filter_data_file is not None:
             if out_filter_data_file.exists():
                 if noconfirm or not user_confirm(
                     f"Filter data file for page category {page_type} already present, do you want to overwrite it?",

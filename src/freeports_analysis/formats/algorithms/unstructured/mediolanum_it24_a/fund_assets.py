@@ -18,6 +18,7 @@ from freeports_analysis.formats.utils.text_filter import (
 from freeports_analysis.formats.utils.deserialize import to_int, to_currency
 from freeports_analysis.consts import Currency
 from freeports_analysis.output import Fund, FundAssets
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 
 pdf_extract_currency = PdfExtractCurrencyStandard(
     PdfLineSelection(text="(valori espressi in")
@@ -69,7 +70,12 @@ def pdf_extract(page):
 
 
 def text_filter(blks, filter_data):
-    filter_funds = set(filter(lambda x: isinstance(x, Fund), filter_data))
+    filter_funds = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, Fund), filter_data),
+        )
+    )
     fund_currency = None
     net_assets_md = []
     for b in blks:
@@ -85,7 +91,7 @@ def text_filter(blks, filter_data):
             OneTextBlockType.RELEVANT_BLOCK, {**md, "currency": fund_currency}, ""
         )
         for md in net_assets_md
-        if Fund(name=md["fund"]) in filter_funds
+        if MatchFund(name=md["fund"]) in filter_funds
     ]
 
 

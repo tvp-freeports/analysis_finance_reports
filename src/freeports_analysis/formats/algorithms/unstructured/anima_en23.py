@@ -10,15 +10,19 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractCurrencyStandard,
     PdfExtractFundStandard,
+    PdfExtractManagmentCompanyStandard,
 )
 from freeports_analysis.formats.utils.text_filter import (
     ResultStandardFiltering,
+    TextFilterManagmentCompanyStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
-
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerManagmentCompanyStandard,
+)
 from freeports_analysis.formats.algorithms import PdfBlock
 
 
@@ -133,6 +137,20 @@ deserialize = DeserializeAssetsStandard(converter=to_int)
 
 pipelines = {
     "fund_assets": Pipeline(pdf_extract, text_filter, deserialize),
+    "manco": Pipeline(
+        pdf_extract=PdfExtractManagmentCompanyStandard(
+            PdfLineSelection.area_from_movewindow(
+                PdfLineSelection(
+                    text="Manager, Promoter and Distributor", font="helvetica-bold"
+                ),
+                (-0.1, 1.0),
+                1.3,
+                1.5,
+            )
+        ),
+        text_filter=TextFilterManagmentCompanyStandard(),
+        deserialize=DeserializerManagmentCompanyStandard(),
+    ),
     "investments": Pipeline(
         pdf_extract=(
             pdf_extract_investments,
@@ -140,4 +158,3 @@ pipelines = {
         )
     ),
 }
-# pipelines = {"investments": Pipeline(pdf_extract=(pdf_extract1,pdf_extract_funds,pdf_extract),text_filter = text_filter, deserialize=deserialize)}

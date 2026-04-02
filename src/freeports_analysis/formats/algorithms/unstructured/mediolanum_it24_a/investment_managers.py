@@ -153,12 +153,22 @@ def text_filter_with_subfunds(blocks, subfunds):
 
 
 def text_filter(blocks, results):
-    funds = set(filter(lambda x: isinstance(x, output.Fund), results))
+    funds = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, output.Fund), results),
+        )
+    )
     return text_filter_with_subfunds(blocks, funds)
 
 
 def text_filter_begin_page(blocks, results):
-    filter_funds = set(filter(lambda x: isinstance(x, output.Fund), results))
+    filter_funds = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, output.Fund), results),
+        )
+    )
     inv_managers = list(
         filter(lambda x: isinstance(x, output.InvestmentsManager), results)
     )
