@@ -120,12 +120,12 @@ pdf_extract = PdfExtractAssetsStandard(
     net_assets_set=PdfLineSelection(
         font="helvetica-bold", font_size=(7.4, 7.6), text="^Net Assets"
     ),
-    tot_assets_vec=(2.0, 0.0),
-    liabilities_vec=(2.0, 0.0),
-    net_assets_vec=(2.0, 0.0),
-    tot_assets_mult=(100.0, 0.8),
-    liabilities_mult=(100.0, 0.8),
-    net_assets_mult=(100.0, 0.8),
+    tot_assets_vec=(1.2, 0.0),
+    liabilities_vec=(1.2, 0.0),
+    net_assets_vec=(1.2, 0.0),
+    tot_assets_mult=(100.0, 1.2),
+    liabilities_mult=(100.0, 2.2),
+    net_assets_mult=(100.0, 2.2),
 )
 
 text_filter = TextFilterAssetsStandard()
