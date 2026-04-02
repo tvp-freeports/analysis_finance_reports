@@ -175,8 +175,6 @@ class TextFilterTest(Function):
         #     dill.dump(result, f)
 
         expected = self.parent.cache.pkl.get_file(expected_path)
-        print(result)
-        print(expected)
         assert frozenset(result) == frozenset(expected), (
             f"Text filter failed for page {self.page_num} ({self.page_type})"
         )

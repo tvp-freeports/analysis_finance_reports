@@ -35,7 +35,7 @@ PdfBlockType: TypeAlias = OnePdfBlockType
 TextBlockType: TypeAlias = ResultStandardFiltering
 
 
-def pdf_extract1(dict_root) -> List[PdfBlock]:
+def pdf_extract_investments(dict_root) -> List[PdfBlock]:
     """PDF filter for ANIMA_EN23 format with dynamic table bounds calculation.
 
     This PDF filter dynamically calculates the bounds of the table by
@@ -135,7 +135,7 @@ pipelines = {
     "fund_assets": Pipeline(pdf_extract, text_filter, deserialize),
     "investments": Pipeline(
         pdf_extract=(
-            pdf_extract1,
+            pdf_extract_investments,
             pdf_extract_funds,
         )
     ),
