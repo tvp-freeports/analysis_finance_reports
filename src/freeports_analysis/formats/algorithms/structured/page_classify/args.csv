@@ -30,8 +30,9 @@ ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an offici
 DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",investments
 EURIZON-EN21,"ArialMT-Bold ""Face value/""",investments
 FIDEURAM-EN23,"Arial ""Country""",investments
-FIDEURAM-IT24,"Tahoma,Bold ""Titolo""",investments
-FIDEURAM-IT24,"Tahoma,Bold ""Controvalore""",investments
+FIDEURAM-IT24/0,"Tahoma,Bold ""Titolo""",investments
+FIDEURAM-IT24/0,"Tahoma,Bold ""Controvalore""",investments
+FIDEURAM-IT24/1,"arialitalic[15.48] ""Fondi comuni di investimento""",manco
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Descripc""",investments
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Divisa""",investments
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Periodo actual""",investments
