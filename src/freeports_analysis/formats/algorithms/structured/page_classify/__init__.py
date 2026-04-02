@@ -58,7 +58,6 @@ def get_args() -> pd.DataFrame:
         Validated DataFrame
     """
     df = pd.read_csv(data / "args.csv")
-    df["Class"] = df["Class"].fillna("investments")
     df = create_index_format_name_pipe(
         df,
         pipeline_default=pipeline_default,

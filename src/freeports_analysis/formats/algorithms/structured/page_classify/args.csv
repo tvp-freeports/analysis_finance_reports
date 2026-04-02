@@ -1,10 +1,10 @@
 ID,Header set,Class
-CARNE-EN23/0,"Arial-BoldMT ""Description""",
-CARNE-EN23/0,"Arial-BoldMT ""Currency""",
+CARNE-EN23/0,"Arial-BoldMT ""Description""",investments
+CARNE-EN23/0,"Arial-BoldMT ""Currency""",investments
 CARNE-EN23/1,"arial-boldmt ""Management Company""",manco
 CARNE-EN23/1,"arial-boldmt ""Legal adviser""",manco
-EURIZON-EN23/0,"Frutiger-Light ""Nominal /""",
-EURIZON-EN23/0,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",
+EURIZON-EN23/0,"Frutiger-Light ""Nominal /""",investments
+EURIZON-EN23/0,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",investments
 EURIZON-EN23/1,"frutiger-lightitalic ""MANAGEMENT COMPANY AND PROMOTER""",manco
 EURIZON-EN23/1,"frutiger-black ""ORGANISATION OF THE FUND""",manco
 EURIZON-EN23/2,"frutiger-lightitalic ""INVESTMENT MANAGERS""",inv_managers_begin
@@ -12,26 +12,26 @@ EURIZON-EN23/2,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_begin
 EURIZON-EN23/3,"frutiger-lightitalic ""INDEPENDENT AUDITOR OF THE""",inv_managers_end
 EURIZON-EN23/3,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_end
 EURIZON-EN23/4,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
-EURIZON-IT24,"TrebuchetMSBold ""Titolo""",
-EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",
-UBS-EN23,"Frutiger45LightBold ""Nominal """,
-MEDIOLANUM-IT24.A,"""Valutazione """,
-MEDIOLANUM-IT24.C,"""Valutazione """,
-AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",
-AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo""",
-ANIMA-EN23/0,"Helvetica-Bold ""Holdings""",
+EURIZON-IT24,"TrebuchetMSBold ""Titolo""",investments
+EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",investments
+UBS-EN23,"Frutiger45LightBold ""Nominal """,investments
+MEDIOLANUM-IT24.A,"""Valutazione """,investments
+MEDIOLANUM-IT24.C,"""Valutazione """,investments
+AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",investments
+AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo""",investments
+ANIMA-EN23/0,"Helvetica-Bold ""Holdings""",investments
 ANIMA-EN23/1,"helvetica-condensed-bold ""^Statement of Financial Position""",fund_assets
 ANIMA-EN23/1,"helvetica-condensed-blac ""ANIMA Funds Plc""",fund_assets
-ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",
-ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",
-ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",
-ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",
-ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",
-DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",
-EURIZON-EN21,"ArialMT-Bold ""Face value/""",
-FIDEURAM-EN23,"Arial ""Country""",
-FIDEURAM-IT24,"Tahoma,Bold ""Titolo""",
-FIDEURAM-IT24,"Tahoma,Bold ""Controvalore""",
+ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",investments
+ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",investments
+ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",investments
+ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",investments
+ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",investments
+DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",investments
+EURIZON-EN21,"ArialMT-Bold ""Face value/""",investments
+FIDEURAM-EN23,"Arial ""Country""",investments
+FIDEURAM-IT24,"Tahoma,Bold ""Titolo""",investments
+FIDEURAM-IT24,"Tahoma,Bold ""Controvalore""",investments
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Descripc""",
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Divisa""",
 MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Periodo actual""",
@@ -44,13 +44,13 @@ MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
 MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/DEPOSITARIO""",inv_managers_end
 MEDIOLANUM-IT24.A/3,"(:70) ""STATO PATRIMONIALE""",fund_assets
 MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
-MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",
-MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",
-MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",
-MEDIOLANUM-EN24/0,"[8.04] ""Face value""",
+MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",investments
+MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",investments
+MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",investments
+MEDIOLANUM-EN24/0,"[8.04] ""Face value""",investments
 MEDIOLANUM-EN24/1,"[9.48] ""MANAGER AND GLOBAL""",manco
-FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Domicile""",
-FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Shares""",
+FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Domicile""",investments
+FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Shares""",investments
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Notes to the Financial Statements""",inv_managers_table
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Sub-Fund""",inv_managers_table
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Investment Manager""",inv_managers_table
@@ -59,13 +59,14 @@ FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""
 FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""",manco
 FINECO-EN23@IR/3,"timesnewromanbold [10.02] ""Statement of Financial Position""",fund_assets
 FINECO-EN23@IR/3,"timesnewromanbold [9] ""Total assets""",fund_assets
-FINECO-EN23@LUX/0,"ArialNarrow-Bold ""Nominal """,
+FINECO-EN23@LUX/0,"ArialNarrow-Bold ""Nominal """,investments
 FINECO-EN23@LUX/1,"arialnarrow-bold [14] ""Organisation and Administration""",inv_managers
 FINECO-EN23@LUX/1,"arialnarrow-bold [11] ""Management Company and Global Distributor""",inv_managers
 FINECO-EN23@LUX/2,"arialnarrow-bold [14] (:100) ""Statement of Net Assets""",fund_assets
 FINECO-EN23@LUX/2,((400:)(150:750)),fund_assets
-KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",
+KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",investments
 KAIROS-EN23/1,"arialnarrow-bold[11.52] ""Organisational Structure""",manco
 KAIROS-EN23/1,"arialnarrow-bold ""Management Company""",manco
-UBS-EN23,"Frutiger45LightBold ""Description """,
-MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",
+UBS-EN23/0,"Frutiger45LightBold ""Description """,investments
+UBS-EN23/1,"Frutiger45LightBold ""Management Company and Domiciliation Agent""",manco
+MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",investments
