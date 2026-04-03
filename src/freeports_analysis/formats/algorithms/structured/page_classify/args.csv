@@ -12,8 +12,9 @@ EURIZON-EN23/2,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_begin
 EURIZON-EN23/3,"frutiger-lightitalic ""INDEPENDENT AUDITOR OF THE""",inv_managers_end
 EURIZON-EN23/3,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_end
 EURIZON-EN23/4,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
-EURIZON-IT24,"TrebuchetMSBold ""Titolo""",investments
-EURIZON-IT24,"TrebuchetMSBold ""Controvalore in""",investments
+EURIZON-IT24/0,"TrebuchetMSBold ""Titolo""",investments
+EURIZON-IT24/0,"TrebuchetMSBold ""Controvalore in""",investments
+EURIZON-IT24/1,"trebuchetmsbold ""SOCIETÀ DI GESTIONE""",manco
 UBS-EN23,"Frutiger45LightBold ""Nominal """,investments
 MEDIOLANUM-IT24.A,"""Valutazione """,investments
 MEDIOLANUM-IT24.C,"""Valutazione """,investments
