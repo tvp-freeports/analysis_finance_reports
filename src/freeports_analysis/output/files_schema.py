@@ -93,6 +93,32 @@ funds_assets_schema = pa.DataFrameSchema(
     ),
 )
 
+funds_renames_schema = pa.DataFrameSchema(
+    {
+        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+        "Old name": pa.Column(pd.StringDtype),
+        "From": pa.Column(datetime.date),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
+        "Document": pa.Column(pd.StringDtype, required=False),
+    },
+    strict=True,
+    coerce=True,
+    index=pa.MultiIndex(
+        [
+            pa.Index(
+                pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
+            ),
+            pa.Index(
+                pd.Int32Dtype,
+                checks=pa.Check.greater_than(0),
+                name="Fund ID",  # ,unique=True
+            ),
+        ]
+    ),
+)
+
 
 funds_schema = pa.DataFrameSchema(
     {
@@ -136,6 +162,7 @@ assets_managers_schema = pa.DataFrameSchema(
         pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
     ),
 )
+
 
 investments_managers_schema = pa.DataFrameSchema(
     {},

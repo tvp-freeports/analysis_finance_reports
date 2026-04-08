@@ -144,24 +144,15 @@ class TextFilterTest(Function):
     def runtest(self):
         algorithm = self.parent.cache.algorithm.load(self.format_name)
 
-        # Load PDF blocks
-        pdf_path = (
-            self.parent.path
-            / "pages"
-            / self.page_type
-            / f"{self.page_num}-pdf_blks.pkl"
-        )
-
         filter_data = test_companies
         if self.is_filter_data:
             filter_data = self.parent.cache.pkl.get_file(
                 self.parent.path / "pages" / self.page_type / "filter_data.pkl"
             )
 
-        pdf_blks = self.parent.cache.pkl.get_file(pdf_path)
-
+        page_content = self.parent.get_page(self.page_num)
         # Run test
-        result = algorithm.apply_text_filter(pdf_blks, filter_data, self.page_type)
+        result = algorithm.apply_text_filter(page_content, filter_data, self.page_type)
 
         # Get expected text blocks
         expected_path = (
@@ -186,20 +177,21 @@ class DeserializeTest(Function):
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
+        self.is_filter_data = (
+            self.parent.path / "pages" / self.page_type / "filter_data.pkl"
+        ).exists()
 
     def runtest(self):
         algorithm = self.parent.cache.algorithm.load(self.format_name)
+        filter_data = test_companies
+        if self.is_filter_data:
+            filter_data = self.parent.cache.pkl.get_file(
+                self.parent.path / "pages" / self.page_type / "filter_data.pkl"
+            )
 
-        # Load text blocks
-        txt_path = (
-            self.parent.path
-            / "pages"
-            / self.page_type
-            / f"{self.page_num}-txt_blks.pkl"
-        )
-        txt_blks = self.parent.cache.pkl.get_file(txt_path)
+        page_content = self.parent.get_page(self.page_num)
 
-        result = algorithm.apply_deserialize(txt_blks, self.page_type)
+        result = algorithm.apply_deserialize(page_content, filter_data, self.page_type)
 
         # Get expected results
         expected_path = (
@@ -210,6 +202,12 @@ class DeserializeTest(Function):
         #     dill.dump(result, f)
 
         expected = self.parent.cache.pkl.get_file(expected_path)
+        for i, r in enumerate(result):
+            if isinstance(r, dict):
+                result[i] = frozenset(r.items())
+        for i, r in enumerate(expected):
+            if isinstance(r, dict):
+                expected[i] = frozenset(r.items())
 
         assert frozenset(result) == frozenset(expected), (
             f"Deserialize failed for page {self.page_num} ({self.page_type})"

@@ -122,12 +122,19 @@ class PipelinesBundle:
     def apply_pdf_extract(self, page):
         return [r for p in self.pipelines for r in p.pdf_extract(page)]
 
-    def apply_text_filter(self, pdf_blks, filter_data):
-        return [r for p in self.pipelines for r in p.text_filter(pdf_blks, filter_data)]
-
-    def apply_deserialize(self, text_blks):
+    def apply_text_filter(self, page, filter_data):
         return [
-            r for p in self.pipelines for r in p.deserialize(text_blks) if r is not None
+            r
+            for p in self.pipelines
+            for r in p.text_filter(p.pdf_extract(page), filter_data)
+        ]
+
+    def apply_deserialize(self, page, filter_data):
+        return [
+            r
+            for p in self.pipelines
+            for r in p.deserialize(p.text_filter(p.pdf_extract(page), filter_data))
+            if r is not None
         ]
 
     def __repr__(self) -> str:
@@ -300,8 +307,8 @@ class Algorithm:
     def apply_pdf_extract(self, page, page_class):
         return self.bundles_mapping[page_class].apply_pdf_extract(page)
 
-    def apply_text_filter(self, pdf_blks, filter_data, page_class):
-        return self.bundles_mapping[page_class].apply_text_filter(pdf_blks, filter_data)
+    def apply_text_filter(self, page, filter_data, page_class):
+        return self.bundles_mapping[page_class].apply_text_filter(page, filter_data)
 
-    def apply_deserialize(self, txt_blks, page_class):
-        return self.bundles_mapping[page_class].apply_deserialize(txt_blks)
+    def apply_deserialize(self, page, filter_data, page_class):
+        return self.bundles_mapping[page_class].apply_deserialize(page, filter_data)

@@ -45,6 +45,7 @@ from .files_schema import (
     funds_assets_schema,
     funds_schema,
     investments_managers_schema,
+    funds_renames_schema,
     BondAdditionalInfos,
 )
 
@@ -54,12 +55,14 @@ class PageResults:
     assets_managers: List[ManagementCompany | InvestmentsManager]
     funds: List[Fund]
     funds_assets: List[FundAssets]
+    funds_renames: List[FundRename]
 
     def __init__(self):
         self.investments = []
         self.assets_managers = []
         self.funds = []
         self.funds_assets = []
+        self.funds_renames = []
 
     def fulfill_promises(self, promises_resolution_map):
         for i in self.investments:
@@ -70,6 +73,8 @@ class PageResults:
             f.fulfill_promises(promises_resolution_map)
         for fa in self.funds_assets:
             fa.fulfill_promises(promises_resolution_map)
+        for fm in self.funds_renames:
+            fm.fulfill_promises(promises_resolution_map)
 
 
 class PageIndexable:
@@ -107,6 +112,10 @@ class DocumentResults:
     @property
     def funds_assets():
         return PageIndexable(list(map(lambda x: x.funds_assets), self.results))
+
+    @property
+    def funds_renames():
+        return PageIndexable(list(map(lambda x: x.funds_renames), self.results))
 
     def __getitem__(self, page_n):
         return self.results[page_n - 1]
@@ -190,6 +199,7 @@ PromisedAcquisitionCurrency = Annotated[
     BeforeValidator(try_convert_to_currency),
 ]
 PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
+PromisedDate = Union[Promise, datetime.date]
 
 
 class PromisableDict:
@@ -441,6 +451,19 @@ class FundAssets(BaseModel, PromisableDict):
         )
 
 
+class FundRename(BaseModel, PromisableDict):
+    model_config = ConfigDict(
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+    )
+    old_name: str
+    current_name: str
+    date: PromisedDate
+
+    def __hash__(self):
+        return hash((self.old_name, self.current_name, self.date))
+
+
 def transform_to_files_schema(
     results: List[DocumentResults],
     batch_mode: bool,
@@ -475,10 +498,12 @@ def transform_to_files_schema(
     funds: List[Dict[str, Any]] = []
     asset_managers_to_funds: List[Dict[str, Any]] = []
     funds_assets: List[Dict[str, Any]] = []
+    funds_renames: List[Dict[str, Any]] = []
 
     _id_investments = 1
     _id_funds = 1
     _id_assets_managers = 1
+    _id_funds_renames = 1
     new_funds = {}
     asset_managers_names = set()
 
@@ -497,6 +522,22 @@ def transform_to_files_schema(
                     new_funds[f]["Report page"] = page_n
                 if "Managment company ID" not in new_funds[f]:
                     new_funds[f]["Managment company ID"] = None
+            for fm in page_results.funds_renames:
+                d = fm.model_dump(mode="json")
+                f = Fund(name=d["current_name"])
+                if f not in new_funds:
+                    df = f.model_dump(mode="json")
+                    df["ID"] = _id_funds
+                    _id_funds += 1
+                    new_funds[f] = df
+                if batch_mode:
+                    d["Format"] = document_results.algorithm
+                    d["Document"] = document_results.prefix_out
+                d["Report page"] = page_n
+                d["Fund ID"] = new_funds[f]["ID"]
+                d["ID"] = _id_funds_renames
+                funds_renames.append(d)
+                _id_funds_renames += 1
             for fa in page_results.funds_assets:
                 d = fa.model_dump(mode="json")
                 f = Fund(name=d["fund"])
@@ -615,6 +656,18 @@ def transform_to_files_schema(
         if len(assets_managers) > 0
         else pd.DataFrame(columns=["ID", "managed_funds", "name", "Report page"])
     )
+    df_funds_renames = (
+        pd.DataFrame.from_dict(funds_renames)
+        if len(funds_renames) > 0
+        else pd.DataFrame(
+            columns=["ID", "Fund ID", "current_name", "old_name", "date", "Report page"]
+        )
+    )
+    df_funds_renames.set_index(["ID", "Fund ID"], inplace=True)
+    df_funds_renames.drop(columns="current_name", inplace=True)
+    df_funds_renames.rename(
+        columns={"old_name": "Old name", "date": "From"}, inplace=True
+    )
 
     df_investments.set_index("ID", inplace=True)
     df_investments.drop(columns="fund", inplace=True)
@@ -662,6 +715,7 @@ def transform_to_files_schema(
     df_investments_managers = investments_managers_schema.validate(
         df_investments_managers
     )
+    df_funds_renames = funds_renames_schema.validate(df_funds_renames)
     return {
         "investments": df_investments,
         "assets_managers": df_assets_managers,
@@ -669,6 +723,7 @@ def transform_to_files_schema(
         "funds_assets": df_funds_assets,
         "investments_managers": df_investments_managers,
         "additional_infos": add_infos,
+        "funds_renames": df_funds_renames,
     }
 
 
@@ -800,6 +855,7 @@ def write_files(
                 "funds": "funds.csv",
                 "assets_managers": "assets_managers.csv",
                 "investments_managers": "investments_managers_to_funds.csv",
+                "funds_renames": "funds_renames.csv",
             },
             {"additional_infos": "investments_add_infos.yaml"},
             out_path,

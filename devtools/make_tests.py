@@ -118,7 +118,7 @@ def add_page_test(
         filter_data=filter_data,
         only_computed=True,
         algorithm=a,
-        pdf_blks=pdf_blks,
+        page=page,
         base_path=base_in_path,
     )
     if print_txt_blks:
@@ -131,9 +131,10 @@ def add_page_test(
         document,
         page_type,
         n_page,
+        filter_data=filter_data,
         only_computed=True,
         algorithm=a,
-        txt_blks=txt_blks,
+        page=page,
         base_path=base_in_path,
     )
     if print_results:

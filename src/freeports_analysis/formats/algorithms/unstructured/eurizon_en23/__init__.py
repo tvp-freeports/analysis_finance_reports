@@ -1,6 +1,7 @@
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from . import fund_assets
 from . import investment_managers
+from . import merging
 
 
 def compute_page_class(classification):
@@ -49,5 +50,15 @@ pipelines = {
             investment_managers.deserialize_inv_managers,
             investment_managers.deserialize_fund,
         ),
+    ),
+    "merging": Pipeline(
+        merging.pdf_extract,
+        (merging.text_filter, merging.text_filter_last_date),
+        (merging.deserialize, merging.deserialize_last_date),
+    ),
+    # "merging":Pipeline(merging.pdf_extract,merging.text_filter,merging.deserialize),
+    # "merging_end":Pipeline(merging.pdf_extract_end,merging.text_filter,merging.deserialize),
+    "renaming": Pipeline(
+        merging.pdf_extract_renaming, merging.text_filter_renaming, merging.deserialize
     ),
 }

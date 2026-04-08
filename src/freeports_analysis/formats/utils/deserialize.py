@@ -430,3 +430,14 @@ class DeserializeAssetsStandard:
                 self.converter(md["liabilities"].replace("(", "").replace(")", ""))
             ),
         )
+
+
+def deserialize_block_type(blk_type):
+    def wrapper(f):
+        def new_f(txt_blk):
+            if txt_blk.type_block == blk_type:
+                return f(txt_blk)
+
+        return new_f
+
+    return wrapper

@@ -29,7 +29,8 @@ def _str_blocks(blk: Union["PdfBlock", "TextBlock"]) -> str:
     text = f"{blk.__class__.__name__}:  {type_translated}\n"
     text += f"\t{metadata_translated} {blk.metadata}\n"
     text_no_last_nl = blk.content
-    if len(blk.content) > 0:
+
+    if isinstance(blk.content, str) and len(blk.content) > 0:
         if blk.content[-1] == "\n":
             text_no_last_nl = text_no_last_nl[:-1]
     text += f'\t"{text_no_last_nl}"'
@@ -119,6 +120,11 @@ class PdfBlock:
         return isinstance(self, type(other)) and hash(self) == hash(other)
 
     def __hash__(self):
+        for k, v in self.metadata.items():
+            if isinstance(v, set):
+                self.metadata[k] = frozenset(v)
+            if isinstance(v, list):
+                self.metadata[k] = frozenset(v)
         return hash((self.type_block, frozenset(self.metadata.items()), self.content))
 
     def __init__(
@@ -247,6 +253,8 @@ class TextBlock:
     def __hash__(self):
         for k, v in self.metadata.items():
             if isinstance(v, set):
+                self.metadata[k] = frozenset(v)
+            if isinstance(v, list):
                 self.metadata[k] = frozenset(v)
         return hash((self.type_block, frozenset(self.metadata.items()), self.content))
 

@@ -20,13 +20,17 @@ from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
 )
 from freeports_analysis import output
+import logging
 from enum import Enum, auto
+
+logger = logging.getLogger(__name__)
 
 
 class TipiBlocco(Enum):
     INV = auto()
     MAN = auto()
     SUB = auto()
+    ALT_INV = auto()
 
 
 def pdf_extract_inv_managers_begin(page):
@@ -50,6 +54,33 @@ def pdf_extract_inv_managers_begin(page):
     v1.extend([PdfBlock(TipiBlocco.SUB, {}, l.text) for l in lines_fund])
 
     return v1
+
+
+# def pdf_extract_inv_managers_begin_alt(lines):
+#     condition_text = PdfLineSelection(
+#         text="INVESTMENT MANAGERS", font="frutiger-lightitalic"
+#     )
+
+#     bold_text = PdfLineSelection(
+#         font="frutiger-black", font_size=(8.98, 8.99)
+#     ) & PdfLineSelection.area_from_bounds(x0=0, y0=condition_text, x1=1e6, y1=1e6)
+
+#     funds = ((
+#         PdfLineSelection.area_from_bounds(
+#             x0=0.0,y0=PdfLineSelection.text("This function has been delegated by"),x1=1e6,y1=1e6
+#         ) / PdfLineSelection.area_from_movewindow(
+#             bold_text & PdfLineSelection.area_from_bounds(
+#                 x0=0.0,
+#                 y0=PdfLineSelection.text("This function has been delegated by"),
+#                 x1=1e6,
+#                 y1=1e6
+#             ),(-0.1,0.0),1.0,4.0
+#         )
+#     ) & PdfLineSelection.font_size(8.9,9.0)).select(lines)
+
+#     return [
+
+#     ]
 
 
 def pdf_extract_inv_managers(page):
@@ -180,8 +211,10 @@ def text_filter_inv_managers_begin(blocks, results):
             )
 
     additional_funds = set([f for im in funds for f in im])
-    funds[0] = residual_funds - additional_funds
-
+    try:
+        funds[0] = residual_funds - additional_funds
+    except IndexError:
+        logger.error("Fund not found probably the layout is not the expected one")
     res = [
         TextBlock(TipiBlocco.INV, {"funds": s}, i)
         for i, s in zip(inv, funds)

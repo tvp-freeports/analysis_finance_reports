@@ -56,6 +56,11 @@ def get_page_dict(file_name: str, page: int):
 get_page = get_page_dict
 
 
+def get_doc(file_path):
+    pdf_file = pypdf.Document(file_path)
+    return [page.get_text("dict") for page in pdf_file]
+
+
 def get_pdf_from_tests(fmt, document=None, base_path=formats_tests):
     _file = base_path / fmt / ("" if document is None else str(document)) / "report.pdf"
     pdf_file = pypdf.Document(_file)
@@ -368,25 +373,17 @@ def get_text_blocks(
     n_page,
     filter_data,
     base_path=formats_tests,
-    pdf_blks=None,
+    page=None,
     algorithm=None,
     only_computed=False,
 ):
     if algorithm is None:
         algorithm = Algorithm.load(fmt)
+    if page is None:
+        page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
     reference_txt_blks = None
 
-    if pdf_blks is None:
-        with (
-            base_path
-            / fmt
-            / ("" if document is None else str(document))
-            / "pages"
-            / page_type
-            / f"{n_page}-pdf_blks.pkl"
-        ).open("rb") as f:
-            pdf_blks = dill.load(f)
-    txt_blks = algorithm.apply_text_filter(pdf_blks, filter_data, page_type)
+    txt_blks = algorithm.apply_text_filter(page, filter_data, page_type)
     if only_computed:
         return txt_blks
     else:
@@ -407,24 +404,17 @@ def get_results(
     document,
     page_type,
     n_page,
+    filter_data,
     base_path=formats_tests,
-    txt_blks=None,
+    page=None,
     algorithm=None,
     only_computed=False,
 ):
     if algorithm is None:
         algorithm = Algorithm.load(fmt)
-    if txt_blks is None:
-        with (
-            base_path
-            / fmt
-            / ("" if document is None else str(document))
-            / "pages"
-            / page_type
-            / f"{n_page}-txt_blks.pkl"
-        ).open("rb") as f:
-            txt_blks = dill.load(f)
-    results = algorithm.apply_deserialize(txt_blks, page_type)
+    if page is None:
+        page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
+    results = algorithm.apply_deserialize(page, filter_data, page_type)
     if only_computed:
         return results
     else:
