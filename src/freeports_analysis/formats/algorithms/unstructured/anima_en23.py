@@ -196,7 +196,7 @@ def text_filter_merges(pdf_blks, filter_data):
 
 
 def deserialize_merges(txt_blk):
-    md = txt_blk.metadata
+    md = {**txt_blk.metadata}
     return FundMerge(
         old_name=md["old_name"],
         current_name=md["current_name"],

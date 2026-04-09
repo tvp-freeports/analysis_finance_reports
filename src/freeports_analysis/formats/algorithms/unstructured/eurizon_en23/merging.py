@@ -186,7 +186,7 @@ def text_filter_renaming(pdf_blks, filter_data):
 
 @deserialize_block_type(TypeBlock.RENAME_ENTRY)
 def deserialize(txt_blk):
-    md = txt_blk.metadata
+    md = {**txt_blk.metadata}
     return FundRename(
         old_name=md["old_name"],
         current_name=md["current_name"],

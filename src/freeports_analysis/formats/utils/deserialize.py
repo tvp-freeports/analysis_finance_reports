@@ -303,7 +303,7 @@ def to_int_en_month(text):
 def to_date_with_en_month(text):
     date_parts = text.split()
     date_class = date(
-        int(date_parts[2]), to_date_with_en_month(date_parts[1]), int(date_parts[0])
+        int(date_parts[2]), to_int_en_month(date_parts[1]), int(date_parts[0])
     )
     return date_class
 
