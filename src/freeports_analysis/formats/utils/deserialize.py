@@ -282,8 +282,7 @@ def to_date(data: str) -> date:
     raise ValueError(_("Date string '{}' is not in a recognized format.").format(data))
 
 
-def to_date_with_en_month(text):
-    date_parts = text.split()
+def to_int_en_month(text):
     months = [
         "january",
         "february",
@@ -298,10 +297,13 @@ def to_date_with_en_month(text):
         "november",
         "december",
     ]
+    return months.index(text.lower().strip()) + 1
+
+
+def to_date_with_en_month(text):
+    date_parts = text.split()
     date_class = date(
-        int(date_parts[2]),
-        months.index(date_parts[1].lower().strip()) + 1,
-        int(date_parts[0]),
+        int(date_parts[2]), to_date_with_en_month(date_parts[1]), int(date_parts[0])
     )
     return date_class
 

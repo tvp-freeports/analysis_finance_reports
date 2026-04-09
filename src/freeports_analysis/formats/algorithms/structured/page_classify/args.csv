@@ -73,6 +73,7 @@ FINECO-EN23@LUX/2,((400:)(150:750)),fund_assets
 KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",investments
 KAIROS-EN23/1,"arialnarrow-bold[11.52] ""Organisational Structure""",manco
 KAIROS-EN23/1,"arialnarrow-bold ""Management Company""",manco
+KAIROS-EN23/2,"arialnarrow-bold ""merged during the year""",merges
 UBS-EN23/0,"Frutiger45LightBold ""Description """,investments
 UBS-EN23/1,"Frutiger45LightBold ""Management Company and Domiciliation Agent""",manco
 MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",investments
