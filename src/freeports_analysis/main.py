@@ -29,6 +29,8 @@ from freeports_analysis.output import (
     Bond,
     Fund,
     FundRename,
+    FundChangeName,
+    FundMerge,
     FundAssets,
     AssetsManager,
     InvestmentsManager,
@@ -269,8 +271,8 @@ def _main_job(
                 doc_results.results[-1].funds.append(r)
             elif isinstance(r, FundAssets):
                 doc_results.results[-1].funds_assets.append(r)
-            elif isinstance(r, FundRename):
-                doc_results.results[-1].funds_renames.append(r)
+            elif isinstance(r, FundChangeName):
+                doc_results.results[-1].funds_change_name.append(r)
             else:
                 raise Exception(f"Not recognized type of result {type(r)}")
     promises_resolution_map = flatten_promise_map(promises_resolution_map)

@@ -175,3 +175,18 @@ def get_table_coordinates(
             coords, table_cfg, collapse_alg
         )
     return coords
+
+
+def get_groups(lines, treshold, vertical=True):
+    geoindex = 1 if vertical else 0
+    sorted_lines = sorted(lines, key=lambda x: x.bbox[geoindex])
+    group_id = 0
+    groups = []
+    a = sorted_lines[0].bbox[geoindex]
+    for l in sorted_lines:
+        b = l.bbox[geoindex]
+        if abs(b - a) >= treshold:
+            group_id += 1
+        a = b
+        groups.append(group_id)
+    return groups

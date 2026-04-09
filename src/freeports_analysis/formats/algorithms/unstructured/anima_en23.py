@@ -2,9 +2,9 @@
 
 import logging as log
 from typing import List, TypeAlias
-
+import re
 from freeports_analysis.formats.algorithms.commons import Pipeline
-
+from freeports_analysis.output import Fund, FundMerge
 from freeports_analysis.formats.utils.pdf_extract import (
     OnePdfBlockType,
     PdfExtractInvestmentsStandard,
@@ -13,6 +13,7 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractManagmentCompanyStandard,
 )
 from freeports_analysis.formats.utils.text_filter import (
+    OneTextBlockType,
     ResultStandardFiltering,
     TextFilterManagmentCompanyStandard,
 )
@@ -20,17 +21,22 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
+from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
 )
-from freeports_analysis.formats.algorithms import PdfBlock
+from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 
 
 from freeports_analysis.formats.utils.deserialize import to_int
 from freeports_analysis.formats.utils.pdf_extract import PdfExtractAssetsStandard
 from freeports_analysis.formats.utils.text_filter import TextFilterAssetsStandard
-from freeports_analysis.formats.utils.deserialize import DeserializeAssetsStandard
-
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializeAssetsStandard,
+    to_date_with_en_month,
+)
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
+from freeports_analysis.output import Fund, FundMerge
 
 logger = log.getLogger(__name__)
 
@@ -135,6 +141,69 @@ pdf_extract = PdfExtractAssetsStandard(
 text_filter = TextFilterAssetsStandard()
 deserialize = DeserializeAssetsStandard(converter=to_int)
 
+
+def pdf_extract_merges(page):
+    lines = pdflines_from_pagedict(page)
+    body = PdfLineSelection.area_from_bounds(
+        x0=0.0,
+        y0=PdfLineSelection.text("Funds merged during the financial year"),
+        x1=1e6,
+        y1=PdfLineSelection.text("Dividends Paid"),
+    ).select(lines)
+    groups = get_groups(body, 20)
+    n_groups = max(groups) + 1
+    return [
+        PdfBlock(
+            OnePdfBlockType.RELEVANT_BLOCK,
+            {},
+            " ".join((b.text for g, b in zip(groups, body) if group == g)),
+        )
+        for group in range(n_groups)
+    ]
+
+
+merge_regex = re.compile(
+    "(.+) was automatically converted into (.+) on ([0-9]+.+[0-9]+)"
+)
+
+
+def text_filter_merges(pdf_blks, filter_data):
+    funds = set(
+        map(
+            lambda x: MatchFund(name=x.name),
+            filter(lambda x: isinstance(x, Fund), filter_data),
+        )
+    )
+    res = []
+    for blk in pdf_blks:
+        m = merge_regex.match(blk.content)
+        old_name = m.group(1)
+        current_name = MatchFund(name=m.group(2))
+        date = m.group(3)
+        if current_name in funds:
+            res.append(
+                TextBlock(
+                    OneTextBlockType.RELEVANT_BLOCK,
+                    {
+                        "old_name": old_name,
+                        "current_name": current_name.name,
+                        "date": date,
+                    },
+                    blk,
+                )
+            )
+    return res
+
+
+def deserialize_merges(txt_blk):
+    md = txt_blk.metadata
+    return FundMerge(
+        old_name=md["old_name"],
+        current_name=md["current_name"],
+        date=to_date_with_en_month(md["date"]),
+    )
+
+
 pipelines = {
     "fund_assets": Pipeline(pdf_extract, text_filter, deserialize),
     "manco": Pipeline(
@@ -157,4 +226,5 @@ pipelines = {
             pdf_extract_funds,
         )
     ),
+    "year_events": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),
 }

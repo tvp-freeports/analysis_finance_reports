@@ -9,8 +9,11 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
 )
 from freeports_analysis.formats import PdfBlock, TextBlock
-from freeports_analysis.formats.utils.deserialize import deserialize_block_type
-from freeports_analysis.output import FundRename, Fund, Promise
+from freeports_analysis.formats.utils.deserialize import (
+    deserialize_block_type,
+    to_date_with_en_month,
+)
+from freeports_analysis.output import FundRename, Fund, Promise, FundMerge
 import datetime
 import re
 from enum import Enum, auto
@@ -19,30 +22,6 @@ from enum import Enum, auto
 class TypeBlock(Enum):
     LAST_DATE = auto()
     RENAME_ENTRY = auto()
-
-
-def to_date(text):
-    date_parts = text.split()
-    months = [
-        "january",
-        "february",
-        "march",
-        "april",
-        "may",
-        "june",
-        "july",
-        "august",
-        "september",
-        "october",
-        "november",
-        "december",
-    ]
-    date = datetime.date(
-        int(date_parts[2]),
-        months.index(date_parts[1].lower().strip()) + 1,
-        int(date_parts[0]),
-    )
-    return date
 
 
 def pdf_extract(page):
@@ -211,11 +190,13 @@ def deserialize(txt_blk):
     return FundRename(
         old_name=md["old_name"],
         current_name=md["current_name"],
-        date=to_date(md["date"]) if not isinstance(md["date"], Promise) else md["date"],
+        date=to_date_with_en_month(md["date"])
+        if not isinstance(md["date"], Promise)
+        else md["date"],
     )
 
 
 @deserialize_block_type(TypeBlock.LAST_DATE)
 def deserialize_last_date(txt_blk):
     n_page = txt_blk.metadata["n_page"]
-    return {f"date-merging-endpage-{n_page}": to_date(txt_blk.content)}
+    return {f"date-merging-endpage-{n_page}": to_date_with_en_month(txt_blk.content)}

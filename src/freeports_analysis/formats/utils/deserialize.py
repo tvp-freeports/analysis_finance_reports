@@ -282,6 +282,30 @@ def to_date(data: str) -> date:
     raise ValueError(_("Date string '{}' is not in a recognized format.").format(data))
 
 
+def to_date_with_en_month(text):
+    date_parts = text.split()
+    months = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    ]
+    date_class = date(
+        int(date_parts[2]),
+        months.index(date_parts[1].lower().strip()) + 1,
+        int(date_parts[0]),
+    )
+    return date_class
+
+
 class DeserializerPageClassifyStandard:
     def __call__(self, txt_blk):
         return txt_blk.metadata["page_type"]

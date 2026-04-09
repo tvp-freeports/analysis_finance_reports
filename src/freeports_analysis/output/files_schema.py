@@ -18,6 +18,8 @@ from freeports_analysis.consts import Currency
 # List of valid financial instrument types
 list_of_instruments: List[str] = ["EQUITY", "BOND"]
 
+list_of_change_name_events: List[str] = ["MERGING", "RENAMING"]
+
 # Schema for validating investments DataFrame
 investments_schema = pa.DataFrameSchema(
     {
@@ -93,10 +95,13 @@ funds_assets_schema = pa.DataFrameSchema(
     ),
 )
 
-funds_renames_schema = pa.DataFrameSchema(
+funds_change_name_schema = pa.DataFrameSchema(
     {
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
         "Old name": pa.Column(pd.StringDtype),
+        "Type of event": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(list_of_change_name_events)
+        ),
         "From": pa.Column(datetime.date),
         "Format": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False

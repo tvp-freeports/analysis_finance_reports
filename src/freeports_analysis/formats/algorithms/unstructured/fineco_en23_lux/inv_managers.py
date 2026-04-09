@@ -11,6 +11,7 @@ from freeports_analysis.formats.utils.text_filter import (
     StandardManagmentCompanyTextBlock,
 )
 from freeports_analysis.formats.utils.text_filter import match
+from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerFundStandard,
     DeserializerManagmentCompanyStandard,
@@ -35,18 +36,7 @@ def pdf_extract(page):
     body = PdfLineSelection(
         font="arialnarrow", font_size=(10.9, 11.1), area=(315.0, 0.0, 1e6, 1e6)
     ).select(lines)
-    body.sort(key=lambda x: x.bbox[1])
-    trashold = 20
-    group_id = 0
-    groups = []
-    y0 = body[0].bbox[1]
-    for b in body:
-        y1 = b.bbox[1]
-        if abs(y1 - y0) >= trashold:
-            group_id += 1
-        y0 = y1
-        groups.append(group_id)
-
+    groups = get_groups(body, 20)
     return [
         PdfBlock(BlockType.INV_MAN, {"group": g}, b.text) for g, b in zip(groups, body)
     ]
