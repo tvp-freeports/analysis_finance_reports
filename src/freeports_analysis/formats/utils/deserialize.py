@@ -308,6 +308,32 @@ def to_date_with_en_month(text):
     return date_class
 
 
+def to_int_it_month(text):
+    months = [
+        "gennaio",
+        "febbraio",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
+    ]
+    return months.index(text.lower().strip()) + 1
+
+
+def to_date_with_it_month(text):
+    date_parts = text.split()
+    date_class = date(
+        int(date_parts[2]), to_int_it_month(date_parts[1]), int(date_parts[0])
+    )
+    return date_class
+
+
 class DeserializerPageClassifyStandard:
     def __call__(self, txt_blk):
         return txt_blk.metadata["page_type"]
