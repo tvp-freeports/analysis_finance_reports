@@ -125,7 +125,10 @@ class PdfExtractTest(Function):
         #     dill.dump(result, f)
 
         expected = self.parent.cache.pkl.get_file(expected_path)
-
+        print(expected)
+        print(self.page_num)
+        print(expected_path)
+        print(result)
         assert frozenset(result) == frozenset(expected), (
             f"PDF extract failed for page {self.page_num} ({self.page_type})"
         )
@@ -200,7 +203,6 @@ class DeserializeTest(Function):
 
         # with open(expected_path, "wb") as f:
         #     dill.dump(result, f)
-
         expected = self.parent.cache.pkl.get_file(expected_path)
         for i, r in enumerate(result):
             if isinstance(r, dict):

@@ -106,10 +106,16 @@ def pdf_extract_merges(page):
         & PdfLineSelection.font("latobolditalic")
     ).select(lines)
     _, cols = zip(*get_table_coordinates(table))
-    old_name = " ".join(set((f.text.strip() for c, f in zip(cols, table) if c == 0)))
-    current_name = " ".join(
-        set((f.text.strip() for c, f in zip(cols, table) if c == 1))
-    )
+    lines_old_name = []
+    lines_current_name = []
+    for c, f in zip(cols, table):
+        text = f.text.strip()
+        if c == 0 and text not in lines_old_name:
+            lines_old_name.append(text)
+        elif c == 1 and text not in lines_current_name:
+            lines_current_name.append(text)
+    old_name = " ".join(lines_old_name)
+    current_name = " ".join(lines_current_name)
     body = (
         PdfLineSelection.area_from_movewindow(
             PdfLineSelection.text("di fusione"), (-0.5, -1.5), 100.0, 4.0
