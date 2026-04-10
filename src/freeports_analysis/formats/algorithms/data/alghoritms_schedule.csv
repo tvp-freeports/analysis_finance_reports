@@ -1,5 +1,6 @@
 Format name,Page type,Filter next iteration
 CARNE-EN23,investments,TRUE
+CARNE-EN23,fund_assets,
 CARNE-EN23,manco,
 MEDIOLANUM-EN24,investments,TRUE
 MEDIOLANUM-EN24,manco,
@@ -33,6 +34,7 @@ FINECO-EN23@LUX,inv_managers
 FIDEURAM-IT24,investments,TRUE
 FIDEURAM-IT24,manco,
 KAIROS-EN23,investments,TRUE
+KAIROS-EN23,fund_assets,
 KAIROS-EN23,manco
 KAIROS-EN23,merges,
 ANIMA-EN23,investments,TRUE

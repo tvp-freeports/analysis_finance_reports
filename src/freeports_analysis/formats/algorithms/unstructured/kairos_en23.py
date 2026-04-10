@@ -6,14 +6,18 @@ from freeports_analysis.formats.utils.text_filter import (
     TextFilterManagmentCompanyStandard,
     ResultStandardFiltering,
     OneTextBlockType,
+    TextFilterAssetsStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractManagmentCompanyStandard,
     OnePdfBlockType,
+    PdfExtractAssetsStandard,
 )
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
+    DeserializeAssetsStandard,
     to_int_en_month,
+    to_float,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
@@ -163,8 +167,52 @@ def deserialize_merges(txt_blk):
     )
 
 
+condition_text = PdfLineSelection(
+    font="arialnarrow-bold", font_size=(11.9, 12.1)
+) & PdfLineSelection(
+    text="Statement of Net Assets as at",
+    font_size=(11.9, 12.1),
+    font="arialnarrow-bold",
+)
+
+fund_curr_set = PdfLineSelection(
+    font="arialnarrow-bold", font_size=(11.9, 12.1)
+) & PdfLineSelection.area_from_bounds(x0=0, y0=0, x1=1e6, y1=condition_text)
+
+currency_set_assets = PdfLineSelection(
+    font="arialnarrow-bold", font_size=(11.9, 12.1), text="(in"
+)
+
+
+pdf_extract_assets = PdfExtractAssetsStandard(
+    fund_set=fund_curr_set,
+    currency_set=currency_set_assets,
+    tot_assets_set=PdfLineSelection(
+        font="arialnarrow-bold", font_size=(7.9, 8.1), text="^Total assets"
+    ),
+    liabilities_set=PdfLineSelection(
+        font="arialnarrow-bold", font_size=(7.9, 8.1), text="^Total liabilities"
+    ),
+    net_assets_set=PdfLineSelection(
+        font="arialnarrow-bold",
+        font_size=(7.9, 8.1),
+        text="^Total liabilities",  # "^Net assets at the end of the year"
+    ),
+    tot_assets_vec=(1.2, 0.0),
+    liabilities_vec=(1.2, 0.0),
+    net_assets_vec=(1.2, 1.2),
+    tot_assets_mult=(50.0, 1.02),
+    liabilities_mult=(50.0, 1.02),
+    net_assets_mult=(5.0, 2.0),
+)
+
+text_filter_assets = TextFilterAssetsStandard()
+deserialize_assets = DeserializeAssetsStandard(converter=to_float)
+
+
 pipelines = {
     "investments": Pipeline(text_filter=text_filter),
+    "fund_assets": Pipeline(pdf_extract_assets, text_filter_assets, deserialize_assets),
     "manco": Pipeline(
         PdfExtractManagmentCompanyStandard(
             PdfLineSelection.area_from_movewindow(
