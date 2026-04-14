@@ -637,10 +637,10 @@ def transform_to_files_schema(
         ("investments", curr_results.investments, investments_schema),
         (
             "assets_managers",
-            curr_results.assets_managers.values(),
+            list(curr_results.assets_managers.values()),
             assets_managers_schema,
         ),
-        ("funds", curr_results.funds.values(), funds_schema),
+        ("funds", list(curr_results.funds.values()), funds_schema),
         (
             "investments_managers",
             curr_results.investments_managers_to_funds,
@@ -649,14 +649,20 @@ def transform_to_files_schema(
         ("funds_change_name", curr_results.funds_change_name, funds_change_name_schema),
         ("funds_assets", curr_results.funds_assets, funds_assets_schema),
     ]
-    validated_dataframes = {
-        k: schema.validate(
-            pd.DataFrame.from_dict(res_list)
-            if len(res_list) > 0
-            else pd.DataFrame(columns=schema.columns.keys())
-        )
-        for k, res_list, schema in components
-    }
+    validated_dataframes = {}
+    for k, res_list, schema in components:
+        r = None
+        columns = [
+            c
+            for c in schema.columns.keys()
+            if batch_mode or c not in ("Format", "Document")
+        ]
+        if len(res_list) > 0:
+            r = pd.DataFrame.from_records(res_list, columns=columns)
+        else:
+            r = pd.DataFrame(columns=columns)
+        validated_dataframes[k] = schema.validate(r)
+
     return {
         **validated_dataframes,
         "additional_infos": curr_results.add_infos,
@@ -686,6 +692,7 @@ def _write_structured(
     out_path = out_dir / data_name
     out_path.mkdir(exist_ok=True)
     structured_data.to_csv(out_path / "table.csv")
+
     yaml.dump(
         unstructured_data,
         (out_path / "dicts.yaml").open("w"),
@@ -713,7 +720,7 @@ def _write_regular(
     """
     out_dir.mkdir(exist_ok=True)
     for data_name, file_name in structured_mapping.items():
-        data[data_name].to_csv(out_dir / file_name)
+        data[data_name].to_csv(out_dir / file_name, index=False)
     for data_name, file_name in unstructured_mapping.items():
         yaml.dump(data[data_name], (out_dir / file_name).open("w"))
 
