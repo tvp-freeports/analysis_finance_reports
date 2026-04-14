@@ -569,7 +569,7 @@ def transform_to_files_schema(
                     d["Type of event"] = "MERGING"
                 d["Fund ID"] = curr_results.funds[f]["ID"]
                 d["ID"] = curr_results.new_fund_change_name_id
-                curr_results.funds_chage_name.append(d)
+                curr_results.funds_change_name.append(d)
 
             for fa in page_results.funds_assets:
                 d = fa.model_dump(mode="json", by_alias=True)
