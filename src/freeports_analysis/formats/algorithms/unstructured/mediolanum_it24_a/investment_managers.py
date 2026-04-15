@@ -11,11 +11,14 @@ from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.text_filter import (
     ResultStandardFiltering,
     StandardManagmentCompanyTextBlock,
+    StandardInvestmentsMangerTextBlock,
+    StandardFundTextBlock,
 )
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerFundStandard,
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TableConfig,
@@ -137,14 +140,10 @@ def text_filter_with_subfunds(blocks, subfunds):
     res = []
     for i, s in invs.items():
         if not s.isdisjoint(subfunds):
-            res.append(
-                TextBlock.from_content(
-                    TipiBlocco.INV, {"funds": set([f.name for f in s])}, i
-                )
-            )
+            res.append(StandardInvestmentsMangerTextBlock.from_name(i, s))
             res.extend(
                 [
-                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                    StandardFundTextBlock.from_matched_fund(f)
                     for f in s
                     if f not in subfunds
                 ]
@@ -202,13 +201,7 @@ def text_filter_begin_page(blocks, results):
     res = res_inv
     res.extend(res_manco)
     res.extend([TextBlock(TipiBlocco.MAN, r.metadata, r.content) for r in res_manco])
-    res.append(
-        TextBlock(
-            TipiBlocco.INV,
-            {"funds": set([f.name for f in funds_manco])},
-            manco_blocks[0],
-        )
-    )
+    res.append(StandardInvestmentsMangerTextBlock(manco_blocks[0], funds_manco))
     res.append(
         StandardManagmentCompanyTextBlock(
             manco_blocks[0],
@@ -218,12 +211,7 @@ def text_filter_begin_page(blocks, results):
     return res
 
 
-def deserialize(text_block):
-    if text_block.type_block == TipiBlocco.INV:
-        return output.InvestmentsManager(
-            name=text_block.content, managed_funds=text_block.metadata["funds"]
-        )
-
+deserialize = DeserializerInvestmentsManagerStandard()
 
 deserialize_manco = DeserializerManagmentCompanyStandard()
 
