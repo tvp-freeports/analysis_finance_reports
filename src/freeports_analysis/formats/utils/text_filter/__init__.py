@@ -674,7 +674,7 @@ class TextFilterInvestmentsStandard:
 
 class TextFilterAssetsStandard:
     def __init__(self, date_regex=None):
-        self.date_regex = re.compile(date_regex)
+        self.date_regex = re.compile(date_regex) if date_regex is not None else None
 
     def __call__(self, blks, filter_data):
 
