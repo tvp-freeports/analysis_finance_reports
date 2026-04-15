@@ -1,6 +1,7 @@
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
+    ResultStandardExtraction,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
@@ -27,13 +28,6 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
     TablePosAlgorithm,
 )
 from freeports_analysis import output
-from enum import Enum, auto
-
-
-class TipiBlocco(Enum):
-    INV = auto()
-    MAN = auto()
-
 
 l = 190.0
 r = 1e6
@@ -52,7 +46,7 @@ deselection = (
 )
 
 
-def pdf_extract_body(body, type_block=TipiBlocco.INV):
+def pdf_extract_body(body, type_block=ResultStandardExtraction.INVESTMENTS_MANAGER):
     cs = get_table_coordinates(
         body,
         table_cfg,
@@ -68,17 +62,26 @@ def pdf_extract_body(body, type_block=TipiBlocco.INV):
     return [PdfBlock(type_block, {"row": r}, text) for r, text in enumerate(rows_text)]
 
 
-def pdf_extract_begin_page(page):
-    lines = pdflines_from_pagedict(page)
-    t = PdfLineSelection.text("^INVESTMENT ").select(lines)[0].bbox[1] - 8.0
-    manco_selection = PdfLineSelection.area(l, 70.0, r, t) / deselection
-    b = 705.0
-    body_selection = PdfLineSelection.area(l, t, r, b) / deselection
-    body = body_selection.select(lines)
-    manco = manco_selection.select(lines)
-    res = pdf_extract_body(manco, TipiBlocco.MAN)
-    res.extend(pdf_extract_body(body, TipiBlocco.INV))
-    return res
+class PdfExtractBeginPage:
+    def __init__(self, investments_manager_text):
+        self.investments_manager_text = investments_manager_text
+
+    def __call__(self, page):
+        lines = pdflines_from_pagedict(page)
+        t = (
+            PdfLineSelection.text(self.investments_manager_text)
+            .select(lines)[0]
+            .bbox[1]
+            - 8.0
+        )
+        manco_selection = PdfLineSelection.area(l, 70.0, r, t) / deselection
+        b = 705.0
+        body_selection = PdfLineSelection.area(l, t, r, b) / deselection
+        body = body_selection.select(lines)
+        manco = manco_selection.select(lines)
+        res = pdf_extract_body(manco, ResultStandardExtraction.MANAGEMENT_COMPANY)
+        res.extend(pdf_extract_body(body, ResultStandardExtraction.INVESTMENTS_MANAGER))
+        return res
 
 
 def pdf_extract(page):
@@ -90,13 +93,17 @@ def pdf_extract(page):
     return pdf_extract_body(body)
 
 
-def pdf_extract_end_page(page):
-    lines = pdflines_from_pagedict(page)
-    t = 70.0
-    b = PdfLineSelection.text("^BANCA ").select(lines)[0].bbox[1]
-    body_selection = PdfLineSelection.area(l, t, r, b) / deselection
-    body = body_selection.select(lines)
-    return pdf_extract_body(body, TipiBlocco.INV)
+class PdfExtractEndPage:
+    def __init__(self, depositary_text):
+        self.depositary_text = depositary_text
+
+    def __call__(self, page):
+        lines = pdflines_from_pagedict(page)
+        t = 70.0
+        b = PdfLineSelection.text(self.depositary_text).select(lines)[0].bbox[1]
+        body_selection = PdfLineSelection.area(l, t, r, b) / deselection
+        body = body_selection.select(lines)
+        return pdf_extract_body(body, ResultStandardExtraction.INVESTMENTS_MANAGER)
 
 
 def text_filter_with_subfunds(blocks, subfunds):
@@ -108,6 +115,8 @@ def text_filter_with_subfunds(blocks, subfunds):
     fund_line = False
     for rb in blocks:
         r = rb.content.strip()
+        if r == "":
+            continue
         if inv_line:
             current_inv = r
             invs_blks[r] = rb
@@ -120,7 +129,7 @@ def text_filter_with_subfunds(blocks, subfunds):
             if r.endswith(")"):
                 invs[current_inv] = set(
                     (
-                        MatchFund(name=s.strip())
+                        MatchFund(name=s.replace("*", "").strip())
                         for s in current_fund.replace(")", "").split(",")
                     )
                 )
@@ -132,7 +141,7 @@ def text_filter_with_subfunds(blocks, subfunds):
                 if r.endswith(")"):
                     invs[current_inv] = set(
                         (
-                            MatchFund(name=s.strip())
+                            MatchFund(name=s.replace("*", "").strip())
                             for s in current_fund.replace(")", "").split(",")
                         )
                     )
@@ -174,8 +183,16 @@ def text_filter_begin_page(blocks, results):
     a_subfunds = set([f for inv in inv_managers for f in inv.managed_funds])
     residual_funds = filter_funds - a_subfunds
 
-    inv_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.INV]
-    manco_blocks = [blk for blk in blocks if blk.type_block == TipiBlocco.MAN]
+    inv_blocks = [
+        blk
+        for blk in blocks
+        if blk.type_block == ResultStandardExtraction.INVESTMENTS_MANAGER
+    ]
+    manco_blocks = [
+        blk
+        for blk in blocks
+        if blk.type_block == ResultStandardExtraction.MANAGEMENT_COMPANY
+    ]
 
     res_inv = text_filter_with_subfunds(inv_blocks, filter_funds)
     res_manco = text_filter_with_subfunds(manco_blocks, filter_funds)
@@ -200,7 +217,14 @@ def text_filter_begin_page(blocks, results):
 
     res = res_inv
     res.extend(res_manco)
-    res.extend([TextBlock(TipiBlocco.MAN, r.metadata, r.content) for r in res_manco])
+    res.extend(
+        [
+            TextBlock(
+                ResultStandardExtraction.MANAGEMENT_COMPANY, r.metadata, r.content
+            )
+            for r in res_manco
+        ]
+    )
     res.append(StandardInvestmentsMangerTextBlock(manco_blocks[0], funds_manco))
     res.append(
         StandardManagmentCompanyTextBlock(

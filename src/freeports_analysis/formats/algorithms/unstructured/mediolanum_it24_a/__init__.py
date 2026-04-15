@@ -1,19 +1,10 @@
 from freeports_analysis.formats.algorithms.commons import Pipeline
-from . import investment_managers
+from freeports_analysis.formats.templates import mediolanum_24
+
 from . import fund_assets
 
 
-def compute_page_class(classification):
-    inv_managers = False
-    for i, val in enumerate(classification):
-        if inv_managers and val is None:
-            classification[i] = "inv_managers"
-        elif val == "inv_managers_begin":
-            inv_managers = True
-        elif val == "inv_managers_end":
-            inv_managers = False
-    return classification
-
+compute_page_class = mediolanum_24.compute_page_class
 
 pipelines = {
     "fund_assets": Pipeline(
@@ -22,28 +13,28 @@ pipelines = {
         deserialize=fund_assets.deserialize,
     ),
     "inv_managers_begin": Pipeline(
-        pdf_extract=investment_managers.pdf_extract_begin_page,
-        text_filter=investment_managers.text_filter_begin_page,
+        pdf_extract=mediolanum_24.inv_managers.PdfExtractBeginPage("^INVESTMENT "),
+        text_filter=mediolanum_24.inv_managers.text_filter_begin_page,
         deserialize=(
-            investment_managers.deserialize,
-            investment_managers.deserialize_fund,
-            investment_managers.deserialize_manco,
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
+            mediolanum_24.inv_managers.deserialize_manco,
         ),
     ),
     "inv_managers": Pipeline(
-        pdf_extract=investment_managers.pdf_extract,
-        text_filter=investment_managers.text_filter,
+        pdf_extract=mediolanum_24.inv_managers.pdf_extract,
+        text_filter=mediolanum_24.inv_managers.text_filter,
         deserialize=(
-            investment_managers.deserialize,
-            investment_managers.deserialize_fund,
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
         ),
     ),
     "inv_managers_end": Pipeline(
-        pdf_extract=investment_managers.pdf_extract_end_page,
-        text_filter=investment_managers.text_filter,
+        pdf_extract=mediolanum_24.inv_managers.PdfExtractEndPage("^BANCA "),
+        text_filter=mediolanum_24.inv_managers.text_filter,
         deserialize=(
-            investment_managers.deserialize,
-            investment_managers.deserialize_fund,
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
         ),
     ),
 }
