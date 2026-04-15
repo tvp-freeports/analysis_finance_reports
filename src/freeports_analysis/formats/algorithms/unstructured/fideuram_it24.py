@@ -6,6 +6,7 @@ from freeports_analysis.formats.utils.text_filter import (
 )
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerFromManco,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
@@ -23,6 +24,9 @@ pipelines = {
             )
         ),
         text_filter=TextFilterManagmentCompanyStandard(),
-        deserialize=DeserializerManagmentCompanyStandard(),
+        deserialize=(
+            DeserializerManagmentCompanyStandard(),
+            DeserializerInvestmentsManagerFromManco(),
+        ),
     )
 }
