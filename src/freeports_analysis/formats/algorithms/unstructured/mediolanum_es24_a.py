@@ -1,26 +1,55 @@
 """MEDIOLLANUM_ES24_A format submodule"""
 
 from lxml import etree
+from freeports_analysis.formats import TextBlock, PdfBlock
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
     PdfExtractCurrencyStandard,
     PdfExtractFundStandard,
     PdfExtractManagmentCompanyStandard,
+    OnePdfBlockType,
 )
 from freeports_analysis.formats.utils.text_filter import (
     TextFilterPageClassifyStandard,
     TextFilterManagmentCompanyStandard,
+    StandardInvestmentsMangerTextBlock,
 )
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerPageClassifyStandard,
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 h_font = PdfLineSelection.font_of(PdfLineSelection.text("n de la cartera"))
 curr_set = PdfLineSelection(font_size=(8.9, 9.1), text="(expresado en") & h_font
+
+
+def pdf_extract_inv_managers(page):
+    top = (
+        PdfLineSelection.text("Gestores Delegados de Inversiones")
+        .select(lines)[0]
+        .bbox[3]
+    )
+    left_column = PdfLineSelection.area_from_bounds(
+        x0=0.0, y0=top - 10, x1=290, y1=1e6
+    ) & PdfLineSelection.font_size(9.8, 10.0)
+    right_column = PdfLineSelection.area_from_bounds(
+        x0=290, y0=0.0, x1=1e6, y1=PdfLineSelection.text("Administrador Fiduciario")
+    )
+    body = (
+        (left_column | right_column)
+        / PdfLineSelection.text("^ $")
+        / PdfLineSelection.text("^  $")
+    ).select(lines)
+    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {}, b.text) for b in body]
+
+
+def text_filter_inv_managers(pdf_blks, filter_data):
+    return []
+
 
 pipelines = {
     "": Pipeline(

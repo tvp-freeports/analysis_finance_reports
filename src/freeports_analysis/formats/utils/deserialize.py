@@ -6,7 +6,14 @@ from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
 from freeports_analysis.consts import Currency, Promise
-from freeports_analysis.output import Equity, Bond, Fund, ManagementCompany, FundAssets
+from freeports_analysis.output import (
+    Equity,
+    Bond,
+    Fund,
+    ManagementCompany,
+    InvestmentsManager,
+    FundAssets,
+)
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports_analysis.formats.utils.text_filter import ResultStandardFiltering
@@ -339,28 +346,72 @@ class DeserializerPageClassifyStandard:
         return txt_blk.metadata["page_type"]
 
 
+def deserialize_block_type(blk_type):
+    def wrapper(f):
+        def new_f(txt_blk):
+            if txt_blk.type_block == blk_type:
+                return f(txt_blk)
+
+        return new_f
+
+    return wrapper
+
+
+def deserialize_block_types(*blk_types):
+    def wrapper(f):
+        def new_f(txt_blk):
+            if any(map(lambda x: txt_blk.type_block == x, blk_types)):
+                return f(txt_blk)
+
+        return new_f
+
+    return wrapper
+
+
+def deserialize_block_type_call(blk_type):
+    def wrapper(f):
+        def new_f(self, txt_blk):
+            if txt_blk.type_block == blk_type:
+                return f(self, txt_blk)
+
+        return new_f
+
+    return wrapper
+
+
+def deserialize_block_types_call(*blk_types):
+    def wrapper(f):
+        def new_f(self, txt_blk):
+            if any(map(lambda x: txt_blk.type_block == x, blk_types)):
+                return f(self, txt_blk)
+
+        return new_f
+
+    return wrapper
+
+
 class DeserializerFundStandard:
+    @deserialize_block_type_call(ResultStandardFiltering.FUND)
     def __call__(self, txt_blk):
-        if txt_blk.type_block == ResultStandardFiltering.FUND:
-            return Fund(name=txt_blk.content)
+        return Fund(name=txt_blk.content)
 
 
 class DeserializerManagmentCompanyStandard:
+    @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
     def __call__(self, txt_blk):
-        if txt_blk.type_block == ResultStandardFiltering.MANAGEMENT_COMPANY:
-            return ManagementCompany(
-                name=" ".join(txt_blk.content.strip().split()),
-                managed_funds=set(txt_blk.metadata["managed_funds"]),
-            )
+        return ManagementCompany(
+            name=" ".join(txt_blk.content.strip().split()),
+            managed_funds=set(txt_blk.metadata["managed_funds"]),
+        )
 
 
-class DeserializerInvestmentManagerStandard:
+class DeserializerInvestmentsManagerStandard:
+    @deserialize_block_type_call(ResultStandardFiltering.INVESTMENTS_MANAGER)
     def __call__(self, txt_blk):
-        if txt_blk.type_block == ResultStandardFiltering.INVESTMENT_MANAGER:
-            return ManagementCompany(
-                name=" ".join(txt_blk.content.strip().split()),
-                managed_funds=set(txt_blk.metadata["managed_funds"]),
-            )
+        return InvestmentsManager(
+            name=" ".join(txt_blk.content.strip().split()),
+            managed_funds=set(txt_blk.metadata["managed_funds"]),
+        )
 
 
 class DeserializerInvestmentStandard:
@@ -375,6 +426,9 @@ class DeserializerInvestmentStandard:
         self.cost_and_value_interpret_int = cost_and_value_interpret_int
         self.quantity_interpret_float = quantity_interpret_float
 
+    @deserialize_block_types_call(
+        ResultStandardFiltering.BOND_TARGET, ResultStandardFiltering.EQUITY_TARGET
+    )
     def __call__(self, txt_blk):
         """Transform TextBlock metadata into a typed dictionary.
 
@@ -390,11 +444,6 @@ class DeserializerInvestmentStandard:
         -------
             Finantial data deserialized from text block
         """
-        if (
-            txt_blk.type_block != ResultStandardFiltering.BOND_TARGET
-            and txt_blk.type_block != ResultStandardFiltering.EQUITY_TARGET
-        ):
-            return None
         md = txt_blk.metadata
         LOG_ADAPT_INVESTMENT_INFOS.company = md["company"]
         LOG_ADAPT_INVESTMENT_INFOS.company_match = md["company match"]
@@ -482,14 +531,3 @@ class DeserializeAssetsStandard:
                 self.converter(md["liabilities"].replace("(", "").replace(")", ""))
             ),
         )
-
-
-def deserialize_block_type(blk_type):
-    def wrapper(f):
-        def new_f(txt_blk):
-            if txt_blk.type_block == blk_type:
-                return f(txt_blk)
-
-        return new_f
-
-    return wrapper
