@@ -128,8 +128,10 @@ def text_filter(pdf_blocks, filter_data):
         current_group = g
     invs_blks[current_inv_man] = current_funds
     new_funds = set()
+    inv_managers_funds = set()
     res = []
     for i, s in invs_blks.items():
+        inv_managers_funds = inv_managers_funds.union(s)
         if not s.isdisjoint(subfunds):
             res.append(StandardInvestmentsMangerTextBlock.from_name(i, s))
             for f in s:
@@ -137,8 +139,8 @@ def text_filter(pdf_blocks, filter_data):
                     new_funds.add(f)
                     res.append(StandardFundTextBlock.from_matched_fund(f))
 
-    manco = StandardManagmentCompanyTextBlock(manco, subfunds.union(new_funds))
-    res.append(manco)
+    res.append(StandardManagmentCompanyTextBlock(manco, subfunds.union(new_funds)))
+    res.append(StandardInvestmentsMangerTextBlock(manco, subfunds - inv_managers_funds))
     return res
 
 
