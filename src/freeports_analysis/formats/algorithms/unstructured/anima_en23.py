@@ -24,6 +24,7 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
 from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerFromManco,
 )
 from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 
@@ -218,7 +219,10 @@ pipelines = {
             )
         ),
         text_filter=TextFilterManagmentCompanyStandard(),
-        deserialize=DeserializerManagmentCompanyStandard(),
+        deserialize=(
+            DeserializerManagmentCompanyStandard(),
+            DeserializerInvestmentsManagerFromManco(),
+        ),
     ),
     "investments": Pipeline(
         pdf_extract=(
