@@ -524,19 +524,24 @@ class DeserializerInvestmentStandard:
 
 
 class DeserializeAssetsStandard:
-    converter: Callable[[str], float | int]
+    num_converter: Callable[[str], float | int]
+    date_converter: Optional[Callable[[str], float | int]]
 
-    def __init__(self, converter):
-        self.converter = converter
+    def __init__(self, num_converter, date_converter=to_date):
+        self.num_converter = num_converter
+        self.date_converter = date_converter
 
     def __call__(self, blk):
         md = {**blk.metadata}
         return FundAssets(
             fund=md["fund"],
             currency=to_currency(md["currency"]),
-            tot_assets=float(self.converter(md["tot_assets"])),
-            net_assets=float(self.converter(md["net_assets"])),
+            tot_assets=float(self.num_converter(md["tot_assets"])),
+            net_assets=float(self.num_converter(md["net_assets"])),
             liabilities=float(
-                self.converter(md["liabilities"].replace("(", "").replace(")", ""))
+                self.num_converter(md["liabilities"].replace("(", "").replace(")", ""))
             ),
+            date=None
+            if "date" not in md or md["date"] is None
+            else self.date_converter(md["date"]),
         )

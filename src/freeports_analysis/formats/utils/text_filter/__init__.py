@@ -673,6 +673,9 @@ class TextFilterInvestmentsStandard:
 
 
 class TextFilterAssetsStandard:
+    def __init__(self, date_regex=None):
+        self.date_regex = re.compile(date_regex)
+
     def __call__(self, blks, filter_data):
 
         filter_funds = set(
@@ -685,6 +688,8 @@ class TextFilterAssetsStandard:
         for blk in blks:
             if match.MatchFund(name=blk.metadata["fund"]) in filter_funds:
                 md = {**blk.metadata}
+                if self.date_regex is not None:
+                    md["date"] = self.date_regex.search(md["date"]).group(1)
                 md["currency"] = extract_currency_from_text(md["currency"])
                 results.append(
                     TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, md, "")

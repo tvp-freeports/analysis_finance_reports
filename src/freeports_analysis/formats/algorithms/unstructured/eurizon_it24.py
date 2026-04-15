@@ -4,7 +4,7 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractCurrencyConstant,
     PdfExtractFundStandard,
-    ExtractTextBlockOrFailPage,
+    ExtractTextPdfBlockOrFailPage,
     OnePdfBlockType,
 )
 from freeports_analysis.formats.algorithms.commons import Pipeline
@@ -42,7 +42,7 @@ fund_set = PdfLineSelection(
 
 body_set = PdfLineSelection.font("TrebuchetMS")
 
-pdf_filter_manco = ExtractTextBlockOrFailPage(
+pdf_filter_manco = ExtractTextPdfBlockOrFailPage(
     PdfLineSelection.text("^La società di gestione"),
     "managment company",
     OnePdfBlockType.RELEVANT_BLOCK,
