@@ -405,6 +405,15 @@ class DeserializerManagmentCompanyStandard:
         )
 
 
+class DeserializerInvestmentsManagerFromManco:
+    @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
+    def __call__(self, txt_blk):
+        return InvestmentsManager(
+            name=" ".join(txt_blk.content.strip().split()),
+            managed_funds=set(txt_blk.metadata["managed_funds"]),
+        )
+
+
 class DeserializerInvestmentsManagerStandard:
     @deserialize_block_type_call(ResultStandardFiltering.INVESTMENTS_MANAGER)
     def __call__(self, txt_blk):

@@ -14,6 +14,7 @@ from freeports_analysis.formats.utils.pdf_extract import (
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
     to_int_en_month,
+    DeserializerInvestmentsManagerFromManco,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
@@ -176,7 +177,10 @@ pipelines = {
             / PdfLineSelection.text("^ $")
         ),
         TextFilterManagmentCompanyStandard(),
-        DeserializerManagmentCompanyStandard(),
+        (
+            DeserializerManagmentCompanyStandard(),
+            DeserializerInvestmentsManagerFromManco(),
+        ),
     ),
     "renames": Pipeline(pdf_extract_rename, text_filter_rename, deserialize_rename),
     "merges": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),
