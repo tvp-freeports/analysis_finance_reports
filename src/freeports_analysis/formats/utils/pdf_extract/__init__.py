@@ -79,6 +79,7 @@ class ResultStandardExtraction(Enum):
     CURRENCY_STATEMENT = auto()
     TABLE_BODY = auto()
     MANAGEMENT_COMPANY = auto()
+    INVESTMENTS_MANAGER = auto()
 
 
 class ExtractTextBlockOrFailPage:

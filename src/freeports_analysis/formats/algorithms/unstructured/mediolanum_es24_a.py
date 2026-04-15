@@ -8,26 +8,33 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractCurrencyStandard,
     PdfExtractFundStandard,
     PdfExtractManagmentCompanyStandard,
-    OnePdfBlockType,
+    ResultStandardExtraction,
+)
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
+    pdflines_from_pagedict,
 )
 from freeports_analysis.formats.utils.text_filter import (
     TextFilterPageClassifyStandard,
     TextFilterManagmentCompanyStandard,
     StandardInvestmentsMangerTextBlock,
 )
+from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerPageClassifyStandard,
     DeserializerManagmentCompanyStandard,
     DeserializerInvestmentsManagerStandard,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
+from freeports_analysis.output import Fund
 from freeports_analysis.formats.algorithms.commons import Pipeline
+import re
 
 h_font = PdfLineSelection.font_of(PdfLineSelection.text("n de la cartera"))
 curr_set = PdfLineSelection(font_size=(8.9, 9.1), text="(expresado en") & h_font
 
 
 def pdf_extract_inv_managers(page):
+    lines = pdflines_from_pagedict(page)
     top = (
         PdfLineSelection.text("Gestores Delegados de Inversiones")
         .select(lines)[0]
@@ -44,11 +51,57 @@ def pdf_extract_inv_managers(page):
         / PdfLineSelection.text("^ $")
         / PdfLineSelection.text("^  $")
     ).select(lines)
-    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {}, b.text) for b in body]
+    return [
+        PdfBlock(ResultStandardExtraction.INVESTMENTS_MANAGER, {}, b.text) for b in body
+    ]
+
+
+date_regex = re.compile("\\((desde el|hasta el) [^)]+\\)")
+fund_regex = re.compile("\\((.*)\\)")
 
 
 def text_filter_inv_managers(pdf_blks, filter_data):
-    return []
+    funds = set(
+        map(
+            lambda x: MatchFund(x.name),
+            filter(lambda x: isinstance(x, Fund), filter_data),
+        )
+    )
+    curr_inv_man = None
+    manco = None
+    res = []
+    investments_managers_funds = set()
+    for blk in pdf_blks:
+        if blk.type_block == ResultStandardExtraction.MANAGEMENT_COMPANY:
+            manco = blk.content
+            continue
+        txt = blk.content
+        txt = txt.replace("*", "")
+        txt = date_regex.sub("", txt)
+        txt = txt.strip()
+        if txt == "":
+            continue
+        if curr_inv_man is None:
+            curr_inv_man = txt
+            continue
+        m = fund_regex.match(txt)
+        if m:
+            f = MatchFund(m.group(1).strip())
+            if f in funds:
+                investments_managers_funds.add(f)
+                res.append(
+                    StandardInvestmentsMangerTextBlock.from_name(curr_inv_man, [f])
+                )
+            curr_inv_man = None
+    res.append(
+        StandardInvestmentsMangerTextBlock.from_name(
+            manco, funds - investments_managers_funds
+        )
+    )
+    return res
+
+
+deserialize_inv_managers = DeserializerInvestmentsManagerStandard()
 
 
 pipelines = {
@@ -87,15 +140,20 @@ pipelines = {
         )
     ),
     "manco": Pipeline(
-        pdf_extract=PdfExtractManagmentCompanyStandard(
-            PdfLineSelection.area_from_movewindow(
-                PdfLineSelection.text("Gestor de Inversiones y Gestora de Tesorería"),
-                (-0.1, 0.8),
-                2.0,
-                1.4,
-            )
+        pdf_extract=(
+            PdfExtractManagmentCompanyStandard(
+                PdfLineSelection.area_from_movewindow(
+                    PdfLineSelection.text(
+                        "Gestor de Inversiones y Gestora de Tesorería"
+                    ),
+                    (-0.1, 0.8),
+                    2.0,
+                    1.4,
+                )
+            ),
+            pdf_extract_inv_managers,
         ),
-        text_filter=TextFilterManagmentCompanyStandard(),
-        deserialize=DeserializerManagmentCompanyStandard(),
+        text_filter=(TextFilterManagmentCompanyStandard(), text_filter_inv_managers),
+        deserialize=(DeserializerManagmentCompanyStandard(), deserialize_inv_managers),
     ),
 }
