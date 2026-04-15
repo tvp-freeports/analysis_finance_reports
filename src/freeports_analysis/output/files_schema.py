@@ -108,7 +108,7 @@ funds_change_name_schema = pa.DataFrameSchema(
         ),
         "Old name": pa.Column(pd.StringDtype),
     },
-    unique=["Fund ID", "From"],
+    unique=["Fund ID", "From", "Type of event", "Old name"],
     **common_schema_settings,
 )
 

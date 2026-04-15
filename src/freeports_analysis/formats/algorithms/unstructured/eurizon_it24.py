@@ -20,6 +20,7 @@ from freeports_analysis.formats.utils.text_filter import (
 )
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerFromManco,
     to_date_with_it_month,
     deserialize_block_type,
 )
@@ -66,8 +67,6 @@ def text_filter_manco(pdf_blks, filter_data):
     return [StandardManagmentCompanyTextBlock.from_name(found, funds)]
 
 
-deserialize_manco = DeserializerManagmentCompanyStandard()
-
 deselection_list = [
     PdfLineSelection(font="TrebuchetMS", text="Totale"),
     PdfLineSelection(font="TrebuchetMS", text="Altri strumenti finanziari"),
@@ -102,6 +101,8 @@ def text_filter_change_name(pdf_blks, filter_data):
     )
     text = pdf_blks[0].content
     m = regex_change_name.match(text)
+    if not m:
+        return []
     current_name = MatchFund(m.group(1))
     if current_name not in funds:
         return []
@@ -168,7 +169,10 @@ pipelines = {
     "manco": Pipeline(
         pdf_extract=pdf_filter_manco,
         text_filter=text_filter_manco,
-        deserialize=deserialize_manco,
+        deserialize=(
+            DeserializerManagmentCompanyStandard(),
+            DeserializerInvestmentsManagerFromManco(),
+        ),
     ),
     "investments": Pipeline(
         pdf_extract=(
