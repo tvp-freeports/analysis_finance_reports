@@ -3,6 +3,7 @@ CARNE-EN23/0,"Arial-BoldMT ""Description""",investments
 CARNE-EN23/0,"Arial-BoldMT ""Currency""",investments
 CARNE-EN23/1,"arial-boldmt ""Management Company""",manco
 CARNE-EN23/1,"arial-boldmt ""Legal adviser""",manco
+CARNE-EN23/2,"arial-boldmt ""^Statement of Net Assets""",fund_assets
 EURIZON-EN23/0,"Frutiger-Light ""Nominal /""",investments
 EURIZON-EN23/0,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",investments
 EURIZON-EN23/1,"frutiger-lightitalic ""MANAGEMENT COMPANY AND PROMOTER""",manco
@@ -76,6 +77,8 @@ KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",investments
 KAIROS-EN23/1,"arialnarrow-bold[11.52] ""Organisational Structure""",manco
 KAIROS-EN23/1,"arialnarrow-bold ""Management Company""",manco
 KAIROS-EN23/2,"arialnarrow-bold ""merged during the year""",merges
+KAIROS-EN23/3,"arialnarrow-bold ""^Statement of Net Assets as at""",fund_assets
+KAIROS-EN23/3,"arialnarrow-bold ""(in""",fund_assets
 UBS-EN23/0,"Frutiger45LightBold ""Description """,investments
 UBS-EN23/1,"Frutiger45LightBold ""Management Company and Domiciliation Agent""",manco
 MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",investments
