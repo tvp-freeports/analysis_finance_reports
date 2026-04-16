@@ -164,7 +164,7 @@ class Algorithm:
     ):
         known_pipelines = set(pipelines_map.keys())
         if not page_classify_pipelines.issubset(known_pipelines):
-            unknown = page_classify_pipelines - know_pipelines
+            unknown = page_classify_pipelines - known_pipelines
             raise Exception(
                 f"Some page classify pipelines names have no mapping to pipeline implementation: {unknown}"
             )
