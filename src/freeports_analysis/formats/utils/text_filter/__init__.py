@@ -673,8 +673,13 @@ class TextFilterInvestmentsStandard:
 
 
 class TextFilterAssetsStandard:
-    def __init__(self, date_regex=None):
+    def __init__(self, date_regex=None, remove_from_fund_regex=None):
         self.date_regex = re.compile(date_regex) if date_regex is not None else None
+        self.remove_from_fund_regex = (
+            re.compile(remove_from_fund_regex)
+            if remove_from_fund_regex is not None
+            else None
+        )
 
     def __call__(self, blks, filter_data):
 
@@ -686,8 +691,10 @@ class TextFilterAssetsStandard:
         )
         results = []
         for blk in blks:
-            if match.MatchFund(name=blk.metadata["fund"]) in filter_funds:
-                md = {**blk.metadata}
+            md = {**blk.metadata}
+            if self.remove_from_fund_regex is not None:
+                md["fund"] = self.remove_from_fund_regex.sub("", md["fund"])
+            if match.MatchFund(name=md["fund"]) in filter_funds:
                 if self.date_regex is not None:
                     md["date"] = self.date_regex.search(md["date"]).group(1)
                 md["currency"] = extract_currency_from_text(md["currency"])

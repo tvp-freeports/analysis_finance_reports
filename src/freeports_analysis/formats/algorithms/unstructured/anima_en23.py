@@ -120,7 +120,7 @@ pdf_extract_funds = PdfExtractFundStandard(
 x0 = PdfLineSelection(font="helvetica-bold", font_size=(7.4, 7.6), text="Notes")
 y1 = PdfLineSelection(font="helvetica-bold", font_size=(7.4, 7.6), text="^Assets")
 pdf_extract = PdfExtractAssetsStandard(
-    fund_set=PdfLineSelection.area_from_bounds(x0=x0, y0=0, x1=1e6, y1=y1),
+    fund_set=PdfLineSelection.area_from_bounds(x0=x0, y0=75.0, x1=1e6, y1=y1),
     currency_set=None,
     tot_assets_set=PdfLineSelection(
         font="helvetica-bold", font_size=(7.4, 7.6), text="^Total Assets"
@@ -137,10 +137,19 @@ pdf_extract = PdfExtractAssetsStandard(
     tot_assets_mult=(100.0, 1.2),
     liabilities_mult=(100.0, 1.7),
     net_assets_mult=(100.0, 1.7),
+    date_set=PdfLineSelection(font="helvetica-condensed-bold", text="^as at"),
+    table_condition=True,
 )
 
-text_filter = TextFilterAssetsStandard()
-deserialize = DeserializeAssetsStandard(num_converter=to_int)
+"""text_filter = TextFilterAssetsStandard()
+deserialize = DeserializeAssetsStandard(num_converter=to_int)"""
+text_filter = TextFilterAssetsStandard(
+    "as at ([0-9]+ .+ [0-9]+)", "As at [0-9]+ .+ [0-9]+"
+)
+deserialize = DeserializeAssetsStandard(
+    num_converter=lambda txt: 0 if txt == "-" else to_int(txt),
+    date_converter=to_date_with_en_month,
+)
 
 
 def pdf_extract_merges(page):
