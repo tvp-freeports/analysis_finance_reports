@@ -344,6 +344,7 @@ class PdfExtractAssetsStandard:
 
     def __call__(self, dict_root):
         lines = pdflines_from_pagedict(dict_root)
+        lines = (PdfLineSelection.text("") / PdfLineSelection.text("^ $")).select(lines)
         tot_assets = PdfLineSelection.area_from_movewindow(
             self.tot_assets_selction,
             self.tot_assets_vector,
@@ -362,7 +363,6 @@ class PdfExtractAssetsStandard:
             self.net_assets_width,
             self.net_assets_height,
         ).select(lines)
-
         tot_assets, liabilities, net_assets = zip(
             *tuple(
                 (tot_assets[i], liabilities[i], net_assets[i])

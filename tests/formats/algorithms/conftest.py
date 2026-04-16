@@ -494,14 +494,14 @@ class ReportVariant(Collector):
                 elif file_type == "results.pkl":
                     results.add(page_num)
                 else:
-                    raise pytest.CollectError(f"Unknown file in pages folder: {f}")
+                    raise Exception(f"Unknown file in pages folder: {f}")
 
         # Validate that pages are uniquely classified
         total_pages = []
         for pages in pages_by_type.values():
             total_pages.extend(list(pages))
         if len(total_pages) != len(set(total_pages)):
-            raise pytest.CollectError("Found pages classified in multiple ways")
+            raise Exception("Found pages classified in multiple ways")
 
         # Determine which tests can run
         pdf_extract_enabled = set()

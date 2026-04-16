@@ -38,6 +38,7 @@ pdf_extract = PdfExtractAssetsStandard(
     ),
     liabilities_mult=(100.0, 3.0),
     net_assets_mult=(100.0, 2.2),
+    table_condition=True,
 )
 
 text_filter = TextFilterAssetsStandard()
