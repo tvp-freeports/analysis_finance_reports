@@ -32,6 +32,7 @@ pdf_extract = PdfExtractAssetsStandard(
     liabilities_mult=(100.0, 2.2),
     net_assets_mult=(100.0, 2.2),
     date_set=PdfLineSelection(font="timesnewromanbold", text="^as at"),
+    table_condition=True,
 )
 
 text_filter = TextFilterAssetsStandard("as at ([0-9]+ .+ [0-9]+)")

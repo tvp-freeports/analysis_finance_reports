@@ -22,6 +22,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     PositiveFloat,
+    NonNegativeFloat,
     confloat,
     AfterValidator,
     ConfigDict,
@@ -427,9 +428,9 @@ class Fund(BaseModel, match.MatchFund, PromisableDict):
 class FundAssets(BaseModel, PromisableDict):
     fund: str = Field(exclude=True)
     date: Optional[PromisedDate] = Field(default=None, serialization_alias="Date")
-    tot_assets: PositiveFloat = Field(serialization_alias="Total assets")
-    liabilities: PositiveFloat = Field(serialization_alias="Total liabilities")
-    net_assets: PositiveFloat = Field(serialization_alias="Total net assets")
+    tot_assets: NonNegativeFloat = Field(serialization_alias="Total assets")
+    liabilities: NonNegativeFloat = Field(serialization_alias="Total liabilities")
+    net_assets: NonNegativeFloat = Field(serialization_alias="Total net assets")
     currency: PromisedCurrency = Field(serialization_alias="Currency")
 
     @model_validator(mode="after")
