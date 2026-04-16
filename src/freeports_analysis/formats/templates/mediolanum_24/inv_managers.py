@@ -115,9 +115,9 @@ def text_filter_with_subfunds(blocks, subfunds):
     fund_line = False
     for rb in blocks:
         r = rb.content.strip()
-        if r == "":
-            continue
         if inv_line:
+            if r == "":
+                continue
             current_inv = r
             invs_blks[r] = rb
             inv_line = False
@@ -148,7 +148,7 @@ def text_filter_with_subfunds(blocks, subfunds):
                     fund_line = False
     res = []
     for i, s in invs.items():
-        if not s.isdisjoint(subfunds) or True:
+        if not s.isdisjoint(subfunds):
             res.append(StandardInvestmentsMangerTextBlock.from_name(i, s))
             res.extend(
                 [
