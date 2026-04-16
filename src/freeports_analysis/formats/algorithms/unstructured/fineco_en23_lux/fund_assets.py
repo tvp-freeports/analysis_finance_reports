@@ -41,4 +41,4 @@ pdf_extract = PdfExtractAssetsStandard(
 )
 
 text_filter = TextFilterAssetsStandard()
-deserialize = DeserializeAssetsStandard(converter=to_int)
+deserialize = DeserializeAssetsStandard(num_converter=to_int)

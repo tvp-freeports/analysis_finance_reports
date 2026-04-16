@@ -9,18 +9,34 @@ from freeports_analysis.formats.utils.deserialize import (
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.algorithms.commons import Pipeline
+from freeports_analysis.formats.templates import mediolanum_24
+
+compute_page_class = mediolanum_24.compute_page_class
 
 pipelines = {
-    "manco": Pipeline(
-        pdf_extract=PdfExtractManagmentCompanyStandard(
-            PdfLineSelection.area_from_movewindow(
-                PdfLineSelection(font_size=(9.40, 9.55), text="MANAGER AND GLOBAL"),
-                (1.2, -0.1),
-                100.0,
-                1.2,
-            )
+    "inv_managers_begin": Pipeline(
+        pdf_extract=mediolanum_24.inv_managers.PdfExtractBeginPage("^DELEGATE INV"),
+        text_filter=mediolanum_24.inv_managers.text_filter_begin_page,
+        deserialize=(
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
+            mediolanum_24.inv_managers.deserialize_manco,
         ),
-        text_filter=TextFilterManagmentCompanyStandard(),
-        deserialize=DeserializerManagmentCompanyStandard(),
-    )
+    ),
+    "inv_managers": Pipeline(
+        pdf_extract=mediolanum_24.inv_managers.pdf_extract,
+        text_filter=mediolanum_24.inv_managers.text_filter,
+        deserialize=(
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
+        ),
+    ),
+    "inv_managers_end": Pipeline(
+        pdf_extract=mediolanum_24.inv_managers.PdfExtractEndPage("^TRUSTEE"),
+        text_filter=mediolanum_24.inv_managers.text_filter,
+        deserialize=(
+            mediolanum_24.inv_managers.deserialize,
+            mediolanum_24.inv_managers.deserialize_fund,
+        ),
+    ),
 }

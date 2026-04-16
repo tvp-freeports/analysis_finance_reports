@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Optional, Annotated, Union, Dict, Any, List, Tuple, Set
 import yaml
 from pydantic import (
+    Field,
     BaseModel,
     BeforeValidator,
     PositiveFloat,
@@ -123,6 +124,11 @@ class DocumentResults:
     def __iter__(self):
         return iter(self.results)
 
+    def add_batch_infos(self, d):
+        d["Format"] = self.algorithm
+        d["Document"] = self.prefix_out
+        return d
+
     def fulfill_promises(self, promises_resolution_map):
         for pr in self:
             pr.fulfill_promises(promises_resolution_map)
@@ -203,6 +209,11 @@ PromisedDate = Union[Promise, datetime.date]
 
 
 class PromisableDict:
+    model_config = ConfigDict(
+        validate_assignment=True,
+        arbitrary_types_allowed=True,
+    )
+
     def fulfill_promises(self, mapping: PromisesResolutionMap) -> None:
         """Resolve all promise objects in this financial data instance.
 
@@ -259,20 +270,23 @@ class Investment(BaseModel, ABC, PromisableDict):
     companies list.
     """
 
-    model_config = ConfigDict(
-        validate_assignment=True,
-        arbitrary_types_allowed=True,
+    company: Company = Field(serialization_alias="Investee")
+    company_match: str = Field(serialization_alias="Triggering text")
+    fund: str = Field(exclude=True)
+    nominal_quantity: Optional[PositiveFloat] = Field(
+        default=None, serialization_alias="Nominal/Quantity"
     )
-    company: Company
-    company_match: str
-    fund: str
-    manco: Optional[str] = None
-    nominal_quantity: Optional[PositiveFloat] = None
-    market_value: PromisedMarketValue
-    currency: PromisedCurrency
-    perc_net_assets: Optional[PromisedPercNetAsstes] = None
-    acquisition_cost: Optional[PromisedAcquisitionCost] = None
-    acquisition_currency: Optional[PromisedAcquisitionCurrency] = None
+    market_value: PromisedMarketValue = Field(serialization_alias="Market value")
+    currency: PromisedCurrency = Field(serialization_alias="Currency")
+    perc_net_assets: Optional[PromisedPercNetAsstes] = Field(
+        default=None, serialization_alias="% net assets"
+    )
+    acquisition_cost: Optional[PromisedAcquisitionCost] = Field(
+        default=None, serialization_alias="Acquisition cost"
+    )
+    acquisition_currency: Optional[PromisedAcquisitionCurrency] = Field(
+        default=None, serialization_alias="Acquisition currency"
+    )
 
     def __str__(self) -> str:
         """Generate a formatted string representation of the investment.
@@ -321,7 +335,7 @@ class Investment(BaseModel, ABC, PromisableDict):
         return string
 
     def __hash__(self):
-        return hash(frozenset(self.model_dump(mode="json").items()))
+        return hash(frozenset(self.model_dump(mode="json", by_alias=True).items()))
 
 
 class Equity(Investment):
@@ -345,8 +359,8 @@ class Bond(Investment):
     a decimal value (e.g., 0.05 represents 5% annual interest).
     """
 
-    maturity: Optional[datetime.date] = None
-    interest_rate: Optional[PromisedInterestRate] = None
+    maturity: Optional[datetime.date] = Field(default=None)
+    interest_rate: Optional[PromisedInterestRate] = Field(default=None)
 
     def __str__(self) -> str:
         """Generate a formatted string representation of the bond investment.
@@ -378,12 +392,8 @@ class Bond(Investment):
 
 
 class AssetsManager(BaseModel, ABC, PromisableDict):
-    model_config = ConfigDict(
-        validate_assignment=True,
-        arbitrary_types_allowed=True,
-    )
-    name: str
-    managed_funds: Set[str]
+    name: str = Field(serialization_alias="Name")
+    managed_funds: Set[str] = Field(exclude=True)
 
     def __repr__(self):
         return f'{self.__class__.__name__}("{self.name}")'
@@ -401,7 +411,7 @@ class InvestmentsManager(AssetsManager):
 
 
 class Fund(BaseModel, match.MatchFund, PromisableDict):
-    name: str
+    name: str = Field(serialization_alias="Name")
 
     def __init__(self, name):
         BaseModel.__init__(self, name=name)
@@ -415,15 +425,12 @@ class Fund(BaseModel, match.MatchFund, PromisableDict):
 
 
 class FundAssets(BaseModel, PromisableDict):
-    model_config = ConfigDict(
-        validate_assignment=True,
-        arbitrary_types_allowed=True,
-    )
-    fund: str
-    tot_assets: PositiveFloat
-    liabilities: PositiveFloat
-    net_assets: PositiveFloat
-    currency: PromisedCurrency
+    fund: str = Field(exclude=True)
+    date: Optional[PromisedDate] = Field(default=None, serialization_alias="Date")
+    tot_assets: PositiveFloat = Field(serialization_alias="Total assets")
+    liabilities: PositiveFloat = Field(serialization_alias="Total liabilities")
+    net_assets: PositiveFloat = Field(serialization_alias="Total net assets")
+    currency: PromisedCurrency = Field(serialization_alias="Currency")
 
     @model_validator(mode="after")
     def validate_assets_equation(self) -> "FundAssets":
@@ -452,13 +459,9 @@ class FundAssets(BaseModel, PromisableDict):
 
 
 class FundChangeName(BaseModel, PromisableDict):
-    model_config = ConfigDict(
-        validate_assignment=True,
-        arbitrary_types_allowed=True,
-    )
-    old_name: str
-    current_name: str
-    date: PromisedDate
+    old_name: str = Field(serialization_alias="Old name")
+    current_name: str = Field(exclude=True)
+    date: PromisedDate = Field(serialization_alias="From")
 
     def __hash__(self):
         return hash((self.old_name, self.current_name, self.date))
@@ -470,6 +473,43 @@ class FundRename(FundChangeName):
 
 class FundMerge(FundChangeName):
     """Fund get merged into another (current fund name exsists before)"""
+
+
+class ResultsAccumulator:
+    investments = []
+    funds = {}
+    add_infos = {}
+    assets_managers = {}
+    funds_change_name = []
+    funds_assets = []
+    investments_managers_to_funds = []
+
+    @property
+    def new_investment_id(self):
+        return len(self.investments) + 1
+
+    @property
+    def new_asset_manager_id(self):
+        return len(self.assets_managers) + 1
+
+    @property
+    def new_fund_id(self):
+        return len(self.funds) + 1
+
+    @property
+    def new_fund_asset_id(self):
+        return len(self.funds_assets) + 1
+
+    @property
+    def new_fund_change_name_id(self):
+        return len(self.funds_change_name) + 1
+
+
+def add_debug_infos(batch_mode, document_results, n_page, d):
+    d["Report page"] = n_page
+    if batch_mode:
+        d = document_results.add_batch_infos(d)
+    return d
 
 
 def transform_to_files_schema(
@@ -500,250 +540,132 @@ def transform_to_files_schema(
     Bond-specific information (maturity, interest rate) is separated from
     the main investment data structure.
     """
-    add_infos: Dict[int, Dict[str, Any]] = {}
-    investments: List[Dict[str, Any]] = []
-    assets_managers: List[Dict[str, Any]] = []
-    funds: List[Dict[str, Any]] = []
-    asset_managers_to_funds: List[Dict[str, Any]] = []
-    funds_assets: List[Dict[str, Any]] = []
-    funds_change_name: List[Dict[str, Any]] = []
-
-    _id_investments = 1
-    _id_funds = 1
-    _id_assets_managers = 1
-    _id_funds_change_name = 1
-    new_funds = {}
-    asset_managers_names = set()
+    curr_results = ResultsAccumulator()
 
     for document_results in results:
         for page_n, page_results in enumerate(document_results, start=1):
             for f in page_results.funds:
-                if f not in new_funds:
-                    d = f.model_dump(mode="json")
-                    d["ID"] = _id_funds
-                    _id_funds += 1
-                    new_funds[f] = d
-                if "Report page" not in new_funds[f]:
-                    if batch_mode:
-                        new_funds[f]["Format"] = document_results.algorithm
-                        new_funds[f]["Document"] = document_results.prefix_out
-                    new_funds[f]["Report page"] = page_n
-                if "Managment company ID" not in new_funds[f]:
-                    new_funds[f]["Managment company ID"] = None
-            for fm in page_results.funds_change_name:
-                d = fm.model_dump(mode="json")
-                f = Fund(name=d["current_name"])
-                if f not in new_funds:
-                    df = f.model_dump(mode="json")
-                    df["ID"] = _id_funds
-                    _id_funds += 1
-                    new_funds[f] = df
-                if batch_mode:
-                    d["Format"] = document_results.algorithm
-                    d["Document"] = document_results.prefix_out
-                if isinstance(fm, FundRename):
+                if f not in curr_results.funds:
+                    d = f.model_dump(mode="json", by_alias=True)
+                    d["ID"] = curr_results.new_fund_id
+                    d["Management company ID"] = None
+                    curr_results.funds[f] = d
+                if "Report page" not in curr_results.funds[f]:
+                    curr_results.funds[f] = add_debug_infos(
+                        batch_mode, document_results, page_n, curr_results.funds[f]
+                    )
+            for fcm in page_results.funds_change_name:
+                d = fcm.model_dump(mode="json", by_alias=True)
+                f = Fund(name=fcm.current_name)
+                if f not in curr_results.funds:
+                    curr_results.funds[f] = {
+                        "ID": curr_results.new_fund_id,
+                        "Name": f.name,
+                    }
+                d = add_debug_infos(batch_mode, document_results, page_n, d)
+                if isinstance(fcm, FundRename):
                     d["Type of event"] = "RENAMING"
-                elif isinstance(fm, FundMerge):
+                elif isinstance(fcm, FundMerge):
                     d["Type of event"] = "MERGING"
-                d["Report page"] = page_n
-                d["Fund ID"] = new_funds[f]["ID"]
-                d["ID"] = _id_funds_change_name
-                funds_change_name.append(d)
-                _id_funds_change_name += 1
-            for fa in page_results.funds_assets:
-                d = fa.model_dump(mode="json")
-                f = Fund(name=d["fund"])
-                if f not in new_funds:
-                    df = f.model_dump(mode="json")
-                    df["ID"] = _id_funds
-                    _id_funds += 1
-                    new_funds[f] = df
-                if batch_mode:
-                    d["Format"] = document_results.algorithm
-                    d["Document"] = document_results.prefix_out
-                d["Report page"] = page_n
-                d["Fund ID"] = new_funds[f]["ID"]
-                funds_assets.append(d)
-            for i in page_results.investments:
-                d = i.model_dump(mode="json")
-                f = Fund(name=d["fund"])
-                if f not in new_funds:
-                    df = f.model_dump(mode="json")
-                    df["ID"] = _id_funds
-                    _id_funds += 1
-                    new_funds[f] = df
-                if batch_mode:
-                    d["Format"] = document_results.algorithm
-                    d["Document"] = document_results.prefix_out
-                d["Financial instrument"] = i.__class__.__name__.upper()
-                d["Report page"] = page_n
-                d["ID"] = _id_investments
-                d["Fund ID"] = new_funds[f]["ID"]
+                d["Fund ID"] = curr_results.funds[f]["ID"]
+                d["ID"] = curr_results.new_fund_change_name_id
+                curr_results.funds_change_name.append(d)
 
-                if isinstance(i, Bond):
+            for fa in page_results.funds_assets:
+                d = fa.model_dump(mode="json", by_alias=True)
+                f = Fund(name=fa.fund)
+                if f not in curr_results.funds:
+                    curr_results.funds[f] = {
+                        "ID": curr_results.new_fund_id,
+                        "Name": f.name,
+                    }
+                d = add_debug_infos(batch_mode, document_results, page_n, d)
+                d["Fund ID"] = curr_results.funds[f]["ID"]
+                d["ID"] = curr_results.new_fund_asset_id
+                curr_results.funds_assets.append(d)
+
+            for i in page_results.investments:
+                d = i.model_dump(mode="json", by_alias=True)
+                f = Fund(name=i.fund)
+                if f not in curr_results.funds:
+                    curr_results.funds[f] = {
+                        "ID": curr_results.new_fund_id,
+                        "Name": f.name,
+                    }
+                d = add_debug_infos(batch_mode, document_results, page_n, d)
+                d["ID"] = curr_results.new_investment_id
+                d["Fund ID"] = curr_results.funds[f]["ID"]
+                if isinstance(i, Equity):
+                    d["Financial instrument"] = "EQUITY"
+                elif isinstance(i, Bond):
+                    d["Financial instrument"] = "BOND"
                     infos = ["maturity", "interest_rate"]
-                    add_infos[d["ID"]] = BondAdditionalInfos(
+                    curr_results.add_infos[d["ID"]] = BondAdditionalInfos(
                         **{k: v for k, v in d.items() if k in infos}
-                    ).model_dump(mode="json")
+                    ).model_dump(mode="json", by_alias=True)
                     d = {k: v for k, v in d.items() if k not in infos}
-                investments.append(d)
-                _id_investments += 1
-            for a in page_results.assets_managers:
-                d = a.model_dump(mode="json")
-                for s in d["managed_funds"]:
+                curr_results.investments.append(d)
+
+            for am in page_results.assets_managers:
+                d = am.model_dump(mode="json", by_alias=True)
+                if am.name not in curr_results.assets_managers:
+                    d["ID"] = curr_results.new_asset_manager_id
+                    d = add_debug_infos(batch_mode, document_results, page_n, d)
+                    curr_results.assets_managers[am.name] = d
+                for s in am.managed_funds:
                     f = Fund(name=s)
-                    if f not in new_funds:
-                        df = f.model_dump(mode="json")
-                        df["ID"] = _id_funds
-                        _id_funds += 1
-                        new_funds[f] = df
-                    if isinstance(a, ManagementCompany):
-                        new_funds[f]["Managment company ID"] = _id_assets_managers
-                    if isinstance(a, InvestmentsManager):
-                        asset_managers_to_funds.append(
+                    if f not in curr_results.funds:
+                        curr_results.funds[f] = {
+                            "ID": curr_results.new_fund_id,
+                            "Name": f.name,
+                        }
+                    if isinstance(am, ManagementCompany):
+                        curr_results.funds[f]["Managment company ID"] = (
+                            curr_results.assets_managers[am.name]["ID"]
+                        )
+                    if isinstance(am, InvestmentsManager):
+                        curr_results.investments_managers_to_funds.append(
                             {
-                                "Investment manager ID": _id_assets_managers,
-                                "Fund ID": new_funds[f]["ID"],
+                                "Investment manager ID": curr_results.assets_managers[
+                                    am.name
+                                ]["ID"],
+                                "Fund ID": curr_results.funds[f]["ID"],
                             }
                         )
-                if batch_mode:
-                    d["Format"] = document_results.algorithm
-                    d["Document"] = document_results.prefix_out
-                d["Report page"] = page_n
-                d["ID"] = _id_assets_managers
-                if a.name not in asset_managers_names:
-                    asset_managers_names.add(a.name)
-                    assets_managers.append(d)
-                    _id_assets_managers += 1
-    funds = list(new_funds.values())
-    df_investments = (
-        pd.DataFrame.from_dict(investments)
-        if len(investments) > 0
-        else pd.DataFrame(
-            columns=[
-                "ID",
-                "company",
-                "fund",
-                "company_match",
-                "Fund ID",
-                "manco",
-                "Financial instrument",
-                "nominal_quantity",
-                "market_value",
-                "perc_net_assets",
-                "Currency",
-                "acquisition_cost",
-                "acquisition_currency",
-                "Report page",
-            ]
-        )
-    )
-    df_investments_managers = (
-        pd.DataFrame.from_dict(asset_managers_to_funds)
-        if len(asset_managers_to_funds)
-        else pd.DataFrame(columns=["Investment manager ID", "Fund ID"])
-    )
-    df_funds_assets = (
-        pd.DataFrame.from_dict(funds_assets)
-        if len(funds_assets) > 0
-        else pd.DataFrame(
-            columns=[
-                "Fund ID",
-                "fund",
-                "tot_assets",
-                "net_assets",
-                "liabilities",
-                "currency",
-                "Report page",
-            ]
-        )
-    )
-    df_funds = (
-        pd.DataFrame.from_dict(funds)
-        if len(funds) > 0
-        else pd.DataFrame(columns=["ID", "Managment company ID", "Name", "Report page"])
-    )
-    df_assets_managers = (
-        pd.DataFrame.from_dict(assets_managers)
-        if len(assets_managers) > 0
-        else pd.DataFrame(columns=["ID", "managed_funds", "name", "Report page"])
-    )
-    df_funds_change_name = (
-        pd.DataFrame.from_dict(funds_change_name)
-        if len(funds_change_name) > 0
-        else pd.DataFrame(
-            columns=[
-                "ID",
-                "Fund ID",
-                "current_name",
-                "Type of event",
-                "old_name",
-                "date",
-                "Report page",
-            ]
-        )
-    )
-    df_funds_change_name.set_index(["ID", "Fund ID"], inplace=True)
-    df_funds_change_name.drop(columns="current_name", inplace=True)
-    df_funds_change_name.rename(
-        columns={"old_name": "Old name", "date": "From"}, inplace=True
-    )
 
-    df_investments.set_index("ID", inplace=True)
-    df_investments.drop(columns="fund", inplace=True)
-    df_investments.rename(
-        columns={
-            "company": "Company",
-            "company_match": "Matched company",
-            "manco": "Management company",
-            "nominal_quantity": "Nominal/Quantity",
-            "market_value": "Market value",
-            "currency": "Currency",
-            "perc_net_assets": "% net assets",
-            "acquisition_cost": "Acquisition cost",
-            "acquisition_currency": "Acquisition currency",
-        },
-        inplace=True,
-    )
-    df_assets_managers.set_index("ID", inplace=True)
-    df_assets_managers.drop(columns="managed_funds", inplace=True)
-    df_assets_managers.rename(columns={"name": "Name"}, inplace=True)
+    components = [
+        ("investments", curr_results.investments, investments_schema),
+        (
+            "assets_managers",
+            list(curr_results.assets_managers.values()),
+            assets_managers_schema,
+        ),
+        ("funds", list(curr_results.funds.values()), funds_schema),
+        (
+            "investments_managers",
+            curr_results.investments_managers_to_funds,
+            investments_managers_schema,
+        ),
+        ("funds_change_name", curr_results.funds_change_name, funds_change_name_schema),
+        ("funds_assets", curr_results.funds_assets, funds_assets_schema),
+    ]
+    validated_dataframes = {}
+    for k, res_list, schema in components:
+        r = None
+        columns = [
+            c
+            for c in schema.columns.keys()
+            if batch_mode or c not in ("Format", "Document")
+        ]
+        if len(res_list) > 0:
+            r = pd.DataFrame.from_records(res_list, columns=columns)
+        else:
+            r = pd.DataFrame(columns=columns)
+        validated_dataframes[k] = schema.validate(r)
 
-    df_funds_assets.drop(columns="fund", inplace=True)
-    df_funds_assets.rename(
-        columns={
-            "tot_assets": "Total assets",
-            "net_assets": "Total net assets",
-            "liabilities": "Total liabilities",
-            "currency": "Currency",
-        },
-        inplace=True,
-    )
-    df_funds_assets.set_index(["Fund ID"], inplace=True)
-
-    df_funds.rename(columns={"name": "Name"}, inplace=True)
-    df_funds.set_index(["ID", "Managment company ID"], inplace=True)
-
-    df_investments_managers.set_index(
-        ["Investment manager ID", "Fund ID"], inplace=True
-    )
-
-    df_investments = investments_schema.validate(df_investments)
-    df_assets_managers = assets_managers_schema.validate(df_assets_managers)
-    df_funds_assets = funds_assets_schema.validate(df_funds_assets)
-    df_funds = funds_schema.validate(df_funds)
-    df_investments_managers = investments_managers_schema.validate(
-        df_investments_managers
-    )
-    df_funds_change_name = funds_change_name_schema.validate(df_funds_change_name)
     return {
-        "investments": df_investments,
-        "assets_managers": df_assets_managers,
-        "funds": df_funds,
-        "funds_assets": df_funds_assets,
-        "investments_managers": df_investments_managers,
-        "additional_infos": add_infos,
-        "funds_change_name": df_funds_change_name,
+        **validated_dataframes,
+        "additional_infos": curr_results.add_infos,
     }
 
 
@@ -770,6 +692,7 @@ def _write_structured(
     out_path = out_dir / data_name
     out_path.mkdir(exist_ok=True)
     structured_data.to_csv(out_path / "table.csv")
+
     yaml.dump(
         unstructured_data,
         (out_path / "dicts.yaml").open("w"),
@@ -797,7 +720,7 @@ def _write_regular(
     """
     out_dir.mkdir(exist_ok=True)
     for data_name, file_name in structured_mapping.items():
-        data[data_name].to_csv(out_dir / file_name)
+        data[data_name].to_csv(out_dir / file_name, index=False)
     for data_name, file_name in unstructured_mapping.items():
         yaml.dump(data[data_name], (out_dir / file_name).open("w"))
 

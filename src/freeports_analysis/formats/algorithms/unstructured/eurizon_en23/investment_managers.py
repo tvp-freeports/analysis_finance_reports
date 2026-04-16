@@ -13,11 +13,14 @@ from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.text_filter import (
     ResultStandardFiltering,
     TextFilterManagmentCompanyStandard,
+    StandardInvestmentsMangerTextBlock,
+    StandardFundTextBlock,
 )
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerFundStandard,
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerStandard,
 )
 from freeports_analysis import output
 import logging
@@ -170,10 +173,10 @@ def text_filter_inv_managers(blocks, results):
     res = []
     for i, s in zip(inv, funds):
         if not s.isdisjoint(inv_funds):
-            res.append(TextBlock(TipiBlocco.INV, {"funds": s}, i))
+            res.append(StandardInvestmentsMangerTextBlock(i, s))
             res.extend(
                 [
-                    TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+                    StandardFundTextBlock.from_matched_fund(f)
                     for f in s
                     if f not in inv_funds
                 ]
@@ -216,13 +219,13 @@ def text_filter_inv_managers_begin(blocks, results):
     except IndexError:
         logger.error("Fund not found probably the layout is not the expected one")
     res = [
-        TextBlock(TipiBlocco.INV, {"funds": s}, i)
+        StandardInvestmentsMangerTextBlock(i, s)
         for i, s in zip(inv, funds)
         if not s.isdisjoint(filter_funds)
     ]
     res.extend(
         [
-            TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
+            StandardFundTextBlock.from_matched_fund(f)
             for im in funds
             for f in im
             if f not in filter_funds
@@ -234,14 +237,7 @@ def text_filter_inv_managers_begin(blocks, results):
 
 text_filter_manco = TextFilterManagmentCompanyStandard()
 
-
-def deserialize_inv_managers(text_block):
-    if text_block.type_block == TipiBlocco.INV:
-        return output.InvestmentsManager(
-            name=text_block.content,
-            managed_funds=set((f.name for f in text_block.metadata["funds"])),
-        )
-
+deserialize_inv_managers = DeserializerInvestmentsManagerStandard()
 
 deserialize_manco = DeserializerManagmentCompanyStandard()
 

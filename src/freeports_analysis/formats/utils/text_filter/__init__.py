@@ -53,7 +53,7 @@ class ResultStandardFiltering(Enum):
     EQUITY_TARGET = auto()
     FUND = auto()
     MANAGEMENT_COMPANY = auto()
-    INVESTMENT_MANAGER = auto()
+    INVESTMENTS_MANAGER = auto()
 
 
 class PdfBlocksTable:
@@ -650,7 +650,7 @@ class TextFilterInvestmentsStandard:
                 if fund_found is not None:
                     raise Exception("Fund two subfunds in same page")
                 fund_found = b.content
-                results.append(TextBlock(ResultStandardFiltering.FUND, {}, b))
+                results.append(StandardFundTextBlock(b))
 
             elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
                 if currency_found is not None:
@@ -673,6 +673,9 @@ class TextFilterInvestmentsStandard:
 
 
 class TextFilterAssetsStandard:
+    def __init__(self, date_regex=None):
+        self.date_regex = re.compile(date_regex) if date_regex is not None else None
+
     def __call__(self, blks, filter_data):
 
         filter_funds = set(
@@ -685,6 +688,8 @@ class TextFilterAssetsStandard:
         for blk in blks:
             if match.MatchFund(name=blk.metadata["fund"]) in filter_funds:
                 md = {**blk.metadata}
+                if self.date_regex is not None:
+                    md["date"] = self.date_regex.search(md["date"]).group(1)
                 md["currency"] = extract_currency_from_text(md["currency"])
                 results.append(
                     TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, md, "")
@@ -701,12 +706,48 @@ class StandardManagmentCompanyTextBlock(TextBlock):
         )
 
     @classmethod
-    def from_name(cls, name, funds: Set[match.MatchFund]):
+    def from_content(cls, name, funds: Set[match.MatchFund]):
         return super().from_content(
             ResultStandardFiltering.MANAGEMENT_COMPANY,
             {"managed_funds": set((f.name for f in funds))},
             name,
         )
+
+    from_name = from_content
+
+
+class StandardInvestmentsMangerTextBlock(TextBlock):
+    def __init__(self, pdf_blk: PdfBlock, funds: Set[match.MatchFund]):
+        super().__init__(
+            ResultStandardFiltering.INVESTMENTS_MANAGER,
+            {"managed_funds": set((f.name for f in funds))},
+            pdf_blk,
+        )
+
+    @classmethod
+    def from_content(cls, name, funds: Set[match.MatchFund]):
+        return super().from_content(
+            ResultStandardFiltering.INVESTMENTS_MANAGER,
+            {"managed_funds": set((f.name for f in funds))},
+            name,
+        )
+
+    from_name = from_content
+
+
+class StandardFundTextBlock(TextBlock):
+    def __init__(self, blk):
+        super().__init__(ResultStandardFiltering.FUND, {}, blk)
+
+    @classmethod
+    def from_matched_fund(cls, fund: match.MatchFund):
+        return super().from_content(ResultStandardFiltering.FUND, {}, fund.name)
+
+    @classmethod
+    def from_content(cls, fund: str):
+        return super().from_content(ResultStandardFiltering.FUND, {}, fund)
+
+    from_name = from_content
 
 
 class TextFilterManagmentCompanyStandard:

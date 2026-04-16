@@ -56,7 +56,8 @@ MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",investments
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",investments
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",investments
 MEDIOLANUM-EN24/0,"[8.04] ""Face value""",investments
-MEDIOLANUM-EN24/1,"[9.48] ""MANAGER AND GLOBAL""",manco
+MEDIOLANUM-EN24/1,"[9.48] ""MANAGER AND GLOBAL""",inv_managers_begin
+MEDIOLANUM-EN24/2,"[9.48] ""TRUSTEE/DEPOSITARY""",inv_managers_end
 FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Domicile""",investments
 FINECO-EN23@IR/0,"TimesNewRoman,Bold ""Shares""",investments
 FINECO-EN23@IR/1,"TimesNewRoman,Bold [10.02] ""Notes to the Financial Statements""",inv_managers_table

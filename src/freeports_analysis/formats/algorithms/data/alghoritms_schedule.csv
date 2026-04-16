@@ -1,9 +1,13 @@
 Format name,Page type,Filter next iteration
+ANIMA_SGR-IT24,investments,TRUE
+ANIMA_SGR-IT24,merges,
 CARNE-EN23,investments,TRUE
 CARNE-EN23,fund_assets,
 CARNE-EN23,manco,
 MEDIOLANUM-EN24,investments,TRUE
-MEDIOLANUM-EN24,manco,
+MEDIOLANUM-EN24,inv_managers_end,
+MEDIOLANUM-EN24,inv_managers,TRUE
+MEDIOLANUM-EN24,inv_managers_begin,
 MEDIOLANUM-ES24.A,investments,TRUE
 MEDIOLANUM-ES24.A,manco,
 MEDIOLANUM-ES24.B,cover,

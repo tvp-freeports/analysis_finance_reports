@@ -79,9 +79,10 @@ class ResultStandardExtraction(Enum):
     CURRENCY_STATEMENT = auto()
     TABLE_BODY = auto()
     MANAGEMENT_COMPANY = auto()
+    INVESTMENTS_MANAGER = auto()
 
 
-class ExtractTextBlockOrFailPage:
+class ExtractTextPdfBlockOrFailPage:
     extractor: SelectExpectedText
     type_block: Enum
 
@@ -98,7 +99,7 @@ class ExtractTextBlockOrFailPage:
         return [PdfBlock(self.type_block, {}, text)]
 
 
-class PdfExtractFundStandard(ExtractTextBlockOrFailPage):
+class PdfExtractFundStandard(ExtractTextPdfBlockOrFailPage):
     def __init__(self, selection: PdfLineSelection):
         super().__init__(
             selection=selection,
@@ -107,7 +108,7 @@ class PdfExtractFundStandard(ExtractTextBlockOrFailPage):
         )
 
 
-class PdfExtractCurrencyStandard(ExtractTextBlockOrFailPage):
+class PdfExtractCurrencyStandard(ExtractTextPdfBlockOrFailPage):
     def __init__(self, selection: PdfLineSelection):
         super().__init__(
             selection=selection,
@@ -116,7 +117,7 @@ class PdfExtractCurrencyStandard(ExtractTextBlockOrFailPage):
         )
 
 
-class PdfExtractManagmentCompanyStandard(ExtractTextBlockOrFailPage):
+class PdfExtractManagmentCompanyStandard(ExtractTextPdfBlockOrFailPage):
     def __init__(self, selection: PdfLineSelection):
         super().__init__(
             selection=selection,
@@ -310,6 +311,7 @@ class PdfExtractAssetsStandard:
         net_assets_mult=(100.0, 1.3),
         liabilities_mult=(100.0, 1.3),
         tot_assets_mult=(100.0, 1.3),
+        date_set=None,
     ):
         if currency_set is not None:
             self.fund_selection = SelectExpectedText(fund_set, "fund")
@@ -329,6 +331,11 @@ class PdfExtractAssetsStandard:
         self.tot_assets_height = tot_assets_mult[1]
         self.liabilities_height = liabilities_mult[1]
         self.net_assets_height = net_assets_mult[1]
+        self.select_date = (
+            SelectExpectedText(date_set, "fund assets date")
+            if date_set is not None
+            else None
+        )
 
     def __call__(self, dict_root):
         lines = pdflines_from_pagedict(dict_root)
@@ -379,6 +386,8 @@ class PdfExtractAssetsStandard:
         tot_assets = [t.text for t in tot_assets]
         liabilities = [l.text for l in liabilities]
         net_assets = [n.text for n in net_assets]
+        d = self.select_date(lines) if self.select_date is not None else None
+
         return [
             PdfBlock(
                 OnePdfBlockType.RELEVANT_BLOCK,
@@ -388,6 +397,7 @@ class PdfExtractAssetsStandard:
                     "tot_assets": t,
                     "liabilities": l,
                     "net_assets": n,
+                    "date": d,
                 },
                 "",
             )

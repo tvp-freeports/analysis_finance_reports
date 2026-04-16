@@ -21,16 +21,39 @@ list_of_instruments: List[str] = ["EQUITY", "BOND"]
 list_of_change_name_events: List[str] = ["MERGING", "RENAMING"]
 
 # Schema for validating investments DataFrame
+common_columns = {
+    "ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True),
+    "Format": pa.Column(
+        pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+    ),
+    "Document": pa.Column(pd.StringDtype, required=False),
+    "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+}
+
+common_checks = [
+    pa.Check(
+        lambda df: (
+            ("Format" in df and "Document" in df)
+            or ("Format" not in df and "Document" not in df)
+        )
+    )
+]
+
+common_schema_settings = {
+    "ordered": True,
+    "strict": True,
+    "coerce": True,
+    "checks": common_checks,
+}
+
 investments_schema = pa.DataFrameSchema(
     {
-        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
-        "Company": pa.Column(pd.StringDtype, checks=pa.Check.isin(COMPANIES)),
-        "Matched company": pa.Column(pd.StringDtype),
+        **common_columns,
+        "Triggering text": pa.Column(pd.StringDtype),
+        "Investee": pa.Column(pd.StringDtype, checks=pa.Check.isin(COMPANIES)),
         "Financial instrument": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(list_of_instruments)
         ),
-        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
-        "Management company": pa.Column(pd.StringDtype, nullable=True),
         "Nominal/Quantity": pa.Column(
             pd.Float32Dtype, checks=pa.Check.greater_than(0), nullable=True
         ),
@@ -41,6 +64,7 @@ investments_schema = pa.DataFrameSchema(
         "% net assets": pa.Column(
             pd.Float32Dtype, checks=pa.Check.in_range(0.0, 1.0), nullable=True
         ),
+        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
         "Acquisition cost": pa.Column(
             pd.Float32Dtype,
             checks=pa.Check.greater_than_or_equal_to(0.0),
@@ -51,138 +75,73 @@ investments_schema = pa.DataFrameSchema(
             checks=pa.Check.isin([e.value for e in Currency]),
             nullable=True,
         ),
-        "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
-        ),
-        "Document": pa.Column(pd.StringDtype, required=False),
     },
-    strict=True,
-    coerce=True,
-    index=pa.Index(
-        pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
-    ),
-    checks=pa.Check(
-        lambda df: (
-            ("Format" in df and "Document" in df)
-            or ("Format" not in df and "Document" not in df)
-        )
-    ),
+    **common_schema_settings,
 )
 
 
 funds_assets_schema = pa.DataFrameSchema(
     {
-        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+        **common_columns,
+        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
+        "Date": pa.Column(pa.Timestamp, nullable=True),
         "Total assets": pa.Column(pd.Float32Dtype, checks=pa.Check.greater_than(0)),
-        "Total net assets": pa.Column(pd.Float32Dtype, checks=pa.Check.greater_than(0)),
         "Total liabilities": pa.Column(
             pd.Float32Dtype, checks=pa.Check.greater_than(0)
         ),
+        "Total net assets": pa.Column(pd.Float32Dtype, checks=pa.Check.greater_than(0)),
         "Currency": pa.Column(
             pd.StringDtype, checks=pa.Check.isin([e.value for e in Currency])
         ),
-        "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
-        ),
-        "Document": pa.Column(pd.StringDtype, required=False),
     },
-    strict=True,
-    coerce=True,
-    index=pa.Index(
-        pd.Int32Dtype,
-        checks=pa.Check.greater_than(0),
-        name="Fund ID",  # ,unique=True
-    ),
+    unique=["Fund ID", "Date"],
+    **common_schema_settings,
 )
 
 funds_change_name_schema = pa.DataFrameSchema(
     {
-        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
-        "Old name": pa.Column(pd.StringDtype),
+        **common_columns,
+        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
+        "From": pa.Column(datetime.date),
         "Type of event": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(list_of_change_name_events)
         ),
-        "From": pa.Column(datetime.date),
-        "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
-        ),
-        "Document": pa.Column(pd.StringDtype, required=False),
+        "Old name": pa.Column(pd.StringDtype),
     },
-    strict=True,
-    coerce=True,
-    index=pa.MultiIndex(
-        [
-            pa.Index(
-                pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
-            ),
-            pa.Index(
-                pd.Int32Dtype,
-                checks=pa.Check.greater_than(0),
-                name="Fund ID",  # ,unique=True
-            ),
-        ]
-    ),
+    unique=["Fund ID", "From", "Type of event", "Old name"],
+    **common_schema_settings,
 )
 
 
 funds_schema = pa.DataFrameSchema(
     {
-        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
+        **common_columns,
         "Name": pa.Column(pd.StringDtype, unique=True),
-        "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        "Managment company ID": pa.Column(
+            pd.Int32Dtype, checks=pa.Check.greater_than(0), nullable=True
         ),
-        "Document": pa.Column(pd.StringDtype, required=False),
     },
-    strict=True,
-    coerce=True,
-    index=pa.MultiIndex(
-        [
-            pa.Index(
-                pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
-            ),
-            pa.Index(
-                pd.Int32Dtype,
-                checks=pa.Check.greater_than(0),
-                name="Managment company ID",
-                nullable=True,
-            ),
-        ]
-    ),
+    **common_schema_settings,
 )
 
 
 assets_managers_schema = pa.DataFrameSchema(
-    {
-        "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
-        "Name": pa.Column(pd.StringDtype, unique=True),
-        "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
-        ),
-        "Document": pa.Column(pd.StringDtype, required=False),
-    },
-    strict=True,
-    coerce=True,
-    index=pa.Index(
-        pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True, name="ID"
-    ),
+    {**common_columns, "Name": pa.Column(pd.StringDtype, unique=True)},
+    **common_schema_settings,
 )
 
 
 investments_managers_schema = pa.DataFrameSchema(
-    {},
+    {
+        "Investment manager ID": pa.Column(
+            pd.Int32Dtype, checks=pa.Check.greater_than(0)
+        ),
+        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
+    },
     strict=True,
     coerce=True,
-    index=pa.MultiIndex(
-        [
-            pa.Index(
-                pd.Int32Dtype,
-                checks=pa.Check.greater_than(0),
-                name="Investment manager ID",
-            ),
-            pa.Index(pd.Int32Dtype, checks=pa.Check.greater_than(0), name="Fund ID"),
-        ]
-    ),
+    ordered=True,
+    unique=["Investment manager ID", "Fund ID"],
 )
 
 

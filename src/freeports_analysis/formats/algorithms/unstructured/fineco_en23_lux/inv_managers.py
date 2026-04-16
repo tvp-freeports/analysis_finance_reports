@@ -9,12 +9,15 @@ from freeports_analysis.formats.algorithms import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.text_filter import (
     ResultStandardFiltering,
     StandardManagmentCompanyTextBlock,
+    StandardInvestmentsMangerTextBlock,
+    StandardFundTextBlock,
 )
 from freeports_analysis.formats.utils.text_filter import match
 from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
 from freeports_analysis.formats.utils.deserialize import (
     DeserializerFundStandard,
     DeserializerManagmentCompanyStandard,
+    DeserializerInvestmentsManagerStandard,
 )
 from freeports_analysis import output
 from enum import Enum, auto
@@ -125,32 +128,23 @@ def text_filter(pdf_blocks, filter_data):
         current_group = g
     invs_blks[current_inv_man] = current_funds
     new_funds = set()
+    inv_managers_funds = set()
     res = []
     for i, s in invs_blks.items():
+        inv_managers_funds = inv_managers_funds.union(s)
         if not s.isdisjoint(subfunds):
-            res.append(
-                TextBlock.from_content(
-                    BlockType.INV_MAN, {"funds": set([f.name for f in s])}, i
-                )
-            )
+            res.append(StandardInvestmentsMangerTextBlock.from_name(i, s))
             for f in s:
                 if f not in subfunds:
                     new_funds.add(f)
-                    res.append(
-                        TextBlock.from_content(ResultStandardFiltering.FUND, {}, f.name)
-                    )
+                    res.append(StandardFundTextBlock.from_matched_fund(f))
 
-    manco = StandardManagmentCompanyTextBlock(manco, subfunds.union(new_funds))
-    res.append(manco)
+    res.append(StandardManagmentCompanyTextBlock(manco, subfunds.union(new_funds)))
+    res.append(StandardInvestmentsMangerTextBlock(manco, subfunds - inv_managers_funds))
     return res
 
 
-def deserialize(blk):
-    if blk.type_block == BlockType.INV_MAN:
-        return output.InvestmentsManager(
-            name=blk.content, managed_funds=blk.metadata["funds"]
-        )
-
+deserialize = DeserializerInvestmentsManagerStandard()
 
 deserialize_manco = DeserializerManagmentCompanyStandard()
 

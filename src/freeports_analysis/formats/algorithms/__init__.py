@@ -229,7 +229,7 @@ class Algorithm:
                 "Number of pages unclassified must be equal of number of page classified"
             )
         if not set(page_classification).issubset(self._page_classes):
-            not_present = set(page_classification) - page_classes
+            not_present = set(page_classification) - self._page_classes
             raise Exception(
                 f"All pages have to enter in some point in the schedule, {not_present} are not part of the schedule"
             )

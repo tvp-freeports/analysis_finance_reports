@@ -29,7 +29,6 @@ def pdf_extract(page):
     opening_statements = PdfLineSelection.text(
         "The following Sub-Funds have been merged on"
     ).select(lines)
-
     res = []
     n_page = int(
         PdfLineSelection(
@@ -66,6 +65,8 @@ def pdf_extract(page):
         _, cols = zip(*get_table_coordinates(table))
         old_names = [l for l, c in zip(table, cols) if c == 0]
         new_names = [l for l, c in zip(table, cols) if c == 4]
+        if i == -1 and len(new_names) == 0:
+            return []
         (_, y0, _, y1) = old_names[0].bbox
         text_new_names = []
         text_old_names = []
@@ -93,7 +94,8 @@ def pdf_extract(page):
                 last_date_content,
             )
         )
-    res.append(PdfBlock(TypeBlock.LAST_DATE, last_date_md, last_date_content))
+    if last_date_content is not None:
+        res.append(PdfBlock(TypeBlock.LAST_DATE, last_date_md, last_date_content))
     return res
 
 
@@ -132,8 +134,13 @@ def text_filter(pdf_blks, filter_data):
 
 
 def text_filter_last_date(pdf_blks, filter_data):
+    if len(pdf_blks) == 0:
+        return []
     blk = next(filter(lambda x: x.type_block == TypeBlock.LAST_DATE, pdf_blks))
-    date_text = merging_regex.search(blk.content).group(1)
+    m = merging_regex.search(blk.content)
+    if not m:
+        return []
+    date_text = m.group(1)
     return [
         TextBlock.from_content(
             TypeBlock.LAST_DATE, {"n_page": blk.metadata["n_page"]}, date_text
@@ -163,16 +170,20 @@ renaming_regex = re.compile(
 
 
 def text_filter_renaming(pdf_blks, filter_data):
+    if len(pdf_blks) == 0:
+        return []
     funds = set(
         map(
             lambda x: MatchFund(name=x.name),
             filter(lambda x: isinstance(x, Fund), filter_data),
         )
     )
-    search = renaming_regex.search(pdf_blks[0].content)
-    old_name = search.group(1)
-    current_name = MatchFund(name=search.group(2))
-    date = search.group(3)
+    m = renaming_regex.search(pdf_blks[0].content)
+    if not m:
+        return []
+    old_name = m.group(1)
+    current_name = MatchFund(name=m.group(2))
+    date = m.group(3)
     if current_name in funds:
         return [
             TextBlock(

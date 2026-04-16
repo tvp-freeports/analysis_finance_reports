@@ -25,4 +25,4 @@ pdf_extract = PdfExtractAssetsStandard(
     net_assets_mult=(100.0, 1.02),
 )
 text_filter = TextFilterAssetsStandard()
-deserialize = DeserializeAssetsStandard(converter=to_float)
+deserialize = DeserializeAssetsStandard(num_converter=to_float)
