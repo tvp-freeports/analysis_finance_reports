@@ -65,7 +65,7 @@ pdf_extract_assets = PdfExtractAssetsStandard(
 )
 
 text_filter_assets = TextFilterAssetsStandard()
-deserialize_assets = DeserializeAssetsStandard(converter=to_float)
+deserialize_assets = DeserializeAssetsStandard(num_converter=to_float)
 
 pipelines = {
     "investments": Pipeline(
