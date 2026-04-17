@@ -683,13 +683,13 @@ class TextFilterAssetsStandard:
         ]
 
     def __call__(self, blks, filter_data):
-
         filter_funds = set(
             map(
                 lambda x: match.MatchFund(name=x.name),
                 filter(lambda x: isinstance(x, output.Fund), filter_data),
             )
         )
+
         results = []
         for blk in blks:
             md = {**blk.metadata}
