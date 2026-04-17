@@ -198,7 +198,7 @@ PromisedCurrency = Annotated[
     Union[Promise, Currency],
     BeforeValidator(try_convert_to_currency),
 ]
-PromisedSubfund = Union[Promise, str]
+PromisedFundName = Union[Promise, str]
 PromisedPercNetAsstes = Union[Promise, confloat(ge=0.0, lt=1.0)]
 PromisedAcquisitionCost = Union[Promise, PositiveFloat]
 PromisedAcquisitionCurrency = Annotated[
@@ -233,7 +233,7 @@ class PromisableDict:
         iterates through all model attributes and resolves any Promise objects
         found, updating the instance in place.
         """
-        for k, v in self.model_dump().items():
+        for k, v in self.__dict__.items():
             if isinstance(v, Promise):
                 setattr(self, k, v.fulfill_with(mapping))
 
@@ -273,7 +273,7 @@ class Investment(BaseModel, ABC, PromisableDict):
 
     company: Company = Field(serialization_alias="Investee")
     company_match: str = Field(serialization_alias="Triggering text")
-    fund: str = Field(exclude=True)
+    fund: PromisedFundName = Field(exclude=True)
     nominal_quantity: Optional[PositiveFloat] = Field(
         default=None, serialization_alias="Nominal/Quantity"
     )
@@ -412,16 +412,21 @@ class InvestmentsManager(AssetsManager):
 
 
 class Fund(BaseModel, match.MatchFund, PromisableDict):
-    name: str = Field(serialization_alias="Name")
+    name: PromisedFundName = Field(serialization_alias="Name")
 
     def __init__(self, name):
         BaseModel.__init__(self, name=name)
-        match.MatchFund.__init__(self, name)
+        if not isinstance(name, Promise):
+            match.MatchFund.__init__(self, name)
 
     def __hash__(self):
+        if isinstance(self.name, Promise):
+            return hash(self.name)
         return match.MatchFund.__hash__(self)
 
     def __eq__(self, other):
+        if isinstance(self.name, Promise) or isinstance(other.name, Promise):
+            return isinstance(self.name, type(other.name)) and self.name == other.name
         return match.MatchFund.__eq__(self, other)
 
 
