@@ -11,18 +11,28 @@ from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractPageClassifyStandard,
+    PdfExtractFundStandard,
+    PdfExtractCurrencyConstant,
+    ResultStandardExtraction,
 )
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
-from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
-from freeports_analysis.formats.utils.deserialize import DeserializerInvestmentStandard
+from freeports_analysis.formats.utils.text_filter import (
+    TextFilterInvestmentsStandard,
+    ResultStandardFiltering,
+)
+from freeports_analysis.formats.utils.deserialize import (
+    DeserializerInvestmentStandard,
+    deserialize_block_types,
+)
 from freeports_analysis.consts import (
     Promise,
     Currency,
     PromisesResolutionContext,
 )
+from freeports_analysis.output import Fund
 from .. import PdfBlock, TextBlock
 
 
@@ -69,6 +79,11 @@ def deserialize_first_page(txt_blk: Optional[TextBlock]) -> Optional[Any]:
     return {"title document": txt_blk.metadata["subfund"]}
 
 
+@deserialize_block_types(
+    ResultStandardFiltering.BOND_TARGET,
+    ResultStandardFiltering.EQUITY_TARGET,
+    ResultStandardFiltering.FUND,
+)
 def deserialize(txt_blk: Optional[TextBlock]) -> Optional[Any]:
     """Deserialize text blocks into structured data for MEDIOLANUM_ES24_B format.
 
@@ -87,6 +102,8 @@ def deserialize(txt_blk: Optional[TextBlock]) -> Optional[Any]:
     Handles subfund context resolution and applies specific scaling
     to market values (multiplies by 1000).
     """
+    if txt_blk.type_block == ResultStandardFiltering.FUND:
+        return None
     std = DeserializerInvestmentStandard()
     blk = std(txt_blk)
     if blk is not None:
@@ -96,13 +113,19 @@ def deserialize(txt_blk: Optional[TextBlock]) -> Optional[Any]:
 
 pipelines = {
     "investments": Pipeline(
-        pdf_extract=PdfExtractInvestmentsStandard(
-            subfund_set=Promise("title document"),
-            body_set=PdfLineSelection.font("Helvetica"),
-            currency_set=Currency.EUR,
-            deselection_list=[
-                PdfLineSelection.text("Cartera de inversiones financieras a"),
-                PdfLineSelection(text="-$", font="Helvetica"),
+        pdf_extract=(
+            PdfExtractInvestmentsStandard(
+                body_set=PdfLineSelection.font("Helvetica"),
+                deselection_list=[
+                    PdfLineSelection.text("Cartera de inversiones financieras a"),
+                    PdfLineSelection(text="-$", font="Helvetica"),
+                ],
+            ),
+            PdfExtractCurrencyConstant(Currency.EUR),
+            lambda _: [
+                PdfBlock(
+                    ResultStandardExtraction.FUND_NAME, {}, Promise("title document")
+                )
             ],
         ),
         deserialize=deserialize,
@@ -110,6 +133,9 @@ pipelines = {
     "subfund": Pipeline(
         pdf_extract=pdf_extract_first_page,
         text_filter=text_filter_first_page,
-        deserialize=deserialize_first_page,
+        deserialize=(
+            deserialize_first_page,
+            lambda txt_blk: Fund(name=txt_blk.metadata["subfund"]),
+        ),
     ),
 }

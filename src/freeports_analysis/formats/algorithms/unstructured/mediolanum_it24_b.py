@@ -2,6 +2,8 @@
 
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
+    PdfExtractFundStandard,
+    PdfExtractCurrencyConstant,
     PdfLineSelection,
     pdflines_from_pagedict,
 )
@@ -32,19 +34,24 @@ def pdf_extract(dict_root):
     body_low_limit = 700 if len(next_table) == 0 else next_table[0].bbox[3]
     body_top_limit = 100 if len(prev_headers) == 0 else prev_headers[0].bbox[1]
     std = PdfExtractInvestmentsStandard(
-        subfund_set=PdfLineSelection(
-            font="Helvetica",
-            area=(150, 67, 1e6, 76),
-        ),
         body_set=PdfLineSelection(
             font="Helvetica",
             area=(0.0, body_top_limit, 1e6, body_low_limit),
         ),
-        currency_set=Currency.EUR,
         deselection_list=[PdfLineSelection.text("^ ")],
     )
 
     return std(dict_root)
 
 
-pipelines = {"investments": Pipeline(pdf_extract=pdf_extract)}
+pipelines = {
+    "investments": Pipeline(
+        pdf_extract=(
+            pdf_extract,
+            PdfExtractFundStandard(
+                PdfLineSelection(font="Helvetica", area=(150, 67, 1e6, 76))
+            ),
+            PdfExtractCurrencyConstant(Currency.EUR),
+        )
+    )
+}
