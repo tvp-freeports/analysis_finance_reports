@@ -1,0 +1,10 @@
+ID,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency
+1,17,Axa Sa,AXA SA,EQUITY,23203.0,791686.0,EUR,0.0076,1,569134.0,EUR
+2,17,Siemens Ag /Nam.,Siemens,EQUITY,6750.0,1.27278e+06,EUR,0.0121,1,949967.0,EUR
+3,18,Alphabet Inc -C-,Alphabet,EQUITY,22694.0,4.212617e+06,EUR,0.0403,1,2.580421e+06,USD
+4,18,Amazon Com Inc,Amazon,EQUITY,19210.0,4.095345e+06,EUR,0.0391,1,3.055761e+06,USD
+5,18,Apple Inc,Apple Inc,EQUITY,17660.0,4.290595e+06,EUR,0.041,1,3.20709e+06,USD
+6,18,Blackrock Rg,Blackrock,EQUITY,1914.0,1.894418e+06,EUR,0.0181,1,1.260214e+06,USD
+7,18,Microsoft Corp.,Microsoft,EQUITY,14127.0,5.781584e+06,EUR,0.0553,1,3.573245e+06,USD
+8,19,Nvidia Corp.,NVIDIA,EQUITY,35205.0,4.662912e+06,EUR,0.0446,1,1.843855e+06,USD
+9,23,Ishares Phy 11-Perp Cert /Gold,ISHARES,EQUITY,2656.0,129469.0,EUR,0.0054,2,87453.0,EUR
