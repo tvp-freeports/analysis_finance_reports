@@ -1,28 +1,28 @@
-ID,Managment company ID,Name,Report page
-1,1,ANIMA Asia/Pacific Equity,555
-2,1,ANIMA Italy,698
-3,1,ANIMA Global Macro,729
-4,1,ANIMA Zephyr Real Assets,771
-5,1,ANIMA Star High Potential Italy,669
-6,1,ANIMA U.S. Equity,543
-7,1,ANIMA Star High Potential Europe,623
-8,1,ANIMA Europe Selection,689
-9,1,ANIMA Emerging Markets Equity,573
-10,1,ANIMA Smart Volatility Global,637
-11,1,ANIMA Global Selection,589
-12,1,ANIMA Short Term Corporate Bond,529
-13,1,ANIMA Italian Small Mid Cap Equity,705
-14,1,ANIMA Smart Volatility USA,651
-15,1,ANIMA Systematic U.S. Corporate,682
-16,1,ANIMA Selection Conservative,798
-17,1,ANIMA High Yield Bond,710
-18,1,ANIMA Trading Fund,673
-19,1,ANIMA Global Equity Value,560
-20,1,ANIMA Europe Equity,533
-21,1,ANIMA Euro Equity,602
-22,1,ANIMA Opportunities 2027,724
-23,1,ANIMA Credit Opportunities,662
-24,1,ANIMA Megatrend People Fund,799
-25,1,ANIMA Euro Government Bond,617
-26,1,ANIMA Selection Moderate,796
-27,1,ANIMA Zephyr Global Allocation,766
+ID,Report page,Name,Managment company ID
+1,573,ANIMA Emerging Markets Equity,1
+2,724,ANIMA Opportunities 2027,1
+3,710,ANIMA High Yield Bond,1
+4,766,ANIMA Zephyr Global Allocation,1
+5,705,ANIMA Italian Small Mid Cap Equity,1
+6,729,ANIMA Global Macro,1
+7,555,ANIMA Asia/Pacific Equity,1
+8,689,ANIMA Europe Selection,1
+9,617,ANIMA Euro Government Bond,1
+10,796,ANIMA Selection Moderate,1
+11,560,ANIMA Global Equity Value,1
+12,799,ANIMA Megatrend People Fund,1
+13,673,ANIMA Trading Fund,1
+14,589,ANIMA Global Selection,1
+15,623,ANIMA Star High Potential Europe,1
+16,529,ANIMA Short Term Corporate Bond,1
+17,682,ANIMA Systematic U.S. Corporate,1
+18,543,ANIMA U.S. Equity,1
+19,669,ANIMA Star High Potential Italy,1
+20,698,ANIMA Italy,1
+21,602,ANIMA Euro Equity,1
+22,651,ANIMA Smart Volatility USA,1
+23,798,ANIMA Selection Conservative,1
+24,662,ANIMA Credit Opportunities,1
+25,533,ANIMA Europe Equity,1
+26,771,ANIMA Zephyr Real Assets,1
+27,637,ANIMA Smart Volatility Global,1

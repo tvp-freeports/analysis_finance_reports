@@ -485,6 +485,14 @@ class ResultsAccumulator:
     funds_assets = []
     investments_managers_to_funds = []
 
+    def __init__(self):
+        self.investments = []
+        self.funds = {}
+        self.add_infos = {}
+        self.funds_change_name = []
+        self.funds_assets = []
+        self.investments_managers_to_funds = []
+
     @property
     def new_investment_id(self):
         return len(self.investments) + 1

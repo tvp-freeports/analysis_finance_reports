@@ -1,12 +1,12 @@
-ID,Managment company ID,Name,Report page
-1,1,Kairos International Sicav - Patriot (in EUR),90
-2,1,Kairos International Sicav - Bond (in EUR),30
-3,1,Kairos International Sicav - Innovation Trends (in USD),61
-4,1,Kairos International Sicav - Financial Income (in EUR),53
-5,1,Kairos International Sicav - Italia (in EUR),67
-6,1,Kairos International Sicav - KEY (in EUR),96
-7,1,Kairos International Sicav - Target 2026 (in EUR),36
-8,1,Kairos International Sicav - Made in Italy (in EUR),73
-9,1,Kairos International Sicav - Pentagon (in USD),48
-10,1,Kairos International Sicav - Opportunities Long/Short* (formerly Kairos International Sicav - European Long/Short)* ,84
-11,1,Kairos International Sicav - Bond Plus (in EUR),40
+ID,Report page,Name,Managment company ID
+1,73,Kairos International Sicav - Made in Italy ,1
+2,90,Kairos International Sicav - Patriot ,1
+3,30,Kairos International Sicav - Bond ,1
+4,48,Kairos International Sicav - Pentagon ,1
+5,96,Kairos International Sicav - KEY ,1
+6,53,Kairos International Sicav - Financial Income ,1
+7,84,Kairos International Sicav - Opportunities Long/Short  ,1
+8,67,Kairos International Sicav - Italia ,1
+9,61,Kairos International Sicav - Innovation Trends ,1
+10,40,Kairos International Sicav - Bond Plus ,1
+11,36,Kairos International Sicav - Target 2026 ,1

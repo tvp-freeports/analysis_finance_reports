@@ -1,74 +1,74 @@
-ID,Managment company ID,Name,Report page
-1,1,Fineco AM European Corporate Bond Fund (continued),603
-2,1,Banor Club Fineco AM Fund (continued),808
-3,1,Infusive Consumer Alpha Global Leaders FAM Fund,763
-4,1,North American STARS Equity FAM Fund,784
-5,1,Amundi Strategic Bond FAM Fund,155
-6,1,Diversity and Inclusion FAM Fund (continued),774
-7,1,Euro Bond FAM Fund (continued),567
-8,1,Euro High Yield Bond FAM Fund (continued),718
-9,1,Invesco Global Total Return Bond FAM Fund,686
-10,1,Fidelity Euro Short Term Bond FAM Fund,155
-11,1,Fidelity Global Dividend FAM Fund,514
-12,1,Fineco AM Euro Credit Bond Fund,710
-13,1,Fineco AM Euro Corporate Bond Fund (continued),675
-14,1,Amundi European Equity Value FAM Fund,552
-15,1,Global Sustain Paris Aligned FAM Fund (continued),782
-16,1,M&G North American Value FAM Fund,524
-17,1,Fineco AM European Corporate Bond Fund,155
-18,1,Schroder Euro Bond FAM Fund (continued),626
-19,1,Nordea Stable Performance FAM Fund (continued),697
-20,1,Euro Short Duration Bond FAM Fund,594
-21,1,Global Listed Infrastructure FAM Fund,156
-22,1,Flexible Equity Strategy FAM Fund,658
-23,1,Fidelity Euro Bond FAM Fund,506
-24,1,Changing Lifestyles FAM Fund (continued),801
-25,1,Fineco AM Global Equities Income Fund (continued),683
-26,1,Fidelity Global Dividend FAM Fund (continued),515
-27,1,Schroder Euro Bond FAM Fund,155
-28,1,Flexible Income FAM Fund (continued),753
-29,1,Medtech FAM Fund,794
-30,1,European High Yield Bond FAM Fund,722
-31,1,Fineco AM Euro Corp Bonds Fund,155
-32,1,Flexible Equity Strategy FAM Fund (continued),659
-33,1,Fineco AM Global Equity Fund,155
-34,1,M&G Optimal Income FAM Fund (continued),612
-35,1,Invesco Global Total Return Bond FAM Fund (continued),687
-36,1,Fineco AM Global Equity Fund (continued),643
-37,1,Vontobel Emerging Markets Debt FAM Fund (continued),742
-38,1,Amundi Emerging Markets Bond FAM Fund,155
-39,1,US Equity Value FAM Fund,520
-40,1,Euro Short Duration Bond FAM Fund (continued),596
-41,1,Fidelity Euro Short Term Bond FAM Fund (continued),511
-42,1,North American STARS Equity FAM Fund (continued),785
-43,1,Emerging Markets Debt FAM Fund,155
-44,1,Fineco AM Global Premium Equities Fund (continued),640
-45,1,European High Yield Bond FAM Fund (continued),724
-46,1,Fineco AM Euro Corporate Bond Fund,155
-47,1,Diversity and Inclusion FAM Fund,773
-48,1,Fineco AM Investment Grade Euro Aggregate Bond Fund (continued),664
-49,1,Fineco AM Euro Credit Bond Fund (continued),711
-50,1,Global STARS Equity FAM Fund,787
-51,1,US Equity Value FAM Fund (continued),521
-52,1,Amundi Emerging Markets Bond FAM Fund (continued),538
-53,1,Fineco AM Investment Grade Euro Aggregate Bond Fund,663
-54,1,Euro Corporate Fixed Income FAM Fund (continued),583
-55,1,Fineco AM Global Premium Equities Fund,155
-56,1,Amundi Strategic Bond FAM Fund (continued),543
-57,1,European Equity FAM Fund,636
-58,1,Global Disruptive Opportunities FAM Fund,791
-59,1,Global Disruptive Opportunities FAM Fund (continued),792
-60,1,Morgan Stanley US Advantage FAM Fund,803
-61,1,Euro High Yield Bond FAM Fund,155
-62,1,Fidelity Sustainable Water and Waste FAM Fund,767
-63,1,Fineco AM Euro Corp Bonds Fund (continued),649
-64,1,Fineco AM Global Equities Income Fund,155
-65,1,Global STARS Equity FAM Fund (continued),788
-66,1,Amundi European Equity Value FAM Fund (continued),553
-67,1,Fidelity Focus Equity FAM Fund,155
-68,1,Sustainable Future Connectivity FAM Fund,797
-69,1,Banor Club Fineco AM Fund,806
-70,1,Global Sustain Paris Aligned FAM Fund,781
-71,1,European STARS Equity FAM Fund,779
-72,1,Fidelity Focus Equity FAM Fund (continued),517
-73,1,M&G Optimal Income FAM Fund,155
+ID,Report page,Name,Managment company ID
+1,524,M&G North American Value FAM Fund,1
+2,711,Fineco AM Euro Credit Bond Fund (continued),1
+3,675,Fineco AM Euro Corporate Bond Fund (continued),1
+4,612,M&G Optimal Income FAM Fund (continued),1
+5,594,Euro Short Duration Bond FAM Fund,1
+6,710,Fineco AM Euro Credit Bond Fund,1
+7,520,US Equity Value FAM Fund,1
+8,808,Banor Club Fineco AM Fund (continued),1
+9,155,Emerging Markets Debt FAM Fund,1
+10,722,European High Yield Bond FAM Fund,1
+11,763,Infusive Consumer Alpha Global Leaders FAM Fund,1
+12,155,Fineco AM Global Premium Equities Fund,1
+13,742,Vontobel Emerging Markets Debt FAM Fund (continued),1
+14,792,Global Disruptive Opportunities FAM Fund (continued),1
+15,787,Global STARS Equity FAM Fund,1
+16,779,European STARS Equity FAM Fund,1
+17,791,Global Disruptive Opportunities FAM Fund,1
+18,781,Global Sustain Paris Aligned FAM Fund,1
+19,664,Fineco AM Investment Grade Euro Aggregate Bond Fund (continued),1
+20,603,Fineco AM European Corporate Bond Fund (continued),1
+21,538,Amundi Emerging Markets Bond FAM Fund (continued),1
+22,784,North American STARS Equity FAM Fund,1
+23,806,Banor Club Fineco AM Fund,1
+24,155,Fineco AM Global Equities Income Fund,1
+25,553,Amundi European Equity Value FAM Fund (continued),1
+26,663,Fineco AM Investment Grade Euro Aggregate Bond Fund,1
+27,697,Nordea Stable Performance FAM Fund (continued),1
+28,155,Fidelity Euro Short Term Bond FAM Fund,1
+29,649,Fineco AM Euro Corp Bonds Fund (continued),1
+30,596,Euro Short Duration Bond FAM Fund (continued),1
+31,155,Fineco AM Euro Corp Bonds Fund,1
+32,773,Diversity and Inclusion FAM Fund,1
+33,155,Fineco AM European Corporate Bond Fund,1
+34,155,Amundi Emerging Markets Bond FAM Fund,1
+35,686,Invesco Global Total Return Bond FAM Fund,1
+36,640,Fineco AM Global Premium Equities Fund (continued),1
+37,724,European High Yield Bond FAM Fund (continued),1
+38,583,Euro Corporate Fixed Income FAM Fund (continued),1
+39,658,Flexible Equity Strategy FAM Fund,1
+40,155,Fidelity Focus Equity FAM Fund,1
+41,506,Fidelity Euro Bond FAM Fund,1
+42,511,Fidelity Euro Short Term Bond FAM Fund (continued),1
+43,683,Fineco AM Global Equities Income Fund (continued),1
+44,155,Fineco AM Euro Corporate Bond Fund,1
+45,803,Morgan Stanley US Advantage FAM Fund,1
+46,626,Schroder Euro Bond FAM Fund (continued),1
+47,785,North American STARS Equity FAM Fund (continued),1
+48,156,Global Listed Infrastructure FAM Fund,1
+49,155,Schroder Euro Bond FAM Fund,1
+50,155,Amundi Strategic Bond FAM Fund,1
+51,514,Fidelity Global Dividend FAM Fund,1
+52,801,Changing Lifestyles FAM Fund (continued),1
+53,515,Fidelity Global Dividend FAM Fund (continued),1
+54,767,Fidelity Sustainable Water and Waste FAM Fund,1
+55,788,Global STARS Equity FAM Fund (continued),1
+56,543,Amundi Strategic Bond FAM Fund (continued),1
+57,794,Medtech FAM Fund,1
+58,155,Euro High Yield Bond FAM Fund,1
+59,659,Flexible Equity Strategy FAM Fund (continued),1
+60,753,Flexible Income FAM Fund (continued),1
+61,687,Invesco Global Total Return Bond FAM Fund (continued),1
+62,782,Global Sustain Paris Aligned FAM Fund (continued),1
+63,552,Amundi European Equity Value FAM Fund,1
+64,718,Euro High Yield Bond FAM Fund (continued),1
+65,636,European Equity FAM Fund,1
+66,774,Diversity and Inclusion FAM Fund (continued),1
+67,643,Fineco AM Global Equity Fund (continued),1
+68,155,M&G Optimal Income FAM Fund,1
+69,517,Fidelity Focus Equity FAM Fund (continued),1
+70,521,US Equity Value FAM Fund (continued),1
+71,567,Euro Bond FAM Fund (continued),1
+72,797,Sustainable Future Connectivity FAM Fund,1
+73,155,Fineco AM Global Equity Fund,1
