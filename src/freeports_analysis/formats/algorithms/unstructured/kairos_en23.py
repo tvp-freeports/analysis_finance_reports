@@ -41,6 +41,17 @@ std = TextFilterInvestmentsStandard(
     market_value_pos=2,
 )
 
+remove_fund_regex = (re.compile("\\(.*\\)"),)
+remove_fund_substr = ("*",)
+
+
+def remove_fund_excess(txt):
+    for r in remove_fund_regex:
+        txt = r.sub("", txt)
+    for r in remove_fund_substr:
+        txt = txt.replace(r, "")
+    return txt
+
 
 def text_filter(pdf_blks, target_companies):
     """
@@ -48,10 +59,13 @@ def text_filter(pdf_blks, target_companies):
     """
     txt_blks = std(pdf_blks, target_companies)
     for txt_blk in txt_blks:
-        if (
+        if txt_blk.type_block == ResultStandardFiltering.FUND:
+            txt_blk.content = remove_fund_excess(txt_blk.content)
+        elif (
             txt_blk.type_block == ResultStandardFiltering.BOND_TARGET
             or txt_blk.type_block == ResultStandardFiltering.EQUITY_TARGET
         ):
+            txt_blk.metadata["fund"] = remove_fund_excess(txt_blk.metadata["fund"])
             c = txt_blk.content
             m = market_value_regex.match(c)
             txt_blk.metadata |= {"quantity": m[0]}
@@ -113,7 +127,7 @@ def text_filter_rename(pdf_blks, filter_data):
         return []
 
 
-merges_regex = re.compile("([^,]+ [0-9]+, [0-9]+), ([^*]+)\*? merged into ([^*,]+)")
+merges_regex = re.compile(r"([^,]+ [0-9]+, [0-9]+), ([^*]+)\*? merged into ([^*,]+)")
 
 
 def text_filter_merges(pdf_blks, filter_data):
@@ -127,9 +141,9 @@ def text_filter_merges(pdf_blks, filter_data):
     res = []
     for mrg in merges:
         m = merges_regex.match(mrg)
-        current_name = MatchFund(m.group(3))
+        current_name = MatchFund(remove_fund_excess(m.group(3)))
         if current_name in funds:
-            old_name = m.group(2)
+            old_name = remove_fund_excess(m.group(2))
             date = m.group(1)
             res.append(
                 TextBlock(
@@ -207,7 +221,9 @@ pdf_extract_assets = PdfExtractAssetsStandard(
     net_assets_mult=(5.0, 2.0),
 )
 
-text_filter_assets = TextFilterAssetsStandard()
+text_filter_assets = TextFilterAssetsStandard(
+    remove_from_fund_regexes=("\\(.*\\)", "\\*")
+)
 deserialize_assets = DeserializeAssetsStandard(num_converter=to_float)
 
 

@@ -26,6 +26,7 @@ from freeports_analysis.formats.utils.pdf_extract.select_position import (
     ColumnConfig,
     get_table_coordinates,
     TablePosAlgorithm,
+    get_groups,
 )
 from freeports_analysis import output
 
@@ -43,6 +44,7 @@ deselection = (
     | PdfLineSelection.text("^7$")
     | PdfLineSelection.text("^8$")
     | PdfLineSelection.text("^9$")
+    | PdfLineSelection.text("^ $")
 )
 
 
@@ -53,13 +55,22 @@ def pdf_extract_body(body, type_block=ResultStandardExtraction.INVESTMENTS_MANAG
         algorithm_flags=TablePosAlgorithm.USE_RULER_AREA
         | TablePosAlgorithm.USE_TEST_POS,
     )
+    groups = get_groups(body, 15)
     rows, _ = zip(*cs)
     nrows = max(rows) + 1
-    rows_text = [
+    rows_info = []
+    for r in range(nrows):
+        rows_info.append(
+            (
+                next(iter(g for row, g in zip(rows, groups) if row == r)),
+                "".join((l.text for row, l in zip(rows, body) if row == r)),
+            )
+        )
+    rows_text_with_groups = [
         "".join((l.text for row, l in zip(rows, body) if row == r))
         for r in range(nrows)
     ]
-    return [PdfBlock(type_block, {"row": r}, text) for r, text in enumerate(rows_text)]
+    return [PdfBlock(type_block, {"group": g}, text) for g, text in rows_info]
 
 
 class PdfExtractBeginPage:
@@ -110,19 +121,16 @@ def text_filter_with_subfunds(blocks, subfunds):
     inv_line = True
     invs = {}
     invs_blks = {}
+    current_group = None
     current_inv = None
     current_funds = None
     fund_line = False
     for rb in blocks:
         r = rb.content.strip()
-        if inv_line:
-            if r == "":
-                continue
+        if current_group != rb.metadata["group"]:
             current_inv = r
             invs_blks[r] = rb
-            inv_line = False
-        elif r == "":
-            inv_line = True
+            current_group = rb.metadata["group"]
         elif r.startswith("("):
             current_fund = r.replace("(", "")
             fund_line = True
@@ -134,7 +142,6 @@ def text_filter_with_subfunds(blocks, subfunds):
                     )
                 )
                 fund_line = False
-
         else:
             if fund_line:
                 current_fund += " " + r
