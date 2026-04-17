@@ -141,8 +141,6 @@ pdf_extract = PdfExtractAssetsStandard(
     table_condition=True,
 )
 
-"""text_filter = TextFilterAssetsStandard()
-deserialize = DeserializeAssetsStandard(num_converter=to_int)"""
 text_filter = TextFilterAssetsStandard(
     "as at ([0-9]+ .+ [0-9]+)", "As at [0-9]+ .+ [0-9]+"
 )

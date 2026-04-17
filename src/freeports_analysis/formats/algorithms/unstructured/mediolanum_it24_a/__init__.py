@@ -8,7 +8,7 @@ compute_page_class = mediolanum_24.compute_page_class
 
 pipelines = {
     "fund_assets": Pipeline(
-        pdf_extract=(fund_assets.pdf_extract, fund_assets.pdf_extract_currency),
+        pdf_extract=fund_assets.pdf_extract,
         text_filter=fund_assets.text_filter,
         deserialize=fund_assets.deserialize,
     ),
