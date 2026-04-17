@@ -269,6 +269,9 @@ class PipelineTest(Function):
         org_actual_inv_to_funds = self.parent.cache.csv.get_file(
             out_path / "investments_managers_to_funds.csv"
         )
+        org_actual_funds_change_name = self.parent.cache.csv.get_file(
+            out_path / "funds_change_name.csv"
+        )
         org_actual_log = self.parent.cache.csv.get_file(out_path / ".log.csv")
 
         actual_investments = org_actual_investments.join(
@@ -308,6 +311,13 @@ class PipelineTest(Function):
             .drop(columns=["Fund ID", "Investment manager ID"])
         )
 
+        actual_funds_change_name = org_actual_funds_change_name.join(
+            org_actual_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["Fund ID"])
+
         actual_assets_managers = org_actual_assets_managers.drop(columns="ID")
 
         expected_dir = self.parent.path / "out"
@@ -327,6 +337,9 @@ class PipelineTest(Function):
         )
         org_expected_inv_to_funds = self.parent.cache.csv.get_file(
             expected_dir / "investments_managers_to_funds.csv"
+        )
+        org_expected_funds_change_name = self.parent.cache.csv.get_file(
+            expected_dir / "funds_change_name.csv"
         )
         org_expected_log = self.parent.cache.csv.get_file(expected_dir / ".log.csv")
 
@@ -366,6 +379,13 @@ class PipelineTest(Function):
             )
             .drop(columns=["Fund ID", "Investment manager ID"])
         )
+
+        expected_funds_change_name = org_expected_funds_change_name.join(
+            org_expected_funds.set_index("ID")[["Name"]].rename(
+                columns={"Name": "Fund name"}
+            ),
+            on="Fund ID",
+        ).drop(columns=["Fund ID"])
 
         expected_assets_managers = org_expected_assets_managers.drop(columns="ID")
 
@@ -416,7 +436,15 @@ class PipelineTest(Function):
             ).reset_index(drop=True),
             obj="investments_managers_to_funds.csv",
         )
-
+        pd.testing.assert_frame_equal(
+            actual_funds_change_name.sort_values(
+                by=actual_funds_change_name.columns.tolist()
+            ).reset_index(drop=True),
+            expected_funds_change_name.sort_values(
+                by=expected_funds_change_name.columns.tolist()
+            ).reset_index(drop=True),
+            obj="funds_change_name.csv",
+        )
         assert org_actual_add_infos == org_expected_add_infos, (
             "investments_add_infos.yaml mismatch"
         )
