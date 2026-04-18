@@ -34,6 +34,88 @@ from freeports_analysis import output
 logger = logging.getLogger(__name__)
 
 
+def filter_block_type(blk_type):
+    def wrapper(f):
+        def new_f(pdf_blks, filter_data):
+            return f(
+                list(filter(lambda blk: blk.type_block == blk_type, pdf_blks)),
+                filter_data,
+            )
+
+        return new_f
+
+    return wrapper
+
+
+def filter_block_types(*blk_types):
+    def wrapper(f):
+        def new_f(pdf_blks, filter_data):
+            return f(
+                list(
+                    filter(
+                        lambda blk: any(map(lambda x: blk.type_block == x, blk_types)),
+                        pdf_blks,
+                    )
+                ),
+                filter_data,
+            )
+
+        return new_f
+
+    return wrapper
+
+
+def filter_block_type_call(blk_type):
+    def wrapper(f):
+        def new_f(self, pdf_blks, filter_data):
+            return f(
+                self,
+                list(filter(lambda blk: blk.type_block == blk_type, pdf_blks)),
+                filter_data,
+            )
+
+        return new_f
+
+    return wrapper
+
+
+def filter_block_types_call(*blk_types):
+    def wrapper(f):
+        def new_f(self, pdf_blks, filter_data):
+            return f(
+                self,
+                list(
+                    filter(
+                        lambda blk: any(map(lambda x: blk.type_block == x, blk_types)),
+                        pdf_blks,
+                    )
+                ),
+                filter_data,
+            )
+
+        return new_f
+
+    return wrapper
+
+
+def get_funds(filter_data):
+    return set(
+        map(
+            lambda f: match.MatchFund(f.name),
+            filter(lambda ff: isinstance(ff, output.Fund), filter_data),
+        )
+    )
+
+
+def fund_filter_data(f):
+    new_filter_data = get_funds(filter_data)
+
+    def new_f(pdf_blks):
+        return f(pdf_blks, new_filter_data)
+
+    return new_f
+
+
 class OneTextBlockType(Enum):
     RELEVANT_BLOCK = auto()
 

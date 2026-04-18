@@ -1,6 +1,11 @@
 """Custom pdf filter for ARCA-IT24 format"""
 
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractInvestmentsStandard,
+    PdfExtractFundStandard,
+    PdfExtractCurrencyConstant,
+)
+from freeports_analysis.consts import Currency
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
     PdfLineSelection,
@@ -28,10 +33,10 @@ body_set = PdfLineSelection(
 
 pipelines = {
     "investments": Pipeline(
-        pdf_extract=PdfExtractInvestmentsStandard(
-            subfund_set=subfund_set,
-            currency_set="EUR",
-            body_set=body_set,
+        pdf_extract=(
+            PdfExtractInvestmentsStandard(body_set=body_set),
+            PdfExtractFundStandard(subfund_set),
+            PdfExtractCurrencyConstant(Currency.EUR),
         )
     )
 }

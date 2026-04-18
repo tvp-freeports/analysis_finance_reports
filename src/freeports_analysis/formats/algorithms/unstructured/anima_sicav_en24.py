@@ -1,7 +1,11 @@
 """ANIMA_SICAV-EN24 format submodule"""
 
 import re
-from freeports_analysis.formats.utils.text_filter import TextFilterInvestmentsStandard
+from freeports_analysis.formats.utils.pdf_extract import ResultStandardExtraction
+from freeports_analysis.formats.utils.text_filter import (
+    TextFilterInvestmentsStandard,
+    ResultStandardFiltering,
+)
 from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
@@ -15,6 +19,8 @@ std = TextFilterInvestmentsStandard(
     market_value_pos=2,
 )
 
+fund_remove_regex = re.compile(r"\(in .+\)")
+
 
 def text_filter(pdf_blks, target_companies):
     """
@@ -22,9 +28,19 @@ def text_filter(pdf_blks, target_companies):
     """
     txt_blks = std(pdf_blks, target_companies)
     for txt_blk in txt_blks:
+        if txt_blk.type_block == ResultStandardFiltering.FUND:
+            txt_blk.content = fund_remove_regex.sub("", txt_blk.content).replace(
+                "*", ""
+            )
+            continue
         c = txt_blk.content
         m = market_value_regex.match(c)
-        txt_blk.metadata |= {"quantity": m[0]}
+        txt_blk.metadata |= {
+            "quantity": m[0],
+        }
+        txt_blk.metadata["fund"] = fund_remove_regex.sub(
+            "", txt_blk.metadata["fund"]
+        ).replace("*", "")
     return txt_blks
 
 

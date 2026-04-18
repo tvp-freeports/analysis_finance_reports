@@ -2,6 +2,7 @@ venv/
 *.pdf
 *.csv
 **/*.csv
+**/.DS_Store
 /out/
 src/**/*.pdf
 dist/
