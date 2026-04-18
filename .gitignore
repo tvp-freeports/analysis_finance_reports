@@ -3,6 +3,7 @@ venv/
 *.csv
 **/*.csv
 **/.DS_Store
+**/.~lock.*.csv
 /out/
 src/**/*.pdf
 dist/
