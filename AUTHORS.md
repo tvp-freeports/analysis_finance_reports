@@ -42,3 +42,9 @@
 - Algorithm for table index extraction
 - Parallelization code
 
+## [Niko Brimi](https://github.com/niko54321)
+- First version of investment managers code for `EURIZON-EN23`
+- Developed the structured version of fund assets code
+- Examples codes for structered fund assets for the following formats:
+  [`EURIZON-EN23`, `KAIROS-EN23`, `CARNE-EN23`, `FINECO-EN23@IR`,
+   `FINECO-EN23@LUX`, `ANIMA-EN23`, `MEDIOLANUM-IT24.A`]
