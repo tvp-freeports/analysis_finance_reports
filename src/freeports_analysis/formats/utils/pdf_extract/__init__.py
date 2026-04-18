@@ -315,12 +315,16 @@ class PdfExtractAssetsStandard:
         table_condition=False,
         skip_column=1,
     ):
-        if not table_condition:  # currency_set is not None:
+        if not table_condition:
             self.fund_selection = SelectExpectedText(fund_set, "fund")
             self.currency_selection = SelectExpectedText(currency_set, "currency")
         else:
             self.fund_selection = fund_set
-            self.currency_selection = currency_set  # None
+            self.currency_selection = (
+                SelectExpectedText(currency_set, "currency")
+                if currency_set is not None
+                else currency_set
+            )
 
         self.table_condition = table_condition
         self.skip_column = skip_column
@@ -370,11 +374,11 @@ class PdfExtractAssetsStandard:
             )
         )
 
-        if not self.table_condition:  # self.currency_selection is not None:
+        if not self.table_condition:
             funds = [self.fund_selection(lines)]
             currencies = [self.currency_selection(lines)]
 
-        elif self.table_condition:  # self.currency_selection is None:
+        elif self.table_condition:
             funds = self.fund_selection.select(lines)
             _, cols = zip(
                 *get_table_coordinates(
@@ -388,12 +392,11 @@ class PdfExtractAssetsStandard:
                 " ".join((f.text.strip() for c, f in zip(cols, funds) if c == col))
                 for col in range(n_cols)
             ]
+
             if self.currency_selection is not None:
-                currency = [
-                    self.currency_selection(lines)
-                ]  # self.currency_selection.select(lines)
+                currency = self.currency_selection(lines)
                 currencies = [currency] * len(funds)
-                funds, currencies = zip(funds, currencies)
+
             else:
                 funds, currencies = zip(
                     *((" ".join(f.split()[:-1]), f.split()[-1]) for f in funds)
