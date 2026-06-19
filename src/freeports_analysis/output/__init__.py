@@ -119,8 +119,10 @@ class DocumentResults:
 
     @property
     def funds_sfdr_classification():
-        return PageIndexable(list(map(lambda x: x.funds_sfdr_classification), self.results))
-    
+        return PageIndexable(
+            list(map(lambda x: x.funds_sfdr_classification), self.results)
+        )
+
     @property
     def funds_esg_indicators():
         return PageIndexable(list(map(lambda x: x.funds_esg_indicators), self.results))
@@ -443,19 +445,23 @@ class Fund(BaseModel, match.MatchFund, PromisableDict):
             return isinstance(self.name, type(other.name)) and self.name == other.name
         return match.MatchFund.__eq__(self, other)
 
+
 class FundSfdrClassification(BaseModel):
     fund: str = Field(exclude=True)
     article: SfdrArticle = Field(exclude=True)
+
 
 class SfdrArticle(Enum):
     ART_6 = auto()
     ART_8 = auto()
     ART_9 = auto()
 
+
 class FundEsgIndicator(BaseModel):
     fund: str = Field(exclude=True)
     name: str = Field(serialization_alias="Indicator")
     value: str = Field(serialization_alias="Value")
+
 
 class FundAssets(BaseModel, PromisableDict):
     fund: str = Field(exclude=True)
@@ -624,7 +630,7 @@ def transform_to_files_schema(
                 d["Fund ID"] = curr_results.funds[f]["ID"]
                 d["ID"] = curr_results.new_fund_asset_id
                 curr_results.funds_assets.append(d)
-            
+
             for fsc in page_results.funds_sfdr_classification:
                 d = fsc.model_dump(mode="json", by_alias=True)
                 if fsc.value == SfdrArticle.ART_6:
@@ -634,7 +640,7 @@ def transform_to_files_schema(
                 elif fsc.value == SfdrArticle.ART_9:
                     d["SFDR classification"] = "Art. 9"
                 else:
-                    raise ValueError("SFDR classification value not recognized")                        
+                    raise ValueError("SFDR classification value not recognized")
                 f = Fund(name=fsc.fund)
                 if f not in curr_results.funds:
                     curr_results.funds[f] = {
@@ -719,8 +725,16 @@ def transform_to_files_schema(
             curr_results.investments_managers_to_funds,
             investments_managers_schema,
         ),
-        ("funds_sfdr_classification", curr_results.funds_sfdr_classification, funds_sfdr_classification_schema),
-        ("funds_esg_indicators", curr_results.funds_esg_indicators, funds_esg_indicators_schema),
+        (
+            "funds_sfdr_classification",
+            curr_results.funds_sfdr_classification,
+            funds_sfdr_classification_schema,
+        ),
+        (
+            "funds_esg_indicators",
+            curr_results.funds_esg_indicators,
+            funds_esg_indicators_schema,
+        ),
         ("funds_change_name", curr_results.funds_change_name, funds_change_name_schema),
         ("funds_assets", curr_results.funds_assets, funds_assets_schema),
     ]

@@ -126,13 +126,19 @@ funds_schema = pa.DataFrameSchema(
 
 funds_sfdr_classification_schema = pa.DataFrameSchema(
     {
-        "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True),
-        "SFDR classification": pa.Column(pd.StringDtype, checks=pa.Check.isin(list_of_sfdr_articles)),
+        "Fund ID": pa.Column(
+            pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True
+        ),
+        "SFDR classification": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(list_of_sfdr_articles)
+        ),
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
-        "Format": pa.Column(pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
         "Document": pa.Column(pd.StringDtype, required=False),
     },
-    **common_schema_settings
+    **common_schema_settings,
 )
 
 funds_esg_indicators_schema = pa.DataFrameSchema(
@@ -141,10 +147,12 @@ funds_esg_indicators_schema = pa.DataFrameSchema(
         "Indicator": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
         "Value": pa.Column(pd.StringDtype),
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
-        "Format": pa.Column(pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False),
+        "Format": pa.Column(
+            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        ),
         "Document": pa.Column(pd.StringDtype, required=False),
     },
-    **common_schema_settings
+    **common_schema_settings,
 )
 
 assets_managers_schema = pa.DataFrameSchema(
@@ -165,7 +173,6 @@ investments_managers_schema = pa.DataFrameSchema(
     ordered=True,
     unique=["Investment manager ID", "Fund ID"],
 )
-
 
 
 class BondAdditionalInfos(BaseModel):
