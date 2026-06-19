@@ -46,6 +46,8 @@ from .files_schema import (
     assets_managers_schema,
     funds_assets_schema,
     funds_schema,
+    funds_sfdr_classification_schema,
+    funds_esg_indicators_schema,
     investments_managers_schema,
     funds_change_name_schema,
     BondAdditionalInfos,
@@ -56,6 +58,8 @@ class PageResults:
     investments: List[Equity | Bond]
     assets_managers: List[ManagementCompany | InvestmentsManager]
     funds: List[Fund]
+    funds_sfdr_classification: List[FundSfdrClassification]
+    funds_esg_indicators: List[FundEsgIndicator]
     funds_assets: List[FundAssets]
     funds_change_name: List[FundRename | FundMerge]
 
@@ -63,6 +67,8 @@ class PageResults:
         self.investments = []
         self.assets_managers = []
         self.funds = []
+        self.funds_sfdr_classification = []
+        self.funds_esg_indicators = []
         self.funds_assets = []
         self.funds_change_name = []
 
@@ -110,6 +116,14 @@ class DocumentResults:
     @property
     def funds():
         return PageIndexable(list(map(lambda x: x.funds), self.results))
+
+    @property
+    def funds_sfdr_classification():
+        return PageIndexable(list(map(lambda x: x.funds_sfdr_classification), self.results))
+    
+    @property
+    def funds_esg_indicators():
+        return PageIndexable(list(map(lambda x: x.funds_esg_indicators), self.results))
 
     @property
     def funds_assets():
@@ -429,6 +443,19 @@ class Fund(BaseModel, match.MatchFund, PromisableDict):
             return isinstance(self.name, type(other.name)) and self.name == other.name
         return match.MatchFund.__eq__(self, other)
 
+class FundSfdrClassification(BaseModel):
+    fund: str = Field(exclude=True)
+    article: SfdrArticle = Field(exclude=True)
+
+class SfdrArticle(Enum):
+    ART_6 = auto()
+    ART_8 = auto()
+    ART_9 = auto()
+
+class FundEsgIndicator(BaseModel):
+    fund: str = Field(exclude=True)
+    name: str = Field(serialization_alias="Indicator")
+    value: str = Field(serialization_alias="Value")
 
 class FundAssets(BaseModel, PromisableDict):
     fund: str = Field(exclude=True)
@@ -597,6 +624,38 @@ def transform_to_files_schema(
                 d["Fund ID"] = curr_results.funds[f]["ID"]
                 d["ID"] = curr_results.new_fund_asset_id
                 curr_results.funds_assets.append(d)
+            
+            for fsc in page_results.funds_sfdr_classification:
+                d = fsc.model_dump(mode="json", by_alias=True)
+                if fsc.value == SfdrArticle.ART_6:
+                    d["SFDR classification"] = "Art. 6"
+                elif fsc.value == SfdrArticle.ART_8:
+                    d["SFDR classification"] = "Art. 8"
+                elif fsc.value == SfdrArticle.ART_9:
+                    d["SFDR classification"] = "Art. 9"
+                else:
+                    raise ValueError("SFDR classification value not recognized")                        
+                f = Fund(name=fsc.fund)
+                if f not in curr_results.funds:
+                    curr_results.funds[f] = {
+                        "ID": curr_results.new_fund_id,
+                        "Name": f.name,
+                    }
+                d = add_debug_infos(batch_mode, document_results, page_n, d)
+                d["Fund ID"] = curr_results.funds[f]["ID"]
+                curr_results.funds_sfdr_classification.append(d)
+
+            for fei in page_results.funds_esg_indicators:
+                d = fei.model_dump(mode="json", by_alias=True)
+                f = Fund(name=fei.fund)
+                if f not in curr_results.funds:
+                    curr_results.funds[f] = {
+                        "ID": curr_results.new_fund_id,
+                        "Name": f.name,
+                    }
+                d = add_debug_infos(batch_mode, document_results, page_n, d)
+                d["Fund ID"] = curr_results.funds[f]["ID"]
+                curr_results.funds_esg_indicators.append(d)
 
             for i in page_results.investments:
                 d = i.model_dump(mode="json", by_alias=True)
@@ -660,6 +719,8 @@ def transform_to_files_schema(
             curr_results.investments_managers_to_funds,
             investments_managers_schema,
         ),
+        ("funds_sfdr_classification", curr_results.funds_sfdr_classification, funds_sfdr_classification_schema),
+        ("funds_esg_indicators", curr_results.funds_esg_indicators, funds_esg_indicators_schema),
         ("funds_change_name", curr_results.funds_change_name, funds_change_name_schema),
         ("funds_assets", curr_results.funds_assets, funds_assets_schema),
     ]
@@ -810,6 +871,8 @@ def write_files(
                 "investments": "investments.csv",
                 "funds_assets": "funds_assets.csv",
                 "funds": "funds.csv",
+                "funds_sfdr_classification": "funds_sfdr_classification.csv",
+                "funds_esg_indicators": "funds_esg_indicators.csv",
                 "assets_managers": "assets_managers.csv",
                 "investments_managers": "investments_managers_to_funds.csv",
                 "funds_change_name": "funds_change_name.csv",

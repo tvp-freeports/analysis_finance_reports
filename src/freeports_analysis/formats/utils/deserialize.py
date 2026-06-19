@@ -1,7 +1,7 @@
 """Utils for creating deserialize routines and functions"""
 
 from logging import getLogger
-from typing import Callable, TypeAlias
+from typing import Callable, TypeAlias, Optional
 from datetime import date, datetime
 import re
 from freeports_analysis.formats import TextBlock, LineParseFail
