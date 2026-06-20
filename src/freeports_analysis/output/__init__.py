@@ -450,6 +450,9 @@ class FundSfdrClassification(BaseModel):
     fund: str = Field(exclude=True)
     article: SfdrArticle = Field(exclude=True)
 
+    def __hash__(self):
+        return hash((self.fund, self.article))
+
 
 class SfdrArticle(Enum):
     ART_6 = auto()
@@ -521,6 +524,8 @@ class ResultsAccumulator:
     assets_managers = {}
     funds_change_name = []
     funds_assets = []
+    funds_sfdr_classification = []
+    funds_esg_indicators = []
     investments_managers_to_funds = []
 
     def __init__(self):
@@ -529,6 +534,8 @@ class ResultsAccumulator:
         self.add_infos = {}
         self.funds_change_name = []
         self.funds_assets = []
+        self.funds_sfdr_classification = []
+        self.funds_esg_indicators = []
         self.investments_managers_to_funds = []
 
     @property
@@ -633,11 +640,11 @@ def transform_to_files_schema(
 
             for fsc in page_results.funds_sfdr_classification:
                 d = fsc.model_dump(mode="json", by_alias=True)
-                if fsc.value == SfdrArticle.ART_6:
+                if fsc.article == SfdrArticle.ART_6:
                     d["SFDR classification"] = "Art. 6"
-                elif fsc.value == SfdrArticle.ART_8:
+                elif fsc.article == SfdrArticle.ART_8:
                     d["SFDR classification"] = "Art. 8"
-                elif fsc.value == SfdrArticle.ART_9:
+                elif fsc.article == SfdrArticle.ART_9:
                     d["SFDR classification"] = "Art. 9"
                 else:
                     raise ValueError("SFDR classification value not recognized")

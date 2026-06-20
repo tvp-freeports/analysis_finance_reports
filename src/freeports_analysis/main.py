@@ -31,6 +31,8 @@ from freeports_analysis.output import (
     FundRename,
     FundChangeName,
     FundMerge,
+    FundSfdrClassification,
+    FundEsgIndicator,
     FundAssets,
     AssetsManager,
     InvestmentsManager,
@@ -269,6 +271,10 @@ def _main_job(
                 doc_results.results[-1].assets_managers.append(r)
             elif isinstance(r, Fund):
                 doc_results.results[-1].funds.append(r)
+            elif isinstance(r, FundSfdrClassification):
+                doc_results.results[-1].funds_sfdr_classification.append(r)
+            elif isinstance(r, FundEsgIndicator):
+                doc_results.results[-1].funds_esg_indicators.append(r)
             elif isinstance(r, FundAssets):
                 doc_results.results[-1].funds_assets.append(r)
             elif isinstance(r, FundChangeName):

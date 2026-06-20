@@ -2,6 +2,7 @@ from freeports_analysis.formats.algorithms.commons import Pipeline
 from . import fund_assets
 from . import investment_managers
 from . import merging
+from . import sfdr_classification as sfdr
 
 
 def compute_page_class(classification):
@@ -56,6 +57,7 @@ pipelines = {
         (merging.text_filter, merging.text_filter_last_date),
         (merging.deserialize, merging.deserialize_last_date),
     ),
+    "sfdr": Pipeline(sfdr.pdf_extract, sfdr.text_extract, sfdr.deserialize),
     # "merging":Pipeline(merging.pdf_extract,merging.text_filter,merging.deserialize),
     # "merging_end":Pipeline(merging.pdf_extract_end,merging.text_filter,merging.deserialize),
     "renaming": Pipeline(
