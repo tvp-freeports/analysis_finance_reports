@@ -39,6 +39,7 @@ FINECO-EN23@LUX,inv_managers
 FIDEURAM-IT24,investments,TRUE
 FIDEURAM-IT24,manco,
 KAIROS-EN23,investments,TRUE
+KAIROS-EN23,sfdr_classification,
 KAIROS-EN23,fund_assets,
 KAIROS-EN23,manco
 KAIROS-EN23,merges,

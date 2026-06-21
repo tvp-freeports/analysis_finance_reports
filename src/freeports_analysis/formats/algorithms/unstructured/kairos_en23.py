@@ -24,11 +24,23 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
-from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
+    get_groups,
+    get_table_coordinates,
+    TablePosAlgorithm,
+)
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats import TextBlock, PdfBlock
-from freeports_analysis.output import FundRename, FundMerge, Fund
+from freeports_analysis.output import (
+    FundRename,
+    FundMerge,
+    Fund,
+    FundSfdrClassification,
+    FundEsgIndicator,
+    Investment,
+    SfdrArticle,
+)
 import datetime
 
 market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")
@@ -227,6 +239,111 @@ text_filter_assets = TextFilterAssetsStandard(
 deserialize_assets = DeserializeAssetsStandard(num_converter=to_float)
 
 
+def sfdr_pdf_extract(page):
+    lines = pdflines_from_pagedict(page)
+    a = PdfLineSelection.text("Disclosure pursuant to").select(lines)
+    f = PdfLineSelection.text("Product name: ").select(lines)
+    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"article": a[0].text}, f[0].text)]
+
+
+def sfdr_text_extract(pdf_blks, filter_data):
+    if len(pdf_blks) == 0:
+        return []
+    blk = next(iter(pdf_blks))
+    fund_name = blk.content.removeprefix("Product name: ")
+    filter_funds = set(
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, Investment), filter_data)
+    )
+    fund = MatchFund(name=fund_name)
+    a = blk.metadata["article"]
+    art = SfdrArticle.ART_6
+    if "Article 8" in a:
+        art = SfdrArticle.ART_8
+    elif "Article 9" in a:
+        art = SfdrArticle.ART_9
+    if fund in filter_funds:
+        return [
+            TextBlock.from_content(
+                OneTextBlockType.RELEVANT_BLOCK, {"article": art}, fund_name
+            )
+        ]
+    else:
+        return []
+
+
+def sfdr_deserialize(txt_blk):
+    return FundSfdrClassification(
+        fund=txt_blk.content, article=txt_blk.metadata["article"]
+    )
+
+
+def esg_indicators_pdf_extact_art8(page):
+    lines = pdflines_from_pagedict(page)
+    r = PdfLineSelection.text("RATING").select(lines)
+    if len(r) == 0:
+        return []
+    l = PdfLineSelection.area_from_bounds(
+        PdfLineSelection.text("Characteristics promoted"),
+        PdfLineSelection.text("Indicator"),
+        1e6,
+        PdfLineSelection.text("RATING"),
+    ).select(lines)
+    f = PdfLineSelection.text("Product name: ").select(lines)
+    rows, cols = zip(
+        *get_table_coordinates(
+            l,
+            algorithm_flags=TablePosAlgorithm.USE_RULER_AREA
+            | TablePosAlgorithm.BIG_CELL_RULE,
+            tolerance=-0.2,
+            collapse=True,
+        )
+    )
+    # nrows=max(rows)+1
+    # ncols=max(cols)+1
+    # blks=[PdfBlock(OnePdfBlockType.RELEVANT_BLOCK,{"table-row":r,"table-col":c},ll.text) for ll,(r,c) in zip(l,cc)]
+    # values=[ll.text for ll,r,c in zip(l,rows,cols) for row in range(n_rows) if c==1 and row==r]
+
+    res = []
+    for row in sorted(set(rows)):
+        key = "".join(
+            (ll.text for r, c, ll in zip(rows, cols, l) if row == r and c == 0)
+        ).strip()
+        value = "".join(
+            (ll.text for r, c, ll in zip(rows, cols, l) if row == r and c == 1)
+        ).strip()
+
+        res.append((key, value))
+    return [PdfBlock(OnePdfBlockType, {k: v for k, v in res}, f[0].text)]
+
+
+def esg_indicators_text_filter_art8(pdf_blks, filter_data):
+    if len(pdf_blks) == 0:
+        return []
+    blk = next(iter(pdf_blks))
+    fund_name = blk.content.removeprefix("Product name: ")
+    filter_funds = set(
+        MatchFund(name=n.fund)
+        for n in filter(lambda x: isinstance(x, Investment), filter_data)
+    )
+    fund = MatchFund(name=fund_name)
+    if fund in filter_funds:
+        return [
+            TextBlock.from_content(OnePdfBlockType, {"index": k, "fund": fund_name}, v)
+            for k, v in blk.metadata.items()
+        ]
+    else:
+        return []
+
+
+def esg_indicators_deserialize_art8(txt_blk):
+    return FundEsgIndicator(
+        name=txt_blk.metadata["index"],
+        value=txt_blk.content,
+        fund=txt_blk.metadata["fund"],
+    )
+
+
 pipelines = {
     "investments": Pipeline(text_filter=text_filter),
     "fund_assets": Pipeline(pdf_extract_assets, text_filter_assets, deserialize_assets),
@@ -245,6 +362,12 @@ pipelines = {
             DeserializerManagmentCompanyStandard(),
             DeserializerInvestmentsManagerFromManco(),
         ),
+    ),
+    "sfdr": Pipeline(sfdr_pdf_extract, sfdr_text_extract, sfdr_deserialize),
+    "esg": Pipeline(
+        esg_indicators_pdf_extact_art8,
+        esg_indicators_text_filter_art8,
+        esg_indicators_deserialize_art8,
     ),
     "renames": Pipeline(pdf_extract_rename, text_filter_rename, deserialize_rename),
     "merges": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),

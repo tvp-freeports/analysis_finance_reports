@@ -144,7 +144,7 @@ funds_sfdr_classification_schema = pa.DataFrameSchema(
 funds_esg_indicators_schema = pa.DataFrameSchema(
     {
         "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
-        "Indicator": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
+        "Indicator": pa.Column(pd.StringDtype),
         "Value": pa.Column(pd.StringDtype),
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
         "Format": pa.Column(
