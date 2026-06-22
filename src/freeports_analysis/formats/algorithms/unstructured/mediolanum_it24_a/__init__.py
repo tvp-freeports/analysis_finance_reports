@@ -1,5 +1,10 @@
 from freeports_analysis.formats.algorithms.commons import Pipeline
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.templates import mediolanum_24
+import re
 
 from . import fund_assets
 
@@ -36,5 +41,22 @@ pipelines = {
             mediolanum_24.inv_managers.deserialize,
             mediolanum_24.inv_managers.deserialize_fund,
         ),
+    ),
+    "sfdr_classification": Pipeline(
+        PdfExtractSfdrArticleStandard(
+            PdfLineSelection.text("obiettivo di investimento sostenibile di questo"),
+            PdfLineSelection.text(
+                "sono state soddisfatte le caratteristiche ambientali e/o sociali promosse"
+            ),
+            PdfLineSelection.text("Nome del prodotto: "),
+        ),
+        TextFilterSfdrArticleStandard(
+            (
+                "Nome del prodotto: ",
+                re.compile(" \(.*\)"),
+                re.compile(", un comparto .*"),
+            )
+        ),
+        DeserializeSfdrArticleStandard(),
     ),
 }

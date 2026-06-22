@@ -53,7 +53,7 @@ MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
 MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/DEPOSITARIO""",inv_managers_end
 MEDIOLANUM-IT24.A/3,"(:70) ""STATO PATRIMONIALE""",fund_assets
 MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
-MEDIOLANUM-IT24.A/4,"""prodotto finanziario aveva un obiettivo di investimento sostenibile""",template_sfdr
+MEDIOLANUM-IT24.A/4,"""prodotto finanziario aveva un obiettivo di investimento sostenibile""",sfdr_classification
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",investments
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",investments
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",investments

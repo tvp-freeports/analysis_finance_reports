@@ -542,16 +542,28 @@ perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s
 
 
 class TextFilterSfdrArticleStandard:
-    def __init__(self, fund_prefix=None):
-        self.fund_prefix = fund_prefix
+    def __init__(self, fund_prefix=[]):
+        self.fund_prefix_strings = []
+        self.fund_prefix_regexes = []
+        try:
+            iter(fund_prefix)
+        except TypeError:
+            fund_prefix = [fund_prefix]
+
+        for f in fund_prefix:
+            if isinstance(f, str):
+                self.fund_prefix_strings.append(f)
+            elif isinstance(f, re.Pattern):
+                self.fund_prefix_regexes.append(f)
 
     @investment_fund_filter_data_call
     def __call__(self, pdf_blks, investment_funds):
         blk = next(iter(pdf_blks))
-        if self.fund_prefix is None:
-            fund_name = blk.content
-        else:
-            fund_name = blk.content.removeprefix(self.fund_prefix)
+        fund_name = blk.content
+        for f in self.fund_prefix_strings:
+            fund_name = fund_name.replace(f, "")
+        for f in self.fund_prefix_regexes:
+            fund_name = f.sub("", fund_name)
         fund = match.MatchFund(name=fund_name)
         if fund in investment_funds:
             return [
