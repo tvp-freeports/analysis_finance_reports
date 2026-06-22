@@ -542,7 +542,7 @@ perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s
 
 
 class TextFilterSfdrArticleStandard:
-    def __init__(self, fund_prefix = None):
+    def __init__(self, fund_prefix=None):
         self.fund_prefix = fund_prefix
 
     @investment_fund_filter_data_call

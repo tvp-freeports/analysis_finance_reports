@@ -34,16 +34,21 @@ pipelines = {
     ),
     "sfdr_classification": Pipeline(
         PdfExtractSfdrArticleStandard(
-            PdfLineSelection.text('periodic disclosure for the financial products referred to in Article 8'),
-            PdfLineSelection.text('periodic disclosure for the financial products referred to in Article 9'),
+            PdfLineSelection.text(
+                "periodic disclosure for the financial products referred to in Article 8"
+            ),
+            PdfLineSelection.text(
+                "periodic disclosure for the financial products referred to in Article 9"
+            ),
             PdfLineSelection.area_from_bounds(
-                x0 = PdfLineSelection.text('Product name'),
-                x1 = PdfLineSelection.text('Legal entity identifier'),
-                y0 = 0,
-                y1 = PdfLineSelection.text('Did this financial product'),  
-            ) & PdfLineSelection.font('calibri')            
+                x0=PdfLineSelection.text("Product name"),
+                x1=PdfLineSelection.text("Legal entity identifier"),
+                y0=0,
+                y1=PdfLineSelection.text("Did this financial product"),
+            )
+            & PdfLineSelection.font("calibri"),
         ),
         TextFilterSfdrArticleStandard(),
-        DeserializeSfdrArticleStandard()
-    )
+        DeserializeSfdrArticleStandard(),
+    ),
 }
