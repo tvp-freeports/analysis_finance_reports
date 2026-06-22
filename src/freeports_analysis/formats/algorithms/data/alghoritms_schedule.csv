@@ -32,6 +32,7 @@ MEDIOLANUM-IT24.A,inv_managers,TRUE
 MEDIOLANUM-IT24.A,inv_managers_begin
 FINECO-EN23@IR,investments,TRUE
 FINECO-EN23@IR,fund_assets,
+FINECO-EN23@IR,sfdr_classification,
 FINECO-EN23@IR,inv_managers_table,TRUE
 FINECO-EN23@IR,manco
 FINECO-EN23@LUX,investments,TRUE
