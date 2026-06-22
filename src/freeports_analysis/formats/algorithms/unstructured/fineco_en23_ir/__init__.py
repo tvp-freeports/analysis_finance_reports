@@ -40,13 +40,18 @@ pipelines = {
             PdfLineSelection.text(
                 "periodic disclosure for the financial products referred to in Article 9"
             ),
-            PdfLineSelection.area_from_bounds(
-                x0=PdfLineSelection.text("Product name"),
-                x1=PdfLineSelection.text("Legal entity identifier"),
-                y0=0,
-                y1=PdfLineSelection.text("Did this financial product"),
+            (
+                PdfLineSelection.area_from_bounds(
+                    x0=PdfLineSelection.text("Product name"),
+                    x1=1e6,
+                    y0=0,
+                    y1=PdfLineSelection.text("Did this financial product"),
+                )
+                & PdfLineSelection.font("calibri")
             )
-            & PdfLineSelection.font("calibri"),
+            / PdfLineSelection.area_from_movewindow(
+                PdfLineSelection.text("Legal entity identifier"), (0.0, 0.0), 30.0, 1.2
+            ),
         ),
         TextFilterSfdrArticleStandard(),
         DeserializeSfdrArticleStandard(),
