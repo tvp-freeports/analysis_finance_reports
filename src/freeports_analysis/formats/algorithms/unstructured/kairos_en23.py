@@ -24,6 +24,9 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_groups,
     get_table_coordinates,
@@ -239,45 +242,6 @@ text_filter_assets = TextFilterAssetsStandard(
 deserialize_assets = DeserializeAssetsStandard(num_converter=to_float)
 
 
-def sfdr_pdf_extract(page):
-    lines = pdflines_from_pagedict(page)
-    a = PdfLineSelection.text("Disclosure pursuant to").select(lines)
-    f = PdfLineSelection.text("Product name: ").select(lines)
-    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"article": a[0].text}, f[0].text)]
-
-
-def sfdr_text_extract(pdf_blks, filter_data):
-    if len(pdf_blks) == 0:
-        return []
-    blk = next(iter(pdf_blks))
-    fund_name = blk.content.removeprefix("Product name: ")
-    filter_funds = set(
-        MatchFund(name=n.fund)
-        for n in filter(lambda x: isinstance(x, Investment), filter_data)
-    )
-    fund = MatchFund(name=fund_name)
-    a = blk.metadata["article"]
-    art = SfdrArticle.ART_6
-    if "Article 8" in a:
-        art = SfdrArticle.ART_8
-    elif "Article 9" in a:
-        art = SfdrArticle.ART_9
-    if fund in filter_funds:
-        return [
-            TextBlock.from_content(
-                OneTextBlockType.RELEVANT_BLOCK, {"article": art}, fund_name
-            )
-        ]
-    else:
-        return []
-
-
-def sfdr_deserialize(txt_blk):
-    return FundSfdrClassification(
-        fund=txt_blk.content, article=txt_blk.metadata["article"]
-    )
-
-
 def esg_indicators_pdf_extact_art8(page):
     lines = pdflines_from_pagedict(page)
     r = PdfLineSelection.text("RATING").select(lines)
@@ -363,7 +327,15 @@ pipelines = {
             DeserializerInvestmentsManagerFromManco(),
         ),
     ),
-    "sfdr": Pipeline(sfdr_pdf_extract, sfdr_text_extract, sfdr_deserialize),
+    "sfdr": Pipeline(
+        PdfExtractSfdrArticleStandard(
+            PdfLineSelection.text("Disclosure pursuant to Article 9"),
+            PdfLineSelection.text("Disclosure pursuant to Article 8"),
+            PdfLineSelection.text("Product name: "),
+        ),
+        TextFilterSfdrArticleStandard("Product name: "),
+        DeserializeSfdrArticleStandard(),
+    ),
     "esg": Pipeline(
         esg_indicators_pdf_extact_art8,
         esg_indicators_text_filter_art8,

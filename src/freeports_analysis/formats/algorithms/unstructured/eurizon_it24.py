@@ -12,6 +12,9 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
 )
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
 from freeports_analysis.formats.utils.pdf_extract import OnePdfBlockType
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
@@ -189,4 +192,13 @@ pipelines = {
         text_filter_change_name,
         (deserialize_rename, deserialize_merge),
     ),
+    # "sfdr_classification": Pipeline(
+    #     PdfExtractSfdrArticleStandard(
+    #         PdfLineSelection(""),
+    #         PdfLineSelection(),
+    #         PdfLineSelection.text("Nome prodotto: ")
+    #     ),
+    #     TextFilterSfdrArticleStandard(("Nome prodotto: ",re.compile(" - .* [0-9]{4}"))),
+    #     Deserialize()
+    # )
 }

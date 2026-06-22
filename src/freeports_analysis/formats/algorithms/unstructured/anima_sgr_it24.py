@@ -17,6 +17,9 @@ from freeports_analysis.formats.utils.deserialize import (
     DeserializerPageClassifyStandard,
     to_date_with_it_month,
 )
+from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     PdfLineSelection,
     pdflines_from_pagedict,
@@ -173,6 +176,12 @@ pipelines = {
             PdfExtractPageClassifyStandard(
                 header_sets=header_sets_merges, page_type="merges"
             ),
+            PdfExtractPageClassifyStandard(
+                header_sets=PdfLineSelection.text(
+                    "Questo prodotto finanziario aveva un obiettivo di investimento sostenibile"
+                ),
+                page_type="sfdr_classification",
+            ),
         ),
         text_filter=TextFilterPageClassifyStandard(),
         deserialize=DeserializerPageClassifyStandard(),
@@ -183,6 +192,15 @@ pipelines = {
             PdfExtractFundStandard(subfund_set),
             PdfExtractCurrencyStandard(currency_set),
         )
+    ),
+    "sfdr_classification": Pipeline(
+        PdfExtractSfdrArticleStandard(
+            PdfLineSelection.text("Disclosure pursuant to Article 9"),
+            PdfLineSelection.text("Disclosure pursuant to Article 8"),
+            PdfLineSelection.text("Product name: "),
+        ),
+        TextFilterSfdrArticleStandard("Product name: "),
+        DeserializeSfdrArticleStandard(),
     ),
     "merges": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),
 }

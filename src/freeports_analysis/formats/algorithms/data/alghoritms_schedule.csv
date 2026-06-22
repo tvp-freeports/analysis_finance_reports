@@ -1,6 +1,7 @@
 Format name,Page type,Filter next iteration
 ANIMA_SGR-IT24,investments,TRUE
 ANIMA_SGR-IT24,merges,
+ANIMA_SGR-IT24,sfdr_classification,
 CARNE-EN23,investments,TRUE
 CARNE-EN23,fund_assets,
 CARNE-EN23,manco,
