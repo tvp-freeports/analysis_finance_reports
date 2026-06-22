@@ -40,6 +40,7 @@ from freeports_analysis.formats.utils.text_filter import match
 from freeports_analysis.data import COMPANIES
 from freeports_analysis.consts import Promise, Currency, PromisesResolutionMap
 from freeports_analysis.i18n import _
+from freeports_analysis.consts import SfdrArticle
 from freeports_analysis import match
 from .files_schema import (
     investments_schema,
@@ -452,12 +453,6 @@ class FundSfdrClassification(BaseModel):
 
     def __hash__(self):
         return hash((self.fund, self.article))
-
-
-class SfdrArticle(Enum):
-    ART_6 = auto()
-    ART_8 = auto()
-    ART_9 = auto()
 
 
 class FundEsgIndicator(BaseModel):

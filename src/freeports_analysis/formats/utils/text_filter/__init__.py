@@ -107,11 +107,43 @@ def get_funds(filter_data):
     )
 
 
-def fund_filter_data(f):
-    new_filter_data = get_funds(filter_data)
+def get_investment_funds(filter_data):
+    return set(
+        map(
+            lambda f: match.MatchFund(f.fund),
+            filter(lambda ff: isinstance(ff, output.Investment), filter_data),
+        )
+    )
 
-    def new_f(pdf_blks):
+
+def fund_filter_data(f):
+    def new_f(pdf_blks, filter_data):
+        new_filter_data = get_funds(filter_data)
         return f(pdf_blks, new_filter_data)
+
+    return new_f
+
+
+def fund_filter_data_call(f):
+    def new_f(self, pdf_blks, filter_data):
+        new_filter_data = get_funds(filter_data)
+        return f(self, pdf_blks, new_filter_data)
+
+    return new_f
+
+
+def investment_fund_filter_data(f):
+    def new_f(pdf_blks, filter_data):
+        new_filter_data = get_investment_funds(filter_data)
+        return f(pdf_blks, new_filter_data)
+
+    return new_f
+
+
+def investment_fund_filter_data_call(f):
+    def new_f(self, pdf_blks, filter_data):
+        new_filter_data = get_investment_funds(filter_data)
+        return f(self, pdf_blks, new_filter_data)
 
     return new_f
 
@@ -136,6 +168,7 @@ class ResultStandardFiltering(Enum):
     FUND = auto()
     MANAGEMENT_COMPANY = auto()
     INVESTMENTS_MANAGER = auto()
+    SFDR_ARTICLE = auto()
 
 
 class PdfBlocksTable:
@@ -506,6 +539,25 @@ date_regexes = [
     r".*\s(\d{2}[/\-]\d{2})\s.*",
 ]
 perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s*).*"]
+
+
+class TextFilterSfdrArticleStandard:
+    def __init__(self, remove_fund_prefix):
+        self.remove_fund_prefix = remove_fund_prefix
+
+    @investment_fund_filter_data_call
+    def __call__(self, pdf_blks, investment_funds):
+        blk = next(iter(pdf_blks))
+        fund_name = blk.content.removeprefix(self.remove_fund_prefix)
+        fund = match.MatchFund(name=fund_name)
+        if fund in investment_funds:
+            return [
+                TextBlock.from_content(
+                    ResultStandardFiltering.SFDR_ARTICLE, blk.metadata, fund_name
+                )
+            ]
+        else:
+            return []
 
 
 class TextFilterPageClassifyStandard:

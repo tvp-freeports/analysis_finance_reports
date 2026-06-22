@@ -207,6 +207,12 @@ class FinancialInstrument(Enum):
     BOND = auto()
 
 
+class SfdrArticle(Enum):
+    ART_6 = auto()
+    ART_8 = auto()
+    ART_9 = auto()
+
+
 class Currency(Enum):
     """Enumeration of supported currency codes.
 

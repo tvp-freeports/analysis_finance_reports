@@ -39,8 +39,8 @@ from freeports_analysis.output import (
     FundSfdrClassification,
     FundEsgIndicator,
     Investment,
-    SfdrArticle,
 )
+from freeports_analysis.consts import SfdrArticle
 import datetime
 
 market_value_regex = re.compile(r"(([0-9]+,)?[0-9]+,?[0-9]+\.[0-9]{2}) ")

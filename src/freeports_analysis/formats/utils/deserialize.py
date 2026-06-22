@@ -13,6 +13,7 @@ from freeports_analysis.output import (
     ManagementCompany,
     InvestmentsManager,
     FundAssets,
+    FundSfdrClassification,
 )
 from freeports_analysis.i18n import _
 from freeports_analysis.logging import LOG_ADAPT_INVESTMENT_INFOS
@@ -339,6 +340,13 @@ def to_date_with_it_month(text):
         int(date_parts[2]), to_int_it_month(date_parts[1]), int(date_parts[0])
     )
     return date_class
+
+
+class DeserializeSfdrArticleStandard:
+    def __call__(self, txt_blk):
+        return FundSfdrClassification(
+            fund=txt_blk.content, article=txt_blk.metadata["article"]
+        )
 
 
 class DeserializerPageClassifyStandard:

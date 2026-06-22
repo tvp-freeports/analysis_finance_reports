@@ -18,6 +18,7 @@ from freeports_analysis.formats import (
 from freeports_analysis.i18n import _
 from freeports_analysis.consts import Promise
 from freeports_analysis.consts import Currency
+from freeports_analysis.consts import SfdrArticle
 from .select_position import (
     TablePosAlgorithm,
     get_table_coordinates,
@@ -80,6 +81,7 @@ class ResultStandardExtraction(Enum):
     TABLE_BODY = auto()
     MANAGEMENT_COMPANY = auto()
     INVESTMENTS_MANAGER = auto()
+    SFDR_ARTICLE = auto()
 
 
 class ExtractTextPdfBlockOrFailPage:
@@ -97,6 +99,46 @@ class ExtractTextPdfBlockOrFailPage:
         except ExpectedPdfBlockNotFound as e:
             raise PageParseFail(e) from e
         return [PdfBlock(self.type_block, {}, text)]
+
+
+class PdfExtractSfdrArticleStandard:
+    def __init__(
+        self,
+        art9_selection=PdfLineSelection,
+        art8_selection=PdfLineSelection,
+        fund_selection=PdfLineSelection,
+    ):
+        self.art9_selection = SelectExpectedText(
+            art9_selection, "Sfdr Art. 9 template identifier"
+        )
+        self.art8_selection = SelectExpectedText(
+            art8_selection, "Sfdr Art. 8 template identifier"
+        )
+        self.fund_pdflineselection = fund_selection
+
+    def __call__(self, page):
+        lines = pdflines_from_pagedict(page)
+        art = SfdrArticle.ART_6
+        try:
+            self.art8_selection(lines)
+            art = SfdrArticle.ART_8
+        except ExpectedPdfBlockNotFound:
+            try:
+                self.art9_selection(lines)
+                art = SfdrArticle.ART_9
+            except ExpectedPdfBlockNotFound:
+                pass
+        funds_blks = self.fund_pdflineselection.select(lines)
+        txt = None
+        if len(funds_blks) == 1:
+            txt = next(iter(funds_blks)).text
+        elif len(funds_blks) > 1:
+            txt = "".join(
+                map(lambda sb: sb.text, sorted(funds_blks, key=lambda b: b.bbox[1]))
+            )
+        else:
+            raise ExpectedPdfBlockNotFound("Fund name")
+        return [PdfBlock(ResultStandardExtraction.SFDR_ARTICLE, {"article": art}, txt)]
 
 
 class PdfExtractFundStandard(ExtractTextPdfBlockOrFailPage):
