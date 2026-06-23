@@ -33,8 +33,9 @@ ANIMA-EN23/1,"helvetica-condensed-blac ""ANIMA Funds Plc""",fund_assets
 ANIMA-EN23/2,"helvetica-bold ""Manager, Promoter and Distributor""",manco
 ANIMA-EN23/3,"helvetica-bold ""Funds merged during the financial year""",year_events
 ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",investments
-ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",investments
-ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",investments
+ARCA-IT24/0,"TrebuchetMS-Bold ""Titoli""",investments
+ARCA-IT24/0,"TrebuchetMS-Bold ""Divisa""",investments
+ARCA-IT24/1,"""informativa periodica per i prodotti finanziari""",sfdr_classification
 ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",investments
 ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",investments
 DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",investments

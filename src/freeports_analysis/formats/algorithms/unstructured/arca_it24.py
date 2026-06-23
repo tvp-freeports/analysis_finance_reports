@@ -1,15 +1,18 @@
-"""Custom pdf filter for ARCA-IT24 format"""
+"""Unstructured module for the ARCA-IT24 format"""
 
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
     PdfExtractFundStandard,
     PdfExtractCurrencyConstant,
+    PdfExtractSfdrArticleStandard
 )
 from freeports_analysis.consts import Currency
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdfline_selection_from_str,
     PdfLineSelection,
 )
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 
@@ -38,5 +41,14 @@ pipelines = {
             PdfExtractFundStandard(subfund_set),
             PdfExtractCurrencyConstant(Currency.EUR),
         )
+    ),
+    "sfdr_classification": Pipeline(
+        PdfExtractSfdrArticleStandard(
+            PdfLineSelection.text("informativa periodica per i prodotti finanziari di cui all'articolo 9"),
+            PdfLineSelection.text("informativa periodica per i prodotti finanziari di cui all'articolo 8"),
+            PdfLineSelection(text='Nome del prodotto')
+        ),
+        TextFilterSfdrArticleStandard(['Nome del prodotto: ']),
+        DeserializeSfdrArticleStandard()
     )
 }
