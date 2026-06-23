@@ -76,6 +76,7 @@ FINECO-EN23@LUX/1,"arialnarrow-bold [14] ""Organisation and Administration""",in
 FINECO-EN23@LUX/1,"arialnarrow-bold [11] ""Management Company and Global Distributor""",inv_managers
 FINECO-EN23@LUX/2,"arialnarrow-bold [14] (:100) ""Statement of Net Assets""",fund_assets
 FINECO-EN23@LUX/2,((400:)(150:750)),fund_assets
+FINECO-EN23@LUX/3,"""periodic disclosure for the""",sfdr_classification
 KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",investments
 KAIROS-EN23/1,"arialnarrow-bold[11.52] ""Organisational Structure""",manco
 KAIROS-EN23/1,"arialnarrow-bold ""Management Company""",manco

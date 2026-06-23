@@ -38,6 +38,7 @@ FINECO-EN23@IR,inv_managers_table,TRUE
 FINECO-EN23@IR,manco
 FINECO-EN23@LUX,investments,TRUE
 FINECO-EN23@LUX,fund_assets,
+FINECO-EN23@LUX,sfdr_classification,
 FINECO-EN23@LUX,inv_managers
 FIDEURAM-IT24,investments,TRUE
 FIDEURAM-IT24,manco,
