@@ -35,10 +35,10 @@ pipelines = {
     "sfdr_classification": Pipeline(
         PdfExtractSfdrArticleStandard(
             PdfLineSelection.text(
-                "periodic disclosure for the financial products referred to in Article 8"
+                "disclosure for the financial products referred to in Article 9"
             ),
             PdfLineSelection.text(
-                "periodic disclosure for the financial products referred to in Article 9"
+                "disclosure for the financial products referred to in Article 8"
             ),
             (
                 PdfLineSelection.area_from_bounds(
