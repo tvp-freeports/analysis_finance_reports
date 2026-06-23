@@ -47,10 +47,10 @@ pipelines = {
                     y0=0,
                     y1=PdfLineSelection.text("Did this financial product"),
                 )
-                & PdfLineSelection.font("calibri")
+                & (PdfLineSelection.font("calibri") | PdfLineSelection.font("arialmt"))
             )
             / PdfLineSelection.area_from_movewindow(
-                PdfLineSelection.text("Legal entity identifier"), (0.0, 0.0), 30.0, 1.2
+                PdfLineSelection.text("Legal entity identifier"), (0.0, 0.0), 30.0, 3.0
             ),
         ),
         TextFilterSfdrArticleStandard(),
