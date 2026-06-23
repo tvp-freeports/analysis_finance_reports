@@ -13,10 +13,13 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
 )
 from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
-from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import (
+    TextFilterSfdrArticleStandard,
+    OneTextBlockType,
+    investment_fund_filter_data,
+)
 from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
-from freeports_analysis.formats.utils.pdf_extract import OnePdfBlockType
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.text_filter import (
     StandardManagmentCompanyTextBlock,
@@ -27,9 +30,15 @@ from freeports_analysis.formats.utils.deserialize import (
     to_date_with_it_month,
     deserialize_block_type,
 )
-from freeports_analysis.consts import Currency
+from freeports_analysis.consts import Currency, Promise, SfdrArticle
+from freeports_analysis.match import MatchFund
 from freeports_analysis.formats import PageParseFail, PdfBlock, TextBlock
-from freeports_analysis.output import Fund, FundMerge, FundRename
+from freeports_analysis.output import (
+    Fund,
+    FundMerge,
+    FundRename,
+    FundSfdrClassification,
+)
 import re
 from enum import Enum, auto
 
@@ -89,9 +98,9 @@ def pdf_extract_change_name(page):
 
 
 regex_change_name = re.compile(
-    'Il fondo "(.+)" \(già denominato (.+)\) è stato istituito'
+    r'Il fondo "(.+)" \(già denominato (.+)\) è stato istituito'
 )
-regex_rename = re.compile('"(.+)" fino al ([0-9]+ [a-z]+ [0-9]+)')
+regex_rename = re.compile(r'"(.+)" fino al ([0-9]+ [a-z]+ [0-9]+)')
 regex_split_merges = re.compile("[iI]n data ")
 
 
@@ -168,6 +177,62 @@ def deserialize_merge(txt_blk):
     )
 
 
+def sfdr_pdf_extract_1(page):
+    lines = pdflines_from_pagedict(page)
+    fund_name = next(iter(PdfLineSelection.text("Nome prodotto: ").select(lines))).text
+    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {}, fund_name)]
+
+
+rm_regex = re.compile(r" - .* [0-9]{4}")
+
+
+@investment_fund_filter_data
+def sfdr_text_filter_1(pdf_blks, investment_funds):
+    fund_name = next(iter(pdf_blks)).content
+    fund_name = fund_name.replace("Nome prodotto: ", "")
+    fund_name = rm_regex.sub("", fund_name)
+    fund = MatchFund(name=fund_name)
+    if fund in investment_funds:
+        return [TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, {}, fund_name)]
+    else:
+        return []
+
+
+def sfdr_deserialize_1(txt_blk):
+    return FundSfdrClassification(article=Promise("sfdr-article"), fund=txt_blk.content)
+
+
+def sfdr_pdf_extract_2(page):
+    lines = pdflines_from_pagedict(page)
+    art = SfdrArticle.ART_6
+    if (
+        len(
+            PdfLineSelection.text("obiettivo di investimento sostenibile").select(lines)
+        )
+        > 0
+    ):
+        art = SfdrArticle.ART_9
+    elif (
+        len(
+            PdfLineSelection.text(
+                "soddisfatte le caratteristiche ambientali e/o sociali promosse"
+            ).select(lines)
+        )
+        > 0
+    ):
+        art = SfdrArticle.ART_8
+    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"article": art}, "")]
+
+
+def sfdr_text_filter_2(pdf_blks, _):
+    blk = next(iter(pdf_blks))
+    return [TextBlock(OneTextBlockType.RELEVANT_BLOCK, blk.metadata, blk)]
+
+
+def sfdr_deserialize_2(txt_blk):
+    return {"sfdr-article": txt_blk.metadata["article"]}
+
+
 pipelines = {
     "manco": Pipeline(
         pdf_extract=pdf_filter_manco,
@@ -192,13 +257,6 @@ pipelines = {
         text_filter_change_name,
         (deserialize_rename, deserialize_merge),
     ),
-    # "sfdr_classification": Pipeline(
-    #     PdfExtractSfdrArticleStandard(
-    #         PdfLineSelection(""),
-    #         PdfLineSelection(),
-    #         PdfLineSelection.text("Nome prodotto: ")
-    #     ),
-    #     TextFilterSfdrArticleStandard(("Nome prodotto: ",re.compile(" - .* [0-9]{4}"))),
-    #     Deserialize()
-    # )
+    "sfdr_page_1": Pipeline(sfdr_pdf_extract_1, sfdr_text_filter_1, sfdr_deserialize_1),
+    "sfdr_page_2": Pipeline(sfdr_pdf_extract_2, sfdr_text_filter_2, sfdr_deserialize_2),
 }
