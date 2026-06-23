@@ -178,7 +178,7 @@ pipelines = {
             ),
             PdfExtractPageClassifyStandard(
                 header_sets=PdfLineSelection.text(
-                    "Questo prodotto finanziario aveva un obiettivo di investimento sostenibile"
+                    "aveva un obiettivo di investimento sostenibile"
                 ),
                 page_type="sfdr_classification",
             ),
@@ -195,11 +195,11 @@ pipelines = {
     ),
     "sfdr_classification": Pipeline(
         PdfExtractSfdrArticleStandard(
-            PdfLineSelection.text("Disclosure pursuant to Article 9"),
-            PdfLineSelection.text("Disclosure pursuant to Article 8"),
-            PdfLineSelection.text("Product name: "),
+            PdfLineSelection.text("per i prodotti finanziari di cui all'articolo 9"),
+            PdfLineSelection.text("per i prodotti finanziari di cui all'articolo 8"),
+            PdfLineSelection.text("Nome del prodotto: "),
         ),
-        TextFilterSfdrArticleStandard("Product name: "),
+        TextFilterSfdrArticleStandard("Nome del prodotto: "),
         DeserializeSfdrArticleStandard(),
     ),
     "merges": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),
