@@ -84,6 +84,8 @@ class PageResults:
             fa.fulfill_promises(promises_resolution_map)
         for fm in self.funds_change_name:
             fm.fulfill_promises(promises_resolution_map)
+        for sfdr in self.funds_sfdr_classification:
+            sfdr.fulfill_promises(promises_resolution_map)
 
 
 class PageIndexable:
@@ -224,6 +226,7 @@ PromisedAcquisitionCurrency = Annotated[
 ]
 PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
 PromisedDate = Union[Promise, datetime.date]
+PromisedSfdrArticle = Union[Promise, SfdrArticle]
 
 
 class PromisableDict:
@@ -447,9 +450,9 @@ class Fund(BaseModel, match.MatchFund, PromisableDict):
         return match.MatchFund.__eq__(self, other)
 
 
-class FundSfdrClassification(BaseModel):
+class FundSfdrClassification(BaseModel, PromisableDict):
     fund: str = Field(exclude=True)
-    article: SfdrArticle = Field(exclude=True)
+    article: PromisedSfdrArticle = Field(exclude=True)
 
     def __hash__(self):
         return hash((self.fund, self.article))
