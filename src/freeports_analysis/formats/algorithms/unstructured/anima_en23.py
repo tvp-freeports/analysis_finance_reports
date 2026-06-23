@@ -11,6 +11,7 @@ from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractCurrencyStandard,
     PdfExtractFundStandard,
     PdfExtractManagmentCompanyStandard,
+    PdfExtractSfdrArticleStandard
 )
 from freeports_analysis.formats.utils.text_filter import (
     OneTextBlockType,
@@ -36,6 +37,8 @@ from freeports_analysis.formats.utils.deserialize import (
     DeserializeAssetsStandard,
     to_date_with_en_month,
 )
+from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.output import Fund, FundMerge
 
@@ -238,4 +241,13 @@ pipelines = {
         )
     ),
     "year_events": Pipeline(pdf_extract_merges, text_filter_merges, deserialize_merges),
+    "sfdr_classification": Pipeline(
+        PdfExtractSfdrArticleStandard(
+            PdfLineSelection.text("periodic disclosure for the financial products referred to in Article 9"),
+            PdfLineSelection.text("periodic disclosure for the financial products referred to in Article 8"),
+            PdfLineSelection(text='Product name')
+        ),
+        TextFilterSfdrArticleStandard(['Product name: ']),
+        DeserializeSfdrArticleStandard()
+    )
 }
