@@ -1,5 +1,6 @@
 """Custom pdf filter for FINECO-EN23@LUX format"""
 
+import re
 
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
 from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
@@ -55,7 +56,7 @@ pipelines = {
     ),
     "sfdr_classification": Pipeline(
         pdf_extract=sfdr_classification_pdf_extract,
-        text_filter=TextFilterSfdrArticleStandard(['Product name :', 'Product name:']),
+        text_filter=TextFilterSfdrArticleStandard(fund_prefix=re.compile(r'Product name.*:\s*')),
         deserialize=DeserializeSfdrArticleStandard()
     )
 }
