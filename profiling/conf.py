@@ -40,6 +40,7 @@ short_documents = [
 #     "EURIZON-EN21",
 #     "EURIZON-IT24/1/",
 #     "MEDIOLANUM-ES24.B",
+#     "MEDIOLANUM-ES24.Bax"
 # ]
 
 freeports_conf = {

@@ -13,6 +13,7 @@ MEDIOLANUM-ES24.A,investments,TRUE
 MEDIOLANUM-ES24.A,manco,
 MEDIOLANUM-ES24.B,cover,
 MEDIOLANUM-ES24.B,investments,
+MEDIOLANUM-ES24.Bax,sfdr_classification,
 EURIZON-EN23,investments,TRUE
 EURIZON-EN23,fund_assets,
 EURIZON-EN23,inv_managers_end,
