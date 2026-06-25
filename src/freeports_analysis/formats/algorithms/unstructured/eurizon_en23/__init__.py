@@ -6,7 +6,7 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelect
 from . import fund_assets
 from . import investment_managers
 from . import merging
-from . import sfdr_classification as sfdr
+from . import esg_indicators as esg
 
 
 def compute_page_class(classification):
@@ -78,6 +78,10 @@ pipelines = {
         TextFilterSfdrArticleStandard("Product name: "),
         DeserializeSfdrArticleStandard(),
     ),
+    "esg_fund": Pipeline(
+        esg.pdf_extract_fund, esg.text_filter_fund, esg.deserialize_fund
+    ),
+    "esg_indicators": Pipeline(esg.pdf_extract, esg.text_filter, esg.deserialize),
     # "merging":Pipeline(merging.pdf_extract,merging.text_filter,merging.deserialize),
     # "merging_end":Pipeline(merging.pdf_extract_end,merging.text_filter,merging.deserialize),
     "renaming": Pipeline(

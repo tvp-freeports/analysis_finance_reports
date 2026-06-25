@@ -73,19 +73,37 @@ class PageResults:
         self.funds_assets = []
         self.funds_change_name = []
 
+    def _fulfill_and_filter(self, old_list, promises_resolution_map):
+        new_list = []
+        for v in old_list:
+            try:
+                v.fulfill_promises(promises_resolution_map)
+                new_list.append(v)
+            except KeyError:
+                pass
+
+        return new_list
+
     def fulfill_promises(self, promises_resolution_map):
-        for i in self.investments:
-            i.fulfill_promises(promises_resolution_map)
-        for a in self.assets_managers:
-            a.fulfill_promises(promises_resolution_map)
-        for f in self.funds:
-            f.fulfill_promises(promises_resolution_map)
-        for fa in self.funds_assets:
-            fa.fulfill_promises(promises_resolution_map)
-        for fm in self.funds_change_name:
-            fm.fulfill_promises(promises_resolution_map)
-        for sfdr in self.funds_sfdr_classification:
-            sfdr.fulfill_promises(promises_resolution_map)
+        self.investments = self._fulfill_and_filter(
+            self.investments, promises_resolution_map
+        )
+        self.assets_managers = self._fulfill_and_filter(
+            self.assets_managers, promises_resolution_map
+        )
+        self.funds = self._fulfill_and_filter(self.funds, promises_resolution_map)
+        self.funds_assets = self._fulfill_and_filter(
+            self.funds_assets, promises_resolution_map
+        )
+        self.funds_change_name = self._fulfill_and_filter(
+            self.funds_change_name, promises_resolution_map
+        )
+        self.funds_sfdr_classification = self._fulfill_and_filter(
+            self.funds_sfdr_classification, promises_resolution_map
+        )
+        self.funds_esg_indicators = self._fulfill_and_filter(
+            self.funds_esg_indicators, promises_resolution_map
+        )
 
 
 class PageIndexable:
@@ -458,8 +476,8 @@ class FundSfdrClassification(BaseModel, PromisableDict):
         return hash((self.fund, self.article))
 
 
-class FundEsgIndicator(BaseModel):
-    fund: str = Field(exclude=True)
+class FundEsgIndicator(BaseModel, PromisableDict):
+    fund: PromisedFundName = Field(exclude=True)
     name: str = Field(serialization_alias="Indicator")
     value: str = Field(serialization_alias="Value")
 
@@ -597,6 +615,8 @@ def transform_to_files_schema(
     for document_results in results:
         for page_n, page_results in enumerate(document_results, start=1):
             for f in page_results.funds:
+                if f is None:
+                    continue
                 if f not in curr_results.funds:
                     d = f.model_dump(mode="json", by_alias=True)
                     d["ID"] = curr_results.new_fund_id
@@ -607,6 +627,8 @@ def transform_to_files_schema(
                         batch_mode, document_results, page_n, curr_results.funds[f]
                     )
             for fcm in page_results.funds_change_name:
+                if fcm is None:
+                    continue
                 d = fcm.model_dump(mode="json", by_alias=True)
                 f = Fund(name=fcm.current_name)
                 if f not in curr_results.funds:
@@ -624,6 +646,8 @@ def transform_to_files_schema(
                 curr_results.funds_change_name.append(d)
 
             for fa in page_results.funds_assets:
+                if fa is None:
+                    continue
                 d = fa.model_dump(mode="json", by_alias=True)
                 f = Fund(name=fa.fund)
                 if f not in curr_results.funds:
@@ -637,6 +661,8 @@ def transform_to_files_schema(
                 curr_results.funds_assets.append(d)
 
             for fsc in page_results.funds_sfdr_classification:
+                if fsc is None:
+                    continue
                 d = fsc.model_dump(mode="json", by_alias=True)
                 if fsc.article == SfdrArticle.ART_6:
                     d["SFDR classification"] = "Art. 6"
@@ -657,6 +683,8 @@ def transform_to_files_schema(
                 curr_results.funds_sfdr_classification.append(d)
 
             for fei in page_results.funds_esg_indicators:
+                if fei is None:
+                    continue
                 d = fei.model_dump(mode="json", by_alias=True)
                 f = Fund(name=fei.fund)
                 if f not in curr_results.funds:
@@ -669,6 +697,8 @@ def transform_to_files_schema(
                 curr_results.funds_esg_indicators.append(d)
 
             for i in page_results.investments:
+                if i is None:
+                    continue
                 d = i.model_dump(mode="json", by_alias=True)
                 f = Fund(name=i.fund)
                 if f not in curr_results.funds:
@@ -691,6 +721,8 @@ def transform_to_files_schema(
                 curr_results.investments.append(d)
 
             for am in page_results.assets_managers:
+                if am is None:
+                    continue
                 d = am.model_dump(mode="json", by_alias=True)
                 if am.name not in curr_results.assets_managers:
                     d["ID"] = curr_results.new_asset_manager_id

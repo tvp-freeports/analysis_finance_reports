@@ -174,6 +174,7 @@ fn get_table_indexes<'a>(
                 ).unwrap()
             }
         };
+
         rulers.push(selected);
         let ruler=&rulers[current_ruler_idx];
         unindexed.retain(|elem| {
@@ -192,6 +193,7 @@ fn get_table_indexes<'a>(
             !it_matches
         });
     }
+
     if let Some(n_expected_indexes) = n_expected_indexes {
         let n_indexes = rulers.len();
         if n_indexes != n_expected_indexes {

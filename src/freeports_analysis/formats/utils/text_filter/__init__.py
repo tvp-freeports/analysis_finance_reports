@@ -545,9 +545,7 @@ class TextFilterSfdrArticleStandard:
     def __init__(self, fund_prefix=[]):
         self.fund_prefix_strings = []
         self.fund_prefix_regexes = []
-        try:
-            iter(fund_prefix)
-        except TypeError:
+        if isinstance(fund_prefix, str) or isinstance(fund_prefix, re.Pattern):
             fund_prefix = [fund_prefix]
 
         for f in fund_prefix:

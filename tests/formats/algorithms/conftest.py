@@ -125,10 +125,6 @@ class PdfExtractTest(Function):
         #     dill.dump(result, f)
 
         expected = self.parent.cache.pkl.get_file(expected_path)
-        print(expected)
-        print(self.page_num)
-        print(expected_path)
-        print(result)
         assert frozenset(result) == frozenset(expected), (
             f"PDF extract failed for page {self.page_num} ({self.page_type})"
         )
@@ -278,7 +274,6 @@ class PipelineTest(Function):
             ),
             on="Fund ID",
         ).drop(columns=["ID", "Fund ID"])
-        print("ACTUAL LEGNO", len(actual_investments))
         actual_funds = org_actual_funds.join(
             org_actual_assets_managers.set_index("ID")[["Name"]].rename(
                 columns={"Name": "Asset manager name"}
@@ -319,13 +314,6 @@ class PipelineTest(Function):
         actual_assets_managers = org_actual_assets_managers.drop(columns="ID")
 
         expected_dir = self.parent.path / "out"
-        print(out_path)
-        print(
-            "actual",
-            actual_investments.sort_values(
-                by=actual_investments.columns.tolist()
-            ).reset_index(drop=True),
-        )
 
         org_expected_investments = self.parent.cache.csv.get_file(
             expected_dir / "investments.csv"
@@ -354,7 +342,6 @@ class PipelineTest(Function):
             ),
             on="Fund ID",
         ).drop(columns=["ID", "Fund ID"])
-        print("LEGNO", len(expected_investments))
 
         expected_funds = org_expected_funds.join(
             org_expected_assets_managers.set_index("ID")[["Name"]].rename(
@@ -395,13 +382,6 @@ class PipelineTest(Function):
 
         expected_assets_managers = org_expected_assets_managers.drop(columns="ID")
 
-        print(expected_dir)
-        print(
-            "expected",
-            expected_investments.sort_values(
-                by=expected_investments.columns.tolist()
-            ).reset_index(drop=True),
-        )
         # Assertions
         pd.testing.assert_frame_equal(
             actual_investments.sort_values(
