@@ -7,6 +7,7 @@ from freeports_analysis.formats.templates import mediolanum_24
 import re
 
 from . import fund_assets
+from . import esg_indicators
 
 
 compute_page_class = mediolanum_24.compute_page_class
@@ -59,4 +60,5 @@ pipelines = {
         ),
         DeserializeSfdrArticleStandard(),
     ),
+    "esg_indicators": Pipeline(),
 }
