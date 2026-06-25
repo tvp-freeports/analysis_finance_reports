@@ -35,9 +35,11 @@ ANIMA-EN23/1,"helvetica-condensed-bold ""^Statement of Financial Position""",fun
 ANIMA-EN23/1,"helvetica-condensed-blac ""ANIMA Funds Plc""",fund_assets
 ANIMA-EN23/2,"helvetica-bold ""Manager, Promoter and Distributor""",manco
 ANIMA-EN23/3,"helvetica-bold ""Funds merged during the financial year""",year_events
+ANIMA-EN23/4,"""periodic disclosure for the financial products""",sfdr_classification
 ANIMA_SICAV-EN24,"ArialNarrow-Bold ""Quantity/""",investments
-ARCA-IT24,"TrebuchetMS-Bold ""Titoli""",investments
-ARCA-IT24,"TrebuchetMS-Bold ""Divisa""",investments
+ARCA-IT24/0,"TrebuchetMS-Bold ""Titoli""",investments
+ARCA-IT24/0,"TrebuchetMS-Bold ""Divisa""",investments
+ARCA-IT24/1,"""informativa periodica per i prodotti finanziari""",sfdr_classification
 ASTERIA-EN23,"CenturyGothic-Bold ""Number of Shares/""",investments
 ASTERIA-EN24,"CenturyGothic-Bold ""Transferable securities admitted to an official stock""",investments
 DANSKEINVEST-EN24,"Calibri[13] ""Statement of Investments""",investments
@@ -52,6 +54,7 @@ MEDIOLANUM-ES24.B/0,"Helvetica-Bold ""Periodo actual""",investments
 MEDIOLANUM-IT24.A/0,"[8.037657] ""Descrizione""",investments
 MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Grupo Gestora:""",cover
 MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Registro CNMV:""",cover
+MEDIOLANUM-ES24.Bax,"""nformación periódica de los productos financieros""",sfdr_classification
 MEDIOLANUM-IT24.A/1,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_begin
 MEDIOLANUM-IT24.A/1,"[9.477175] ""SOCIETÀ DI GESTIONE E""",inv_managers_begin
 MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
@@ -81,6 +84,7 @@ FINECO-EN23@LUX/1,"arialnarrow-bold [14] ""Organisation and Administration""",in
 FINECO-EN23@LUX/1,"arialnarrow-bold [11] ""Management Company and Global Distributor""",inv_managers
 FINECO-EN23@LUX/2,"arialnarrow-bold [14] (:100) ""Statement of Net Assets""",fund_assets
 FINECO-EN23@LUX/2,((400:)(150:750)),fund_assets
+FINECO-EN23@LUX/3,"""periodic disclosure for the""",sfdr_classification
 KAIROS-EN23/0,"ArialNarrow-Bold[6] ""Nominal""",investments
 KAIROS-EN23/1,"arialnarrow-bold[11.52] ""Organisational Structure""",manco
 KAIROS-EN23/1,"arialnarrow-bold ""Management Company""",manco

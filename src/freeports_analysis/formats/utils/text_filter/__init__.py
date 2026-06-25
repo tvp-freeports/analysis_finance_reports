@@ -542,11 +542,13 @@ perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s
 
 
 class TextFilterSfdrArticleStandard:
-    def __init__(self, fund_prefix=[]):
+    def __init__(self, fund_prefix=[], demand_investment_funds_match=True):
         self.fund_prefix_strings = []
         self.fund_prefix_regexes = []
         if isinstance(fund_prefix, str) or isinstance(fund_prefix, re.Pattern):
             fund_prefix = [fund_prefix]
+
+        self.demand_investment_funds_match = demand_investment_funds_match
 
         for f in fund_prefix:
             if isinstance(f, str):
@@ -562,8 +564,9 @@ class TextFilterSfdrArticleStandard:
             fund_name = fund_name.replace(f, "")
         for f in self.fund_prefix_regexes:
             fund_name = f.sub("", fund_name)
+
         fund = match.MatchFund(name=fund_name)
-        if fund in investment_funds:
+        if not self.demand_investment_funds_match or fund in investment_funds:
             return [
                 TextBlock.from_content(
                     ResultStandardFiltering.SFDR_ARTICLE, blk.metadata, fund_name
