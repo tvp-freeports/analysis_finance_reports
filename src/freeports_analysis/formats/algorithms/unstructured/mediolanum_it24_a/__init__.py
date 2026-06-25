@@ -60,5 +60,6 @@ pipelines = {
         ),
         DeserializeSfdrArticleStandard(),
     ),
-    "esg_indicators": Pipeline(),
+    # "esg_indicators": Pipeline(
+    # )
 }

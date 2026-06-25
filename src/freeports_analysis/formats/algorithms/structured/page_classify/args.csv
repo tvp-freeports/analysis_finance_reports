@@ -58,7 +58,7 @@ MEDIOLANUM-ES24.Bax,"""nformación periódica de los productos financieros""",sf
 MEDIOLANUM-IT24.A/1,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_begin
 MEDIOLANUM-IT24.A/1,"[9.477175] ""SOCIETÀ DI GESTIONE E""",inv_managers_begin
 MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
-MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/DEPOSITARIO""",inv_managers_end
+MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/""",inv_managers_end
 MEDIOLANUM-IT24.A/3,"(:70) ""STATO PATRIMONIALE""",fund_assets
 MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
 MEDIOLANUM-IT24.A/4,"""prodotto finanziario aveva un obiettivo di investimento sostenibile""",sfdr_classification
