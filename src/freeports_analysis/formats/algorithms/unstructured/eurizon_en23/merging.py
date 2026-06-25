@@ -42,7 +42,17 @@ def pdf_extract(page):
     last_date_content = None
     for i in range(-1, len(opening_statements)):
         if i == -1:
-            if PdfLineSelection.text("EVENTS OCCURRED DURING THE PERIOD").select(lines):
+            # BEGIN FROM PREVIOUS PAGE
+            begin_page = PdfLineSelection.text("EVENTS OCCURRED DURING THE").select(
+                lines
+            )
+            amended = PdfLineSelection(
+                text="amended", area=(0.0, 0.0, 1e6, 95.0)
+            ).select(lines)
+            policy = PdfLineSelection(
+                text="Investment policy", area=(0.0, 0.0, 1e6, 250.0)
+            ).select(lines)
+            if begin_page or (amended and policy):
                 continue
             top = 0.0
             last_date_content = Promise(f"date-merging-endpage-{previous_page}")
@@ -52,11 +62,13 @@ def pdf_extract(page):
         try:
             btm = opening_statements[i + 1].bbox[1]
         except IndexError:
-            try:
-                btm = (
-                    PdfLineSelection.text("SUBSEQUENT EVENTS").select(lines)[0].bbox[1]
-                )
-            except IndexError:
+            uf = PdfLineSelection.text("UNFUNDED COMMITMENTS").select(lines)
+            se = PdfLineSelection.text("SUBSEQUENT EVENTS").select(lines)
+            if len(uf) > 0:
+                btm = uf[0].bbox[1]
+            elif len(se) > 0:
+                btm = se[0].bbox[1]
+            else:
                 btm = 800
 
         table = PdfLineSelection(

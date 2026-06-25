@@ -13,7 +13,7 @@ EURIZON-EN23/2,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_begin
 EURIZON-EN23/3,"frutiger-lightitalic ""INDEPENDENT AUDITOR OF THE""",inv_managers_end
 EURIZON-EN23/3,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_end
 EURIZON-EN23/4,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
-EURIZON-EN23/5,"""EVENTS OCCURRED DURING THE PERIOD""",renaming
+EURIZON-EN23/5,"""EVENTS OCCURRED DURING THE""",renaming
 EURIZON-EN23/6,"""SUBSEQUENT EVENTS""",subsequent_events
 EURIZON-EN23/7,"""Environmental and/or social characteristics""",sfdr_classification
 EURIZON-EN23/8,"arial-boldmt [7.5] ""Sustainability Indicator""",esg_indicators
