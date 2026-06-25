@@ -7,6 +7,7 @@ from freeports_analysis.formats.utils.text_filter import OneTextBlockType
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_table_coordinates,
+    get_groups,
 )
 from freeports_analysis.formats import PdfBlock, TextBlock
 from freeports_analysis.formats.utils.deserialize import (
@@ -22,6 +23,31 @@ from enum import Enum, auto
 class TypeBlock(Enum):
     LAST_DATE = auto()
     RENAME_ENTRY = auto()
+
+
+def create_text_from_table(well_divided, not_divided, groups):
+    text_well_divided = []
+    text_not_divided = []
+    for g in sorted(set(groups)):
+        group_g = sorted([w for w in well_divided], key=lambda l: l.bbox[1])
+        text_well_divided.append(" ".join((g.text for g in group_g)))
+        y0 = group_g[0].bbox[1]
+        y1 = group_g[-1].bbox[3]
+        c = (y1 + y0) / 2.0
+        first_not_divided = not_divided.pop(0)
+        text_not_divided.append(first_not_divided.text)
+        (_, not_divided_y0_begin, _, not_divided_y1_begin) = first_not_divided.bbox
+        top = not_divided_y0_begin
+        top_side = c - top
+        bottom = top + 2.0 * top_side
+        while len(not_divided) > 0:
+            (_, not_divided_y0_end, _, not_divided_y1_end) = not_divided[0].bbox
+            cc = (not_divided_y0_end + not_divided_y1_end) / 2.0
+            if bottom > cc:
+                text_not_divided[-1] += " " + not_divided.pop(0).text
+            else:
+                break
+    return text_well_divided, text_not_divided
 
 
 def pdf_extract(page):
@@ -79,26 +105,38 @@ def pdf_extract(page):
         new_names = [l for l, c in zip(table, cols) if c == 4]
         if i == -1 and len(new_names) == 0:
             return []
-        (_, y0, _, y1) = old_names[0].bbox
-        text_new_names = []
-        text_old_names = []
-        for o in old_names:
-            text_old_names.append(o.text)
-            (_, y0, _, y1) = o.bbox
-            c = (y1 + y0) / 2.0
-            new_first = new_names.pop(0)
-            text_new_names.append(new_first.text)
-            (_, new_y0_begin, _, new_y1_begin) = new_first.bbox
-            top = new_y0_begin
-            top_side = c - top
-            bottom = top + 2.0 * top_side
-            while len(new_names) > 0:
-                (_, new_y0_end, _, new_y1_end) = new_names[0].bbox
-                cc = (new_y0_end + new_y1_end) / 2.0
-                if bottom > cc:
-                    text_new_names[-1] += " " + new_names.pop(0).text
-                else:
-                    break
+        threshold = 17
+        gn = get_groups(new_names, threshold)
+        go = get_groups(old_names, threshold)
+
+        if len(set(gn)) > len(set(go)):
+            text_new_names, text_old_names = create_text_from_table(
+                new_names, old_names, gn
+            )
+        else:
+            text_old_names, text_new_names = create_text_from_table(
+                old_names, new_names, go
+            )
+        # (_,y0,_,y1)=old_names[0].bbox
+        # text_new_names=[]
+        # text_old_names=[]
+        # for o in old_names:
+        #     text_old_names.append(o.text)
+        #     (_,y0,_,y1)=o.bbox
+        #     c=(y1+y0)/2.0
+        #     new_first=new_names.pop(0)
+        #     text_new_names.append(new_first.text)
+        #     (_,new_y0_begin,_,new_y1_begin)=new_first.bbox
+        #     top=new_y0_begin
+        #     top_side=c-top
+        #     bottom=top+2.0*top_side
+        #     while len(new_names) > 0:
+        #         (_,new_y0_end,_,new_y1_end)=new_names[0].bbox
+        #         cc=(new_y0_end+new_y1_end)/2.0
+        #         if bottom>cc:
+        #             text_new_names[-1]+=" "+new_names.pop(0).text
+        #         else:
+        #             break
         res.append(
             PdfBlock(
                 TypeBlock.RENAME_ENTRY,
@@ -106,7 +144,7 @@ def pdf_extract(page):
                 last_date_content,
             )
         )
-    if last_date_content is not None:
+    if last_date_content is not None and not isinstance(last_date_content, Promise):
         res.append(PdfBlock(TypeBlock.LAST_DATE, last_date_md, last_date_content))
     return res
 
@@ -146,9 +184,10 @@ def text_filter(pdf_blks, filter_data):
 
 
 def text_filter_last_date(pdf_blks, filter_data):
-    if len(pdf_blks) == 0:
+    try:
+        blk = next(filter(lambda x: x.type_block == TypeBlock.LAST_DATE, pdf_blks))
+    except StopIteration:
         return []
-    blk = next(filter(lambda x: x.type_block == TypeBlock.LAST_DATE, pdf_blks))
     m = merging_regex.search(blk.content)
     if not m:
         return []

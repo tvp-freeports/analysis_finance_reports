@@ -1,8 +1,16 @@
 from freeports_analysis.formats.algorithms.commons import Pipeline
-from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
+from freeports_analysis.formats import PdfBlock
+from freeports_analysis.formats.utils.pdf_extract import (
+    PdfExtractSfdrArticleStandard,
+    PdfExtractPageClassifyStandard,
+    ResultStandardExtraction,
+)
 from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
 from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
-from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
+from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
+    PdfLineSelection,
+    pdflines_from_pagedict,
+)
 from . import fund_assets
 from . import investment_managers
 from . import merging
@@ -12,16 +20,43 @@ from . import esg_indicators as esg
 def compute_page_class(classification):
     inv_managers = False
     for i, val in enumerate(classification):
-        if inv_managers and val is None:
+        if val == "inv_managers_total":
+            classification[i] = "inv_managers_begin"
+        elif inv_managers and val is None:
             classification[i] = "inv_managers"
         elif val == "inv_managers_begin":
             inv_managers = True
         elif val == "inv_managers_end":
             inv_managers = False
+
     return classification
 
 
+def pdf_extract_page_classify(page):
+    lines = pdflines_from_pagedict(page)
+    organization = PdfLineSelection(
+        font="frutiger-black", text="ORGANISATION OF THE FUND"
+    ).select(lines)
+    inv_man = PdfLineSelection(
+        font="frutiger-lightitalic", text="INVESTMENT MANAGERS"
+    ).select(lines)
+    auditor = PdfLineSelection(
+        font="frutiger-lightitalic", text="INDEPENDENT AUDITOR OF THE"
+    ).select(lines)
+    page_type = None
+    if organization:
+        if auditor and inv_man:
+            page_type = "inv_managers_total"
+        elif inv_man:
+            page_type = "inv_managers_begin"
+        elif auditor:
+            page_type = "inv_managers_end"
+
+    return [PdfBlock(ResultStandardExtraction.PAGE_CLASS, {"page_type": page_type}, "")]
+
+
 pipelines = {
+    "": Pipeline(pdf_extract=pdf_extract_page_classify),
     "fund_assets": Pipeline(
         pdf_extract=(fund_assets.pdf_extract,),
         text_filter=fund_assets.text_filter,

@@ -8,17 +8,13 @@ EURIZON-EN23/0,"Frutiger-Light ""Nominal /""",investments
 EURIZON-EN23/0,"Frutiger-Black[11.9735] ""PORTFOLIO AS AT""",investments
 EURIZON-EN23/1,"frutiger-lightitalic ""MANAGEMENT COMPANY AND PROMOTER""",manco
 EURIZON-EN23/1,"frutiger-black ""ORGANISATION OF THE FUND""",manco
-EURIZON-EN23/2,"frutiger-lightitalic ""INVESTMENT MANAGERS""",inv_managers_begin
-EURIZON-EN23/2,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_begin
-EURIZON-EN23/3,"frutiger-lightitalic ""INDEPENDENT AUDITOR OF THE""",inv_managers_end
-EURIZON-EN23/3,"frutiger-black ""ORGANISATION OF THE FUND""",inv_managers_end
-EURIZON-EN23/4,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
-EURIZON-EN23/5,"""EVENTS OCCURRED DURING THE""",renaming
-EURIZON-EN23/6,"""SUBSEQUENT EVENTS""",subsequent_events
-EURIZON-EN23/7,"""Environmental and/or social characteristics""",sfdr_classification
-EURIZON-EN23/8,"arial-boldmt [7.5] ""Sustainability Indicator""",esg_indicators
-EURIZON-EN23/8,"arial-boldmt [7.5] ""Description""",esg_indicators
-EURIZON-EN23/8,"arial-boldmt [10] ""periods?""",esg_indicators
+EURIZON-EN23/2,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
+EURIZON-EN23/3,"""EVENTS OCCURRED DURING THE""",renaming
+EURIZON-EN23/4,"""SUBSEQUENT EVENTS""",subsequent_events
+EURIZON-EN23/5,"""Environmental and/or social characteristics""",sfdr_classification
+EURIZON-EN23/6,"arial-boldmt [7.5] ""Sustainability Indicator""",esg_indicators
+EURIZON-EN23/6,"arial-boldmt [7.5] ""Description""",esg_indicators
+EURIZON-EN23/6,"arial-boldmt [10] ""periods?""",esg_indicators
 EURIZON-IT24/0,"TrebuchetMSBold ""Titolo""",investments
 EURIZON-IT24/0,"TrebuchetMSBold ""Controvalore in""",investments
 EURIZON-IT24/1,"trebuchetmsbold ""SOCIETÀ DI GESTIONE""",manco

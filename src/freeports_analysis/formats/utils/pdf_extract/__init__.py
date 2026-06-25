@@ -82,6 +82,7 @@ class ResultStandardExtraction(Enum):
     MANAGEMENT_COMPANY = auto()
     INVESTMENTS_MANAGER = auto()
     SFDR_ARTICLE = auto()
+    PAGE_CLASS = auto()
 
 
 class ExtractTextPdfBlockOrFailPage:
@@ -199,7 +200,9 @@ class PdfExtractPageClassifyStandard:
             if len(hsa.select(lines)) == 0:
                 page_type = None
                 break
-        return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {"page_type": page_type}, "")]
+        return [
+            PdfBlock(ResultStandardExtraction.PAGE_CLASS, {"page_type": page_type}, "")
+        ]
 
 
 class PdfExtractInvestmentsStandard:

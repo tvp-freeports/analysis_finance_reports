@@ -42,13 +42,19 @@ def pdf_extract_inv_managers_begin(page):
     condition_text = PdfLineSelection(
         text="INVESTMENT MANAGERS", font="frutiger-lightitalic"
     )
-
+    end = PdfLineSelection(
+        text="INDEPENDENT AUDITOR OF THE INVESTMENT FUND AND OF THE MANAGEMENT COMPANY",
+        font="frutiger-lightitalic",
+    ).select(lines)
+    btm = 1e6
+    if end:
+        btm = end[0].bbox[1]
     bold_text = PdfLineSelection(
         font="frutiger-black", font_size=(8.98, 8.99)
-    ) & PdfLineSelection.area_from_bounds(x0=0, y0=condition_text, x1=1e6, y1=1e6)
+    ) & PdfLineSelection.area_from_bounds(x0=0, y0=condition_text, x1=1e6, y1=btm)
     fund_text = PdfLineSelection(
         font="frutiger-lightitalic", font_size=(8.98, 8.99)
-    ) & PdfLineSelection.area_from_bounds(x0=0, y0=condition_text, x1=1e6, y1=1e6)
+    ) & PdfLineSelection.area_from_bounds(x0=0, y0=condition_text, x1=1e6, y1=btm)
 
     lines_manager = bold_text.select(lines)
     lines_fund = fund_text.select(lines)

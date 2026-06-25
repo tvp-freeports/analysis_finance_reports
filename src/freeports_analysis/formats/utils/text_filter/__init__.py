@@ -169,6 +169,7 @@ class ResultStandardFiltering(Enum):
     MANAGEMENT_COMPANY = auto()
     INVESTMENTS_MANAGER = auto()
     SFDR_ARTICLE = auto()
+    PAGE_CLASS = auto()
 
 
 class PdfBlocksTable:
@@ -590,7 +591,9 @@ class TextFilterPageClassifyStandard:
                     )
         return [
             TextBlock(
-                OneTextBlockType.RELEVANT_BLOCK, {"page_type": page_classification}, blk
+                ResultStandardFiltering.PAGE_CLASS,
+                {"page_type": page_classification},
+                blk,
             )
         ]
 
