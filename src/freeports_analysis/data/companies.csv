@@ -32,8 +32,7 @@ BAE Systems,bae,\bbae.*(plc|systems)
 Bank Hapoalim,hapoalim,hapoalim
 Bank Leumi,leumi,leumi
 Bank of Jerusalem,jerusalem,(?=.*bank).*jerusalem
-"Bar-Amana Buildings Construction and
-Development",amana,amana
+"Bar-Amana Buildings Construction and Development",amana,amana
 "Barad Earthworks, Development and Roadworks",barad,barad
 Baran Group,baran,baran
 Bardarian Brothers,bardarian,bardarian
@@ -121,8 +120,7 @@ Galshan Shvakim,shvakim,shvakim
 Gavilon,,
 General Dynamics,general dynamics,\bgeneral.*dynamics
 General Electric,general electric,\bgeneral.*electric
-"Geo-Da Lands & Property Management &
-Information",geo da,\bgeo.*da
+"Geo-Da Lands & Property Management & Information",geo da,\bgeo.*da
 Glencore,,
 Greenkote,,
 "Greenmix, of Benny and Tzvika Group",greenmix,greenmix
@@ -172,8 +170,7 @@ Louis Dreyfus Company Brasil S.A.,,
 Magen Construction Engineering Works,magen,magen.*(construc|engine|work)
 MAN Truck & Bus SE,man truck,\bman truck\b
 Margolin Bros. Engineering & Consulting,margolin,margolin.*(bros|engine|consult)
-"Marom Tuval Consulting, Management &
-Investments",marom,marom
+"Marom Tuval Consulting, Management & Investments",marom,marom
 Matrix IT Ltd,matrix,matrix
 Mayer’s Cars and Trucks Co,mayers,mayers.*(cars|trucks)
 Medan Roads and Quarries,medan,medan.*(roads|quarries)
@@ -187,10 +184,8 @@ Meta Platforms,meta,\bmeta\b
 Metrontario Investments,metrontario,metrontario
 Microsoft,,
 Minrav Group,minrav,minrav
-"Mishab Housing Construction & Development
-Co",mishab,mishab.*(constr|develop)
-"Mishkan Eliyahu Construction and Investment
-Co",mishkan,mishkan
+"Mishab Housing Construction & Development Co",mishab,mishab.*(constr|develop)
+"Mishkan Eliyahu Construction and Investment Co",mishkan,mishkan
 Mivne Ltd,mivne,\bmivne
 Mizrachi & Sons Investments Group,mizrachi,mizrachi.*invest
 Mizrahi Tefahot Bank,mizrahi,(?=.*bank)mizrahi
@@ -211,8 +206,7 @@ NVIDIA,,
 Ofertex Industries,ofertex,ofertex
 Olam Agricola Ltda.,,
 Olam Brasil Ltda,,
-"Olenik Transportation Earth Work and Road
-Constructions",olenik,olenik
+"Olenik Transportation Earth Work and Road Constructions",olenik,olenik
 Opodo Ltd,opodo,opodo
 Oracle,,
 Orbia Corp.,orbia,\borbia\b
@@ -276,8 +270,7 @@ Viterra Bv,,
 Volvo Car Corp,volvo,\bvolvo\b
 Woodward,,
 WSP Global,wsp,\bwsp\b
-"Y.A.Z Construction and Development
-Co",yaz,(yaz|yaaz).*(const|develop|build)
+"Y.A.Z Construction and Development Co",yaz,(yaz|yaaz).*(const|develop|build)
 Y.D. Barazani,barazani,barazani
 Yacobi Brothers Group,yacobi,yacobi.*(brother|group)
 Yes TV and Communications Services,yes,\byes.*(tv|communications|services)
