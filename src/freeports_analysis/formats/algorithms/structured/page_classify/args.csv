@@ -22,7 +22,6 @@ EURIZON-IT24/2,"trebuchetmsbold ""FONDO COMUNE D'INVESTIMENTO""",merges
 EURIZON-IT24/3,"""Allegato SFDR - Pag. 1$""",sfdr_page_1
 EURIZON-IT24/4,"""Allegato SFDR - Pag. 2$""",sfdr_page_2
 UBS-EN23,"Frutiger45LightBold ""Nominal """,investments
-MEDIOLANUM-IT24.A,"""Valutazione """,investments
 MEDIOLANUM-IT24.C,"""Valutazione """,investments
 AMUNDI-EN24,"ArialNarrow-BoldItalic ""Securities Portfolio as at""",investments
 AMUNDI-IT24,"TrebuchetMS-Bold ""Titolo""",investments
@@ -51,6 +50,7 @@ MEDIOLANUM-IT24.A/0,"[8.037657] ""Descrizione""",investments
 MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Grupo Gestora:""",cover
 MEDIOLANUM-ES24.B/1,"Helvetica-Bold ""Registro CNMV:""",cover
 MEDIOLANUM-ES24.Bax,"""nformación periódica de los productos financieros""",sfdr_classification
+MEDIOLANUM-IT24.A/0,"""Valutazione """,investments
 MEDIOLANUM-IT24.A/1,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_begin
 MEDIOLANUM-IT24.A/1,"[9.477175] ""SOCIETÀ DI GESTIONE E""",inv_managers_begin
 MEDIOLANUM-IT24.A/2,"[15.47555] ""INFORMAZIONI GENERALI""",inv_managers_end
@@ -58,6 +58,8 @@ MEDIOLANUM-IT24.A/2,"[9.477175] ""DEPOSITARIA/""",inv_managers_end
 MEDIOLANUM-IT24.A/3,"(:70) ""STATO PATRIMONIALE""",fund_assets
 MEDIOLANUM-IT24.A/3,"""TOTALE ATTIVITÀ""",fund_assets
 MEDIOLANUM-IT24.A/4,"""prodotto finanziario aveva un obiettivo di investimento sostenibile""",sfdr_classification
+MEDIOLANUM-IT24.A/5,"""Qual è stata la prestazione degli indicatori di sostenibilità?""",esg_indicators
+MEDIOLANUM-IT24.A/5,"""^PAI $""",esg_indicators
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Titolo""",investments
 MEDIOLANUM-IT24.B,"Helvetica-Bold ""Controvalore""",investments
 MEDIOLANUM-IT24.C,"[7.920006] ""Descrizione""",investments

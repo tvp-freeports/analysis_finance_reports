@@ -109,26 +109,17 @@ class PdfExtractSfdrArticleStandard:
         art8_selection=PdfLineSelection,
         fund_selection=PdfLineSelection,
     ):
-        self.art9_selection = SelectExpectedText(
-            art9_selection, "Sfdr Art. 9 template identifier"
-        )
-        self.art8_selection = SelectExpectedText(
-            art8_selection, "Sfdr Art. 8 template identifier"
-        )
+        self.art9_selection = art9_selection
+        self.art8_selection = art8_selection
         self.fund_pdflineselection = fund_selection
 
     def __call__(self, page):
         lines = pdflines_from_pagedict(page)
         art = SfdrArticle.ART_6
-        try:
-            self.art8_selection(lines)
+        if self.art8_selection.select(lines):
             art = SfdrArticle.ART_8
-        except ExpectedPdfBlockNotFound:
-            try:
-                self.art9_selection(lines)
-                art = SfdrArticle.ART_9
-            except ExpectedPdfBlockNotFound:
-                pass
+        elif self.art9_selection.select(lines):
+            art = SfdrArticle.ART_9
         funds_blks = self.fund_pdflineselection.select(lines)
         txt = None
         if len(funds_blks) == 1:

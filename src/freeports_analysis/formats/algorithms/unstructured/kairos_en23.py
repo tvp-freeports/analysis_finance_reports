@@ -25,7 +25,10 @@ from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
     pdflines_from_pagedict,
 )
 from freeports_analysis.formats.utils.pdf_extract import PdfExtractSfdrArticleStandard
-from freeports_analysis.formats.utils.text_filter import TextFilterSfdrArticleStandard
+from freeports_analysis.formats.utils.text_filter import (
+    TextFilterSfdrArticleStandard,
+    investment_fund_filter_data,
+)
 from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
 from freeports_analysis.formats.utils.pdf_extract.select_position import (
     get_groups,
@@ -281,15 +284,12 @@ def esg_indicators_pdf_extact_art8(page):
     return [PdfBlock(OnePdfBlockType, {k: v for k, v in res}, f[0].text)]
 
 
-def esg_indicators_text_filter_art8(pdf_blks, filter_data):
+@investment_fund_filter_data
+def esg_indicators_text_filter_art8(pdf_blks, filter_funds):
     if len(pdf_blks) == 0:
         return []
     blk = next(iter(pdf_blks))
     fund_name = blk.content.removeprefix("Product name: ")
-    filter_funds = set(
-        MatchFund(name=n.fund)
-        for n in filter(lambda x: isinstance(x, Investment), filter_data)
-    )
     fund = MatchFund(name=fund_name)
     if fund in filter_funds:
         return [
