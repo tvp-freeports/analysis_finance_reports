@@ -120,12 +120,20 @@ def pdflines_from_pagedict(page, auto_rotate=True):
     if auto_rotate:
         rotate_lines_inplace(lines, page["width"], page["height"])
     args = [s for l in list(map(collapsedspans_from_line, lines)) for s in l]
-    return [
-        PdfLine(
-            font=s["font"], font_size=s["font_size"], text=s["text"], bbox=s["bbox"]
+
+    return list(
+        map(
+            lambda s: PdfLine(
+                font=s["font"], font_size=s["font_size"], text=s["text"], bbox=s["bbox"]
+            ),
+            filter(
+                lambda a: (
+                    not (a["bbox"][0] == a["bbox"][2] or a["bbox"][1] == a["bbox"][3])
+                ),
+                args,
+            ),
         )
-        for s in args
-    ]
+    )
 
 
 class InputPdfLineSet(BaseModel):
