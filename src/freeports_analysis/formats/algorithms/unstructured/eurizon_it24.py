@@ -19,7 +19,11 @@ from freeports_analysis.formats.utils.text_filter import (
     investment_fund_filter_data,
 )
 from freeports_analysis.formats.utils.deserialize import DeserializeSfdrArticleStandard
-from freeports_analysis.formats.utils.pdf_extract.select_position import get_groups
+from freeports_analysis.formats.utils.pdf_extract.select_position import (
+    get_groups,
+    get_table_coordinates,
+    TablePosAlgorithm,
+)
 from freeports_analysis.formats.utils.text_filter.match import MatchFund
 from freeports_analysis.formats.utils.text_filter import (
     StandardManagmentCompanyTextBlock,
@@ -38,6 +42,7 @@ from freeports_analysis.output import (
     FundMerge,
     FundRename,
     FundSfdrClassification,
+    FundEsgIndicator,
 )
 import re
 from enum import Enum, auto
@@ -198,6 +203,10 @@ def sfdr_deserialize_1(txt_blk):
     return FundSfdrClassification(article=Promise("sfdr-article"), fund=txt_blk.content)
 
 
+def esg_indicators_deserialize_fund(txt_blk):
+    return {"esg-indicator-fund": txt_blk.content}
+
+
 def sfdr_pdf_extract_2(page):
     lines = pdflines_from_pagedict(page)
     art = SfdrArticle.ART_6
@@ -229,6 +238,69 @@ def sfdr_deserialize_2(txt_blk):
     return {"sfdr-article": txt_blk.metadata["article"]}
 
 
+def esg_indicators_pdf_extract(page):
+    lines = pdflines_from_pagedict(page)
+    table_lines = (
+        PdfLineSelection.area_from_bounds(
+            0.0,
+            PdfLineSelection.text("stata la prestazione degli indicatori di sostenibi"),
+            1e6,
+            PdfLineSelection.text("il prodotto finanziario promuove l'interazione"),
+        )
+        / (
+            PdfLineSelection.text("^ $")
+            | PdfLineSelection.text("^  $")
+            | PdfLineSelection.area(0.0, 780, 1e6, 1e6)
+        )
+    ).select(lines)
+    rows, cols = zip(
+        *get_table_coordinates(
+            table_lines,
+            algorithm_flags=TablePosAlgorithm.USE_RULER_AREA
+            | TablePosAlgorithm.BIG_CELL_RULE,
+            tolerance=0.0,
+            collapse=True,
+        )
+    )
+
+    res = []
+    for row in sorted(set(rows))[1:]:
+        key = " ".join(
+            (
+                table_lines.text
+                for r, c, table_lines in zip(rows, cols, table_lines)
+                if row == r and c == 1
+            )
+        ).strip()
+        value = " ".join(
+            (
+                table_lines.text
+                for r, c, table_lines in zip(rows, cols, table_lines)
+                if row == r and c == 2
+            )
+        ).strip()
+        res.append((key, value))
+    return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {k: v for k, v in res}, "")]
+
+
+def esg_indicators_text_filter(pdf_blks, _):
+    if len(pdf_blks) == 0:
+        return []
+    blk = next(iter(pdf_blks))
+    m = blk.metadata
+    return [
+        TextBlock(OneTextBlockType.RELEVANT_BLOCK, {"key": k, "value": v}, blk)
+        for k, v in m.items()
+    ]
+
+
+def esg_indicators_deserialize(txt_blk):
+    m = txt_blk.metadata
+    return FundEsgIndicator(
+        fund=Promise(f"esg-indicator-fund"), name=m["key"], value=m["value"]
+    )
+
+
 pipelines = {
     "manco": Pipeline(
         pdf_extract=pdf_filter_manco,
@@ -253,6 +325,15 @@ pipelines = {
         text_filter_change_name,
         (deserialize_rename, deserialize_merge),
     ),
-    "sfdr_page_1": Pipeline(sfdr_pdf_extract_1, sfdr_text_filter_1, sfdr_deserialize_1),
+    "sfdr_page_1": Pipeline(
+        sfdr_pdf_extract_1,
+        sfdr_text_filter_1,
+        (sfdr_deserialize_1, esg_indicators_deserialize_fund),
+    ),
     "sfdr_page_2": Pipeline(sfdr_pdf_extract_2, sfdr_text_filter_2, sfdr_deserialize_2),
+    "esg_indicators": Pipeline(
+        esg_indicators_pdf_extract,
+        esg_indicators_text_filter,
+        esg_indicators_deserialize,
+    ),
 }
