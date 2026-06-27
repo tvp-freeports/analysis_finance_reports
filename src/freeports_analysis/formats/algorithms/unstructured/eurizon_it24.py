@@ -1,4 +1,4 @@
-"""Custom pdf filter for EURIZON-IT24"""
+"""Unstructured module for EURIZON-IT24"""
 
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
@@ -183,14 +183,10 @@ def sfdr_pdf_extract_1(page):
     return [PdfBlock(OnePdfBlockType.RELEVANT_BLOCK, {}, fund_name)]
 
 
-rm_regex = re.compile(r" - .* [0-9]{4}")
-
-
 @investment_fund_filter_data
 def sfdr_text_filter_1(pdf_blks, investment_funds):
     fund_name = next(iter(pdf_blks)).content
     fund_name = fund_name.replace("Nome prodotto: ", "")
-    fund_name = rm_regex.sub("", fund_name)
     fund = MatchFund(name=fund_name)
     if fund in investment_funds:
         return [TextBlock.from_content(OneTextBlockType.RELEVANT_BLOCK, {}, fund_name)]
