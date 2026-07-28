@@ -1,4 +1,4 @@
-"""Custom pdf filter for EURIZON-IT24"""
+"""Unstructured module for EURIZON-IT24"""
 
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,

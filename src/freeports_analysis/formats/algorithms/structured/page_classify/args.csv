@@ -11,7 +11,7 @@ EURIZON-EN23/1,"frutiger-black ""ORGANISATION OF THE FUND""",manco
 EURIZON-EN23/2,"frutiger-black ""^STATEMENT OF NET ASSETS AS AT""",fund_assets
 EURIZON-EN23/3,"""EVENTS OCCURRED DURING THE""",renaming
 EURIZON-EN23/4,"""SUBSEQUENT EVENTS""",subsequent_events
-EURIZON-EN23/5,"""Environmental and/or social characteristics""",sfdr_classification
+EURIZON-EN23/5,"""periodic disclosure for the financial products referred to""",sfdr_classification
 EURIZON-EN23/6,"arial-boldmt [7.5] ""Sustainability Indicator""",esg_indicators
 EURIZON-EN23/6,"arial-boldmt [7.5] ""Description""",esg_indicators
 EURIZON-EN23/6,"arial-boldmt [10] ""periods?""",esg_indicators
@@ -77,7 +77,7 @@ FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Directors and Other Information""
 FINECO-EN23@IR/2,"TimesNewRoman,Bold [10.02] ""Manager""",manco
 FINECO-EN23@IR/3,"timesnewromanbold [10.02] ""Statement of Financial Position""",fund_assets
 FINECO-EN23@IR/3,"timesnewromanbold [9] ""Total assets""",fund_assets
-FINECO-EN23@IR/4,"calibri-bold ""Did this financial product""",sfdr_classification
+FINECO-EN23@IR/4,"""eriodic disclosure for the financial products""",sfdr_classification
 FINECO-EN23@LUX/0,"ArialNarrow-Bold ""Nominal """,investments
 FINECO-EN23@LUX/1,"arialnarrow-bold [14] ""Organisation and Administration""",inv_managers
 FINECO-EN23@LUX/1,"arialnarrow-bold [11] ""Management Company and Global Distributor""",inv_managers
@@ -91,7 +91,8 @@ KAIROS-EN23/2,"arialnarrow-bold ""merged during the year""",merges
 KAIROS-EN23/3,"arialnarrow-bold ""^Statement of Net Assets as at""",fund_assets
 KAIROS-EN23/3,"arialnarrow-bold ""(in""",fund_assets
 KAIROS-EN23/4,"""Disclosure pursuant to Article""",sfdr_classification
-KAIROS-EN23/4,"""Product name:""",sfdr_classification
+KAIROS-EN23/4,"""roduct name""",sfdr_classification
+KAIROS-EN23/5,"""periodic disclosure for the financial products""",sfdr_classification_2
 UBS-EN23/0,"Frutiger45LightBold ""Description """,investments
 UBS-EN23/1,"Frutiger45LightBold ""Management Company and Domiciliation Agent""",manco
 MEDIOLANUM-EN23,"TimesNewRomanPS[15.9647] ""Statement of Investments""",investments

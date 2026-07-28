@@ -1,4 +1,6 @@
-"""Custom pdf filter for FINECO-EN23[IR] format"""
+"""Unstructured module for FINECO-EN23@IR"""
+
+import re
 
 from freeports_analysis.formats.algorithms.commons import Pipeline
 from freeports_analysis.formats.utils.pdf_extract.pdf_parts import PdfLineSelection
@@ -42,18 +44,21 @@ pipelines = {
             ),
             (
                 PdfLineSelection.area_from_bounds(
-                    x0=PdfLineSelection.text("Product name"),
-                    x1=1e6,
-                    y0=0,
-                    y1=PdfLineSelection.text("Did this financial product"),
-                )
-                & (PdfLineSelection.font("calibri") | PdfLineSelection.font("arialmt"))
-            )
-            / PdfLineSelection.area_from_movewindow(
-                PdfLineSelection.text("Legal entity identifier"), (0.0, 0.0), 30.0, 3.0
+                    x0=PdfLineSelection.text('means'),
+                    x1=372.94,
+                    y0=PdfLineSelection.text('Regulation (EU) 2020/852'),
+                    y1=PdfLineSelection.text('Did this financial product')
+                ) / (
+                    PdfLineSelection.text("^ $") | PdfLineSelection.text("^  $")
+                ) / (
+                    PdfLineSelection.area_from_movewindow(
+                        PdfLineSelection(text='Legal entity identifier') | PdfLineSelection(text='Legal Entity Identifier'),
+                        (0.0,0.0), 30.0, 3.0
+                    )
+                ) | PdfLineSelection.text('Product name')
             ),
         ),
-        TextFilterSfdrArticleStandard(),
+        TextFilterSfdrArticleStandard(fund_prefix=re.compile(r'Product name.*:\s*')),
         DeserializeSfdrArticleStandard(),
     ),
 }

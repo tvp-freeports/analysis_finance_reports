@@ -1,4 +1,4 @@
-"""Unstructured module for the ARCA-IT24 format"""
+"""Unstructured module for ARCA-IT24"""
 
 from freeports_analysis.formats.utils.pdf_extract import (
     PdfExtractInvestmentsStandard,
