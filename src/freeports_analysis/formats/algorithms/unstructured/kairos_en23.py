@@ -281,7 +281,7 @@ def esg_indicators_pdf_extact_art8(page):
         ).strip()
 
         res.append((key, value))
-    return [PdfBlock(OnePdfBlockType, {k: v for k, v in res}, f[0].text)]
+    return [PdfBlock(OnePdfBlockTyp.RELEVANT_BLOCK, {k: v for k, v in res}, f[0].text)]
 
 
 @investment_fund_filter_data
@@ -293,7 +293,9 @@ def esg_indicators_text_filter_art8(pdf_blks, filter_funds):
     fund = MatchFund(name=fund_name)
     if fund in filter_funds:
         return [
-            TextBlock.from_content(OnePdfBlockType, {"index": k, "fund": fund_name}, v)
+            TextBlock.from_content(
+                OnePdfBlockType.RELEVANT_BLOCK, {"index": k, "fund": fund_name}, v
+            )
             for k, v in blk.metadata.items()
         ]
     else:

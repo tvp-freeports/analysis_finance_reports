@@ -38,13 +38,23 @@ from functools import reduce
 from lxml import etree
 from pydantic import BaseModel, AfterValidator, PositiveFloat
 from shapely import Polygon, box
+import PIL
+import io
+import numpy as np
 from portion.interval import Interval
 from freeports_analysis.i18n import _
 from .position import InputArea
 import copy
+import enum
 
 PdfLineSelection = freeports_lib.pdf_extract.select.PdfLineSelection
 PdfLine = freeports_lib.pdf_extract.select.PdfLine
+
+
+class PyMuPDFBlockType(enum.Enum):
+    TEXT = 0
+    IMAGE_RASTER = 1
+    IMAGE_VECTOR = 3
 
 
 def collapsedspans_from_line(l, treshold=1e-1):
@@ -115,8 +125,31 @@ def rotate_lines_inplace(lines, width, height):
         line["dir"] = (1.0, 0.0)
 
 
+def pdfimages_from_pagedict(page):
+    images = [
+        i
+        for blk in filter(
+            lambda x: x["type"] == PyMuPDFBlockType.IMAGE_RASTER.value, page["blocks"]
+        )
+    ]
+    I = []
+    for img in imgs:
+        i = PIL.Image.open(io.BytesIO(img["image"]), formats=[img["ext"]])
+        i = i.convert("RGB")
+        I.append(np.asarray(i))
+    return I
+
+
 def pdflines_from_pagedict(page, auto_rotate=True):
-    lines = [l for blk in page["blocks"] if "lines" in blk for l in blk["lines"]]
+
+    lines = [
+        l
+        for blk in filter(
+            lambda x: x["type"] == PyMuPDFBlockType.TEXT.value, page["blocks"]
+        )
+        if "lines" in blk
+        for l in blk["lines"]
+    ]
     if auto_rotate:
         rotate_lines_inplace(lines, page["width"], page["height"])
     args = [s for l in list(map(collapsedspans_from_line, lines)) for s in l]

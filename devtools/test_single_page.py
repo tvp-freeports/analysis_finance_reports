@@ -22,6 +22,8 @@ tests_dir = base_repo / "tests"
 
 formats_tests = tests_dir / "formats" / "algorithms"
 
+extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
+
 
 def get_page_xml(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
@@ -49,7 +51,7 @@ def get_page_table(file_name: str, page: int):
 def get_page_dict(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
     page_doc = pdf_file[page - 1]
-    page = page_doc.get_text("dict")
+    page = page_doc.get_text("dict", flags=extraction_flags)
     return page
 
 
@@ -58,7 +60,7 @@ get_page = get_page_dict
 
 def get_doc(file_path):
     pdf_file = pypdf.Document(file_path)
-    return [page.get_text("dict") for page in pdf_file]
+    return [page.get_text("dict", flags=extraction_flags) for page in pdf_file]
 
 
 def get_pdf_from_tests(fmt, document=None, base_path=formats_tests):
