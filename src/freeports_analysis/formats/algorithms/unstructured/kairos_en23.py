@@ -336,23 +336,25 @@ pipelines = {
             PdfLineSelection.text("Product name: "),
         ),
         TextFilterSfdrArticleStandard(fund_prefix=["Product name: "]),
-        DeserializeSfdrArticleStandard()
+        DeserializeSfdrArticleStandard(),
     ),
     "sfdr2": Pipeline(
         PdfExtractSfdrArticleStandard(
-            PdfLineSelection.text("periodic disclosure for the financial products referred to in Article 9"),
-            PdfLineSelection.text("periodic disclosure for the financial products referred to in Article 8"),
+            PdfLineSelection.text(
+                "periodic disclosure for the financial products referred to in Article 9"
+            ),
+            PdfLineSelection.text(
+                "periodic disclosure for the financial products referred to in Article 8"
+            ),
             (
                 PdfLineSelection.area_from_movewindow(
-                    PdfLineSelection(text='Product name:'),
-                    (0.0,0.0),
-                    3.0,
-                    2.0
+                    PdfLineSelection(text="Product name:"), (0.0, 0.0), 3.0, 2.0
                 )
-            ) / PdfLineSelection.text('^ $')
+            )
+            / PdfLineSelection.text("^ $"),
         ),
-        TextFilterSfdrArticleStandard(re.compile(r'Product name.*:\s*')),
-        DeserializeSfdrArticleStandard()
+        TextFilterSfdrArticleStandard(re.compile(r"Product name.*:\s*")),
+        DeserializeSfdrArticleStandard(),
     ),
     "esg": Pipeline(
         esg_indicators_pdf_extact_art8,

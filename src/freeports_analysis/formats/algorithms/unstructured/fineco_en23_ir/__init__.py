@@ -44,21 +44,25 @@ pipelines = {
             ),
             (
                 PdfLineSelection.area_from_bounds(
-                    x0=PdfLineSelection.text('means'),
+                    x0=PdfLineSelection.text("means"),
                     x1=372.94,
-                    y0=PdfLineSelection.text('Regulation (EU) 2020/852'),
-                    y1=PdfLineSelection.text('Did this financial product')
-                ) / (
-                    PdfLineSelection.text("^ $") | PdfLineSelection.text("^  $")
-                ) / (
+                    y0=PdfLineSelection.text("Regulation (EU) 2020/852"),
+                    y1=PdfLineSelection.text("Did this financial product"),
+                )
+                / (PdfLineSelection.text("^ $") | PdfLineSelection.text("^  $"))
+                / (
                     PdfLineSelection.area_from_movewindow(
-                        PdfLineSelection(text='Legal entity identifier') | PdfLineSelection(text='Legal Entity Identifier'),
-                        (0.0,0.0), 30.0, 3.0
+                        PdfLineSelection(text="Legal entity identifier")
+                        | PdfLineSelection(text="Legal Entity Identifier"),
+                        (0.0, 0.0),
+                        30.0,
+                        3.0,
                     )
-                ) | PdfLineSelection.text('Product name')
+                )
+                | PdfLineSelection.text("Product name")
             ),
         ),
-        TextFilterSfdrArticleStandard(fund_prefix=re.compile(r'Product name.*:\s*')),
+        TextFilterSfdrArticleStandard(fund_prefix=re.compile(r"Product name.*:\s*")),
         DeserializeSfdrArticleStandard(),
     ),
 }

@@ -22,11 +22,12 @@ pipelines = {
                 "Información periódica de los productos financieros a que se refiere el artículo 8"
             ),
             PdfLineSelection.area_from_bounds(
-                    x0=PdfLineSelection.text('significa una inversión'),
-                    x1=1e6,
-                    y0=PdfLineSelection.text('eglamento (UE) 2020/852'),
-                    y1=PdfLineSelection.text('dentificador de entidad')
-            ) & PdfLineSelection(font='calibri')
+                x0=PdfLineSelection.text("significa una inversión"),
+                x1=1e6,
+                y0=PdfLineSelection.text("eglamento (UE) 2020/852"),
+                y1=PdfLineSelection.text("dentificador de entidad"),
+            )
+            & PdfLineSelection(font="calibri"),
         ),
         text_filter=TextFilterSfdrArticleStandard(demand_investment_funds_match=False),
         deserialize=[DeserializeSfdrArticleStandard(), deserialize_fund],

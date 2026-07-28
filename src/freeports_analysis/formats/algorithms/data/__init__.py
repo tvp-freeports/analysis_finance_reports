@@ -43,7 +43,7 @@ alghoritms_schedule_schema = pa.DataFrameSchema(
 
 
 def get_alghoritms_schedule() -> pd.DataFrame:
-    pd.set_option('future.no_silent_downcasting', True)
+    pd.set_option("future.no_silent_downcasting", True)
     df = pd.read_csv(data / "alghoritms_schedule.csv")
     df = df.set_index(["Format name"])
     df["Filter next iteration"] = df["Filter next iteration"].fillna(False)

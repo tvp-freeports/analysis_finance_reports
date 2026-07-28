@@ -28,10 +28,14 @@ from enum import Enum, auto
 def get_page(lines):
     return int(
         sorted(
-            (PdfLineSelection.area(0.0, 780.0, 150, 1e6) | PdfLineSelection.area(450, 780.0, 1e6, 1e6)).select(lines),
-            key=lambda l: l.bbox[1]
+            (
+                PdfLineSelection.area(0.0, 780.0, 150, 1e6)
+                | PdfLineSelection.area(450, 780.0, 1e6, 1e6)
+            ).select(lines),
+            key=lambda l: l.bbox[1],
         )[-1].text
     )
+
 
 # def pdf_extract_sfdr_page_(page):
 #     lines=pdflines_from_pagedict(page)
