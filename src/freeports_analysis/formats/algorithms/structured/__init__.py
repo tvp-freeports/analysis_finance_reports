@@ -8,14 +8,12 @@ and consistent data structures.
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Callable
 
-from . import investments as i
-from . import page_classify as p
+from .definitions import investments as i
+from .definitions import page_classify as p
 from freeports_analysis.formats.algorithms.commons import Pipeline
 
 
-def get_pipelines(
-    format_name: str,
-):
+def get_pipelines(format_name: str, formats_repo_dir):
     """Get processing pipelines for a specific structured format.
 
     Parameters
@@ -33,8 +31,8 @@ def get_pipelines(
     -----
     Returns empty dictionaries if the format name is not found in the mapping.
     """
-    i_pipelines = i.get_pipelines(format_name)
-    p_pipelines = p.get_pipelines(format_name)
+    i_pipelines = i.get_pipelines(format_name, formats_repo_dir)
+    p_pipelines = p.get_pipelines(format_name, formats_repo_dir)
     all_keys = set(i_pipelines) | set(p_pipelines)
     return {
         key: i_pipelines.get(key, Pipeline()) + p_pipelines.get(key, Pipeline())

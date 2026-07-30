@@ -10,8 +10,8 @@ import datetime
 import pandera.pandas as pa
 import pandas as pd
 from pydantic import BaseModel, confloat
-from freeports_analysis.data import COMPANIES
-from freeports_analysis.formats.data import VALID_FORMATS
+
+# from freeports_analysis.formats.data import VALID_FORMATS
 from freeports_analysis.consts import Currency
 
 
@@ -25,7 +25,9 @@ list_of_change_name_events: List[str] = ["MERGING", "RENAMING"]
 common_columns = {
     "ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0), unique=True),
     "Format": pa.Column(
-        pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+        pd.StringDtype,
+        # checks=pa.Check.isin(VALID_FORMATS),
+        required=False,
     ),
     "Document": pa.Column(pd.StringDtype, required=False),
     "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
@@ -51,7 +53,7 @@ investments_schema = pa.DataFrameSchema(
     {
         **common_columns,
         "Triggering text": pa.Column(pd.StringDtype),
-        "Investee": pa.Column(pd.StringDtype, checks=pa.Check.isin(COMPANIES)),
+        "Investee": pa.Column(pd.StringDtype),
         "Financial instrument": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(list_of_instruments)
         ),
@@ -134,7 +136,9 @@ funds_sfdr_classification_schema = pa.DataFrameSchema(
         ),
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
         "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+            pd.StringDtype,
+            # checks=pa.Check.isin(VALID_FORMATS),
+            required=False,
         ),
         "Document": pa.Column(pd.StringDtype, required=False),
     },
@@ -148,7 +152,9 @@ funds_esg_indicators_schema = pa.DataFrameSchema(
         "Value": pa.Column(pd.StringDtype),
         "Report page": pa.Column(pd.Int16Dtype, checks=pa.Check.greater_than(0)),
         "Format": pa.Column(
-            pd.StringDtype, checks=pa.Check.isin(VALID_FORMATS), required=False
+            pd.StringDtype,
+            # checks=pa.Check.isin(VALID_FORMATS),
+            required=False,
         ),
         "Document": pa.Column(pd.StringDtype, required=False),
     },

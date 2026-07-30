@@ -15,6 +15,7 @@ from pydantic import (
     conint,
     PositiveInt,
     FilePath,
+    DirectoryPath,
     HttpUrl,
     AfterValidator,
     BeforeValidator,
@@ -22,8 +23,8 @@ from pydantic import (
     TypeAdapter,
 )
 
-from freeports_analysis import data
-from freeports_analysis.formats.data import VALID_FORMATS, url_to_format
+from freeports_analysis import input_db
+from freeports_analysis.formats.repo_metadata_handling import url_to_format
 from freeports_analysis.i18n import _
 
 from .consts import PROGRAM_DESCRIPTION, input_flags, input_enum
@@ -105,7 +106,8 @@ def _format_validate(format_name: str) -> str:
     return format_name
 
 
-Format = Annotated[str, AfterValidator(_format_validate)]
+# Format = Annotated[str, AfterValidator(_format_validate)]
+Format = str
 Lists = Annotated[
     List[str], BeforeValidator(lambda x: [x] if isinstance(x, str) else x)
 ]
@@ -296,6 +298,8 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     PDF: Optional[Path] = None
     FORMAT: Optional[Format] = None
     TARGET_LISTS: Optional[Lists] = None
+    FORMATS_REPO_PATH: Optional[DirectoryPath] = None
+    INPUT_DB_PATH: Optional[DirectoryPath] = None
 
     @classmethod
     def _local_config(cls) -> Optional[Path]:
@@ -472,6 +476,8 @@ class FreeportsFileConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
             "target_lists": "TARGET_LISTS",
             "out_profile": "OUT_PROFILE",
             "out_flags": "OUT_FLAGS",
+            "formats_repo": "FORMATS_REPO_PATH",
+            "db_path": "INPUT_DB_PATH",
         }
         if config_file is None:
             config_file = self.find_config()
@@ -492,7 +498,7 @@ DEFAULT_CONFIG = {
     "FORMAT": None,
     "CONFIG_FILE": FreeportsFileConfig.find_config(),
     "SAVE_PDF": True,
-    "TARGET_LISTS": data.TARGET_LISTS,
+    "TARGET_LISTS": None,
     "VERBOSITY": 2,
     "N_WORKERS": os.process_cpu_count() if (os.name == "posix") else os.cpu_count(),
     "BATCH_FILE": None,
@@ -500,6 +506,8 @@ DEFAULT_CONFIG = {
     "OUT_PATH": Path("."),
     "OUT_PROFILE": OutStructureNormalMode.REGULAR,
     "OUT_FLAGS": OutFlagsNormalMode(0),
+    "FORMATS_REPO_PATH": None,
+    "INPUT_DB_PATH": None,
 }
 DEFAULT_CONFIG_LOCATION = {k: "FreeportsDefaultConfig" for k in DEFAULT_CONFIG}
 
@@ -547,6 +555,8 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
     FORMAT: Optional[Format] = None
     CONFIG_FILE: Optional[FilePath] = None
     TARGET_LISTS: Optional[Lists] = None
+    FORMATS_REPO_PATH: Optional[DirectoryPath] = None
+    INPUT_DB_PATH: Optional[DirectoryPath] = None
 
     def __init__(self):
         """Initialize FreeportsEnvConfig by loading configuration from environment variables."""
@@ -564,6 +574,8 @@ class FreeportsEnvConfig(BaseModel, SelectorOutProfile, ParitalConfiguration):
             f"{env_prefix}PDF": "PDF",
             f"{env_prefix}CONFIG_FILE": "CONFIG_FILE",
             f"{env_prefix}TARGET_LIST": "TARGET_LISTS",
+            f"{env_prefix}FORMATS_REPO_PATH": "FORMATS_REPO_PATH",
+            f"{env_prefix}INPUT_DB_PATH": "INPUT_DB_PATH",
         }
         config_dict = {std_k: os.environ.get(k) for k, std_k in _map_names.items()}
         super().__init__(**config_dict)
@@ -609,6 +621,8 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
     PDF: Optional[Path] = None
     FORMAT: Optional[Format] = None
     TARGET_LISTS: Optional[Lists] = None
+    FORMATS_REPO_PATH: Optional[DirectoryPath] = None
+    INPUT_DB_PATH: Optional[DirectoryPath] = None
 
     @classmethod
     def create_parser(cls) -> argparse.ArgumentParser:
@@ -685,6 +699,18 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
             type=str,
             help=_("Specify the structure of the output dataset"),
         )
+        parser.add_argument(
+            "--db-directory",
+            "-I",
+            type=str,
+            help=_("Specify the location of the input database"),
+        )
+        parser.add_argument(
+            "--formats-directory",
+            "-F",
+            type=str,
+            help=_("Specify the location of the package containing formats"),
+        )
         return parser
 
     def __init__(self, args: argparse.Namespace, default_verbosity: int):
@@ -712,6 +738,8 @@ class FreeportsCmdConfig(BaseModel, ParitalConfiguration):
             "q": None,
             "separate_out": None,
             "archive": None,
+            "formats_directory": "FORMATS_REPO_PATH",
+            "db_directory": "INPUT_DB_PATH",
         }
         config_dict = {
             k_std: args[k] for k, k_std in _map_names.items() if k_std is not None
@@ -840,6 +868,8 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
     OUT_PROFILE: Union[OutStructureNormalMode, OutStructureBatchMode]
     OUT_FLAGS: Union[OutFlagsNormalMode, OutFlagsBatchMode] = None
     OUT_PATH: Path
+    INPUT_DB_PATH: DirectoryPath = None
+    FORMATS_REPO_PATH: DirectoryPath = None
 
     @model_validator(mode="after")
     def set_compress_flag(self) -> "FreeportsConfig":

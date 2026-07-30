@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Optional
 
 
-from freeports_analysis.formats.data import FORMAT_NAME_REGEXP, VALID_FORMATS
+from freeports_analysis.formats.repo_metadata_handling import FORMAT_NAME_REGEXP
 
 
 class PipeIndexMode(Enum):
@@ -190,7 +190,7 @@ def index_format_pipe(id_principal_table=None):
         [
             pa.Index(
                 pd.StringDtype,
-                [pa.Check(lambda x: x.isin(VALID_FORMATS))],
+                # [pa.Check(lambda x: x.isin(VALID_FORMATS))],
                 name="Format name",
             ),
             pa.Index(

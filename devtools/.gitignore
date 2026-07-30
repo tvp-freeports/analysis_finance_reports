@@ -1,5 +1,0 @@
-**/*
-!*.template.ipynb
-!*.py
-!.gitignore
-*.test.py

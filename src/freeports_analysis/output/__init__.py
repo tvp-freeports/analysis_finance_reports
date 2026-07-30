@@ -37,7 +37,6 @@ from freeports_analysis.conf_parse import (
     OutFlagsNormalMode,
 )
 from freeports_analysis.formats.utils.text_filter import match
-from freeports_analysis.data import COMPANIES
 from freeports_analysis.consts import Promise, Currency, PromisesResolutionMap
 from freeports_analysis.i18n import _
 from freeports_analysis.consts import SfdrArticle
@@ -172,32 +171,38 @@ class DocumentResults:
             pr.fulfill_promises(promises_resolution_map)
 
 
-def validate_company(value: str) -> str:
-    """Validate that a company name exists in the predefined companies list.
+class CompanyValidator:
+    companies = None
 
-    Parameters
-    ----------
-    value : str
-        The company name to validate
+    def __init__(self, companies):
+        self.companies = companies
 
-    Returns
-    -------
-    str
-        The validated company name
+    def __call__(self, value: str) -> str:
+        """Validate that a company name exists in the predefined companies list.
 
-    Raises
-    ------
-    ValueError
-        If the company name is not found in the COMPANIES list
+        Parameters
+        ----------
+        value : str
+            The company name to validate
 
-    Notes
-    -----
-    This function is used as a Pydantic validator to ensure that only
-    companies from the predefined list are accepted in financial data models.
-    """
-    if value not in COMPANIES:
-        raise ValueError(f"Company must be one of {COMPANIES}, got '{value}'")
-    return value
+        Returns
+        -------
+        str
+            The validated company name
+
+        Raises
+        ------
+        ValueError
+            If the company name is not found in the COMPANIES list
+
+        Notes
+        -----
+        This function is used as a Pydantic validator to ensure that only
+        companies from the predefined list are accepted in financial data models.
+        """
+        if value not in self.companies:
+            raise ValueError(f"Company must be one of {self.companies}, got '{value}'")
+        return value
 
 
 def try_convert_to_currency(value: Union[str, Promise]) -> Union[Currency, Promise]:
@@ -229,7 +234,7 @@ def try_convert_to_currency(value: Union[str, Promise]) -> Union[Currency, Promi
 
 
 # Type aliases for financial data with promise support
-Company = Annotated[str, AfterValidator(validate_company)]
+# Company = Annotated[str, AfterValidator(validate_company)]
 PromisedMarketValue = Union[Promise, PositiveFloat]
 PromisedCurrency = Annotated[
     Union[Promise, Currency],
@@ -309,7 +314,8 @@ class Investment(BaseModel, ABC, PromisableDict):
     companies list.
     """
 
-    company: Company = Field(serialization_alias="Investee")
+    # company: Company = Field(serialization_alias="Investee")
+    company: str = Field(serialization_alias="Investee")
     company_match: str = Field(serialization_alias="Triggering text")
     fund: PromisedFundName = Field(exclude=True)
     nominal_quantity: Optional[PositiveFloat] = Field(

@@ -13,7 +13,7 @@ import logging as log
 from multiprocessing import Pool
 import freeports_lib
 from .unstructured import get_compute_page_class
-from freeports_analysis.formats.algorithms.data import (
+from freeports_analysis.formats.algorithms.repo_content_handling import (
     get_schedule,
     get_pageclassify_pipelines,
     get_mapping,
@@ -189,7 +189,6 @@ class Algorithm:
                 for pn in pipeline_names
             ]
         )
-
         tot_pipelines_names = pipelines_mapped_to_pagetype.union(
             page_classify_pipelines
         )
@@ -210,13 +209,23 @@ class Algorithm:
         self._page_classes.add(None)
 
     @classmethod
-    def load(cls, format_name: str):
+    def load(cls, formats_repo_dir, format_name: str, format_repo_validation_data):
         return cls(
-            pipelines_map=get_pipelines(format_name, allow_partial_pipelines=False),
-            page_classify_pipelines=get_pageclassify_pipelines(format_name),
-            page_classify_finalizer=get_compute_page_class(format_name),
-            schedule=get_schedule(format_name),
-            page_type_pipelines_mapping=get_mapping(format_name),
+            pipelines_map=get_pipelines(
+                formats_repo_dir, format_name, allow_partial_pipelines=False
+            ),
+            page_classify_pipelines=get_pageclassify_pipelines(
+                formats_repo_dir, format_name, format_repo_validation_data
+            ),
+            page_classify_finalizer=get_compute_page_class(
+                formats_repo_dir, format_name
+            ),
+            schedule=get_schedule(
+                formats_repo_dir, format_name, format_repo_validation_data
+            ),
+            page_type_pipelines_mapping=get_mapping(
+                formats_repo_dir, format_name, format_repo_validation_data
+            ),
         )
 
     def schedule_pages(self, pages):

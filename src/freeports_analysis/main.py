@@ -20,7 +20,7 @@ from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
 from freeports_analysis.i18n import _
-from freeports_analysis.data import get_target_companies
+from freeports_analysis.input_db import get_target_companies
 from freeports_analysis.output import (
     transform_to_files_schema,
     write_files,
@@ -69,6 +69,16 @@ class NoPDFormatDetected(Exception):
     This exception is raised when no explicit format is specified and the program
     cannot automatically determine the appropriate format for decoding the PDF.
     """
+
+
+class ValidationDataInputDB:
+    companies = None
+    markets = None
+    lists = None
+
+
+class ValidationDataFormatRepo:
+    formats = None
 
 
 def batch_job_confs(job_config: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -250,12 +260,22 @@ def _main_job(
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
     logger.debug(_("Starting job with configuration %s"), str(job_config))
-    alghoritm = Algorithm.load(job_config["FORMAT"])
+    format_repo_validation_data = ValidationDataFormatRepo()
+    input_db_validation_data = ValidationDataInputDB()
+    alghoritm = Algorithm.load(
+        job_config["FORMATS_REPO_PATH"],
+        job_config["FORMAT"],
+        format_repo_validation_data,
+    )
     pdf_file = _get_document(job_config)
     logger.info(_("Starting decoding pdf to python dict..."))
     pdf_file_dict = [page.get_text("dict") for page in pdf_file]
     logger.debug(_("End decoding pdf to python dict!"))
-    targets = get_target_companies(job_config["TARGET_LISTS"])
+    targets = get_target_companies(
+        job_config["INPUT_DB_PATH"],
+        job_config["TARGET_LISTS"],
+        input_db_validation_data,
+    )
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
     results = alghoritm(pdf_file_dict, targets)
     promises_resolution_map = {}

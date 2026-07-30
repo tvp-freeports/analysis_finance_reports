@@ -23,7 +23,14 @@ from ..commons import (
     Pipeline,
 )
 
-data = Path(__file__).parent
+CONTENT_DIR = Path("content")
+ALGORITHMS_DIR = CONTENT_DIR / "algorithms"
+ORCHESTRATION_DIR = CONTENT_DIR / "orchestration"
+TEMPLATES_DIR = CONTENT_DIR / "templates"
+
+
+SEMISTRUCTURED_DIR = ALGORITHMS_DIR / "semistructured"
+ARGS_DIR = SEMISTRUCTURED_DIR / "args"
 
 
 def _get_defined_list(module: Any, condition: Callable) -> List[str]:
@@ -57,15 +64,15 @@ text_filter_cls = _get_defined_list(t, inspect.isclass)
 deserialize_funcs = _get_defined_list(d, inspect.isfunction)
 deserialize_cls = _get_defined_list(d, inspect.isclass)
 
-algorithms_with_pdf_extract_args = yaml.safe_load(
-    (data / "pdf_extract" / "args.yaml").open("r")
-).keys()
-algorithms_with_text_filter_args = yaml.safe_load(
-    (data / "text_filter" / "args.yaml").open("r")
-).keys()
-algorithms_with_deserialize_args = yaml.safe_load(
-    (data / "deserialize" / "args.yaml").open("r")
-).keys()
+# algorithms_with_pdf_extract_args = yaml.safe_load(
+#     (data / "pdf_extract" / "args.yaml").open("r")
+# ).keys()
+# algorithms_with_text_filter_args = yaml.safe_load(
+#     (data / "text_filter" / "args.yaml").open("r")
+# ).keys()
+# algorithms_with_deserialize_args = yaml.safe_load(
+#     (data / "deserialize" / "args.yaml").open("r")
+# ).keys()
 
 formats_mapping_schema = pa.DataFrameSchema(
     {
@@ -103,7 +110,7 @@ formats_mapping_schema = pa.DataFrameSchema(
 )
 
 
-def get_formats_mapping() -> pd.DataFrame:
+def get_formats_mapping(formats_repo_dir) -> pd.DataFrame:
     """Load and validate the formats mapping configuration.
 
     Returns
@@ -116,7 +123,7 @@ def get_formats_mapping() -> pd.DataFrame:
     The mapping defines which PDF filter, text extraction, and deserialization
     functions should be used for each format and pipeline combination.
     """
-    df = pd.read_csv(data / "formats_mapping.csv")
+    df = pd.read_csv(formats_repo_dir / SEMISTRUCTURED_DIR / "formats_mapping.csv")
     df = create_index_format_name_pipe(df, "", FKRelation.ONE_TO_ONE)
 
     def _input_from_func(x: pd.Series) -> pd.Series:
@@ -144,13 +151,16 @@ def get_formats_mapping() -> pd.DataFrame:
     return formats_mapping_schema.validate(df)
 
 
-VALID_ALGORITHM_ID = (
-    get_formats_mapping().index.get_level_values("Computed ID").to_list()
-)
+# VALID_ALGORITHM_ID = (
+#     get_formats_mapping().index.get_level_values("Computed ID").to_list()
+# )
 
 
 def _get_segment(
-    format_name: str, segment_name: str, pipes_mapping: List[Tuple[str, pd.Series]]
+    format_name: str,
+    segment_name: str,
+    pipes_mapping: List[Tuple[str, pd.Series]],
+    formats_repo_dir,
 ) -> Dict[str, List[Callable]]:
     """Get processing segment functions for a given format and segment type.
 
@@ -175,7 +185,9 @@ def _get_segment(
     """
     segment: Dict[str, List[Callable]] = {}
     input_segment = "Input" + segment_name.title().replace("_", "")
-    args = yaml.safe_load((data / segment_name / "args.yaml").open("r"))
+    args = yaml.safe_load(
+        (formats_repo_dir / ARGS_DIR / f"{segment_name}.yaml").open("r")
+    )
 
     for pipeline, mapping in pipes_mapping:
         algorithm_id = f"{format_name}({pipeline})"
@@ -208,7 +220,7 @@ def _get_segment(
 
 
 def get_pipelines(
-    format_name: str,
+    format_name: str, formats_repo_dir
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
 ]:
@@ -231,7 +243,7 @@ def get_pipelines(
     """
     pipes_mapping: List[Tuple[str, pd.Series]] = []
     try:
-        selected_row = get_formats_mapping().loc[format_name]
+        selected_row = get_formats_mapping(formats_repo_dir).loc[format_name]
         pipes_mapping = [
             (idx[0] if not pd.isna(idx[0]) else "", row)
             for idx, row in selected_row.iterrows()
@@ -239,9 +251,15 @@ def get_pipelines(
     except KeyError:
         pass
 
-    pdf_extract_segment = _get_segment(format_name, "pdf_extract", pipes_mapping)
-    text_filter_segment = _get_segment(format_name, "text_filter", pipes_mapping)
-    deserialize_segment = _get_segment(format_name, "deserialize", pipes_mapping)
+    pdf_extract_segment = _get_segment(
+        format_name, "pdf_extract", pipes_mapping, formats_repo_dir
+    )
+    text_filter_segment = _get_segment(
+        format_name, "text_filter", pipes_mapping, formats_repo_dir
+    )
+    deserialize_segment = _get_segment(
+        format_name, "deserialize", pipes_mapping, formats_repo_dir
+    )
 
     pdf_extract_pipelines_names = set(pdf_extract_segment)
     text_filter_pipelines_names = set(text_filter_segment)
