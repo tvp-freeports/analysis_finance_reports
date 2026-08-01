@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import Optional, Set
-import datetime
+from datetime import datetime
 
 from pydantic import BaseModel, Field, model_validator, PositiveFloat, NonNegativeFloat
 

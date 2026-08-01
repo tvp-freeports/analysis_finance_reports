@@ -3,13 +3,13 @@ from pathlib import Path
 import pymupdf as pypdf
 from lxml import etree
 import freeports_lib
-from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
-    pdflines_from_pagedict,
-)
-from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
-    pdfline_selection_from_str,
-)
+# from freeports_analysis.formats.algorithms import get_pipelines
+# from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
+#     pdflines_from_pagedict,
+# )
+# from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
+#     pdfline_selection_from_str,
+# )
 # from freeports_analysis.data import get_target_companies
 
 

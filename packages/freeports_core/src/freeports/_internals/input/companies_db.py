@@ -6,7 +6,7 @@ validation to ensure data integrity.
 """
 
 from pathlib import Path
-import datetime
+from datetime import datetime
 import re
 import logging as log
 from typing import List, Union
