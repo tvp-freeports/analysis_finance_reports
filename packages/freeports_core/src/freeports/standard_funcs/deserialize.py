@@ -1,3 +1,5 @@
+"""Common `deserialize` pipes"""
+
 from freeports._internals.formats.utils.deserialize.standard_funcs import (
     DeserializerPageClassifyStandard,
     DeserializerInvestmentStandard,

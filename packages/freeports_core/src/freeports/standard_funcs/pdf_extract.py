@@ -1,3 +1,5 @@
+"""Common `pdf_extract` pipes"""
+
 from freeports._internals.formats.utils.pdf_extract.standard_funcs import (
     PdfExtractPageClassifyStandard,
     PdfExtractInvestmentsStandard,

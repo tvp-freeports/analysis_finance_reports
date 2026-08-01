@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from .i18n import _
 
+import freeports
+
 PROGRAM_DESCRIPTION = _(
     """Analyze finance reports searching for investing in companies
 allegedly involved interantional law violations by third parties

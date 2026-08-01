@@ -1,3 +1,5 @@
+"""Utilities for `deserialize` segment"""
+
 from freeports._internals.formats.utils.deserialize.cast import (
     perc_to_float,
     to_int,
