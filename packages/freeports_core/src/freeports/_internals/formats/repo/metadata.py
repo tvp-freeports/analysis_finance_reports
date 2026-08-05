@@ -5,7 +5,7 @@ URL-to-format mappings used in document processing.
 """
 
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Optional, List
 import pandera.pandas as pa
 import pandas as pd
 from freeports.i18n import _
@@ -41,7 +41,9 @@ formats_schema = pa.DataFrameSchema(
 )
 
 
-def get_formats(formats_repo_dir, format_repo_validation_data) -> pd.DataFrame:
+def get_formats(
+    formats_repo_dir: Path, format_repo_validation_data: Any
+) -> pd.DataFrame:
     """Load and validate the list of formats from formats.csv.
 
     Returns
@@ -86,14 +88,16 @@ _url_mapping_schema = pa.DataFrameSchema(
 )
 
 
-def get_url_mapping_schema(formats_repo_dir, format_repo_validation_data):
+def get_url_mapping_schema(format_repo_validation_data: Any) -> pa.DataFrameSchema:
     _url_mapping_schema.index.checks.append(
         pa.Check.isin(format_repo_validation_data.formats)
     )
     return _url_mapping_schema
 
 
-def _get_url_mapping(formats_repo_dir, format_repo_validation_data) -> pd.DataFrame:
+def _get_url_mapping(
+    formats_repo_dir: Path, format_repo_validation_data: Any
+) -> pd.DataFrame:
     """Load and validate URL mappings from url_mapping.csv.
 
     Returns
@@ -109,10 +113,12 @@ def _get_url_mapping(formats_repo_dir, format_repo_validation_data) -> pd.DataFr
     df = pd.read_csv(
         formats_repo_dir / METADATA_DIR / "url_mapping.csv", index_col=["Format name"]
     )
-    return get_url_mapping_schema.validate(df, format_repo_validation_data)
+    return get_url_mapping_schema(format_repo_validation_data).validate(df)
 
 
-def get_url_mapping(formats_repo_dir, format_repo_validation_data) -> pd.DataFrame:
+def get_url_mapping(
+    formats_repo_dir: Path, format_repo_validation_data: Any
+) -> pd.DataFrame:
     """Get URL mappings grouped by format name.
 
     Returns
@@ -134,7 +140,7 @@ def get_url_mapping(formats_repo_dir, format_repo_validation_data) -> pd.DataFra
 
 
 def url_to_format(
-    formats_repo_dir, format_repo_validation_data, url: str
+    formats_repo_dir: Path, format_repo_validation_data: Any, url: str
 ) -> Optional[str]:
     """Associate a URL with a format name.
 

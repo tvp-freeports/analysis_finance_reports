@@ -82,7 +82,7 @@ def get_module(formats_repo_dir: Path, format_name: str) -> Optional[Any]:
 
 
 def get_pipelines(
-    format_name: str, formats_repo_dir
+    formats_repo_dir: Path, format_name: str
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
 ]:

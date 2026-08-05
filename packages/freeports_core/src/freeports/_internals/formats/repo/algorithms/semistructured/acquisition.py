@@ -110,7 +110,7 @@ formats_mapping_schema = pa.DataFrameSchema(
 )
 
 
-def get_formats_mapping(formats_repo_dir) -> pd.DataFrame:
+def get_formats_mapping(formats_repo_dir: Path) -> pd.DataFrame:
     """Load and validate the formats mapping configuration.
 
     Returns
@@ -157,15 +157,17 @@ def get_formats_mapping(formats_repo_dir) -> pd.DataFrame:
 
 
 def _get_segment(
+    formats_repo_dir: Path,
     format_name: str,
     segment_name: str,
     pipes_mapping: List[Tuple[str, pd.Series]],
-    formats_repo_dir,
 ) -> Dict[str, List[Callable]]:
     """Get processing segment functions for a given format and segment type.
 
     Parameters
     ----------
+    formats_repo_dir : Path
+        Root directory of the formats repository
     format_name : str
         Name of the format to process
     segment_name : str
@@ -220,7 +222,7 @@ def _get_segment(
 
 
 def get_pipelines(
-    format_name: str, formats_repo_dir
+    formats_repo_dir: Path, format_name: str
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
 ]:
@@ -228,6 +230,8 @@ def get_pipelines(
 
     Parameters
     ----------
+    formats_repo_dir : Path
+        Root directory of the formats repository
     format_name : str
         Name of the format to get pipelines for
 
@@ -252,13 +256,13 @@ def get_pipelines(
         pass
 
     pdf_extract_segment = _get_segment(
-        format_name, "pdf_extract", pipes_mapping, formats_repo_dir
+        formats_repo_dir, format_name, "pdf_extract", pipes_mapping
     )
     text_filter_segment = _get_segment(
-        format_name, "text_filter", pipes_mapping, formats_repo_dir
+        formats_repo_dir, format_name, "text_filter", pipes_mapping
     )
     deserialize_segment = _get_segment(
-        format_name, "deserialize", pipes_mapping, formats_repo_dir
+        formats_repo_dir, format_name, "deserialize", pipes_mapping
     )
 
     pdf_extract_pipelines_names = set(pdf_extract_segment)

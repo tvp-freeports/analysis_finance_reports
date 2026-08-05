@@ -1,6 +1,7 @@
 """Definition of the `Algorithm` class that rappresent the format specific parsing process."""
 
 from typing import List, Callable, Dict, Tuple, Union, Any, Optional, Set
+from pathlib import Path
 import logging as log
 from multiprocessing import Pool
 import freeports_lib
@@ -372,7 +373,7 @@ class Algorithm:
 
     @classmethod
     def load(
-        cls, formats_repo_dir: str, format_name: str, format_repo_validation_data: Any
+        cls, formats_repo_dir: Path, format_name: str, format_repo_validation_data: Any
     ) -> "Algorithm":
         """Load an Algorithm from the format repository.
 

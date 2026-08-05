@@ -289,7 +289,7 @@ def get_structured_formats(formats_repo_dir) -> pd.DataFrame:
 
 
 def get_pipelines(
-    format_name: str, formats_repo_dir
+    formats_repo_dir, format_name: str
 ) -> Tuple[
     Dict[str, List[Callable]], Dict[str, List[Callable]], Dict[str, List[Callable]]
 ]:

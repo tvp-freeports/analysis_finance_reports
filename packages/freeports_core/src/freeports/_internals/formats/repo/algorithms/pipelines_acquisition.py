@@ -1,6 +1,7 @@
 """It contains functions to acquire all the pipelines associated with a format."""
 
 from typing import Dict, List, Tuple, Callable
+from pathlib import Path
 
 from freeports.i18n import _
 from .pipelines_definition import Pipeline
@@ -16,7 +17,7 @@ from .unstructured.acquisition import (
 
 
 def get_pipelines(
-    formats_repo_dir, format_name: str, allow_partial_pipelines: bool = False
+    formats_repo_dir: Path, format_name: str, allow_partial_pipelines: bool = False
 ) -> Dict[str, Tuple[List[Callable], List[Callable], List[Callable]]]:
     """Get processing pipelines for a specific format.
 
@@ -24,6 +25,8 @@ def get_pipelines(
 
     Parameters
     ----------
+    formats_repo_dir : Path
+        Root directory of the formats repository
     format_name : str
         Name of the format to get pipelines for
     allow_partial_pipelines : bool
@@ -49,9 +52,9 @@ def get_pipelines(
     The function combines pipelines from structured, semi-structured, and unstructured
     processing approaches to provide comprehensive format support.
     """
-    struct = get_structured(format_name, formats_repo_dir)
-    semistruct = get_semistructured(format_name, formats_repo_dir)
-    unstruct = get_unstructured(format_name, formats_repo_dir)
+    struct = get_structured(formats_repo_dir, format_name)
+    semistruct = get_semistructured(formats_repo_dir, format_name)
+    unstruct = get_unstructured(formats_repo_dir, format_name)
 
     pipelines_names = set(struct) | set(semistruct) | set(unstruct)
 
