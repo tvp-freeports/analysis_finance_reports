@@ -1,3 +1,5 @@
+"""Implementation independent constants and classes"""
+
 from enum import Enum, auto
 from .i18n import _
 

@@ -17,7 +17,6 @@ from pydantic import (
     FilePath,
     DirectoryPath,
     HttpUrl,
-    AfterValidator,
     BeforeValidator,
     model_validator,
     TypeAdapter,
@@ -74,39 +73,6 @@ def _str_to_bool(string: str) -> bool:
     raise ValueError(error_string)
 
 
-def _format_validate(format_name: str) -> str:
-    """Validate that a format name exists in the list of supported formats.
-
-    Parameters
-    ----------
-    format_name : str
-        Name of the format to validate
-
-    Returns
-    -------
-    str
-        The validated format name if it exists in supported formats
-
-    Raises
-    ------
-    ValueError
-        If the format is not found in the list of valid formats
-
-    Notes
-    -----
-    This function is used by Pydantic validators to ensure only supported
-    PDF processing formats are accepted in configuration.
-    """
-    if format_name not in VALID_FORMATS:
-        raise ValueError(
-            _("`{}` is not a valid format, valid formats are {}").format(
-                format_name, VALID_FORMATS
-            )
-        )
-    return format_name
-
-
-# Format = Annotated[str, AfterValidator(_format_validate)]
 Format = str
 Lists = Annotated[
     List[str], BeforeValidator(lambda x: [x] if isinstance(x, str) else x)

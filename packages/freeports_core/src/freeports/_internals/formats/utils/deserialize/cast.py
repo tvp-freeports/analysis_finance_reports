@@ -1,9 +1,14 @@
+"""Casting utilities for deserializing string data into typed Python values."""
+
 import re
-from datetime import datetime
+from datetime import datetime, date
 import logging
 
+from freeports.i18n import _
 from freeports.consts import Currency
 from freeports._internals.core.normalization import normalize_string, normalize_word
+
+logger = logging.getLogger(__name__)
 
 
 def perc_to_float(perc: str, norm: bool = True) -> float:
@@ -66,6 +71,18 @@ def perc_to_float(perc: str, norm: bool = True) -> float:
 
 
 def _force_numeric(data: str) -> str:
+    """Strip non-numeric characters and warn when input does not look numeric.
+
+    Parameters
+    ----------
+    data : str
+        The string to sanitize into a numeric form.
+
+    Returns
+    -------
+    str
+        The sanitized string with only digits, dots, commas, and letters.
+    """
     reg_num = r"^\d+([\.,]\d+)*$"
     data = normalize_word(data)
     if not re.match(reg_num, data):
@@ -271,7 +288,19 @@ def to_date(data: str) -> date:
     raise ValueError(_("Date string '{}' is not in a recognized format.").format(data))
 
 
-def to_int_en_month(text):
+def to_int_en_month(text: str) -> int:
+    """Convert an English month name to its integer value (1-12).
+
+    Parameters
+    ----------
+    text : str
+        The English month name (e.g. "January", "february").
+
+    Returns
+    -------
+    int
+        Month number from 1 (January) to 12 (December).
+    """
     months = [
         "january",
         "february",
@@ -289,7 +318,19 @@ def to_int_en_month(text):
     return months.index(text.lower().strip()) + 1
 
 
-def to_date_with_en_month(text):
+def to_date_with_en_month(text: str) -> date:
+    """Parse a date string in ``DD MONTH YYYY`` format (English month name).
+
+    Parameters
+    ----------
+    text : str
+        Date string with English month name (e.g. "1 January 2025").
+
+    Returns
+    -------
+    date
+        Parsed date object.
+    """
     date_parts = text.split()
     date_class = date(
         int(date_parts[2]), to_int_en_month(date_parts[1]), int(date_parts[0])
@@ -297,7 +338,19 @@ def to_date_with_en_month(text):
     return date_class
 
 
-def to_int_it_month(text):
+def to_int_it_month(text: str) -> int:
+    """Convert an Italian month name to its integer value (1-12).
+
+    Parameters
+    ----------
+    text : str
+        The Italian month name (e.g. "Gennaio", "febbraio").
+
+    Returns
+    -------
+    int
+        Month number from 1 (Gennaio) to 12 (Dicembre).
+    """
     months = [
         "gennaio",
         "febbraio",
@@ -315,7 +368,19 @@ def to_int_it_month(text):
     return months.index(text.lower().strip()) + 1
 
 
-def to_date_with_it_month(text):
+def to_date_with_it_month(text: str) -> date:
+    """Parse a date string in ``DD MONTH YYYY`` format (Italian month name).
+
+    Parameters
+    ----------
+    text : str
+        Date string with Italian month name (e.g. "1 Gennaio 2025").
+
+    Returns
+    -------
+    date
+        Parsed date object.
+    """
     date_parts = text.split()
     date_class = date(
         int(date_parts[2]), to_int_it_month(date_parts[1]), int(date_parts[0])

@@ -1,7 +1,7 @@
 """Utils for creating deserialize routines and functions"""
 
 from logging import getLogger
-from typing import Callable, TypeAlias, Optional
+from typing import Any, Callable, TypeAlias, Optional
 from datetime import date, datetime
 import re
 from freeports._internals.core.classes import TextBlock, LineParseFail
@@ -39,20 +39,48 @@ DeserializeFunc: TypeAlias = Callable[[TextBlock], Equity | Bond]
 
 
 class DeserializeSfdrArticleStandard:
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> FundSfdrClassification:
+        """Deserialize a SFDR article from a text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block containing the fund name and article metadata.
+
+        Returns
+        -------
+        FundSfdrClassification
+            The deserialized SFDR classification.
+        """
         return FundSfdrClassification(
             fund=txt_blk.content, article=txt_blk.metadata["article"]
         )
 
 
 class DeserializerPageClassifyStandard:
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> str:
+        """Extract the page classification from a text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block containing page type metadata.
+
+        Returns
+        -------
+        str
+            The page type string.
+        """
         return txt_blk.metadata["page_type"]
 
 
-def deserialize_block_type(blk_type):
-    def wrapper(f):
-        def new_f(txt_blk):
+def deserialize_block_type(
+    blk_type: ResultStandardFiltering,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that restricts deserialization to a single block type."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(txt_blk: TextBlock) -> Any:
             if txt_blk.type_block == blk_type:
                 return f(txt_blk)
 
@@ -61,9 +89,13 @@ def deserialize_block_type(blk_type):
     return wrapper
 
 
-def deserialize_block_types(*blk_types):
-    def wrapper(f):
-        def new_f(txt_blk):
+def deserialize_block_types(
+    *blk_types: ResultStandardFiltering,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that restricts deserialization to multiple block types."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(txt_blk: TextBlock) -> Any:
             if any(map(lambda x: txt_blk.type_block == x, blk_types)):
                 return f(txt_blk)
 
@@ -72,9 +104,13 @@ def deserialize_block_types(*blk_types):
     return wrapper
 
 
-def deserialize_block_type_call(blk_type):
-    def wrapper(f):
-        def new_f(self, txt_blk):
+def deserialize_block_type_call(
+    blk_type: ResultStandardFiltering,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that restricts deserialization to a single block type (method variant)."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(self: Any, txt_blk: TextBlock) -> Any:
             if txt_blk.type_block == blk_type:
                 return f(self, txt_blk)
 
@@ -83,9 +119,13 @@ def deserialize_block_type_call(blk_type):
     return wrapper
 
 
-def deserialize_block_types_call(*blk_types):
-    def wrapper(f):
-        def new_f(self, txt_blk):
+def deserialize_block_types_call(
+    *blk_types: ResultStandardFiltering,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that restricts deserialization to multiple block types (method variant)."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(self: Any, txt_blk: TextBlock) -> Any:
             if any(map(lambda x: txt_blk.type_block == x, blk_types)):
                 return f(self, txt_blk)
 
@@ -96,13 +136,37 @@ def deserialize_block_types_call(*blk_types):
 
 class DeserializerFundStandard:
     @deserialize_block_type_call(ResultStandardFiltering.FUND)
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> Fund:
+        """Deserialize a Fund from a text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block to deserialize.
+
+        Returns
+        -------
+        Fund
+            The deserialized fund.
+        """
         return Fund(name=txt_blk.content)
 
 
 class DeserializerManagmentCompanyStandard:
     @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> ManagementCompany:
+        """Deserialize a ManagementCompany from a text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block to deserialize.
+
+        Returns
+        -------
+        ManagementCompany
+            The deserialized management company.
+        """
         return ManagementCompany(
             name=" ".join(txt_blk.content.strip().split()),
             managed_funds=set(txt_blk.metadata["managed_funds"]),
@@ -111,7 +175,19 @@ class DeserializerManagmentCompanyStandard:
 
 class DeserializerInvestmentsManagerFromManco:
     @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> InvestmentsManager:
+        """Deserialize an InvestmentsManager from a management company text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block to deserialize.
+
+        Returns
+        -------
+        InvestmentsManager
+            The deserialized investments manager.
+        """
         return InvestmentsManager(
             name=" ".join(txt_blk.content.strip().split()),
             managed_funds=set(txt_blk.metadata["managed_funds"]),
@@ -120,7 +196,19 @@ class DeserializerInvestmentsManagerFromManco:
 
 class DeserializerInvestmentsManagerStandard:
     @deserialize_block_type_call(ResultStandardFiltering.INVESTMENTS_MANAGER)
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> InvestmentsManager:
+        """Deserialize an InvestmentsManager from a text block.
+
+        Parameters
+        ----------
+        txt_blk : TextBlock
+            The text block to deserialize.
+
+        Returns
+        -------
+        InvestmentsManager
+            The deserialized investments manager.
+        """
         return InvestmentsManager(
             name=" ".join(txt_blk.content.strip().split()),
             managed_funds=set(txt_blk.metadata["managed_funds"]),
@@ -135,14 +223,23 @@ class DeserializerInvestmentStandard:
         self,
         cost_and_value_interpret_int: bool = True,
         quantity_interpret_float: bool = False,
-    ):
+    ) -> None:
+        """Initialize the investment deserializer.
+
+        Parameters
+        ----------
+        cost_and_value_interpret_int : bool
+            Whether to interpret cost and value as integers.
+        quantity_interpret_float : bool
+            Whether to interpret quantity as float.
+        """
         self.cost_and_value_interpret_int = cost_and_value_interpret_int
         self.quantity_interpret_float = quantity_interpret_float
 
     @deserialize_block_types_call(
         ResultStandardFiltering.BOND_TARGET, ResultStandardFiltering.EQUITY_TARGET
     )
-    def __call__(self, txt_blk):
+    def __call__(self, txt_blk: TextBlock) -> Equity | Bond:
         """Transform TextBlock metadata into a typed dictionary.
 
         Parameters
@@ -231,11 +328,36 @@ class DeserializerAssetsStandard:
     num_converter: Callable[[str], float | int]
     date_converter: Optional[Callable[[str], float | int]]
 
-    def __init__(self, num_converter, date_converter=to_date):
+    def __init__(
+        self,
+        num_converter: Callable[[str], float | int],
+        date_converter: Callable[..., Any] = to_date,
+    ) -> None:
+        """Initialize the assets deserializer.
+
+        Parameters
+        ----------
+        num_converter : Callable[[str], float | int]
+            Function to convert numeric strings to numbers.
+        date_converter : Callable
+            Function to convert date strings.
+        """
         self.num_converter = num_converter
         self.date_converter = date_converter
 
-    def __call__(self, blk):
+    def __call__(self, blk: TextBlock) -> FundAssets:
+        """Deserialize FundAssets from a text block.
+
+        Parameters
+        ----------
+        blk : TextBlock
+            The text block containing assets metadata.
+
+        Returns
+        -------
+        FundAssets
+            The deserialized fund assets.
+        """
         md = {**blk.metadata}
         return FundAssets(
             fund=md["fund"],

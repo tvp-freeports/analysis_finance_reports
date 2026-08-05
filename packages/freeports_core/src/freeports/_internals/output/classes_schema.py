@@ -1,3 +1,8 @@
+"""This module contains the schema of the output classes.
+
+Here are defining the object that will be outputted in the csv files.
+"""
+
 from abc import ABC
 from typing import Optional, Set
 from datetime import datetime
@@ -118,7 +123,8 @@ class Investment(BaseModel, ABC, PromisableDict):
         string += "\n"
         return string
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on the serialized model fields."""
         return hash(frozenset(self.model_dump(mode="json", by_alias=True).items()))
 
 
@@ -176,13 +182,25 @@ class Bond(Investment):
 
 
 class AssetsManager(BaseModel, ABC, PromisableDict):
+    """Abstract base class for entities that manage investment funds.
+
+    Parameters
+    ----------
+    name : str
+        Name of the asset manager.
+    managed_funds : Set[str]
+        Set of fund names managed by this entity.
+    """
+
     name: str = Field(serialization_alias="Name")
     managed_funds: Set[str] = Field(exclude=True)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the asset manager."""
         return f'{self.__class__.__name__}("{self.name}")'
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on name and managed funds."""
         return hash((self.name, frozenset(self.managed_funds)))
 
 
@@ -195,39 +213,105 @@ class InvestmentsManager(AssetsManager):
 
 
 class Fund(BaseModel, MatchFund, PromisableDict):
+    """Represents an investment fund identified by its name.
+
+    Supports both resolved and promised (deferred) fund names.
+    """
+
     name: PromisedFundName = Field(serialization_alias="Name")
 
-    def __init__(self, name):
+    def __init__(self, name: PromisedFundName) -> None:
+        """Initialize a Fund with a name, resolving it if not a Promise.
+
+        Parameters
+        ----------
+        name : PromisedFundName
+            Fund name, either a string or a Promise that resolves to one.
+        """
         BaseModel.__init__(self, name=name)
         if not isinstance(name, Promise):
             MatchFund.__init__(self, name)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on the fund name."""
         if isinstance(self.name, Promise):
             return hash(self.name)
         return MatchFund.__hash__(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        """Compare two Fund instances by name.
+
+        Parameters
+        ----------
+        other : object
+            Another Fund instance to compare with.
+
+        Returns
+        -------
+        bool
+            True if the funds have the same name.
+        """
         if isinstance(self.name, Promise) or isinstance(other.name, Promise):
             return isinstance(self.name, type(other.name)) and self.name == other.name
         return MatchFund.__eq__(self, other)
 
 
 class FundSfdrClassification(BaseModel, PromisableDict):
+    """SFDR (Sustainable Finance Disclosure Regulation) classification for a fund.
+
+    Parameters
+    ----------
+    fund : str
+        Name of the fund.
+    article : PromisedSfdrArticle
+        SFDR article classification (Art. 6, 8, or 9).
+    """
+
     fund: str = Field(exclude=True)
     article: PromisedSfdrArticle = Field(exclude=True)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on fund name and article."""
         return hash((self.fund, self.article))
 
 
 class FundEsgIndicator(BaseModel, PromisableDict):
+    """ESG (Environmental, Social, Governance) indicator for a fund.
+
+    Parameters
+    ----------
+    fund : PromisedFundName
+        Name of the fund this indicator belongs to.
+    name : str
+        Name of the ESG indicator.
+    value : str
+        Value of the ESG indicator.
+    """
+
     fund: PromisedFundName = Field(exclude=True)
     name: str = Field(serialization_alias="Indicator")
     value: str = Field(serialization_alias="Value")
 
 
 class FundAssets(BaseModel, PromisableDict):
+    """Fund balance sheet data including total assets, liabilities, and net assets.
+
+    Parameters
+    ----------
+    fund : str
+        Name of the fund.
+    date : Optional[PromisedDate]
+        Date of the balance sheet snapshot.
+    tot_assets : NonNegativeFloat
+        Total assets value.
+    liabilities : NonNegativeFloat
+        Total liabilities value.
+    net_assets : NonNegativeFloat
+        Total net assets value.
+    currency : PromisedCurrency
+        Currency of the monetary values.
+    """
+
     fund: str = Field(exclude=True)
     date: Optional[PromisedDate] = Field(default=None, serialization_alias="Date")
     tot_assets: NonNegativeFloat = Field(serialization_alias="Total assets")
@@ -237,6 +321,18 @@ class FundAssets(BaseModel, PromisableDict):
 
     @model_validator(mode="after")
     def validate_assets_equation(self) -> "FundAssets":
+        """Validate that liabilities + net assets equals total assets.
+
+        Returns
+        -------
+        FundAssets
+            The validated instance.
+
+        Raises
+        ------
+        ValueError
+            If the accounting equation is not balanced.
+        """
         if (
             abs(self.liabilities + self.net_assets - self.tot_assets) > 1e-4
         ):  # Tolerance for float comparison
@@ -246,10 +342,12 @@ class FundAssets(BaseModel, PromisableDict):
             )
         return self
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the fund assets."""
         return f'{self.__class__.__name__}(fund="{self.fund}",tot_assets={self.tot_assets},liabilities={self.liabilities},net_assets={self.net_assets},currency={self.currency})'
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on fund name and balance sheet values."""
         return hash(
             (
                 self.tot_assets,
@@ -262,11 +360,24 @@ class FundAssets(BaseModel, PromisableDict):
 
 
 class FundChangeName(BaseModel, PromisableDict):
+    """Represents a fund name change or merge event.
+
+    Parameters
+    ----------
+    old_name : str
+        Previous name of the fund.
+    current_name : str
+        Current (new) name of the fund.
+    date : PromisedDate
+        Date when the name change took effect.
+    """
+
     old_name: str = Field(serialization_alias="Old name")
     current_name: str = Field(exclude=True)
     date: PromisedDate = Field(serialization_alias="From")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Return a hash based on old name, current name, and date."""
         return hash((self.old_name, self.current_name, self.date))
 
 

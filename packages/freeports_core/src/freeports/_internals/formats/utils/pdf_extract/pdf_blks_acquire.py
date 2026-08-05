@@ -57,7 +57,24 @@ class PyMuPDFBlockType(enum.Enum):
     IMAGE_VECTOR = 3
 
 
-def collapsedspans_from_line(l, treshold=1e-1):
+def collapsedspans_from_line(l: dict, treshold: float = 1e-1) -> list[dict]:
+    """Collapse text spans in a PDF line when font and size are consistent.
+
+    If all spans share the same font and roughly the same size (within
+    *treshold*), they are merged into a single span with averaged values.
+
+    Parameters
+    ----------
+    l : dict
+        A PDF line dictionary with a ``"spans"`` key containing per-span info.
+    treshold : float, optional
+        Maximum allowed font-size difference for collapsing (default 0.1).
+
+    Returns
+    -------
+    list of dict
+        A list of one merged span dict if collapsed, or the original spans.
+    """
     res = []
     last_font = None
     last_size = None
@@ -91,7 +108,33 @@ def collapsedspans_from_line(l, treshold=1e-1):
     return res
 
 
-def rotate_bbox(bbox, cs, sn, new_left, new_top):
+def rotate_bbox(
+    bbox: Tuple[float, float, float, float],
+    cs: float,
+    sn: float,
+    new_left: float,
+    new_top: float,
+) -> Tuple[float, float, float, float]:
+    """Rotate a bounding box by angle (cs=cos, sn=sin) and translate.
+
+    Parameters
+    ----------
+    bbox : tuple of (float, float, float, float)
+        Original bounding box as ``(x0, y0, x1, y1)``.
+    cs : float
+        Cosine of the rotation angle.
+    sn : float
+        Sine of the rotation angle.
+    new_left : float
+        Translation offset for the x-axis.
+    new_top : float
+        Translation offset for the y-axis.
+
+    Returns
+    -------
+    tuple of (float, float, float, float)
+        Rotated and translated bounding box ``(x0', y0', x1', y1')``.
+    """
     x0, y0, x1, y1 = bbox
     a = (x0, y0)
     b = (x0, y1)
@@ -108,7 +151,21 @@ def rotate_bbox(bbox, cs, sn, new_left, new_top):
     return (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
 
 
-def rotate_lines_inplace(lines, width, height):
+def rotate_lines_inplace(lines: list[dict], width: float, height: float) -> None:
+    """Rotate all lines and their spans so that text direction is horizontal.
+
+    Modifies the input list in place. Lines already horizontal (dir=(1,0))
+    are skipped.
+
+    Parameters
+    ----------
+    lines : list of dict
+        PDF lines from a page dict, each with ``"dir"``, ``"bbox"``, and ``"spans"``.
+    width : float
+        Page width used to compute rotation origin.
+    height : float
+        Page height used to compute rotation origin.
+    """
     A0 = (0.0, 0.0)
     B0 = (0.0, height)
     C0 = (width, height)
@@ -125,7 +182,19 @@ def rotate_lines_inplace(lines, width, height):
         line["dir"] = (1.0, 0.0)
 
 
-def pdfimages_from_pagedict(page):
+def pdfimages_from_pagedict(page: dict) -> list[np.ndarray]:
+    """Extract RGB images from a page dictionary as NumPy arrays.
+
+    Parameters
+    ----------
+    page : dict
+        A PDF page dictionary from PyMuPDF with ``"blocks"`` key.
+
+    Returns
+    -------
+    list of np.ndarray
+        List of RGB images as NumPy arrays.
+    """
     images = [
         i
         for blk in filter(
@@ -133,14 +202,28 @@ def pdfimages_from_pagedict(page):
         )
     ]
     I = []
-    for img in imgs:
+    for img in images:
         i = PIL.Image.open(io.BytesIO(img["image"]), formats=[img["ext"]])
         i = i.convert("RGB")
         I.append(np.asarray(i))
     return I
 
 
-def pdflines_from_pagedict(page, auto_rotate=True):
+def pdflines_from_pagedict(page: dict, auto_rotate: bool = True) -> list[PdfLine]:
+    """Extract text lines from a page dict as a list of PdfLine objects.
+
+    Parameters
+    ----------
+    page : dict
+        A PDF page dictionary from PyMuPDF with ``"blocks"`` key.
+    auto_rotate : bool, optional
+        Whether to auto-rotate non-horizontal lines (default True).
+
+    Returns
+    -------
+    list of PdfLine
+        Extracted text lines as PdfLine instances.
+    """
 
     lines = [
         l
@@ -170,6 +253,20 @@ def pdflines_from_pagedict(page, auto_rotate=True):
 
 
 class InputPdfLineSet(BaseModel):
+    """Pydantic model representing a set of criteria for selecting PDF lines.
+
+    Attributes
+    ----------
+    text : str or None
+        Text content to match.
+    font : str, list of str, or None
+        Font name(s) to match.
+    font_size : PositiveFloat or None
+        Exact font size to match.
+    area : InputArea or None
+        Rectangular area to restrict matching.
+    """
+
     text: Optional[str] = None
     font: Optional[str | List[str]] = None
     font_size: Optional[PositiveFloat] = None
@@ -218,7 +315,19 @@ def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
     return None
 
 
-def pdfline_selection_from_dict(data):
+def pdfline_selection_from_dict(data: dict) -> PdfLineSelection:
+    """Build a PdfLineSelection from a dictionary of criteria.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with keys matching InputPdfLineSet fields.
+
+    Returns
+    -------
+    PdfLineSelection
+        A selection object that can filter PdfLine instances.
+    """
     ls = InputPdfLineSet(**data)
     input_area = ls.area.model_dump() if ls.area is not None else None
     fonts = [ls.font] if isinstance(ls.font, str) else ls.font
@@ -247,7 +356,19 @@ def pdfline_selection_from_dict(data):
         )
 
 
-def pdfline_selection_from_str(string):
+def pdfline_selection_from_str(string: str) -> PdfLineSelection:
+    """Parse a compact string representation into a PdfLineSelection.
+
+    Parameters
+    ----------
+    string : str
+        A string encoding font, font-size, area, and/or text criteria.
+
+    Returns
+    -------
+    PdfLineSelection
+        A selection object built from the parsed criteria.
+    """
     matched = _LINE_SET_REGEXP.match(string).groupdict()
     area = None
     tmp_area = matched["area"]

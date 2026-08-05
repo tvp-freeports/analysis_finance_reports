@@ -8,7 +8,7 @@ that require custom parsing logic.
 import logging
 import importlib
 from importlib.util import spec_from_file_location, module_from_spec
-from typing import Dict, List, Tuple, Callable, Any
+from typing import Dict, List, Tuple, Callable, Any, Optional
 from pathlib import Path
 import sys
 from freeports._internals.formats.repo.algorithms.pipelines_definition import Pipeline
@@ -24,7 +24,21 @@ TEMPLATES_DIR = CONTENT_DIR / "templates"
 UNSTRUCTURED_DIR = ALGORITHMS_DIR / "unstructured"
 
 
-def get_module(formats_repo_dir: Path, format_name: str):
+def get_module(formats_repo_dir: Path, format_name: str) -> Optional[Any]:
+    """Dynamically load an unstructured algorithm module for a given format.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Root directory of the formats repository.
+    format_name : str
+        Name of the format whose algorithm module should be loaded.
+
+    Returns
+    -------
+    module or None
+        The loaded Python module, or None if no matching module file is found.
+    """
 
     templates_dir = formats_repo_dir / TEMPLATES_DIR
 
@@ -105,11 +119,42 @@ def get_pipelines(
         return {}
 
 
-def standard_compute_page_class(page_classification):
+def standard_compute_page_class(page_classification: Any) -> Any:
+    """Default page-classification passthrough (returns input unchanged).
+
+    Parameters
+    ----------
+    page_classification : Any
+        Classification data to pass through.
+
+    Returns
+    -------
+    Any
+        The same classification data unchanged.
+    """
     return page_classification
 
 
-def get_compute_page_class(formats_repo_dir, format_name: str):
+def get_compute_page_class(
+    formats_repo_dir: Path, format_name: str
+) -> Callable[..., Any]:
+    """Resolve the ``compute_page_class`` callable for a format.
+
+    Attempts to load a format-specific implementation; falls back to
+    :func:`standard_compute_page_class` if none is defined.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Root directory of the formats repository.
+    format_name : str
+        Name of the format.
+
+    Returns
+    -------
+    Callable
+        The resolved ``compute_page_class`` function.
+    """
     module = get_module(formats_repo_dir, format_name)
     if module is None:
         return standard_compute_page_class

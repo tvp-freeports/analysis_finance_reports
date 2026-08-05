@@ -1,3 +1,5 @@
+"""Definitions and utilities that are common to all the structured algorithms"""
+
 import pandera.pandas as pa
 import pandas as pd
 from pathlib import Path

@@ -1,5 +1,8 @@
+"""It contains functions to acquire all the pipelines associated with a format."""
+
 from typing import Dict, List, Tuple, Callable
 
+from freeports.i18n import _
 from .pipelines_definition import Pipeline
 from .semistructured.acquisition import (
     get_pipelines as get_semistructured,

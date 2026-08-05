@@ -1,8 +1,4 @@
-"""Provides basic constants and types used by all submodules.
-
-This module facilitates avoiding circular imports by providing shared
-constants, types, and utility functions for the entire codebase.
-"""
+"""Provides basic utils for flags and enum cast and type validation"""
 
 import ast
 import operator

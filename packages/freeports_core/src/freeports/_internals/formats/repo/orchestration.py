@@ -1,11 +1,10 @@
-"""Data management for PDF format definitions and URL mappings.
-
-This module handles the loading and validation of format definitions and
-URL-to-format mappings used in document processing.
+"""Management of the part of the format repository responsible of
+page classification to pipeline mapping and of the order with
+which pages are processed.
 """
 
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Set, Dict, Any
 import pandera.pandas as pa
 import pandas as pd
 from freeports.i18n import _
@@ -32,7 +31,7 @@ TEMPLATES_DIR = CONTENT_DIR / "templates"
 
 
 # Schema for validating the list of formats
-_alghoritms_schedule_schema = pa.DataFrameSchema(
+_algorithms_schedule_schema = pa.DataFrameSchema(
     columns={
         "Page type": pa.Column(pd.StringDtype),
         "Filter next iteration": pa.Column(pd.BooleanDtype),
@@ -46,26 +45,72 @@ _alghoritms_schedule_schema = pa.DataFrameSchema(
 )
 
 
-def get_alghoritms_schedule_schema(formats_repo_validation_data):
-    _alghoritms_schedule_schema.index.checks.append(
+def get_algorithms_schedule_schema(
+    formats_repo_validation_data: Any,
+) -> pa.DataFrameSchema:
+    """Build a pandera schema for the algorithms schedule CSV.
+
+    Parameters
+    ----------
+    formats_repo_validation_data : Any
+        Validation data containing the list of valid format names.
+
+    Returns
+    -------
+    pa.DataFrameSchema
+        Pandera schema for algorithm schedule validation.
+    """
+    _algorithms_schedule_schema.index.checks.append(
         pa.Check.isin(formats_repo_validation_data.formats)
     )
-    return _alghoritms_schedule_schema
+    return _algorithms_schedule_schema
 
 
-def get_alghoritms_schedule(
-    formats_repo_dir, formats_repo_validation_data
+def get_algorithms_schedule(
+    formats_repo_dir: Path, formats_repo_validation_data: Any
 ) -> pd.DataFrame:
+    """Load and validate the algorithms schedule CSV.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    formats_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated algorithms schedule DataFrame.
+    """
     pd.set_option("future.no_silent_downcasting", True)
-    df = pd.read_csv(formats_repo_dir / ORCHESTRATION_DIR / "alghoritms_schedule.csv")
+    df = pd.read_csv(formats_repo_dir / ORCHESTRATION_DIR / "algorithms_schedule.csv")
     df = df.set_index(["Format name"])
     df["Filter next iteration"] = df["Filter next iteration"].fillna(False)
-    return get_alghoritms_schedule_schema(formats_repo_validation_data).validate(df)
+    return get_algorithms_schedule_schema(formats_repo_validation_data).validate(df)
 
 
-def get_schedule(formats_repo_dir, format_name: str, formats_repo_validation_data):
+def get_schedule(
+    formats_repo_dir: Path, format_name: str, formats_repo_validation_data: Any
+) -> List[Set[str]]:
+    """Build the processing schedule for a format.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_name : str
+        Name of the format to build schedule for.
+    formats_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    List[Set[str]]
+        Ordered list of page type groups defining processing steps.
+    """
     get_formats(formats_repo_dir, formats_repo_validation_data)
-    df = get_alghoritms_schedule(formats_repo_dir, formats_repo_validation_data)
+    df = get_algorithms_schedule(formats_repo_dir, formats_repo_validation_data)
     try:
         df_select = df.loc[[format_name]]
         schedule = [set()]
@@ -101,7 +146,21 @@ _pageclassify_overwrite_schema = pa.DataFrameSchema(
 )
 
 
-def get_pageclassify_overwrite_schema(format_repo_validation_data):
+def get_pageclassify_overwrite_schema(
+    format_repo_validation_data: Any,
+) -> pa.DataFrameSchema:
+    """Build a pandera schema for page classification overwrite CSV.
+
+    Parameters
+    ----------
+    format_repo_validation_data : Any
+        Validation data containing the list of valid format names.
+
+    Returns
+    -------
+    pa.DataFrameSchema
+        Pandera schema for page classification overwrite validation.
+    """
     _pageclassify_overwrite_schema.index.checks.append(
         pa.Check.isin(format_repo_validation_data.formats)
     )
@@ -109,8 +168,22 @@ def get_pageclassify_overwrite_schema(format_repo_validation_data):
 
 
 def get_pageclassify_overwrite(
-    formats_repo_dir, format_repo_validation_data
+    formats_repo_dir: Path, format_repo_validation_data: Any
 ) -> pd.DataFrame:
+    """Load and validate the page classification overwrite CSV.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated page classification overwrite DataFrame.
+    """
     df = pd.read_csv(
         formats_repo_dir / ORCHESTRATION_DIR / "pageclassify_overwrite.csv"
     )
@@ -121,8 +194,24 @@ def get_pageclassify_overwrite(
 
 
 def get_pageclassify_pipelines(
-    formats_repo_dir, format_name: str, format_repo_validation_data
-):
+    formats_repo_dir: Path, format_name: str, format_repo_validation_data: Any
+) -> Set[str]:
+    """Get the set of pipeline names used for page classification.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_name : str
+        Name of the format.
+    format_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    Set[str]
+        Set of pipeline names for page classification.
+    """
     df = get_pageclassify_overwrite(formats_repo_dir, format_repo_validation_data)
     df_agg = df.groupby(by="Format name").agg({"Pipeline name": set})
     try:
@@ -150,14 +239,42 @@ _mapping_schema = pa.DataFrameSchema(
 )
 
 
-def get_mapping_schema(format_repo_validation_data):
+def get_mapping_schema(format_repo_validation_data: Any) -> pa.DataFrameSchema:
+    """Build a pandera schema for the page-type-to-pipeline mapping CSV.
+
+    Parameters
+    ----------
+    format_repo_validation_data : Any
+        Validation data containing the list of valid format names.
+
+    Returns
+    -------
+    pa.DataFrameSchema
+        Pandera schema for mapping validation.
+    """
     _mapping_schema.index.indexes[0].checks.append(
         pa.Check.isin(format_repo_validation_data.formats)
     )
     return _mapping_schema
 
 
-def get_mapping_table(formats_repo_dir, formats_repo_validation_data):
+def get_mapping_table(
+    formats_repo_dir: Path, formats_repo_validation_data: Any
+) -> pd.DataFrame:
+    """Load and validate the page-type-to-pipeline mapping CSV.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    formats_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    pd.DataFrame
+        Validated mapping DataFrame.
+    """
     df = pd.read_csv(formats_repo_dir / ORCHESTRATION_DIR / "mapping.csv")
     df = add_format_name(df)
     df = add_pipeline_name(df)
@@ -166,7 +283,25 @@ def get_mapping_table(formats_repo_dir, formats_repo_validation_data):
     return get_mapping_schema(formats_repo_validation_data).validate(df)
 
 
-def get_mapping(formats_repo_dir, format_name, formats_repo_validation_data):
+def get_mapping(
+    formats_repo_dir: Path, format_name: str, formats_repo_validation_data: Any
+) -> Dict[str, Set[str]]:
+    """Get the mapping from page types to pipeline names for a format.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_name : str
+        Name of the format.
+    formats_repo_validation_data : Any
+        Validation data for format names.
+
+    Returns
+    -------
+    Dict[str, Set[str]]
+        Mapping from page type to set of pipeline names.
+    """
     df = get_mapping_table(formats_repo_dir, formats_repo_validation_data)
     df = df.drop(columns="ID")
     df = df.groupby(["Format name", "Page type"]).agg({"Pipeline name": set})

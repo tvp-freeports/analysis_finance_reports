@@ -1,3 +1,10 @@
+"""Module containing the classes and routines to implement the `promises` system.
+
+This concept exists in order to loose the assuption that all pages contains informations
+that are self contained and indepent from other pages. It permits to reference value
+in classes definition that get resolved after all document get parsed.
+"""
+
 from datetime import datetime
 from typing import Dict, Any, Union, Annotated
 

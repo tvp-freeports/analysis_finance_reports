@@ -1,5 +1,6 @@
-"""Utilities of general interest common to all formats and that can be used
-for creating `pdf_extract` or `text_filter` or `deserialize` functions
+"""This module provides functions and classes that help in normalizing strings
+in a consistent and providing different degree and methodology of normalization
+depending on their use in the code.
 """
 
 from typing import Callable, TypeVar, ParamSpec

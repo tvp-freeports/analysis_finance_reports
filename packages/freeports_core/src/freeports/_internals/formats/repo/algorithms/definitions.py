@@ -1,12 +1,4 @@
-"""Core algorithms module for PDF document processing pipelines.
-
-This module provides the main execution functions for the three-stage processing pipeline:
-1. PDF filtering - extract relevant blocks from PDF XML
-2. Text extraction - convert PDF blocks to text blocks with company matching
-3. Deserialization - convert text blocks to structured financial data
-
-The module also handles pipeline composition and execution coordination.
-"""
+"""Definition of the `Algorithm` class that rappresent the format specific parsing process."""
 
 from typing import List, Callable, Dict, Tuple, Union, Any, Optional, Set
 import logging as log
@@ -85,12 +77,35 @@ class LogFormatterWithPage(log.Formatter):
 
 
 class PageClassificationPipeline(Pipeline):
-    def __call__(self, page, page_classes):
+    """Pipeline variant specialized for page type classification."""
+
+    def __call__(self, page: Any, page_classes: Any) -> List[Any]:
+        """Run pipeline for page classification.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page to classify.
+        page_classes : Any
+            Page classification context data.
+
+        Returns
+        -------
+        List[Any]
+            Classification results from the deserialization segment.
+        """
         pdf_blks = self.pdf_extract(page)
         txt_blk = self.text_filter(pdf_blks)
         return self.deserialize(txt_blk, page_classes)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return string representation of the page classification pipeline.
+
+        Returns
+        -------
+        str
+            Pipeline representation showing segment contents.
+        """
         return "{}: =[{}--{}--{}]=>".format(
             self.__class__.__name__,
             repr(self.pdf_extract.pipes),
@@ -103,6 +118,20 @@ type PageType = str
 
 
 class PoolWorkersSettings:
+    """Configuration for multiprocessing pool worker counts.
+
+    Attributes
+    ----------
+    documents : int
+        Number of worker processes for document-level parallelism.
+    pages : int
+        Number of worker processes for page-level parallelism.
+    pipelines : int
+        Number of worker processes for pipeline-level parallelism.
+    pipes : int
+        Number of worker processes for pipe-level parallelism.
+    """
+
     documents: int
     pages: int
     pipelines: int
@@ -110,31 +139,102 @@ class PoolWorkersSettings:
 
 
 class PipelinesBundle:
+    """A collection of Pipelines executed together on the same input.
+
+    Attributes
+    ----------
+    pipelines : Set[Pipeline]
+        The set of pipelines in this bundle.
+    """
+
     pipelines: Set[Pipeline]
 
-    def __init__(self, pipelines=None):
-        self.pipelines = set()
+    def __init__(
+        self, pipelines: Optional[Union[Pipeline, Set[Pipeline], List[Pipeline]]] = None
+    ) -> None:
+        """Initialize a bundle of pipelines.
+
+        Parameters
+        ----------
+        pipelines : Optional[Union[Pipeline, Set[Pipeline], List[Pipeline]]]
+            A single Pipeline or collection of Pipelines to include.
+        """
+        self.pipelines: Set[Pipeline] = set()
         if pipelines is not None:
             if isinstance(pipelines, Pipeline):
-                self.pipelines.add(Pipeline)
+                self.pipelines.add(pipelines)
             else:
                 for p in pipelines:
                     self.pipelines.add(p)
 
-    def __call__(self, page, filter_data):
+    def __call__(self, page: Any, filter_data: Any) -> List[Any]:
+        """Execute all pipelines on the given page with filter data.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page to process.
+        filter_data : Any
+            Filtering context data.
+
+        Returns
+        -------
+        List[Any]
+            Combined results from all pipelines.
+        """
         return [r for p in self.pipelines for r in p(page, filter_data)]
 
-    def apply_pdf_extract(self, page):
+    def apply_pdf_extract(self, page: Any) -> List[Any]:
+        """Run only the pdf_extract segment of all pipelines.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page to extract from.
+
+        Returns
+        -------
+        List[Any]
+            Extracted PDF blocks from all pipelines.
+        """
         return [r for p in self.pipelines for r in p.pdf_extract(page)]
 
-    def apply_text_filter(self, page, filter_data):
+    def apply_text_filter(self, page: Any, filter_data: Any) -> List[Any]:
+        """Run pdf_extract and text_filter segments of all pipelines.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page to process.
+        filter_data : Any
+            Filtering context data.
+
+        Returns
+        -------
+        List[Any]
+            Filtered text blocks from all pipelines.
+        """
         return [
             r
             for p in self.pipelines
             for r in p.text_filter(p.pdf_extract(page), filter_data)
         ]
 
-    def apply_deserialize(self, page, filter_data):
+    def apply_deserialize(self, page: Any, filter_data: Any) -> List[Any]:
+        """Run the full pipeline and filter out None results.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page to process.
+        filter_data : Any
+            Filtering context data.
+
+        Returns
+        -------
+        List[Any]
+            Non-None deserialized results from all pipelines.
+        """
         return [
             r
             for p in self.pipelines
@@ -143,9 +243,28 @@ class PipelinesBundle:
         ]
 
     def __repr__(self) -> str:
+        """Return string representation of the bundle.
+
+        Returns
+        -------
+        str
+            Bundle representation with pipeline count.
+        """
         return f"{self.__class__.__name__}({len(self.pipelines)} pipelines)"
 
-    def add_pipeline(self, pipeline: Pipeline):
+    def add_pipeline(self, pipeline: Pipeline) -> None:
+        """Add a pipeline to the bundle.
+
+        Parameters
+        ----------
+        pipeline : Pipeline
+            The pipeline to add.
+
+        Raises
+        ------
+        Exception
+            If the argument is not a Pipeline instance.
+        """
         if not isinstance(pipeline, Pipeline):
             raise Exception(
                 f"Pipelines bundle can contain only Pipeline, tried to add `{type(pipeline)}`"
@@ -154,8 +273,25 @@ class PipelinesBundle:
 
 
 class Algorithm:
+    """Orchestrates page classification, scheduling, and data extraction.
+
+    Manages the full parsing process: classifies pages, schedules them
+    according to a processing plan, and applies format-specific pipelines.
+
+    Attributes
+    ----------
+    page_classify_bundle : PipelinesBundle
+        Bundle of pipelines used for page classification.
+    page_classify_finalizer : Callable[..., PageType]
+        Function that finalizes page classification results.
+    schedule : List[Set[PageType]]
+        Ordered list of page type groups defining processing order.
+    bundles_mapping : Dict[PageType, PipelinesBundle]
+        Mapping from page type to its processing pipeline bundle.
+    """
+
     page_classify_bundle: PipelinesBundle
-    page_classify_finalizer: Callable[Any, PageType]
+    page_classify_finalizer: Callable[..., PageType]
     schedule: List[Set[PageType]]
     bundles_mapping: Dict[PageType, PipelinesBundle]
 
@@ -163,10 +299,31 @@ class Algorithm:
         self,
         pipelines_map: Dict[str, Pipeline],
         page_classify_pipelines: Set[str],
-        page_classify_finalizer: Callable[Any, PageType],
+        page_classify_finalizer: Callable[..., PageType],
         schedule: List[Set[PageType]],
         page_type_pipelines_mapping: Dict[PageType, Set[str]],
-    ):
+    ) -> None:
+        """Initialize the Algorithm with pipeline mappings and schedule.
+
+        Parameters
+        ----------
+        pipelines_map : Dict[str, Pipeline]
+            Mapping from pipeline name to Pipeline instance.
+        page_classify_pipelines : Set[str]
+            Names of pipelines used for page classification.
+        page_classify_finalizer : Callable[..., PageType]
+            Function to finalize page classification results.
+        schedule : List[Set[PageType]]
+            Ordered processing schedule of page type groups.
+        page_type_pipelines_mapping : Dict[PageType, Set[str]]
+            Mapping from page type to pipeline names for extraction.
+
+        Raises
+        ------
+        Exception
+            If pipeline names are unmapped, page types in schedule don't match
+            mapping keys, or pipeline names are inconsistent.
+        """
         known_pipelines = set(pipelines_map.keys())
         if not page_classify_pipelines.issubset(known_pipelines):
             unknown = page_classify_pipelines - known_pipelines
@@ -214,7 +371,25 @@ class Algorithm:
         self._page_classes.add(None)
 
     @classmethod
-    def load(cls, formats_repo_dir, format_name: str, format_repo_validation_data):
+    def load(
+        cls, formats_repo_dir: str, format_name: str, format_repo_validation_data: Any
+    ) -> "Algorithm":
+        """Load an Algorithm from the format repository.
+
+        Parameters
+        ----------
+        formats_repo_dir : str
+            Path to the formats repository directory.
+        format_name : str
+            Name of the format to load.
+        format_repo_validation_data : Any
+            Validation data for the format repository.
+
+        Returns
+        -------
+        Algorithm
+            Configured Algorithm instance.
+        """
         return cls(
             pipelines_map=get_pipelines(
                 formats_repo_dir, format_name, allow_partial_pipelines=False
@@ -233,7 +408,25 @@ class Algorithm:
             ),
         )
 
-    def schedule_pages(self, pages):
+    def schedule_pages(self, pages: List[Any]) -> List[Dict[PageType, Dict[int, Any]]]:
+        """Classify pages and arrange them by schedule.
+
+        Parameters
+        ----------
+        pages : List[Any]
+            List of pages to classify and schedule.
+
+        Returns
+        -------
+        List[Dict[PageType, Dict[int, Any]]]
+            Pages organized by schedule step and page type.
+
+        Raises
+        ------
+        Exception
+            If classification count doesn't match page count or a page type
+            is not in the schedule.
+        """
         page_classification = [
             c for p in pages for c in self.page_classify_bundle(p, None)
         ]
@@ -260,7 +453,23 @@ class Algorithm:
         ]
         return pages_scheduled
 
-    def __call__(self, list_pages, target_companies):
+    def __call__(
+        self, list_pages: List[Any], target_companies: Any
+    ) -> Dict[int, List[Any]]:
+        """Execute the full extraction algorithm.
+
+        Parameters
+        ----------
+        list_pages : List[Any]
+            Pages to process.
+        target_companies : Any
+            DataFrame of target companies for filtering.
+
+        Returns
+        -------
+        Dict[int, List[Any]]
+            Mapping from page number to list of extracted results.
+        """
         compiled_target_companies = (
             freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
                 target_companies
@@ -309,20 +518,102 @@ class Algorithm:
             filter_data.extend([n for n in new_filter_data])
         return res
 
-    def classify_pages(self, pages):
+    def classify_pages(self, pages: List[Any]) -> List[PageType]:
+        """Classify pages without scheduling.
+
+        Parameters
+        ----------
+        pages : List[Any]
+            Pages to classify.
+
+        Returns
+        -------
+        List[PageType]
+            Classification label for each page.
+        """
         page_classification = [
             c for p in pages for c in self.page_classify_bundle(p, None)
         ]
         return self.page_classify_finalizer(page_classification)
 
-    def apply_to_page(self, pages, page_number, filter_data, page_class):
+    def apply_to_page(
+        self, pages: List[Any], page_number: int, filter_data: Any, page_class: PageType
+    ) -> List[Any]:
+        """Apply the pipeline for a given page class to a specific page.
+
+        Parameters
+        ----------
+        pages : List[Any]
+            All pages.
+        page_number : int
+            1-indexed page number to process.
+        filter_data : Any
+            Filtering context data.
+        page_class : PageType
+            Page type determining which pipeline bundle to use.
+
+        Returns
+        -------
+        List[Any]
+            Extraction results for the page.
+        """
         return self.bundles_mapping[page_class](pages[page_number - 1], filter_data)
 
-    def apply_pdf_extract(self, page, page_class):
+    def apply_pdf_extract(self, page: Any, page_class: PageType) -> List[Any]:
+        """Run pdf_extract for the pipeline bundle of a given page class.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page.
+        page_class : PageType
+            Page type determining which bundle to use.
+
+        Returns
+        -------
+        List[Any]
+            Extracted PDF blocks.
+        """
         return self.bundles_mapping[page_class].apply_pdf_extract(page)
 
-    def apply_text_filter(self, page, filter_data, page_class):
+    def apply_text_filter(
+        self, page: Any, filter_data: Any, page_class: PageType
+    ) -> List[Any]:
+        """Run text_filter for the pipeline bundle of a given page class.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page.
+        filter_data : Any
+            Filtering context data.
+        page_class : PageType
+            Page type determining which bundle to use.
+
+        Returns
+        -------
+        List[Any]
+            Filtered text blocks.
+        """
         return self.bundles_mapping[page_class].apply_text_filter(page, filter_data)
 
-    def apply_deserialize(self, page, filter_data, page_class):
+    def apply_deserialize(
+        self, page: Any, filter_data: Any, page_class: PageType
+    ) -> List[Any]:
+        """Run full pipeline for the bundle of a given page class.
+
+        Parameters
+        ----------
+        page : Any
+            The PDF page.
+        filter_data : Any
+            Filtering context data.
+        page_class : PageType
+            Page type determining which bundle to use.
+
+        Returns
+        -------
+        List[Any]
+            Deserialized results.
+        """
         return self.bundles_mapping[page_class].apply_deserialize(page, filter_data)

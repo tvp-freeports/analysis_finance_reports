@@ -1,1 +1,1 @@
-"""Contains the utilities that perimt to acquire the program input data (companies and document)."""
+"""Contains the utilities that permit to acquire the program input data (companies and document)."""

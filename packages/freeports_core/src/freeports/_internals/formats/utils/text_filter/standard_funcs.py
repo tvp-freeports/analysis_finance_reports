@@ -15,7 +15,7 @@ from enum import Enum, auto
 import re
 import logging
 import freeports_lib
-from typing import List, Optional, Tuple, Set
+from typing import Any, Callable, List, Optional, Tuple, Set
 from freeports.i18n import _
 from freeports._internals.core.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports._internals.core.classes import (
@@ -41,9 +41,13 @@ from freeports import output
 logger = logging.getLogger(__name__)
 
 
-def filter_block_type(blk_type):
-    def wrapper(f):
-        def new_f(pdf_blks, filter_data):
+def filter_block_type(
+    blk_type: ResultStandardExtraction,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that filters PDF blocks to a single block type."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
             return f(
                 list(filter(lambda blk: blk.type_block == blk_type, pdf_blks)),
                 filter_data,
@@ -54,9 +58,13 @@ def filter_block_type(blk_type):
     return wrapper
 
 
-def filter_block_types(*blk_types):
-    def wrapper(f):
-        def new_f(pdf_blks, filter_data):
+def filter_block_types(
+    *blk_types: ResultStandardExtraction,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that filters PDF blocks to multiple block types."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
             return f(
                 list(
                     filter(
@@ -72,9 +80,13 @@ def filter_block_types(*blk_types):
     return wrapper
 
 
-def filter_block_type_call(blk_type):
-    def wrapper(f):
-        def new_f(self, pdf_blks, filter_data):
+def filter_block_type_call(
+    blk_type: ResultStandardExtraction,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that filters PDF blocks to a single block type (method variant)."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(self: Any, pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
             return f(
                 self,
                 list(filter(lambda blk: blk.type_block == blk_type, pdf_blks)),
@@ -86,9 +98,13 @@ def filter_block_type_call(blk_type):
     return wrapper
 
 
-def filter_block_types_call(*blk_types):
-    def wrapper(f):
-        def new_f(self, pdf_blks, filter_data):
+def filter_block_types_call(
+    *blk_types: ResultStandardExtraction,
+) -> Callable[..., Callable[..., Any]]:
+    """Decorator that filters PDF blocks to multiple block types (method variant)."""
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        def new_f(self: Any, pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
             return f(
                 self,
                 list(
@@ -105,7 +121,8 @@ def filter_block_types_call(*blk_types):
     return wrapper
 
 
-def get_funds(filter_data):
+def get_funds(filter_data: list) -> set[match.MatchFund]:
+    """Extract MatchFund objects from filter data containing Fund instances."""
     return set(
         map(
             lambda f: match.MatchFund(f.name),
@@ -114,7 +131,8 @@ def get_funds(filter_data):
     )
 
 
-def get_investment_funds(filter_data):
+def get_investment_funds(filter_data: list) -> set[match.MatchFund]:
+    """Extract MatchFund objects from filter data containing Investment instances."""
     return set(
         map(
             lambda f: match.MatchFund(f.fund),
@@ -123,32 +141,40 @@ def get_investment_funds(filter_data):
     )
 
 
-def fund_filter_data(f):
-    def new_f(pdf_blks, filter_data):
+def fund_filter_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that converts filter data to MatchFund objects."""
+
+    def new_f(pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
         new_filter_data = get_funds(filter_data)
         return f(pdf_blks, new_filter_data)
 
     return new_f
 
 
-def fund_filter_data_call(f):
-    def new_f(self, pdf_blks, filter_data):
+def fund_filter_data_call(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that converts filter data to MatchFund objects (method variant)."""
+
+    def new_f(self: Any, pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
         new_filter_data = get_funds(filter_data)
         return f(self, pdf_blks, new_filter_data)
 
     return new_f
 
 
-def investment_fund_filter_data(f):
-    def new_f(pdf_blks, filter_data):
+def investment_fund_filter_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that converts filter data to investment MatchFund objects."""
+
+    def new_f(pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
         new_filter_data = get_investment_funds(filter_data)
         return f(pdf_blks, new_filter_data)
 
     return new_f
 
 
-def investment_fund_filter_data_call(f):
-    def new_f(self, pdf_blks, filter_data):
+def investment_fund_filter_data_call(f: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator that converts filter data to investment MatchFund objects (method variant)."""
+
+    def new_f(self: Any, pdf_blks: List[PdfBlock], filter_data: Any) -> Any:
         new_filter_data = get_investment_funds(filter_data)
         return f(self, pdf_blks, new_filter_data)
 
@@ -526,7 +552,20 @@ perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s
 
 
 class TextFilterSfdrArticleStandard:
-    def __init__(self, fund_prefix=[], demand_investment_funds_match=True):
+    def __init__(
+        self,
+        fund_prefix: list[str | re.Pattern] = [],
+        demand_investment_funds_match: bool = True,
+    ) -> None:
+        """Initialize the SFDR article text filter.
+
+        Parameters
+        ----------
+        fund_prefix : list[str | re.Pattern]
+            Prefixes to strip from fund names before matching.
+        demand_investment_funds_match : bool
+            Whether to require the fund to exist in the investment funds set.
+        """
         self.fund_prefix_strings = []
         self.fund_prefix_regexes = []
         if isinstance(fund_prefix, str) or isinstance(fund_prefix, re.Pattern):
@@ -541,7 +580,23 @@ class TextFilterSfdrArticleStandard:
                 self.fund_prefix_regexes.append(f)
 
     @investment_fund_filter_data_call
-    def __call__(self, pdf_blks, investment_funds):
+    def __call__(
+        self, pdf_blks: List[PdfBlock], investment_funds: set[match.MatchFund]
+    ) -> List[TextBlock]:
+        """Filter SFDR article block by matching fund name against investment funds.
+
+        Parameters
+        ----------
+        pdf_blks : List[PdfBlock]
+            The PDF blocks containing the SFDR article data.
+        investment_funds : set[match.MatchFund]
+            The set of known investment funds to match against.
+
+        Returns
+        -------
+        List[TextBlock]
+            List of filtered text blocks, or empty list if no match.
+        """
         blk = next(iter(pdf_blks))
         fund_name = blk.content
         for f in self.fund_prefix_strings:
@@ -561,7 +616,21 @@ class TextFilterSfdrArticleStandard:
 
 
 class TextFilterPageClassifyStandard:
-    def __call__(self, pdf_blks, _):
+    def __call__(self, pdf_blks: List[PdfBlock], _: Any) -> List[TextBlock]:
+        """Classify pages by consolidating page type metadata from PDF blocks.
+
+        Parameters
+        ----------
+        pdf_blks : List[PdfBlock]
+            The PDF blocks containing page type metadata.
+        _ : Any
+            Unused filter data.
+
+        Returns
+        -------
+        List[TextBlock]
+            List containing the page classification text block.
+        """
         page_classification = None
         for blk in pdf_blks:
             page_type = blk.metadata["page_type"]
@@ -582,6 +651,23 @@ class TextFilterPageClassifyStandard:
 
 
 def extract_currency_from_text(txt: str) -> Currency:
+    """Extract a Currency enum value from a text string.
+
+    Parameters
+    ----------
+    txt : str
+        The text to search for currency codes.
+
+    Returns
+    -------
+    Currency
+        The matched currency.
+
+    Raises
+    ------
+    ExpectedTextBlockNotFound
+        If no valid currency is found in the text.
+    """
     curr = txt
     res = None
     if isinstance(curr, Currency):
@@ -630,7 +716,26 @@ class TextFilterInvestmentsStandard:
         acquisition_cost_pos: Optional[int] = None,
         geometrical_indexes: bool = True,
         merge_prev: bool = False,
-    ):
+    ) -> None:
+        """Initialize the investments text filter.
+
+        Parameters
+        ----------
+        market_value_pos : int
+            Column position of the market value field.
+        nominal_quantity_pos : Optional[int]
+            Column position of the nominal quantity field.
+        perc_net_assets_pos : Optional[int]
+            Column position of the % net assets field.
+        acquisition_currency_pos : Optional[int]
+            Column position of the acquisition currency field.
+        acquisition_cost_pos : Optional[int]
+            Column position of the acquisition cost field.
+        geometrical_indexes : bool
+            Whether to use (row, column) coordinates instead of linear indices.
+        merge_prev : bool
+            Whether to merge with previous block instead of next block.
+        """
         if nominal_quantity_pos is not None and perc_net_assets_pos is not None:
             if (
                 nominal_quantity_pos == market_value_pos
@@ -776,7 +881,21 @@ class TextFilterInvestmentsStandard:
 
         self.__txt_filter = text_filter
 
-    def __call__(self, pdf_blks, filter_data):
+    def __call__(self, pdf_blks: List[PdfBlock], filter_data: Any) -> List[TextBlock]:
+        """Filter and extract investment data from PDF blocks.
+
+        Parameters
+        ----------
+        pdf_blks : List[PdfBlock]
+            The PDF blocks to filter and extract investments from.
+        filter_data : Any
+            Filter data for matching (funds, targets).
+
+        Returns
+        -------
+        List[TextBlock]
+            List of text blocks with extracted investment metadata.
+        """
         investments_blks = []
         fund_found = None
         currency_found = None
@@ -809,7 +928,18 @@ class TextFilterInvestmentsStandard:
 
 
 class TextFilterAssetsStandard:
-    def __init__(self, date_regex=None, remove_from_fund_regexes=[]):
+    def __init__(
+        self, date_regex: Optional[str] = None, remove_from_fund_regexes: list[str] = []
+    ) -> None:
+        """Initialize the assets text filter.
+
+        Parameters
+        ----------
+        date_regex : Optional[str]
+            Regex pattern to extract the date from metadata.
+        remove_from_fund_regexes : list[str]
+            Regex patterns to strip from fund names.
+        """
         self.date_regex = re.compile(date_regex) if date_regex is not None else None
         if isinstance(remove_from_fund_regexes, str):
             remove_from_fund_regexes = [remove_from_fund_regexes]
@@ -818,7 +948,21 @@ class TextFilterAssetsStandard:
             re.compile(regex) for regex in remove_from_fund_regexes
         ]
 
-    def __call__(self, blks, filter_data):
+    def __call__(self, blks: List[PdfBlock], filter_data: list) -> List[TextBlock]:
+        """Filter assets blocks by matching funds and extracting currency.
+
+        Parameters
+        ----------
+        blks : List[PdfBlock]
+            The PDF blocks containing assets metadata.
+        filter_data : list
+            Filter data containing Fund instances to match against.
+
+        Returns
+        -------
+        List[TextBlock]
+            List of filtered assets text blocks.
+        """
         filter_funds = set(
             map(
                 lambda x: match.MatchFund(name=x.name),
@@ -842,7 +986,23 @@ class TextFilterAssetsStandard:
 
 
 class TextFilterManagmentCompanyStandard:
-    def __call__(self, pdf_blks, filter_data):
+    def __call__(
+        self, pdf_blks: List[PdfBlock], filter_data: list
+    ) -> list[StandardManagmentCompanyTextBlock]:
+        """Filter management company blocks and match against fund data.
+
+        Parameters
+        ----------
+        pdf_blks : List[PdfBlock]
+            The PDF blocks to filter.
+        filter_data : list
+            Filter data containing Fund instances for matching managed funds.
+
+        Returns
+        -------
+        list[StandardManagmentCompanyTextBlock]
+            List of management company text blocks with matched funds.
+        """
         filter_funds = set(
             map(
                 lambda x: match.MatchFund(x.name),

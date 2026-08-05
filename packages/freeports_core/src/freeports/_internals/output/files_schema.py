@@ -1,4 +1,4 @@
-"""Data schema definitions for financial investment data validation.
+"""Data schema definitions for financial data file output and validation.
 
 This module defines the data schemas used to validate and structure financial
 investment data extracted from PDF documents. It includes DataFrame schemas

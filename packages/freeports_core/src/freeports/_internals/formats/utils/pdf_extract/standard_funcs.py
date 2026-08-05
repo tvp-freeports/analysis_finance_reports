@@ -4,7 +4,7 @@ This module provides decorators and utilities for filtering and processing PDF c
 based on XML elements, fonts, and positional data.
 """
 
-from typing import List, Optional, TypeAlias, Callable, Set
+from typing import Any, List, Optional, TypeAlias, Callable, Set
 from enum import Enum, auto
 import logging
 from abc import ABC
@@ -55,11 +55,39 @@ class SelectExpectedText:
     selection: PdfLineSelection
     name: str
 
-    def __init__(self, selection: PdfLineSelection, name="expected text"):
+    def __init__(
+        self, selection: PdfLineSelection, name: str = "expected text"
+    ) -> None:
+        """Initialize the text selector.
+
+        Parameters
+        ----------
+        selection : PdfLineSelection
+            The line selection criteria.
+        name : str
+            Descriptive name for error messages.
+        """
         self.selection = selection
         self.name = name
 
-    def __call__(self, lines):
+    def __call__(self, lines: list) -> str:
+        """Select and return the expected text from PDF lines.
+
+        Parameters
+        ----------
+        lines : list
+            List of PDF line objects.
+
+        Returns
+        -------
+        str
+            The text content of the selected line.
+
+        Raises
+        ------
+        ExpectedPdfBlockNotFound
+            If no matching line is found.
+        """
         try:
             return self.selection.select(lines)[0].text
         except IndexError as exc:
@@ -78,11 +106,41 @@ class ExtractTextPdfBlockOrFailPage:
     extractor: SelectExpectedText
     type_block: Enum
 
-    def __init__(self, selection: PdfLineSelection, name: str, type_block: Enum):
+    def __init__(
+        self, selection: PdfLineSelection, name: str, type_block: Enum
+    ) -> None:
+        """Initialize the PDF block extractor.
+
+        Parameters
+        ----------
+        selection : PdfLineSelection
+            The line selection criteria.
+        name : str
+            Descriptive name for error messages.
+        type_block : Enum
+            The block type to assign to extracted blocks.
+        """
         self.extractor = SelectExpectedText(selection, name)
         self.type_block = type_block
 
-    def __call__(self, dict_root):
+    def __call__(self, dict_root: dict) -> list[PdfBlock]:
+        """Extract a PDF block from a page dict or raise PageParseFail.
+
+        Parameters
+        ----------
+        dict_root : dict
+            The PDF page dictionary.
+
+        Returns
+        -------
+        list[PdfBlock]
+            List containing the extracted PDF block.
+
+        Raises
+        ------
+        PageParseFail
+            If the expected text is not found on the page.
+        """
         lines = pdflines_from_pagedict(dict_root)
         try:
             text = self.extractor(lines)
@@ -94,15 +152,43 @@ class ExtractTextPdfBlockOrFailPage:
 class PdfExtractSfdrArticleStandard:
     def __init__(
         self,
-        art9_selection=PdfLineSelection,
-        art8_selection=PdfLineSelection,
-        fund_selection=PdfLineSelection,
-    ):
+        art9_selection: PdfLineSelection = PdfLineSelection,
+        art8_selection: PdfLineSelection = PdfLineSelection,
+        fund_selection: PdfLineSelection = PdfLineSelection,
+    ) -> None:
+        """Initialize the SFDR article extractor.
+
+        Parameters
+        ----------
+        art9_selection : PdfLineSelection
+            Selection criteria for Article 9 indication.
+        art8_selection : PdfLineSelection
+            Selection criteria for Article 8 indication.
+        fund_selection : PdfLineSelection
+            Selection criteria for fund name.
+        """
         self.art9_selection = art9_selection
         self.art8_selection = art8_selection
         self.fund_pdflineselection = fund_selection
 
-    def __call__(self, page):
+    def __call__(self, page: dict) -> list[PdfBlock]:
+        """Extract SFDR article classification from a PDF page.
+
+        Parameters
+        ----------
+        page : dict
+            The PDF page dictionary.
+
+        Returns
+        -------
+        list[PdfBlock]
+            List containing the SFDR article PDF block.
+
+        Raises
+        ------
+        ExpectedPdfBlockNotFound
+            If the fund name cannot be found.
+        """
         lines = pdflines_from_pagedict(page)
         art = SfdrArticle.ART_6
         if self.art8_selection.select(lines):
@@ -123,7 +209,9 @@ class PdfExtractSfdrArticleStandard:
 
 
 class PdfExtractFundStandard(ExtractTextPdfBlockOrFailPage):
-    def __init__(self, selection: PdfLineSelection):
+    """Extract the fund name from a PDF page."""
+
+    def __init__(self, selection: PdfLineSelection) -> None:
         super().__init__(
             selection=selection,
             name="fund",
@@ -132,7 +220,9 @@ class PdfExtractFundStandard(ExtractTextPdfBlockOrFailPage):
 
 
 class PdfExtractCurrencyStandard(ExtractTextPdfBlockOrFailPage):
-    def __init__(self, selection: PdfLineSelection):
+    """Extract the currency from a PDF page."""
+
+    def __init__(self, selection: PdfLineSelection) -> None:
         super().__init__(
             selection=selection,
             name="currency",
@@ -141,7 +231,9 @@ class PdfExtractCurrencyStandard(ExtractTextPdfBlockOrFailPage):
 
 
 class PdfExtractManagmentCompanyStandard(ExtractTextPdfBlockOrFailPage):
-    def __init__(self, selection: PdfLineSelection):
+    """Extract the management company from a PDF page."""
+
+    def __init__(self, selection: PdfLineSelection) -> None:
         super().__init__(
             selection=selection,
             name="managment company",
@@ -150,13 +242,32 @@ class PdfExtractManagmentCompanyStandard(ExtractTextPdfBlockOrFailPage):
 
 
 class PdfExtractCurrencyConstant:
-    def __init__(self, currency: Currency):
+    def __init__(self, currency: Currency) -> None:
+        """Initialize with a constant currency.
+
+        Parameters
+        ----------
+        currency : Currency
+            The currency to always return.
+        """
         self.currency = currency
         self._blk = PdfBlock(
             ResultStandardExtraction.CURRENCY_STATEMENT, {}, currency.name
         )
 
-    def __call__(self, dict_root):
+    def __call__(self, dict_root: dict) -> list[PdfBlock]:
+        """Return a constant currency PDF block.
+
+        Parameters
+        ----------
+        dict_root : dict
+            The PDF page dictionary (unused).
+
+        Returns
+        -------
+        list[PdfBlock]
+            List containing the constant currency block.
+        """
         return [self._blk]
 
 
@@ -164,7 +275,18 @@ class PdfExtractPageClassifyStandard:
     header_sets: Set[PdfLineSelection]
     page_type: str
 
-    def __init__(self, header_sets, page_type):
+    def __init__(
+        self, header_sets: PdfLineSelection | list[PdfLineSelection], page_type: str
+    ) -> None:
+        """Initialize the page classifier.
+
+        Parameters
+        ----------
+        header_sets : PdfLineSelection | list[PdfLineSelection]
+            One or more header selection criteria that must all match.
+        page_type : str
+            The page type to assign when all headers match.
+        """
         self.header_sets = set()
         try:
             for h in header_sets:
@@ -173,7 +295,19 @@ class PdfExtractPageClassifyStandard:
             self.header_sets.add(header_sets)
         self.page_type = page_type
 
-    def __call__(self, dict_root):
+    def __call__(self, dict_root: dict) -> list[PdfBlock]:
+        """Classify a page based on header matching.
+
+        Parameters
+        ----------
+        dict_root : dict
+            The PDF page dictionary.
+
+        Returns
+        -------
+        list[PdfBlock]
+            List containing the page classification block.
+        """
         lines = pdflines_from_pagedict(dict_root)
         page_type = self.page_type
         for hsa in self.header_sets:
@@ -198,16 +332,39 @@ class PdfExtractInvestmentsStandard:
 
     def __init__(
         self,
-        body_set,
-        manco_set=None,
-        currency_set=None,
-        deselection_list=[],
-        algorithm_flags=TablePosAlgorithm(0),
-        tolerance=0.0,
-        row_algorithm_flags=TablePosAlgorithm(0),
-        row_tolerance=0.0,
-        company_index=None,
-    ):
+        body_set: PdfLineSelection,
+        manco_set: Optional[PdfLineSelection] = None,
+        currency_set: Optional[PdfLineSelection] = None,
+        deselection_list: list[PdfLineSelection] = [],
+        algorithm_flags: list | TablePosAlgorithm = TablePosAlgorithm(0),
+        tolerance: float = 0.0,
+        row_algorithm_flags: list | TablePosAlgorithm = TablePosAlgorithm(0),
+        row_tolerance: float = 0.0,
+        company_index: Optional[int] = None,
+    ) -> None:
+        """Initialize the investments extractor.
+
+        Parameters
+        ----------
+        body_set : PdfLineSelection
+            Selection criteria for the table body rows.
+        manco_set : Optional[PdfLineSelection]
+            Selection criteria for the management company.
+        currency_set : Optional[PdfLineSelection]
+            Selection criteria for the currency.
+        deselection_list : list[PdfLineSelection]
+            Selections to subtract from body_set.
+        algorithm_flags : list | TablePosAlgorithm
+            Table position algorithm flags.
+        tolerance : float
+            Tolerance for table coordinate calculation.
+        row_algorithm_flags : list | TablePosAlgorithm
+            Row-level table position algorithm flags.
+        row_tolerance : float
+            Tolerance for row coordinate calculation.
+        company_index : Optional[int]
+            Index of the company column.
+        """
         for dl in deselection_list:
             body_set /= dl
         self.body_set = body_set
@@ -217,7 +374,19 @@ class PdfExtractInvestmentsStandard:
         self.row_tolerance = row_tolerance
         self.company_index = company_index
 
-    def __call__(self, dict_root):
+    def __call__(self, dict_root: dict) -> list[PdfBlock]:
+        """Extract investment table blocks from a PDF page.
+
+        Parameters
+        ----------
+        dict_root : dict
+            The PDF page dictionary.
+
+        Returns
+        -------
+        list[PdfBlock]
+            List of PDF blocks representing table rows with position metadata.
+        """
         lines = pdflines_from_pagedict(dict_root)
         _algorithm_flags = self.algorithm_flags
         _row_algorithm_flags = self.row_algorithm_flags
@@ -299,6 +468,12 @@ class PdfExtractInvestmentsStandard:
 
 
 class PdfExtractAssetsStandard:
+    """Extract fund assets data from a PDF page using positional criteria.
+
+    Uses moving window area selections to locate net assets, liabilities,
+    and total assets values relative to anchor text positions.
+    """
+
     fund_set: PdfLineSelection
     currency_set: Optional[PdfLineSelection]
     net_assets_set: PdfLineSelection
@@ -313,21 +488,54 @@ class PdfExtractAssetsStandard:
 
     def __init__(
         self,
-        fund_set,
-        currency_set,
-        net_assets_set,
-        liabilities_set,
-        tot_assets_set,
-        net_assets_vec=(1.2, 0.0),
-        liabilities_vec=(1.2, 0.0),
-        tot_assets_vec=(1.2, 0.0),
-        net_assets_mult=(100.0, 1.3),
-        liabilities_mult=(100.0, 1.3),
-        tot_assets_mult=(100.0, 1.3),
-        date_set=None,
-        table_condition=False,
-        skip_column=1,
-    ):
+        fund_set: PdfLineSelection,
+        currency_set: Optional[PdfLineSelection],
+        net_assets_set: PdfLineSelection,
+        liabilities_set: PdfLineSelection,
+        tot_assets_set: PdfLineSelection,
+        net_assets_vec: tuple[float, float] = (1.2, 0.0),
+        liabilities_vec: tuple[float, float] = (1.2, 0.0),
+        tot_assets_vec: tuple[float, float] = (1.2, 0.0),
+        net_assets_mult: tuple[float, float] = (100.0, 1.3),
+        liabilities_mult: tuple[float, float] = (100.0, 1.3),
+        tot_assets_mult: tuple[float, float] = (100.0, 1.3),
+        date_set: Optional[PdfLineSelection] = None,
+        table_condition: bool = False,
+        skip_column: int = 1,
+    ) -> None:
+        """Initialize the assets extractor.
+
+        Parameters
+        ----------
+        fund_set : PdfLineSelection
+            Selection criteria for fund names.
+        currency_set : Optional[PdfLineSelection]
+            Selection criteria for currency.
+        net_assets_set : PdfLineSelection
+            Selection criteria for net assets anchor text.
+        liabilities_set : PdfLineSelection
+            Selection criteria for liabilities anchor text.
+        tot_assets_set : PdfLineSelection
+            Selection criteria for total assets anchor text.
+        net_assets_vec : tuple[float, float]
+            Direction vector from anchor to net assets value.
+        liabilities_vec : tuple[float, float]
+            Direction vector from anchor to liabilities value.
+        tot_assets_vec : tuple[float, float]
+            Direction vector from anchor to total assets value.
+        net_assets_mult : tuple[float, float]
+            Multiplier for net assets area size (width, height).
+        liabilities_mult : tuple[float, float]
+            Multiplier for liabilities area size (width, height).
+        tot_assets_mult : tuple[float, float]
+            Multiplier for total assets area size (width, height).
+        date_set : Optional[PdfLineSelection]
+            Selection criteria for the date.
+        table_condition : bool
+            Whether fund data is in table format.
+        skip_column : int
+            Number of columns to skip between entries.
+        """
         if not table_condition:
             self.fund_selection = SelectExpectedText(fund_set, "fund")
             self.currency_selection = SelectExpectedText(currency_set, "currency")
@@ -359,7 +567,19 @@ class PdfExtractAssetsStandard:
             else None
         )
 
-    def __call__(self, dict_root):
+    def __call__(self, dict_root: dict) -> list[PdfBlock]:
+        """Extract assets data from a PDF page.
+
+        Parameters
+        ----------
+        dict_root : dict
+            The PDF page dictionary.
+
+        Returns
+        -------
+        list[PdfBlock]
+            List of PDF blocks with fund assets metadata.
+        """
         lines = pdflines_from_pagedict(dict_root)
         lines = (PdfLineSelection.text("") / PdfLineSelection.text("^ $")).select(lines)
         tot_assets = PdfLineSelection.area_from_movewindow(

@@ -1,10 +1,17 @@
-from typing import List
+"""Routines to transform the classes into the csv form and to output on file."""
+
+from typing import Any, Dict, Iterator, List, Union
 from pathlib import Path
+import os
+import gzip
+import shutil
+import tarfile
 import yaml
 
 import pandas as pd
 
 from freeports._internals.core.promises import Promise, try_convert_to_currency
+from freeports.consts import SfdrArticle
 from freeports._internals.cli.conf_parse import (
     OutFlagsBatchMode,
     OutFlagsNormalMode,
@@ -37,15 +44,21 @@ from .files_schema import (
 
 
 class ResultsAccumulator:
-    investments = []
-    funds = {}
-    add_infos = {}
-    assets_managers = {}
-    funds_change_name = []
-    funds_assets = []
-    funds_sfdr_classification = []
-    funds_esg_indicators = []
-    investments_managers_to_funds = []
+    """Accumulate parsed results across all documents and pages for output generation.
+
+    Holds lists and dictionaries for each entity type, and provides
+    sequential ID counters via properties.
+    """
+
+    investments: List[Dict[str, Any]] = []
+    funds: Dict[Any, Dict[str, Any]] = {}
+    add_infos: Dict[int, Any] = {}
+    assets_managers: Dict[str, Dict[str, Any]] = {}
+    funds_change_name: List[Dict[str, Any]] = []
+    funds_assets: List[Dict[str, Any]] = []
+    funds_sfdr_classification: List[Dict[str, Any]] = []
+    funds_esg_indicators: List[Dict[str, Any]] = []
+    investments_managers_to_funds: List[Dict[str, Any]] = []
 
     def __init__(self):
         self.investments = []
@@ -58,27 +71,34 @@ class ResultsAccumulator:
         self.investments_managers_to_funds = []
 
     @property
-    def new_investment_id(self):
+    def new_investment_id(self) -> int:
+        """Next available investment ID."""
         return len(self.investments) + 1
 
     @property
-    def new_asset_manager_id(self):
+    def new_asset_manager_id(self) -> int:
+        """Next available asset manager ID."""
         return len(self.assets_managers) + 1
 
     @property
-    def new_fund_id(self):
+    def new_fund_id(self) -> int:
+        """Next available fund ID."""
         return len(self.funds) + 1
 
     @property
-    def new_fund_asset_id(self):
+    def new_fund_asset_id(self) -> int:
+        """Next available fund asset ID."""
         return len(self.funds_assets) + 1
 
     @property
-    def new_fund_change_name_id(self):
+    def new_fund_change_name_id(self) -> int:
+        """Next available fund change name ID."""
         return len(self.funds_change_name) + 1
 
 
 class PageResults:
+    """Holds parsed entities for a single page of a document."""
+
     investments: List[Equity | Bond]
     assets_managers: List[ManagementCompany | InvestmentsManager]
     funds: List[Fund]
@@ -96,8 +116,26 @@ class PageResults:
         self.funds_assets = []
         self.funds_change_name = []
 
-    def _fulfill_and_filter(self, old_list, promises_resolution_map):
-        new_list = []
+    def _fulfill_and_filter(
+        self,
+        old_list: List[Any],
+        promises_resolution_map: Dict[str, Any],
+    ) -> List[Any]:
+        """Resolve promises for items in a list, filtering out those that fail.
+
+        Parameters
+        ----------
+        old_list : List[Any]
+            List of entities with promises to resolve.
+        promises_resolution_map : Dict[str, Any]
+            Mapping used to resolve unfilled promises.
+
+        Returns
+        -------
+        List[Any]
+            List of entities whose promises were successfully resolved.
+        """
+        new_list: List[Any] = []
         for v in old_list:
             try:
                 v.fulfill_promises(promises_resolution_map)
@@ -107,7 +145,14 @@ class PageResults:
 
         return new_list
 
-    def fulfill_promises(self, promises_resolution_map):
+    def fulfill_promises(self, promises_resolution_map: Dict[str, Any]) -> None:
+        """Resolve promises for all entity lists on this page.
+
+        Parameters
+        ----------
+        promises_resolution_map : Dict[str, Any]
+            Mapping used to resolve unfilled promises.
+        """
         self.investments = self._fulfill_and_filter(
             self.investments, promises_resolution_map
         )
@@ -130,75 +175,154 @@ class PageResults:
 
 
 class PageIndexable:
+    """Lightweight wrapper providing 1-based page indexing into a list of page results."""
+
     data_per_page: List[Any]
 
     def __init__(self, data: List[Any]):
         self.data_per_page = data
 
-    def __getitem__(self, page_n):
+    def __getitem__(self, page_n: int) -> Any:
+        """Return page data for the given 1-based page number.
+
+        Parameters
+        ----------
+        page_n : int
+            1-based page index.
+
+        Returns
+        -------
+        Any
+            Data for the requested page.
+        """
         return self.data_per_page[page_n - 1]
 
 
 class DocumentResults:
+    """Holds page-level results for a single processed document."""
+
     prefix_out: str
     algorithm: str
     results: List[PageResults]
 
     def __init__(self, prefix_out: str, algorithm: str):
+        """Initialize document results.
+
+        Parameters
+        ----------
+        prefix_out : str
+            Output prefix for this document.
+        algorithm : str
+            Name of the extraction algorithm used.
+        """
         self.prefix_out = (prefix_out,)
         self.algorithm = algorithm
         self.results = []
 
     @property
-    def investment():
+    def investment(self) -> PageIndexable:
+        """Paginated view of investments across all pages."""
         return PageIndexable(list(map(lambda x: x.investment), self.results))
 
     @property
-    def assets_managers():
+    def assets_managers(self) -> PageIndexable:
+        """Paginated view of asset managers across all pages."""
         return PageIndexable(list(map(lambda x: x.assets_managers), self.results))
 
     @property
-    def funds():
+    def funds(self) -> PageIndexable:
+        """Paginated view of funds across all pages."""
         return PageIndexable(list(map(lambda x: x.funds), self.results))
 
     @property
-    def funds_sfdr_classification():
+    def funds_sfdr_classification(self) -> PageIndexable:
+        """Paginated view of SFDR classifications across all pages."""
         return PageIndexable(
             list(map(lambda x: x.funds_sfdr_classification), self.results)
         )
 
     @property
-    def funds_esg_indicators():
+    def funds_esg_indicators(self) -> PageIndexable:
+        """Paginated view of ESG indicators across all pages."""
         return PageIndexable(list(map(lambda x: x.funds_esg_indicators), self.results))
 
     @property
-    def funds_assets():
+    def funds_assets(self) -> PageIndexable:
+        """Paginated view of fund assets across all pages."""
         return PageIndexable(list(map(lambda x: x.funds_assets), self.results))
 
     @property
-    def funds_change_name():
+    def funds_change_name(self) -> PageIndexable:
+        """Paginated view of fund name changes across all pages."""
         return PageIndexable(list(map(lambda x: x.funds_change_name), self.results))
 
-    def __getitem__(self, page_n):
+    def __getitem__(self, page_n: int) -> PageResults:
+        """Return page results for the given 1-based page number.
+
+        Parameters
+        ----------
+        page_n : int
+            1-based page index.
+
+        Returns
+        -------
+        PageResults
+            Parsed results for the requested page.
+        """
         return self.results[page_n - 1]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PageResults]:
+        """Iterate over page results."""
         return iter(self.results)
 
-    def add_batch_infos(self, d):
+    def add_batch_infos(self, d: Dict[str, Any]) -> Dict[str, Any]:
+        """Add algorithm and document metadata to a result dictionary.
+
+        Parameters
+        ----------
+        d : Dict[str, Any]
+            Result dictionary to augment.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Augmented dictionary with Format and Document entries.
+        """
         d["Format"] = self.algorithm
         d["Document"] = self.prefix_out
         return d
 
-    def fulfill_promises(self, promises_resolution_map):
+    def fulfill_promises(self, promises_resolution_map: Dict[str, Any]) -> None:
+        """Resolve promises for all page results in this document.
+
+        Parameters
+        ----------
+        promises_resolution_map : Dict[str, Any]
+            Mapping used to resolve unfilled promises.
+        """
         for pr in self:
             pr.fulfill_promises(promises_resolution_map)
 
 
 class CompanyValidator:
-    companies = None
+    """Pydantic-compatible validator that checks company names against a predefined list.
 
-    def __init__(self, companies):
+    Parameters
+    ----------
+    companies : List[str]
+        List of valid company names.
+    """
+
+    companies: List[str] | None = None
+
+    def __init__(self, companies: List[str]) -> None:
+        """Initialize the validator with a list of allowed company names.
+
+        Parameters
+        ----------
+        companies : List[str]
+            List of valid company names.
+        """
         self.companies = companies
 
     def __call__(self, value: str) -> str:
@@ -229,7 +353,30 @@ class CompanyValidator:
         return value
 
 
-def add_debug_infos(batch_mode, document_results, n_page, d):
+def add_debug_infos(
+    batch_mode: bool,
+    document_results: DocumentResults,
+    n_page: int,
+    d: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Add debug metadata (page number, format, document) to a result dictionary.
+
+    Parameters
+    ----------
+    batch_mode : bool
+        Whether processing is in batch mode.
+    document_results : DocumentResults
+        Document results used to add batch-specific infos.
+    n_page : int
+        Current page number.
+    d : Dict[str, Any]
+        Result dictionary to augment.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Augmented dictionary with debug metadata.
+    """
     d["Report page"] = n_page
     if batch_mode:
         d = document_results.add_batch_infos(d)
