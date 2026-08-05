@@ -23,6 +23,7 @@ from freeports._internals.core.promises import (
     PromisedPercNetAsstes,
     PromisedSfdrArticle,
 )
+from freeports.i18n import _
 
 
 class Investment(BaseModel, ABC, PromisableDict):
@@ -90,7 +91,7 @@ class Investment(BaseModel, ABC, PromisableDict):
         string += f"\t{translated_field}:\t{self.company_match}\t[{self.company}]\n"
         translated_field = _("Currency")
         curr_name = (
-            self.currency if isinstance(self.currency, Promise) else self.currency.name
+            self.currency if isinstance(self.currency, Promise) else self.currency.name  # pylint: disable=no-member
         )
         string += f"\t{translated_field}:\t{curr_name}\n"
         translated_field = _("Market value")
@@ -344,7 +345,11 @@ class FundAssets(BaseModel, PromisableDict):
 
     def __repr__(self) -> str:
         """Return a string representation of the fund assets."""
-        return f'{self.__class__.__name__}(fund="{self.fund}",tot_assets={self.tot_assets},liabilities={self.liabilities},net_assets={self.net_assets},currency={self.currency})'
+        return (
+            f'{self.__class__.__name__}(fund="{self.fund}",'
+            f"tot_assets={self.tot_assets},liabilities={self.liabilities},"
+            f"net_assets={self.net_assets},currency={self.currency})"
+        )
 
     def __hash__(self) -> int:
         """Return a hash based on fund name and balance sheet values."""

@@ -1,5 +1,6 @@
 """Utilities for `pdf_extract` segment"""
 
+# pylint: disable=unused-import
 from freeports._internals.formats.utils.pdf_extract.pdf_blks_acquire import (
     pdfimages_from_pagedict,
     pdflines_from_pagedict,

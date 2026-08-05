@@ -29,29 +29,28 @@ The module uses Shapely for geometric operations and lxml for XML processing.
 All coordinates are in PDF points (1/72 inch).
 """
 
-from typing import Optional, Tuple, Annotated, Callable, Any, List
-import re
-import ast
-import freeports_lib
-from operator import or_, and_, sub, truediv
-from functools import reduce
-from lxml import etree
-from pydantic import BaseModel, AfterValidator, PositiveFloat
-from shapely import Polygon, box
-import PIL
-import io
-import numpy as np
-from portion.interval import Interval
-from freeports.i18n import _
-from .position import InputArea
 import copy
 import enum
+import io
+import re
+from functools import reduce
+from operator import or_
+from typing import Any, Callable, List, Optional, Tuple
+
+import PIL
+import freeports_lib
+import numpy as np
+from pydantic import BaseModel, PositiveFloat
+
+from .position import InputArea
 
 PdfLineSelection = freeports_lib.pdf_extract.select.PdfLineSelection
 PdfLine = freeports_lib.pdf_extract.select.PdfLine
 
 
 class PyMuPDFBlockType(enum.Enum):
+    """Enumeration of PyMuPDF block types for text, raster images, and vector images."""
+
     TEXT = 0
     IMAGE_RASTER = 1
     IMAGE_VECTOR = 3
@@ -140,14 +139,14 @@ def rotate_bbox(
     b = (x0, y1)
     c = (x1, y1)
     d = (x1, y0)
-    new_Xs1 = map(lambda p: cs * p[0] + sn * p[1], (a, b, c, d))
-    new_Ys1 = map(lambda p: cs * p[1] - sn * p[0], (a, b, c, d))
-    new_Xs2 = copy.deepcopy(new_Xs1)
-    new_Ys2 = copy.deepcopy(new_Ys1)
-    new_x0 = min(new_Xs1)
-    new_x1 = max(new_Xs2)
-    new_y0 = min(new_Ys1)
-    new_y1 = max(new_Ys2)
+    new_xs1 = map(lambda p: cs * p[0] + sn * p[1], (a, b, c, d))
+    new_ys1 = map(lambda p: cs * p[1] - sn * p[0], (a, b, c, d))
+    new_xs2 = copy.deepcopy(new_xs1)
+    new_ys2 = copy.deepcopy(new_ys1)
+    new_x0 = min(new_xs1)
+    new_x1 = max(new_xs2)
+    new_y0 = min(new_ys1)
+    new_y1 = max(new_ys2)
     return (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
 
 
@@ -166,16 +165,16 @@ def rotate_lines_inplace(lines: list[dict], width: float, height: float) -> None
     height : float
         Page height used to compute rotation origin.
     """
-    A0 = (0.0, 0.0)
-    B0 = (0.0, height)
-    C0 = (width, height)
-    D0 = (width, 0.0)
+    a0 = (0.0, 0.0)
+    b0 = (0.0, height)
+    c0 = (width, height)
+    d0 = (width, 0.0)
     for line in lines:
         c, s = line["dir"]
         if c == 1.0 and s == 0.0:
             continue
-        new_left = min(map(lambda p: c * p[0] + s * p[1], (A0, B0, C0, D0)))
-        new_top = min(map(lambda p: c * p[1] - s * p[0], (A0, B0, C0, D0)))
+        new_left = min(map(lambda p: c * p[0] + s * p[1], (a0, b0, c0, d0)))
+        new_top = min(map(lambda p: c * p[1] - s * p[0], (a0, b0, c0, d0)))
         line["bbox"] = rotate_bbox(line["bbox"], c, s, new_left, new_top)
         for span in line["spans"]:
             span["bbox"] = rotate_bbox(span["bbox"], c, s, new_left, new_top)
@@ -196,17 +195,16 @@ def pdfimages_from_pagedict(page: dict) -> list[np.ndarray]:
         List of RGB images as NumPy arrays.
     """
     images = [
-        i
-        for blk in filter(
-            lambda x: x["type"] == PyMuPDFBlockType.IMAGE_RASTER.value, page["blocks"]
-        )
+        blk
+        for blk in page["blocks"]
+        if blk["type"] == PyMuPDFBlockType.IMAGE_RASTER.value
     ]
-    I = []
+    img_arrays = []
     for img in images:
-        i = PIL.Image.open(io.BytesIO(img["image"]), formats=[img["ext"]])
-        i = i.convert("RGB")
-        I.append(np.asarray(i))
-    return I
+        pil_img = PIL.Image.open(io.BytesIO(img["image"]), formats=[img["ext"]])
+        pil_img = pil_img.convert("RGB")
+        img_arrays.append(np.asarray(pil_img))
+    return img_arrays
 
 
 def pdflines_from_pagedict(page: dict, auto_rotate: bool = True) -> list[PdfLine]:
@@ -281,11 +279,11 @@ _LINE_SET_AREA_REGEXP = (
     rf"(?P<y_range>{_RANGE_REGEXP})|\((?P<area>{_RANGE_REGEXP}{_RANGE_REGEXP})\)"
 )
 _LINE_SET_TEXT_REGEXP = '"(?P<text>.*)"'
-LINE_SET_REGEXP = f"({_LINE_SET_FONT_REGEXP})? ?"
-LINE_SET_REGEXP += f"({_LINE_SET_FONTSIZE_REGEXP})? ?"
-LINE_SET_REGEXP += f"({_LINE_SET_AREA_REGEXP})? ?"
-LINE_SET_REGEXP += f"({_LINE_SET_TEXT_REGEXP})?"
-_LINE_SET_REGEXP = re.compile(LINE_SET_REGEXP)
+line_set_regexp = f"({_LINE_SET_FONT_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_FONTSIZE_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_AREA_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_TEXT_REGEXP})?"
+_LINE_SET_REGEXP = re.compile(line_set_regexp)
 
 
 def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
@@ -347,13 +345,7 @@ def pdfline_selection_from_dict(data: dict) -> PdfLineSelection:
     )
     if fonts is None:
         return selection
-    else:
-        return (
-            reduce(
-                lambda sa, sb: sa | sb, map(lambda f: PdfLineSelection.font(f), fonts)
-            )
-            & selection
-        )
+    return reduce(or_, map(lambda f: PdfLineSelection.font(f), fonts)) & selection
 
 
 def pdfline_selection_from_str(string: str) -> PdfLineSelection:

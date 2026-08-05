@@ -6,11 +6,12 @@ in classes definition that get resolved after all document get parsed.
 """
 
 from datetime import datetime
-from typing import Dict, Any, Union, Annotated
+from typing import Dict, Any, Union, Annotated, TypeAlias
 
 from pydantic import PositiveFloat, BeforeValidator, confloat, ConfigDict
 
 from freeports.consts import Currency, SfdrArticle
+from freeports.i18n import _
 
 
 PromisesResolutionMap: TypeAlias = Dict[str, Any]
@@ -254,6 +255,8 @@ PromisedSfdrArticle = Union[Promise, SfdrArticle]
 
 
 class PromisableDict:
+    """Mixin providing promise fulfillment via Pydantic model_config."""
+
     model_config = ConfigDict(
         validate_assignment=True,
         arbitrary_types_allowed=True,

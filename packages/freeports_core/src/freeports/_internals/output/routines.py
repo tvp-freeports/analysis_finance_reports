@@ -10,7 +10,7 @@ import yaml
 
 import pandas as pd
 
-from freeports._internals.core.promises import Promise, try_convert_to_currency
+from freeports.i18n import _
 from freeports.consts import SfdrArticle
 from freeports._internals.cli.conf_parse import (
     OutFlagsBatchMode,

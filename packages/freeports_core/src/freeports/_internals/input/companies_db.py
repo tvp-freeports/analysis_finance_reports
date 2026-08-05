@@ -145,7 +145,8 @@ _companies_additional_regexs_schema = pa.DataFrameSchema(
 
 
 def get_companies_additional_regexs_schema(company_names: List[str]):
-    schema = _companies_additional_regexs_schema.copy()
+    """Build schema validating additional regexs index against known company names."""
+    schema = _companies_additional_regexs_schema.copy()  # pylint: disable=no-member
     schema.index.checks.append(pa.Check.isin(company_names))
     return schema
 
@@ -197,7 +198,8 @@ _companies_additional_buds_schema = pa.DataFrameSchema(
 
 
 def get_companies_additional_buds_schema(company_names: List[str]):
-    schema = _companies_additional_buds_schema.copy()
+    """Build schema validating additional BUDs index against known company names."""
+    schema = _companies_additional_buds_schema.copy()  # pylint: disable=no-member
     schema.index.checks.append(pa.Check.isin(company_names))
     return schema
 
@@ -253,7 +255,8 @@ _company_to_list_schema = pa.DataFrameSchema(
 
 
 def get_company_to_list_schema(list_names: List[str], company_names: List[str]):
-    schema = _company_to_list_schema.copy()
+    """Build schema validating company-to-list mappings against known names."""
+    schema = _company_to_list_schema.copy()  # pylint: disable=no-member
     schema.columns["List name"].checks.append(pa.Check.isin(list_names))
     schema.index.indexes[0].checks.append(pa.Check.isin(list_names))
     schema.index.indexes[1].checks.append(pa.Check.isin(company_names))
@@ -327,7 +330,8 @@ _tickers_schema = pa.DataFrameSchema(
 
 
 def get_tickers_schema(market_names: List[str], company_names: List[str]):
-    schema = _tickers_schema.copy()
+    """Build schema validating tickers index against known market and company names."""
+    schema = _tickers_schema.copy()  # pylint: disable=no-member
     schema.index.indexes[0].checks.append(pa.Check.isin(market_names))
     schema.index.indexes[1].checks.append(pa.Check.isin(company_names))
     return schema

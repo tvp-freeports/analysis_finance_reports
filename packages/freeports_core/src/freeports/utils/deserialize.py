@@ -1,5 +1,6 @@
 """Utilities for `deserialize` segment"""
 
+# pylint: disable=unused-import
 from freeports._internals.formats.utils.deserialize.cast import (
     perc_to_float,
     to_int,

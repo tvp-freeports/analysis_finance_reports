@@ -4,17 +4,15 @@ This module provides decorators and utilities for filtering and processing PDF c
 based on XML elements, fonts, and positional data.
 """
 
-from typing import Any, List, Optional, TypeAlias, Callable, Set
-from enum import Enum, auto
+from typing import List, Optional, TypeAlias, Callable, Set
+from enum import Enum
 import logging
-from abc import ABC
 from freeports._internals.core.classes import (
     PdfBlock,
     TextBlock,
     ExpectedPdfBlockNotFound,
     PageParseFail,
 )
-from freeports.i18n import _
 from freeports._internals.core.promises import Promise
 from freeports._internals.commons.consts import Currency, SfdrArticle
 from freeports.utils.pdf_extract import (
@@ -52,6 +50,8 @@ logger = logging.getLogger(__name__)
 
 
 class SelectExpectedText:
+    """Selects expected text from PDF lines based on selection criteria."""
+
     selection: PdfLineSelection
     name: str
 
@@ -103,6 +103,8 @@ class SelectExpectedText:
 
 
 class ExtractTextPdfBlockOrFailPage:
+    """Extracts a PDF block from a page or raises PageParseFail on failure."""
+
     extractor: SelectExpectedText
     type_block: Enum
 
@@ -150,6 +152,8 @@ class ExtractTextPdfBlockOrFailPage:
 
 
 class PdfExtractSfdrArticleStandard:
+    """Extracts SFDR article classification from a PDF page."""
+
     def __init__(
         self,
         art9_selection: PdfLineSelection = PdfLineSelection,
@@ -242,6 +246,8 @@ class PdfExtractManagmentCompanyStandard(ExtractTextPdfBlockOrFailPage):
 
 
 class PdfExtractCurrencyConstant:
+    """Returns a constant currency PDF block regardless of page content."""
+
     def __init__(self, currency: Currency) -> None:
         """Initialize with a constant currency.
 
@@ -272,6 +278,8 @@ class PdfExtractCurrencyConstant:
 
 
 class PdfExtractPageClassifyStandard:
+    """Classifies pages based on header selection criteria matching."""
+
     header_sets: Set[PdfLineSelection]
     page_type: str
 
@@ -320,6 +328,8 @@ class PdfExtractPageClassifyStandard:
 
 
 class PdfExtractInvestmentsStandard:
+    """Extracts investment table blocks from a PDF page using positional criteria."""
+
     body_set: PdfLineSelection
     currency_set: PdfLineSelection | Currency | str
     manco_set: Optional[PdfLineSelection]
@@ -413,7 +423,7 @@ class PdfExtractInvestmentsStandard:
                 TablePosAlgorithm.RETURN_ROWS,
                 TablePosAlgorithm.BIG_CELL_RULE,
                 TablePosAlgorithm.USE_RULER_AREA,
-                TablePosAlgorithm.USE_TES_POS,
+                TablePosAlgorithm.USE_TEST_POS,
             ]
             algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
             for flag, enabled in zip(all_flags, _algorithm_flags):
@@ -425,7 +435,7 @@ class PdfExtractInvestmentsStandard:
                 TablePosAlgorithm.RETURN_ROWS,
                 TablePosAlgorithm.BIG_CELL_RULE,
                 TablePosAlgorithm.USE_RULER_AREA,
-                TablePosAlgorithm.USE_TES_POS,
+                TablePosAlgorithm.USE_TEST_POS,
             ]
             algo = TablePosAlgorithm(0)  # valore vuoto (nessun flag attivo)
             for flag, enabled in zip(all_flags, _row_algorithm_flags):

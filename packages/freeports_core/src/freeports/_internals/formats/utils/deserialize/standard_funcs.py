@@ -2,11 +2,7 @@
 
 from logging import getLogger
 from typing import Any, Callable, TypeAlias, Optional
-from datetime import date, datetime
-import re
 from freeports._internals.core.classes import TextBlock, LineParseFail
-from freeports.consts import Currency
-from freeports._internals.core.promises import Promise
 from freeports.output import (
     Equity,
     Bond,
@@ -19,7 +15,6 @@ from freeports.output import (
 from freeports.i18n import _
 from freeports._internals.core.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports.interfaces.text_blks import ResultStandardFiltering
-from freeports._internals.core.normalization import normalize_word, normalize_string
 from .cast import (
     perc_to_float,
     to_int,
@@ -27,10 +22,6 @@ from .cast import (
     to_str,
     to_currency,
     to_date,
-    to_int_en_month,
-    to_date_with_en_month,
-    to_int_it_month,
-    to_date_with_it_month,
 )
 
 logger = getLogger(__name__)
@@ -39,6 +30,8 @@ DeserializeFunc: TypeAlias = Callable[[TextBlock], Equity | Bond]
 
 
 class DeserializeSfdrArticleStandard:
+    """Deserializes a text block into a FundSfdrClassification object."""
+
     def __call__(self, txt_blk: TextBlock) -> FundSfdrClassification:
         """Deserialize a SFDR article from a text block.
 
@@ -58,6 +51,8 @@ class DeserializeSfdrArticleStandard:
 
 
 class DeserializerPageClassifyStandard:
+    """Extracts the page type classification from a text block."""
+
     def __call__(self, txt_blk: TextBlock) -> str:
         """Extract the page classification from a text block.
 
@@ -135,6 +130,8 @@ def deserialize_block_types_call(
 
 
 class DeserializerFundStandard:
+    """Deserializes a text block into a Fund object."""
+
     @deserialize_block_type_call(ResultStandardFiltering.FUND)
     def __call__(self, txt_blk: TextBlock) -> Fund:
         """Deserialize a Fund from a text block.
@@ -153,6 +150,8 @@ class DeserializerFundStandard:
 
 
 class DeserializerManagmentCompanyStandard:
+    """Deserializes a text block into a ManagementCompany object."""
+
     @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
     def __call__(self, txt_blk: TextBlock) -> ManagementCompany:
         """Deserialize a ManagementCompany from a text block.
@@ -174,6 +173,8 @@ class DeserializerManagmentCompanyStandard:
 
 
 class DeserializerInvestmentsManagerFromManco:
+    """Deserializes a management company text block into an InvestmentsManager object."""
+
     @deserialize_block_type_call(ResultStandardFiltering.MANAGEMENT_COMPANY)
     def __call__(self, txt_blk: TextBlock) -> InvestmentsManager:
         """Deserialize an InvestmentsManager from a management company text block.
@@ -195,6 +196,8 @@ class DeserializerInvestmentsManagerFromManco:
 
 
 class DeserializerInvestmentsManagerStandard:
+    """Deserializes a text block into an InvestmentsManager object."""
+
     @deserialize_block_type_call(ResultStandardFiltering.INVESTMENTS_MANAGER)
     def __call__(self, txt_blk: TextBlock) -> InvestmentsManager:
         """Deserialize an InvestmentsManager from a text block.
@@ -216,6 +219,8 @@ class DeserializerInvestmentsManagerStandard:
 
 
 class DeserializerInvestmentStandard:
+    """Deserializes a text block into an Equity or Bond investment object."""
+
     cost_and_value_interpret_int: bool = True
     quantity_interpret_float: bool = False
 
@@ -325,6 +330,8 @@ class DeserializerInvestmentStandard:
 
 
 class DeserializerAssetsStandard:
+    """Deserializes a text block into a FundAssets object."""
+
     num_converter: Callable[[str], float | int]
     date_converter: Optional[Callable[[str], float | int]]
 

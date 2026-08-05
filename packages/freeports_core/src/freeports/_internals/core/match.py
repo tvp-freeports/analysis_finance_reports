@@ -2,7 +2,6 @@
 other in a consistent and standard way.
 """
 
-from freeports.i18n import _
 from .normalization import deep_normalize_string
 
 

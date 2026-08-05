@@ -4,11 +4,10 @@ This module defines the fundamental data structures (PdfBlock, TextBlock) and
 exception classes used throughout the document processing pipeline.
 """
 
-from typing import Optional, List, Union
+from typing import Optional, Union
 from enum import Enum
 from lxml import etree
 from freeports.i18n import _
-import copy
 
 
 def _str_blocks(blk: Union["PdfBlock", "TextBlock"]) -> str:
@@ -214,6 +213,22 @@ class TextBlock:
 
     @classmethod
     def from_content(cls, type_block: Enum, metadata: dict, content: str):
+        """Create a TextBlock from content instead of a PdfBlock.
+
+        Parameters
+        ----------
+        type_block : Enum
+            The block type.
+        metadata : dict
+            Metadata for the block.
+        content : str
+            The textual content.
+
+        Returns
+        -------
+        TextBlock
+            A new TextBlock instance with no associated PdfBlock.
+        """
         new_blk = cls.__new__(cls)
         new_blk.type_block = type_block
         new_blk.metadata = metadata

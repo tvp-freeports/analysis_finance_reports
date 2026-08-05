@@ -3,7 +3,7 @@ in a consistent and providing different degree and methodology of normalization
 depending on their use in the code.
 """
 
-from typing import Callable, TypeVar, ParamSpec
+from typing import Dict
 
 # Character translation table for string normalization
 translation_table: Dict[str, str] = {

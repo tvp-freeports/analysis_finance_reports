@@ -13,10 +13,9 @@ import os
 import tarfile
 import shutil
 import logging as log
-from typing import List, Tuple, Optional, Union, Dict, Any
+from typing import List, Tuple, Optional, Dict, Any
 from multiprocessing import Pool, set_start_method
 import csv
-from lxml import etree
 import pymupdf as pypdf
 import pandas as pd
 from freeports.i18n import _
@@ -29,23 +28,15 @@ from freeports._internals.output.routines import (
 )
 from freeports._internals.output.classes_schema import (
     Investment,
-    Equity,
-    Bond,
     Fund,
-    FundRename,
     FundChangeName,
-    FundMerge,
     FundSfdrClassification,
     FundEsgIndicator,
     FundAssets,
     AssetsManager,
-    InvestmentsManager,
 )
 from freeports._internals.input.download import download_pdf
-from freeports._internals.core.promises import (
-    PromisesResolutionContext,
-    flatten_promise_map,
-)
+from freeports._internals.core.promises import flatten_promise_map
 from freeports._internals.formats.repo.algorithms.definitions import Algorithm
 from freeports._internals.formats.repo.metadata import get_formats
 from freeports._internals.cli.conf_parse import (
@@ -214,7 +205,7 @@ def _output_file(
 
 
 def _main_job(
-    main_job_config: Dict[str, Any], n_workers: int
+    main_job_config: Dict[str, Any], _n_workers: int
 ) -> Tuple[List[List[Investment]], str, Optional[str]]:
     """Execute a single job for PDF processing and data extraction.
 
@@ -292,7 +283,7 @@ def _main_job(
             elif isinstance(r, FundChangeName):
                 doc_results.results[-1].funds_change_name.append(r)
             else:
-                raise Exception(f"Not recognized type of result {type(r)}")
+                raise TypeError(f"Not recognized type of result {type(r)}")
     promises_resolution_map = flatten_promise_map(promises_resolution_map)
     doc_results.fulfill_promises(promises_resolution_map)
     format_utils.removeHandler(handler_csv)

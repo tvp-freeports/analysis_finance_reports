@@ -3,8 +3,6 @@
 from enum import Enum, auto
 from .i18n import _
 
-import freeports
-
 PROGRAM_DESCRIPTION = _(
     """Analyze finance reports searching for investing in companies
 allegedly involved interantional law violations by third parties
@@ -20,6 +18,8 @@ class FinancialInstrument(Enum):
 
 
 class SfdrArticle(Enum):
+    """Enumeration of SFDR article classifications."""
+
     ART_6 = auto()
     ART_8 = auto()
     ART_9 = auto()

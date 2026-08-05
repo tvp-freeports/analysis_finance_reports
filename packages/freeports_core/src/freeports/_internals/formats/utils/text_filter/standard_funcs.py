@@ -11,32 +11,28 @@ Key components:
 - Standard text extraction functionality through standard_text_filterion decorator
 """
 
-from enum import Enum, auto
 import re
 import logging
+from typing import Any, Callable, List, Optional, Tuple
 import freeports_lib
-from typing import Any, Callable, List, Optional, Tuple, Set
 from freeports.i18n import _
 from freeports._internals.core.logging import LOG_ADAPT_INVESTMENT_INFOS
 from freeports._internals.core.classes import (
     TextBlock,
     PdfBlock,
     ExpectedTextBlockNotFound,
-    LineParseFail,
     PageParseFail,
 )
 from freeports.interfaces.text_blks import StandardFundTextBlock
 from freeports.interfaces.pdf_blks import ResultStandardExtraction
+from freeports.consts import Currency
+from freeports import output
 from . import match
 from .standard_txt_blks import (
     ResultStandardFiltering,
     OneTextBlockType,
     StandardManagmentCompanyTextBlock,
-    StandardInvestmentsMangerTextBlock,
 )
-
-from freeports.consts import Currency
-from freeports import output
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +132,7 @@ def get_investment_funds(filter_data: list) -> set[match.MatchFund]:
     return set(
         map(
             lambda f: match.MatchFund(f.fund),
-            filter(lambda ff: isinstance(ff, output.Investment), filter_data),
+            filter(lambda ff: isinstance(ff, output.Investment), filter_data),  # pylint: disable=no-member
         )
     )
 
@@ -552,6 +548,8 @@ perc_regexes = [r"[a-zA-Z].*((\d+[\.,]\d+)\s*%).*", r"[a-zA-Z].*((\d+[\.,]\d+)\s
 
 
 class TextFilterSfdrArticleStandard:
+    """Filters SFDR article blocks by matching fund names against known investment funds."""
+
     def __init__(
         self,
         fund_prefix: list[str | re.Pattern] = [],
@@ -616,6 +614,8 @@ class TextFilterSfdrArticleStandard:
 
 
 class TextFilterPageClassifyStandard:
+    """Consolidates page type metadata from PDF blocks into a single classification."""
+
     def __call__(self, pdf_blks: List[PdfBlock], _: Any) -> List[TextBlock]:
         """Classify pages by consolidating page type metadata from PDF blocks.
 
@@ -632,20 +632,24 @@ class TextFilterPageClassifyStandard:
             List containing the page classification text block.
         """
         page_classification = None
+        last_blk = None
         for blk in pdf_blks:
+            last_blk = blk
             page_type = blk.metadata["page_type"]
             if page_type is not None:
                 if page_classification is None:
                     page_classification = page_type
                 else:
-                    raise Exception(
+                    raise ValueError(
                         f"page cannot be classified both as `{page_classification}` and `{page_type}`"
                     )
+        if page_classification is None:
+            return []
         return [
             TextBlock(
                 ResultStandardFiltering.PAGE_CLASS,
                 {"page_type": page_classification},
-                blk,
+                last_blk,
             )
         ]
 
@@ -699,6 +703,8 @@ def extract_currency_from_text(txt: str) -> Currency:
 
 
 class TextFilterInvestmentsStandard:
+    """Filters and extracts investment data from PDF blocks using column-based positions."""
+
     market_value_pos: int
     nominal_quantity_pos: Optional[int]
     perc_net_assets_pos: Optional[int]
@@ -903,13 +909,13 @@ class TextFilterInvestmentsStandard:
         for b in pdf_blks:
             if b.type_block == ResultStandardExtraction.FUND_NAME:
                 if fund_found is not None:
-                    raise Exception("Fund two subfunds in same page")
+                    raise ValueError("Fund two subfunds in same page")
                 fund_found = b.content
                 results.append(StandardFundTextBlock(b))
 
             elif b.type_block == ResultStandardExtraction.CURRENCY_STATEMENT:
                 if currency_found is not None:
-                    raise Exception("Fund two currency in same page")
+                    raise ValueError("Fund two currency in same page")
                 try:
                     currency_found = extract_currency_from_text(b.content)
                 except ExpectedTextBlockNotFound as e:
@@ -917,6 +923,8 @@ class TextFilterInvestmentsStandard:
             else:
                 investments_blks.append(b)
         inv = self.__txt_filter(investments_blks, filter_data)
+        if not inv:
+            return results
         for i in inv:
             i.metadata["fund"] = fund_found
             i.metadata["currency"] = currency_found
@@ -928,6 +936,8 @@ class TextFilterInvestmentsStandard:
 
 
 class TextFilterAssetsStandard:
+    """Filters assets blocks by matching funds and extracting currency data."""
+
     def __init__(
         self, date_regex: Optional[str] = None, remove_from_fund_regexes: list[str] = []
     ) -> None:
@@ -986,6 +996,8 @@ class TextFilterAssetsStandard:
 
 
 class TextFilterManagmentCompanyStandard:
+    """Filters management company blocks by matching managed funds against filter data."""
+
     def __call__(
         self, pdf_blks: List[PdfBlock], filter_data: list
     ) -> list[StandardManagmentCompanyTextBlock]:

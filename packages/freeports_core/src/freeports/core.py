@@ -1,6 +1,7 @@
 """Useful core classes used to construct format algorithms.
 They are related to concept essential and depend from the program implementation.
 """
+# pylint: disable=unused-import
 
 from freeports._internals.core.classes import PdfBlock, TextBlock
 from freeports._internals.core.promises import Promise
