@@ -1,6 +1,6 @@
 [project]
-name = "freeports-dev"
-description = "Development tools for the freeports PDF extraction framework"
+name = "freeports-validate"
+description = "Validation tools for freeports format repositories"
 requires-python = ">=3.8"
 license = "GPL-3.0"
 version = "0.0.1"
@@ -9,12 +9,6 @@ authors = [
 ]
 dependencies = [
     "freeports",
-    "pytest",
-    "dill",
-    "pandas",
-    "pyyaml",
-    "PyMuPDF",
-    "lxml",
 ]
 
 [project.urls]
@@ -23,10 +17,7 @@ documentation = "https://docs.freeports.org"
 homepage = "https://www.freeports.org"
 
 [project.scripts]
-freeports-dev = "freeports_dev.cli:main"
-
-[project.entry-points.pytest11]
-freeports_dev = "freeports_dev.pytest_plugin"
+freeports-validate = "freeports_validate.cli:main"
 
 [build-system]
 requires = ["setuptools >= 77.0.3"]
@@ -36,4 +27,11 @@ build-backend = "setuptools.build_meta"
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
-freeports_dev = ["py.typed", "data/**/*"]
+freeports_validate = [
+    "bin/*",
+    "lib/*",
+    "lib/*.sh",
+    "lib/*.json",
+    "lib/*.yaml",
+    "docs/**/*.rst",
+]

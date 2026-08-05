@@ -1,0 +1,7 @@
+freeports
+pytest
+dill
+pandas
+pyyaml
+PyMuPDF
+lxml

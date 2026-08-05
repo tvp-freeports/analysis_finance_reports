@@ -5,6 +5,7 @@ URL-to-format mappings used in document processing.
 """
 
 from pathlib import Path
+from copy import deepcopy
 from typing import Optional, List
 import pandera.pandas as pa
 import pandas as pd
@@ -103,7 +104,7 @@ def get_url_mapping_schema(format_names: List[str]) -> pa.DataFrameSchema:
     pa.DataFrameSchema
         Pandera schema for URL mapping validation.
     """
-    schema = _url_mapping_schema.copy()
+    schema = deepcopy(_url_mapping_schema)
     schema.index.checks.append(pa.Check.isin(format_names))
     return schema
 

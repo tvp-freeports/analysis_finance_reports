@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: freeports-dev
+Version: 0.0.1
+Summary: Development tools for the freeports PDF extraction framework
+Author-email: Oreste Sciacqualegni <orestesciacqualegni@tutanota.com>
+License-Expression: GPL-3.0
+Project-URL: github, https://github.com/tvp-freeports/analysis_finance_reports
+Project-URL: documentation, https://docs.freeports.org
+Project-URL: homepage, https://www.freeports.org
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: freeports
+Requires-Dist: pytest
+Requires-Dist: dill
+Requires-Dist: pandas
+Requires-Dist: pyyaml
+Requires-Dist: PyMuPDF
+Requires-Dist: lxml
+Dynamic: license-file

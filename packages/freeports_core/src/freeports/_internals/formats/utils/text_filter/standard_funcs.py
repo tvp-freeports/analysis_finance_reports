@@ -644,7 +644,11 @@ class TextFilterPageClassifyStandard:
                         f"page cannot be classified both as `{page_classification}` and `{page_type}`"
                     )
         if page_classification is None:
-            return []
+            return [
+                TextBlock(
+                    ResultStandardFiltering.PAGE_CLASS, {"page_type": None}, last_blk
+                )
+            ]
         return [
             TextBlock(
                 ResultStandardFiltering.PAGE_CLASS,

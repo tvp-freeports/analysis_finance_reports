@@ -1,0 +1,85 @@
+#!/bin/bash
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+UPDATE_MODE=false
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case $1 in
+        --update)
+            UPDATE_MODE=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--update]"
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$PERSONAL_DOC" ]; then
+    print_error "No validation document found for current user"
+    echo "Run create-document first to create your validation document"
+    exit 1
+fi
+
+if [ ! -f "$PERSONAL_DOC" ]; then
+    print_error "Validation document '$PERSONAL_DOC' does not exist"
+    exit 1
+fi
+
+echo "Signing validation document: $(basename "$PERSONAL_DOC")"
+
+# Validate schema before signing
+if ! validate_document_schema "$PERSONAL_DOC" "true"; then
+    print_error "Cannot sign document with invalid schema"
+    exit 1
+fi
+
+# Check if signature already exists and is not null
+existing_sig=$(yq -r '.sign' "$PERSONAL_DOC")
+if [ "$existing_sig" != "null" ] && [ -n "$existing_sig" ]; then
+    if [ "$UPDATE_MODE" = false ]; then
+        print_error "Signature already exists in document"
+        echo "Use --update option to update the existing signature"
+        exit 1
+    else
+        echo "Updating existing signature..."
+    fi
+else
+    if [ "$UPDATE_MODE" = true ]; then
+        print_warning "No existing signature found, creating new signature"
+    fi
+fi
+
+# Generate signature in raw GPG armored format
+echo "Signing with key: $KEYID"
+signature=$(generate_document_signature "$PERSONAL_DOC")
+
+if [ $? -ne 0 ] || [ -z "$signature" ]; then
+    print_error "Failed to sign document"
+    exit 1
+fi
+
+# Update the document with the raw signature
+add_signature_to_document "$PERSONAL_DOC" "$signature"
+
+if [ "$UPDATE_MODE" = true ]; then
+    print_success "Document signature updated successfully"
+else
+    print_success "Document signed successfully"
+fi
+echo "Signature stored in: $PERSONAL_DOC"
+
+# Verify the signature
+echo ""
+echo "Verifying signature..."
+if validate_document_signature "$PERSONAL_DOC" "true"; then
+    print_success "Signature verification successful"
+else
+    print_error "Signature verification failed"
+    exit 1
+fi
+

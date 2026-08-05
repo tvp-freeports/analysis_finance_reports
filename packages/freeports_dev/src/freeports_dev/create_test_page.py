@@ -1,26 +1,12 @@
 import pymupdf as pypdf
 from lxml import etree
-import copy
 import textwrap
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 import dill
-from freeports_analysis.formats.algorithms import get_pipelines
-from freeports_analysis.formats.utils.pdf_extract.pdf_parts import (
-    PdfLineSelection,
-    pdflines_from_pagedict,
-)
-from freeports_analysis.formats.algorithms import Algorithm
-from freeports_analysis.formats import PdfBlock
-from freeports_analysis.formats.utils.text_filter import PdfBlocksTable
-from collections.abc import Callable
-import os
-
-base_repo = Path(__file__).parent.parent
-
-tests_dir = base_repo / "tests"
-
-formats_tests = tests_dir / "formats" / "algorithms"
+from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+from freeports._internals.formats.repo.metadata import get_formats
+from freeports._internals.core.classes import PdfBlock
 
 extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
 
@@ -63,13 +49,13 @@ def get_doc(file_path):
     return [page.get_text("dict", flags=extraction_flags) for page in pdf_file]
 
 
-def get_pdf_from_tests(fmt, document=None, base_path=formats_tests):
+def get_pdf_from_tests(fmt, document=None, base_path=None):
     _file = base_path / fmt / ("" if document is None else str(document)) / "report.pdf"
     pdf_file = pypdf.Document(_file)
     return pdf_file
 
 
-def get_doc_from_tests(fmt, document=None, base_path=formats_tests):
+def get_doc_from_tests(fmt, document=None, base_path=None):
     pdf = get_pdf_from_tests(fmt, document, base_path=base_path)
     return [page.get_text("dict") for page in pdf]
 
@@ -78,6 +64,12 @@ def print_pdf_line_sets(page, strings, mode="structured"):
     if isinstance(strings, str):
         strings = [strings]
     first_string = True
+    from freeports._internals.formats.utils.pdf_extract.pdf_blks_acquire import (
+        pdflines_from_pagedict,
+    )
+    import freeports_lib
+
+    PdfLineSelection = freeports_lib.pdf_extract.select.PdfLineSelection
     lines = pdflines_from_pagedict(page)
     for txt in strings:
         exl = PdfLineSelection.text(txt).select(lines)
@@ -89,10 +81,10 @@ def print_pdf_line_sets(page, strings, mode="structured"):
             txt = el.text
             fs = el.font_size
             font = el.font_name
-            if mode in "structured":
+            if mode == "structured":
                 area = f"(({x_min}:{x_max})({y_min}:{y_max}))"
                 print(f'{font}[{fs}]{area} "{txt}"')
-            elif mode in "semistructured":
+            elif mode == "semistructured":
                 print(f"font: {font}")
                 print(f"text: {txt}")
                 print(f"font_size: {fs}")
@@ -116,29 +108,18 @@ def print_pdf_line_sets(page, strings, mode="structured"):
 def print_pdf_blks_table_MD(
     pdf_blocks: List[PdfBlock], max_cell_width: int = 30, show_grid: bool = True
 ) -> None:
-    """Print a table from PdfBlocks with row/col metadata in markdown format.
+    from freeports._internals.formats.utils.text_filter.standard_funcs import (
+        PdfBlocksTable,
+    )
 
-    Parameters
-    ----------
-    pdf_blocks : List[PdfBlock]
-        List of PdfBlocks with 'table-row' and 'table-col' metadata
-    max_cell_width : int, optional
-        Maximum width for cell content before truncation with ellipsis, by default 30
-    show_grid : bool, optional
-        Whether to draw grid lines in the markdown table, by default True
+    pdf_blocks = [
+        b for b in pdf_bloks if "table-row" in b.metadata and "table-col" in b.metadata
+    ]
 
-    Notes
-    -----
-    - Cells can contain multiple PdfBlocks (displayed one under another)
-    - Row height adjusts based on number of blocks in each cell
-    - Long text is truncated with ellipsis using textwrap
-    - Empty cells are shown as empty
-    """
     if not pdf_blocks:
         print("No PDF blocks to display")
         return
 
-    # Create table structure
     table = PdfBlocksTable(pdf_blocks)
     rows, cols = table.shape
 
@@ -146,20 +127,18 @@ def print_pdf_blks_table_MD(
         print("Empty table")
         return
 
-    # Collect all cell contents
     cell_contents = []
     max_lines_per_row = []
 
     for r in range(rows):
         row_contents = []
-        max_lines = 1  # At least 1 line per row
+        max_lines = 1
 
         for c in range(cols):
             cell = table[r, c]
             if cell is None:
                 row_contents.append([""])
             elif isinstance(cell, PdfBlock):
-                # Single block in cell
                 content = cell.content.strip()
                 if len(content) > max_cell_width:
                     content = textwrap.shorten(
@@ -167,7 +146,6 @@ def print_pdf_blks_table_MD(
                     )
                 row_contents.append([content])
             else:
-                # Multiple blocks in cell
                 block_contents = []
                 for block in cell:
                     content = block.content.strip()
@@ -182,14 +160,10 @@ def print_pdf_blks_table_MD(
         cell_contents.append(row_contents)
         max_lines_per_row.append(max_lines)
 
-    # Build markdown table
     if show_grid:
-        # Header separator
         header_sep = "|" + "|".join(["---" for _ in range(cols)]) + "|"
-        # Print table
         for r in range(rows):
             lines_in_row = max_lines_per_row[r]
-
             for line_idx in range(lines_in_row):
                 row_line = "|"
                 for c in range(cols):
@@ -199,52 +173,42 @@ def print_pdf_blks_table_MD(
                     else:
                         row_line += " |"
                 print(row_line)
-
-                # Add separator after first row
                 if r == 0 and line_idx == lines_in_row - 1:
                     print(header_sep)
     else:
-        # Simple table without grid lines
         for r in range(rows):
             lines_in_row = max_lines_per_row[r]
-
             for line_idx in range(lines_in_row):
                 row_line = ""
                 for c in range(cols):
                     cell_lines = cell_contents[r][c]
                     if line_idx < len(cell_lines):
                         content = cell_lines[line_idx]
-                        # Pad content for alignment
                         padded_content = content.ljust(max_cell_width)
                         row_line += f" {padded_content} "
                     else:
                         row_line += " " * (max_cell_width + 2)
-
                     if c < cols - 1:
                         row_line += " "
                 print(row_line)
-
             if r < rows - 1:
-                print()  # Empty line between rows
+                print()
 
 
 def print_pdf_blks_table_ASCII(
     pdf_blocks: List[PdfBlock], max_cell_width: int = 30
 ) -> None:
-    """Print a table from PdfBlocks with ASCII borders for better visualization.
+    from freeports._internals.formats.utils.text_filter.standard_funcs import (
+        PdfBlocksTable,
+    )
 
-    Parameters
-    ----------
-    pdf_blocks : List[PdfBlock]
-        List of PdfBlocks with 'table-row' and 'table-col' metadata
-    max_cell_width : int, optional
-        Maximum width for cell content before truncation with ellipsis, by default 30
-    """
+    pdf_blocks = [
+        b for b in pdf_blocks if "table-row" in b.metadata and "table-col" in b.metadata
+    ]
     if not pdf_blocks:
         print("No PDF blocks to display")
         return
 
-    # Create table structure
     table = PdfBlocksTable(pdf_blocks)
     rows, cols = table.shape
 
@@ -252,7 +216,6 @@ def print_pdf_blks_table_ASCII(
         print("Empty table")
         return
 
-    # Collect all cell contents and calculate column widths
     cell_contents = []
     max_lines_per_row = []
     col_widths = [0] * cols
@@ -289,31 +252,25 @@ def print_pdf_blks_table_ASCII(
         cell_contents.append(row_contents)
         max_lines_per_row.append(max_lines)
 
-    # Ensure minimum column width
     col_widths = [max(3, w) for w in col_widths]
 
-    # Build ASCII table with borders
     def horizontal_border() -> str:
         border = "+"
         for w in col_widths:
             border += "-" * (w + 2) + "+"
         return border
 
-    # Print column numbers header (centered with columns)
     col_header = " "
     for c in range(cols):
         col_num = str(c).center(col_widths[c] + 2)
         col_header += f"{col_num} "
     print(col_header)
 
-    # Print top border
     top_border = horizontal_border()
     print(top_border)
 
-    # Print table rows with row numbers at right
     for r in range(rows):
         lines_in_row = max_lines_per_row[r]
-
         for line_idx in range(lines_in_row):
             row_line = "|"
             for c in range(cols):
@@ -324,15 +281,11 @@ def print_pdf_blks_table_ASCII(
                     row_line += f" {padded_content} |"
                 else:
                     row_line += " " * (col_widths[c] + 2) + "|"
-
-            # Add row number for first line of each row at right
             if line_idx == 0:
                 row_line = row_line[:-1] + f"| {str(r).rjust(2)}"
             else:
                 row_line = row_line[:-1] + "|"
             print(row_line)
-
-        # Print border after each row
         row_border = horizontal_border()
         print(row_border)
 
@@ -342,30 +295,31 @@ def get_pdf_blocks(
     document,
     page_type,
     n_page,
-    base_path=formats_tests,
+    base_path=None,
     page=None,
     algorithm=None,
     only_computed=False,
 ):
     if algorithm is None:
-        algorithm = Algorithm.load(fmt)
+        algorithm = Algorithm.load(
+            base_path.parent, fmt, list(get_formats(base_path.parent).index)
+        )
     if page is None:
         page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
     pdf_blks = algorithm.apply_pdf_extract(page, page_type)
     if only_computed:
         return pdf_blks
-    else:
-        reference_pdf_blks = None
-        with (
-            base_path
-            / fmt
-            / ("" if document is None else str(document))
-            / "pages"
-            / page_type
-            / f"{n_page}-pdf_blks.pkl"
-        ).open("rb") as f:
-            reference_pdf_blks = dill.load(f)
-        return pdf_blks, reference_pdf_blks
+    reference_pdf_blks = None
+    with (
+        base_path
+        / fmt
+        / ("" if document is None else str(document))
+        / "pages"
+        / page_type
+        / f"{n_page}-pdf_blks.pkl"
+    ).open("rb") as f:
+        reference_pdf_blks = dill.load(f)
+    return pdf_blks, reference_pdf_blks
 
 
 def get_text_blocks(
@@ -374,31 +328,31 @@ def get_text_blocks(
     page_type,
     n_page,
     filter_data,
-    base_path=formats_tests,
+    base_path=None,
     page=None,
     algorithm=None,
     only_computed=False,
 ):
     if algorithm is None:
-        algorithm = Algorithm.load(fmt)
+        algorithm = Algorithm.load(
+            base_path.parent, fmt, list(get_formats(base_path.parent).index)
+        )
     if page is None:
         page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
-    reference_txt_blks = None
 
     txt_blks = algorithm.apply_text_filter(page, filter_data, page_type)
     if only_computed:
         return txt_blks
-    else:
-        with (
-            base_path
-            / fmt
-            / ("" if document is None else str(document))
-            / "pages"
-            / page_type
-            / f"{n_page}-txt_blks.pkl"
-        ).open("rb") as f:
-            reference_txt_blks = dill.load(f)
-        return txt_blks, reference_txt_blks
+    with (
+        base_path
+        / fmt
+        / ("" if document is None else str(document))
+        / "pages"
+        / page_type
+        / f"{n_page}-txt_blks.pkl"
+    ).open("rb") as f:
+        reference_txt_blks = dill.load(f)
+    return txt_blks, reference_txt_blks
 
 
 def get_results(
@@ -407,30 +361,30 @@ def get_results(
     page_type,
     n_page,
     filter_data,
-    base_path=formats_tests,
+    base_path=None,
     page=None,
     algorithm=None,
     only_computed=False,
 ):
     if algorithm is None:
-        algorithm = Algorithm.load(fmt)
+        algorithm = Algorithm.load(
+            base_path.parent, fmt, list(get_formats(base_path.parent).index)
+        )
     if page is None:
         page = get_doc_from_tests(fmt, document, base_path=base_path)[n_page - 1]
     results = algorithm.apply_deserialize(page, filter_data, page_type)
     if only_computed:
         return results
-    else:
-        reference_results = None
-        with (
-            base_path
-            / fmt
-            / ("" if document is None else str(document))
-            / "pages"
-            / page_type
-            / f"{n_page}-results.pkl"
-        ).open("rb") as f:
-            reference_results = dill.load(f)
-        return results, reference_results
+    with (
+        base_path
+        / fmt
+        / ("" if document is None else str(document))
+        / "pages"
+        / page_type
+        / f"{n_page}-results.pkl"
+    ).open("rb") as f:
+        reference_results = dill.load(f)
+    return results, reference_results
 
 
 def relative_movewindow_area(vec, width_mult, height_mult):

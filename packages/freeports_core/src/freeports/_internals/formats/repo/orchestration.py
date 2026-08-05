@@ -4,6 +4,7 @@ which pages are processed.
 """
 
 from pathlib import Path
+from copy import deepcopy
 from typing import Optional, List, Set, Dict, Any
 import pandera.pandas as pa
 import pandas as pd
@@ -57,7 +58,7 @@ def get_algorithms_schedule_schema(format_names: List[str]) -> pa.DataFrameSchem
     pa.DataFrameSchema
         Pandera schema for algorithm schedule validation.
     """
-    schema = _algorithms_schedule_schema.copy()
+    schema = deepcopy(_algorithms_schedule_schema)
     schema.index.checks.append(pa.Check.isin(format_names))
     return schema
 
@@ -152,7 +153,7 @@ def get_pageclassify_overwrite_schema(format_names: List[str]) -> pa.DataFrameSc
     pa.DataFrameSchema
         Pandera schema for page classification overwrite validation.
     """
-    schema = _pageclassify_overwrite_schema.copy()
+    schema = deepcopy(_pageclassify_overwrite_schema)
     schema.index.checks.append(pa.Check.isin(format_names))
     return schema
 
@@ -242,7 +243,7 @@ def get_mapping_schema(format_names: List[str]) -> pa.DataFrameSchema:
     pa.DataFrameSchema
         Pandera schema for mapping validation.
     """
-    schema = _mapping_schema.copy()
+    schema = deepcopy(_mapping_schema)
     schema.index.indexes[0].checks.append(pa.Check.isin(format_names))
     return schema
 

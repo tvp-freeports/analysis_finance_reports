@@ -1,0 +1,5 @@
+[console_scripts]
+freeports-dev = freeports_dev.cli:main
+
+[pytest11]
+freeports_dev = freeports_dev.pytest_plugin

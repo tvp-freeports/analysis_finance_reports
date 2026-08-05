@@ -1,0 +1,117 @@
+#!/bin/bash
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+METHODOLOGY=""
+FILES=()
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case $1 in
+        with)
+            shift
+            METHODOLOGY="$1"
+            shift
+            ;;
+        *)
+            FILES+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$METHODOLOGY" ]; then
+    print_error "Usage: $0 <files...> [with <methodology>]"
+    exit 1
+fi
+
+if [ -z "$PERSONAL_DOC" ]; then
+    print_error "No validation document found for current user"
+    echo "Run create-document first to create your validation document"
+    exit 1
+fi
+
+# Validate document schema and signature before making changes
+if ! validate_document_schema "$PERSONAL_DOC"; then
+    print_error "Document schema is invalid - cannot proceed with grant operation"
+    exit 1
+fi
+
+if ! validate_document_signature "$PERSONAL_DOC"; then
+    print_error "Operation cancelled due to invalid signature"
+    exit 1
+fi
+
+# If no files are provided, just add the methodology
+METHODOLOGY=$(normalize_methodology_name "$METHODOLOGY")
+if [ ${#FILES[@]} -eq 0 ]; then
+    print_info "Adding methodology: $METHODOLOGY"
+    
+    # Check if methodology already exists
+    if methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
+        print_warning "Methodology '$METHODOLOGY' already exists in validation document"
+        exit 0
+    fi
+    
+    # Get methodology file path and calculate hash
+    methodology_file=$(echo "$METHODOLOGY" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+    methodology_path="$METHODOLOGY_DIR/methodologies/${methodology_file}.rst"
+    
+    if [ ! -f "$methodology_path" ]; then
+        print_error "Methodology file '$methodology_path' does not exist"
+        echo "Please create the methodology documentation first"
+        exit 1
+    fi
+    
+    methodology_hash=$(sha256sum "$methodology_path" | awk '{print $1}')
+    
+    # Add methodology to methodologies list
+    add_methodology_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$methodology_hash"
+
+    print_success "Added methodology '$METHODOLOGY' with hash: $methodology_hash"
+    echo "Updating signature..."
+    "$BIN_DIR/sign-document" --update
+    exit 0
+fi
+
+# Check if methodology exists in the document
+if ! methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
+    print_error "Methodology '$METHODOLOGY' not found in validation document"
+    echo "Available methodologies:"
+    yq -r '.methodologies[].name' "$PERSONAL_DOC"
+    echo ""
+    echo "To add this methodology, run: $0 with '$METHODOLOGY'"
+    exit 1
+fi
+
+# Process each file
+for file in "${FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        print_error "File '$file' does not exist"
+        exit 1
+    fi
+    
+    # Calculate SHA256 hash
+    file_hash=$(sha256sum "$file" | awk '{print $1}')
+    
+    # Get relative path from repo root
+    rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
+    
+    print_info "Processing: $rel_path (SHA256: $file_hash)"
+    
+    # Check if file is already granted with this methodology
+    if file_granted_with_methodology "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path"; then
+        print_warning "File '$rel_path' is already granted with methodology '$METHODOLOGY'"
+        continue
+    fi
+    
+    # Add file to the methodology section
+    add_file_grant_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path" "$file_hash"
+
+    print_success "Granted '$rel_path' with methodology '$METHODOLOGY'"
+done
+
+print_success "Grant operation completed. Document updated: $PERSONAL_DOC"
+echo "Updating signature..."
+"$BIN_DIR/sign-document" --update
+

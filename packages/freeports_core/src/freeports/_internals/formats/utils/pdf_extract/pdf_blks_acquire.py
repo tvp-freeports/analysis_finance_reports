@@ -283,7 +283,8 @@ line_set_regexp = f"({_LINE_SET_FONT_REGEXP})? ?"
 line_set_regexp += f"({_LINE_SET_FONTSIZE_REGEXP})? ?"
 line_set_regexp += f"({_LINE_SET_AREA_REGEXP})? ?"
 line_set_regexp += f"({_LINE_SET_TEXT_REGEXP})?"
-_LINE_SET_REGEXP = re.compile(line_set_regexp)
+LINE_SET_REGEXP_PATTERN = line_set_regexp
+LINE_SET_REGEXP = re.compile(LINE_SET_REGEXP_PATTERN)
 
 
 def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
@@ -361,7 +362,7 @@ def pdfline_selection_from_str(string: str) -> PdfLineSelection:
     PdfLineSelection
         A selection object built from the parsed criteria.
     """
-    matched = _LINE_SET_REGEXP.match(string).groupdict()
+    matched = LINE_SET_REGEXP.match(string).groupdict()
     area = None
     tmp_area = matched["area"]
     tmp_range = matched["y_range"]

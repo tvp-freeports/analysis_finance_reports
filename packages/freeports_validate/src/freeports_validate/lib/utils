@@ -1,0 +1,40 @@
+#!/bin/bash
+if [ -z "$AFINANCE_VALIDATION_KEYID" ]; then
+    echo "Specify the public key id to use as identity"
+    echo "use environment variable AFINANCE_VALIDATION_KEYID"
+    exit 1
+fi
+export KEYID="$AFINANCE_VALIDATION_KEYID"
+
+if [ -n "$FREEPORTS_FORMATS_REPO" ]; then
+    export REPO_ROOT="$FREEPORTS_FORMATS_REPO"
+else
+    export REPO_ROOT=$(git rev-parse --show-toplevel)
+fi
+
+export LIB_DIR="${FREEPORTS_VALIDATE_LIB}"
+export BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd ../bin && pwd)"
+export METHODOLOGY_DIR="${FREEPORTS_VALIDATE_DOCS}/validation"
+export ASSERT_DIR="${METHODOLOGY_DIR}/assertions"
+export TEST_DIR="${REPO_ROOT}/tests"
+export DOCUMENT_DIR="${REPO_ROOT}/validation"
+
+source "${LIB_DIR}/validation_utils.sh"
+source "${LIB_DIR}/document_utils.sh"
+
+# Get UID information and parse it
+user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
+if [ -z "$user_id" ]; then
+    echo "Error: Key '$KEYID' not found or has no UID"
+    exit 1
+fi
+
+# Extract name and email
+export NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
+export EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
+out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+export PERSONAL_DOC="${DOCUMENT_DIR}/${out_file_name}.yaml"
+
+get_version_methodology(){
+    sha256sum "$METHODOLOGY_DIR/general_methodology.rst" | awk '{print $1}'
+}

@@ -1,15 +1,13 @@
-from test_single_page import (
+from freeports_dev.create_test_page import (
     get_page,
     get_pdf_blocks,
     get_text_blocks,
     get_results,
-    formats_tests,
     get_page_dict,
 )
-from freeports_analysis.data import get_target_companies
-from freeports_analysis.formats.algorithms import Algorithm
-import pymupdf
-import freeports_lib
+from freeports_dev.input_db import get_test_companies as gtc
+from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+from freeports._internals.formats.repo.metadata import get_formats
 from pathlib import Path
 import dill
 import shutil
@@ -42,8 +40,8 @@ def add_page_test(
     document,
     page_type,
     n_page,
-    base_out_path=formats_tests,
-    base_in_path=formats_tests,
+    base_out_path,
+    base_in_path,
     report_file=None,
     filter_data=None,
     noconfirm=False,
@@ -76,18 +74,18 @@ def add_page_test(
                 filter_data = dill.load(f)
                 print(f"Used filter data found in {filter_data_file}")
         else:
-            filter_data = freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
-                get_target_companies("TEST")
-            )
+            filter_data = gtc(base_in_path.parent)
         out_filter_data_file = None
 
-    a = Algorithm.load(fmt)
+    a = Algorithm.load(
+        base_in_path.parent, fmt, list(get_formats(base_in_path.parent).index)
+    )
     page = None
     if report_file is not None:
         report_file = Path(report_file)
     if report_file is not None and not report_file.exists():
         print(
-            f"Warning, specified a report file that doesn't exists {report_file}, overwriting with None"
+            f"Warning, specified a report file that doesn't exist {report_file}, overwriting with None"
         )
         report_file = None
 
@@ -110,6 +108,7 @@ def add_page_test(
             print(blk)
     else:
         print(f"Extracted {len(pdf_blks)} pdf blocks...")
+
     txt_blks = get_text_blocks(
         fmt,
         document,
@@ -126,6 +125,7 @@ def add_page_test(
             print(blk)
     else:
         print(f"Filtered {len(txt_blks)} text blocks...")
+
     results = get_results(
         fmt,
         document,
@@ -194,7 +194,7 @@ def add_page_test(
     else:
         if report_file is not None:
             if noconfirm or not user_confirm(
-                f"Report present in {document_dir} but report {report} is used for computing results do you want to overwirte it?",
+                f"Report present in {document_dir} but report {report_file} is used for computing results, overwrite?",
                 default=False,
             ):
                 print("Report file not overwritten")
@@ -275,22 +275,15 @@ def add_page_test(
             else:
                 with open(out_filter_data_file, "wb") as f:
                     dill.dump(filter_data, f)
-                    print(
-                        f"Saved {len(filter_data)} data entry used to filter text blocks in {out_filter_data_file}..."
-                    )
-
+                    print(f"Saved filter data in {out_filter_data_file}...")
     else:
         print("Skipping creation of text blocks file")
 
     if not skip_results:
         if results_file.exists():
-            if (
-                noconfirm
-                or skip_results
-                or not user_confirm(
-                    f"Results file for page {n_page} already present, do you want to overwrite it?",
-                    default=False,
-                )
+            if noconfirm or not user_confirm(
+                f"Results file for page {n_page} already present, do you want to overwrite it?",
+                default=False,
             ):
                 print("Kept original results file")
             else:

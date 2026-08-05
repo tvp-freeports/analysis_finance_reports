@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: freeports-validate
+Version: 0.0.1
+Summary: Validation tools for freeports format repositories
+Author-email: Oreste Sciacqualegni <orestesciacqualegni@tutanota.com>
+License-Expression: GPL-3.0
+Project-URL: github, https://github.com/tvp-freeports/analysis_finance_reports
+Project-URL: documentation, https://docs.freeports.org
+Project-URL: homepage, https://www.freeports.org
+Requires-Python: >=3.8
+Requires-Dist: freeports
