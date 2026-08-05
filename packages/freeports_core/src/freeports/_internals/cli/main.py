@@ -47,6 +47,7 @@ from freeports._internals.core.promises import (
     flatten_promise_map,
 )
 from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+from freeports._internals.formats.repo.metadata import get_formats
 from freeports._internals.cli.conf_parse import (
     DEFAULT_CONFIG,
     DEFAULT_CONFIG_LOCATION,
@@ -74,16 +75,6 @@ class NoPDFormatDetected(Exception):
     This exception is raised when no explicit format is specified and the program
     cannot automatically determine the appropriate format for decoding the PDF.
     """
-
-
-class ValidationDataInputDB:
-    companies = None
-    markets = None
-    lists = None
-
-
-class ValidationDataFormatRepo:
-    formats = None
 
 
 def batch_job_confs(job_config: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -265,21 +256,17 @@ def _main_job(
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
     logger.debug(_("Starting job with configuration %s"), str(job_config))
-    format_repo_validation_data = ValidationDataFormatRepo()
-    input_db_validation_data = ValidationDataInputDB()
+    formats_df = get_formats(job_config["FORMATS_REPO_PATH"])
+    format_names = formats_df.index.to_list()
     alghoritm = Algorithm.load(
-        job_config["FORMATS_REPO_PATH"],
-        job_config["FORMAT"],
-        format_repo_validation_data,
+        job_config["FORMATS_REPO_PATH"], job_config["FORMAT"], format_names
     )
     pdf_file = _get_document(job_config)
     logger.info(_("Starting decoding pdf to python dict..."))
     pdf_file_dict = [page.get_text("dict") for page in pdf_file]
     logger.debug(_("End decoding pdf to python dict!"))
     targets = get_target_companies(
-        job_config["INPUT_DB_PATH"],
-        job_config["TARGET_LISTS"],
-        input_db_validation_data,
+        job_config["INPUT_DB_PATH"], job_config["TARGET_LISTS"]
     )
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
     results = alghoritm(pdf_file_dict, targets)

@@ -373,7 +373,7 @@ class Algorithm:
 
     @classmethod
     def load(
-        cls, formats_repo_dir: Path, format_name: str, format_repo_validation_data: Any
+        cls, formats_repo_dir: Path, format_name: str, format_names: List[str]
     ) -> "Algorithm":
         """Load an Algorithm from the format repository.
 
@@ -383,8 +383,8 @@ class Algorithm:
             Path to the formats repository directory.
         format_name : str
             Name of the format to load.
-        format_repo_validation_data : Any
-            Validation data for the format repository.
+        format_names : List[str]
+            List of valid format names.
 
         Returns
         -------
@@ -396,16 +396,14 @@ class Algorithm:
                 formats_repo_dir, format_name, allow_partial_pipelines=False
             ),
             page_classify_pipelines=get_pageclassify_pipelines(
-                formats_repo_dir, format_name, format_repo_validation_data
+                formats_repo_dir, format_name, format_names
             ),
             page_classify_finalizer=get_compute_page_class(
                 formats_repo_dir, format_name
             ),
-            schedule=get_schedule(
-                formats_repo_dir, format_name, format_repo_validation_data
-            ),
+            schedule=get_schedule(formats_repo_dir, format_name, format_names),
             page_type_pipelines_mapping=get_mapping(
-                formats_repo_dir, format_name, format_repo_validation_data
+                formats_repo_dir, format_name, format_names
             ),
         )
 

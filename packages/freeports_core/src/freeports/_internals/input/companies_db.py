@@ -6,7 +6,6 @@ validation to ensure data integrity.
 """
 
 from pathlib import Path
-from datetime import datetime
 import re
 import logging as log
 from typing import List, Union
@@ -118,7 +117,7 @@ companies_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies(input_db_directory: Path, input_db_validation_data) -> pd.DataFrame:
+def get_companies(input_db_directory: Path) -> pd.DataFrame:
     """Load and validate the list of companies from companies.csv.
 
     Returns
@@ -130,7 +129,6 @@ def get_companies(input_db_directory: Path, input_db_validation_data) -> pd.Data
     df.set_index("Name", drop=False, inplace=True)
     df["Name"] = df["Name"].apply(deep_normalize_string)
     df = companies_schema.validate(df)
-    input_db_validation_data.companies = df.index.to_list()
     return df
 
 
@@ -146,15 +144,14 @@ _companies_additional_regexs_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies_additional_regexs_schema(input_db_validation_data):
-    _companies_additional_regexs_schema.index.checks.append(
-        pa.Check.isin(input_db_validation_data.companies)
-    )
-    return _companies_additional_regexs_schema
+def get_companies_additional_regexs_schema(company_names: List[str]):
+    schema = _companies_additional_regexs_schema.copy()
+    schema.index.checks.append(pa.Check.isin(company_names))
+    return schema
 
 
 def get_companies_additional_regexs(
-    input_db_directory, input_db_validation_data
+    input_db_directory: Path, company_names: List[str]
 ) -> pd.DataFrame:
     """Load and validate additional regex patterns from companies_additional_regexs.csv.
 
@@ -168,14 +165,14 @@ def get_companies_additional_regexs(
         index_col=["Company name"],
     )
 
-    return get_companies_additional_regexs_schema(input_db_validation_data).validate(df)
+    return get_companies_additional_regexs_schema(company_names).validate(df)
 
 
 # Structure of the dataframe to validate the lists table
 lists_schema = pa.DataFrameSchema(
     columns={
         "Institution": pa.Column(pd.StringDtype),
-        "Date": pa.Column(datetime.date),
+        "Date": pa.Column("datetime64[ns]"),
     },
     coerce=True,
     strict=True,
@@ -199,15 +196,14 @@ _companies_additional_buds_schema = pa.DataFrameSchema(
 )
 
 
-def get_companies_additional_buds_schema(input_db_validation_data):
-    _companies_additional_buds_schema.index.checks.append(
-        pa.Check.isin(input_db_validation_data.companies)
-    )
-    return _companies_additional_buds_schema
+def get_companies_additional_buds_schema(company_names: List[str]):
+    schema = _companies_additional_buds_schema.copy()
+    schema.index.checks.append(pa.Check.isin(company_names))
+    return schema
 
 
 def get_companies_additional_buds(
-    input_db_directory, input_db_validation_data
+    input_db_directory: Path, company_names: List[str]
 ) -> pd.DataFrame:
     """Load and validate additional BUDs from companies_additional_buds.csv.
 
@@ -220,10 +216,10 @@ def get_companies_additional_buds(
         input_db_directory / COMPANIES_DIR / "companies_additional_buds.csv",
         index_col=["Company name"],
     )
-    return get_companies_additional_buds_schema(input_db_validation_data).validate(df)
+    return get_companies_additional_buds_schema(company_names).validate(df)
 
 
-def get_lists(input_db_directory, input_db_validation_data) -> pd.DataFrame:
+def get_lists(input_db_directory: Path) -> pd.DataFrame:
     """Load and validate target lists from lists.csv.
 
     Returns
@@ -233,7 +229,6 @@ def get_lists(input_db_directory, input_db_validation_data) -> pd.DataFrame:
     """
     df = pd.read_csv(input_db_directory / LISTS_DIR / "lists.csv", index_col="Name")
     df = lists_schema.validate(df)
-    input_db_validation_data.lists = df.index.to_list()
     return df
 
 
@@ -257,20 +252,17 @@ _company_to_list_schema = pa.DataFrameSchema(
 )
 
 
-def get_company_to_list_schema(input_db_validation_data):
-    _company_to_list_schema.columns["List name"].checks.append(
-        pa.Check.isin(input_db_validation_data.lists)
-    )
-    _company_to_list_schema.index.indexes[0].checks.append(
-        pa.Check.isin(input_db_validation_data.lists)
-    )
-    _company_to_list_schema.index.indexes[1].checks.append(
-        pa.Check.isin(input_db_validation_data.companies)
-    )
-    return _company_to_list_schema
+def get_company_to_list_schema(list_names: List[str], company_names: List[str]):
+    schema = _company_to_list_schema.copy()
+    schema.columns["List name"].checks.append(pa.Check.isin(list_names))
+    schema.index.indexes[0].checks.append(pa.Check.isin(list_names))
+    schema.index.indexes[1].checks.append(pa.Check.isin(company_names))
+    return schema
 
 
-def get_company_to_list(input_db_directory, input_db_validation_data) -> pd.DataFrame:
+def get_company_to_list(
+    input_db_directory: Path, list_names: List[str], company_names: List[str]
+) -> pd.DataFrame:
     """Load and validate company-to-list mappings from company_to_list.csv.
 
     Returns
@@ -283,7 +275,7 @@ def get_company_to_list(input_db_directory, input_db_validation_data) -> pd.Data
         index_col=["List name", "Company name"],
     )
     df["List name"] = df.index.get_level_values("List name")
-    return get_company_to_list_schema(input_db_validation_data).validate(df)
+    return get_company_to_list_schema(list_names, company_names).validate(df)
 
 
 # Structure of the dataframe to validate the markets table
@@ -295,7 +287,7 @@ markets_schema = pa.DataFrameSchema(
 )
 
 
-def get_markets(input_db_directory, input_db_validation_data) -> pd.DataFrame:
+def get_markets(input_db_directory: Path) -> pd.DataFrame:
     """Load and validate market information from markets.csv.
 
     Returns
@@ -307,7 +299,6 @@ def get_markets(input_db_directory, input_db_validation_data) -> pd.DataFrame:
         input_db_directory / COMPANIES_DIR / "markets.csv", index_col="Name"
     )
     df = markets_schema.validate(df)
-    input_db_validation_data.markets = df.index.to_list()
     return df
 
 
@@ -335,17 +326,16 @@ _tickers_schema = pa.DataFrameSchema(
 )
 
 
-def get_tickers_schema(input_db_validation_data):
-    _tickers_schema.index.indexes[0].checks.append(
-        pa.Check.isin(input_db_validation_data.markets)
-    )
-    _tickers_schema.index.indexes[1].checks.append(
-        pa.Check.isin(input_db_validation_data.companies)
-    )
-    return _tickers_schema
+def get_tickers_schema(market_names: List[str], company_names: List[str]):
+    schema = _tickers_schema.copy()
+    schema.index.indexes[0].checks.append(pa.Check.isin(market_names))
+    schema.index.indexes[1].checks.append(pa.Check.isin(company_names))
+    return schema
 
 
-def get_tickers(input_db_directory, input_db_validation_data) -> pd.DataFrame:
+def get_tickers(
+    input_db_directory: Path, market_names: List[str], company_names: List[str]
+) -> pd.DataFrame:
     """Load and validate ticker information from tickers.csv.
 
     Returns
@@ -357,10 +347,10 @@ def get_tickers(input_db_directory, input_db_validation_data) -> pd.DataFrame:
         input_db_directory / COMPANIES_DIR / "tickers.csv",
         index_col=["Market name", "Company name"],
     )
-    return get_tickers_schema(input_db_validation_data).validate(df)
+    return get_tickers_schema(market_names, company_names).validate(df)
 
 
-def get_companies_data(input_db_directory, input_db_validation_data) -> pd.DataFrame:
+def get_companies_data(input_db_directory: Path) -> pd.DataFrame:
     """Load and combine all company-related data into a comprehensive DataFrame.
 
     Returns
@@ -368,16 +358,17 @@ def get_companies_data(input_db_directory, input_db_validation_data) -> pd.DataF
     pd.DataFrame
         Combined DataFrame containing companies, lists, tickers, BUDs, and regex patterns
     """
-    get_markets(input_db_directory, input_db_validation_data)
-    get_lists(input_db_directory, input_db_validation_data)
-    companies = get_companies(input_db_directory, input_db_validation_data)
-    company_to_list = get_company_to_list(input_db_directory, input_db_validation_data)
-    tickers = get_tickers(input_db_directory, input_db_validation_data)
-    additional_buds = get_companies_additional_buds(
-        input_db_directory, input_db_validation_data
-    )
+    markets_df = get_markets(input_db_directory)
+    market_names = markets_df.index.to_list()
+    lists_df = get_lists(input_db_directory)
+    list_names = lists_df.index.to_list()
+    companies = get_companies(input_db_directory)
+    company_names = companies.index.to_list()
+    company_to_list = get_company_to_list(input_db_directory, list_names, company_names)
+    tickers = get_tickers(input_db_directory, market_names, company_names)
+    additional_buds = get_companies_additional_buds(input_db_directory, company_names)
     additional_regexs = get_companies_additional_regexs(
-        input_db_directory, input_db_validation_data
+        input_db_directory, company_names
     )
 
     additional_buds_agg = additional_buds.groupby(level="Company name").agg(
@@ -432,9 +423,7 @@ def get_companies_data(input_db_directory, input_db_validation_data) -> pd.DataF
 
 
 def get_target_companies(
-    input_db_directory: Path,
-    target_lists: Union[List[str], str],
-    input_db_validation_data,
+    input_db_directory: Path, target_lists: Union[List[str], str]
 ) -> pd.DataFrame:
     """Filter companies data to include only those in specified target lists.
 
@@ -456,7 +445,7 @@ def get_target_companies(
     """
     if isinstance(target_lists, str):
         target_lists = [target_lists]
-    df = get_companies_data(input_db_directory, input_db_validation_data)
+    df = get_companies_data(input_db_directory)
     filtered_df = df[
         df["List names"].apply(
             lambda x: any(list_name in x for list_name in target_lists)

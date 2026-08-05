@@ -5,7 +5,7 @@ URL-to-format mappings used in document processing.
 """
 
 from pathlib import Path
-from typing import Any, Optional, List
+from typing import Optional, List
 import pandera.pandas as pa
 import pandas as pd
 from freeports.i18n import _
@@ -41,10 +41,13 @@ formats_schema = pa.DataFrameSchema(
 )
 
 
-def get_formats(
-    formats_repo_dir: Path, format_repo_validation_data: Any
-) -> pd.DataFrame:
+def get_formats(formats_repo_dir: Path) -> pd.DataFrame:
     """Load and validate the list of formats from formats.csv.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
 
     Returns
     -------
@@ -75,7 +78,6 @@ def get_formats(
     df.rename(columns={"Format_name": "Format name"}, inplace=True)
     df.set_index("Format name", inplace=True)
     df = formats_schema.validate(df)
-    format_repo_validation_data.formats = df.index.to_list()
     return df
 
 
@@ -88,17 +90,33 @@ _url_mapping_schema = pa.DataFrameSchema(
 )
 
 
-def get_url_mapping_schema(format_repo_validation_data: Any) -> pa.DataFrameSchema:
-    _url_mapping_schema.index.checks.append(
-        pa.Check.isin(format_repo_validation_data.formats)
-    )
-    return _url_mapping_schema
+def get_url_mapping_schema(format_names: List[str]) -> pa.DataFrameSchema:
+    """Build a pandera schema for URL mapping validation.
+
+    Parameters
+    ----------
+    format_names : List[str]
+        List of valid format names.
+
+    Returns
+    -------
+    pa.DataFrameSchema
+        Pandera schema for URL mapping validation.
+    """
+    schema = _url_mapping_schema.copy()
+    schema.index.checks.append(pa.Check.isin(format_names))
+    return schema
 
 
-def _get_url_mapping(
-    formats_repo_dir: Path, format_repo_validation_data: Any
-) -> pd.DataFrame:
+def _get_url_mapping(formats_repo_dir: Path, format_names: List[str]) -> pd.DataFrame:
     """Load and validate URL mappings from url_mapping.csv.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_names : List[str]
+        List of valid format names.
 
     Returns
     -------
@@ -113,13 +131,18 @@ def _get_url_mapping(
     df = pd.read_csv(
         formats_repo_dir / METADATA_DIR / "url_mapping.csv", index_col=["Format name"]
     )
-    return get_url_mapping_schema(format_repo_validation_data).validate(df)
+    return get_url_mapping_schema(format_names).validate(df)
 
 
-def get_url_mapping(
-    formats_repo_dir: Path, format_repo_validation_data: Any
-) -> pd.DataFrame:
+def get_url_mapping(formats_repo_dir: Path, format_names: List[str]) -> pd.DataFrame:
     """Get URL mappings grouped by format name.
+
+    Parameters
+    ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_names : List[str]
+        List of valid format names.
 
     Returns
     -------
@@ -131,21 +154,24 @@ def get_url_mapping(
     The returned DataFrame aggregates all URLs associated with each format
     name into lists, allowing multiple URLs to map to the same format.
     """
-    get_formats(formats_repo_dir, format_repo_validation_data)
     return (
-        _get_url_mapping(formats_repo_dir, format_repo_validation_data)
+        _get_url_mapping(formats_repo_dir, format_names)
         .groupby(level="Format name")
         .agg({"Url": list})
     )
 
 
 def url_to_format(
-    formats_repo_dir: Path, format_repo_validation_data: Any, url: str
+    formats_repo_dir: Path, format_names: List[str], url: str
 ) -> Optional[str]:
     """Associate a URL with a format name.
 
     Parameters
     ----------
+    formats_repo_dir : Path
+        Path to the formats repository directory.
+    format_names : List[str]
+        List of valid format names.
     url : str
         URL to match against known format URLs
 
@@ -160,7 +186,7 @@ def url_to_format(
     the format with the longest matching URL prefix. This allows for more
     specific URLs to override more general ones.
     """
-    mapping = _get_url_mapping(formats_repo_dir, format_repo_validation_data)
+    mapping = _get_url_mapping(formats_repo_dir, format_names)
     mask = mapping["Url"].apply(lambda x: str(url).startswith(x))
     detected_format = mapping[mask]["Url"].str.len().idxmax() if mask.any() else None
     return detected_format

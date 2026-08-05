@@ -22,7 +22,7 @@ from pydantic import (
     TypeAdapter,
 )
 
-from freeports._internals.formats.repo.metadata import url_to_format
+from freeports._internals.formats.repo.metadata import url_to_format, get_formats
 from freeports.i18n import _
 
 from freeports._internals.commons.consts import PROGRAM_DESCRIPTION
@@ -866,8 +866,12 @@ class FreeportsConfig(BaseModel, SelectorOutProfile):
         ValueError
             If format cannot be detected or specified
         """
-        if self.URL is not None:
-            detected_format = url_to_format(self.URL)
+        if self.URL is not None and self.FORMATS_REPO_PATH is not None:
+            formats_df = get_formats(self.FORMATS_REPO_PATH)
+            format_names = formats_df.index.to_list()
+            detected_format = url_to_format(
+                self.FORMATS_REPO_PATH, format_names, self.URL
+            )
             if self.FORMAT is None:
                 self.FORMAT = detected_format
             elif self.FORMAT != detected_format:
