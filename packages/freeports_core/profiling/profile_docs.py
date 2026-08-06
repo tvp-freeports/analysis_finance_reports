@@ -10,7 +10,7 @@ PROFILES_DIR = Path("profiles")
 
 SHORT_DOCS_NAME = "S"
 LONG_DOCS_NAME = "L"
-TIMESTAMP = datetime.datetime.now().strftime("%y-%m-%d_%H,%M,%S")
+TIMESTAMP = datetime.now().strftime("%y-%m-%d_%H,%M,%S")
 
 n_long = 1
 n_short = 1

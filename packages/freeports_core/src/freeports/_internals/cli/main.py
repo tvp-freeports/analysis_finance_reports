@@ -243,7 +243,7 @@ def _main_job(
     handler_csv.addFilter(LOG_CONTEXTUAL_INFOS)
     handler_csv.setFormatter(csv_formatter)
     handler_csv.setLevel(log.WARNING)
-    format_utils = log.getLogger(__package__ + ".formats.utils")
+    format_utils = log.getLogger("freeports._internals.formats.utils")
     format_utils.addHandler(handler_csv)
     LOGGING_TABLE.addHandler(handler_csv)
     logger.debug(_("Starting job with configuration %s"), str(job_config))

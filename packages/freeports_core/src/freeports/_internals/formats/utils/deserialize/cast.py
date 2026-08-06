@@ -1,7 +1,7 @@
 """Casting utilities for deserializing string data into typed Python values."""
 
 import re
-from datetime import datetime, date
+from datetime import date, datetime
 import logging
 
 from freeports.i18n import _

@@ -5,7 +5,7 @@ that are self contained and indepent from other pages. It permits to reference v
 in classes definition that get resolved after all document get parsed.
 """
 
-from datetime import datetime
+from datetime import date
 from typing import Dict, Any, Union, Annotated, TypeAlias
 
 from pydantic import PositiveFloat, BeforeValidator, confloat, ConfigDict
@@ -250,7 +250,7 @@ PromisedAcquisitionCurrency = Annotated[
     BeforeValidator(try_convert_to_currency),
 ]
 PromisedInterestRate = Union[Promise, confloat(ge=0.0, lt=1.0)]
-PromisedDate = Union[Promise, datetime.date]
+PromisedDate = Union[Promise, date]
 PromisedSfdrArticle = Union[Promise, SfdrArticle]
 
 

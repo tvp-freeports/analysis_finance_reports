@@ -928,7 +928,7 @@ class TextFilterInvestmentsStandard:
                 investments_blks.append(b)
         inv = self.__txt_filter(investments_blks, filter_data)
         if not inv:
-            return results
+            return []
         for i in inv:
             i.metadata["fund"] = fund_found
             i.metadata["currency"] = currency_found

@@ -16,4 +16,5 @@ from freeports._internals.formats.utils.deserialize.cast import (
 
 from freeports._internals.formats.utils.deserialize.standard_funcs import (
     deserialize_block_type,
+    deserialize_block_types,
 )

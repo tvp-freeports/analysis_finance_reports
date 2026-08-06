@@ -500,7 +500,7 @@ msgid "type"
 msgstr ""
 
 #: freeports_analysis.consts.Bond:10 of
-msgid "datetime.date, optional"
+msgid "date, optional"
 msgstr ""
 
 #: freeports_analysis.consts.Bond:14 of
@@ -550,7 +550,7 @@ msgid "float or None"
 msgstr ""
 
 #: freeports_analysis.consts.Bond.maturity:3 of
-msgid "datetime.date or None"
+msgid "date or None"
 msgstr ""
 
 #: freeports_analysis.consts.Bond.to_dict:1

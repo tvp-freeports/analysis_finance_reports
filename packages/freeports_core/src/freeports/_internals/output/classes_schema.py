@@ -5,7 +5,7 @@ Here are defining the object that will be outputted in the csv files.
 
 from abc import ABC
 from typing import Optional, Set
-from datetime import datetime
+from datetime import date
 
 from pydantic import BaseModel, Field, model_validator, PositiveFloat, NonNegativeFloat
 
@@ -138,7 +138,7 @@ class Bond(Investment):
 
     Attributes
     ----------
-    maturity : Optional[datetime.date]
+    maturity : Optional[date]
         Bond maturity date when principal is repaid
     interest_rate : Optional[PromisedInterestRate]
         Annual interest rate as a decimal value (e.g., 0.05 for 5%)
@@ -150,7 +150,7 @@ class Bond(Investment):
     a decimal value (e.g., 0.05 represents 5% annual interest).
     """
 
-    maturity: Optional[datetime.date] = Field(default=None)
+    maturity: Optional[date] = Field(default=None)
     interest_rate: Optional[PromisedInterestRate] = Field(default=None)
 
     def __str__(self) -> str:

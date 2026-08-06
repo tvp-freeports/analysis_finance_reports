@@ -68,18 +68,18 @@ def add_page_test(
         / page_type
         / "filter_data.pkl"
     )
+    repo_root = base_in_path.parent.parent
+
     if filter_data is None:
         if filter_data_file.exists():
             with filter_data_file.open("rb") as f:
                 filter_data = dill.load(f)
                 print(f"Used filter data found in {filter_data_file}")
         else:
-            filter_data = gtc(base_in_path.parent)
+            filter_data = gtc(repo_root)
         out_filter_data_file = None
 
-    a = Algorithm.load(
-        base_in_path.parent, fmt, list(get_formats(base_in_path.parent).index)
-    )
+    a = Algorithm.load(repo_root, fmt, list(get_formats(repo_root).index))
     page = None
     if report_file is not None:
         report_file = Path(report_file)

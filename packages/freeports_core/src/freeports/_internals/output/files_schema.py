@@ -6,7 +6,7 @@ for tabular data and Pydantic models for structured data validation.
 """
 
 from typing import Optional, List
-import datetime
+from datetime import date
 import pandera.pandas as pa
 import pandas as pd
 from pydantic import BaseModel, confloat
@@ -105,7 +105,7 @@ funds_change_name_schema = pa.DataFrameSchema(
     {
         **common_columns,
         "Fund ID": pa.Column(pd.Int32Dtype, checks=pa.Check.greater_than(0)),
-        "From": pa.Column(datetime.date),
+        "From": pa.Column(date),
         "Type of event": pa.Column(
             pd.StringDtype, checks=pa.Check.isin(list_of_change_name_events)
         ),
@@ -189,7 +189,7 @@ class BondAdditionalInfos(BaseModel):
 
     Attributes
     ----------
-    maturity : Optional[datetime.date]
+    maturity : Optional[date]
         The date when the bond reaches maturity and principal is repaid
     interest_rate : Optional[confloat(ge=0.0, lt=1.0)]
         The annual interest rate as a decimal value between 0.0 and 1.0
@@ -201,5 +201,5 @@ class BondAdditionalInfos(BaseModel):
     between common investment attributes and bond-specific ones.
     """
 
-    maturity: Optional[datetime.date]
+    maturity: Optional[date]
     interest_rate: Optional[confloat(ge=0.0, lt=1.0)]

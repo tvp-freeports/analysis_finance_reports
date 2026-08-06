@@ -24,7 +24,10 @@ def _cmd_test(args):
         )
         sys.exit(1)
 
-    pytest_args = [str(repo / "tests"), "--rootdir", str(repo)]
+    test_dir = (
+        repo / "tests" / "formats" / args.format if args.format else repo / "tests"
+    )
+    pytest_args = [str(test_dir), "--rootdir", str(repo)]
     extra = args.pytest_args
     if extra and extra[0] == "--":
         extra = extra[1:]
@@ -170,6 +173,9 @@ def main():
 
     p_test = sub.add_parser("test", help="Run format tests via pytest")
     p_test.add_argument("--repo", "-r", help="Path to formats repository")
+    p_test.add_argument(
+        "--format", "-f", help="Run tests only for a specific format (e.g. AMUNDI-EN24)"
+    )
     p_test.add_argument(
         "pytest_args", nargs=argparse.REMAINDER, help="Arguments forwarded to pytest"
     )
