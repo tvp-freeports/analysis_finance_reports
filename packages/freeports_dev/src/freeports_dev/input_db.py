@@ -44,9 +44,11 @@ def resolve_input_db(rootdir=None):
     )
 
 
-def get_test_companies(rootdir=None):
+def get_test_companies(rootdir=None, target_lists=None):
     input_db = resolve_input_db(rootdir)
-    df = get_target_companies(input_db, ["TEST"])
+    if target_lists is None:
+        target_lists = ["TEST"]
+    df = get_target_companies(input_db, target_lists)
     return freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
         df
     )

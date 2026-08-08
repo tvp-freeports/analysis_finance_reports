@@ -64,6 +64,7 @@ class ResultsAccumulator:
         self.investments = []
         self.funds = {}
         self.add_infos = {}
+        self.assets_managers = {}
         self.funds_change_name = []
         self.funds_assets = []
         self.funds_sfdr_classification = []
@@ -99,13 +100,13 @@ class ResultsAccumulator:
 class PageResults:
     """Holds parsed entities for a single page of a document."""
 
-    investments: List[Equity | Bond]
-    assets_managers: List[ManagementCompany | InvestmentsManager]
-    funds: List[Fund]
-    funds_sfdr_classification: List[FundSfdrClassification]
-    funds_esg_indicators: List[FundEsgIndicator]
-    funds_assets: List[FundAssets]
-    funds_change_name: List[FundRename | FundMerge]
+    investments: List[Equity | Bond] = []
+    assets_managers: List[ManagementCompany | InvestmentsManager] = []
+    funds: List[Fund] = []
+    funds_sfdr_classification: List[FundSfdrClassification] = []
+    funds_esg_indicators: List[FundEsgIndicator] = []
+    funds_assets: List[FundAssets] = []
+    funds_change_name: List[FundRename | FundMerge] = []
 
     def __init__(self):
         self.investments = []
@@ -177,9 +178,9 @@ class PageResults:
 class PageIndexable:
     """Lightweight wrapper providing 1-based page indexing into a list of page results."""
 
-    data_per_page: List[Any]
+    data_per_page: List[Any] = []
 
-    def __init__(self, data: List[Any]):
+    def __init__(self, data: List[Any] = []):
         self.data_per_page = data
 
     def __getitem__(self, page_n: int) -> Any:
@@ -589,7 +590,6 @@ def transform_to_files_schema(
         else:
             r = pd.DataFrame(columns=columns)
         validated_dataframes[k] = schema.validate(r)
-
     return {
         **validated_dataframes,
         "additional_infos": curr_results.add_infos,

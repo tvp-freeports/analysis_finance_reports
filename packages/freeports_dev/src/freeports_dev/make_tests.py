@@ -8,8 +8,13 @@ from freeports_dev.create_test_page import (
 from freeports_dev.input_db import get_test_companies as gtc
 from freeports._internals.formats.repo.algorithms.definitions import Algorithm
 from freeports._internals.formats.repo.metadata import get_formats
+from freeports._internals.core.serialization import (
+    dump as json_dump,
+    to_serializable,
+    from_serializable,
+)
 from pathlib import Path
-import dill
+import json
 import shutil
 import os
 
@@ -58,7 +63,7 @@ def add_page_test(
         / ("" if document is None else str(document))
         / "pages"
         / page_type
-        / "filter_data.pkl"
+        / "filter_data.json"
     )
     out_filter_data_file = (
         base_out_path
@@ -66,15 +71,20 @@ def add_page_test(
         / ("" if document is None else str(document))
         / "pages"
         / page_type
-        / "filter_data.pkl"
+        / "filter_data.json"
     )
     repo_root = base_in_path.parent.parent
 
     if filter_data is None:
         if filter_data_file.exists():
-            with filter_data_file.open("rb") as f:
-                filter_data = dill.load(f)
-                print(f"Used filter data found in {filter_data_file}")
+            with open(filter_data_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "target_lists" in data:
+                filter_data = gtc(repo_root, data["target_lists"])
+                print(f"Used filter data from {filter_data_file}")
+            else:
+                filter_data = from_serializable(data)
+                print(f"Used custom filter data (filter_data.json present)")
         else:
             filter_data = gtc(repo_root)
         out_filter_data_file = None
@@ -85,7 +95,8 @@ def add_page_test(
         report_file = Path(report_file)
     if report_file is not None and not report_file.exists():
         print(
-            f"Warning, specified a report file that doesn't exist {report_file}, overwriting with None"
+            f"Warning, specified a report file that doesn't exist {report_file}, "
+            "overwriting with None"
         )
         report_file = None
 
@@ -108,7 +119,6 @@ def add_page_test(
             print(blk)
     else:
         print(f"Extracted {len(pdf_blks)} pdf blocks...")
-
     txt_blks = get_text_blocks(
         fmt,
         document,
@@ -146,7 +156,8 @@ def add_page_test(
     format_dir = base_out_path / fmt
     if not format_dir.exists():
         if noconfirm or user_confirm(
-            f"Format directory {fmt} not present in {base_out_path}, do you want to create it?",
+            f"Format directory {fmt} not present in {base_out_path}, "
+            "do you want to create it?",
             default=True,
         ):
             format_dir.mkdir()
@@ -157,13 +168,15 @@ def add_page_test(
         for doc in os.listdir(str(format_dir)):
             if doc in ("pages", "out", "report.pdf") and document is not None:
                 raise Exception(
-                    f"Specified document variant {document}, but {format_dir} seems a single report test layout"
+                    f"Specified document variant {document}, but {format_dir} "
+                    "seems a single report test layout"
                 )
 
     document_dir = format_dir / ("" if document is None else str(document))
     if not document_dir.exists():
         if noconfirm or user_confirm(
-            f"Document variant test directory not present in {format_dir}, do you want to create it?",
+            f"Document variant test directory not present in {format_dir}, "
+            "do you want to create it?",
             default=True,
         ):
             document_dir.mkdir()
@@ -186,7 +199,8 @@ def add_page_test(
             else report_file
         )
         if noconfirm or user_confirm(
-            f"Report not present in {document_dir}, do you want to copy {report_to_copy}?",
+            f"Report not present in {document_dir}, do you want to copy "
+            f"{report_to_copy}?",
             default=True,
         ):
             shutil.copyfile(report_to_copy, report)
@@ -194,7 +208,8 @@ def add_page_test(
     else:
         if report_file is not None:
             if noconfirm or not user_confirm(
-                f"Report present in {document_dir} but report {report_file} is used for computing results, overwrite?",
+                f"Report present in {document_dir} but report {report_file} is used "
+                "for computing results, overwrite?",
                 default=False,
             ):
                 print("Report file not overwritten")
@@ -205,7 +220,8 @@ def add_page_test(
     pages_dir = document_dir / "pages"
     if not pages_dir.exists():
         if noconfirm or user_confirm(
-            f"Pages test directory not present in {document_dir}, do you want to create it?",
+            f"Pages test directory not present in {document_dir}, "
+            "do you want to create it?",
             default=True,
         ):
             pages_dir.mkdir()
@@ -216,7 +232,8 @@ def add_page_test(
     pages_type_dir = pages_dir / page_type
     if not pages_type_dir.exists():
         if noconfirm or user_confirm(
-            f"Directory for tests of pages of type {page_type} not present in {pages_dir}, do you want to create it?",
+            f"Directory for tests of pages of type {page_type} not present in "
+            f"{pages_dir}, do you want to create it?",
             default=True,
         ):
             pages_type_dir.mkdir()
@@ -224,24 +241,25 @@ def add_page_test(
             print("Without results directory, page test creation cannot continue")
             return None
 
-    pdf_blks_file = pages_type_dir / f"{n_page}-pdf_blks.pkl"
-    txt_blks_file = pages_type_dir / f"{n_page}-txt_blks.pkl"
-    results_file = pages_type_dir / f"{n_page}-results.pkl"
+    pdf_blks_file = pages_type_dir / f"{n_page}-pdf_blks.json"
+    txt_blks_file = pages_type_dir / f"{n_page}-txt_blks.json"
+    results_file = pages_type_dir / f"{n_page}-results.json"
 
     if not skip_pdf_blks:
         if pdf_blks_file.exists():
             if noconfirm or not user_confirm(
-                f"Pdf blocks file for page {n_page} already present, do you want to overwrite it?",
+                f"Pdf blocks file for page {n_page} already present, "
+                "do you want to overwrite it?",
                 default=False,
             ):
                 print("Kept original pdf blocks file")
             else:
-                with open(pdf_blks_file, "wb") as f:
-                    dill.dump(pdf_blks, f)
+                with open(pdf_blks_file, "w", encoding="utf-8") as f:
+                    json_dump(pdf_blks, f)
                     print(f"Overwritten {pdf_blks_file}...")
         else:
-            with open(pdf_blks_file, "wb") as f:
-                dill.dump(pdf_blks, f)
+            with open(pdf_blks_file, "w", encoding="utf-8") as f:
+                json_dump(pdf_blks, f)
                 print(f"Saved {len(pdf_blks)} pdf blocks in {pdf_blks_file}...")
     else:
         print("Skipping creation of pdf blocks file")
@@ -249,32 +267,44 @@ def add_page_test(
     if not skip_txt_blks:
         if txt_blks_file.exists():
             if noconfirm or not user_confirm(
-                f"Text block file for page {n_page} already present, do you want to overwrite it?",
+                f"Text block file for page {n_page} already present, "
+                "do you want to overwrite it?",
                 default=False,
             ):
                 print("Kept original text blocks file")
             else:
-                with open(txt_blks_file, "wb") as f:
-                    dill.dump(txt_blks, f)
+                with open(txt_blks_file, "w", encoding="utf-8") as f:
+                    json_dump(txt_blks, f)
                     print(f"Overwritten {txt_blks_file}...")
         else:
-            with open(txt_blks_file, "wb") as f:
-                dill.dump(txt_blks, f)
+            with open(txt_blks_file, "w", encoding="utf-8") as f:
+                json_dump(txt_blks, f)
                 print(f"Saved {len(txt_blks)} text blocks in {txt_blks_file}...")
         if out_filter_data_file is not None:
             if out_filter_data_file.exists():
                 if noconfirm or not user_confirm(
-                    f"Filter data file for page category {page_type} already present, do you want to overwrite it?",
+                    f"Filter data file for page category {page_type} already present, "
+                    "do you want to overwrite it?",
                     default=False,
                 ):
                     print("Kept original filter data file")
                 else:
-                    with open(out_filter_data_file, "wb") as f:
-                        dill.dump(filter_data, f)
+                    with open(out_filter_data_file, "w", encoding="utf-8") as f:
+                        json.dump(
+                            to_serializable(filter_data),
+                            f,
+                            indent=2,
+                            ensure_ascii=False,
+                        )
                         print(f"Overwritten {out_filter_data_file}...")
             else:
-                with open(out_filter_data_file, "wb") as f:
-                    dill.dump(filter_data, f)
+                with open(out_filter_data_file, "w", encoding="utf-8") as f:
+                    json.dump(
+                        to_serializable(filter_data),
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                    )
                     print(f"Saved filter data in {out_filter_data_file}...")
     else:
         print("Skipping creation of text blocks file")
@@ -282,17 +312,18 @@ def add_page_test(
     if not skip_results:
         if results_file.exists():
             if noconfirm or not user_confirm(
-                f"Results file for page {n_page} already present, do you want to overwrite it?",
+                f"Results file for page {n_page} already present, "
+                "do you want to overwrite it?",
                 default=False,
             ):
                 print("Kept original results file")
             else:
-                with open(results_file, "wb") as f:
-                    dill.dump(results, f)
+                with open(results_file, "w", encoding="utf-8") as f:
+                    json_dump(results, f)
                     print(f"Overwritten {results_file}...")
         else:
-            with open(results_file, "wb") as f:
-                dill.dump(results, f)
+            with open(results_file, "w", encoding="utf-8") as f:
+                json_dump(results, f)
                 print(f"Saved {len(results)} results in {results_file}...")
     else:
         print("Skipping creation of results file")

@@ -249,7 +249,7 @@ def _main_job(
     logger.debug(_("Starting job with configuration %s"), str(job_config))
     formats_df = get_formats(job_config["FORMATS_REPO_PATH"])
     format_names = formats_df.index.to_list()
-    alghoritm = Algorithm.load(
+    algorithm = Algorithm.load(
         job_config["FORMATS_REPO_PATH"], job_config["FORMAT"], format_names
     )
     pdf_file = _get_document(job_config)
@@ -260,7 +260,7 @@ def _main_job(
         job_config["INPUT_DB_PATH"], job_config["TARGET_LISTS"]
     )
     logger.debug(_("First 5 targets:\n%s"), str(targets[: min(5, len(targets))]))
-    results = alghoritm(pdf_file_dict, targets)
+    results = algorithm(pdf_file_dict, targets)
     promises_resolution_map = {}
     doc_results = DocumentResults(job_config["PREFIX_OUT"], job_config["FORMAT"])
     for pn in range(1, len(pdf_file_dict) + 1):

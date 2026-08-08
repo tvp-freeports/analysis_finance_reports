@@ -112,7 +112,7 @@ def get_pipelines(
         for n, p in pp.items():
             if not isinstance(p, Pipeline):
                 raise Exception(
-                    f"Unstructured alghoritm with name `{n}` is not a Pipeline, but {type(p)}"
+                    f"Unstructured algorithm with name `{n}` is not a Pipeline, but {type(p)}"
                 )
         return pp
     except AttributeError:

@@ -25,7 +25,7 @@ from freeports._internals.formats.repo.algorithms.pipelines_acquisition import (
 
 
 CONTENT_DIR = Path("content")
-ALGORITHMS_DIR = CONTENT_DIR / "alghoritms"
+ALGORITHMS_DIR = CONTENT_DIR / "algorithms"
 ORCHESTRATION_DIR = CONTENT_DIR / "orchestration"
 TEMPLATES_DIR = CONTENT_DIR / "templates"
 

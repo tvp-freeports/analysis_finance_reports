@@ -1,11 +1,10 @@
+import json as _json
 import os
 from pathlib import Path
 
-import dill
 import pandas as pd
 import pytest
 import yaml
-from _pytest.python import PyobjMixin
 from abc import ABC, abstractclassmethod
 from pymupdf import Document
 from pytest import Collector, Function, Directory
@@ -18,6 +17,8 @@ from freeports._internals.cli.conf_parse import (
     OutFlagsNormalMode,
     FreeportsFileConfig,
 )
+from freeports._internals.core.serialization import load as json_load
+from freeports._internals.core.serialization import from_serializable
 import _pytest.fixtures as fixtures
 
 _formats_cache = {"valid": None, "repo_dir": None}
@@ -38,6 +39,26 @@ def _get_test_companies(rootdir=None):
     from freeports_dev.input_db import get_test_companies as gtc
 
     return gtc(rootdir)
+
+
+def _load_filter_data(cache, variant_path, page_type):
+    """Load filter_data from filter_data.json or fall back to test companies.
+
+    filter_data.json can contain:
+      - {"target_lists": ["TEST", "CUSTOM"]}  to specify which input DB lists to use
+      - A list of serialized objects (intermediate results for multi-iteration formats)
+
+    If no filter_data.json exists, defaults to the test input DB's companies.
+    """
+    filter_path = variant_path / "pages" / page_type / "filter_data.json"
+    if filter_path.exists():
+        data = json_load(open(filter_path, "r", encoding="utf-8"))
+        if isinstance(data, dict) and "target_lists" in data:
+            from freeports_dev.input_db import get_test_companies as gtc
+
+            return gtc(_formats_cache["repo_dir"], data["target_lists"])
+        return data
+    return _get_test_companies(_formats_cache["repo_dir"])
 
 
 class AlgorithmCache:
@@ -70,7 +91,11 @@ class FileCache(ABC):
 
 class CsvCache(FileCache):
     def load_content(self, path):
-        return pd.read_csv(path, index_col=False, encoding="utf-8")
+        df = pd.read_csv(path, index_col=False, encoding="utf-8")
+        for col in df.columns:
+            if isinstance(df[col].dtype, pd.StringDtype):
+                df[col] = df[col].astype(object)
+        return df
 
 
 class YamlCache(FileCache):
@@ -78,9 +103,9 @@ class YamlCache(FileCache):
         return yaml.safe_load(path.open("r"))
 
 
-class PklCache(FileCache):
+class JsonCache(FileCache):
     def load_content(self, path):
-        return dill.load(path.open("rb"))
+        return json_load(open(path, "r", encoding="utf-8"))
 
 
 class PdfCache(FileCache):
@@ -111,9 +136,17 @@ class FormatCache:
         self.algorithm = AlgorithmCache()
         self.csv = CsvCache()
         self.yaml = YamlCache()
-        self.pkl = PklCache()
+        self.json = JsonCache()
         self.pdf = PdfCache()
         self.doc = DocumentCache()
+
+
+def _load_test_fixture(cache, base_dir, page_type, page_num, file_stem):
+    """Load a test fixture from a JSON file."""
+    json_path = base_dir / "pages" / page_type / f"{page_num}-{file_stem}.json"
+    if not json_path.exists():
+        raise FileNotFoundError(f"Test fixture not found: {json_path}")
+    return cache.json.get_file(json_path)
 
 
 class PdfExtractTest(Function):
@@ -124,20 +157,18 @@ class PdfExtractTest(Function):
         self.format_name = format_name
 
     def runtest(self):
-        test_companies = _get_test_companies(self.config.rootdir)
         algorithm = self.parent.cache.algorithm.load(self.format_name)
         page_content = self.parent.get_page(self.page_num)
 
         result = algorithm.apply_pdf_extract(page_content, self.page_type)
 
-        expected_path = (
-            self.parent.path
-            / "pages"
-            / self.page_type
-            / f"{self.page_num}-pdf_blks.pkl"
+        expected = _load_test_fixture(
+            self.parent.cache,
+            self.parent.path,
+            self.page_type,
+            self.page_num,
+            "pdf_blks",
         )
-
-        expected = self.parent.cache.pkl.get_file(expected_path)
         assert frozenset(result) == frozenset(expected), (
             f"PDF extract failed for page {self.page_num} ({self.page_type})"
         )
@@ -149,31 +180,23 @@ class TextFilterTest(Function):
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
-        self.is_filter_data = (
-            self.parent.path / "pages" / self.page_type / "filter_data.pkl"
-        ).exists()
 
     def runtest(self):
-        test_companies = _get_test_companies(self.config.rootdir)
         algorithm = self.parent.cache.algorithm.load(self.format_name)
-
-        filter_data = test_companies
-        if self.is_filter_data:
-            filter_data = self.parent.cache.pkl.get_file(
-                self.parent.path / "pages" / self.page_type / "filter_data.pkl"
-            )
+        filter_data = _load_filter_data(
+            self.parent.cache, self.parent.path, self.page_type
+        )
 
         page_content = self.parent.get_page(self.page_num)
         result = algorithm.apply_text_filter(page_content, filter_data, self.page_type)
 
-        expected_path = (
-            self.parent.path
-            / "pages"
-            / self.page_type
-            / f"{self.page_num}-txt_blks.pkl"
+        expected = _load_test_fixture(
+            self.parent.cache,
+            self.parent.path,
+            self.page_type,
+            self.page_num,
+            "txt_blks",
         )
-
-        expected = self.parent.cache.pkl.get_file(expected_path)
         assert frozenset(result) == frozenset(expected), (
             f"Text filter failed for page {self.page_num} ({self.page_type})"
         )
@@ -185,27 +208,23 @@ class DeserializeTest(Function):
         self.page_num = page_num
         self.page_type = page_type
         self.format_name = format_name
-        self.is_filter_data = (
-            self.parent.path / "pages" / self.page_type / "filter_data.pkl"
-        ).exists()
 
     def runtest(self):
-        test_companies = _get_test_companies(self.config.rootdir)
         algorithm = self.parent.cache.algorithm.load(self.format_name)
-        filter_data = test_companies
-        if self.is_filter_data:
-            filter_data = self.parent.cache.pkl.get_file(
-                self.parent.path / "pages" / self.page_type / "filter_data.pkl"
-            )
+        filter_data = _load_filter_data(
+            self.parent.cache, self.parent.path, self.page_type
+        )
 
         page_content = self.parent.get_page(self.page_num)
         result = algorithm.apply_deserialize(page_content, filter_data, self.page_type)
 
-        expected_path = (
-            self.parent.path / "pages" / self.page_type / f"{self.page_num}-results.pkl"
+        expected = _load_test_fixture(
+            self.parent.cache,
+            self.parent.path,
+            self.page_type,
+            self.page_num,
+            "results",
         )
-
-        expected = self.parent.cache.pkl.get_file(expected_path)
         for i, r in enumerate(result):
             if isinstance(r, dict):
                 result[i] = frozenset(r.items())
@@ -500,7 +519,10 @@ class ReportVariant(Collector):
                 if "-" not in f:
                     continue
 
-                page_num_str, file_type = f.split("-", 1)
+                parts = f.split("-", 1)
+                if len(parts) != 2:
+                    continue
+                page_num_str, file_type = parts
                 try:
                     page_num = int(page_num_str)
                 except ValueError:
@@ -509,14 +531,17 @@ class ReportVariant(Collector):
                 pages_by_type[page_type].add(page_num)
                 all_pages.add(page_num)
 
-                if file_type == "pdf_blks.pkl":
+                if file_type == "pdf_blks.json":
                     pdf_blks.add(page_num)
-                elif file_type == "txt_blks.pkl":
+                elif file_type == "txt_blks.json":
                     txt_blks.add(page_num)
-                elif file_type == "results.pkl":
+                elif file_type == "results.json":
                     results.add(page_num)
+                elif file_type in ("filter_data.json"):
+                    pass
                 else:
-                    raise Exception(f"Unknown file in pages folder: {f}")
+                    pass
+                    # raise Exception(f"Unknown file in pages folder: {f}")
 
         total_pages = []
         for pages in pages_by_type.values():
@@ -595,7 +620,10 @@ class FreeportsFormat(Directory):
         multiple_documents = True
         documents = []
         for document in os.listdir(directory):
-            if os.path.isdir(directory / document) and document not in ("pages", "out"):
+            if os.path.isdir(directory / document) and document not in (
+                "pages",
+                "out",
+            ):
                 documents.append(document)
             else:
                 if os.path.isfile(directory / document) and document == "report.pdf":

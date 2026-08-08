@@ -163,6 +163,36 @@ class PdfBlock:
         """
         return _str_blocks(self)
 
+    def to_dict(self) -> dict:
+        """Serialize this PdfBlock to a JSON-compatible dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary representation with type tags for reconstruction.
+        """
+        from freeports._internals.core.serialization import to_serializable
+
+        return to_serializable(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PdfBlock":
+        """Reconstruct a PdfBlock from a serialized dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary produced by to_dict().
+
+        Returns
+        -------
+        PdfBlock
+            Reconstructed PdfBlock instance.
+        """
+        from freeports._internals.core.serialization import from_serializable
+
+        return from_serializable(data)
+
     def __repr__(self) -> str:
         """Return string representation of the PdfBlock.
 
@@ -235,6 +265,36 @@ class TextBlock:
         new_blk.pdf_block = None
         new_blk.content = content
         return new_blk
+
+    def to_dict(self) -> dict:
+        """Serialize this TextBlock to a JSON-compatible dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary representation with type tags for reconstruction.
+        """
+        from freeports._internals.core.serialization import to_serializable
+
+        return to_serializable(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "TextBlock":
+        """Reconstruct a TextBlock from a serialized dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary produced by to_dict().
+
+        Returns
+        -------
+        TextBlock
+            Reconstructed TextBlock instance.
+        """
+        from freeports._internals.core.serialization import from_serializable
+
+        return from_serializable(data)
 
     def __repr__(self) -> str:
         return str(self)

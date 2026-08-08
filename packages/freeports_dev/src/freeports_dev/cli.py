@@ -67,7 +67,9 @@ def _cmd_make_tests(args):
         skip_pdf_blks=args.skip_pdf_blks,
         skip_txt_blks=args.skip_txt_blks,
         skip_results=args.skip_results,
-        print_results=not args.quiet,
+        print_results=not args.noprint_results,
+        print_txt_blks=args.print_txt_blks,
+        print_pdf_blks=args.print_pdf_blks,
     )
 
 
@@ -197,7 +199,15 @@ def main():
     p_make.add_argument(
         "--noconfirm", action="store_true", help="Skip confirmation prompts"
     )
-    p_make.add_argument("--quiet", action="store_true", help="Suppress result printing")
+    p_make.add_argument(
+        "--noprint_results", action="store_true", help="Suppress result printing"
+    )
+    p_make.add_argument(
+        "--print_txt_blks", action="store_true", help="Activate text blocks printing"
+    )
+    p_make.add_argument(
+        "--print_pdf_blks", action="store_true", help="Activate pdf blocks printing"
+    )
     p_make.add_argument("--skip-pdf-blks", action="store_true")
     p_make.add_argument("--skip-txt-blks", action="store_true")
     p_make.add_argument("--skip-results", action="store_true")
