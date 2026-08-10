@@ -80,7 +80,6 @@ def get_algorithms_schedule(
     pd.DataFrame
         Validated algorithms schedule DataFrame.
     """
-    pd.set_option("future.no_silent_downcasting", True)
     df = pd.read_csv(formats_repo_dir / ORCHESTRATION_DIR / "algorithms_schedule.csv")
     df = df.set_index(["Format name"])
     df["Filter next iteration"] = df["Filter next iteration"].fillna(False)

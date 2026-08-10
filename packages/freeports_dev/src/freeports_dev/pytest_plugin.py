@@ -540,8 +540,7 @@ class ReportVariant(Collector):
                 elif file_type in ("filter_data.json"):
                     pass
                 else:
-                    pass
-                    # raise Exception(f"Unknown file in pages folder: {f}")
+                    raise Exception(f"Unknown file in pages folder: {f}")
 
         total_pages = []
         for pages in pages_by_type.values():

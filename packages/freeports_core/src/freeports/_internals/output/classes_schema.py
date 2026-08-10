@@ -232,6 +232,7 @@ class Fund(BaseModel, MatchFund, PromisableDict):
         BaseModel.__init__(self, name=name)
         if not isinstance(name, Promise):
             MatchFund.__init__(self, name)
+            self.name = self._n_name.upper()
 
     def __hash__(self) -> int:
         """Return a hash based on the fund name."""

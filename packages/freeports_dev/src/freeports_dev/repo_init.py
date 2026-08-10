@@ -81,8 +81,6 @@ PACKAGE_YAML_CONTENT = (
     "  validation_sha256: \n"
 )
 
-DEVTOOLS_GITIGNORE = "*\n!.gitignore\n!*.template.ipynb\n!*.py\n"
-
 
 def init_format_repo(target: Path):
     if target.exists() and list(target.iterdir()):
@@ -101,10 +99,6 @@ def init_format_repo(target: Path):
     (target / "package.yaml").write_text(PACKAGE_YAML_CONTENT)
     (target / "tests" / "conftest.py").write_text(CONFTEST_CONTENT)
     (target / "pyproject.toml").write_text(PYPROJECT_CONTENT)
-
-    devtools_dir = target / "devtools"
-    devtools_dir.mkdir(parents=True, exist_ok=True)
-    (devtools_dir / ".gitignore").write_text(DEVTOOLS_GITIGNORE)
 
     from freeports_dev.input_db import copy_default_input_db
 

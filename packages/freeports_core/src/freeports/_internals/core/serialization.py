@@ -73,13 +73,15 @@ class _PdfBlockModel(BaseModel):
 
     type_block_tag: str
     metadata: dict
-    content: Optional[str] = None
+    content: Optional[str | _PromiseModel] = None
 
     def to_pdf_block(self) -> PdfBlock:
         return PdfBlock(
             type_block=_tag_to_enum(self.type_block_tag),
             metadata=_thaw_dict(self.metadata),
-            text=self.content,
+            text=_PromiseModel.to_promise(self.content)
+            if isinstance(self.content, _PromiseModel)
+            else self.content,
         )
 
     @classmethod
@@ -87,7 +89,9 @@ class _PdfBlockModel(BaseModel):
         return cls(
             type_block_tag=_enum_to_tag(blk.type_block),
             metadata=_freeze_dict(blk.metadata),
-            content=blk.content,
+            content=_PromiseModel.from_promise(blk.content)
+            if isinstance(blk.content, Promise)
+            else blk.content,
         )
 
 
@@ -99,7 +103,7 @@ class _TextBlockModel(BaseModel):
     subtype_tag: Optional[str] = None
     type_block_tag: str
     metadata: dict
-    content: str
+    content: str | _PromiseModel
     pdf_block: Optional[dict] = None
 
     def to_text_block(self) -> TextBlock:
@@ -113,7 +117,11 @@ class _TextBlockModel(BaseModel):
         blk = cls.__new__(cls)
         blk.type_block = type_block
         blk.metadata = _thaw_dict(self.metadata)
-        blk.content = self.content
+        blk.content = (
+            _PromiseModel.to_promise(self.content)
+            if isinstance(self.content, _PromiseModel)
+            else self.content
+        )
         blk.pdf_block = (
             _PdfBlockModel(**self.pdf_block).to_pdf_block() if self.pdf_block else None
         )
@@ -129,7 +137,9 @@ class _TextBlockModel(BaseModel):
             subtype_tag=subtype,
             type_block_tag=_enum_to_tag(blk.type_block),
             metadata=_freeze_dict(blk.metadata),
-            content=blk.content,
+            content=_PromiseModel.from_promise(blk.content)
+            if isinstance(blk.content, Promise)
+            else blk.content,
             pdf_block=(
                 _PdfBlockModel.from_pdf_block(blk.pdf_block).model_dump()
                 if blk.pdf_block
