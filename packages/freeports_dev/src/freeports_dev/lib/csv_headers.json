@@ -1,0 +1,13 @@
+{
+    "metadata/formats.csv": "Name,Locale,Year,Country,Version\n",
+    "metadata/url_mapping.csv": "Name,URL\n",
+    "content/algorithms/structured/investments/args.csv": "Format,Page type,Font,Font size,Subfund set col,Currency set col,Body set col,Market value col,Quantity col,% net assets col,Acquisition cost col,Acquisition cost currency col\n",
+    "content/algorithms/structured/investments/additional_args.csv": "Format,Page type,USE_RULER_AREA,Precision of tolerances,Interpret quantity as float,Geometrical indexing,Merge previous\n",
+    "content/algorithms/structured/investments/deselection_lists.csv": "Format,Page type,Reference string\n",
+    "content/algorithms/structured/investments/partial_pipes.csv": "Format,Page type,Skip pdf extract,Skip text filter,Skip deserialize\n",
+    "content/algorithms/structured/page_classify/args.csv": "Format,Page type,Font,Font size,Reference string\n",
+    "content/algorithms/semistructured/formats_mapping.csv": "Format,Page type,Algorithm\n",
+    "content/orchestration/algorithms_schedule.csv": "Format,Page type,Filter next iteration\n",
+    "content/orchestration/mapping.csv": "ID,Page type\n",
+    "content/orchestration/pageclassify_overwrite.csv": "ID\n"
+}

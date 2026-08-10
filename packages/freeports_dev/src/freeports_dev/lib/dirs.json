@@ -1,0 +1,12 @@
+[
+    "metadata",
+    "tests/formats",
+    "validation",
+    "devtools",
+    "content/algorithms/structured/investments",
+    "content/algorithms/structured/page_classify",
+    "content/algorithms/semistructured/args",
+    "content/algorithms/unstructured",
+    "content/orchestration",
+    "content/templates"
+]

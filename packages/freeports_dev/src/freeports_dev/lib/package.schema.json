@@ -1,0 +1,34 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://freeports.org/schemas/package.schema.json",
+    "title": "Freeports Format Repository Package Manifest",
+    "description": "Schema for the package.yaml manifest in a freeports format repository.",
+    "type": "object",
+    "properties": {
+        "schema": {
+            "type": "string",
+            "description": "Schema version identifier (e.g. v0.0.0)."
+        },
+        "info": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the format repository."
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Version of the format repository contents."
+                },
+                "validation_sha256": {
+                    "type": "string",
+                    "description": "SHA-256 hash for integrity verification."
+                }
+            },
+            "required": ["description", "version", "validation_sha256"],
+            "additionalProperties": true
+        }
+    },
+    "required": ["schema", "info"],
+    "additionalProperties": true
+}
