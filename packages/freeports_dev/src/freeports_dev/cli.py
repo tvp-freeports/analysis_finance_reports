@@ -82,9 +82,10 @@ def _cmd_inspect_page(args):
         print_pdf_blks_table_MD,
         print_pdf_blks_table_ASCII,
     )
-    from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+    import freeports_engine
+
+    Algorithm = freeports_engine.core.Algorithm
     from freeports_dev.input_db import get_test_companies as gtc
-    import freeports_lib
 
     base_path = repo / "tests" / "formats"
     report_file = args.report or (base_path / args.format / "report.pdf")
@@ -128,7 +129,9 @@ def _cmd_inspect_page(args):
 def _cmd_inspect_document(args):
     repo = _resolve_repo(args.repo)
 
-    from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+    import freeports_engine
+
+    Algorithm = freeports_engine.core.Algorithm
     from freeports._internals.formats.repo.metadata import get_formats
     import pymupdf
 

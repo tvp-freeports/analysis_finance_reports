@@ -4,9 +4,11 @@ import textwrap
 from pathlib import Path
 from typing import List
 import dill
-from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+import freeports_engine
+
+Algorithm = freeports_engine.core.Algorithm
+PdfBlock = freeports_engine.core.PdfBlock
 from freeports._internals.formats.repo.metadata import get_formats
-from freeports._internals.core.classes import PdfBlock
 
 extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
 
@@ -67,9 +69,9 @@ def print_pdf_line_sets(page, strings, mode="structured"):
     from freeports._internals.formats.utils.pdf_extract.pdf_blks_acquire import (
         pdflines_from_pagedict,
     )
-    import freeports_lib
+    import freeports_engine
 
-    PdfLineSelection = freeports_lib.pdf_extract.select.PdfLineSelection
+    PdfLineSelection = freeports_engine.core.PdfLineSelection
     lines = pdflines_from_pagedict(page)
     for txt in strings:
         exl = PdfLineSelection.text(txt).select(lines)
@@ -105,22 +107,55 @@ def print_pdf_line_sets(page, strings, mode="structured"):
                 print(")")
 
 
+class _PdfBlocksTable:
+    """Read-only grid view of PDF blocks keyed by their table-row/table-col metadata.
+
+    Local, display-only reimplementation: the original `PdfBlocksTable` was ported to Rust as an
+    internal-only struct (never exposed to Python) once `freeports_engine`'s `TextFilterInvestmentsStandard`
+    took over the production text-filter loop, so it's no longer importable from Python.
+    """
+
+    def __init__(self, pdf_blocks: List[PdfBlock]):
+        dict_table = {}
+        col_max = 0
+        for blk in pdf_blocks:
+            row = blk.metadata["table-row"]
+            col = blk.metadata["table-col"]
+            dict_table.setdefault(row, {}).setdefault(col, []).append(blk)
+            col_max = max(col, col_max)
+        self._table = [
+            [dict_table[row].get(col, []) for col in range(col_max + 1)]
+            for row in sorted(dict_table.keys())
+        ]
+
+    @property
+    def shape(self):
+        rows = len(self._table)
+        cols = max((len(row) for row in self._table), default=0)
+        return (rows, cols)
+
+    def __getitem__(self, coords):
+        row, col = coords
+        cell = self._table[row][col]
+        if len(cell) == 1:
+            return cell[0]
+        if len(cell) == 0:
+            return None
+        return cell
+
+
 def print_pdf_blks_table_MD(
     pdf_blocks: List[PdfBlock], max_cell_width: int = 30, show_grid: bool = True
 ) -> None:
-    from freeports._internals.formats.utils.text_filter.standard_funcs import (
-        PdfBlocksTable,
-    )
-
     pdf_blocks = [
-        b for b in pdf_bloks if "table-row" in b.metadata and "table-col" in b.metadata
+        b for b in pdf_blocks if "table-row" in b.metadata and "table-col" in b.metadata
     ]
 
     if not pdf_blocks:
         print("No PDF blocks to display")
         return
 
-    table = PdfBlocksTable(pdf_blocks)
+    table = _PdfBlocksTable(pdf_blocks)
     rows, cols = table.shape
 
     if rows == 0 or cols == 0:
@@ -198,10 +233,6 @@ def print_pdf_blks_table_MD(
 def print_pdf_blks_table_ASCII(
     pdf_blocks: List[PdfBlock], max_cell_width: int = 30
 ) -> None:
-    from freeports._internals.formats.utils.text_filter.standard_funcs import (
-        PdfBlocksTable,
-    )
-
     pdf_blocks = [
         b for b in pdf_blocks if "table-row" in b.metadata and "table-col" in b.metadata
     ]
@@ -209,7 +240,7 @@ def print_pdf_blks_table_ASCII(
         print("No PDF blocks to display")
         return
 
-    table = PdfBlocksTable(pdf_blocks)
+    table = _PdfBlocksTable(pdf_blocks)
     rows, cols = table.shape
 
     if rows == 0 or cols == 0:

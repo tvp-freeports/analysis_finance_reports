@@ -1,0 +1,483 @@
+"""Casting utilities for deserializing string data into typed Python values.
+
+The actual casting logic is now implemented in Rust — see
+``packages/freeports_engine/src/core/cast.rs`` and
+``analysis_finance_reports/agent-memory/rust-rewrite-plan.md``. The names below delegate to
+that implementation; the original Python bodies are kept further down in this file (renamed
+with a ``_legacy_`` prefix) as dead code until the migration is far enough along to delete them.
+
+The Python originals call ``logger.warning(...)`` (translated via ``_()``) as a side effect on
+the *success* path, when a value needs a lossy/forced cast (``to_float``/``to_int``) or when a
+percentage sign forces normalization despite ``norm=False`` (``perc_to_float``). These warnings
+are load-bearing: several format fixtures' ``.log.csv`` audit files assert on them. The Rust
+port only computes the result; ``to_float``, ``to_int``, and ``perc_to_float`` below are thin
+Python wrappers that reproduce the warning side effects (using
+``freeports_engine.core.is_numeric_shape`` / ``normalize_word``) before delegating the actual
+computation to Rust.
+"""
+
+import re
+from datetime import date, datetime
+import logging
+
+import freeports_engine
+from freeports.i18n import _
+from freeports.consts import Currency
+
+normalize_string = freeports_engine.core.normalize_string
+normalize_word = freeports_engine.core.normalize_word
+
+logger = logging.getLogger(__name__)
+
+
+def _log_forced_cast_if_needed(data: str) -> None:
+    normalized = normalize_word(data)
+    if not freeports_engine.core.is_numeric_shape(normalized):
+        logger.warning(
+            _("Trying to cast to number but found '%s' - forcing cast"), normalized
+        )
+
+
+def to_float(data: str) -> float:
+    _log_forced_cast_if_needed(data)
+    return freeports_engine.core.to_float(data)
+
+
+def to_int(data: str) -> int:
+    _log_forced_cast_if_needed(data)
+    return freeports_engine.core.to_int(data)
+
+
+def perc_to_float(perc: str, norm: bool = True) -> float:
+    normalized = normalize_word(perc)
+    if "%" in normalized:
+        normalized = normalize_word(normalized.replace("%", ""))
+        if not norm:
+            logger.warning(
+                _(
+                    "Found percentage symbol '%' but `norm` is False - forcing normalization"
+                )
+            )
+    _log_forced_cast_if_needed(normalized)
+    return freeports_engine.core.perc_to_float(perc, norm)
+
+
+to_str = freeports_engine.core.to_str
+to_currency = freeports_engine.core.to_currency
+to_date = freeports_engine.core.to_date
+to_int_en_month = freeports_engine.core.to_int_en_month
+to_date_with_en_month = freeports_engine.core.to_date_with_en_month
+to_int_it_month = freeports_engine.core.to_int_it_month
+to_date_with_it_month = freeports_engine.core.to_date_with_it_month
+
+__all__ = [
+    "perc_to_float",
+    "to_float",
+    "to_int",
+    "to_str",
+    "to_currency",
+    "to_date",
+    "to_int_en_month",
+    "to_date_with_en_month",
+    "to_int_it_month",
+    "to_date_with_it_month",
+]
+
+
+def _legacy_perc_to_float(perc: str, norm: bool = True) -> float:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Convert a percentage string to float value.
+
+    Handles various percentage string formats by:
+    - Normalizing the string (removing spaces, converting commas to dots)
+    - Removing percentage signs (if percentage sign is present,
+      the number gets normalized dividing by 100)
+    - Optionally converting to decimal form (dividing by 100)
+
+    Parameters
+    ----------
+    perc : str
+        The percentage string to convert (may contain '%', ',', or '.')
+    norm : bool, optional
+        Whether to normalize the result by dividing by 100 (default True)
+        If False, returns the raw numeric value from the string
+
+    Returns
+    -------
+    float
+        The converted float value
+
+    Raises
+    ------
+    ValueError
+        If the string cannot be converted to a float after processing
+
+    Examples
+    --------
+    >>> perc_to_float("5.5%")
+    0.055
+    >>> perc_to_float("25,5", norm=False)
+    25.5
+    >>> perc_to_float("10 %")
+    0.1
+    """
+    perc = normalize_word(perc)
+
+    # Handle percentage sign
+    if "%" in perc:
+        perc = perc.replace("%", "")
+        perc = normalize_word(perc)
+        if not norm:
+            logger.warning(
+                _(
+                    "Found percentage symbol '%' but `norm` is False - forcing normalization"
+                )
+            )
+        norm = True
+
+    try:
+        f = _legacy_to_float(perc)
+        return f / 100.0 if norm else f
+    except ValueError as e:
+        raise ValueError(
+            _("Failed to convert percentage string '{}' to float").format(perc)
+        ) from e
+
+
+def _legacy_force_numeric(data: str) -> str:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Strip non-numeric characters and warn when input does not look numeric.
+
+    Parameters
+    ----------
+    data : str
+        The string to sanitize into a numeric form.
+
+    Returns
+    -------
+    str
+        The sanitized string with only digits, dots, commas, and letters.
+    """
+    reg_num = r"^\d+([\.,]\d+)*$"
+    data = normalize_word(data)
+    if not re.match(reg_num, data):
+        logger.warning(
+            _("Trying to cast to number but found '%s' - forcing cast"), data
+        )
+        data = re.sub(r"[^a-zA-Z.,0-9]+", "", data)
+    return data
+
+
+def _legacy_to_float(data: str) -> float:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Cast to float in a more loose way than the standard python `float`
+    namely it removes dots or commas and spaces around the string and handles
+    thousand separators.
+
+    Parameters
+    ----------
+    data : str
+        number written in string form
+
+    Returns
+    -------
+    float
+        casted result
+
+    Raises
+    ------
+    ValueError
+        the resulting processed string cannot be casted to `float`
+
+    Notes
+    -----
+    This function handles various numeric formats including:
+    - Thousand separators (e.g., "1.000.000" -> 1000000.0)
+    - Decimal separators (both '.' and ',')
+    - Mixed separators (e.g., "1,000.50" -> 1000.5)
+    - Whitespace around numbers
+    """
+    data = normalize_word(data)
+    data = _legacy_force_numeric(data)
+    pos_dot = data.find(".")
+    pos_com = data.find(",")
+    if pos_dot != -1 and pos_com != -1:
+        first_pos = min(pos_dot, pos_com)
+        data = data.replace(data[first_pos], "")
+
+    data = data.replace(",", ".")
+    int_reg = r"^[1-9]\d{0,2}\.\d{3}(\.\d{3})+$"
+    if re.match(int_reg, data):
+        data = data.replace(".", "")
+    return float(data)
+
+
+def _legacy_to_int(data: str) -> int:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Cast to int in a more loose way than the standard python `int`
+    namely it remove dots or commas and spaces around the string
+
+    Parameters
+    ----------
+    data : str
+        number written in string form
+
+    Returns
+    -------
+    int
+        casted result
+
+    Raises
+    ------
+    ValueError
+        the resulting processed string cannot be casted to `int`
+
+    Notes
+    -----
+    This function handles integer formats including:
+    - Thousand separators (e.g., "1.000" -> 1000)
+    - Whitespace around numbers
+    - Decimal points with zero mantissa (e.g., "100.0" -> 100)
+
+    Raises ValueError if the number has a non-zero mantissa.
+    """
+    data = normalize_word(data)
+    data = _legacy_force_numeric(data)
+    pos_dot = data.find(".")
+    pos_com = data.find(",")
+    if pos_dot != -1 and pos_com != -1:
+        first_pos = min(pos_dot, pos_com)
+        data = data.replace(data[first_pos], "")
+
+    data = data.replace(",", ".")
+    int_reg = r"^[1-9]\d{0,2}(\.\d{3})+$"
+    if re.match(int_reg, data):
+        data = data.replace(".", "")
+
+    pos_dot = data.find(".")
+    if pos_dot != -1:
+        mantissa = int(data[pos_dot + 1 :])
+        if mantissa != 0:
+            raise ValueError(
+                _("Number {} has a mantissa different form 0").format(data)
+            )
+        data = data[:pos_dot]
+    return int(data)
+
+
+def _legacy_to_str(data: str) -> str:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Normalize a string by stripping whitespace from both ends.
+
+    Parameters
+    ----------
+    data : str
+        The input string to be normalized
+
+    Returns
+    -------
+    str
+        The stripped string
+    """
+
+    return normalize_string(data, lower=False)
+
+
+def _legacy_to_currency(data: str) -> Currency:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Convert a string to a Currency enum value.
+
+    Parameters
+    ----------
+    data : str
+        The currency string to convert (e.g. "USD", "EUR")
+
+    Returns
+    -------
+    Currency
+        The corresponding Currency enum value
+
+    Raises
+    ------
+    KeyError
+        If the string doesn't match any Currency enum member
+
+    Notes
+    -----
+    The input string is normalized to uppercase before matching against
+    the Currency enum members. Both 3-letter ISO codes and common names
+    are supported (e.g., "EUR" and "EURO" both map to Currency.EUR).
+    """
+    if isinstance(data, Currency):
+        return data
+    data = normalize_word(data)
+
+    data = data.upper()
+    try:
+        return Currency[data]
+    except KeyError as e:
+        raise ValueError from e
+
+
+def _legacy_to_date(data: str) -> date:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Convert a date string to a date object using multiple possible formats.
+
+    Parameters
+    ----------
+    data : str
+        The date string to parse
+
+    Returns
+    -------
+    date
+        The parsed date object
+
+    Raises
+    ------
+    ValueError
+        If the string doesn't match any of the supported date formats
+
+    Notes
+    -----
+    The function tries multiple date formats in order:
+    - ISO format (YYYY-MM-DD, YYYY/MM/DD)
+    - European format (DD/MM/YYYY, DD.MM.YYYY)
+    - US format (MM-DD-YYYY)
+    - Short formats (DD/MM/YY, MM/YY)
+
+    The first matching format is used for parsing.
+    """
+    data = normalize_word(data)
+    formats = [
+        "%Y-%m-%d",  # 2025-07-02
+        "%Y/%m/%d",  # 2025/07/02
+        "%d/%m/%Y",  # 02/07/2025
+        "%d.%m.%Y",  # 02.07.2025
+        "%d.%m.%y",  # 02.07.25
+        "%d/%m/%y",  # 02/07/25
+        "%m-%d-%Y",  # 07-02-2025
+        "%d-%m-%y",  # 01-05-25
+        "%m/%y",  # 05-25
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(data, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(_("Date string '{}' is not in a recognized format.").format(data))
+
+
+def _legacy_to_int_en_month(text: str) -> int:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Convert an English month name to its integer value (1-12).
+
+    Parameters
+    ----------
+    text : str
+        The English month name (e.g. "January", "february").
+
+    Returns
+    -------
+    int
+        Month number from 1 (January) to 12 (December).
+    """
+    months = [
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    ]
+    return months.index(text.lower().strip()) + 1
+
+
+def _legacy_to_date_with_en_month(text: str) -> date:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Parse a date string in ``DD MONTH YYYY`` format (English month name).
+
+    Parameters
+    ----------
+    text : str
+        Date string with English month name (e.g. "1 January 2025").
+
+    Returns
+    -------
+    date
+        Parsed date object.
+    """
+    date_parts = text.split()
+    date_class = date(
+        int(date_parts[2]), _legacy_to_int_en_month(date_parts[1]), int(date_parts[0])
+    )
+    return date_class
+
+
+def _legacy_to_int_it_month(text: str) -> int:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Convert an Italian month name to its integer value (1-12).
+
+    Parameters
+    ----------
+    text : str
+        The Italian month name (e.g. "Gennaio", "febbraio").
+
+    Returns
+    -------
+    int
+        Month number from 1 (Gennaio) to 12 (Dicembre).
+    """
+    months = [
+        "gennaio",
+        "febbraio",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
+    ]
+    return months.index(text.lower().strip()) + 1
+
+
+def _legacy_to_date_with_it_month(text: str) -> date:
+    """Dead code: superseded by the Rust implementation imported above.
+
+    Parse a date string in ``DD MONTH YYYY`` format (Italian month name).
+
+    Parameters
+    ----------
+    text : str
+        Date string with Italian month name (e.g. "1 Gennaio 2025").
+
+    Returns
+    -------
+    date
+        Parsed date object.
+    """
+    date_parts = text.split()
+    date_class = date(
+        int(date_parts[2]), _legacy_to_int_it_month(date_parts[1]), int(date_parts[0])
+    )
+    return date_class

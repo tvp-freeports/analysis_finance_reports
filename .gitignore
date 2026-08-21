@@ -1,4 +1,7 @@
 AGENTS.md
+.claude/
+targets/
+agent-memory/
 venv/
 *.pdf
 *.csv
@@ -27,3 +30,4 @@ freeports.log
 .benchmarks
 .continue
 pylint.json
+CLAUDE.md

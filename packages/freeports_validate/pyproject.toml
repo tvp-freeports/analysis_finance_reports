@@ -7,9 +7,7 @@ version = "0.0.1"
 authors = [
     {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
 ]
-dependencies = [
-    "freeports",
-]
+dependencies = []
 
 [project.urls]
 github = "https://github.com/tvp-freeports/analysis_finance_reports"

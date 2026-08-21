@@ -1,0 +1,11 @@
+main  # da vedere se attach con import e' necessario
+  execute
+    resolve_jobs
+      resolve_partial_config
+        cmd_confg::from_args
+	env_config::load
+
+      FreeportsConfig::build
+      batch::load_vatch_jobs
+    run_jobs
+  

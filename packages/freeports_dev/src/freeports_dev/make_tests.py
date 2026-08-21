@@ -6,7 +6,9 @@ from freeports_dev.create_test_page import (
     get_page_dict,
 )
 from freeports_dev.input_db import get_test_companies as gtc
-from freeports._internals.formats.repo.algorithms.definitions import Algorithm
+import freeports_engine
+
+Algorithm = freeports_engine.core.Algorithm
 from freeports._internals.formats.repo.metadata import get_formats
 from freeports._internals.core.serialization import (
     dump as json_dump,

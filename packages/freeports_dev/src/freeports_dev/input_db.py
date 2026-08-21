@@ -2,7 +2,6 @@ import os
 import shutil
 from pathlib import Path
 
-import freeports_lib
 from freeports._internals.input.companies_db import get_target_companies
 from freeports._internals.cli.conf_parse import FreeportsFileConfig
 
@@ -45,13 +44,13 @@ def resolve_input_db(rootdir=None):
 
 
 def get_test_companies(rootdir=None, target_lists=None):
+    # `get_target_companies` (Phase D, packages/freeports_engine/src/input/companies_db.rs) now
+    # returns an already-compiled `List[CompanyMatchInfos]` directly, not a `pd.DataFrame` for
+    # this function to compile itself — see the module doc on `companies_db.py`.
     input_db = resolve_input_db(rootdir)
     if target_lists is None:
         target_lists = ["TEST"]
-    df = get_target_companies(input_db, target_lists)
-    return freeports_lib.text_filter.matcher.CompanyMatchInfos.compile_from_pandas_df(
-        df
-    )
+    return get_target_companies(input_db, target_lists)
 
 
 def copy_default_input_db(target):
