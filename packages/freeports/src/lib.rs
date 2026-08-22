@@ -16,7 +16,6 @@ pub mod input;
 pub mod output;
 
 // --- API pubblica ----------------------------------------------------------
-// Da abilitare milestone per milestone, man mano che i moduli esistono davvero.
+// Abilitata milestone per milestone, man mano che i moduli esistono davvero.
 // Vedi `PLAN.md`, sezione 9.
-//
-// pub mod api;
+pub mod api;

@@ -642,6 +642,8 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
 | `commons::date` e `core::page` | aggiunta approvata, restano dove sono |
 | `pdf_extract::pdf_line` vs `select::pdf_line` vs `select::relative` | interpretazione corretta: **dati** / **selezioni** / **selezioni relative** |
 | `tabularizer`, `pdf_line`, `select` (incl. `relative`) | **si portano com'è**, non si ridisegnano (vedi §0) |
+| `int_value()` di `FinancialInstrument`/`SfdrArticle` | confermato: **non serve**, resta omesso definitivamente (2026-08-22) |
+| `Set::Universe / _` in `commons::sets` | confermato: **il panic non tipizzato va bene così**, resta un limite documentato, non un target futuro (2026-08-22) |
 
 ### Ancora da decidere
 
@@ -652,8 +654,11 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
    rigenerati. Confermi, e in quale milestone (M8 o M10)? *Blocca M10, non prima.*
 3. **`.log.csv`** — deve continuare a esistere con le stesse colonne
    (`Page,Matched Company,Company,Field name,Row,Column,Message`)? *Blocca M0 (il `Layer`), ma
-   si può implementare con le colonne attuali e cambiarle dopo senza costi.*
-
+   si può implementare con le colonne attuali e cambiarle dopo senza costi.* **Implementato con
+   queste colonne in M0** (2026-08-22): riga scritta solo se l'evento/span porta almeno uno dei
+   campi `page`/`company`/`field`/`row`/`column`; `Matched Company` resta sempre vuota (nessun
+   campo tracing la alimenta ancora) — non blocca più, ma resta da confermare se `Matched
+   Company` debba ricevere un campo dedicato in una milestone futura.
 Regola generale: se durante l'implementazione emerge una decisione di design non coperta da
 questo documento, **si chiede all'utente** e si annota la risposta qui in §13, non la si decide
 di iniziativa.
