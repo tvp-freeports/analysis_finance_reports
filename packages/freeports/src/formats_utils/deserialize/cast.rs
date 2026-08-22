@@ -1,0 +1,3 @@
+//! Cast da testo a tipi: to_int, to_float, to_date, to_currency, perc_to_float, ...
+//!
+//! STUB — da implementare, vedi `PLAN.md`.

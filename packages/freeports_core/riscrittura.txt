@@ -1,0 +1,183 @@
+Sto analizzando il codice e vorrei fosse riscritto nel modo seguente (soprattutto la parte piu' interna legata ad Algorithm)
+prima ragioniamo lato Rust, poi creiamo una public API in python.
+
+la struttura in rust deve essere:
+    cli::{
+        config_locations::{cmd,env,file}
+        batch
+        freeports_config
+        conf_parse
+        run
+        .
+        .
+        .
+    }
+    commons::{
+        sets::{ast_simple,ast_smart,indipendent_atoms}
+        consts
+        flag_expr
+        geometry
+        i18n
+    }
+    core::{
+        classes
+        match_fund
+        normalization
+        promisable
+        promise_resolution
+        promise
+        .
+        .
+        .
+    }
+    formats_repo::{orchestration, structured,semistructured,unstructured,id_format,metadata}
+    formats_utils::{
+        pdf_extract::{
+            select::{
+                pdf_line::{area,font_size,font,text}
+                relative
+            }
+            pdf_line
+            relative
+            tabularizer::{collapse,coordinates}
+            commons
+            position
+            select
+            standard_funcs
+        },
+        text_filter::{
+            matcher,
+            standard_funcs,
+            standard_txt_blk_builders
+        },
+        deserialize::{cast,standard_funcs}
+    }
+    input::{companies_db,download}
+    output::{classes,files_schema,routines}
+
+
+la struttura pubbica:
+    cli::{CliArgs,execute}
+    consts::{Currency,SfdrArticle,FinancialInstrument}
+    core::{
+        PdfBlock (metodi pubblici serde serialization e deserialization),
+        TextBlock (metodi pubblici serde serialization e deserialization),
+        Pipeline,
+        Promise,
+        Algorithm (metodi pubblici `load`,`apply`,`apply_multidocument`,`apply_pdf_extract`,`apply_text_filter`,`apply_deserializer`,`classify_pages_multidocument`,`classify_pages`)
+    }
+    utils::{
+        pdf_extract::{
+            pdfline_selection_from_dict,
+            pdfline_selection_from_str,
+            pdfimages_from_pagedict,
+            pdflines_from_pagedict,
+            get_groups,
+            get_table_coordinates,
+            CellGeometry,
+            SplittingState,
+            NullableState,
+            Limits,
+            RowConfig,
+            ColumnConfig,
+            TableConfig,
+            CollapseAlgorithm,
+            TablePosAlgorithm,
+            TablePosMeasureUnit,
+        }
+        text_filter::{
+            normalize_string
+            investment_fund_filter_data
+            extract_currency_from_text
+        },
+        deserialize::{
+            perc_to_float,
+            to_int,
+            to_float,
+            to_str,
+            to_currency,
+            to_date,
+            to_int_en_month,
+            to_date_with_en_month,
+            to_int_it_month,
+            to_date_with_it_month
+        }
+    }
+    standard_builders::{
+        pdf_blocks::{}
+        text_blocks::{
+            standard_management_company_txt_blk,
+            standard_investmet_manager_txt_blk,
+            standard_fund_txt_blk
+        }
+    }
+    standard_funcs::{
+        pdf_extract::{
+            PdfExtractPageClassifyStandard,
+            PdfExtractInvestmentsStandard,
+            PdfExtractCurrencyStandard,
+            PdfExtractCurrencyConstant,
+            PdfExtractFundStandard,
+            PdfExtractManagmentCompanyStandard,
+            PdfExtractSfdrArticleStandard,
+            PdfExtractAssetsStandard
+        },
+        text_filter::{
+            TextFilterPageClassifyStandard
+            TextFilterInvestmentsStandard
+            TextFilterManagmentCompanyStandard
+            TextFilterSfdrArticleStandard
+            TextFilterAssetsStandard
+        }
+        deserialize::{
+            DeserializerPageClassifyStandard,
+            DeserializerInvestmentStandard,
+            DeserializerFundStandard,
+            DeserializerManagmentCompanyStandard,
+            DeserializerInvestmentsManagerStandard,
+            DeserializerInvestmentsManagerFromManco,
+            DeserializeSfdrArticleStandard,
+            DeserializerAssetsStandard
+        }
+    }
+    input::{load_target_companies,compile_target_companies}
+    output::{
+        Bond,Equity,Fund,FundAssets,FundMerge,FundChangeName,SfdrArticle,FundEsgIndicators
+        (metodi pubblici serde serialization e deserialization e furfill_promises) per tutti questi
+    }
+
+In rust esistono in
+    core::classes
+        ci devono essere due classi simili che sono TextBlock e PdfBlock i quali devono
+        avere tre attributi:
+            type: (il quale puo' essere o un PyAny che sara' riempito da Python Enum o una Stringa rust, questo da scegliere a seconda di cosa e' piu' comodo da implementare).
+                il contenuto di questo attributo codifichera' la struttura di metadata
+            metadata: una HashMap che conterra' o PyAny, oppure un enum che codifichera i possibili tipi contenibili rust (
+                      Stringa, float, int, Pomises <vedi dopo>, bool, tipi compound ecc. ecc.,
+                      l'importante e che ci sia un modo di serializzare e deserializzare poi tutto il Block in json
+            content: una semplice Stringa oppure una implementazione possibile e' di nuovo lo stesso tipo del contenuto della HashMap (rappresenta diciamo come un valore della HashMap unamed)
+        
+    questi devono essere facili da deserializzare e serializzare tramite serde
+
+
+    Algorithm.load deve fare il load delle pipelines dal repositorio dei formati.
+    fai attenzione al design idiomatico di Pipeline, PipelineBundle e dei vari segmenti.
+
+    Algorithm e' fatto da diverse pipelines a seconda della classificazione della pagina + quelle per classificare le pagine in generale
+    le pipelines sonon l'insieme di tre segmenti fatti da piu' funzioni ogniuno. ogniuna di queste funzioni puo' essere una standard nella libreria
+    oppure definita nel repo dei formati. in particolare la parte structured carica delle funzioni definite in rust (tramite costruttori che prendono dei parametri),
+    semistructured sono nominate e possono essere definite in rust oppure dall'utente in python, nel caso unstructured sono definite in python dall'utente.
+
+    verso la fine della riscrittura si prendera' l'api pubblica e si aggiungeranno delle funzioni e struct shim per prendere in input tipi python
+    e trasformarli in nativi python in modo che si possano chiamare anche in python (chiamandole tipo py_func e PyStruct ... ecc. ecc.) e 
+    essendo che il progetto sara' compilato con maturin, mi permettera' di avere la stessa api in rust e python (con le strutture bridge tra i due mondi tengo tutto ben separato e lascio tutta la logica in rust)
+
+    gli unici punti per cui mi dovro' attaccare ad un interprete python e in cui faro' l'handling di errori python e durante l'esecuzione dei pipe definiti in python
+    e inoltre quando viene caricato il documento pdf, prima di trasformarlo in oggetto rust viene preso creato con pymupdf (quidni ci sra' l'import e l'utilizzo di pymupdf)
+    in tutto il resto del codice python e pyo3 e' da evitare perche' prono all'errore e a stranezze. infine il logging verra' fatto tutto interamente con tracing.
+
+    per tutta la logica e il funzionamento puoi ispirarti a freeports_core. quello che deve rimanere uguale sono le utilities di pdf_filter, text_extract deserialize, sets, tutte queste parti interne che ho scritto io,
+    quello che invece andra' largamento adattato sara' Algorithm Pipeline, ecc.ecc. che devono essere ri-pensati per l'uso in rust (non tramite passaggio a python). in particolare pianifica molto bene questi costrutti come renderli.
+    NON FARE AFFIDAMENTO A COMMENTI O MEMORIA LASCIATA PRECEDENTEMENTE PERCHE' RIPIANIFICANDO ALCUNE COSE O DESIGN POTREBBERO CAMBIARE.
+    leggili se vuoi come pura ispirazione. Crea una cartella indipendente in modo che possa testare e fare build in modo separato da freeports_core. in particolare vorrei che sia il crate che il modulo python che il binario, si chiamino freeports.
+    per adesso non pianificare gli shim per pubblicare l'api a python, attieniti in rust.

@@ -44,12 +44,13 @@ use pyo3::types::{PyDict, PyList, PySet};
 
 use crate::commons::consts::Currency;
 use crate::core::classes::{ExpectedTextBlockNotFound, PageParseFail, PdfBlock, TextBlock};
+use crate::core::match_fund::MatchFund;
+use crate::formats_utils::text_filter::standard_txt_blks::{
+    standard_fund_text_block,
+    standard_management_company_text_block,
+};
 use crate::output::fund::Fund;
 use crate::output::investment::{Bond, Equity};
-
-fn standard_txt_blks_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
-    py.import("freeports._internals.formats.utils.text_filter.standard_txt_blks")
-}
 
 /// **History**: the field-extraction warnings/errors below were once routed through real Python
 /// `logging` (via `text_filter_logger`/`LOG_ADAPT_INVESTMENT_INFOS`, now removed), because every
@@ -566,29 +567,28 @@ impl TextFilterManagmentCompanyStandard {
     }
 
     fn __call__(&self, py: Python<'_>, pdf_blks: &Bound<'_, PyAny>, filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<Py<PyAny>>> {
-        let filter_funds = PySet::empty(py)?;
+        let mut filter_funds: Vec<Py<MatchFund>> = Vec::new();
         for item in filter_data.try_iter()? {
             let item = item?;
             if item.is_instance_of::<Fund>() {
                 let name: String = item.getattr("name")?.extract()?;
-                filter_funds.add(make_match_fund(py, &name)?)?;
+                filter_funds.push(Py::new(py, MatchFund::new(name))?);
             }
         }
 
-        let mut manco_block: Option<Bound<'_, PyAny>> = None;
+        let mut manco_block: Option<Py<PdfBlock>> = None;
         for item in pdf_blks.try_iter()? {
             let item = item?;
             let type_block: String = item.getattr("type_block")?.extract()?;
             if type_block == "MANAGEMENT_COMPANY" {
-                manco_block = Some(item);
+                manco_block = Some(item.extract()?);
                 break;
             }
         }
         let manco_block = manco_block.ok_or_else(|| PyStopIteration::new_err(()))?;
 
-        let factory = standard_txt_blks_module(py)?.getattr("StandardManagmentCompanyTextBlock")?;
-        let txt_blk = factory.call1((manco_block, filter_funds))?;
-        Ok(vec![txt_blk.unbind()])
+        let txt_blk = standard_management_company_text_block(py, manco_block, filter_funds);
+        Ok(vec![Py::new(py, txt_blk)?.into_any()])
     }
 }
 
@@ -896,8 +896,9 @@ impl TextFilterInvestmentsStandard {
                     return Err(PyValueError::new_err("Fund two subfunds in same page"));
                 }
                 fund_found = Some(item.getattr("content")?.unbind());
-                let factory = standard_txt_blks_module(py)?.getattr("StandardFundTextBlock")?;
-                results.push(factory.call1((&item,))?.unbind());
+                let pdf_blk: Py<PdfBlock> = item.extract()?;
+                let txt_blk = standard_fund_text_block(py, pdf_blk);
+                results.push(Py::new(py, txt_blk)?.into_any());
             } else if type_block == "CURRENCY_STATEMENT" {
                 if currency_found.is_some() {
                     return Err(PyValueError::new_err("Fund two currency in same page"));

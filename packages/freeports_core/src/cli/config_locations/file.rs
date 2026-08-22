@@ -99,7 +99,6 @@ fn xdg_config_dirs() -> Vec<PathBuf> {
     dirs
 }
 
-/// Mirrors `FreeportsFileConfig._standard_config`.
 #[cfg(unix)]
 pub fn standard_config() -> Option<PathBuf> {
     for dir in xdg_config_dirs() {

@@ -272,17 +272,7 @@ fn validate_document_specs(input_reports: Vec<DocumentSpec>, save_pdf: bool) -> 
 }
 
 impl FreeportsConfig {
-    /// Mirrors `FreeportsConfig(**config)` — building the final config from an already-merged
-    /// [`PartialConfig`] and running all 6 validators in order. No `py: Python<'_>` parameter:
-    /// nothing here touches Python directly, only [`detect_format`] does, and it attaches its own
-    /// (see that function's doc comment) — so every caller of `build`, all the way up to
-    /// `cli::run::resolve_jobs`, doesn't need one either purely to pass through to here.
     pub fn build(config: PartialConfig) -> Result<Self, FreeportsConfigError> {
-        // Every field `PartialConfig::defaults()` sets a real value for falls back to that value
-        // here rather than erroring — computed fresh (not assumed from the caller) so this holds
-        // no matter what `config` was built from, exactly like the base of the default→file→env→
-        // cmd precedence chain `cli::cmd::resolve_partial_config` runs before ever reaching here.
-        // Only fields `defaults()` deliberately leaves unset (see its doc comment) can still fail.
         let defaults = PartialConfig::defaults();
         let verbosity = config.verbosity.or(defaults.verbosity).expect("PartialConfig::defaults() always sets `verbosity`");
         let n_workers = config.n_workers.or(defaults.n_workers).expect("PartialConfig::defaults() always sets `n_workers`");

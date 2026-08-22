@@ -41,10 +41,53 @@ use pyo3::types::{PyDict, PyList, PySet, PyString, PyTuple};
 use pyo3::PyClass;
 
 use crate::formats_repo::orchestration;
+use crate::core::{PdfBlock,TextBlock};
+use crate::output::*;
 
 fn is_callable(obj: &Bound<'_, PyAny>) -> bool {
     obj.is_callable()
 }
+
+struct PdfExtractPipe<F> {
+    f: F
+}
+
+impl <F> PdfExtractPipe<F>
+where
+    F: Fn(&Bound<'_,PyAny>) -> Vec<PdfBlock>,
+{
+    fn call(&self, page: &Bound<'_,PyAny>) -> Vec<PdfBlock> {
+        (self.f)(page)
+    }
+}
+
+struct TextFilterPipe<F> {
+    f: F
+}
+
+impl <F> TextFilterPipe<F>
+where
+    F: Fn(&[PdfBlock],&Bound<'_,PyAny>) -> Vec<TextBlock>,
+{
+    fn call(&self, pdf_blks: &[PdfBlock], filter_data: &Bound<'_,PyAny>) -> Vec<TextBlock> {
+        (self.f)(pdf_blks,filter_data)
+    }
+}
+
+// struct DeserializePipe<F> {
+//     f: F
+// }
+// impl <F> Deserialize<F> 
+// where
+//     F: Fn(&TextBlock,&Bound<'_,PyAny>) -> Vec<TextBlock>,
+// {
+//     fn call(&self, pdf_blks: &[PdfBlock], filter_data: &Bound<'_,PyAny>) -> Vec<TextBlock> {
+//         (self.f)(pdf_blks,filter_data)
+//     }
+// }
+
+
+
 
 /// Shared by the 3 segment kinds below: a deduplicated (by identity, matching Python's default
 /// `set` semantics for objects without custom `__hash__`/`__eq__`), insertion-ordered collection

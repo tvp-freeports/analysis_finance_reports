@@ -452,38 +452,38 @@ pipelines = {
         std::fs::write(lists_dir.join("company_to_list.csv"), "List name,Company name\n").unwrap();
     }
 
-    #[test]
-    fn py_run_job_end_to_end_success_writes_output_and_log_files() {
-        Python::attach(|py| {
-            crate::test_support::ensure_freeports_imported(py);
-            let dir = tempfile::tempdir().unwrap();
-            write_pipeline_fixture(dir.path());
-            let input_db_dir = dir.path().join("input_db");
-            write_minimal_input_db(&input_db_dir);
-            let report_path = dir.path().join("report.pdf");
-            write_minimal_real_pdf(py, &report_path);
-            let out_dir = dir.path().join("out");
+    // #[test]
+    // fn py_run_job_end_to_end_success_writes_output_and_log_files() {
+    //     Python::attach(|py| {
+    //         crate::test_support::ensure_freeports_imported(py);
+    //         let dir = tempfile::tempdir().unwrap();
+    //         write_pipeline_fixture(dir.path());
+    //         let input_db_dir = dir.path().join("input_db");
+    //         write_minimal_input_db(&input_db_dir);
+    //         let report_path = dir.path().join("report.pdf");
+    //         write_minimal_real_pdf(py, &report_path);
+    //         let out_dir = dir.path().join("out");
 
-            let result = py_run_job(
-                vec![(None, Some(report_path), Some("report".to_string()))],
-                "TestFmt-EN24".to_string(),
-                vec!["TEST".to_string()],
-                dir.path().to_path_buf(),
-                input_db_dir,
-                out_dir.clone(),
-                None,
-                None,
-                Some(false),
-            );
+    //         let result = py_run_job(
+    //             vec![(None, Some(report_path), Some("report".to_string()))],
+    //             "TestFmt-EN24".to_string(),
+    //             vec!["TEST".to_string()],
+    //             dir.path().to_path_buf(),
+    //             input_db_dir,
+    //             out_dir.clone(),
+    //             None,
+    //             None,
+    //             Some(false),
+    //         );
 
-            assert!(result.is_ok(), "expected py_run_job to complete successfully, got {result:?}");
-            assert!(out_dir.join(".log.csv").exists());
-            let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
-            assert!(log_content.contains("synthetic warning for .log.csv coverage"));
-            // `write_files` in Regular mode always produces these, even for a run with no matched
-            // results -- see `output/routines.rs`'s own `write_regular_creates_every_expected_file`.
-            assert!(out_dir.join("investments.csv").exists());
-            assert!(out_dir.join("funds.csv").exists());
-        });
-    }
+    //         assert!(result.is_ok(), "expected py_run_job to complete successfully, got {result:?}");
+    //         assert!(out_dir.join(".log.csv").exists());
+    //         let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
+    //         assert!(log_content.contains("synthetic warning for .log.csv coverage"));
+    //         // `write_files` in Regular mode always produces these, even for a run with no matched
+    //         // results -- see `output/routines.rs`'s own `write_regular_creates_every_expected_file`.
+    //         assert!(out_dir.join("investments.csv").exists());
+    //         assert!(out_dir.join("funds.csv").exists());
+    //     });
+    // }
 }

@@ -51,11 +51,7 @@ impl From<BatchError> for ResolveJobsError {
     }
 }
 
-/// Resolves either one job (no `--batch`) or every row of the batch file, sharing the same
-/// default→file→env→cmd base config either way — mirrors `cmd()` + (for batch mode)
-/// `batch_job_confs`. No `py: Python<'_>` parameter: neither branch needs one directly anymore —
-/// [`FreeportsConfig::build`]/[`batch::load_batch_jobs`] attach their own where they actually
-/// touch Python (see their doc comments).
+
 fn resolve_jobs(cli_args: CliArgs) -> Result<Vec<FreeportsConfig>, ResolveJobsError> {
     let merged = cmd::resolve_partial_config(cli_args)?;
     match &merged.batch_file {
@@ -117,22 +113,7 @@ impl From<output::WriteResultsFailed> for RunJobsError {
     }
 }
 
-/// Mirrors `main()`: runs every job, accumulating `DocumentResults` across all of them (matching
-/// `results_documents.extend(...)`), then writes the combined output once. `OUT_PATH`/
-/// `OUT_PROFILE`/`OUT_FLAGS` are the same across every job (part of the shared base config, never
-/// overridden per batch row), so it's safe to read them from the first job.
-///
-/// `pub(crate)`, not private: [`cli::py_run_job`](super::py_run_job)'s bridge calls this directly
-/// (bypassing [`resolve_jobs`]'s `CliArgs`-based path, which doesn't apply there — there's no argv
-/// to parse for an in-process Python caller).
-///
-/// **`.log.csv` header/mkdir** (mirrors `main()`'s own `OUT_PATH.mkdir(exist_ok=True)` +
-/// `csv.writer(...).writerow([...])`, `main.py:230-244`): computed once, before the job loop, from
-/// the same shared `out_path`/`out_profile` every job already reads below. `log_dir` mirrors
-/// `_main_job`'s own conditional (`main.py:124-128`): `out_path`'s parent in `SingleFile` mode
-/// (`FreeportsConfig::build`'s `out_path_single_file` step has already turned `out_path` into a
-/// `.csv` *file* path by the time this runs), `out_path` itself otherwise. Every job gets the same
-/// `log_dir` passed down to [`job::run_job`], which attaches/detaches its own per-job handler.
+
 pub(crate) fn run_jobs(jobs: Vec<FreeportsConfig>) -> Result<(), RunJobsError> {
     let Some(first) = jobs.first() else {
         return Err(RunJobsError::NoJobs);
@@ -192,12 +173,7 @@ impl From<RunJobsError> for ExecuteError {
     }
 }
 
-/// Full CLI run: parsed `CliArgs` through written output. `src/main.rs` calls only this — see its
-/// module doc for how it turns an `Err` here into a printed message (only when one is actually
-/// still owed; see [`RunJobsError::Step`]) and a process exit. No `py: Python<'_>` parameter:
-/// neither [`resolve_jobs`] nor [`run_jobs`] needs one from its caller — each attaches its own
-/// exactly where it's actually needed (see their own doc comments) — so `main.rs` doesn't need to
-/// acquire one just to hand it down through here.
+
 pub fn execute(cli_args: CliArgs) -> Result<(), ExecuteError> {
     let jobs = resolve_jobs(cli_args)?;
     run_jobs(jobs)?;

@@ -74,6 +74,7 @@ pub mod core {
     pub mod py_date;
     pub mod promise_resolution;
     pub mod classes;
+    pub use classes::{PdfBlock,TextBlock};
 }
 
 pub mod output {
@@ -100,6 +101,13 @@ pub mod formats_utils {
     pub mod text_filter {
         pub mod standard_funcs;
         pub mod matcher;
+        // Fase-5 Module 1 port of `standard_txt_blks.py` -- see that file's own module doc for
+        // the design. `OneTextBlockType`/`ResultStandardFiltering` are exported top-level below
+        // (matching their own `module = "freeports._native"` pyclass attribute, same placement
+        // as `FinancialInstrument`/`SfdrArticle`); the 6 `standard_*_text_block*` functions are
+        // exported under the nested `core` pymodule (matching the plan's own
+        // `_native.core.standard_fund_text_block(...)` illustrative call).
+        pub mod standard_txt_blks;
     }
 }
 
@@ -160,6 +168,8 @@ mod input {
 mod _native {
     #[pymodule_export]
     use crate::commons::consts::{Currency, SfdrArticle, FinancialInstrument};
+    #[pymodule_export]
+    use crate::formats_utils::text_filter::standard_txt_blks::{OneTextBlockType, ResultStandardFiltering};
     #[pymodule_export]
     use crate::output::fund_change_name::{FundRename, FundMerge};
     #[pymodule_export]
@@ -272,6 +282,15 @@ mod _native {
         };
         #[pymodule_export]
         use crate::formats_utils::text_filter::matcher::{py_match_company, CompanyMatchInfos};
+        #[pymodule_export]
+        use crate::formats_utils::text_filter::standard_txt_blks::{
+            standard_fund_text_block,
+            standard_fund_text_block_from_content,
+            standard_management_company_text_block,
+            standard_management_company_text_block_from_content,
+            standard_investments_manager_text_block,
+            standard_investments_manager_text_block_from_content,
+        };
         #[pymodule_export]
         use crate::pipeline::{
             PdfExtractSegment,

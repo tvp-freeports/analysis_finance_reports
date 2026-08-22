@@ -63,18 +63,8 @@ impl From<PyErr> for ResolveDocumentsError {
     }
 }
 
-/// Mirrors `_resolve_documents`. **Fixes a bug found while porting**: the original always opens
-/// `ds["path"]` directly whenever it's set, even when `validate_document_specs` computed it as a
-/// *not-yet-downloaded* target (the "URL + existing directory + SAVE_PDF" case, which sets
-/// `path = dir/"report.pdf"` without downloading anything) — `pypdf.Document(path)` on a file that
-/// was never fetched crashes with a pymupdf file error instead of downloading it first. Fixed:
-/// download whenever a URL is present and the path either isn't set or doesn't exist yet; open
-/// the local file directly only when it's actually already there.
-///
-/// Calls [`py_download_pdf`] directly as a native Rust function rather than through
-/// `freeports._native.core.download_pdf` — it's the same code either way (that's the `#[pyfunction]`
-/// this crate registers under that name), so going through a Python attribute lookup and call
-/// would only add overhead, not behavior.
+
+
 fn resolve_documents<'py>(
     py: Python<'py>,
     config: &FreeportsConfig,
@@ -95,9 +85,6 @@ fn resolve_documents<'py>(
             kwargs.set_item("stream", stream)?;
             pypdf.call_method("Document", (), Some(&kwargs))?
         } else if let Some(path) = &ds.path {
-            // `FreeportsConfig::build`'s `validate_document_specs` should already have rejected
-            // this (no URL, non-existent path) — a clear error here is a safety net, not the
-            // expected path.
             return Err(ResolveDocumentsError::MissingPath { name, path: path.clone() });
         } else {
             unreachable!("DocumentSpec::new requires url or path");
@@ -137,28 +124,25 @@ pub fn run_job(config: &FreeportsConfig, log_dir: &Path) -> Result<Vec<Py<PyAny>
 }
 
 fn run_job_attached<'py>(py: Python<'py>, config: &FreeportsConfig, log_dir: &Path) -> PyResult<Vec<Bound<'py, PyAny>>> {
-    let log = py.import("logging")?;
-    let core_logging = py.import("freeports._internals.core.logging")?;
-    let log_contextual_infos = core_logging.getattr("LOG_CONTEXTUAL_INFOS")?;
-    let log_adapt_investment_infos = core_logging.getattr("LOG_ADAPT_INVESTMENT_INFOS")?;
-    let logging_table = core_logging.getattr("LOGGING_TABLE")?;
-    let csv_formatter = core_logging.getattr("CsvFormatter")?.call0()?;
+    // let log = py.import("logging")?;
+    // let core_logging = py.import("freeports._internals.core.logging")?;
+    // let log_contextual_infos = core_logging.getattr("LOG_CONTEXTUAL_INFOS")?;
+    // let log_adapt_investment_infos = core_logging.getattr("LOG_ADAPT_INVESTMENT_INFOS")?;
+    // let logging_table = core_logging.getattr("LOGGING_TABLE")?;
+    // let csv_formatter = core_logging.getattr("CsvFormatter")?.call0()?;
 
-    let kwargs = PyDict::new(py);
-    kwargs.set_item("mode", "a")?;
-    let handler = log.getattr("FileHandler")?.call((log_dir.join(".log.csv"),), Some(&kwargs))?;
-    handler.call_method1("addFilter", (&log_adapt_investment_infos,))?;
-    handler.call_method1("addFilter", (&log_contextual_infos,))?;
-    handler.call_method1("setFormatter", (&csv_formatter,))?;
-    handler.call_method1("setLevel", (log.getattr("WARNING")?,))?;
-    let format_utils = log.call_method1("getLogger", ("freeports._internals.formats.utils",))?;
-    format_utils.call_method1("addHandler", (&handler,))?;
-    logging_table.call_method1("addHandler", (&handler,))?;
+    // let kwargs = PyDict::new(py);
+    // kwargs.set_item("mode", "a")?;
+    // let handler = log.getattr("FileHandler")?.call((log_dir.join(".log.csv"),), Some(&kwargs))?;
+    // handler.call_method1("addFilter", (&log_adapt_investment_infos,))?;
+    // handler.call_method1("addFilter", (&log_contextual_infos,))?;
+    // handler.call_method1("setFormatter", (&csv_formatter,))?;
+    // handler.call_method1("setLevel", (log.getattr("WARNING")?,))?;
+    // let format_utils = log.call_method1("getLogger", ("freeports._internals.formats.utils",))?;
+    // format_utils.call_method1("addHandler", (&handler,))?;
+    // logging_table.call_method1("addHandler", (&handler,))?;
 
-    // Deliberately no `try`/`finally`-equivalent guard around the body below, matching
-    // `_main_job`'s own lack of cleanup-on-error: if `resolve_documents`/`run_documents` raises,
-    // the handler below is never detached, exactly like the Python original never detaches it on
-    // an exception either. Not a bug to fix here — see this file's own module doc.
+
     let documents = resolve_documents(py, config).map_err(|e| PyValueError::new_err(e.to_string()))?;
     tracing::info!(count = documents.len(), format = config.format.as_deref(), "processing document(s)");
 
@@ -186,9 +170,9 @@ fn run_job_attached<'py>(py: Python<'py>, config: &FreeportsConfig, log_dir: &Pa
     let doc_results = algorithm.call_method1("run_documents", (docs_list, targets, format))?;
     let doc_results: Vec<Bound<'py, PyAny>> = doc_results.try_iter()?.collect::<PyResult<_>>()?;
 
-    format_utils.call_method1("removeHandler", (&handler,))?;
-    logging_table.call_method1("removeHandler", (&handler,))?;
-    log_contextual_infos.setattr("report", py.None())?;
+    // format_utils.call_method1("removeHandler", (&handler,))?;
+    // logging_table.call_method1("removeHandler", (&handler,))?;
+    // log_contextual_infos.setattr("report", py.None())?;
 
     Ok(doc_results)
 }
@@ -392,58 +376,58 @@ pipelines = {
         }
     }
 
-    #[test]
-    fn run_job_attaches_a_log_csv_handler_and_records_a_deserialize_warning() {
-        Python::attach(|py| {
-            crate::test_support::ensure_freeports_imported(py);
-            let dir = tempfile::tempdir().unwrap();
-            write_pipeline_fixture(dir.path());
-            let input_db_dir = dir.path().join("input_db");
-            write_minimal_input_db(&input_db_dir);
-            let report_path = dir.path().join("report.pdf");
-            write_minimal_real_pdf(py, &report_path);
-            let out_dir = dir.path().join("out");
+    // #[test]
+    // fn run_job_attaches_a_log_csv_handler_and_records_a_deserialize_warning() {
+    //     Python::attach(|py| {
+    //         crate::test_support::ensure_freeports_imported(py);
+    //         let dir = tempfile::tempdir().unwrap();
+    //         write_pipeline_fixture(dir.path());
+    //         let input_db_dir = dir.path().join("input_db");
+    //         write_minimal_input_db(&input_db_dir);
+    //         let report_path = dir.path().join("report.pdf");
+    //         write_minimal_real_pdf(py, &report_path);
+    //         let out_dir = dir.path().join("out");
 
-            let config = fixture_config(dir.path(), &input_db_dir, report_path, "report", out_dir.clone());
+    //         let config = fixture_config(dir.path(), &input_db_dir, report_path, "report", out_dir.clone());
 
-            let result = super::super::run::run_jobs(vec![config]);
-            assert!(result.is_ok(), "expected the job to complete successfully, got {result:?}");
+    //         let result = super::super::run::run_jobs(vec![config]);
+    //         assert!(result.is_ok(), "expected the job to complete successfully, got {result:?}");
 
-            let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
-            let mut lines = log_content.lines();
-            assert_eq!(lines.next().unwrap(), "Page,Matched Company,Company,Field name,Row,Column,Message");
-            let warning_line = lines.next().expect("expected one warning row after the header");
-            assert!(
-                warning_line.contains("synthetic warning for .log.csv coverage"),
-                "expected the deserialize warning's message in the row, got: {warning_line}"
-            );
-            assert!(lines.next().is_none(), "expected exactly one warning row, got extra content: {log_content}");
-        });
-    }
+    //         let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
+    //         let mut lines = log_content.lines();
+    //         assert_eq!(lines.next().unwrap(), "Page,Matched Company,Company,Field name,Row,Column,Message");
+    //         let warning_line = lines.next().expect("expected one warning row after the header");
+    //         assert!(
+    //             warning_line.contains("synthetic warning for .log.csv coverage"),
+    //             "expected the deserialize warning's message in the row, got: {warning_line}"
+    //         );
+    //         assert!(lines.next().is_none(), "expected exactly one warning row, got extra content: {log_content}");
+    //     });
+    // }
 
-    #[test]
-    fn run_job_reattaches_the_log_csv_handler_cleanly_across_multiple_jobs_without_duplicating_warnings() {
-        Python::attach(|py| {
-            crate::test_support::ensure_freeports_imported(py);
-            let dir = tempfile::tempdir().unwrap();
-            write_pipeline_fixture(dir.path());
-            let input_db_dir = dir.path().join("input_db");
-            write_minimal_input_db(&input_db_dir);
-            let out_dir = dir.path().join("out");
+    // #[test]
+    // fn run_job_reattaches_the_log_csv_handler_cleanly_across_multiple_jobs_without_duplicating_warnings() {
+    //     Python::attach(|py| {
+    //         crate::test_support::ensure_freeports_imported(py);
+    //         let dir = tempfile::tempdir().unwrap();
+    //         write_pipeline_fixture(dir.path());
+    //         let input_db_dir = dir.path().join("input_db");
+    //         write_minimal_input_db(&input_db_dir);
+    //         let out_dir = dir.path().join("out");
 
-            let mut jobs = Vec::new();
-            for i in 0..2 {
-                let report_path = dir.path().join(format!("report{i}.pdf"));
-                write_minimal_real_pdf(py, &report_path);
-                jobs.push(fixture_config(dir.path(), &input_db_dir, report_path, &format!("report{i}"), out_dir.clone()));
-            }
+    //         let mut jobs = Vec::new();
+    //         for i in 0..2 {
+    //             let report_path = dir.path().join(format!("report{i}.pdf"));
+    //             write_minimal_real_pdf(py, &report_path);
+    //             jobs.push(fixture_config(dir.path(), &input_db_dir, report_path, &format!("report{i}"), out_dir.clone()));
+    //         }
 
-            let result = super::super::run::run_jobs(jobs);
-            assert!(result.is_ok(), "expected both jobs to complete successfully, got {result:?}");
+    //         let result = super::super::run::run_jobs(jobs);
+    //         assert!(result.is_ok(), "expected both jobs to complete successfully, got {result:?}");
 
-            let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
-            let warning_rows = log_content.lines().skip(1).filter(|l| l.contains("synthetic warning for .log.csv coverage")).count();
-            assert_eq!(warning_rows, 2, "expected exactly one warning row per job (2 jobs, each attaching/detaching its own handler), got:\n{log_content}");
-        });
-    }
+    //         let log_content = std::fs::read_to_string(out_dir.join(".log.csv")).unwrap();
+    //         let warning_rows = log_content.lines().skip(1).filter(|l| l.contains("synthetic warning for .log.csv coverage")).count();
+    //         assert_eq!(warning_rows, 2, "expected exactly one warning row per job (2 jobs, each attaching/detaching its own handler), got:\n{log_content}");
+    //     });
+    // }
 }

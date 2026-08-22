@@ -47,9 +47,7 @@ where
     }
 }
 
-/// Mirrors `FreeportsEnvConfig.__init__`: reads every `FREEPORTS_*` variable that's set, ignores
-/// the ones that aren't (matching `os.environ.get`, which is `None` rather than an error for a
-/// missing variable).
+
 pub fn load() -> Result<PartialConfig, EnvConfigError> {
     let verbosity = parse_var(env_var!("VERBOSITY"), conf_parse::parse_verbosity)?;
     let n_workers = parse_var(env_var!("N_WORKERS"), conf_parse::parse_workers)?;
@@ -85,10 +83,7 @@ pub fn load() -> Result<PartialConfig, EnvConfigError> {
     })
 }
 
-/// Environment variables are process-global state; every test anywhere in the crate that reads
-/// or mutates `FREEPORTS_*` env vars (this module's own tests, plus `cli::cmd`'s, which calls
-/// through to [`load`]) locks this first, so `cargo test`'s parallel test threads can't race each
-/// other's `std::env::set_var`/`remove_var`/`load()`.
+
 #[cfg(test)]
 pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 

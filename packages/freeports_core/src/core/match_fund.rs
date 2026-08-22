@@ -40,8 +40,13 @@ impl MatchFund {
     }
 
     /// The original, un-normalized fund name.
+    ///
+    /// `pub` (unlike the other `#[pymethods]` here) so `formats_utils/text_filter/
+    /// standard_txt_blks.rs` can read it directly off a `Py<MatchFund>` without a Python
+    /// `getattr` round-trip — see that module's own doc comment ("zero Python touched inside
+    /// these functions beyond the `Py<PdfBlock>`/`&MatchFund` arguments they receive").
     #[getter]
-    fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
