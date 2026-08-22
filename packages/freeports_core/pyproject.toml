@@ -1,0 +1,63 @@
+[project]
+name = "freeports"
+description = "Script for dumping a csv from different finance reports about ethical aspects"
+# No `readme` field: the old `freeports_core/pyproject.toml` declared `readme = "README.md"` but
+# no such file ever existed there either (confirmed) — setuptools tolerated the dangling
+# reference silently, but maturin errors out on it at build time, so it's dropped here rather
+# than fabricated. Not a behavior change: this metadata was already inert.
+requires-python = ">=3.8"
+license = "GPL-3.0"
+version = "v0.0.1"
+license-files = [
+    "LICENSE"
+]
+authors = [
+    {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
+]
+maintainers = [
+    {name = "Oreste Sciacqualegni",  email = "orestesciacqualegni@tutanota.com"},
+]
+dependencies = [
+    "PyXDG",
+    "importlib_resources",
+    "rapidfuzz",
+    "dotenv",
+    "pyyaml",
+    "pandas",
+    "numpy",
+    "scikit-image",
+    "pillow",
+    "requests",
+    "PyMuPDF",
+    "lxml",
+    "pydantic",
+    "pandera",
+]
+keywords = [
+    "finance",
+    "pdf",
+    "ethic",
+    "economy",
+    "datascience"
+]
+
+[project.urls]
+github = "https://github.com/tvp-freeports/analysis_finance_reports"
+documentation = "https://docs.freeports.org"
+homepage = "https://www.freeports.org"
+
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+# Must match `lib.rs`'s outer `#[pyo3::pymodule] mod _native { ... }` name exactly — maturin looks
+# for a `PyInit_<last component of module-name>` symbol, independent of the Rust module's own
+# name; a mismatch here (confirmed empirically: this was briefly `"freeports"`, matching only the
+# Cargo crate name) makes maturin warn "Python will fail to import this module" and it does.
+module-name = "freeports._native"
+
+[tool.pylint.main]
+extension-pkg-allow-list = ["freeports"]
+

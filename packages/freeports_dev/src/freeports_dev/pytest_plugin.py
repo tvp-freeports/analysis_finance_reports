@@ -9,17 +9,11 @@ from abc import ABC, abstractclassmethod
 from pymupdf import Document
 from pytest import Collector, Function, Directory
 
-import freeports_engine
+from freeports import _native
 from freeports._internals.formats.repo.metadata import get_formats
 
-Algorithm = freeports_engine.core.Algorithm
-from freeports._internals.cli.main import main as run_analysis
-from freeports._internals.cli.conf_parse import (
-    OutStructureNormalMode,
-    OutFlagsNormalMode,
-    FreeportsFileConfig,
-    DocumentSpec,
-)
+Algorithm = _native.core.Algorithm
+run_job = _native.cli.run_job
 from freeports._internals.core.serialization import load as json_load
 from freeports._internals.core.serialization import from_serializable
 import _pytest.fixtures as fixtures
@@ -255,29 +249,16 @@ class PipelineTest(Function):
         from freeports_dev.input_db import resolve_input_db
 
         input_db = resolve_input_db(_formats_cache["repo_dir"])
-        config = {
-            "PDF": self.parent.path / "report.pdf",
-            "INPUT_REPORTS": [
-                DocumentSpec(path=self.parent.path / "report.pdf", name="report")
-            ],
-            "FORMAT": self.format_name,
-            "OUT_PATH": create_dir.mktemp(tmp_dir, numbered=False),
-            "FORMATS_REPO_PATH": _formats_cache["repo_dir"],
-            "INPUT_DB_PATH": input_db,
-            "VERBOSITY": 2,
-            "N_WORKERS": 1,
-            "BATCH_FILE": None,
-            "SAVE_PDF": False,
-            "URL": None,
-            "CONFIG_FILE": FreeportsFileConfig.find_config(),
-            "PREFIX_OUT": None,
-            "TARGET_LISTS": ["TEST"],
-            "OUT_PROFILE": OutStructureNormalMode.REGULAR,
-            "OUT_FLAGS": OutFlagsNormalMode(0),
-        }
-
-        out_path = config["OUT_PATH"]
-        run_analysis(config)
+        out_path = create_dir.mktemp(tmp_dir, numbered=False)
+        run_job(
+            input_reports=[(None, str(self.parent.path / "report.pdf"), "report")],
+            format=self.format_name,
+            target_lists=["TEST"],
+            formats_repo_path=str(_formats_cache["repo_dir"]),
+            input_db_path=str(input_db),
+            out_path=str(out_path),
+            save_pdf=False,
+        )
 
         org_actual_investments = self.parent.cache.csv.get_file(
             out_path / "investments.csv"

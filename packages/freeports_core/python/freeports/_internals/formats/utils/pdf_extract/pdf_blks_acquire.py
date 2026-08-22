@@ -1,0 +1,401 @@
+"""PDF XML parts in a friendly format (custom Python classes).
+
+This module provides a high-level interface for working with PDF document elements
+by wrapping raw XML structures into Python objects with intuitive properties and
+methods. The main classes include:
+
+- `PdfLineBaseClass`: Base class representing a PDF line with font, size, and area properties
+- `ExtractedPdfLine`: Concrete implementation that extracts data from XML elements
+- `PdfLineSet`: Complex set operations for filtering PDF lines based on multiple criteria
+
+These classes enable sophisticated PDF document analysis by providing:
+- Geometric operations (area containment, position filtering)
+- Typographic filtering (font, size matching)
+- Text content matching with regex support
+- Set operations (union, intersection, difference)
+- Contextualization based on actual PDF content
+
+Examples
+--------
+>>> # Create a PDF line set filtering for specific font and area
+>>> line_set = PdfLineSet(font="Arial", area=((0, 100), (0, 200)))
+>>> # Check if a line matches the criteria
+>>> line in line_set
+True
+
+Notes
+-----
+The module uses Shapely for geometric operations and lxml for XML processing.
+All coordinates are in PDF points (1/72 inch).
+"""
+
+import copy
+import enum
+import io
+import re
+from functools import reduce
+from operator import or_
+from typing import Any, Callable, List, Optional, Tuple
+
+import PIL
+from freeports import _native
+import numpy as np
+from pydantic import BaseModel, PositiveFloat
+
+from .position import InputArea
+
+PdfLineSelection = _native.core.PdfLineSelection
+PdfLine = _native.core.PdfLine
+
+
+class PyMuPDFBlockType(enum.Enum):
+    """Enumeration of PyMuPDF block types for text, raster images, and vector images."""
+
+    TEXT = 0
+    IMAGE_RASTER = 1
+    IMAGE_VECTOR = 3
+
+
+def collapsedspans_from_line(l: dict, treshold: float = 1e-1) -> list[dict]:
+    """Collapse text spans in a PDF line when font and size are consistent.
+
+    If all spans share the same font and roughly the same size (within
+    *treshold*), they are merged into a single span with averaged values.
+
+    Parameters
+    ----------
+    l : dict
+        A PDF line dictionary with a ``"spans"`` key containing per-span info.
+    treshold : float, optional
+        Maximum allowed font-size difference for collapsing (default 0.1).
+
+    Returns
+    -------
+    list of dict
+        A list of one merged span dict if collapsed, or the original spans.
+    """
+    res = []
+    last_font = None
+    last_size = None
+    collapse = True
+    sum_font_size = 0.0
+    n_spans = 0
+    text = ""
+    for s in l["spans"]:
+        font = s["font"]
+        font_size = s["size"]
+        sum_font_size += font_size
+        text += s["text"]
+        if last_font is not None and last_size is not None:
+            if font != last_font or abs(font_size - last_size) > treshold:
+                collapse = False
+        last_font = font
+        last_size = font_size
+        n_spans += 1
+        res.append(
+            {"font_size": font_size, "bbox": s["bbox"], "font": font, "text": s["text"]}
+        )
+    if collapse:
+        res = [
+            {
+                "font_size": sum_font_size / n_spans,
+                "bbox": l["bbox"],
+                "font": last_font,
+                "text": text,
+            }
+        ]
+    return res
+
+
+def rotate_bbox(
+    bbox: Tuple[float, float, float, float],
+    cs: float,
+    sn: float,
+    new_left: float,
+    new_top: float,
+) -> Tuple[float, float, float, float]:
+    """Rotate a bounding box by angle (cs=cos, sn=sin) and translate.
+
+    Parameters
+    ----------
+    bbox : tuple of (float, float, float, float)
+        Original bounding box as ``(x0, y0, x1, y1)``.
+    cs : float
+        Cosine of the rotation angle.
+    sn : float
+        Sine of the rotation angle.
+    new_left : float
+        Translation offset for the x-axis.
+    new_top : float
+        Translation offset for the y-axis.
+
+    Returns
+    -------
+    tuple of (float, float, float, float)
+        Rotated and translated bounding box ``(x0', y0', x1', y1')``.
+    """
+    x0, y0, x1, y1 = bbox
+    a = (x0, y0)
+    b = (x0, y1)
+    c = (x1, y1)
+    d = (x1, y0)
+    new_xs1 = map(lambda p: cs * p[0] + sn * p[1], (a, b, c, d))
+    new_ys1 = map(lambda p: cs * p[1] - sn * p[0], (a, b, c, d))
+    new_xs2 = copy.deepcopy(new_xs1)
+    new_ys2 = copy.deepcopy(new_ys1)
+    new_x0 = min(new_xs1)
+    new_x1 = max(new_xs2)
+    new_y0 = min(new_ys1)
+    new_y1 = max(new_ys2)
+    return (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
+
+
+def rotate_lines_inplace(lines: list[dict], width: float, height: float) -> None:
+    """Rotate all lines and their spans so that text direction is horizontal.
+
+    Modifies the input list in place. Lines already horizontal (dir=(1,0))
+    are skipped.
+
+    Parameters
+    ----------
+    lines : list of dict
+        PDF lines from a page dict, each with ``"dir"``, ``"bbox"``, and ``"spans"``.
+    width : float
+        Page width used to compute rotation origin.
+    height : float
+        Page height used to compute rotation origin.
+    """
+    a0 = (0.0, 0.0)
+    b0 = (0.0, height)
+    c0 = (width, height)
+    d0 = (width, 0.0)
+    for line in lines:
+        c, s = line["dir"]
+        if c == 1.0 and s == 0.0:
+            continue
+        new_left = min(map(lambda p: c * p[0] + s * p[1], (a0, b0, c0, d0)))
+        new_top = min(map(lambda p: c * p[1] - s * p[0], (a0, b0, c0, d0)))
+        line["bbox"] = rotate_bbox(line["bbox"], c, s, new_left, new_top)
+        for span in line["spans"]:
+            span["bbox"] = rotate_bbox(span["bbox"], c, s, new_left, new_top)
+        line["dir"] = (1.0, 0.0)
+
+
+def pdfimages_from_pagedict(page: dict) -> list[np.ndarray]:
+    """Extract RGB images from a page dictionary as NumPy arrays.
+
+    Parameters
+    ----------
+    page : dict
+        A PDF page dictionary from PyMuPDF with ``"blocks"`` key.
+
+    Returns
+    -------
+    list of np.ndarray
+        List of RGB images as NumPy arrays.
+    """
+    images = [
+        blk
+        for blk in page["blocks"]
+        if blk["type"] == PyMuPDFBlockType.IMAGE_RASTER.value
+    ]
+    img_arrays = []
+    for img in images:
+        pil_img = PIL.Image.open(io.BytesIO(img["image"]), formats=[img["ext"]])
+        pil_img = pil_img.convert("RGB")
+        img_arrays.append(np.asarray(pil_img))
+    return img_arrays
+
+
+def pdflines_from_pagedict(page: dict, auto_rotate: bool = True) -> list[PdfLine]:
+    """Extract text lines from a page dict as a list of PdfLine objects.
+
+    Parameters
+    ----------
+    page : dict
+        A PDF page dictionary from PyMuPDF with ``"blocks"`` key.
+    auto_rotate : bool, optional
+        Whether to auto-rotate non-horizontal lines (default True).
+
+    Returns
+    -------
+    list of PdfLine
+        Extracted text lines as PdfLine instances.
+    """
+
+    lines = [
+        l
+        for blk in filter(
+            lambda x: x["type"] == PyMuPDFBlockType.TEXT.value, page["blocks"]
+        )
+        if "lines" in blk
+        for l in blk["lines"]
+    ]
+    if auto_rotate:
+        rotate_lines_inplace(lines, page["width"], page["height"])
+    args = [s for l in list(map(collapsedspans_from_line, lines)) for s in l]
+
+    return list(
+        map(
+            lambda s: PdfLine(
+                font=s["font"], font_size=s["font_size"], text=s["text"], bbox=s["bbox"]
+            ),
+            filter(
+                lambda a: (
+                    not (a["bbox"][0] == a["bbox"][2] or a["bbox"][1] == a["bbox"][3])
+                ),
+                args,
+            ),
+        )
+    )
+
+
+class InputPdfLineSet(BaseModel):
+    """Pydantic model representing a set of criteria for selecting PDF lines.
+
+    Attributes
+    ----------
+    text : str or None
+        Text content to match.
+    font : str, list of str, or None
+        Font name(s) to match.
+    font_size : PositiveFloat or None
+        Exact font size to match.
+    area : InputArea or None
+        Rectangular area to restrict matching.
+    """
+
+    text: Optional[str] = None
+    font: Optional[str | List[str]] = None
+    font_size: Optional[PositiveFloat] = None
+    area: Optional[InputArea] = None
+
+
+_LINE_SET_FONT_REGEXP = r"(?P<font>[\w\-, ]+)"
+_NUMBER_REGEXP = r"[0-9]+(\.[0-9]+)?"
+_LINE_SET_FONTSIZE_REGEXP = rf"\[(?P<font_size>{_NUMBER_REGEXP})\]"
+_RANGE_REGEXP = rf"\(({_NUMBER_REGEXP})?:({_NUMBER_REGEXP})?\)"
+_LINE_SET_AREA_REGEXP = (
+    rf"(?P<y_range>{_RANGE_REGEXP})|\((?P<area>{_RANGE_REGEXP}{_RANGE_REGEXP})\)"
+)
+_LINE_SET_TEXT_REGEXP = '"(?P<text>.*)"'
+line_set_regexp = f"({_LINE_SET_FONT_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_FONTSIZE_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_AREA_REGEXP})? ?"
+line_set_regexp += f"({_LINE_SET_TEXT_REGEXP})?"
+LINE_SET_REGEXP_PATTERN = line_set_regexp
+LINE_SET_REGEXP = re.compile(LINE_SET_REGEXP_PATTERN)
+
+
+def _op_over_none(op: Callable, v1: Any, v2: Any) -> Any:
+    """Apply operation to values, handling None cases gracefully.
+
+    Parameters
+    ----------
+    op : Callable
+        Binary operation to apply
+    v1 : Any
+        First operand
+    v2 : Any
+        Second operand
+
+    Returns
+    -------
+    Any
+        Result of operation, or the non-None value if only one is provided,
+        or None if both are None
+    """
+    if v1 is not None and v2 is not None:
+        return op(v1, v2)
+    if v1 is not None:
+        return v1
+    if v2 is not None:
+        return v2
+    return None
+
+
+def pdfline_selection_from_dict(data: dict) -> PdfLineSelection:
+    """Build a PdfLineSelection from a dictionary of criteria.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with keys matching InputPdfLineSet fields.
+
+    Returns
+    -------
+    PdfLineSelection
+        A selection object that can filter PdfLine instances.
+    """
+    ls = InputPdfLineSet(**data)
+    input_area = ls.area.model_dump() if ls.area is not None else None
+    fonts = [ls.font] if isinstance(ls.font, str) else ls.font
+    selection = PdfLineSelection(
+        font_size=(max(ls.font_size - 1e-3, 0.0), ls.font_size + 1e-3)
+        if ls.font_size is not None
+        else None,
+        area=(
+            input_area["x_min"] if input_area["x_min"] is not None else 0.0,
+            input_area["y_min"] if input_area["y_min"] is not None else 0.0,
+            input_area["x_max"] if input_area["x_max"] is not None else +1e6,
+            input_area["y_max"] if input_area["y_max"] is not None else +1e6,
+        )
+        if input_area is not None
+        else None,
+        text=ls.text,
+    )
+    if fonts is None:
+        return selection
+    return reduce(or_, map(lambda f: PdfLineSelection.font(f), fonts)) & selection
+
+
+def pdfline_selection_from_str(string: str) -> PdfLineSelection:
+    """Parse a compact string representation into a PdfLineSelection.
+
+    Parameters
+    ----------
+    string : str
+        A string encoding font, font-size, area, and/or text criteria.
+
+    Returns
+    -------
+    PdfLineSelection
+        A selection object built from the parsed criteria.
+    """
+    matched = LINE_SET_REGEXP.match(string).groupdict()
+    area = None
+    tmp_area = matched["area"]
+    tmp_range = matched["y_range"]
+
+    def _to_floats(x):
+        return (
+            (float(c) if c != "" else None)
+            for c in x.replace("(", "").replace(")", "").split(":")
+        )
+
+    if tmp_area is not None:
+        x_range, y_range = tmp_area.split(")(")
+        x_min, x_max = _to_floats(x_range)
+        y_min, y_max = _to_floats(y_range)
+        area = (
+            x_min if x_min is not None else 0.0,
+            y_min if y_min is not None else 0.0,
+            x_max if x_max is not None else +1e6,
+            y_max if y_max is not None else +1e6,
+        )
+    elif tmp_range is not None:
+        y_min, y_max = _to_floats(tmp_range)
+        area = (
+            0.0,
+            y_min if y_min is not None else 0.0,
+            1e6,
+            y_max if y_max is not None else +1e6,
+        )
+    fs = matched["font_size"]
+    fs = float(fs) if fs is not None else None
+    return PdfLineSelection(
+        font=matched["font"].strip() if matched["font"] is not None else None,
+        font_size=(max(fs - 1e-3, 0.0), fs + 1e-3) if fs is not None else None,
+        area=area,
+        text=matched["text"] if matched["text"] is not None else None,
+    )

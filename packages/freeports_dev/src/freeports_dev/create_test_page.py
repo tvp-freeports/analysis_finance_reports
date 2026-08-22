@@ -4,10 +4,10 @@ import textwrap
 from pathlib import Path
 from typing import List
 import dill
-import freeports_engine
+from freeports import _native
 
-Algorithm = freeports_engine.core.Algorithm
-PdfBlock = freeports_engine.core.PdfBlock
+Algorithm = _native.core.Algorithm
+PdfBlock = _native.core.PdfBlock
 from freeports._internals.formats.repo.metadata import get_formats
 
 extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
@@ -69,9 +69,9 @@ def print_pdf_line_sets(page, strings, mode="structured"):
     from freeports._internals.formats.utils.pdf_extract.pdf_blks_acquire import (
         pdflines_from_pagedict,
     )
-    import freeports_engine
+    from freeports import _native
 
-    PdfLineSelection = freeports_engine.core.PdfLineSelection
+    PdfLineSelection = _native.core.PdfLineSelection
     lines = pdflines_from_pagedict(page)
     for txt in strings:
         exl = PdfLineSelection.text(txt).select(lines)
@@ -111,7 +111,7 @@ class _PdfBlocksTable:
     """Read-only grid view of PDF blocks keyed by their table-row/table-col metadata.
 
     Local, display-only reimplementation: the original `PdfBlocksTable` was ported to Rust as an
-    internal-only struct (never exposed to Python) once `freeports_engine`'s `TextFilterInvestmentsStandard`
+    internal-only struct (never exposed to Python) once `freeports._native`'s `TextFilterInvestmentsStandard`
     took over the production text-filter loop, so it's no longer importable from Python.
     """
 
