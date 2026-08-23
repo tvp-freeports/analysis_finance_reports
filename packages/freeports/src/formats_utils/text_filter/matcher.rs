@@ -182,6 +182,20 @@ pub struct CompanyMatchInfos {
 }
 
 impl CompanyMatchInfos {
+    /// Il nome originale della società, non normalizzato.
+    ///
+    /// Accessore aggiunto in M7 (modifica puramente additiva a codice M4): il confine Python di
+    /// `formats_repo::unstructured` deve poter passare le società bersaglio a un pipe `text_filter`
+    /// d'autore, e senza questo non c'è modo di leggerle da fuori del modulo.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// La forma profondamente normalizzata del nome, quella su cui si fanno i confronti.
+    pub fn normalized_name(&self) -> &str {
+        &self.n_name
+    }
+
     pub fn compile_from_target_companies(
         companies: Vec<TargetCompanyInput>,
     ) -> Result<Vec<Self>, PatternCompileError> {

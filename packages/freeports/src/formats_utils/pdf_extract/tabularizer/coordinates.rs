@@ -61,13 +61,41 @@ pub enum CoordinateExtractionError {
 }
 
 bitflags! {
-    #[derive(Clone,Copy)]
+    // `Debug` aggiunto in M7 (modifica puramente additiva a codice M3 verbatim, stesso precedente
+    // dei derive aggiunti a M1 durante M2): `tabularizer::TableCoordinatesConfig` lo richiede.
+    #[derive(Debug,Clone,Copy)]
     pub struct TablePosAlgorithm: u8 {
         const Default = 0b000000000;
         const ReturnRows = 0b00000001;
         const BigCellRule = 0b00000010;
         const UseRulerArea = 0b00000100;
         const UseTestPos = 0b00001000;
+    }
+}
+
+impl TablePosAlgorithm {
+    /// I nomi dei flag, per l'espressione che il repo formati scrive nei suoi CSV/YAML.
+    fn flag_names() -> std::collections::HashMap<String, u64> {
+        std::collections::HashMap::from([
+            ("RETURN_ROWS".to_string(), TablePosAlgorithm::ReturnRows.bits() as u64),
+            ("BIG_CELL_RULE".to_string(), TablePosAlgorithm::BigCellRule.bits() as u64),
+            ("USE_RULER_AREA".to_string(), TablePosAlgorithm::UseRulerArea.bits() as u64),
+            ("USE_TEST_POS".to_string(), TablePosAlgorithm::UseTestPos.bits() as u64),
+        ])
+    }
+
+    /// Analizza l'espressione di flag scritta dal repo formati (`"USE_RULER_AREA"`,
+    /// `"BIG_CELL_RULE | USE_RULER_AREA"`, ...).
+    ///
+    /// Aggiunta in M7 — è il `TablePosAlgorithm.from_dict` del riferimento, che qui non poteva
+    /// esistere prima perché nessun modulo leggeva ancora la configurazione del repo. Delega a
+    /// `commons::flag_expr` (M1), che accetta il nome singolo del riferimento e in più le
+    /// espressioni booleane: è un superinsieme, quindi non si perde nulla.
+    pub fn from_expression(expression: &str) -> Result<Self, crate::commons::flag_expr::FlagExprError> {
+        let bits = crate::commons::flag_expr::evaluate(expression, &Self::flag_names())?;
+        // `evaluate` lavora su `u64`; i quattro flag stanno in un `u8` e `evaluate` non può
+        // produrre bit che non gli siano stati dati, quindi il troncamento non perde nulla.
+        Ok(TablePosAlgorithm::from_bits_truncate(bits as u8))
     }
 }
 

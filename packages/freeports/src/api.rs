@@ -9,9 +9,7 @@
 //! parte di `core` che esiste: `PdfBlock`, `TextBlock` e `Promise` (`Pipeline` e `Algorithm`
 //! arrivano con M5). M3 aggiunge la parte di `utils::pdf_extract` che non dipende dal confine
 //! PyMuPDF (arriva con M6): `position`/`tabularizer` e le config `TableConfig`/`RowConfig`/
-//! `ColumnConfig`. `TablePosMeasureUnit`, elencato in
-//! §9, non ha né riferimento né test in nessun milestone finora: e' un buco fra §9 e lo scope
-//! reale del crate, annotato in `STATUS.md`, non un'omissione silenziosa. M5 aggiunge `Pipeline` e
+//! `ColumnConfig`. M5 aggiunge `Pipeline` e
 //! `Algorithm`, con tutto ciò che serve a costruirli e a leggerne i risultati (vedi il doc-comment
 //! di `core`).
 //!
@@ -25,8 +23,18 @@
 //! non elencato da `PLAN.md` §9 (che per `input` nomina solo `load_target_companies`/
 //! `compile_target_companies`, `input::companies_db`, fuori scope qui): senza `load_document`/
 //! `load_document_pages` nessun consumatore esterno potrebbe mai costruire un `Document` reale da
-//! un path PDF, quindi il buco fra §9 e lo scope necessario è documentato allo stesso modo di
-//! `TablePosMeasureUnit`, non lasciato silenzioso (M6, Q2 confermata dall'utente).
+//! un path PDF, quindi il buco fra §9 e lo scope necessario è documentato allo stesso modo,
+//! non lasciato silenzioso (M6, Q2 confermata dall'utente).
+//!
+//! M7 chiude il resto: gli otto pipe `standard_funcs::pdf_extract` (D-M7-1), i tre livelli del
+//! repo formati con `Algorithm::load` che li fonde, e **`TablePosMeasureUnit`**, che risolve
+//! `PLAN.md` §13 punto 4 — il tipo esisteva nel riferimento, in `position.py`, come unità di
+//! misura della tolleranza del `get_table_coordinates` che parte dalle *righe* di una pagina.
+//! Quel wrapper è ciò che §9 elenca e ciò che gli autori di formato chiamano davvero, quindi è lui
+//! a portare qui il nome `get_table_coordinates`; la funzione per celle già costruite di
+//! `tabularizer::coordinates`, esportata da M3 con quel nome, diventa
+//! `get_table_coordinates_from_cells`. È l'unica rinomina di questa superficie finora, e riguarda
+//! solo l'alias pubblico: dentro il crate i due nomi restano quelli di sempre.
 
 pub mod consts {
     pub use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
@@ -77,7 +85,12 @@ pub mod utils {
             CollapseAlgorithm, NullableState, SplittingState,
         };
         pub use crate::formats_utils::pdf_extract::tabularizer::coordinates::{
-            CellGeometry, CoordinateExtractionError, TablePosAlgorithm, get_table_coordinates,
+            CellGeometry, CoordinateExtractionError, TablePosAlgorithm,
+            get_table_coordinates as get_table_coordinates_from_cells,
+        };
+        pub use crate::formats_utils::pdf_extract::tabularizer::{
+            TableCoordinatesConfig, TablePosMeasureUnit,
+            get_table_coordinates_from_lines as get_table_coordinates,
         };
         pub use crate::input::document::page_dict::{
             PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict,
@@ -98,4 +111,60 @@ pub mod input {
     //! mai costruire un `Document` (M6, Q2 confermata dall'utente,
     //! `agent-memory/M6-implementation-plan.md`).
     pub use crate::input::document::{DocumentError, load_document, load_document_pages};
+}
+
+pub mod standard_funcs {
+    //! I pipe pronti che i repo formati costruiscono dai propri file di configurazione.
+    //!
+    //! `PLAN.md` §9 elenca tre famiglie; M7 abilita quella `pdf_extract` (decisione D-M7-1) e la
+    //! parte già esistente di `text_filter`/`deserialize` — le dieci funzioni che costruiscono
+    //! entità di `output::classes` arrivano con M8, tranne le tre anticipate da D-M7-2.
+    //!
+    //! Le tre "factory" del riferimento (`PdfExtractFundStandard` e sorelle) sono funzioni e non
+    //! tipi, perché nel riferimento non sono mai state altro che tre costruttori sopra lo stesso
+    //! tipo, `ExtractTextPdfBlockOrFailPage`.
+    pub mod pdf_extract {
+        pub use crate::formats_utils::pdf_extract::standard_funcs::{
+            AssetsColumn, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
+            PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
+            PdfExtractPageClassifyStandard, PdfExtractSfdrArticleStandard, PdfExtractStandardFuncsError,
+            pdf_extract_currency_standard, pdf_extract_fund_standard, pdf_extract_managment_company_standard,
+        };
+    }
+
+    pub mod text_filter {
+        pub use crate::formats_utils::text_filter::standard_funcs::{
+            StandardFuncsError, TextFilterInvestmentsStandard, TextFilterPageClassifyStandard,
+        };
+    }
+
+    pub mod deserialize {
+        pub use crate::formats_utils::deserialize::standard_funcs::{
+            DeserializeStandardFuncsError, DeserializerFundStandard, DeserializerInvestmentStandard,
+            DeserializerPageClassifyStandard,
+        };
+    }
+}
+
+pub mod formats_repo {
+    //! Il caricamento di un repo formati.
+    //!
+    //! `PLAN.md` §9 non elenca questo modulo, perché la sua unica facciata è `Algorithm::load`,
+    //! che vive già su `core::Algorithm`. Sono riesportati comunque il tipo d'errore — senza il
+    //! quale `load` non è gestibile da fuori — e le due funzioni di riconoscimento del formato da
+    //! URL, che sono ciò che un chiamante usa *prima* di sapere quale formato caricare.
+    pub use crate::formats_repo::LoadError;
+    pub use crate::formats_repo::load_pipelines;
+    pub use crate::formats_repo::metadata::{MetadataError, get_formats, get_url_mapping, url_to_format};
+}
+
+pub mod output {
+    //! Le entità prodotte dai pipe `deserialize`.
+    //!
+    //! **Parziale**: `PLAN.md` §9 ne elenca otto, ma `output::classes` è di M8 — M7 ne ha
+    //! anticipate tre (`Fund`, `Equity`, `Bond`) perché senza di esse la pipeline structured
+    //! `investments` non è costruibile (decisione D-M7-2). Le altre arrivano con M8.
+    pub use crate::output::classes::fund::Fund;
+    pub use crate::output::classes::investment::{Bond, Equity, InvestmentData, InvestmentFields};
+    pub use crate::output::classes::{FloatConstraint, OutputClassError};
 }

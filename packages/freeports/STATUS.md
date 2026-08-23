@@ -11,10 +11,10 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M1 | `commons` | ✅ chiusa | `date`, `geometry`, `sets` (+ `ast_simple`/`ast_smart`/`indipendent_atoms`), `consts`, `flag_expr`, `i18n`; 407 test verdi, `cargo clippy` pulito; `api::consts` abilitato in `lib.rs` |
 | M2 | `core` dati | ✅ chiusa | `normalization`, `promise`, `classes`(+`value`), `promise_resolution`, `promisable`, `match_fund`; 617 test verdi, `cargo clippy` pulito; `api::core` abilitato in `api.rs` |
 | M3 | `pdf_extract` | ✅ chiusa | `pdf_line`, `relative`, `select::{pdf_line,relative}` (+`pdf_line::{area,font,font_size,text}`), `tabularizer::{collapse,coordinates}`, `position`, `commons`; 969 test verdi, `cargo clippy` pulito salvo un warning inevitabile in test verbatim (vedi sotto); `api::utils::pdf_extract` abilitato in `api.rs` per la parte già pronta |
-| M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast`, `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, `TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard` (M4) e `TextFilterInvestmentsStandard` + `PdfBlocksTable` (aggiunto a chiusura di M5). **Restano deferite solo le 10 funzioni che dipendono da `output::classes`** (M8): nessuna aspetta più il motore |
+| M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast`, `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, `TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard` (M4) e `TextFilterInvestmentsStandard` + `PdfBlocksTable` (aggiunto a chiusura di M5). M7 ha aggiunto `DeserializerFundStandard` e `DeserializerInvestmentStandard`, le cui entità sono state anticipate da M8 (D-M7-2). **Restano deferite 8 funzioni**, che dipendono dal resto di `output::classes` (M8) |
 | M5 | Motore (pipeline/algorithm) | ✅ chiusa | `core::page`, `core::schedule`, `core::pipeline::{data,segment,bundle}`, `core::pipeline::Pipeline`, `core::algorithm`; 1365 test unitari + 10 d'integrazione (`tests/algorithm_end_to_end.rs`) verdi, `cargo clippy --all-targets` senza warning nuovi; `api::core` estesa con `Pipeline`/`Algorithm` e il resto del motore. `Algorithm::load` resta a M7 (legge il repo formati) |
 | M6 | `input::document` | ✅ chiusa | `input::document::{page_dict, selection}` (+ modulo radice); 1417 test unitari + 10 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api::utils::pdf_extract` estesa con le 4 funzioni di §9 rimaste da M3, nuovo `api::input` |
-| M7 | `formats_repo` | ⬜ da fare | |
+| M7 | `formats_repo` | ✅ chiusa | `id_format`, `metadata`, `orchestration`, `structured::{tables,page_classify,investments}`, `semistructured::{formats_mapping,args,native}`, `unstructured::{loader,py_pipe}`, `Algorithm::load`; piu' `formats_utils::pdf_extract::standard_funcs` (8 pipe, D-M7-1) e `output::classes::{fund,investment}` anticipati da M8 (D-M7-2). 1828 test unitari + 32 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api` estesa con `standard_funcs`, `formats_repo`, `output` e `get_table_coordinates`/`TablePosMeasureUnit` |
 | M8 | `output` | ⬜ da fare | |
 | M9 | `cli` | ⬜ da fare | |
 | M10 | Chiusura e confronto | ⬜ da fare | |
@@ -343,58 +343,166 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   `select/pdf_line/area.rs` (M3), nessun warning nuovo; `grep -rn "todo!()" src/ tests/` — nessun
   risultato.
 
+- 2026-08-23 — M7 chiusa (TDD modulo per modulo: contratto nel doc-comment, test, implementazione;
+  piano dettagliato in `agent-memory/M7-implementation-plan.md`). Porta l'intero `formats_repo` —
+  `id_format`, `metadata`, `orchestration`, i tre livelli `structured`/`semistructured`/
+  `unstructured` e la loro fusione in `Algorithm::load` — più i due moduli che ne erano
+  prerequisiti.
+
+  **Tre domande poste all'utente prima di scrivere codice** (`PLAN.md` §13 regola generale; il
+  punto 6 diceva espressamente "da decidere prima di M7"), tutte risolte:
+
+  - **D-M7-1 — `formats_utils::pdf_extract::standard_funcs` appartiene a M7**, con **tutti e otto**
+    i pipe (`PdfExtractPageClassifyStandard`, `PdfExtractInvestmentsStandard`,
+    `PdfExtractFundStandard`, `PdfExtractCurrencyStandard`, `PdfExtractCurrencyConstant`,
+    `PdfExtractSfdrArticleStandard`, `PdfExtractManagmentCompanyStandard`,
+    `PdfExtractAssetsStandard`). Chiude `PLAN.md` §13 punto 6.
+  - **D-M7-2 — si anticipano da M8 `output::classes::{fund, investment}`**, per poter costruire
+    `DeserializerFundStandard`/`DeserializerInvestmentStandard` e quindi il segmento `deserialize`
+    della pipeline structured `investments`. **M7 chiude completa (✅), non 🟡.** È una divergenza
+    consapevole dalla scelta fatta per M4 (opzione C, deferire): là il costo era solo rimandare,
+    qui sarebbe stato lasciare non verificabile end-to-end proprio la fusione dei tre livelli, che
+    è il focus di test dichiarato di M7.
+  - **D-M7-3 — `unstructured` si implementa ora, duck-typed, con moduli Python sintetici.** I
+    moduli d'autore di un repo formati reale importano `freeports.core.Pipeline`,
+    `freeports.standard_funcs.*` ecc., cioè l'API Python che `PLAN.md` §0 esclude da questa fase:
+    **un repo formati reale non è caricabile finché i binding non esistono**, ed è un limite
+    dichiarato del perimetro, non un difetto del porting. Il confine accetta perciò i valori per
+    *forma* — `pipelines` come oggetto/mappa con `pdf_extract`/`text_filter`/`deserialize`; i
+    blocchi con `type_block`/`metadata`/`content` (più `pdf_block`); le promesse con
+    `id`/`strict`/`multiple` — che è esattamente ciò che le classi di `freeports_core` già
+    espongono, così che l'arrivo dei binding non richieda una seconda passata.
+
+  **Una terza domanda aperta di `PLAN.md` §13 risolta strada facendo, con prove e non per
+  decisione**: il punto 4, `TablePosMeasureUnit`. Il tipo *esiste* nel riferimento — in
+  `formats/utils/pdf_extract/position.py`, non in Rust — ed è l'unità di misura della `tolerance`
+  del `get_table_coordinates` che parte dalle **righe** di una pagina invece che da celle già
+  costruite. M3 non ne aveva trovato traccia perché quel wrapper non era ancora stato portato. È
+  lui, e non la funzione per celle, quello che §9 elenca (accanto proprio a `TablePosMeasureUnit`)
+  e quello che gli autori di formato chiamano davvero. M7 lo porta in `pdf_extract::tabularizer`
+  come `get_table_coordinates_from_lines`, e **`api::utils::pdf_extract` lo esporta sotto il nome
+  `get_table_coordinates`**, rinominando `get_table_coordinates_from_cells` quello esportato da M3.
+  È l'unica rinomina della superficie pubblica finora, e riguarda solo l'alias di `api`: dentro il
+  crate i due nomi restano quelli di sempre.
+
+  **Decisioni di design prese durante l'implementazione** (non richiedevano conferma):
+
+  - `id_format::computed_ids` porta anche la parte **di gruppo** di `add_pipe_index` (il
+    `groupby().cumcount()` di pandas), che il porting Rust parziale in `freeports_core` non aveva
+    perché non esprimibile riga per riga. Le tre politiche di `FkRelation` sono conservate
+    verbatim, **quirk compreso**: in `OneToMaybe` il contatore avanza solo fra le righe *senza*
+    indice esplicito, quindi un indice dichiarato e uno derivato possono collidere (pinnato da un
+    test dedicato).
+  - `orchestration::get_schedule`/`get_mapping` ricevono i nomi delle pipeline già costruite come
+    **parametro**, invece di richiamare il caricamento del repo come fa il riferimento nel ramo di
+    fallback: quella è una dipendenza circolare che nel riferimento è tollerabile solo perché passa
+    da Python. Qui il chiamante — `Algorithm::load` — le pipeline le ha già in mano.
+  - `impl Algorithm { pub fn load(...) }` è scritto **dentro `formats_repo.rs`**, non in
+    `core::algorithm`: un `impl` inerente può stare in qualunque modulo del crate che definisce il
+    tipo, quindi la API resta quella di `PLAN.md` §5.5 senza invertire il layering (`formats_repo`
+    è costruito sopra `core`, non viceversa). Stessa disciplina con cui M3 ha spezzato il ciclo
+    `position`/`tabularizer`.
+  - `input::document::selection` ha una funzione nuova, `is_pdfline_selection`, ancorata **anche in
+    fondo**: `pdfline_selection_from_str` non rifiuta nulla (ogni gruppo del pattern è opzionale,
+    quindi combacia con qualunque stringa), mentre la validazione delle tabelle CSV deve poter dire
+    "questa cella non è una selezione" — è il `str.match(f"^{LINE_SET_REGEXP_PATTERN}$")` di pandera
+    del riferimento.
+  - `TablePosAlgorithm::from_expression` (additivo a codice M3) è il `TablePosAlgorithm.from_dict`
+    del riferimento, e delega a `commons::flag_expr` (M1), che accetta il nome singolo del
+    riferimento e in più le espressioni booleane: è un superinsieme, quindi non si perde nulla.
+  - Le entità di `output::classes` usano `OrderedFloat<f64>` e non `f64` nudo nei campi numerici:
+    `core::pipeline::Extracted`, che le trasporta, deriva `Eq`, e un `f64` lo renderebbe
+    impossibile. Stessa scelta già fatta da `BlockValue::Float` (M2); costruttori e accessori
+    parlano comunque `f64`.
+  - `Promised<T>` continua a non implementare `Deserialize` (decisione M2); `output::classes`
+    fornisce i due moduli serde `serde_promised`/`serde_optional_promised` che **in lettura
+    considerano ogni valore risolto**. È corretto per l'uso reale, perché `PLAN.md` §7 impone che
+    le promesse siano risolte *prima* della scrittura: nessun file prodotto dal sistema contiene
+    un'entità pendente.
+  - Tre derive `Debug` aggiunti a codice di milestone precedenti (`TablePosAlgorithm`,
+    `CollapseAlgorithm`) e due accessori a `CompanyMatchInfos` (`name`, `normalized_name`, senza i
+    quali il confine Python non può passare le società bersaglio a un pipe d'autore): modifiche
+    puramente additive, stesso precedente dei derive aggiunti a M1 durante M2.
+
+  **Divergenze volute dal riferimento, ciascuna con il proprio test:**
+
+  - `get_table_coordinates_from_lines`, ramo `company_col`: il riferimento fa `n_cols = max(*cols)`,
+    che solleva `TypeError` con una sola cella e produce comunque un vettore di colonne lungo `max`
+    invece di `max + 1`. Qui il massimo è calcolato su un iteratore (nessun caso limite) e il
+    vettore ha una colonna per ogni indice osservato, perché `PLAN.md` §2 principio 4 vieta i panici
+    sul percorso utente. **Non osservabile dai chiamanti attuali**, che passano tutti
+    `collapse: false`: in quel caso la configurazione costruita da quel ramo non viene mai letta —
+    caveat del riferimento anch'esso conservato e documentato.
+  - `PdfExtractAssetsStandard`: dove il riferimento va in `IndexError` (colonne di lunghezza
+    diversa, nome di fondo senza token di valuta) qui c'è un errore tipizzato. Entrambe le versioni
+    falliscono: cambia solo che qui l'errore ha un nome.
+  - `PyDeserializePipe`: in questa fase un pipe `deserialize` d'autore può restituire **solo
+    promesse**, perché le entità di `output::classes` non hanno una forma Python finché i binding
+    non esistono. Un risultato di forma diversa è un errore esplicito, non un risultato scartato in
+    silenzio.
+
+  Stato finale verificato: `cargo test` — 1828 test unitari + 10 (`tests/algorithm_end_to_end.rs`)
+  + 22 (`tests/formats_repo_loading.rs`) passati, 0 falliti, 0 ignorati; `cargo clippy
+  --all-targets` — solo il warning preesistente e documentato in `select/pdf_line/area.rs` (M3);
+  `grep -rn "todo!()" src/ tests/` — nessun risultato.
+
+  **Nota operativa**: `cargo test` richiede il venv attivo
+  (`source analysis_finance_reports/venv/freeports-dev/bin/activate`), altrimenti i test di
+  confine Python falliscono con `ModuleNotFoundError: fitz`.
+
 ## Voci aperte trasversali alle milestone (non bloccano nessuna milestone corrente)
 
-- **`TablePosMeasureUnit`** (`PLAN.md` §9) — nessun riferimento esiste da nessuna parte; gap fra
-  §9 e lo scope reale di M3, lasciato non implementato e non riesportato da `api`. Da chiarire
-  prima che una milestone futura ne dipenda davvero.
+- ~~**`TablePosMeasureUnit`**~~ — **risolta in M7** (2026-08-23): il tipo esiste nel riferimento,
+  in `formats/utils/pdf_extract/position.py`, come unità di misura della tolleranza del
+  `get_table_coordinates` che parte dalle righe di una pagina. Portato in
+  `pdf_extract::tabularizer` ed esportato da `api`. Vedi la voce di chiusura M7 sopra.
+- ~~**`formats_utils::pdf_extract::standard_funcs` non è assegnato a nessuna milestone**~~ —
+  **risolta in M7** (2026-08-23, decisione D-M7-1 dell'utente): appartiene a M7, con tutti e otto
+  i pipe. Vedi la voce di chiusura M7 sopra.
 - **`pub` vs `pub(crate)`** sull'intero albero interno (`commons`, `core`, `formats_utils`, ...) —
   da M0 tutto è `pub mod`, non `pub(crate) mod` come richiede `PLAN.md` §14; i tipi interni sono
   raggiungibili da fuori crate bypassando `api`. Non introdotto da M3 (che continua il pattern
   esistente), ma trasversale a tutte le milestone finora. Confermato dall'utente (2026-08-23):
   si lascia com'è, si affronta come task a parte (candidato: pulizia M10), non dentro una singola
-  milestone.
-- **`formats_utils::pdf_extract::standard_funcs` non è assegnato a nessuna milestone** (emerso
-  durante M5). `PLAN.md` §9 elenca `PdfExtractPageClassifyStandard`,
-  `PdfExtractInvestmentsStandard`, `PdfExtractCurrencyStandard`, `PdfExtractCurrencyConstant`,
-  `PdfExtractFundStandard`, `PdfExtractManagmentCompanyStandard`, `PdfExtractSfdrArticleStandard`,
-  `PdfExtractAssetsStandard` fra la superficie pubblica, ma §11 non li mette in nessuna riga: M3
-  copre `pdf_line`/`relative`/`select`/`position`/`tabularizer`/`commons`, M4 le due
-  `standard_funcs` di `text_filter` e `deserialize`. Il file è ancora uno stub a tre righe. Sono i
-  pipe che `formats_repo::structured` (M7) costruisce dai CSV, quindi il posto naturale è M7 o una
-  passata dedicata — ma **va deciso, non assunto**. Stessa categoria di `TablePosMeasureUnit`: un
-  buco fra §9 e §11, non un'omissione silenziosa.
+  milestone. **M7 lo ha ampliato**: `formats_repo` è tutto `pub`, quindi la pulizia avrà più
+  superficie da coprire.
 - **`api::input` (`load_document`/`load_document_pages`) non è elencato da `PLAN.md` §9** (che per
   `input` nomina solo `load_target_companies`/`compile_target_companies`, `input::companies_db`) —
   aggiunto comunque in M6 perché senza un punto d'ingresso che apra un PDF reale nessun consumatore
-  esterno potrebbe mai costruire un `Document`. Confermato dall'utente (2026-08-23, M6 Q2): stesso
-  trattamento di `TablePosMeasureUnit`, documentato in `api.rs`, non bloccante.
+  esterno potrebbe mai costruire un `Document`. Confermato dall'utente (2026-08-23, M6 Q2),
+  documentato in `api.rs`, non bloccante. M7 ha fatto lo stesso con `api::formats_repo` e
+  `api::standard_funcs`, per le stesse ragioni e con la stessa annotazione in-code.
+- **Un repo formati reale non è caricabile finché non esistono i binding Python** (emerso e
+  accettato in M7, decisione D-M7-3). I moduli d'autore importano `freeports.core.Pipeline` &
+  co., cioè l'API che `PLAN.md` §0 esclude da questa fase. Non blocca nulla ora — i test usano
+  moduli sintetici che non importano `freeports` — ma **blocca M10**, che deve confrontare
+  l'output con `freeports_core` su un formato reale: o si anticipa una parte dei binding, o M10
+  confronta solo formati puramente structured/semistructured. *Da decidere prima di M10.*
 
 ## Domande aperte
 
 Vedi `PLAN.md` §13. Le domande di M1 (`int_value()`, panic di `Set::Universe / _`), quella
-sollevata da M2 (riferimenti promise pendenti) e le cinque sollevate durante M3 (vedi sopra) sono
-state confermate dall'utente. La domanda sulla portata di M4 (opzioni A/B/C per le ~10 funzioni di
-`standard_funcs` dipendenti da M5/M8, `agent-memory/M4-implementation-plan.md` §0) è stata risolta
-il 2026-08-23: l'utente ha scelto l'opzione C (vedi voce sopra) — non è più una domanda aperta, è
-lavoro deferito. Anche le tre domande di M5 (semantica di `FilterData`, `Page::raw`, pagina in due
-step dello schedule) sono state risolte dall'utente il 2026-08-23, nella voce sopra: **`FilterData`
-non blocca più nulla**. Le due domande di M6 (riga senza span in `collapse_spans_from_line`,
-`load_document`/`load_document_pages` fuori da §9) e la terza emersa dalla review di `critic` prima
-della chiusura di M6 (guardia contro il panic di `PdfLine::new`/`Rectangle::new` su input non
-fidato) sono state risolte dall'utente il 2026-08-23, nella voce di chiusura M6 sopra.
+sollevata da M2 (riferimenti promise pendenti) e le cinque sollevate durante M3 sono state
+confermate dall'utente. La domanda sulla portata di M4 (opzioni A/B/C per le ~10 funzioni di
+`standard_funcs` dipendenti da M5/M8) è stata risolta il 2026-08-23 con l'opzione C — non è più una
+domanda aperta, è lavoro deferito. Le tre domande di M5 (semantica di `FilterData`, `Page::raw`,
+pagina in due step dello schedule), le due di M6 più la terza emersa dalla review di `critic`, e le
+tre di M7 (D-M7-1/2/3) sono anch'esse risolte, ciascuna nella propria voce di chiusura sopra.
 
-Restano aperte solo le domande pre-esistenti non ancora toccate: rigenerazione dei fixture
-`freeports-dev` (M8 o M10), campo dedicato per la colonna `Matched Company` del `.log.csv` (non
-blocca nulla), più le tre voci trasversali elencate sopra (`TablePosMeasureUnit`,
-`pub`/`pub(crate)`, e la milestone di `pdf_extract::standard_funcs`).
+Restano aperte solo:
 
-**Lavoro deferito, non una domanda aperta**: le 10 funzioni di `standard_funcs` che costruiscono
-entità di `output::classes` (`DeserializeSfdrArticleStandard`, `DeserializerFundStandard`,
+- rigenerazione dei fixture `freeports-dev`, che sono pickle Python (M8 o M10);
+- campo dedicato per la colonna `Matched Company` del `.log.csv` (non blocca nulla);
+- `pub` vs `pub(crate)` sull'albero interno (candidato: pulizia M10);
+- **come M10 confronta l'output su un formato reale**, dato che senza binding Python un repo
+  formati reale non è caricabile (vedi la voce trasversale sopra) — è la sola domanda nuova che
+  M7 lascia aperta.
+
+**Lavoro deferito, non una domanda aperta**: le **8** funzioni di `standard_funcs` che costruiscono
+entità di `output::classes` ancora inesistenti (`DeserializeSfdrArticleStandard`,
 `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
-`DeserializerInvestmentsManagerStandard`, `DeserializerInvestmentStandard`,
-`DeserializerAssetsStandard`, `TextFilterSfdrArticleStandard`,
-`TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`) restano da implementare non
-appena M8 esiste. `TextFilterInvestmentsStandard`, che era l'unica bloccata dal solo motore, è
-stata scritta alla chiusura di M5: **`output::classes` è ora l'unica dipendenza che tiene aperta
-M4**, come chiesto dall'utente.
+`DeserializerInvestmentsManagerStandard`, `DeserializerAssetsStandard`,
+`TextFilterSfdrArticleStandard`, `TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`)
+restano da implementare non appena M8 esiste. Erano dieci: `DeserializerFundStandard` e
+`DeserializerInvestmentStandard` sono state scritte in M7, insieme alle due entità che servivano
+loro (D-M7-2). **`output::classes` resta l'unica dipendenza che tiene aperta M4.**

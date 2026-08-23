@@ -29,6 +29,8 @@ use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::page::PageError;
 use crate::core::promise_resolution::PromiseMap;
 use crate::core::schedule::PageClass;
+use crate::output::classes::fund::Fund;
+use crate::output::classes::investment::{Bond, Equity};
 use crate::formats_utils::pdf_extract::commons::CommonsError;
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 
@@ -190,10 +192,18 @@ impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for PromiseEntri
 /// il "ricomponi i risultati per tipo" di `run_documents` diventa un `match` che il compilatore
 /// verifica (`PLAN.md` §5.4).
 ///
-/// **Parziale in M5**: le dieci varianti d'entità arrivano con `output::classes` (M8) — vedi il
-/// doc-comment del modulo.
+/// **Ancora parziale.** M5 l'aveva aperto con le sole `Promises`/`PageClass`; M7 aggiunge le tre
+/// entità che la decisione D-M7-2 dell'utente ha anticipato da M8 (`Fund`, `Equity`, `Bond`, le
+/// uniche che i pipe `deserialize` standard sappiano già costruire). Le sette varianti restanti di
+/// `PLAN.md` §5.4 arrivano con il resto di `output::classes` in M8.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Extracted {
+    /// Una partecipazione azionaria su una società bersaglio.
+    Equity(Equity),
+    /// Un'obbligazione di una società bersaglio.
+    Bond(Bond),
+    /// Un fondo, con il solo nome.
+    Fund(Fund),
     /// Le promesse depositate dal pipe, da versare nella multimappa di risoluzione.
     Promises(PromiseEntries),
     /// L'esito della pipeline di classificazione: la class della pagina, o `None` se il pipe non
@@ -218,6 +228,30 @@ impl Extracted {
     pub fn as_promises(&self) -> Option<&PromiseEntries> {
         match self {
             Extracted::Promises(entries) => Some(entries),
+            _ => None,
+        }
+    }
+
+    /// Il fondo, se questo risultato ne è uno.
+    pub fn as_fund(&self) -> Option<&Fund> {
+        match self {
+            Extracted::Fund(fund) => Some(fund),
+            _ => None,
+        }
+    }
+
+    /// La partecipazione azionaria, se questo risultato ne è una.
+    pub fn as_equity(&self) -> Option<&Equity> {
+        match self {
+            Extracted::Equity(equity) => Some(equity),
+            _ => None,
+        }
+    }
+
+    /// L'obbligazione, se questo risultato ne è una.
+    pub fn as_bond(&self) -> Option<&Bond> {
+        match self {
+            Extracted::Bond(bond) => Some(bond),
             _ => None,
         }
     }

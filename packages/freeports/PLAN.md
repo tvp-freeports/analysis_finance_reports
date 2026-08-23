@@ -659,6 +659,9 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
 | `Page::raw` — subito o quando arriva il primo consumatore (M6/M7)? | confermato: **subito**. Averlo da ora impedisce di scrivere codice che dipende da `Clone`/`PartialEq` su `Page`, derive che quel campo rende comunque impossibili. Risolve la contraddizione fra §4.4 (che lo colloca in `core::page`) e §2 principio 1: il campo è privato e nessun modulo fuori dal confine Python lo legge (2026-08-23) |
 | Pagina la cui page class compare in **due step** dello schedule | confermato: **si accumulano** i risultati invece di sovrascriverli. Divergenza voluta dal riferimento, dove `res[(doc,page)] = risultati_dello_step` fa sparire dall'output quelli del primo step (che però hanno alimentato il `filter_data` del secondo). Nei casi normali il comportamento è identico; da ricordare nel confronto output di M10 (2026-08-23) |
 | `pub` vs `pub(crate)` sull'albero interno (da M0, non introdotto da M3) | confermato: **si lascia com'è per ora**, annotato come voce trasversale alle milestone da affrontare a parte (es. pulizia M10), non da correggere dentro M3 (2026-08-23) |
+| `formats_utils::pdf_extract::standard_funcs` — a quale milestone appartiene? (§13 punto 6) | confermato: **M7, tutti e otto i pipe**. Nessuno dei `PdfExtract*` dipende da `output::classes`, e sono esattamente cio' che `formats_repo::{structured,semistructured}` costruisce leggendo i CSV: spezzarli avrebbe lasciato meta' modulo inerte. Decisione D-M7-1 (2026-08-23) |
+| Il segmento `deserialize` della pipeline structured `investments`, bloccato da `output::classes` (M8) | confermato: **si anticipano da M8 `output::classes::{fund, investment}`**, cosi' M7 chiude completa. Divergenza consapevole dalla scelta fatta per M4 (opzione C, deferire): senza `DeserializerFundStandard`/`DeserializerInvestmentStandard` la pipeline structured piu' usata del repo resterebbe incompleta, e la fusione dei tre livelli — *il* focus di test di M7 — non sarebbe verificabile end-to-end. Decisione D-M7-2 (2026-08-23) |
+| `formats_repo::unstructured` — i moduli d'autore importano l'API Python, che §0 esclude da questa fase | confermato: **si implementa ora, duck-typed, con moduli sintetici nei test**. `pipelines` e i blocchi sono accettati per *forma* (attributi `pdf_extract`/`text_filter`/`deserialize`; `type_block`/`metadata`/`content`; `id`/`strict`/`multiple`), che e' esattamente cio' che le classi di `freeports_core` gia' espongono: quando i binding arriveranno non servira' una seconda passata. Resta il limite dichiarato che **un repo formati reale non e' caricabile** finche' i binding non esistono. Decisione D-M7-3 (2026-08-23) |
 
 ### Ancora da decidere
 
@@ -674,27 +677,25 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
    campi `page`/`company`/`field`/`row`/`column`; `Matched Company` resta sempre vuota (nessun
    campo tracing la alimenta ancora) — non blocca più, ma resta da confermare se `Matched
    Company` debba ricevere un campo dedicato in una milestone futura.
-4. **`TablePosMeasureUnit`** (§9, superficie pubblica di `utils::pdf_extract`) — nessun
-   riferimento esiste in `freeports_core` per questo tipo, ne' in nessun punto raggiunto dallo
-   scope reale di M3. Gap fra §9 e lo scope effettivo, non un'omissione silenziosa: lasciato non
-   implementato, `api::utils::pdf_extract` (M3) non lo riesporta. *Non blocca M3; da chiarire
-   prima che qualche milestone futura ne dipenda davvero.*
+4. ~~**`TablePosMeasureUnit`**~~ — **risolta il 2026-08-23, in M7**. Il tipo *esiste* nel
+   riferimento: non in Rust, ma in `formats/utils/pdf_extract/position.py`, dove e' l'unita' di
+   misura della `tolerance` del `get_table_coordinates` che parte dalle **righe** di una pagina
+   invece che da celle gia' costruite. M3 non ne aveva trovato traccia perche' quel wrapper non
+   era ancora stato portato — ed e' lui, non la funzione per celle, quello che §9 elenca e che gli
+   autori di formato chiamano davvero. M7 lo porta in `pdf_extract::tabularizer`
+   (`get_table_coordinates_from_lines` + `TablePosMeasureUnit` + `TableCoordinatesConfig`), e
+   `api::utils::pdf_extract` lo esporta sotto il nome `get_table_coordinates`, rinominando
+   `get_table_coordinates_from_cells` quello per celle esportato da M3.
 5. **`pub` vs `pub(crate)` sull'intero albero interno** (`commons`, `core`, `formats_utils`, ...,
    `lib.rs`) — da M0 tutto e' `pub mod`, non `pub(crate) mod` come richiesto da §14: i tipi interni
    sono raggiungibili da fuori crate col percorso completo, bypassando la superficie curata di
    `api`. Non e' stato introdotto da M3 (che si limita a continuare il pattern esistente), ma e'
    una voce trasversale a tutte le milestone finora. *Non blocca nessuna milestone corrente;
    da affrontare come task a parte (candidato: pulizia M10), non dentro una singola milestone.*
-6. **A quale milestone appartiene `formats_utils::pdf_extract::standard_funcs`?** (emerso durante
-   M5.) §9 elenca `PdfExtractPageClassifyStandard`, `PdfExtractInvestmentsStandard`,
-   `PdfExtractCurrencyStandard`, `PdfExtractCurrencyConstant`, `PdfExtractFundStandard`,
-   `PdfExtractManagmentCompanyStandard`, `PdfExtractSfdrArticleStandard`,
-   `PdfExtractAssetsStandard` fra la superficie pubblica, ma **§11 non li assegna a nessuna
-   riga**: M3 elenca `pdf_line`/`relative`/`select`/`position`/`tabularizer`/`commons`, M4 le due
-   `standard_funcs` di `text_filter` e `deserialize`. Il file e' ancora uno stub. Sono i pipe che
-   `formats_repo::structured` costruisce dai CSV, quindi il posto naturale sembra M7, ma e' una
-   decisione, non un'ovvieta'. *Non blocca M5 (che non ne ha bisogno: i test del motore usano pipe
-   finti); da decidere prima di M7.*
+6. ~~**A quale milestone appartiene `formats_utils::pdf_extract::standard_funcs`?**~~ —
+   **risolta il 2026-08-23**: appartiene a **M7**, con tutti e otto i pipe (decisione D-M7-1
+   dell'utente, vedi la tabella "Confermato dall'utente" sopra). §11 riga M7 va letta come
+   comprensiva di questo modulo.
 
 Regola generale: se durante l'implementazione emerge una decisione di design non coperta da
 questo documento, **si chiede all'utente** e si annota la risposta qui in §13, non la si decide

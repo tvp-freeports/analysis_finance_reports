@@ -140,6 +140,29 @@ static LINE_SET_REGEXP: Lazy<Regex> = Lazy::new(|| {
     .expect("fixed, hand-written pattern, valid onig regex")
 });
 
+/// Il pattern di [`LINE_SET_REGEXP`], ma ancorato **anche in fondo**.
+///
+/// Serve a `formats_repo::structured`, non a chi analizza una selezione: ogni gruppo del pattern è
+/// opzionale, quindi la versione non ancorata a destra combacia con *qualunque* stringa e
+/// [`pdfline_selection_from_str`] non rifiuta mai nulla — una cella scritta male produrrebbe in
+/// silenzio una selezione vuota. La validazione delle tabelle CSV del repo formati ha invece
+/// bisogno di dire "questa cella non è una selezione", ed è esattamente ciò che il riferimento fa
+/// con il suo `x.str.match(f"^{LINE_SET_REGEXP_PATTERN}$")` di pandera.
+static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r#"\A([\w\-, ]+)? ?(?:\[([0-9]+(?:\.[0-9]+)?)\])? ?(?:(\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))|\((\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\)\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))\))? ?(?:"(.*)")?\z"#,
+    )
+    .expect("fixed, hand-written pattern, valid onig regex")
+});
+
+/// `true` se `input` è per intero una selezione di righe scritta nella grammatica compatta.
+///
+/// Vedi [`LINE_SET_ANCHORED_REGEXP`] per perché questo controllo non coincide con "
+/// [`pdfline_selection_from_str`] ha restituito `Ok`".
+pub fn is_pdfline_selection(input: &str) -> bool {
+    LINE_SET_ANCHORED_REGEXP.find(input).is_some()
+}
+
 /// Divide una coppia `"a:b"` (senza parentesi) in due bound opzionali, come `_to_floats` nel
 /// riferimento: un lato assente (stringa vuota) resta `None`.
 fn parse_bound_pair(text: &str) -> (Option<f32>, Option<f32>) {

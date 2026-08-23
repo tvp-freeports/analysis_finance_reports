@@ -38,7 +38,9 @@
 use super::super::position::{ColumnConfig, TableConfig};
 pub use super::super::position::{NullableState, SplittingDirection, SplittingState};
 
-#[derive(Clone, Copy)]
+// `Debug` aggiunto in M7 (modifica puramente additiva a codice M3 verbatim, stesso precedente
+// dei derive aggiunti a M1 durante M2): `tabularizer::TableCoordinatesConfig` lo richiede.
+#[derive(Debug, Clone, Copy)]
 pub enum CollapseAlgorithm {
     Pattern,
     Geometry,
