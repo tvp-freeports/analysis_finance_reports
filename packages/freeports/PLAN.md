@@ -199,7 +199,12 @@ strip che va verificato con test dedicati), ma:
 
 - `PromiseMap` è `HashMap<String, Vec<BlockValue>>` nativo, non un dict Python.
 - `flatten_promise_map` risolve le catene e rileva i cicli restituendo
-  `Err(PromiseError::Circular { chain })` invece di sollevare.
+  `Err(PromiseError::Circular { chain })` invece di sollevare. Un riferimento **pendente** (id
+  assente dalla mappa) non e' invece un errore di appiattimento: la `Promise` resta al suo posto
+  nella mappa appiattita, e la politica la decide `fulfill_promises` — non-strict `Dropped`,
+  strict `Err(PromiseError::Unresolved)`. Confermato dall'utente il 2026-08-22 (§13); e' una
+  divergenza voluta dal riferimento, che in quel caso faceva uscire un `CircularPromisesChain`
+  fuorviante.
 - `PromisableFields` diventa un trait con `pending()` / `resolve_field()` come oggi, ma il
   contratto di ritorno di `fulfill_promises` è espresso in Rust:
 
@@ -598,7 +603,7 @@ L'ordine è dal basso verso l'alto (prima i moduli con meno dipendenze), come da
 | **M1** | `commons` | `date`, `geometry`, `sets` (3 sottomoduli), `consts`, `flag_expr`, `i18n` | algebra insiemi esaustiva + stress; parsing date; ogni valuta |
 | **M2** | `core` dati | `classes` + `value`, `promise`, `promisable`, `promise_resolution`, `normalization`, `match_fund` | roundtrip serde; hash/eq; catene di promise incluse quelle circolari |
 | **M3** | `pdf_extract` | `pdf_line`, `relative`, `select/*`, `position`, `tabularizer/*`, `commons` | selezioni combinatorie; geometrie degeneri; tabelle irregolari |
-| **M4** | `text_filter` + `deserialize` | `matcher`, `standard_funcs` (x2), `standard_txt_blk_builders`, `cast` | matching societario; ogni cast con casi limite e localizzazioni |
+| **M4** | `text_filter` + `deserialize` | `matcher`, `standard_funcs` (x2), `standard_txt_blk_builders`, `cast` (scope reale in corso, spaccato fra autosufficiente e deferito a M5/M8 — vedi `STATUS.md`) | matching societario; ogni cast con casi limite e localizzazioni |
 | **M5** | **motore** | `pipeline/segment`, `pipeline/bundle`, `schedule`, `algorithm` | dedup e ordine dei pipe; schedule multi-documento; pagina che fallisce |
 | **M6** | `input::document` | PyMuPDF → `Page`, rotazione bbox, collasso span, immagini | funzioni pure su dict costruiti a mano; un test di confine con PyMuPDF |
 | **M7** | `formats_repo` | `id_format`, `metadata`, `orchestration`, `structured/*`, `semistructured/*`, `unstructured/*` | ogni CSV malformato dà l'errore giusto con la riga giusta; fusione dei 3 livelli |
@@ -644,6 +649,13 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
 | `tabularizer`, `pdf_line`, `select` (incl. `relative`) | **si portano com'è**, non si ridisegnano (vedi §0) |
 | `int_value()` di `FinancialInstrument`/`SfdrArticle` | confermato: **non serve**, resta omesso definitivamente (2026-08-22) |
 | `Set::Universe / _` in `commons::sets` | confermato: **il panic non tipizzato va bene così**, resta un limite documentato, non un target futuro (2026-08-22) |
+| Riferimento promise pendente (id assente dalla mappa) | confermato: **la promise passa**. `flatten` la lascia irrisolta e non e' un errore; decide `fulfill_promises` (non-strict ⇒ `Dropped`, strict ⇒ `Unresolved`). `Circular` resta riservato ai cicli veri (2026-08-22) |
+| `select::pdf_line::text` — regex vs matching semplice | confermato: matching verbatim ad ancore `^`/`$` (prefisso/suffisso/sottostringa/esatto) come `TextAstLeaf` del riferimento, **niente** `onig`. Un vecchio doc-comment di stub parlava di "regex onig" per errore (2026-08-23) |
+| `CellGeometry` duplicato (position vs tabularizer) | confermato: **un solo tipo canonico**, in `tabularizer::coordinates` (quello validato, usato davvero dall'algoritmo); `position::{RowConfig,ColumnConfig,TableConfig}` non ne avevano comunque bisogno (2026-08-23) |
+| `pdf_extract::relative` — genericizzare `RelativeInfo`/`OptionallyRelative` oltre `PdfLine`? | confermato: **no**, resta agganciato a `&[PdfLine]` come nel riferimento; è solo spostato di un livello da `select::relative` a `pdf_extract::relative` (2026-08-23) |
+| `PdfLine.font` — tipo dato normalizzato a costruzione o stringa grezza? | confermato: **normalizzato a costruzione** (`Font`, per le stesse ragioni di performance del riferimento), ma definito in `pdf_line.rs` (dati) e non in `select::pdf_line::font` (selezioni): gli impl di selezione (`Container`/`Overlappable`/`AtomOperations`, `FontSet`) restano in `select::pdf_line::font`, che importa `Font` da `pdf_line` — lecito in Rust, la posizione di un `impl` non è vincolata a quella del tipo (2026-08-23) |
+| `collapse_table_rows` — panic su `indexes` vuoto senza config colonne (ereditato verbatim dal riferimento) | confermato: **si accetta e si documenta**, stesso trattamento di `Set::Universe / _` in M1 — limite noto, non un target per M3. Da rivedere quando M5 collega `collapse_table_rows` a dati di pagina reali (2026-08-23) |
+| `pub` vs `pub(crate)` sull'albero interno (da M0, non introdotto da M3) | confermato: **si lascia com'è per ora**, annotato come voce trasversale alle milestone da affrontare a parte (es. pulizia M10), non da correggere dentro M3 (2026-08-23) |
 
 ### Ancora da decidere
 
@@ -659,6 +671,17 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
    campi `page`/`company`/`field`/`row`/`column`; `Matched Company` resta sempre vuota (nessun
    campo tracing la alimenta ancora) — non blocca più, ma resta da confermare se `Matched
    Company` debba ricevere un campo dedicato in una milestone futura.
+4. **`TablePosMeasureUnit`** (§9, superficie pubblica di `utils::pdf_extract`) — nessun
+   riferimento esiste in `freeports_core` per questo tipo, ne' in nessun punto raggiunto dallo
+   scope reale di M3. Gap fra §9 e lo scope effettivo, non un'omissione silenziosa: lasciato non
+   implementato, `api::utils::pdf_extract` (M3) non lo riesporta. *Non blocca M3; da chiarire
+   prima che qualche milestone futura ne dipenda davvero.*
+5. **`pub` vs `pub(crate)` sull'intero albero interno** (`commons`, `core`, `formats_utils`, ...,
+   `lib.rs`) — da M0 tutto e' `pub mod`, non `pub(crate) mod` come richiesto da §14: i tipi interni
+   sono raggiungibili da fuori crate col percorso completo, bypassando la superficie curata di
+   `api`. Non e' stato introdotto da M3 (che si limita a continuare il pattern esistente), ma e'
+   una voce trasversale a tutte le milestone finora. *Non blocca nessuna milestone corrente;
+   da affrontare come task a parte (candidato: pulizia M10), non dentro una singola milestone.*
 Regola generale: se durante l'implementazione emerge una decisione di design non coperta da
 questo documento, **si chiede all'utente** e si annota la risposta qui in §13, non la si decide
 di iniziativa.

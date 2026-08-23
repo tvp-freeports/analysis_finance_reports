@@ -1,6 +1,7 @@
 //! Utility per il segmento pdf_extract.
 //!
-//! STUB — da implementare, vedi `PLAN.md`.
+//! `standard_funcs` resta uno STUB: dipende dai trait `Pdf*Pipe` di M5, fuori scope per M3
+//! (`PLAN.md` §11). Tutto il resto del sottoalbero è implementato.
 
 pub mod commons;
 pub mod pdf_line;

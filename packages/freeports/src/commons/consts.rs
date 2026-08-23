@@ -43,18 +43,21 @@
 //!   `from_name("EURO")` succeeds as a lookup).
 //! - `FinancialInstrument`, `SfdrArticle` derive `Serialize`/`Deserialize` with serde's default
 //!   (externally tagged) enum representation — no custom wire format needed.
-//! - All three enums derive `Clone, Copy, Debug, PartialEq, Eq, Hash` (required so they can sit
-//!   inside `core::classes::value::BlockValue`, see `PLAN.md` §4.1).
+//! - All three enums derive `Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash` (required
+//!   so they can sit inside `core::classes::value::BlockValue`, see `PLAN.md` §4.1 — which is
+//!   itself `Ord`, since it must be usable as a `BTreeSet` element and `BTreeMap` key). The
+//!   ordering is *declaration* order, not alphabetical: for `Currency` that is the reference
+//!   Python enum's `__members__` order, which is already the module's stated invariant.
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum FinancialInstrument {
     EQUITY,
     BOND,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum SfdrArticle {
     Art6,
     Art8,
@@ -63,7 +66,7 @@ pub enum SfdrArticle {
 
 /// ISO 3-letter currency codes, in the same order as the reference Python `Currency` enum
 /// (order matters: it's the iteration/`__members__` order).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Currency {
     USD,
     EUR,
