@@ -64,6 +64,13 @@ impl BlockType {
     /// Gestore degli investimenti, come `TextBlock` prodotto da
     /// `standard_investmet_manager_txt_blk`.
     pub const INVESTMENTS_MANAGER: BlockType = BlockType(Cow::Borrowed("INVESTMENTS_MANAGER"));
+    /// Riga di tabella riconosciuta come titolo azionario
+    /// (`ResultStandardFiltering::EQUITY_TARGET` nel riferimento). Aggiunta in M5 insieme a
+    /// `TextFilterInvestmentsStandard`, che è l'unico a produrla.
+    pub const EQUITY_TARGET: BlockType = BlockType(Cow::Borrowed("EQUITY_TARGET"));
+    /// Riga di tabella riconosciuta come obbligazione, cioè con un tasso d'interesse o una
+    /// scadenza nel testo (`ResultStandardFiltering::BOND_TARGET` nel riferimento).
+    pub const BOND_TARGET: BlockType = BlockType(Cow::Borrowed("BOND_TARGET"));
 
     /// I tipi standard, in un unico posto: serve ai test e ai messaggi diagnostici che vogliono
     /// suggerire "forse intendevi uno di questi".
@@ -77,6 +84,8 @@ impl BlockType {
         BlockType::FUND,
         BlockType::MANAGEMENT_COMPANY,
         BlockType::INVESTMENTS_MANAGER,
+        BlockType::EQUITY_TARGET,
+        BlockType::BOND_TARGET,
     ];
 
     /// Costruisce un tipo di blocco arbitrario — la via che usano i repo formati.

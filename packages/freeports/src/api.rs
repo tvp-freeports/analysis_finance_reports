@@ -14,7 +14,8 @@
 //! costruiscono `PdfLine`/`PdfLineSelection` da un dict PyMuPDF o costruiscono selezioni da
 //! stringa, e appartengono a `input::document` (M6). `TablePosMeasureUnit`, anch'esso elencato in
 //! §9, non ha né riferimento né test nel milestone M3: e' un buco fra §9 e lo scope reale di M3,
-//! annotato in `STATUS.md`, non un'omissione silenziosa.
+//! annotato in `STATUS.md`, non un'omissione silenziosa. M5 aggiunge `Pipeline` e `Algorithm`,
+//! con tutto ciò che serve a costruirli e a leggerne i risultati (vedi il doc-comment di `core`).
 
 pub mod consts {
     pub use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
@@ -25,8 +26,30 @@ pub mod core {
     //! `BlockType` e `BlockValue`, che l'elenco non nominava ma senza i quali i due blocchi sono
     //! inutilizzabili — sono i tipi dei loro campi pubblici. `BlockValueError` viaggia con
     //! `BlockValue` per la stessa ragione: e' l'errore che restituiscono i suoi accessori.
+    //!
+    //! M5 aggiunge i due tipi che `PLAN.md` §9 elencava e che non esistevano ancora, `Pipeline` e
+    //! `Algorithm`, e con loro il resto del motore. Come già per `BlockType`/`BlockValue` in M2,
+    //! l'elenco di §9 nomina solo le due facciate: da fuori il crate non si può costruire un
+    //! `Algorithm` senza i tipi dei suoi argomenti (`PipelineName`, `Schedule`, `PageClass`,
+    //! `PageClassFinalizer`), non si può scrivere un pipe senza il suo trait e senza
+    //! `FilterData`/`Extracted`/`PipeError`, e non si possono leggere i risultati senza
+    //! `DocumentOutcome`/`PageOutcome`. Sono tutti tipi di firme pubbliche già esposte, non
+    //! superficie nuova per scelta.
+    pub use crate::core::algorithm::{
+        Algorithm, AlgorithmError, DocumentOutcome, PageClassFinalize, PageClassFinalizer,
+        PageOutcome,
+    };
     pub use crate::core::classes::{BlockType, BlockValue, BlockValueError, PdfBlock, TextBlock};
+    pub use crate::core::page::{Document, DocumentId, FormatName, Page, PageError, PageImage};
+    pub use crate::core::pipeline::bundle::PipelinesBundle;
+    pub use crate::core::pipeline::{
+        DeserializePipe, DeserializeSegment, Extracted, FilterData, PdfExtractPipe,
+        PdfExtractSegment, PipeError, Pipeline, PipelineName, PromiseEntries, Segment,
+        TextFilterPipe, TextFilterSegment,
+    };
     pub use crate::core::promise::{Promise, PromiseError};
+    pub use crate::core::promise_resolution::{FlatPromiseMap, PromiseMap};
+    pub use crate::core::schedule::{PageClass, Schedule, ScheduleError, ScheduleStep, ScheduledPage};
 }
 
 pub mod utils {

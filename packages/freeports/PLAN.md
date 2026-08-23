@@ -603,8 +603,8 @@ L'ordine è dal basso verso l'alto (prima i moduli con meno dipendenze), come da
 | **M1** | `commons` | `date`, `geometry`, `sets` (3 sottomoduli), `consts`, `flag_expr`, `i18n` | algebra insiemi esaustiva + stress; parsing date; ogni valuta |
 | **M2** | `core` dati | `classes` + `value`, `promise`, `promisable`, `promise_resolution`, `normalization`, `match_fund` | roundtrip serde; hash/eq; catene di promise incluse quelle circolari |
 | **M3** | `pdf_extract` | `pdf_line`, `relative`, `select/*`, `position`, `tabularizer/*`, `commons` | selezioni combinatorie; geometrie degeneri; tabelle irregolari |
-| **M4** | `text_filter` + `deserialize` | `matcher`, `standard_funcs` (x2), `standard_txt_blk_builders`, `cast` (scope reale in corso, spaccato fra autosufficiente e deferito a M5/M8 — vedi `STATUS.md`) | matching societario; ogni cast con casi limite e localizzazioni |
-| **M5** | **motore** | `pipeline/segment`, `pipeline/bundle`, `schedule`, `algorithm` | dedup e ordine dei pipe; schedule multi-documento; pagina che fallisce |
+| **M4** | `text_filter` + `deserialize` | `matcher`, `standard_funcs` (x2), `standard_txt_blk_builders`, `cast` (scope reale in corso: dopo M5 resta deferito **solo** ciò che dipende da `output::classes` — vedi `STATUS.md`) | matching societario; ogni cast con casi limite e localizzazioni |
+| **M5** | **motore** | `page`, `pipeline/data`, `pipeline/segment`, `pipeline/bundle`, `pipeline`, `schedule`, `algorithm` | dedup e ordine dei pipe; schedule multi-documento; pagina che fallisce |
 | **M6** | `input::document` | PyMuPDF → `Page`, rotazione bbox, collasso span, immagini | funzioni pure su dict costruiti a mano; un test di confine con PyMuPDF |
 | **M7** | `formats_repo` | `id_format`, `metadata`, `orchestration`, `structured/*`, `semistructured/*`, `unstructured/*` | ogni CSV malformato dà l'errore giusto con la riga giusta; fusione dei 3 livelli |
 | **M8** | `output` | `classes`, `files_schema`, `routines` | promesse risolte prima della scrittura; CSV byte-per-byte su casi noti |
@@ -655,13 +655,16 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
 | `pdf_extract::relative` — genericizzare `RelativeInfo`/`OptionallyRelative` oltre `PdfLine`? | confermato: **no**, resta agganciato a `&[PdfLine]` come nel riferimento; è solo spostato di un livello da `select::relative` a `pdf_extract::relative` (2026-08-23) |
 | `PdfLine.font` — tipo dato normalizzato a costruzione o stringa grezza? | confermato: **normalizzato a costruzione** (`Font`, per le stesse ragioni di performance del riferimento), ma definito in `pdf_line.rs` (dati) e non in `select::pdf_line::font` (selezioni): gli impl di selezione (`Container`/`Overlappable`/`AtomOperations`, `FontSet`) restano in `select::pdf_line::font`, che importa `Font` da `pdf_line` — lecito in Rust, la posizione di un `impl` non è vincolata a quella del tipo (2026-08-23) |
 | `collapse_table_rows` — panic su `indexes` vuoto senza config colonne (ereditato verbatim dal riferimento) | confermato: **si accetta e si documenta**, stesso trattamento di `Set::Universe / _` in M1 — limite noto, non un target per M3. Da rivedere quando M5 collega `collapse_table_rows` a dati di pagina reali (2026-08-23) |
+| `FilterData` — semantica (era la domanda che bloccava M5, §13 punto 1) | confermato: **come il riferimento**, enum a due varianti mutuamente esclusive. Primo step dello schedule ⇒ solo le target companies; step successivi ⇒ solo l'accumulo dei risultati di **tutti** gli step precedenti. Conseguenza accettata: un pipe che ha bisogno delle target companies funziona solo se schedulato al primo step, com'è già oggi (2026-08-23) |
+| `Page::raw` — subito o quando arriva il primo consumatore (M6/M7)? | confermato: **subito**. Averlo da ora impedisce di scrivere codice che dipende da `Clone`/`PartialEq` su `Page`, derive che quel campo rende comunque impossibili. Risolve la contraddizione fra §4.4 (che lo colloca in `core::page`) e §2 principio 1: il campo è privato e nessun modulo fuori dal confine Python lo legge (2026-08-23) |
+| Pagina la cui page class compare in **due step** dello schedule | confermato: **si accumulano** i risultati invece di sovrascriverli. Divergenza voluta dal riferimento, dove `res[(doc,page)] = risultati_dello_step` fa sparire dall'output quelli del primo step (che però hanno alimentato il `filter_data` del secondo). Nei casi normali il comportamento è identico; da ricordare nel confronto output di M10 (2026-08-23) |
 | `pub` vs `pub(crate)` sull'albero interno (da M0, non introdotto da M3) | confermato: **si lascia com'è per ora**, annotato come voce trasversale alle milestone da affrontare a parte (es. pulizia M10), non da correggere dentro M3 (2026-08-23) |
 
 ### Ancora da decidere
 
-1. **`FilterData`** — ho mantenuto la semantica attuale (primo step dello schedule = target
-   companies, step successivi = risultati precedenti, mai entrambi contemporaneamente). Va bene,
-   o i pipe devono vedere sempre entrambe le cose? *Blocca M5.*
+1. ~~**`FilterData`**~~ — **risolta il 2026-08-23** (vedi la tabella "Confermato dall'utente"
+   sopra): si tiene la semantica del riferimento, enum a due varianti mutuamente esclusive.
+   Non blocca più M5, che è chiusa.
 2. **Fixture di `freeports-dev`** — sono pickle Python; con serde diventano JSON e vanno
    rigenerati. Confermi, e in quale milestone (M8 o M10)? *Blocca M10, non prima.*
 3. **`.log.csv`** — deve continuare a esistere con le stesse colonne
@@ -682,6 +685,17 @@ M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
    `api`. Non e' stato introdotto da M3 (che si limita a continuare il pattern esistente), ma e'
    una voce trasversale a tutte le milestone finora. *Non blocca nessuna milestone corrente;
    da affrontare come task a parte (candidato: pulizia M10), non dentro una singola milestone.*
+6. **A quale milestone appartiene `formats_utils::pdf_extract::standard_funcs`?** (emerso durante
+   M5.) §9 elenca `PdfExtractPageClassifyStandard`, `PdfExtractInvestmentsStandard`,
+   `PdfExtractCurrencyStandard`, `PdfExtractCurrencyConstant`, `PdfExtractFundStandard`,
+   `PdfExtractManagmentCompanyStandard`, `PdfExtractSfdrArticleStandard`,
+   `PdfExtractAssetsStandard` fra la superficie pubblica, ma **§11 non li assegna a nessuna
+   riga**: M3 elenca `pdf_line`/`relative`/`select`/`position`/`tabularizer`/`commons`, M4 le due
+   `standard_funcs` di `text_filter` e `deserialize`. Il file e' ancora uno stub. Sono i pipe che
+   `formats_repo::structured` costruisce dai CSV, quindi il posto naturale sembra M7, ma e' una
+   decisione, non un'ovvieta'. *Non blocca M5 (che non ne ha bisogno: i test del motore usano pipe
+   finti); da decidere prima di M7.*
+
 Regola generale: se durante l'implementazione emerge una decisione di design non coperta da
 questo documento, **si chiede all'utente** e si annota la risposta qui in §13, non la si decide
 di iniziativa.

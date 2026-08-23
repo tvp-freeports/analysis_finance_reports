@@ -1,11 +1,18 @@
-//! Pipe `text_filter` standard — sottoinsieme autosufficiente di
+//! Pipe `text_filter` standard — porting di
 //! `freeports_core/src/formats_utils/text_filter/standard_funcs.rs`.
 //!
-//! Scope deciso dall'utente (`agent-memory/M4-implementation-plan.md` §0, opzione A): solo
-//! `TextFilterPageClassifyStandard` ed `extract_currency_from_text` sono costruibili senza
-//! `FilterData`/`Extracted` (M5) — le altre quattro classi (`TextFilterSfdrArticleStandard`,
-//! `TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`,
-//! `TextFilterInvestmentsStandard`) leggono `filter_data` e restano lavoro di M5.
+//! **Scope.** M4 ha portato la parte che non dipendeva dal motore
+//! (`TextFilterPageClassifyStandard`, `extract_currency_from_text`); M5 ha aggiunto
+//! `TextFilterInvestmentsStandard` — con `PdfBlocksTable` inlined, come nel riferimento — che
+//! dal `filter_data` legge **solo** le `CompanyMatchInfos` ed è quindi diventato costruibile non
+//! appena `FilterData` è esistito. Restano fuori `TextFilterSfdrArticleStandard`,
+//! `TextFilterManagmentCompanyStandard` e `TextFilterAssetsStandard`, che dal `filter_data`
+//! estraggono `Fund`/`Equity`/`Bond`: dipendono da `output::classes` (M8), non dal motore.
+//!
+//! Da M5 i pipe di questo modulo implementano il trait
+//! [`TextFilterPipe`](crate::core::pipeline::TextFilterPipe): il metodo `call` inerente resta
+//! come API diretta e tipizzata sui suoi errori, il trait è la forma che il motore usa e che
+//! traduce quegli errori in [`PipeError`].
 //!
 //! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
 //!
@@ -58,6 +65,10 @@ use std::collections::BTreeMap;
 use crate::commons::consts::Currency;
 use crate::core::classes::value::BlockValue;
 use crate::core::classes::{BlockType, PdfBlock, TextBlock};
+use crate::core::page::PageError;
+use crate::core::pipeline::{FilterData, PipeError, TextFilterPipe};
+use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, match_company};
+use crate::formats_utils::text_filter::standard_txt_blk_builders::standard_fund_txt_blk;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StandardFuncsError {
@@ -69,6 +80,43 @@ pub enum StandardFuncsError {
     Value(#[from] crate::core::classes::value::BlockValueError),
     #[error("no currency found in text")]
     NoCurrencyFound,
+    /// Il testo su cui il pipe si aspettava di trovare un blocco non c'è. **Non è fatale**:
+    /// `TextFilterInvestmentsStandard::run_loop` lo assorbe e passa alla riga successiva, come il
+    /// riferimento fa catturando `ExpectedTextBlockNotFound`.
+    #[error("matching text block not found")]
+    ExpectedTextBlockNotFound,
+    /// La pagina non è interpretabile: diventa un fallimento di pagina, che l'algoritmo assorbe
+    /// saltando la pagina intera.
+    #[error("{message}")]
+    PageParseFail { message: String },
+    #[error("two subfunds in the same page")]
+    TwoFundsInSamePage,
+    #[error("two currencies in the same page")]
+    TwoCurrenciesInSamePage,
+    #[error("all positions should be different")]
+    PositionsMustDiffer,
+    #[error("company matching failed: {message}")]
+    Match { message: String },
+    #[error("inconsistent investments table: {message}")]
+    InconsistentTable { message: String },
+}
+
+impl StandardFuncsError {
+    /// Traduzione nell'errore del motore. Il nome del pipe non è ricavabile dall'errore, quindi lo
+    /// passa il chiamante — stessa forma di [`PipeError::from_commons`].
+    ///
+    /// Solo [`StandardFuncsError::PageParseFail`] diventa un fallimento **non fatale** di pagina:
+    /// tutto il resto interrompe l'elaborazione, come nel riferimento, dove solo `PageParseFail`
+    /// è catturato dal ciclo dello schedule.
+    pub fn into_pipe_error(self, pipe: &str) -> PipeError {
+        match self {
+            StandardFuncsError::Value(source) => PipeError::value(pipe, source),
+            StandardFuncsError::PageParseFail { message } => {
+                PipeError::page_parse(pipe, PageError::ParseFail { message })
+            }
+            other => PipeError::extraction(pipe, other.to_string()),
+        }
+    }
 }
 
 pub struct TextFilterPageClassifyStandard;
@@ -130,6 +178,585 @@ pub fn extract_currency_from_text(text: &str) -> Result<Currency, StandardFuncsE
 
     Err(StandardFuncsError::NoCurrencyFound)
 }
+
+impl TextFilterPipe for TextFilterPageClassifyStandard {
+    fn name(&self) -> &str {
+        "TextFilterPageClassifyStandard"
+    }
+
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        _data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// TextFilterInvestmentsStandard, con PdfBlocksTable inlined (è il suo unico chiamante reale)
+// ---------------------------------------------------------------------------------------------
+
+/// La tabella degli investimenti di una pagina, ricostruita dai metadati `table-row`/`table-col`
+/// dei blocchi PDF.
+///
+/// Porting di `PdfBlocksTable` del riferimento, con una semplificazione resa possibile
+/// dall'uscita da Python: là la tabella tiene **due** viste degli stessi oggetti (`_blks` piatta e
+/// `_table` per riga/colonna) e conta sull'aliasing di Python perché una mutazione fatta da una
+/// vista si veda dall'altra. Qui i blocchi sono valori, non riferimenti: l'aliasing non esiste e
+/// non serve, quindi la vista per riga/colonna conserva **indici** nella lista piatta, che è
+/// l'unica proprietaria. Il comportamento osservabile è lo stesso; sparisce la possibilità che le
+/// due viste divergano.
+///
+/// Assunzione ereditata dal riferimento: i valori di `table-row` sono `0..n_righe`, contigui.
+/// Là violarla dà un `IndexError`; qui dà [`StandardFuncsError::InconsistentTable`].
+struct PdfBlocksTable {
+    blks: Vec<PdfBlock>,
+    /// riga → colonna → indici in `blks` che occupano quella cella (di norma 0 o 1; più d'uno è
+    /// possibile ed è gestito, come nel riferimento).
+    indexes: Vec<Vec<Vec<usize>>>,
+}
+
+/// Che cosa c'è in una cella.
+///
+/// [`Cell::Many`] non porta i blocchi: nel riferimento la cella con più blocchi restituisce la
+/// lista grezza, e i suoi due soli chiamanti o guardano solo "è occupata?" (indifferente) o
+/// leggono subito `.content`, che su una lista solleva `AttributeError` e viene catturato
+/// ricadendo su `None`. Qui la variante senza dati esprime esattamente quelle due risposte —
+/// "occupata" sì, "leggibile" no — senza tenere valori che nessuno legge.
+enum Cell<'a> {
+    Empty,
+    One(&'a PdfBlock),
+    Many,
+}
+
+/// Legge un metadato intero obbligatorio di un blocco della tabella.
+fn table_meta_int(block: &PdfBlock, field: &str) -> Result<i64, StandardFuncsError> {
+    Ok(block.metadata_or_fail(field)?.int_or_fail(field)?)
+}
+
+/// Legge un metadato booleano obbligatorio di un blocco della tabella.
+fn table_meta_bool(block: &PdfBlock, field: &str) -> Result<bool, StandardFuncsError> {
+    Ok(block.metadata_or_fail(field)?.bool_or_fail(field)?)
+}
+
+/// Il contenuto testuale di un blocco della tabella.
+fn table_content(block: &PdfBlock) -> Result<String, StandardFuncsError> {
+    Ok(block.content.str_or_fail("content")?.to_string())
+}
+
+impl PdfBlocksTable {
+    fn new(pdf_blocks: &[PdfBlock]) -> Result<Self, StandardFuncsError> {
+        let blks = pdf_blocks.to_vec();
+
+        let mut grouped: BTreeMap<i64, BTreeMap<i64, Vec<usize>>> = BTreeMap::new();
+        let mut col_max: i64 = 0;
+        for (i, blk) in blks.iter().enumerate() {
+            let row = table_meta_int(blk, "table-row")?;
+            let col = table_meta_int(blk, "table-col")?;
+            col_max = col_max.max(col);
+            grouped.entry(row).or_default().entry(col).or_default().push(i);
+        }
+
+        let indexes = grouped
+            .values()
+            .map(|cols| {
+                (0..=col_max).map(|col| cols.get(&col).cloned().unwrap_or_default()).collect()
+            })
+            .collect();
+
+        Ok(PdfBlocksTable { blks, indexes })
+    }
+
+    fn len(&self) -> usize {
+        self.blks.len()
+    }
+
+    fn n_cols(&self) -> usize {
+        self.indexes.iter().map(Vec::len).max().unwrap_or(0)
+    }
+
+    /// `self._blks[i]` di Python, indici negativi compresi (`-1` = ultimo).
+    fn get_flat(&self, i: i64) -> Option<&PdfBlock> {
+        let len = self.blks.len() as i64;
+        let idx = if i < 0 { i + len } else { i };
+        (0..len).contains(&idx).then(|| &self.blks[idx as usize])
+    }
+
+    /// `self._table[row][col]` di Python, indici negativi compresi; fuori range è una cella vuota,
+    /// non un errore (è ciò che fa il riferimento).
+    fn get_cell(&self, row: i64, col: i64) -> Cell<'_> {
+        let rows = self.indexes.len() as i64;
+        let r = if row < 0 { row + rows } else { row };
+        if !(0..rows).contains(&r) {
+            return Cell::Empty;
+        }
+        let row_vec = &self.indexes[r as usize];
+        let cols = row_vec.len() as i64;
+        let c = if col < 0 { col + cols } else { col };
+        if !(0..cols).contains(&c) {
+            return Cell::Empty;
+        }
+        match row_vec[c as usize].as_slice() {
+            [] => Cell::Empty,
+            [only] => Cell::One(&self.blks[*only]),
+            _ => Cell::Many,
+        }
+    }
+
+    /// Toglie il blocco in posizione `j` dalla lista piatta e dalla griglia, ricompattando gli
+    /// indici. Se la riga resta vuota, la riga sparisce e i `table-row` delle righe successive
+    /// scalano di uno.
+    fn pop(&mut self, j: usize) -> Result<(), StandardFuncsError> {
+        if j >= self.blks.len() {
+            return Err(StandardFuncsError::InconsistentTable {
+                message: format!("cannot pop block {j}: the table has {} blocks", self.blks.len()),
+            });
+        }
+        let blk = self.blks.remove(j);
+        let row_del = table_meta_int(&blk, "table-row")?;
+        let col_del = table_meta_int(&blk, "table-col")?;
+
+        let (row_idx, col_idx) = (row_del as usize, col_del as usize);
+        let cell = self
+            .indexes
+            .get_mut(row_idx)
+            .and_then(|row| row.get_mut(col_idx))
+            .ok_or_else(|| StandardFuncsError::InconsistentTable {
+                message: format!("block {j} claims cell ({row_del}, {col_del}), which does not exist"),
+            })?;
+
+        if let Some(position) = cell.iter().position(|&idx| idx == j) {
+            cell.remove(position);
+            for row in &mut self.indexes {
+                for col in row.iter_mut() {
+                    for idx in col.iter_mut() {
+                        if *idx > j {
+                            *idx -= 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if self.indexes[row_idx].iter().all(Vec::is_empty) {
+            self.indexes.remove(row_idx);
+            for blk in &mut self.blks {
+                let row = table_meta_int(blk, "table-row")?;
+                if row > row_del {
+                    blk.metadata.insert("table-row".to_string(), BlockValue::Int(row - 1));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Fonde il contenuto dei blocchi `j` e `i` — nell'ordine in cui compaiono nella lista, non
+    /// nell'ordine degli argomenti — scrivendo il risultato in `i` e togliendo `j`.
+    fn merge(&mut self, j: usize, i: usize) -> Result<(), StandardFuncsError> {
+        let (first, last) = if i < j { (i, j) } else { (j, i) };
+        if first >= self.blks.len() || last >= self.blks.len() {
+            return Err(StandardFuncsError::InconsistentTable {
+                message: format!(
+                    "cannot merge blocks {j} and {i}: the table has {} blocks",
+                    self.blks.len()
+                ),
+            });
+        }
+        let combined =
+            format!("{}{}", table_content(&self.blks[first])?, table_content(&self.blks[last])?);
+        self.blks[i].content = BlockValue::Str(combined);
+        self.pop(j)
+    }
+}
+
+/// Dove si trova la riga che si sta estraendo: la posizione nella lista piatta, la cella
+/// d'ancoraggio nella griglia e la larghezza della tabella.
+///
+/// I tre valori viaggiano sempre insieme (`run_loop` li calcola una volta e li passa sia a
+/// `push_extracted_field` sia a `extract_field`), quindi stanno in una struct invece che in tre
+/// parametri ripetuti.
+#[derive(Debug, Clone, Copy)]
+struct RowAnchor {
+    /// Posizione della riga nella lista piatta dei blocchi.
+    flat_index: i64,
+    /// Cella `(riga, colonna)` da cui partono gli spiazzamenti geometrici.
+    base: (i64, i64),
+    /// Numero di colonne della tabella, per il rientro degli spiazzamenti.
+    n_cols: i64,
+}
+
+/// Estrae le righe di investimento di una tabella, una per società bersaglio riconosciuta.
+///
+/// Le `*_pos` sono spiazzamenti rispetto alla cella d'ancoraggio: in modalità geometrica
+/// (`geometrical_indexes`) sono distanze lineari che rientrano nella riga successiva quando
+/// superano la larghezza della tabella; altrimenti sono spiazzamenti nella lista piatta dei
+/// blocchi.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextFilterInvestmentsStandard {
+    pub market_value_pos: i64,
+    pub nominal_quantity_pos: Option<i64>,
+    pub perc_net_assets_pos: Option<i64>,
+    pub acquisition_currency_pos: Option<i64>,
+    pub acquisition_cost_pos: Option<i64>,
+    /// Se vero, gli spiazzamenti sono geometrici (riga/colonna con rientro); se falso, sono
+    /// posizioni nella lista piatta.
+    pub geometrical_indexes: bool,
+    /// Se vero, una cella spezzata su due blocchi viene fusa nel blocco **precedente**; se falso,
+    /// nel successivo.
+    pub merge_prev: bool,
+}
+
+impl TextFilterInvestmentsStandard {
+    /// I sette parametri sono quelli del riferimento, che li riceve dal CSV del repo formati; la
+    /// firma resta la stessa perché è `formats_repo::structured` (M7) a costruirlo da quelle
+    /// colonne.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        market_value_pos: i64,
+        nominal_quantity_pos: Option<i64>,
+        perc_net_assets_pos: Option<i64>,
+        acquisition_currency_pos: Option<i64>,
+        acquisition_cost_pos: Option<i64>,
+        geometrical_indexes: bool,
+        merge_prev: bool,
+    ) -> Result<Self, StandardFuncsError> {
+        // Verbatim dal riferimento, compreso il fatto che il controllo scatta **solo** quando
+        // entrambe le posizioni opzionali sono presenti: con una sola delle due, un valore uguale
+        // a `market_value_pos` non viene rifiutato.
+        if let (Some(nq), Some(pna)) = (nominal_quantity_pos, perc_net_assets_pos)
+            && (nq == market_value_pos || nq == pna || market_value_pos == pna)
+        {
+            return Err(StandardFuncsError::PositionsMustDiffer);
+        }
+        Ok(TextFilterInvestmentsStandard {
+            market_value_pos,
+            nominal_quantity_pos,
+            perc_net_assets_pos,
+            acquisition_currency_pos,
+            acquisition_cost_pos,
+            geometrical_indexes,
+            merge_prev,
+        })
+    }
+
+    /// Separa il nome del fondo e la valuta dai blocchi di tabella, poi estrae le righe.
+    ///
+    /// Quirk ereditato dal riferimento e conservato: se il ciclo sulla tabella non produce
+    /// **nessuna** riga, il risultato è vuoto — anche il blocco di testo del nome del fondo, già
+    /// costruito, viene scartato.
+    pub fn call(
+        &self,
+        pdf_blks: &[PdfBlock],
+        target_companies: &[CompanyMatchInfos],
+    ) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let mut fund_found: Option<BlockValue> = None;
+        let mut currency_found: Option<Currency> = None;
+        let mut results: Vec<TextBlock> = Vec::new();
+        let mut investments_blks: Vec<PdfBlock> = Vec::new();
+
+        for blk in pdf_blks {
+            if blk.type_block == BlockType::FUND_NAME {
+                if fund_found.is_some() {
+                    return Err(StandardFuncsError::TwoFundsInSamePage);
+                }
+                fund_found = Some(blk.content.clone());
+                results.push(standard_fund_txt_blk(blk.clone()));
+            } else if blk.type_block == BlockType::CURRENCY_STATEMENT {
+                if currency_found.is_some() {
+                    return Err(StandardFuncsError::TwoCurrenciesInSamePage);
+                }
+                let text = blk.content.str_or_fail("content")?;
+                // Qui — e solo qui — una valuta non riconosciuta fa fallire la **pagina**, non il
+                // documento: è il `PageParseFail` del riferimento.
+                currency_found = Some(extract_currency_from_text(text).map_err(|e| {
+                    StandardFuncsError::PageParseFail { message: e.to_string() }
+                })?);
+            } else {
+                investments_blks.push(blk.clone());
+            }
+        }
+
+        let mut inv = self.run_loop(&investments_blks, target_companies)?;
+        if inv.is_empty() {
+            return Ok(Vec::new());
+        }
+        let fund = fund_found.unwrap_or(BlockValue::Null);
+        let currency = currency_found.map_or(BlockValue::Null, BlockValue::from);
+        for txt_blk in &mut inv {
+            txt_blk.metadata.insert("fund".to_string(), fund.clone());
+            txt_blk.metadata.insert("currency".to_string(), currency.clone());
+        }
+        results.extend(inv);
+        Ok(results)
+    }
+
+    /// Il ciclo sulle righe della tabella: per ogni blocco, decide se è spezzato sulla riga
+    /// successiva, cerca una società bersaglio nel suo testo e, se la trova, ne estrae i campi.
+    fn run_loop(
+        &self,
+        pdf_blocks: &[PdfBlock],
+        target_companies: &[CompanyMatchInfos],
+    ) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let mut out = Vec::new();
+        if pdf_blocks.is_empty() {
+            return Ok(out);
+        }
+        let mut table = PdfBlocksTable::new(pdf_blocks)?;
+        let n_cols = table.n_cols() as i64;
+
+        let mut i: i64 = 0;
+        // Deliberatamente dichiarata **fuori** dal ciclo: la coda sotto la riusa con il valore
+        // che il ciclo le ha lasciato (0 se il ciclo non è mai girato), non con la colonna
+        // dell'ultimo blocco. È così nel riferimento.
+        let mut col: i64 = 0;
+
+        while i < table.len() as i64 - 1 {
+            let mut split = false;
+            let (row, cell_width, mut content) = {
+                let current = table.get_flat(i).ok_or(StandardFuncsError::InconsistentTable {
+                    message: format!("block {i} disappeared from the table"),
+                })?;
+                col = table_meta_int(current, "table-col")?;
+                (
+                    table_meta_int(current, "table-row")?,
+                    table_meta_bool(current, "is-max-width")?,
+                    table_content(current)?,
+                )
+            };
+            let (next_row, next_col, next_content) = {
+                let next = table.get_flat(i + 1).ok_or(StandardFuncsError::InconsistentTable {
+                    message: format!("block {} disappeared from the table", i + 1),
+                })?;
+                (
+                    table_meta_int(next, "table-row")?,
+                    table_meta_int(next, "table-col")?,
+                    table_content(next)?,
+                )
+            };
+
+            if col == next_col {
+                let probe_row = if self.merge_prev { row } else { next_row };
+                let mut n_full_cols = 0;
+                let mut empty_adj = 0;
+                for c in 0..n_cols {
+                    if matches!(table.get_cell(probe_row, c), Cell::Empty) {
+                        if c == col - 1 || c == col + 1 {
+                            empty_adj += 1;
+                        }
+                    } else {
+                        n_full_cols += 1;
+                    }
+                }
+                if n_full_cols == 1 || empty_adj == 2 {
+                    split = true;
+                    if cell_width || content.ends_with(' ') || content.ends_with('\n') {
+                        content.push_str(&next_content);
+                    }
+                }
+            }
+
+            if let Some(company) = self.matched_company(&content, target_companies)? {
+                if split {
+                    let (current_idx, next_idx) = (i as usize, (i + 1) as usize);
+                    if self.merge_prev {
+                        table.merge(current_idx, next_idx)?;
+                    } else {
+                        table.merge(next_idx, current_idx)?;
+                    }
+                }
+                let anchor = RowAnchor { flat_index: i, base: (row, col), n_cols };
+                self.push_extracted_field(&mut out, &table, anchor, &content, &company)?;
+            }
+
+            i += 1;
+            if i >= table.len() as i64 - 1 {
+                break;
+            }
+        }
+
+        if i == table.len() as i64 - 1 {
+            let (row, content) = {
+                let last = table.get_flat(-1).ok_or(StandardFuncsError::InconsistentTable {
+                    message: "the table is empty".to_string(),
+                })?;
+                (table_meta_int(last, "table-row")?, table_content(last)?)
+            };
+            if let Some(company) = self.matched_company(&content, target_companies)? {
+                let anchor = RowAnchor { flat_index: i, base: (row, col), n_cols };
+                self.push_extracted_field(&mut out, &table, anchor, &content, &company)?;
+            }
+        }
+        Ok(out)
+    }
+
+    /// La società bersaglio riconosciuta nel testo, se ce n'è una.
+    fn matched_company(
+        &self,
+        content: &str,
+        target_companies: &[CompanyMatchInfos],
+    ) -> Result<Option<String>, StandardFuncsError> {
+        match_company(content, target_companies)
+            .map(|found| found.map(str::to_string))
+            .map_err(|e| StandardFuncsError::Match { message: e.to_string() })
+    }
+
+    /// Estrae i campi della riga e, se il blocco atteso c'era, lo accoda a `out`.
+    ///
+    /// Un [`StandardFuncsError::ExpectedTextBlockNotFound`] viene **assorbito** — la riga si
+    /// salta, il ciclo prosegue — esattamente come il riferimento fa catturando l'eccezione
+    /// omonima.
+    fn push_extracted_field(
+        &self,
+        out: &mut Vec<TextBlock>,
+        table: &PdfBlocksTable,
+        anchor: RowAnchor,
+        content: &str,
+        company: &str,
+    ) -> Result<(), StandardFuncsError> {
+        match self.extract_field(table, anchor) {
+            Ok(mut txt_blk) => {
+                txt_blk.metadata.insert("company match".to_string(), BlockValue::from(content));
+                txt_blk.metadata.insert("company".to_string(), BlockValue::from(company));
+                out.push(txt_blk);
+                Ok(())
+            }
+            Err(StandardFuncsError::ExpectedTextBlockNotFound) => Ok(()),
+            Err(other) => Err(other),
+        }
+    }
+
+    /// I campi di una riga di investimento, letti agli spiazzamenti configurati a partire dalla
+    /// cella d'ancoraggio.
+    ///
+    /// In modalità geometrica lo spiazzamento è una **distanza lineare** che rientra nella riga
+    /// successiva quando eccede la larghezza della tabella (`rem_euclid`/`div_euclid`), non una
+    /// somma di coordinate: il ramo "tupla" del riferimento è codice morto, perché ogni `*_pos`
+    /// è sempre un intero semplice.
+    fn extract_field(
+        &self,
+        table: &PdfBlocksTable,
+        RowAnchor { flat_index, base, n_cols }: RowAnchor,
+    ) -> Result<TextBlock, StandardFuncsError> {
+        let cell_content = |row: i64, col: i64| -> Option<String> {
+            match table.get_cell(row, col) {
+                Cell::One(b) => b.content.as_str().map(str::to_string),
+                _ => None,
+            }
+        };
+        let flat_content =
+            |idx: i64| -> Option<String> { table.get_flat(idx)?.content.as_str().map(str::to_string) };
+        let resolve = |offset: i64| -> Option<String> {
+            if self.geometrical_indexes {
+                let (r, c) = base;
+                // `n_cols` non è mai zero: `run_loop` esce prima se la tabella è vuota, e ogni
+                // riga della griglia ha almeno una colonna.
+                let col_offset = (c + offset).rem_euclid(n_cols) - c;
+                let row_offset = (c + offset).div_euclid(n_cols);
+                cell_content(r + row_offset, c + col_offset)
+            } else {
+                flat_content(flat_index + offset)
+            }
+        };
+
+        let anchor = if self.geometrical_indexes {
+            match table.get_cell(base.0, base.1) {
+                Cell::One(block) => block,
+                _ => return Err(StandardFuncsError::ExpectedTextBlockNotFound),
+            }
+        } else {
+            table.get_flat(flat_index).ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?
+        };
+
+        let mut metadata = BTreeMap::new();
+        // `metadata.get("manco")` del riferimento: la chiave assente vale `None`, non è un errore.
+        metadata.insert(
+            "manco".to_string(),
+            anchor.metadata.get("manco").cloned().unwrap_or(BlockValue::Null),
+        );
+
+        let market_value =
+            resolve(self.market_value_pos).ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?;
+        metadata.insert("market value".to_string(), BlockValue::from(market_value));
+
+        for (pos, name) in [
+            (self.perc_net_assets_pos, "% net assets"),
+            (self.nominal_quantity_pos, "quantity"),
+            (self.acquisition_currency_pos, "acquisition currency"),
+            (self.acquisition_cost_pos, "acquisition cost"),
+        ] {
+            if let Some(pos) = pos {
+                // A differenza di `market value`, un campo opzionale che non si trova non fa
+                // fallire l'estrazione: resta `Null`, come nel riferimento.
+                metadata
+                    .insert(name.to_string(), resolve(pos).map_or(BlockValue::Null, BlockValue::from));
+            }
+        }
+
+        let content = anchor.content.str_or_fail("content")?.replace('\n', "");
+        let mut instrument = BlockType::EQUITY_TARGET;
+        for pattern in PERC_REGEXES.iter() {
+            if let Some(captures) = pattern.captures(&content)
+                && let Some(matched) = captures.at(1)
+            {
+                instrument = BlockType::BOND_TARGET;
+                metadata.insert("interest rate".to_string(), BlockValue::from(matched));
+                break;
+            }
+        }
+        for pattern in DATE_REGEXES.iter() {
+            if let Some(captures) = pattern.captures(&content)
+                && let Some(matched) = captures.at(1)
+            {
+                instrument = BlockType::BOND_TARGET;
+                metadata.insert("maturity".to_string(), BlockValue::from(matched));
+                break;
+            }
+        }
+
+        Ok(TextBlock::new(instrument, metadata, anchor.clone()))
+    }
+}
+
+impl TextFilterPipe for TextFilterInvestmentsStandard {
+    fn name(&self) -> &str {
+        "TextFilterInvestmentsStandard"
+    }
+
+    fn filter(
+        &self,
+        blocks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data.target_companies()).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
+
+// Il prefisso `\A` su ogni pattern non è decorativo: il riferimento Python usa `re.match`, che
+// tenta il match **solo** dalla posizione 0, mentre `onig::Regex::captures` cerca ovunque. Senza
+// l'ancoraggio, su un contenuto come `"1,300,000.00 ITALY BTPS 3.4% ..."` (che inizia con una
+// cifra, quindi `re.match` non matcha affatto il primo pattern, che pretende una lettera iniziale)
+// una ricerca libera matcherebbe a partire da `"ITALY"` e produrrebbe un `interest rate` spurio.
+// È un caso reale, non ipotetico: il riferimento lo documenta come regressione trovata su fixture
+// vere.
+static PERC_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
+    [r"\A[a-zA-Z].*((\d+[.,]\d+)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
+        .into_iter()
+        .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
+        .collect()
+});
+
+static DATE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
+    [
+        r"\A.*(\d{2}[/\-.]\d{2}[/\-.]\d{4}).*",
+        r"\A.*(\d{4}[/\-.]\d{2}[/\-.]\d{2}).*",
+        r"\A.*(\d{2}[/\-.]\d{2}[/\-.]\d{2}).*",
+        r"\A.*\s(\d{2}[/\-]\d{2})\s.*",
+    ]
+    .into_iter()
+    .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
+    .collect()
+});
 
 #[cfg(test)]
 mod tests {
@@ -244,6 +871,528 @@ mod tests {
         #[test]
         fn does_not_match_a_code_glued_to_a_digit() {
             assert!(extract_currency_from_text("100EUR").is_err());
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // M5: i due pipe visti attraverso i trait del motore, e TextFilterInvestmentsStandard
+    // -----------------------------------------------------------------------------------------
+
+    use crate::core::pipeline::{FilterData, PipeError, TextFilterPipe};
+    use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, TargetCompanyInput};
+
+    /// Un blocco di riga di tabella, con i tre metadati che `PdfBlocksTable` pretende.
+    fn table_row(row: i64, col: i64, text: &str, is_max_width: bool) -> PdfBlock {
+        let metadata = BTreeMap::from([
+            ("table-row".to_string(), BlockValue::Int(row)),
+            ("table-col".to_string(), BlockValue::Int(col)),
+            ("is-max-width".to_string(), BlockValue::Bool(is_max_width)),
+        ]);
+        PdfBlock::new(BlockType::TABLE_BODY, metadata, text)
+    }
+
+    /// Società bersaglio costruite dal solo nome — `match_company` matcha già sul nome
+    /// normalizzato, senza bisogno di regex o simboli.
+    fn targets(names: &[&str]) -> Vec<CompanyMatchInfos> {
+        CompanyMatchInfos::compile_from_target_companies(
+            names
+                .iter()
+                .map(|name| TargetCompanyInput {
+                    name: (*name).to_string(),
+                    regexs: vec![],
+                    symbols: vec![],
+                    buds: vec![],
+                })
+                .collect(),
+        )
+        .expect("names without patterns always compile")
+    }
+
+    /// Il filtro nella configurazione più semplice: solo `market_value_pos`, indici geometrici.
+    fn simple_investments(market_value_pos: i64) -> TextFilterInvestmentsStandard {
+        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, false)
+            .expect("positions are consistent")
+    }
+
+    mod page_classify_as_a_text_filter_pipe {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn the_pipe_name_identifies_it_in_errors() {
+            assert_eq!(TextFilterPageClassifyStandard.name(), "TextFilterPageClassifyStandard");
+        }
+
+        #[test]
+        fn filtering_produces_the_same_block_as_the_direct_call() {
+            let blks = vec![page_class_block(Some("investments"))];
+            let direct = TextFilterPageClassifyStandard.call(&blks).unwrap();
+            let through_trait =
+                TextFilterPageClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap();
+            assert_eq!(direct, through_trait);
+        }
+
+        #[test]
+        fn the_filter_data_is_ignored() {
+            let blks = vec![page_class_block(Some("investments"))];
+            let companies = targets(&["Acme"]);
+            assert_eq!(
+                TextFilterPageClassifyStandard
+                    .filter(&blks, &FilterData::TargetCompanies(&companies))
+                    .unwrap(),
+                TextFilterPageClassifyStandard.filter(&blks, &FilterData::EMPTY).unwrap()
+            );
+        }
+
+        #[test]
+        fn an_empty_page_is_a_fatal_error_not_a_page_failure() {
+            let err = TextFilterPageClassifyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+            assert_eq!(err.pipe(), "TextFilterPageClassifyStandard");
+            assert!(!err.is_page_failure());
+        }
+    }
+
+    mod investments_construction {
+        use super::*;
+
+        #[test]
+        fn distinct_positions_are_accepted() {
+            assert!(
+                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, false)
+                    .is_ok()
+            );
+        }
+
+        #[test]
+        fn the_three_main_positions_must_differ_from_each_other() {
+            for (mv, nq, pna) in [(0, 0, 1), (0, 1, 1), (0, 1, 0)] {
+                assert!(
+                    TextFilterInvestmentsStandard::new(
+                        mv,
+                        Some(nq),
+                        Some(pna),
+                        None,
+                        None,
+                        true,
+                        false
+                    )
+                    .is_err(),
+                    "({mv}, {nq}, {pna}) should be rejected"
+                );
+            }
+        }
+
+        #[test]
+        fn a_single_optional_position_is_never_checked_against_market_value() {
+            // Quirk verbatim del riferimento: il controllo scatta solo se *entrambe* le
+            // posizioni opzionali sono presenti, quindi qui la collisione con `market_value_pos`
+            // passa inosservata.
+            assert!(
+                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, false)
+                    .is_ok()
+            );
+            assert!(
+                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, false)
+                    .is_ok()
+            );
+        }
+
+        #[test]
+        fn the_optional_acquisition_positions_are_never_checked() {
+            assert!(
+                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, false)
+                    .is_ok()
+            );
+        }
+    }
+
+    mod investments_field_extraction {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn a_matched_row_becomes_one_text_block_carrying_the_company() {
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out.len(), 1);
+            assert_eq!(out[0].metadata.get("company"), Some(&BlockValue::from("Acme Corp")));
+            assert_eq!(out[0].metadata.get("company match"), Some(&BlockValue::from("Acme Corp")));
+            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("1.000")));
+        }
+
+        #[test]
+        fn a_row_with_no_target_company_produces_nothing() {
+            let blks = vec![table_row(0, 0, "Nothing here", false), table_row(0, 1, "1.000", false)];
+            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+        }
+
+        #[test]
+        fn the_optional_fields_are_read_at_their_offsets() {
+            let blks = vec![
+                table_row(0, 0, "Acme Corp", false),
+                table_row(0, 1, "1.000", false),
+                table_row(0, 2, "12,5", false),
+                table_row(0, 3, "42", false),
+            ];
+            let filter =
+                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, false)
+                    .unwrap();
+            let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::from("12,5")));
+            assert_eq!(out[0].metadata.get("quantity"), Some(&BlockValue::from("42")));
+        }
+
+        #[test]
+        fn an_optional_field_that_is_not_there_stays_null_instead_of_failing() {
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            // `% net assets` punta alla colonna 5, che non esiste.
+            let filter =
+                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false)
+                    .unwrap();
+            let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
+        }
+
+        #[test]
+        fn a_market_value_that_is_not_there_drops_the_whole_row() {
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            // A differenza dei campi opzionali, un `market value` mancante fa saltare la riga.
+            assert!(simple_investments(9).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+        }
+
+        #[test]
+        fn the_manco_metadata_of_the_anchor_is_carried_over() {
+            let mut anchor = table_row(0, 0, "Acme Corp", false);
+            anchor.metadata.insert("manco".to_string(), BlockValue::from("Acme SGR"));
+            let blks = vec![anchor, table_row(0, 1, "1.000", false)];
+
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::from("Acme SGR")));
+        }
+
+        #[test]
+        fn an_anchor_without_manco_gets_a_null_one() {
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("manco"), Some(&BlockValue::Null));
+        }
+
+        #[test]
+        fn a_geometric_offset_wraps_into_the_next_row() {
+            // Tabella 2x2: dalla cella (0,0) l'offset 2 rientra nella riga successiva, colonna 0.
+            let blks = vec![
+                table_row(0, 0, "Acme Corp", false),
+                table_row(0, 1, "ignored", false),
+                table_row(1, 0, "wrapped", false),
+                table_row(1, 1, "ignored too", false),
+            ];
+            let out = simple_investments(2).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("wrapped")));
+        }
+
+        #[test]
+        fn flat_offsets_walk_the_block_list_instead_of_the_grid() {
+            let blks = vec![
+                table_row(0, 0, "Acme Corp", false),
+                table_row(0, 1, "1.000", false),
+                table_row(1, 0, "next row", false),
+            ];
+            let filter =
+                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, false)
+                    .unwrap();
+            let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("next row")));
+        }
+    }
+
+    mod investments_instrument_detection {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn instrument_of(text: &str) -> TextBlock {
+            let blks = vec![table_row(0, 0, text, false), table_row(0, 1, "1.000", false)];
+            simple_investments(1)
+                .call(&blks, &targets(&[text]))
+                .unwrap()
+                .into_iter()
+                .next()
+                .expect("the row matches its own text")
+        }
+
+        #[test]
+        fn a_plain_name_is_an_equity() {
+            let blk = instrument_of("Acme Corp");
+            assert_eq!(blk.type_block, BlockType::EQUITY_TARGET);
+            assert!(!blk.metadata.contains_key("interest rate"));
+            assert!(!blk.metadata.contains_key("maturity"));
+        }
+
+        #[test]
+        fn a_percentage_after_a_leading_letter_makes_it_a_bond() {
+            let blk = instrument_of("Acme Corp 3,5 % 2030");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+            assert_eq!(blk.metadata.get("interest rate"), Some(&BlockValue::from("3,5 %")));
+        }
+
+        #[test]
+        fn a_date_makes_it_a_bond_even_without_an_interest_rate() {
+            let blk = instrument_of("Acme Corp mat 28/03/2025");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+        }
+
+        #[test]
+        fn content_starting_with_a_digit_gets_no_spurious_interest_rate() {
+            // Regressione documentata nel riferimento: i pattern delle percentuali sono ancorati
+            // con `\A` e pretendono una lettera iniziale, quindi su un contenuto che inizia con
+            // una cifra non devono matchare — anche se "3.4%" compare piu' avanti nel testo. Una
+            // ricerca non ancorata matcherebbe a partire da "ITALY" e inventerebbe un campo.
+            let blk = instrument_of("1,300,000.00 ITALY BTPS 3.4% 23-28/03/2025");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+            assert!(
+                !blk.metadata.contains_key("interest rate"),
+                "no spurious 'interest rate' must be produced"
+            );
+            assert_eq!(blk.metadata.get("maturity"), Some(&BlockValue::from("28/03/2025")));
+        }
+
+        #[test]
+        fn newlines_are_stripped_before_the_patterns_are_tried() {
+            let blk = instrument_of("Acme\nCorp 3,5 % 2030");
+            assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+        }
+    }
+
+    mod investments_split_cells {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// Il nome della società spezzato su due blocchi consecutivi della **stessa colonna**, con
+        /// la seconda metà da sola nella riga 1.
+        ///
+        /// "Da sola" è la condizione che fa scattare la fusione: il riferimento considera una
+        /// cella spezzata solo se la riga di sondaggio ha **una sola** colonna occupata (oppure se
+        /// entrambe le colonne adiacenti sono vuote). Il valore di mercato sta quindi nella riga 0,
+        /// non nella riga 1, che deve restare occupata da un blocco solo.
+        fn split_table(first: &str, second: &str, is_max_width: bool) -> Vec<PdfBlock> {
+            vec![
+                table_row(0, 0, first, is_max_width),
+                table_row(1, 0, second, false),
+                table_row(0, 1, "1.000", false),
+            ]
+        }
+
+        #[test]
+        fn a_cell_flagged_max_width_is_joined_with_the_next_one_before_matching() {
+            let blks = split_table("Acme ", "Corp", true);
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out.len(), 1);
+            assert_eq!(
+                out[0].metadata.get("company match"),
+                Some(&BlockValue::from("Acme Corp"))
+            );
+        }
+
+        #[test]
+        fn a_cell_ending_in_a_space_is_joined_even_without_the_max_width_flag() {
+            let blks = split_table("Acme ", "Corp", false);
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out.len(), 1);
+        }
+
+        #[test]
+        fn a_cell_ending_in_a_newline_is_joined_too() {
+            let blks = split_table("Acme\n", "Corp", false);
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out.len(), 1);
+        }
+
+        #[test]
+        fn a_cell_that_neither_is_max_width_nor_ends_in_whitespace_is_not_joined() {
+            let blks = split_table("Acme", "Corp", false);
+            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+        }
+
+        #[test]
+        fn blocks_in_different_columns_are_never_joined() {
+            let blks = vec![
+                table_row(0, 0, "Acme ", true),
+                table_row(0, 1, "Corp", false),
+                table_row(0, 2, "1.000", false),
+            ];
+            assert!(simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
+        }
+    }
+
+    mod investments_page_level {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn fund_block(name: &str) -> PdfBlock {
+            PdfBlock::bare(BlockType::FUND_NAME, name)
+        }
+
+        fn currency_block(text: &str) -> PdfBlock {
+            PdfBlock::bare(BlockType::CURRENCY_STATEMENT, text)
+        }
+
+        fn rows() -> Vec<PdfBlock> {
+            vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)]
+        }
+
+        #[test]
+        fn the_fund_name_becomes_its_own_text_block_before_the_rows() {
+            let mut blks = vec![fund_block("Alpha Fund")];
+            blks.extend(rows());
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out.len(), 2);
+            assert_eq!(out[0].type_block, BlockType::FUND);
+            assert_eq!(out[1].metadata.get("fund"), Some(&BlockValue::from("Alpha Fund")));
+        }
+
+        #[test]
+        fn the_declared_currency_is_stamped_on_every_row() {
+            let mut blks = vec![currency_block("amounts in EUR")];
+            blks.extend(rows());
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::from(Currency::EUR)));
+        }
+
+        #[test]
+        fn a_page_without_fund_or_currency_leaves_both_null() {
+            let out = simple_investments(1).call(&rows(), &targets(&["Acme Corp"])).unwrap();
+            assert_eq!(out[0].metadata.get("fund"), Some(&BlockValue::Null));
+            assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::Null));
+        }
+
+        #[test]
+        fn two_fund_names_in_the_same_page_is_an_error() {
+            let blks = vec![fund_block("Alpha"), fund_block("Beta")];
+            assert!(matches!(
+                simple_investments(1).call(&blks, &targets(&["Acme"])),
+                Err(StandardFuncsError::TwoFundsInSamePage)
+            ));
+        }
+
+        #[test]
+        fn two_currency_statements_in_the_same_page_is_an_error() {
+            let blks = vec![currency_block("in EUR"), currency_block("in USD")];
+            assert!(matches!(
+                simple_investments(1).call(&blks, &targets(&["Acme"])),
+                Err(StandardFuncsError::TwoCurrenciesInSamePage)
+            ));
+        }
+
+        #[test]
+        fn an_unreadable_currency_fails_the_page_rather_than_the_document() {
+            let blks = vec![currency_block("no currency at all")];
+            let err = simple_investments(1).call(&blks, &targets(&["Acme"])).unwrap_err();
+            assert!(matches!(err, StandardFuncsError::PageParseFail { .. }));
+            assert!(err.into_pipe_error("p").is_page_failure());
+        }
+
+        #[test]
+        fn no_matched_rows_discards_the_fund_block_too() {
+            // Quirk verbatim del riferimento: se il ciclo non produce righe, il risultato e'
+            // vuoto — anche il blocco del fondo, gia' costruito, viene buttato.
+            let mut blks = vec![fund_block("Alpha Fund")];
+            blks.extend(rows());
+            assert!(
+                simple_investments(1).call(&blks, &targets(&["Nobody"])).unwrap().is_empty()
+            );
+        }
+
+        #[test]
+        fn a_page_with_no_blocks_at_all_produces_nothing() {
+            assert!(simple_investments(1).call(&[], &targets(&["Acme"])).unwrap().is_empty());
+        }
+
+        #[test]
+        fn a_page_with_only_a_fund_name_produces_nothing() {
+            let blks = vec![fund_block("Alpha Fund")];
+            assert!(simple_investments(1).call(&blks, &targets(&["Acme"])).unwrap().is_empty());
+        }
+    }
+
+    mod investments_malformed_input {
+        use super::*;
+
+        #[test]
+        fn a_row_without_table_coordinates_is_a_value_error() {
+            let blks = vec![PdfBlock::bare(BlockType::TABLE_BODY, "Acme Corp")];
+            assert!(matches!(
+                simple_investments(0).call(&blks, &targets(&["Acme Corp"])),
+                Err(StandardFuncsError::Value(_))
+            ));
+        }
+
+        #[test]
+        fn a_row_whose_content_is_not_text_is_a_value_error() {
+            let metadata = BTreeMap::from([
+                ("table-row".to_string(), BlockValue::Int(0)),
+                ("table-col".to_string(), BlockValue::Int(0)),
+                ("is-max-width".to_string(), BlockValue::Bool(false)),
+            ]);
+            let blks = vec![PdfBlock::new(BlockType::TABLE_BODY, metadata, 42i64)];
+            assert!(matches!(
+                simple_investments(0).call(&blks, &targets(&["Acme"])),
+                Err(StandardFuncsError::Value(_))
+            ));
+        }
+    }
+
+    mod investments_as_a_text_filter_pipe {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn rows() -> Vec<PdfBlock> {
+            vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)]
+        }
+
+        #[test]
+        fn the_pipe_name_identifies_it_in_errors() {
+            assert_eq!(simple_investments(1).name(), "TextFilterInvestmentsStandard");
+        }
+
+        #[test]
+        fn the_target_companies_come_from_the_filter_data() {
+            let companies = targets(&["Acme Corp"]);
+            let out = simple_investments(1)
+                .filter(&rows(), &FilterData::TargetCompanies(&companies))
+                .unwrap();
+            assert_eq!(out.len(), 1);
+        }
+
+        #[test]
+        fn a_later_schedule_step_sees_no_target_companies_and_matches_nothing() {
+            // Conseguenza diretta della semantica di `FilterData` scelta dall'utente (D-M5-1):
+            // fuori dal primo step questo pipe non ha società con cui fare match.
+            let previous = Vec::new();
+            let out =
+                simple_investments(1).filter(&rows(), &FilterData::Previous(&previous)).unwrap();
+            assert!(out.is_empty());
+        }
+
+        #[test]
+        fn an_unreadable_currency_becomes_a_non_fatal_page_failure() {
+            let blks = vec![PdfBlock::bare(BlockType::CURRENCY_STATEMENT, "nothing here")];
+            let err = simple_investments(1).filter(&blks, &FilterData::EMPTY).unwrap_err();
+            assert!(err.is_page_failure());
+            assert_eq!(err.pipe(), "TextFilterInvestmentsStandard");
+        }
+
+        #[test]
+        fn a_malformed_row_becomes_a_fatal_value_error() {
+            let blks = vec![PdfBlock::bare(BlockType::TABLE_BODY, "Acme Corp")];
+            let companies = targets(&["Acme Corp"]);
+            let err = simple_investments(0)
+                .filter(&blks, &FilterData::TargetCompanies(&companies))
+                .unwrap_err();
+            assert!(matches!(err, PipeError::Value { .. }));
+            assert!(!err.is_page_failure());
         }
     }
 }

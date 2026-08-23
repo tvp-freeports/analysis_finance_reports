@@ -11,8 +11,8 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M1 | `commons` | ✅ chiusa | `date`, `geometry`, `sets` (+ `ast_simple`/`ast_smart`/`indipendent_atoms`), `consts`, `flag_expr`, `i18n`; 407 test verdi, `cargo clippy` pulito; `api::consts` abilitato in `lib.rs` |
 | M2 | `core` dati | ✅ chiusa | `normalization`, `promise`, `classes`(+`value`), `promise_resolution`, `promisable`, `match_fund`; 617 test verdi, `cargo clippy` pulito; `api::core` abilitato in `api.rs` |
 | M3 | `pdf_extract` | ✅ chiusa | `pdf_line`, `relative`, `select::{pdf_line,relative}` (+`pdf_line::{area,font,font_size,text}`), `tabularizer::{collapse,coordinates}`, `position`, `commons`; 969 test verdi, `cargo clippy` pulito salvo un warning inevitabile in test verbatim (vedi sotto); `api::utils::pdf_extract` abilitato in `api.rs` per la parte già pronta |
-| M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast` (tutte le 10 funzioni + `is_numeric_shape`), `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, il sottoinsieme autosufficiente di `standard_funcs` (`TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard`). Restano deferite ~10 funzioni di `standard_funcs` che dipendono da `FilterData`/`Extracted` (M5) o `output::classes` (M8) — scelta utente esplicita (opzione C), vedi sotto |
-| M5 | Motore (pipeline/algorithm) | ⬜ da fare | bloccata dalla domanda aperta su `FilterData` (`PLAN.md` §13) |
+| M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast`, `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, `TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard` (M4) e `TextFilterInvestmentsStandard` + `PdfBlocksTable` (aggiunto a chiusura di M5). **Restano deferite solo le 10 funzioni che dipendono da `output::classes`** (M8): nessuna aspetta più il motore |
+| M5 | Motore (pipeline/algorithm) | ✅ chiusa | `core::page`, `core::schedule`, `core::pipeline::{data,segment,bundle}`, `core::pipeline::Pipeline`, `core::algorithm`; 1365 test unitari + 10 d'integrazione (`tests/algorithm_end_to_end.rs`) verdi, `cargo clippy --all-targets` senza warning nuovi; `api::core` estesa con `Pipeline`/`Algorithm` e il resto del motore. `Algorithm::load` resta a M7 (legge il repo formati) |
 | M6 | `input::document` | ⬜ da fare | |
 | M7 | `formats_repo` | ⬜ da fare | |
 | M8 | `output` | ⬜ da fare | |
@@ -180,6 +180,94 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   --all-targets` — solo il warning preesistente e documentato in `select/pdf_line/area.rs` (M3),
   nessun warning nuovo; `grep -rn "todo!()" src/` — nessun risultato in tutto il crate.
 
+- 2026-08-23 — M5 chiusa, e subito dopo M4 integrata con tutto ciò che M5 rendeva possibile (una
+  sola sessione, su richiesta esplicita dell'utente: *"la chiusura di M4 dipenda solo da
+  `output::classes`"*). Piano di lavoro dettagliato in `agent-memory/M5-implementation-plan.md`.
+  **Decisioni prese dall'utente all'apertura di M5:**
+  - **`FilterData` — risposta alla domanda che bloccava M5** (`PLAN.md` §13 punto 1). Si tiene la
+    semantica del riferimento: enum a due varianti mutuamente esclusive, primo step dello schedule
+    ⇒ solo le target companies, step successivi ⇒ solo l'accumulo dei risultati di **tutti** gli
+    step precedenti. Conseguenza accettata: un pipe che ha bisogno delle target companies
+    (oggi solo `TextFilterInvestmentsStandard`) funziona unicamente se schedulato al primo step —
+    è già così nel riferimento, ed è pinnato da un test.
+  - **`Page::raw` aggiunto subito**, benché il primo consumatore arrivi con M7 (i pipe Python).
+    Motivazione dell'utente: saperlo da ora impedisce di costruire codice che dipende da
+    `Clone`/`PartialEq` su `Page`, derive che quel campo rende comunque impossibili (`Py<T>` è
+    `Clone` solo con la feature `py-clone`, non abilitata). Risolve anche la contraddizione fra
+    `PLAN.md` §4.4 (che lo prevede in `core::page`) e §2 principio 1 (PyO3 solo ai confini): il
+    campo è privato, e l'unico test che lo tocca è isolato in un `mod python_boundary`.
+  - **Pagina la cui page class compare in due step dello schedule: si accumulano i risultati**,
+    non si sovrascrivono. È una **divergenza voluta** dal riferimento, dove
+    `res[(doc, page)] = risultati_dello_step` fa sparire dall'output i risultati del primo step
+    (che però hanno alimentato il `filter_data` del secondo). Nei casi normali — page class in un
+    solo step — il comportamento è identico; da ricordare nel confronto output di M10.
+
+  **Decisioni forzate dallo stato del crate** (annotate, non chieste: non c'era alternativa):
+  - `Algorithm::load` non è M5 ma M7: legge il repo formati, che è tutto stub. M5 fornisce
+    `Algorithm::new` con le tre validazioni che il riferimento fa in `Algorithm.__new__`
+    (pipeline di classificazione note; page class di schedule e mapping coincidenti; nessuna
+    pipeline non mappata né mappata e mai usata).
+  - `Extracted` nasce **parziale**: solo `Promises` e `PageClass`. Le dieci varianti d'entità di
+    `PLAN.md` §5.4 vivono in `output::classes` (M8) e anticiparle avrebbe rifatto due volte il
+    lavoro di M8 — oltre a contraddire la richiesta dell'utente di lasciare `output::classes`
+    come unica dipendenza aperta di M4.
+  - `Algorithm::apply`/`apply_multidocument` restituiscono `DocumentOutcome`/`PageOutcome`, la
+    forma tipizzata del dict `{(doc_name, page_n): [...]}` del riferimento: `DocumentResults` è
+    `output::routines` (M8), che lo convertirà.
+  - `PageClassFinalizer::Python` di `PLAN.md` §5.5 diventa `PageClassFinalizer::Custom(Arc<dyn
+    PageClassFinalize>)`: M7 ci innesta il `compute_page_class` dell'autore senza che `core`
+    conosca PyO3.
+  - Modulo nuovo non previsto da `PLAN.md`: `core::pipeline::data`, che ospita
+    `PipeError`/`FilterData`/`Extracted`/`PromiseEntries` — il vocabolario condiviso da tutti e
+    cinque i pezzi del motore. `core::pipeline` lo ri-esporta, quindi il percorso pubblico è
+    comunque `core::pipeline::{...}`.
+
+  **Altre decisioni prese durante l'implementazione:**
+  - `Segment<P>` deduplica per identità (`Arc::ptr_eq`), come il `set` di oggetti senza
+    `__hash__` del riferimento; `PipelinesBundle` deduplica invece per **nome**, perché le
+    pipeline arrivano sempre da una mappa `nome → Pipeline` e là "stessa pipeline" e "stesso
+    nome" sono la stessa cosa.
+  - `ScheduleStep` conserva l'ordine di inserimento invece dell'ordine di hash di un `set`
+    Python (coerente con D5, che già lo stabiliva per i pipe): l'ordine di elaborazione dentro
+    uno step è deterministico.
+  - `PipelinesBundle::apply_deserialize` coincide con `apply`. Nel riferimento le due differiscono
+    solo per il filtraggio dei `None` restituiti dai pipe; qui quei `None` non esistono, perché un
+    pipe che non ha nulla da dire restituisce un vettore vuoto e "pagina non classificata" è la
+    variante esplicita `Extracted::PageClass(None)`. Il metodo resta perché è una delle tre API
+    parziali che `freeports-dev` usa (`PLAN.md` §5.3).
+  - `Algorithm::apply_deserializer` segue la firma di `PLAN.md` §5.5 (parte da blocchi di testo
+    già pronti) e non quella del riferimento (che riparte dalla pagina): così i tre metodi per
+    segmento decompongono davvero la catena in tre pezzi concatenabili.
+  - `PipeError::from_commons` mantiene la promessa scritta in M3 nel doc-comment di
+    `pdf_extract::commons`: `CommonsError::PageParseFail` diventa il fallimento **non fatale** di
+    pagina, `ExpectedTextNotFound` un `PipeError::Extraction`. Non è un `impl From` perché il nome
+    del pipe non è ricavabile dall'errore.
+  - Asimmetria del riferimento conservata: un fallimento di pagina è assorbito **solo** nel ciclo
+    dello schedule, non durante la classificazione delle pagine.
+  - `ScheduledPage` porta un `doc_index` oltre al `&Document`: due documenti possono
+    legittimamente avere lo stesso id, quindi ricomporre i risultati per id sarebbe sbagliato.
+  - `core::classes::BlockType` ha ricevuto due costanti nuove, `EQUITY_TARGET` e `BOND_TARGET`
+    (`ResultStandardFiltering` del riferimento): le produce `TextFilterInvestmentsStandard`.
+    Modifica puramente additiva a codice M2, stesso precedente dei derive aggiunti a M1 durante M2.
+  - `PdfBlocksTable` (porting di M4/M5) tiene **solo indici** nella lista piatta invece delle due
+    viste aliasate del riferimento: uscendo da Python l'aliasing non esiste e non serve, e sparisce
+    la possibilità che le due viste divergano. Dove il riferimento andrebbe in `IndexError` su una
+    tabella incoerente, qui c'è `StandardFuncsError::InconsistentTable` — il modulo non è fra
+    quelli da portare *verbatim* (`PLAN.md` §0), quindi tipizzare l'errore è lecito.
+  - Quirk del riferimento conservati **di proposito** in `TextFilterInvestmentsStandard`, ciascuno
+    con un test che lo pinna: il controllo "le posizioni devono essere diverse" scatta solo se
+    entrambe le posizioni opzionali sono presenti; se il ciclo sulla tabella non produce righe, il
+    risultato è vuoto e viene buttato anche il blocco del nome del fondo già costruito; la coda del
+    ciclo riusa la colonna lasciata dall'ultima iterazione, non quella dell'ultimo blocco.
+  - I pattern `PERC_REGEXES`/`DATE_REGEXES` sono ancorati con `\A`: `re.match` di Python tenta il
+    match solo dalla posizione 0, mentre `onig::Regex::captures` cerca ovunque. Senza ancoraggio si
+    inventerebbe un `interest rate` su contenuti che iniziano con una cifra — regressione reale già
+    documentata nel riferimento, qui pinnata da un test dedicato.
+
+  Stato finale verificato: `cargo test` — 1365 test unitari + 10 d'integrazione passati, 0 falliti,
+  0 ignorati; `cargo clippy --all-targets` — solo il warning preesistente e documentato in
+  `select/pdf_line/area.rs` (M3); `grep -rn "todo!()" src/ tests/` — nessun risultato.
+
 ## Voci aperte trasversali alle milestone (non bloccano nessuna milestone corrente)
 
 - **`TablePosMeasureUnit`** (`PLAN.md` §9) — nessun riferimento esiste da nessuna parte; gap fra
@@ -191,6 +279,16 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   esistente), ma trasversale a tutte le milestone finora. Confermato dall'utente (2026-08-23):
   si lascia com'è, si affronta come task a parte (candidato: pulizia M10), non dentro una singola
   milestone.
+- **`formats_utils::pdf_extract::standard_funcs` non è assegnato a nessuna milestone** (emerso
+  durante M5). `PLAN.md` §9 elenca `PdfExtractPageClassifyStandard`,
+  `PdfExtractInvestmentsStandard`, `PdfExtractCurrencyStandard`, `PdfExtractCurrencyConstant`,
+  `PdfExtractFundStandard`, `PdfExtractManagmentCompanyStandard`, `PdfExtractSfdrArticleStandard`,
+  `PdfExtractAssetsStandard` fra la superficie pubblica, ma §11 non li mette in nessuna riga: M3
+  copre `pdf_line`/`relative`/`select`/`position`/`tabularizer`/`commons`, M4 le due
+  `standard_funcs` di `text_filter` e `deserialize`. Il file è ancora uno stub a tre righe. Sono i
+  pipe che `formats_repo::structured` (M7) costruisce dai CSV, quindi il posto naturale è M7 o una
+  passata dedicata — ma **va deciso, non assunto**. Stessa categoria di `TablePosMeasureUnit`: un
+  buco fra §9 e §11, non un'omissione silenziosa.
 
 ## Domande aperte
 
@@ -199,12 +297,21 @@ sollevata da M2 (riferimenti promise pendenti) e le cinque sollevate durante M3 
 state confermate dall'utente. La domanda sulla portata di M4 (opzioni A/B/C per le ~10 funzioni di
 `standard_funcs` dipendenti da M5/M8, `agent-memory/M4-implementation-plan.md` §0) è stata risolta
 il 2026-08-23: l'utente ha scelto l'opzione C (vedi voce sopra) — non è più una domanda aperta, è
-lavoro deferito. Restano aperte solo le domande pre-esistenti non ancora toccate: semantica di
-`FilterData` (blocca M5), rigenerazione dei fixture `freeports-dev` (M8 o M10), campo dedicato per
-la colonna `Matched Company` del `.log.csv` (non blocca nulla), più le due voci trasversali aperte
-durante M3 elencate sopra.
+lavoro deferito. Anche le tre domande di M5 (semantica di `FilterData`, `Page::raw`, pagina in due
+step dello schedule) sono state risolte dall'utente il 2026-08-23, nella voce sopra: **`FilterData`
+non blocca più nulla**.
 
-**Lavoro deferito, non una domanda aperta**: le ~10 funzioni di `standard_funcs` elencate nella
-voce del 2026-08-23 sopra restano da implementare non appena M5 introduce `FilterData`/`Extracted`
-(e, per quelle che dipendono da `output::classes`, non appena M8 esiste) — elenco esatto in
-`agent-memory/M4-implementation-plan.md` §0.
+Restano aperte solo le domande pre-esistenti non ancora toccate: rigenerazione dei fixture
+`freeports-dev` (M8 o M10), campo dedicato per la colonna `Matched Company` del `.log.csv` (non
+blocca nulla), più le tre voci trasversali elencate sopra (`TablePosMeasureUnit`,
+`pub`/`pub(crate)`, e la milestone di `pdf_extract::standard_funcs`).
+
+**Lavoro deferito, non una domanda aperta**: le 10 funzioni di `standard_funcs` che costruiscono
+entità di `output::classes` (`DeserializeSfdrArticleStandard`, `DeserializerFundStandard`,
+`DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
+`DeserializerInvestmentsManagerStandard`, `DeserializerInvestmentStandard`,
+`DeserializerAssetsStandard`, `TextFilterSfdrArticleStandard`,
+`TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`) restano da implementare non
+appena M8 esiste. `TextFilterInvestmentsStandard`, che era l'unica bloccata dal solo motore, è
+stata scritta alla chiusura di M5: **`output::classes` è ora l'unica dipendenza che tiene aperta
+M4**, come chiesto dall'utente.
