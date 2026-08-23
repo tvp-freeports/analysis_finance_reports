@@ -13,7 +13,7 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M3 | `pdf_extract` | ✅ chiusa | `pdf_line`, `relative`, `select::{pdf_line,relative}` (+`pdf_line::{area,font,font_size,text}`), `tabularizer::{collapse,coordinates}`, `position`, `commons`; 969 test verdi, `cargo clippy` pulito salvo un warning inevitabile in test verbatim (vedi sotto); `api::utils::pdf_extract` abilitato in `api.rs` per la parte già pronta |
 | M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast`, `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, `TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard` (M4) e `TextFilterInvestmentsStandard` + `PdfBlocksTable` (aggiunto a chiusura di M5). **Restano deferite solo le 10 funzioni che dipendono da `output::classes`** (M8): nessuna aspetta più il motore |
 | M5 | Motore (pipeline/algorithm) | ✅ chiusa | `core::page`, `core::schedule`, `core::pipeline::{data,segment,bundle}`, `core::pipeline::Pipeline`, `core::algorithm`; 1365 test unitari + 10 d'integrazione (`tests/algorithm_end_to_end.rs`) verdi, `cargo clippy --all-targets` senza warning nuovi; `api::core` estesa con `Pipeline`/`Algorithm` e il resto del motore. `Algorithm::load` resta a M7 (legge il repo formati) |
-| M6 | `input::document` | ⬜ da fare | |
+| M6 | `input::document` | ✅ chiusa | `input::document::{page_dict, selection}` (+ modulo radice); 1417 test unitari + 10 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api::utils::pdf_extract` estesa con le 4 funzioni di §9 rimaste da M3, nuovo `api::input` |
 | M7 | `formats_repo` | ⬜ da fare | |
 | M8 | `output` | ⬜ da fare | |
 | M9 | `cli` | ⬜ da fare | |
@@ -268,6 +268,81 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   0 ignorati; `cargo clippy --all-targets` — solo il warning preesistente e documentato in
   `select/pdf_line/area.rs` (M3); `grep -rn "todo!()" src/ tests/` — nessun risultato.
 
+- 2026-08-23 — M6 chiusa (TDD: `implementation-planner` → `test-writer` → `implementer` → review
+  adversariale di `critic` prima della chiusura, come da `PLAN.md` §14; piano dettagliato in
+  `agent-memory/M6-implementation-plan.md`). Porta `pdf_blks_acquire.py` in `input::document`,
+  **non** uno dei moduli verbatim di `PLAN.md` §0 (libero di essere ridisegnato, a patto di
+  preservarne la logica) — diviso in `page_dict` (struct tipizzata del "page dict" PyMuPDF +
+  funzioni pure: `collapse_spans_from_line`, `rotate_bbox`, `rotate_line`, `pdflines_from_pagedict`,
+  `pdfimages_from_pagedict`) e `selection` (`pdfline_selection_from_dict`/`_from_str`, che
+  costruiscono una `PdfLineSelection`, M3, da configurazione esterna — non hanno a che fare con
+  PyMuPDF, ma vivono qui perché è lo stesso modulo Python di origine). Un solo test tocca davvero
+  PyMuPDF (`document.rs::tests::python_boundary`, `PLAN.md` §11/§10 D13); tutto il resto — comprese
+  le 25 combinazioni geometriche di rotazione/collasso span e le 24 di selezione da dict/stringa —
+  è pure Rust su struct costruite a mano.
+
+  **Due domande aperte poste all'utente durante la pianificazione, entrambe risolte con l'opzione
+  raccomandata:**
+  - **Q1** — una riga PDF senza span in `collapse_spans_from_line`: il riferimento va in
+    `ZeroDivisionError`; un porting letterale della sola aritmetica produrrebbe `NaN` in silenzio
+    (peggio del riferimento). **Confermato**: restituisce `Vec::new()` — nessun panic, nessun
+    `NaN`, trattata come riga vuota.
+  - **Q2** — `load_document`/`load_document_pages` (apri un PDF reale con `fitz`, itera le pagine,
+    costruisci un `Document`/`Vec<Page>`): non elencate da `PLAN.md` §9, ma senza di esse nessun
+    consumatore esterno potrebbe mai costruire un `Document` da un path reale. **Confermato**:
+    implementate in M6, riesportate sotto un nuovo `api::input` non previsto da §9 — stesso
+    trattamento già riservato a `TablePosMeasureUnit` (buco fra §9 e lo scope necessario,
+    documentato in `api.rs` e qui, non un'omissione silenziosa).
+
+  **Terza domanda emersa durante la review di `critic` prima della chiusura, anch'essa risolta con
+  l'opzione raccomandata:** `pdflines_from_pagedict` costruiva ogni `PdfLine` via
+  `PdfLine::new`/`Rectangle::new` (M3, verbatim), che panicano su `font_size <= 0.0` o bbox
+  invertita (`x0 > x1` o `y0 > y1`). Fino a M6 quel costruttore era raggiungibile solo da dati
+  costruiti a mano (test, autore di formato); `load_document` lo rende per la prima volta
+  raggiungibile da un vero `page.get_text("dict")` PyMuPDF, cioè da input non fidato — un PDF reale
+  con uno span a corpo non positivo o bbox invertita avrebbe fatto panicare l'intero processo
+  invece di poter saltare la singola pagina/riga. **Confermato**: aggiunta una guardia in
+  `pdflines_from_pagedict` che scarta silenziosamente lo span incriminato (stesso trattamento della
+  riga senza span, Q1) con un `tracing::warn!` per non perdere visibilità (stesso stile di
+  `cast.rs`, M4), invece di lasciare che l'aritmetica raggiunga il costruttore panicante. Non è un
+  bug ereditato da `freeports_core`/Python (quel confronto qui non si applica: `PdfLine::new` è
+  codice di `freeports_lib`, non del riferimento Python di questa milestone) — è un limite
+  preesistente di M3 mai stato raggiungibile da input non fidato prima d'ora, e la correzione
+  riguarda solo la nuova guardia introdotta qui in M6.
+
+  **Altre decisioni prese durante l'implementazione (non richiedevano conferma, `agent-memory/
+  M6-implementation-plan.md` §1):**
+  - Il "page dict" PyMuPDF diventa uno struct Rust tipizzato (`PageDict`/`PageDictBlock`/
+    `PageDictLine`/`PageDictSpan`), non un `HashMap`/`serde_json::Value` dinamico: è l'unico modo
+    di avere "funzioni pure su dict costruiti a mano" (`PLAN.md` §11) senza che quelle funzioni
+    debbano gestire forme malformate — tutta la fallibilità di forma si concentra nell'unico punto
+    che estrae `PageDict` da un `Bound<PyDict>` reale (`PageDict::from_py`, nessun test dedicato,
+    esercitato solo transitivamente dal test di confine).
+  - `PageError` (già in `core::page`, M5) riusato per gli errori di forma del page dict, invece di
+    un nuovo enum: `ParseFail`/`LineParseFail` modellano già esattamente "pagina non
+    interpretabile"/"riga non interpretabile". Un nuovo `DocumentError` copre invece i fallimenti a
+    livello di documento (apertura del PDF, o una pagina specifica con il suo numero).
+  - `pdfline_selection_from_dict`/`_from_str` entrambe fallibili con lo stesso
+    `LineSelectionError`, e `_from_str` **delega** a `_from_dict` dopo aver parsato la grammatica
+    compatta con `onig` (precedente diretto: `extract_currency_from_text`, M4, scelta esplicita
+    dell'utente "perché è più veloce") — una sola implementazione della combinatoria dei criteri,
+    non due. `rotate_lines_inplace` diventa `rotate_line`, non mutante (non verbatim, D-M6-1 del
+    piano: la mutazione in-place è un dettaglio implementativo Python, non logica osservabile).
+  - Grammatica `onig`: i cinque gruppi catturanti (font, font_size, y_range, area, text) sono
+    catturati per **posizione**, non per nome (l'API Rust di `onig` non ha un equivalente di
+    `groupdict()`), rendendo non-catturanti tutti i gruppi interni ausiliari — verificato da
+    `critic` prima della chiusura: nessun rischio di disallineamento posizionale, perché il
+    pattern Rust ha esattamente 5 gruppi catturanti mappati 1:1, a differenza del pattern Python
+    (22 gruppi) da cui è stato ridisegnato. Confermata anche la sottigliezza grammaticale che
+    l'alternativa "area piena" richiede una coppia di parentesi *ulteriore* che avvolge le due
+    coppie di range (`((x0:x1)(y0:y1))`, non `(x0:x1)(y0:y1)` nudo) — verificata riproducendo il
+    pattern Python `LINE_SET_REGEXP` fuori dal crate.
+
+  Stato finale verificato: `cargo test` — 1417 test unitari + 10 d'integrazione passati, 0 falliti,
+  0 ignorati; `cargo clippy --all-targets` — solo il warning preesistente e documentato in
+  `select/pdf_line/area.rs` (M3), nessun warning nuovo; `grep -rn "todo!()" src/ tests/` — nessun
+  risultato.
+
 ## Voci aperte trasversali alle milestone (non bloccano nessuna milestone corrente)
 
 - **`TablePosMeasureUnit`** (`PLAN.md` §9) — nessun riferimento esiste da nessuna parte; gap fra
@@ -289,6 +364,11 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   pipe che `formats_repo::structured` (M7) costruisce dai CSV, quindi il posto naturale è M7 o una
   passata dedicata — ma **va deciso, non assunto**. Stessa categoria di `TablePosMeasureUnit`: un
   buco fra §9 e §11, non un'omissione silenziosa.
+- **`api::input` (`load_document`/`load_document_pages`) non è elencato da `PLAN.md` §9** (che per
+  `input` nomina solo `load_target_companies`/`compile_target_companies`, `input::companies_db`) —
+  aggiunto comunque in M6 perché senza un punto d'ingresso che apra un PDF reale nessun consumatore
+  esterno potrebbe mai costruire un `Document`. Confermato dall'utente (2026-08-23, M6 Q2): stesso
+  trattamento di `TablePosMeasureUnit`, documentato in `api.rs`, non bloccante.
 
 ## Domande aperte
 
@@ -299,7 +379,10 @@ state confermate dall'utente. La domanda sulla portata di M4 (opzioni A/B/C per 
 il 2026-08-23: l'utente ha scelto l'opzione C (vedi voce sopra) — non è più una domanda aperta, è
 lavoro deferito. Anche le tre domande di M5 (semantica di `FilterData`, `Page::raw`, pagina in due
 step dello schedule) sono state risolte dall'utente il 2026-08-23, nella voce sopra: **`FilterData`
-non blocca più nulla**.
+non blocca più nulla**. Le due domande di M6 (riga senza span in `collapse_spans_from_line`,
+`load_document`/`load_document_pages` fuori da §9) e la terza emersa dalla review di `critic` prima
+della chiusura di M6 (guardia contro il panic di `PdfLine::new`/`Rectangle::new` su input non
+fidato) sono state risolte dall'utente il 2026-08-23, nella voce di chiusura M6 sopra.
 
 Restano aperte solo le domande pre-esistenti non ancora toccate: rigenerazione dei fixture
 `freeports-dev` (M8 o M10), campo dedicato per la colonna `Matched Company` del `.log.csv` (non

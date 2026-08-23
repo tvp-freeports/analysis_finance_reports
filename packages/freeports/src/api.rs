@@ -9,13 +9,24 @@
 //! parte di `core` che esiste: `PdfBlock`, `TextBlock` e `Promise` (`Pipeline` e `Algorithm`
 //! arrivano con M5). M3 aggiunge la parte di `utils::pdf_extract` che non dipende dal confine
 //! PyMuPDF (arriva con M6): `position`/`tabularizer` e le config `TableConfig`/`RowConfig`/
-//! `ColumnConfig`. `pdfline_selection_from_dict`, `pdfline_selection_from_str`,
-//! `pdfimages_from_pagedict`, `pdflines_from_pagedict` (`PLAN.md` §9) restano non riesportati:
-//! costruiscono `PdfLine`/`PdfLineSelection` da un dict PyMuPDF o costruiscono selezioni da
-//! stringa, e appartengono a `input::document` (M6). `TablePosMeasureUnit`, anch'esso elencato in
-//! §9, non ha né riferimento né test nel milestone M3: e' un buco fra §9 e lo scope reale di M3,
-//! annotato in `STATUS.md`, non un'omissione silenziosa. M5 aggiunge `Pipeline` e `Algorithm`,
-//! con tutto ciò che serve a costruirli e a leggerne i risultati (vedi il doc-comment di `core`).
+//! `ColumnConfig`. `TablePosMeasureUnit`, elencato in
+//! §9, non ha né riferimento né test in nessun milestone finora: e' un buco fra §9 e lo scope
+//! reale del crate, annotato in `STATUS.md`, non un'omissione silenziosa. M5 aggiunge `Pipeline` e
+//! `Algorithm`, con tutto ciò che serve a costruirli e a leggerne i risultati (vedi il doc-comment
+//! di `core`).
+//!
+//! M6 chiude il sottoinsieme di `utils::pdf_extract` lasciato aperto da M3 (`agent-memory/
+//! M6-implementation-plan.md`): le quattro funzioni di `PLAN.md` §9 che leggono un dict PyMuPDF o
+//! una stringa di configurazione (`pdfline_selection_from_dict`, `pdfline_selection_from_str`,
+//! `pdfimages_from_pagedict`, `pdflines_from_pagedict`), più i tipi di supporto senza i quali non
+//! sono costruibili/leggibili da fuori (`PageDict` e le sue tre parti; la forma "dict" di criterio
+//! `InputPdfLineSet`/`FontCriterion`/`InputAreaSpec`; `LineSelectionError`) — stesso trattamento
+//! già riservato a `BlockType`/`BlockValue` in M2. M6 aggiunge anche un nuovo modulo `api::input`,
+//! non elencato da `PLAN.md` §9 (che per `input` nomina solo `load_target_companies`/
+//! `compile_target_companies`, `input::companies_db`, fuori scope qui): senza `load_document`/
+//! `load_document_pages` nessun consumatore esterno potrebbe mai costruire un `Document` reale da
+//! un path PDF, quindi il buco fra §9 e lo scope necessario è documentato allo stesso modo di
+//! `TablePosMeasureUnit`, non lasciato silenzioso (M6, Q2 confermata dall'utente).
 
 pub mod consts {
     pub use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
@@ -68,5 +79,23 @@ pub mod utils {
         pub use crate::formats_utils::pdf_extract::tabularizer::coordinates::{
             CellGeometry, CoordinateExtractionError, TablePosAlgorithm, get_table_coordinates,
         };
+        pub use crate::input::document::page_dict::{
+            PageDict, PageDictBlock, PageDictLine, PageDictSpan, pdfimages_from_pagedict,
+            pdflines_from_pagedict,
+        };
+        pub use crate::input::document::selection::{
+            FontCriterion, InputAreaSpec, InputPdfLineSet, LineSelectionError,
+            pdfline_selection_from_dict, pdfline_selection_from_str,
+        };
     }
+}
+
+pub mod input {
+    //! Non elencato da `PLAN.md` §9 (che per `input` nomina solo `load_target_companies`/
+    //! `compile_target_companies`, `input::companies_db`, fuori scope qui) — gap fra §9 e lo
+    //! scope necessario, stesso trattamento di `TablePosMeasureUnit` (vedi `STATUS.md`). Senza un
+    //! punto d'ingresso che apra un PDF reale, nessun consumatore fuori da questo crate potrebbe
+    //! mai costruire un `Document` (M6, Q2 confermata dall'utente,
+    //! `agent-memory/M6-implementation-plan.md`).
+    pub use crate::input::document::{DocumentError, load_document, load_document_pages};
 }
