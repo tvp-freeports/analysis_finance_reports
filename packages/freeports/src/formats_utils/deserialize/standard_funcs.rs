@@ -480,15 +480,26 @@ impl DeserializePipe for DeserializerInvestmentsManagerStandard {
     }
 }
 
+/// Il convertitore d'importo di [`DeserializerAssetsStandard`]: una funzione condivisibile, non un
+/// flag, perché nel riferimento è un callable Python qualunque.
+pub type NumConverter = std::sync::Arc<dyn Fn(&str) -> Result<f64, CastError> + Send + Sync>;
+
+/// Il convertitore di date di [`DeserializerAssetsStandard`], nella stessa forma condivisibile di
+/// [`NumConverter`].
+pub type DateConverter =
+    std::sync::Arc<dyn Fn(&str) -> Result<crate::commons::date::Date, CastError> + Send + Sync>;
+
 /// Costruisce un [`FundAssets`] da un blocco `RELEVANT_BLOCK` prodotto da
 /// `TextFilterAssetsStandard`.
 ///
-/// `num_converter` è configurabile (`interpret_int` sceglie fra `cast::to_int`/`cast::to_float`,
-/// stesso pattern di `DeserializerInvestmentStandard`); `date_converter` è di default
-/// [`cast::to_date`] ma sostituibile.
+/// `num_converter` è configurabile ([`DeserializerAssetsStandard::new`] sceglie con
+/// `interpret_int` fra `cast::to_int`/`cast::to_float`, stesso pattern di
+/// `DeserializerInvestmentStandard`); `date_converter` è di default [`cast::to_date`] ma
+/// sostituibile. Entrambi sono convertitori arbitrari, non un flag: vedi
+/// [`DeserializerAssetsStandard::with_converters`].
 pub struct DeserializerAssetsStandard {
-    interpret_int: bool,
-    date_converter: fn(&str) -> Result<crate::commons::date::Date, CastError>,
+    num_converter: NumConverter,
+    date_converter: DateConverter,
 }
 
 impl Default for DeserializerAssetsStandard {
@@ -496,7 +507,7 @@ impl Default for DeserializerAssetsStandard {
     /// true` è un'estrapolazione dal default di `DeserializerInvestmentStandard`, non un fatto
     /// verificato contro un formato reale.
     fn default() -> Self {
-        Self { interpret_int: true, date_converter: cast::to_date }
+        Self::new(true, cast::to_date)
     }
 }
 
@@ -505,18 +516,35 @@ impl DeserializerAssetsStandard {
         interpret_int: bool,
         date_converter: fn(&str) -> Result<crate::commons::date::Date, CastError>,
     ) -> Self {
-        Self { interpret_int, date_converter }
+        Self::with_converters(Self::builtin_num_converter(interpret_int), std::sync::Arc::new(date_converter))
+    }
+
+    /// Il convertitore d'importo che `interpret_int` seleziona: `cast::to_int` o `cast::to_float`.
+    pub fn builtin_num_converter(interpret_int: bool) -> NumConverter {
+        if interpret_int {
+            std::sync::Arc::new(|text: &str| cast::to_int(text, false).map(|v| v as f64))
+        } else {
+            std::sync::Arc::new(|text: &str| cast::to_float(text, false))
+        }
+    }
+
+    /// Costruisce il pipe con convertitori arbitrari, non solo con quelli predefiniti.
+    ///
+    /// Esiste perché nel riferimento `num_converter` e `date_converter` sono *callable* Python
+    /// qualunque, e i moduli d'autore ne approfittano davvero (per esempio
+    /// `num_converter=lambda txt: 0 if txt == "-" else to_int(txt)`): un `bool` non basta a
+    /// rappresentarli. [`Self::new`] resta la firma comoda per i due casi predefiniti.
+    pub fn with_converters(num_converter: NumConverter, date_converter: DateConverter) -> Self {
+        Self { num_converter, date_converter }
     }
 
     /// Converte importi con `num_converter`: già tipizzato è accettato direttamente, una stringa
-    /// passa per `cast::to_int`/`cast::to_float` a seconda di `interpret_int` — stesso pattern
-    /// duale di `DeserializerInvestmentStandard::required`.
+    /// passa per il convertitore configurato — stesso pattern duale di
+    /// `DeserializerInvestmentStandard::required`.
     fn cast_amount(&self, field: &'static str, value: &BlockValue) -> Result<f64, DeserializeStandardFuncsError> {
         match value {
-            BlockValue::Str(text) => {
-                let result = if self.interpret_int { cast::to_int(text, false).map(|v| v as f64) } else { cast::to_float(text, false) };
-                result.map_err(|source| DeserializeStandardFuncsError::LineParseFail { field, source })
-            }
+            BlockValue::Str(text) => (self.num_converter)(text)
+                .map_err(|source| DeserializeStandardFuncsError::LineParseFail { field, source }),
             other => other
                 .as_float()
                 .or_else(|| other.as_int().map(|v| v as f64))

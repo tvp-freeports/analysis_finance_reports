@@ -1,0 +1,25 @@
+[project]
+name = "freeports"
+description = "Estrazione di dati etici e finanziari da report di fondi d'investimento"
+requires-python = ">=3.10"
+license = "GPL-3.0"
+version = "0.1.0"
+authors = [
+    {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
+]
+dependencies = [
+    "PyMuPDF",
+]
+
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+# Nessun `python-source`: il pacchetto Python **e'** l'estensione compilata. Il vecchio
+# `freeports_core` aveva un albero `python/freeports/` che re-esportava da `freeports._native`;
+# qui quel livello non esiste piu' (vedi il doc-comment di `src/python.rs`).
+#
+# `module-name` deve coincidere col nome del `#[pyo3::pymodule]` esterno in `src/python.rs`:
+# maturin cerca il simbolo `PyInit_<ultima componente>`, e un disallineamento fa fallire l'import.
+module-name = "freeports"

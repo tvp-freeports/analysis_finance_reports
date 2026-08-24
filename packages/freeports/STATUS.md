@@ -16,7 +16,7 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M6 | `input::document` | ✅ chiusa | `input::document::{page_dict, selection}` (+ modulo radice); 1417 test unitari + 10 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api::utils::pdf_extract` estesa con le 4 funzioni di §9 rimaste da M3, nuovo `api::input` |
 | M7 | `formats_repo` | ✅ chiusa | `id_format`, `metadata`, `orchestration`, `structured::{tables,page_classify,investments}`, `semistructured::{formats_mapping,args,native}`, `unstructured::{loader,py_pipe}`, `Algorithm::load`; piu' `formats_utils::pdf_extract::standard_funcs` (8 pipe, D-M7-1) e `output::classes::{fund,investment}` anticipati da M8 (D-M7-2). 1828 test unitari + 32 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api` estesa con `standard_funcs`, `formats_repo`, `output` e `get_table_coordinates`/`TablePosMeasureUnit` |
 | M8 | `output` | ✅ chiusa | `output::classes::{fund_change_name, fund_esg_indicator, fund_sfdr_classification, fund_assets, assets_manager}`, le 7 varianti restanti di `core::pipeline::Extracted`, le 8 funzioni deferite di M4, `output::files_schema`, `output::routines::{accumulate, write}`. I 3 bug di fixture nei test scritti da `test-writer` (vedi la nota di chiusura sotto) sono stati corretti; `cargo test`: 2092 passati/0 falliti (lib) + 34 d'integrazione (10+22+2) passati; `cargo clippy --all-targets`: solo il warning preesistente di `select/pdf_line/area.rs` (M3) |
-| M9 | `cli` | ⬜ da fare | |
+| M9 | `cli` | ✅ chiusa | `input::{companies_db, download}` (stub pre-esistenti, pull-in per Q1), `cli::{conf_parse::DocumentSpec, partial_config, config_locations::{cmd,env,file}, freeports_config, batch, job, output, run::execute}`, `main.rs` reale; `core::tracing_setup::Verbosity` riaperto (M0, Q5: 6 livelli, `-v`/`-q` manopole indipendenti) e `output::routines::write` riaperto (M8, Q6: `OutFlags::separate_out` + profili `SingleFile`/`Structured`/`compressed` reali); 2428 test unitari + 63 d'integrazione (10+29+22+2) verdi, `cargo clippy --all-targets` pulito salvo il warning preesistente M3 e 5 nuovi confinati a codice di test; `api::cli` abilitata, chiude `PLAN.md` §9 |
 | M10 | Chiusura e confronto | ⬜ da fare | |
 
 Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato)
@@ -478,11 +478,16 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   moduli sintetici che non importano `freeports` — ma **blocca M10**, che deve confrontare
   l'output con `freeports_core` su un formato reale: o si anticipa una parte dei binding, o M10
   confronta solo formati puramente structured/semistructured. *Da decidere prima di M10.*
-- **`OutStructureMode::{SingleFile, Structured}` e `OutFlags::compressed` restano a M9** (M8, Q1.2
-  confermata dall'utente 2026-08-23): `output::routines::write` li rifiuta con un
-  `WriteFilesError` tipizzato (`UnsupportedProfile`/`CompressionNotSupported`), senza toccare il
-  filesystem. Da implementare quando M9 introdurrà davvero un flag da riga di comando che li
-  seleziona.
+- ~~**`OutStructureMode::{SingleFile, Structured}` e `OutFlags::compressed` restano a M9**~~ —
+  **risolta in M9** (2026-08-24, decisione Q6 dell'utente): `output::routines::write` (M8,
+  riaperto) implementa ora per davvero tutti e tre i profili più la compressione (`flate2`+`tar`),
+  e guadagna `OutFlags::separate_out` (un CSV per `Report` invece di uno unico, sostituisce
+  `prefix_out`). Vedi la voce di chiusura M9 sotto.
+- **Concorrenza dei job in modalità batch (`N_WORKERS`) resta sequenziale** (M9, Q7 confermata
+  dall'utente 2026-08-24, come raccomandato): `cli::job`/`cli::batch` validano e portano
+  `n_workers` a valle, ma senza vera parallelizzazione — quella diventa un task a parte
+  (candidato: dopo M10, o una milestone dedicata). Stesso trattamento già riservato a
+  `SingleFile`/`Structured` prima che M9 li chiudesse.
 - ~~**Tre test di M8 scritti da `test-writer` restavano falliti**~~ — **corretti il 2026-08-24**
   (fixture, non codice di produzione): un fixture di `DeserializerAssetsStandard` che rompeva
   l'equazione contabile di `FundAssets` senza volerlo, un `expected` di
@@ -500,7 +505,9 @@ confermate dall'utente. La domanda sulla portata di M4 (opzioni A/B/C per le ~10
 `standard_funcs` dipendenti da M5/M8) è stata risolta il 2026-08-23 con l'opzione C — non è più una
 domanda aperta, è lavoro deferito. Le tre domande di M5 (semantica di `FilterData`, `Page::raw`,
 pagina in due step dello schedule), le due di M6 più la terza emersa dalla review di `critic`, e le
-tre di M7 (D-M7-1/2/3) sono anch'esse risolte, ciascuna nella propria voce di chiusura sopra.
+tre di M7 (D-M7-1/2/3) sono anch'esse risolte, ciascuna nella propria voce di chiusura sopra. Le
+otto domande di M9 (Q1-Q8, incluse le due riaperture di milestone chiuse — Q5 su M0, Q6 su M8) sono
+anch'esse tutte risolte, riportate per intero nella voce di chiusura M9 sopra e in `PLAN.md` §13.
 
 Restano aperte solo:
 
@@ -618,3 +625,147 @@ loro (D-M7-2). **`output::classes` resta l'unica dipendenza che tiene aperta M4.
   `select/pdf_line/area.rs` (M3), più un secondo warning (`cloned_ref_to_slice_refs`) dentro uno
   dei 3 test sopra elencati, anch'esso non correggibile senza toccare codice di test; `grep -rn
   "todo!()" src/ tests/` — nessun risultato.
+
+- 2026-08-24 — M9 chiusa (`agent-memory/M9-implementation-plan.md`). Porta l'intero `cli` —
+  `conf_parse::DocumentSpec`, `partial_config`, `config_locations::{cmd,env,file}`,
+  `freeports_config::validate`, `batch`, `job`, `output`, `run::execute` — più `main.rs` come vero
+  entry point (non più uno stub), e due moduli non assegnati a nessuna riga di `PLAN.md` §11
+  (`input::companies_db`, `input::download`, porting da `packages/freeports_core/src/input/
+  {companies_db.rs,download.rs}` con `csv`/`ureq` al posto di `polars`/PyO3, pull-in per Q1
+  sotto).
+
+  **Le otto decisioni Q1-Q8 dell'utente** (2026-08-24, `agent-memory/M9-implementation-plan.md`
+  §0), riportate per intero in `PLAN.md` §13, tabella "Confermato dall'utente":
+  - **Q1** — `input::companies_db`/`input::download` entrano nello scope di M9: confermato sì,
+    incluse le correzioni di bug già trovate in quel porting (`bud`/regex non ancorato, ordine di
+    `companies.csv` preservato non alfabetico).
+  - **Q2** — dipendenza per la ricerca XDG/Windows delle directory di configurazione: confermato
+    sì, nuova dipendenza — l'utente ha scelto di aggiungerne una (`dirs`, v6), ribaltando la
+    raccomandazione "tutto a mano". Copre solo il tier utente (`dirs::config_local_dir()`); il
+    tier di sistema (`XDG_CONFIG_DIRS`/`/etc` POSIX, `%PROGRAMDATA%`/`%SystemRoot%` Windows) resta
+    hand-rolled, nessun crate candidato lo copriva.
+  - **Q3** — estensione della semantica multi-documento a `file`/`env`: confermato, andando oltre
+    la raccomandazione originale (solo `file`) — sì anche su `env`, esplicitamente richiesto
+    dall'utente. `file` guadagna la chiave YAML `reports:`, `env` guadagna `FREEPORTS_REPORTS`
+    (stesso separatore `|` del CSV di batch, `DOC_SPEC_SEPARATOR` promosso a costante condivisa).
+    Le forme singolari (`url:`/`pdf:`, `FREEPORTS_URL`/`FREEPORTS_PDF`) restano come zucchero
+    sintattico; specificare sia la forma singolare sia quella plurale sulla stessa sorgente è un
+    errore di configurazione esplicito, non un override silenzioso.
+  - **Q4** — `<path>:<name>:` (due punti finale, nessuno schema url rilevato): confermato errore
+    tipizzato, `DocumentSpecError::TrailingColonWithoutUrl`, mai un panic né una reinterpretazione
+    silenziosa — un ramo che il riferimento Python non gestisce affatto (andrebbe in `TypeError` a
+    runtime).
+  - **Q5** — scala di verbosità (`core::tracing_setup::Verbosity`, **riapre M0**): vedi il
+    paragrafo dedicato sotto, è la decisione più importante da questa milestone.
+  - **Q6** — `OutFlags::separate_out` (**riapre M8**): vedi il paragrafo dedicato sotto.
+  - **Q7** — concorrenza dei job in modalità batch (`N_WORKERS`): confermato sequenziale per M9,
+    come raccomandato; `n_workers` resta validato/passato a valle senza vera parallelizzazione,
+    annotato come voce trasversale aperta (vedi sopra).
+  - **Q8** — `TARGET_LISTS` senza alcuna sorgente che lo imposti: confermato errore esplicito
+    (`FreeportsConfigError::NoTargetLists`), **ribaltando** la raccomandazione originale (default
+    silenzioso a lista vuota). Una lista vuota impostata esplicitamente da una sorgente resta
+    invece valida: l'errore riguarda l'assenza di una sorgente, non il contenuto della lista.
+
+  **Q5 — riapertura di `core::tracing_setup::Verbosity` (M0, chiusa) su autorizzazione diretta
+  dell'utente — la decisione più importante di questa milestone da documentare con precisione,
+  perché la risposta reale diverge da entrambe le opzioni originariamente proposte dalla sessione
+  orchestratrice.** Il piano M9 (§0 Q5) aveva formulato la domanda come scelta fra "tenere il
+  modello a 4 livelli a conteggio di flag di M0" o "replicare il modello a delta 0-5 del
+  riferimento Python". L'utente ha rifiutato entrambe le cornici e ha specificato direttamente il
+  comportamento voluto: una semplicità ancora vicina ai 4 livelli, ma con `-v`/`-q` come manopole
+  **indipendenti**, default che mostra Warn+Error, `-q` che riduce a solo errore, `-qq` che
+  silenzia tutto, `-v` che aumenta ulteriormente. Implementazione finale: `Verbosity` passa da 4
+  varianti (`Warn, Info, Debug, Trace`) a 6 (`Silent, ErrorOnly, Warn, Info, Debug, Trace`), con
+  `ORDER: [Verbosity; 6]` e `DEFAULT_INDEX: usize = 2` (Warn). `from_flag_count` (M0) è stata
+  **rimossa, non deprecata**: `Silent` non ha un `tracing::Level` corrispondente, quindi neanche il
+  vecchio metodo `level()` poteva restare così com'era — sostituito da `level_filter() ->
+  LevelFilter`. Nuovo `from_verbose_and_quiet_counts(verbose: u8, quiet: u8) -> Verbosity` calcola
+  un offset netto con segno (`verbose - quiet`) rispetto a `DEFAULT_INDEX`, clampato a `[0, 5]`:
+  `-v`/`-q` sono manopole indipendenti, senza errore in caso di combinazione (una divergenza
+  deliberata dal riferimento Python, che tratta `-v`/`-q` come mutuamente esclusivi — è
+  un'istruzione diretta ed esplicita dell'utente, non una scelta di porting). Verificato
+  empiricamente (non solo per ispezione) che `LevelFilter::WARN` (il default) ammette davvero sia
+  eventi `WARN` sia `ERROR`, soddisfacendo "di default vedo Warn ed Err".
+
+  **Un bug reale trovato nella test suite di M9 stessa, che ha richiesto la propria indagine e una
+  conferma separata dell'utente — documentato come voce a sé, perché è importante.** Il
+  sottomodulo originale di `test-writer`,
+  `core::tracing_setup::tests::stderr_layer_observable_filtering` (4 test), usava un disegno
+  strutturalmente rotto: aggiungeva un secondo layer "spia" (`Counter`) come **fratello** di
+  `stderr_layer` sullo stesso `tracing_subscriber::registry()`, e asseriva che il `Counter`
+  avrebbe osservato solo gli eventi passati attraverso il `.with_filter(...)` di `stderr_layer`.
+  Non è così: `Filtered<L,F,S>` (prodotto da `.with_filter()`) filtra **solo** il layer specifico
+  che avvolge — un layer fratello aggiunto con una `.with(...)` separata riceve ogni evento
+  dispacciato indipendentemente dal filtro di un altro layer, per come `tracing_subscriber` compone
+  i layer. Il problema era aggravato da un secondo difetto: la cache di interesse per-callsite di
+  `tracing` è globale al processo, e i 4 test invocavano le stesse identiche macro alla stessa riga
+  sorgente (`tracing::error!("e")` ecc.) da thread di test paralleli con dispatcher `with_default`
+  diversi, in corsa su quella cache condivisa — riprodotto empiricamente (`cargo test --lib
+  core::tracing_setup::tests::stderr_layer_observable_filtering -- --nocapture`, eseguiti i test
+  direttamente, confermato che `silent_shows_nothing_at_all_not_even_error` riceveva tutti e 5 i
+  livelli di evento invece di zero, e altri due test fallivano in modo analogo). La causa radice è
+  stata confermata non risolvibile con nessuna modifica alla logica di produzione di
+  `stderr_layer`. **L'utente ha visto questa esatta analisi ed è stato interpellato su come
+  procedere (`AskUserQuestion`), scegliendo "riscrivere i test con un writer iniettabile" invece di
+  "eliminare questi 4 test e affidarsi solo ai test puri sulla mappatura di `level_filter()`".**
+  Correzione implementata: aggiunto un punto d'innesto minimale e non invasivo nel codice di
+  produzione — il corpo a una riga di `stderr_layer` è stato rifattorizzato per delegare a un nuovo
+  `fmt_layer_with_writer<S, W>(writer: W, filter: LevelFilter, ansi: bool)` privato e generico
+  (stesso file, `src/core/tracing_setup.rs`), con `stderr_layer` stesso invariato nel comportamento
+  osservabile (usa ancora stderr reale, ANSI attivo). I 4 test sono stati riscritti per iniettare
+  uno `SharedBuffer` (un `MakeWriter` sostenuto da `Arc<Mutex<Vec<u8>>>`) attraverso lo stesso
+  punto d'innesto e asserire sull'output formattato realmente catturato invece che sul conteggio di
+  un layer fratello, più uno `static SERIAL: Mutex<()>` che serializza solo questi 4 test fra loro
+  (sono gli unici nel processo a condividere quell'esatto callsite) per eliminare la race sulla
+  cache di interesse invece di limitarsi a nasconderla. Verificato eseguendo gli stessi 4 test 8
+  volte di fila senza fallimenti. Questa correzione è stata fatta direttamente dalla sessione
+  orchestratrice (non da un subagent), dopo che l'`implementer` aveva già indagato in autonomia,
+  raggiunto la stessa conclusione sulla causa radice con le proprie riproduzioni isolate fuori dal
+  crate, e correttamente rifiutato di toccare il file di test per la regola "mai modificare i test
+  in autonomia" — segnalando il problema per la revisione invece di agire, esattamente come
+  previsto.
+
+  **`output::routines::write` riaperto (M8, chiusa) — `OutFlags::separate_out`.** Per Q6 (l'utente
+  ha confermato la raccomandazione del piano): `OutFlags` guadagna un campo `separate_out: bool`:
+  quando impostato, `write_files` scrive un CSV per report/documento (chiave
+  `DocumentOutcome::id`/`format`) invece di un unico file combinato, sostituendo il concetto di
+  `prefix_out` eliminato per `targets/2_multireport_support.md`. `SingleFile`/`Structured`/
+  `OutFlags::compressed` — in precedenza stub d'errore tipizzati fin da Q1.2 di M8 — sono ora
+  implementati per intero (compressione via le dipendenze `flate2`+`tar` già presenti).
+
+  **Nuove dipendenze in `Cargo.toml`**: `dirs = "6"` (Q2) e `clap = { version = "4", features =
+  ["derive"] }` per `CliArgs`. Rende **stale** `PLAN.md` D10 ("`thiserror` come unica nuova
+  dipendenza 'di comodo'") — annotato come nota in `PLAN.md` §13, non riscritto silenziosamente.
+
+  **Alcune decisioni implementative minori, prese dall'`implementer` per far passare i test già
+  scritti da `test-writer`, non domande di design aperte:**
+  - `--workers` sulla CLI clap ha bisogno di `allow_hyphen_values = true`, altrimenti `--workers
+    -1` viene rifiutato da clap stesso come flag sconosciuto invece di raggiungere
+    `CmdConfigError::InvalidWorkers`.
+  - Il doc-comment di `cli::job` diceva in origine che `JobError::MissingInputDbPath` scatta ogni
+    volta che `target_lists` è non vuoto senza `--db-directory`; il test d'integrazione
+    `cli::run::tests::python_boundary::a_full_non_batch_invocation_writes_the_regular_profile_csvs_to_disk`
+    (che passa `--target-list` senza `--db-directory` e si aspetta successo) ha deciso
+    diversamente: un `input_db_path` assente produce ora zero target companies invece di un
+    errore; il doc-comment è stato corretto di conseguenza e `JobError::MissingInputDbPath` resta
+    dichiarato per stabilità dell'API ma è attualmente irraggiungibile.
+  - `cli::freeports_config::validate_document_specs` distingue un path inesistente come
+    "directory" o "file da scaricare" tramite presenza/assenza di un'estensione, dato che
+    `targets/conf_parse.md` non copre esplicitamente questo caso limite.
+
+  Stato finale verificato (tutto ri-verificato direttamente dalla sessione orchestratrice, non
+  solo riportato da un subagent): `cargo test` — 2428 test unitari + 63 d'integrazione (10
+  `algorithm_end_to_end.rs` + 29 `cli_config.rs` + 22 `formats_repo_loading.rs` + 2
+  `output_routines.rs`) tutti verdi, 0 falliti, 0 ignorati (venv attivo richiesto:
+  `source analysis_finance_reports/venv/freeports-dev/bin/activate`, per i sottomoduli
+  `python_boundary` di `cli::job`/`cli::run`/`input::document`); `grep -rn "todo!()" src/ tests/`
+  — nessun risultato; `cargo clippy --all-targets` — pulito salvo il solito warning preesistente e
+  documentato di `select/pdf_line/area.rs` (M3) più 5 warning **nuovi**, tutti confermati
+  strettamente dentro blocchi `#[cfg(test)]` (4 `redundant_closure` in
+  `cli/config_locations/env.rs`, helper di test che avvolgono `catch_unwind(|| load())`, 1
+  `ptr_arg` in un helper di solo test `display(p: &PathBuf)` di `cli/conf_parse.rs`) — non
+  correggibili senza toccare codice di test, stesso trattamento del warning di solo-test di M8.
+  `main.rs` è un vero entry point (`CliArgs` parsato con clap, `tracing_setup::init` chiamato
+  presto, `cli::run::execute` invocato, errori mappati su un exit code non-zero); `freeports
+  --help` gira e lista tutti i flag reali; `api::cli` riesporta `CliArgs`/`execute`/`CliError`,
+  chiudendo `PLAN.md` §9.

@@ -12,24 +12,65 @@
 //! # Contratto per l'implementazione (i test sotto sono il contratto vincolante; questo modulo
 //! # doc è solo una mappa di lettura, in caso di conflitto vincono i test)
 //!
-//! ## `Verbosity`
+//! ## `Verbosity` — **RIAPERTO a M9** (`M9-implementation-plan.md` §0 Q5, su autorizzazione
+//! ## esplicita dell'utente: M0 era chiusa, questa è un'estensione di comportamento su codice
+//! ## chiuso, non un'iniziativa autonoma — vedi la nota di chiusura M9 in `STATUS.md`).
+//!
+//! L'enum a 4 varianti (`Warn, Info, Debug, Trace`) e la coppia `from_flag_count`/`level` di M0
+//! **spariscono** (non restano deprecate: `Silent` non ha un `tracing::Level` corrispondente,
+//! quindi `level()` non può restare com'era), sostituiti da una scala a 6 livelli con `-v`/`-q`
+//! come manopole indipendenti:
 //!
 //! ```text
-//! pub enum Verbosity { Warn, Info, Debug, Trace }
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+//! pub enum Verbosity { Silent, ErrorOnly, Warn, Info, Debug, Trace }
+//!
 //! impl Verbosity {
-//!     pub fn from_flag_count(count: u8) -> Verbosity;
-//!     pub fn level(self) -> tracing::Level;
+//!     /// Ordine crescente di verbosità.
+//!     pub const ORDER: [Verbosity; 6] =
+//!         [Verbosity::Silent, Verbosity::ErrorOnly, Verbosity::Warn,
+//!          Verbosity::Info, Verbosity::Debug, Verbosity::Trace];
+//!     /// Indice di `ORDER` quando né `-v` né `-q` compaiono (0 e 0) -- `Warn`.
+//!     pub const DEFAULT_INDEX: usize = 2;
+//!
+//!     /// Sostituisce `from_flag_count`. `-v` e `-q` sono manopole indipendenti sommate con
+//!     /// segno rispetto a `DEFAULT_INDEX`, **non** mutuamente esclusive (divergenza deliberata
+//!     /// dal riferimento Python, che le tratta come tali -- voluta dall'utente, "independent
+//!     /// dials"). L'offset netto è clampato a `[0, ORDER.len()-1]`, mai un panic/indice fuori
+//!     /// bound qualunque siano `verbose`/`quiet` (anche ai limiti di `u8`).
+//!     pub fn from_verbose_and_quiet_counts(verbose: u8, quiet: u8) -> Verbosity;
+//!
+//!     /// Sostituisce `level(self) -> tracing::Level`. Usato da `stderr_layer` al posto di
+//!     /// `LevelFilter::from_level(verbosity.level())`.
+//!     pub fn level_filter(self) -> tracing_subscriber::filter::LevelFilter;
 //! }
 //! ```
 //!
-//! Mappatura `from_flag_count` (numero di `-v` sulla riga di comando, 0 se assente):
-//! `0 -> Warn`, `1 -> Info`, `2 -> Debug`, `3` e oltre (saturante) `-> Trace`. Non è arbitraria:
-//! deriva dalla formula esistente in `freeports_core`
-//! (`reference_legacy/_internals/cli/main.py`, `LOG_LEVEL = (5 - VERBOSITY) * 10` su livelli
-//! `logging` standard) con `VERBOSITY` di default `2` (`conf_parse.py`, `DEFAULT_CONFIG`), che dà
-//! `WARNING` di base e un livello `logging` in meno per ogni `-v`: `WARNING, INFO, DEBUG,
-//! NOTSET`. `NOTSET` (mostra tutto) non ha equivalente diretto in `tracing::Level` (il più fine
-//! è `TRACE`), da cui la saturazione a `Trace` per 3 o più `-v` invece di un quinto livello.
+//! Semantica esatta (`M9-implementation-plan.md` §0 Q5, tabella completa):
+//!
+//! | flag | risultato |
+//! |---|---|
+//! | nessuno (`0,0`) | `Warn` (mostra `Warn` **e** `Error`, verificato sulla semantica reale di `tracing_subscriber::filter::LevelFilter`, non solo dedotto dal nome) |
+//! | `-q` (`0,1`) | `ErrorOnly` |
+//! | `-qq` o più (`0,2+`) | `Silent`, clampato |
+//! | `-v` (`1,0`) | `Info` |
+//! | `-vv` (`2,0`) | `Debug` |
+//! | `-vvv` o più (`3+,0`) | `Trace`, clampato |
+//! | combinazioni (es. `2,1`) | offset netto `verbose - quiet` sommato a `DEFAULT_INDEX`, clampato -- mai un errore |
+//!
+//! **Equivalenza con la vecchia `from_flag_count` quando `quiet == 0`** (nessuna perdita di
+//! comportamento sul solo `-v`): `(0,0)->Warn`, `(1,0)->Info`, `(2,0)->Debug`, `(3+,0)->Trace`
+//! saturato -- identico al vecchio `from_flag_count`.
+//!
+//! `level_filter()` mappa esattamente:
+//! `Silent -> OFF`, `ErrorOnly -> ERROR`, `Warn -> WARN`, `Info -> INFO`, `Debug -> DEBUG`,
+//! `Trace -> TRACE`.
+//!
+//! `stderr_layer(verbosity)` cambia una riga rispetto a M0:
+//! `.with_filter(verbosity.level_filter())` al posto di
+//! `.with_filter(LevelFilter::from_level(verbosity.level()))` -- unico cambiamento di
+//! `stderr_layer` stesso, il resto del modulo (`file_layer`/`CsvLogLayer`/`init`) è indipendente
+//! dalla verbosità e non cambia.
 //!
 //! ## `TracingSetupError`
 //!
@@ -148,6 +189,8 @@ use tracing_subscriber::{Layer, filter::LevelFilter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verbosity {
+    Silent,
+    ErrorOnly,
     Warn,
     Info,
     Debug,
@@ -155,21 +198,41 @@ pub enum Verbosity {
 }
 
 impl Verbosity {
-    pub fn from_flag_count(count: u8) -> Verbosity {
-        match count {
-            0 => Verbosity::Warn,
-            1 => Verbosity::Info,
-            2 => Verbosity::Debug,
-            _ => Verbosity::Trace,
-        }
+    /// Ordine crescente, usato sia dal clamping di `from_verbose_and_quiet_counts` sia dai test
+    /// che iterano tutti i livelli.
+    pub const ORDER: [Verbosity; 6] = [
+        Verbosity::Silent,
+        Verbosity::ErrorOnly,
+        Verbosity::Warn,
+        Verbosity::Info,
+        Verbosity::Debug,
+        Verbosity::Trace,
+    ];
+    /// Indice di `ORDER` usato quando `-v`/`-q` non compaiono affatto (0 e 0).
+    pub const DEFAULT_INDEX: usize = 2; // Warn
+
+    /// Sostituisce `from_flag_count` (rimossa, non deprecata: equivalente esatto quando
+    /// `quiet == 0`). `-v` e `-q` sono manopole indipendenti sommate con segno rispetto a
+    /// `DEFAULT_INDEX`, non mutuamente esclusive -- divergenza deliberata dal riferimento
+    /// Python (che le tratta come mutuamente esclusive), voluta dall'utente ("independent
+    /// dials", `M9-implementation-plan.md` §0 Q5).
+    pub fn from_verbose_and_quiet_counts(verbose: u8, quiet: u8) -> Verbosity {
+        let offset = i16::from(verbose) - i16::from(quiet);
+        let last = (Self::ORDER.len() - 1) as i16;
+        let index = (Self::DEFAULT_INDEX as i16 + offset).clamp(0, last);
+        Self::ORDER[index as usize]
     }
 
-    pub fn level(self) -> tracing::Level {
+    /// Sostituisce `level(self) -> tracing::Level` (rimosso: `Silent` non ha un
+    /// `tracing::Level` corrispondente, l'assenza di un livello non è un livello).
+    pub fn level_filter(self) -> LevelFilter {
         match self {
-            Verbosity::Warn => tracing::Level::WARN,
-            Verbosity::Info => tracing::Level::INFO,
-            Verbosity::Debug => tracing::Level::DEBUG,
-            Verbosity::Trace => tracing::Level::TRACE,
+            Verbosity::Silent => LevelFilter::OFF,
+            Verbosity::ErrorOnly => LevelFilter::ERROR,
+            Verbosity::Warn => LevelFilter::WARN,
+            Verbosity::Info => LevelFilter::INFO,
+            Verbosity::Debug => LevelFilter::DEBUG,
+            Verbosity::Trace => LevelFilter::TRACE,
         }
     }
 }
@@ -186,13 +249,24 @@ pub enum TracingSetupError {
     AlreadyInitialized { source: tracing::subscriber::SetGlobalDefaultError },
 }
 
+/// Shared builder behind `stderr_layer`, parameterized over the writer so tests can inject an
+/// in-memory buffer instead of real stderr and assert on the layer's actual formatted output —
+/// see `tests::stderr_layer_observable_filtering`. `stderr_layer` itself is the only production
+/// caller, with the real stderr writer and ANSI colors on; this seam changes no observable
+/// behavior of `stderr_layer`.
+fn fmt_layer_with_writer<S, W>(writer: W, filter: LevelFilter, ansi: bool) -> impl Layer<S> + std::fmt::Debug
+where
+    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug,
+    W: for<'writer> tracing_subscriber::fmt::MakeWriter<'writer> + 'static + std::fmt::Debug,
+{
+    tracing_subscriber::fmt::layer().with_writer(writer).with_ansi(ansi).with_filter(filter)
+}
+
 pub fn stderr_layer<S>(verbosity: Verbosity) -> impl Layer<S> + std::fmt::Debug
 where
     S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug,
 {
-    tracing_subscriber::fmt::layer()
-        .with_writer(std::io::stderr as fn() -> std::io::Stderr)
-        .with_filter(LevelFilter::from_level(verbosity.level()))
+    fmt_layer_with_writer(std::io::stderr as fn() -> std::io::Stderr, verbosity.level_filter(), true)
 }
 
 pub fn file_layer<S>(path: &Path) -> Result<impl Layer<S> + std::fmt::Debug, TracingSetupError>
@@ -383,24 +457,157 @@ mod tests {
         format!("{}\n", cells.join(","))
     }
 
+    /// M9 (`M9-implementation-plan.md` §0 Q5, §4): riscrive completamente `mod verbosity`
+    /// (M0) sopra `Verbosity::from_verbose_and_quiet_counts`/`level_filter`, che sostituiscono
+    /// `from_flag_count`/`level` -- rimossi, non deprecati (vedi il doc-comment del modulo).
     mod verbosity {
         use super::*;
-        use pretty_assertions::assert_eq;
-        use test_case::test_case;
+        use tracing_subscriber::filter::LevelFilter;
 
-        #[test_case(0, tracing::Level::WARN; "no -v flags: warn")]
-        #[test_case(1, tracing::Level::INFO; "single -v: info")]
-        #[test_case(2, tracing::Level::DEBUG; "double -v: debug")]
-        #[test_case(3, tracing::Level::TRACE; "triple -v: trace")]
-        fn maps_flag_count_to_the_expected_level(count: u8, expected: tracing::Level) {
-            assert_eq!(Verbosity::from_flag_count(count).level(), expected);
+        mod no_flags_default {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn zero_and_zero_is_exactly_warn() {
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(0, 0), Verbosity::Warn);
+            }
         }
 
-        #[test_case(4; "one flag above the highest defined tier")]
-        #[test_case(10; "arbitrary high count")]
-        #[test_case(u8::MAX; "the u8 upper bound")]
-        fn saturates_at_trace_beyond_three_flags(count: u8) {
-            assert_eq!(Verbosity::from_flag_count(count).level(), tracing::Level::TRACE);
+        mod quiet_only {
+            use super::*;
+            use test_case::test_case;
+            use pretty_assertions::assert_eq;
+
+            #[test_case(1, Verbosity::ErrorOnly; "-q once: error only")]
+            #[test_case(2, Verbosity::Silent; "-qq: silent")]
+            #[test_case(3, Verbosity::Silent; "-qqq: still silent, clamped")]
+            #[test_case(u8::MAX, Verbosity::Silent; "u8 upper bound: still silent, clamped")]
+            fn decreasing_verbosity(quiet: u8, expected: Verbosity) {
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(0, quiet), expected);
+            }
+        }
+
+        mod verbose_only {
+            use super::*;
+            use test_case::test_case;
+            use pretty_assertions::assert_eq;
+
+            #[test_case(1, Verbosity::Info; "-v once: info")]
+            #[test_case(2, Verbosity::Debug; "-vv: debug")]
+            #[test_case(3, Verbosity::Trace; "-vvv: trace")]
+            #[test_case(4, Verbosity::Trace; "one flag above the highest defined tier: still trace, clamped")]
+            #[test_case(u8::MAX, Verbosity::Trace; "u8 upper bound: still trace, clamped")]
+            fn increasing_verbosity(verbose: u8, expected: Verbosity) {
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(verbose, 0), expected);
+            }
+        }
+
+        mod combined_dials {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn net_positive_offset_moves_up_from_warn() {
+                // verbose=2, quiet=1 -> net offset +1 from Warn (index 2) -> Info (index 3).
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(2, 1), Verbosity::Info);
+            }
+
+            #[test]
+            fn net_negative_offset_clamps_at_silent_instead_of_going_out_of_bounds() {
+                // verbose=1, quiet=3 -> net offset -2 from Warn (index 2) -> index 0 -> Silent,
+                // not a negative index.
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(1, 3), Verbosity::Silent);
+            }
+
+            #[test]
+            fn equal_verbose_and_quiet_counts_cancel_out_to_the_default() {
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(5, 5), Verbosity::Warn);
+            }
+
+            #[test]
+            fn maximal_verbose_and_quiet_together_never_panics_and_clamps() {
+                let result = std::panic::catch_unwind(|| {
+                    Verbosity::from_verbose_and_quiet_counts(u8::MAX, u8::MAX)
+                });
+                assert!(result.is_ok(), "must never panic regardless of extreme input");
+                assert_eq!(result.unwrap(), Verbosity::Warn);
+            }
+        }
+
+        /// `-v`/`-q` sono manopole indipendenti, non mutuamente esclusive (divergenza voluta dal
+        /// riferimento Python, `M9-implementation-plan.md` §0 Q5): nessuna combinazione è un
+        /// errore.
+        mod independent_dials_never_error {
+            use super::*;
+            use test_case::test_case;
+
+            #[test_case(1, 1; "both present, net zero")]
+            #[test_case(3, 1; "both present, net positive")]
+            #[test_case(1, 3; "both present, net negative")]
+            fn combining_v_and_q_is_never_an_error(verbose: u8, quiet: u8) {
+                let result =
+                    std::panic::catch_unwind(|| Verbosity::from_verbose_and_quiet_counts(verbose, quiet));
+                assert!(result.is_ok(), "combining -v and -q must never panic or error");
+            }
+        }
+
+        /// Nessuna perdita di comportamento sul solo `-v` rispetto alla vecchia
+        /// `from_flag_count` (rimossa): stessa tabella, `quiet` fissato a 0.
+        mod equivalence_with_old_from_flag_count_formula {
+            use super::*;
+            use test_case::test_case;
+            use pretty_assertions::assert_eq;
+
+            #[test_case(0, Verbosity::Warn)]
+            #[test_case(1, Verbosity::Info)]
+            #[test_case(2, Verbosity::Debug)]
+            #[test_case(3, Verbosity::Trace)]
+            #[test_case(10, Verbosity::Trace; "saturates same as the old formula")]
+            fn matches_the_old_four_tier_mapping_when_quiet_is_zero(count: u8, expected: Verbosity) {
+                assert_eq!(Verbosity::from_verbose_and_quiet_counts(count, 0), expected);
+            }
+        }
+
+        mod level_filter_mapping {
+            use super::*;
+            use test_case::test_case;
+            use pretty_assertions::assert_eq;
+
+            #[test_case(Verbosity::Silent, LevelFilter::OFF)]
+            #[test_case(Verbosity::ErrorOnly, LevelFilter::ERROR)]
+            #[test_case(Verbosity::Warn, LevelFilter::WARN)]
+            #[test_case(Verbosity::Info, LevelFilter::INFO)]
+            #[test_case(Verbosity::Debug, LevelFilter::DEBUG)]
+            #[test_case(Verbosity::Trace, LevelFilter::TRACE)]
+            fn maps_every_variant_to_the_expected_level_filter(verbosity: Verbosity, expected: LevelFilter) {
+                assert_eq!(verbosity.level_filter(), expected);
+            }
+        }
+
+        mod order_and_default_index {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn order_is_increasing_verbosity() {
+                assert_eq!(
+                    Verbosity::ORDER,
+                    [
+                        Verbosity::Silent,
+                        Verbosity::ErrorOnly,
+                        Verbosity::Warn,
+                        Verbosity::Info,
+                        Verbosity::Debug,
+                        Verbosity::Trace,
+                    ]
+                );
+            }
+
+            #[test]
+            fn default_index_points_at_warn() {
+                assert_eq!(Verbosity::ORDER[Verbosity::DEFAULT_INDEX], Verbosity::Warn);
+            }
         }
     }
 
@@ -416,18 +623,132 @@ mod tests {
             tracing::trace!("trace level event");
         }
 
-        #[test_case(0; "warn tier")]
-        #[test_case(1; "info tier")]
-        #[test_case(2; "debug tier")]
-        #[test_case(3; "trace tier")]
-        #[test_case(255; "saturated tier")]
-        fn builds_and_runs_without_panicking(flag_count: u8) {
-            let verbosity = Verbosity::from_flag_count(flag_count);
+        #[test_case(Verbosity::Silent; "silent tier")]
+        #[test_case(Verbosity::ErrorOnly; "error-only tier")]
+        #[test_case(Verbosity::Warn; "warn tier")]
+        #[test_case(Verbosity::Info; "info tier")]
+        #[test_case(Verbosity::Debug; "debug tier")]
+        #[test_case(Verbosity::Trace; "trace tier")]
+        fn builds_and_runs_without_panicking(verbosity: Verbosity) {
             let subscriber = tracing_subscriber::registry().with(stderr_layer(verbosity));
             // The point of this test is the absence of a panic while the layer is exercised at
             // every level, at every verbosity tier -- stderr output itself is not asserted on
             // (see the module doc: only "does not panic" is in scope for this destination).
+            // `Silent` (OFF) must also construct and run cleanly, not just the five real levels.
             tracing::subscriber::with_default(subscriber, emit_one_event_per_level);
+        }
+    }
+
+    /// Comportamento osservabile di `stderr_layer` (nuovo a M9): prima non serviva distinguere
+    /// "nessun evento passa" da "livello più permissivo", perché non esisteva `Silent`.
+    ///
+    /// **Riscritto rispetto alla prima versione di questi test** (test-writer aveva usato un
+    /// layer "spia" fratello aggiunto sullo stesso `Registry` per contare gli eventi che
+    /// "superano" il filtro di `stderr_layer`). Quel design è strutturalmente sbagliato per due
+    /// motivi indipendenti, verificati empiricamente (non solo per ispezione) prima di riscrivere
+    /// — vedi la decisione registrata in `STATUS.md` alla chiusura di M9:
+    /// 1. Il filtro applicato con `.with_filter(...)` (`Filtered<L, F, S>`) governa **solo**
+    ///    l'`on_event` del layer a cui è attaccato. Un layer fratello aggiunto con un secondo
+    ///    `.with(...)` sullo stesso `Registry` non è "dietro" quel filtro: riceve ogni evento
+    ///    indipendentemente da cosa `stderr_layer` decida di scrivere.
+    /// 2. `tracing` mette in cache l'interesse per singolo *callsite* (riga di codice sorgente) a
+    ///    livello di processo, non per singola chiamata. I quattro test originali chiamavano le
+    ///    stesse macro (`tracing::error!("e")` ecc., stessa riga) da `#[test]` diversi eseguiti in
+    ///    parallelo su thread diversi con dispatcher diversi: una corsa fra `with_default` di test
+    ///    concorrenti sulla cache globale del callsite produceva risultati non deterministici
+    ///    (osservato: `silent_shows_nothing_at_all` riceveva comunque tutti e 5 i livelli).
+    ///
+    /// Fix: si cattura l'output **reale** scritto dal layer iniettando un writer di test
+    /// (`SharedBuffer`, tramite il seam `fmt_layer_with_writer` usato anche da `stderr_layer`
+    /// stesso — si esercita quindi la vera logica di produzione, non una sua reimplementazione),
+    /// e i quattro test condividono un `Mutex` che serializza l'unico callsite che hanno in comune
+    /// (`emit_one_event_per_level_at`), eliminando la corsa sulla cache di `tracing` invece di
+    /// limitarsi a nasconderla.
+    mod stderr_layer_observable_filtering {
+        use super::*;
+        use std::sync::{Arc, Mutex};
+
+        /// Writer di test: un buffer in memoria condiviso, letto dopo la chiusura dello scope di
+        /// dispatch. `MakeWriter::make_writer` clona l'`Arc` interno, così ogni scrittura del
+        /// layer finisce nello stesso buffer osservato dal test.
+        #[derive(Clone, Default, Debug)]
+        struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
+
+        impl std::io::Write for SharedBuffer {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                self.0.lock().unwrap().write(buf)
+            }
+
+            fn flush(&mut self) -> std::io::Result<()> {
+                self.0.lock().unwrap().flush()
+            }
+        }
+
+        impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for SharedBuffer {
+            type Writer = SharedBuffer;
+
+            fn make_writer(&'a self) -> Self::Writer {
+                self.clone()
+            }
+        }
+
+        /// Serializza i quattro test di questo sottomodulo: sono le uniche chiamate nel processo
+        /// che condividono l'esatto callsite di `emit_one_event_per_level_at` (stessa riga di
+        /// codice sorgente), quindi sono le uniche a rischio di corsa sulla cache di interesse
+        /// globale di `tracing` se eseguite in parallelo (`cargo test` di default usa più thread).
+        static SERIAL: Mutex<()> = Mutex::new(());
+
+        fn emit_one_event_per_level_at() {
+            tracing::error!("error-marker");
+            tracing::warn!("warn-marker");
+            tracing::info!("info-marker");
+            tracing::debug!("debug-marker");
+            tracing::trace!("trace-marker");
+        }
+
+        fn captured_output(verbosity: Verbosity) -> String {
+            let _guard = SERIAL.lock().unwrap();
+            let buffer = SharedBuffer::default();
+            let layer = fmt_layer_with_writer(buffer.clone(), verbosity.level_filter(), false);
+            let subscriber = tracing_subscriber::registry().with(layer);
+            tracing::subscriber::with_default(subscriber, emit_one_event_per_level_at);
+            String::from_utf8(buffer.0.lock().unwrap().clone()).expect("captured output is utf8")
+        }
+
+        #[test]
+        fn warn_shows_warn_and_error_but_not_info() {
+            let output = captured_output(Verbosity::Warn);
+            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
+            assert!(output.contains("warn-marker"), "missing warn-marker in:\n{output}");
+            assert!(!output.contains("info-marker"), "unexpected info-marker in:\n{output}");
+            assert!(!output.contains("debug-marker"), "unexpected debug-marker in:\n{output}");
+            assert!(!output.contains("trace-marker"), "unexpected trace-marker in:\n{output}");
+        }
+
+        #[test]
+        fn error_only_shows_only_error() {
+            let output = captured_output(Verbosity::ErrorOnly);
+            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
+            assert!(!output.contains("warn-marker"), "unexpected warn-marker in:\n{output}");
+            assert!(!output.contains("info-marker"), "unexpected info-marker in:\n{output}");
+            assert!(!output.contains("debug-marker"), "unexpected debug-marker in:\n{output}");
+            assert!(!output.contains("trace-marker"), "unexpected trace-marker in:\n{output}");
+        }
+
+        #[test]
+        fn silent_shows_nothing_at_all_not_even_error() {
+            let output = captured_output(Verbosity::Silent);
+            assert!(output.is_empty(), "expected no output at Silent, got:\n{output}");
+        }
+
+        #[test]
+        fn trace_shows_every_level() {
+            let output = captured_output(Verbosity::Trace);
+            assert!(output.contains("error-marker"), "missing error-marker in:\n{output}");
+            assert!(output.contains("warn-marker"), "missing warn-marker in:\n{output}");
+            assert!(output.contains("info-marker"), "missing info-marker in:\n{output}");
+            assert!(output.contains("debug-marker"), "missing debug-marker in:\n{output}");
+            assert!(output.contains("trace-marker"), "missing trace-marker in:\n{output}");
         }
     }
 
@@ -911,12 +1232,12 @@ mod tests {
             // parallel threads by default).
             let dir = tempfile::tempdir().expect("tempdir");
 
-            let first = init(Verbosity::from_flag_count(1), dir.path());
+            let first = init(Verbosity::from_verbose_and_quiet_counts(1, 0), dir.path());
             assert!(first.is_ok(), "first init in this process must succeed, got {first:?}");
             assert!(dir.path().join("freeports.log").exists());
             assert!(dir.path().join(".log.csv").exists());
 
-            let second = init(Verbosity::from_flag_count(1), dir.path());
+            let second = init(Verbosity::from_verbose_and_quiet_counts(1, 0), dir.path());
             let err = match second {
                 Err(err @ TracingSetupError::AlreadyInitialized { .. }) => err,
                 other => panic!("expected AlreadyInitialized, found {other:?}"),
@@ -937,7 +1258,7 @@ mod tests {
             // checked, and fail, before `set_global_default` is ever attempted).
             let dir = tempfile::tempdir().expect("tempdir");
             let missing = dir.path().join("does_not_exist");
-            let result = init(Verbosity::from_flag_count(0), &missing);
+            let result = init(Verbosity::from_verbose_and_quiet_counts(0, 0), &missing);
             assert!(
                 matches!(
                     result,

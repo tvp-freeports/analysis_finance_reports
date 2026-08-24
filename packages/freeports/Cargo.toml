@@ -6,9 +6,15 @@ license = "GPL-3.0"
 
 [lib]
 name = "freeports"
-# `cdylib` verra' aggiunto solo quando arriveranno gli shim PyO3 per l'API Python
-# (fuori dallo scope di questa fase, vedi `PLAN.md`).
-crate-type = ["rlib"]
+# `cdylib` produce il modulo d'estensione `freeports` importabile da Python (M10, `src/python.rs`);
+# `rlib` resta perche' il binario e i test lo linkano come libreria normale.
+#
+# **Niente feature `extension-module` di PyO3**, di proposito: quella feature dice a PyO3 di *non*
+# linkare libpython, che e' giusto per una estensione pura ma romperebbe il binario `freeports`,
+# che Python lo incorpora (`auto-initialize`, gli serve per PyMuPDF e per i moduli d'autore). Il
+# `.so` esce quindi con una dipendenza dinamica da `libpython3.x.so` — stessa scelta gia' fatta
+# dal vecchio `freeports_core`, e funzionante.
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "freeports"
@@ -37,6 +43,8 @@ url = "2"
 flate2 = "1"
 tar = "0.4"
 clap = { version = "4", features = ["derive"] }
+# --- ricerca directory di configurazione OS (tier utente, M9-implementation-plan.md §0 Q2) -----
+dirs = "6"
 # --- unico ponte verso Python: PyMuPDF e i pipe definiti dall'autore --------
 pyo3 = { version = "0.27", features = ["auto-initialize"] }
 

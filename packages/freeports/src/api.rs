@@ -187,3 +187,12 @@ pub mod output {
     pub use crate::output::classes::investment::{Bond, Equity, InvestmentData, InvestmentFields};
     pub use crate::output::classes::{FloatConstraint, OutputClassError};
 }
+
+pub mod cli {
+    //! M9 chiude `PLAN.md` §9: `cli::{CliArgs, execute}` -- superficie minima per invocare il
+    //! binario da codice esterno (di libreria o di test) senza passare da `main`. `CliError` è
+    //! riesportato insieme, senza il quale l'esito di `execute` non sarebbe gestibile da fuori
+    //! crate (stesso principio già seguito per `BlockValueError`/`PromiseError` in M2).
+    pub use crate::cli::config_locations::cmd::CliArgs;
+    pub use crate::cli::run::{CliError, execute};
+}

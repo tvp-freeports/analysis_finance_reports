@@ -14,6 +14,7 @@ pub mod formats_repo;
 pub mod formats_utils;
 pub mod input;
 pub mod output;
+pub mod python;
 
 // --- API pubblica ----------------------------------------------------------
 // Abilitata milestone per milestone, man mano che i moduli esistono davvero.

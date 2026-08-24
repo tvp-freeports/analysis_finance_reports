@@ -269,8 +269,17 @@ fn each<'py, T>(
 }
 
 /// Logga il traceback e converte l'errore d'autore. Nessun `PyErr` esce da questo modulo.
+///
+/// `PageParseFail` è l'unica eccezione con un significato concordato: l'autore la solleva per dire
+/// "questa pagina non è interpretabile", e nel riferimento l'algoritmo la assorbe saltando la
+/// pagina invece di interrompersi. Diventa perciò [`PipeError::PageParse`], che è l'unica variante
+/// non fatale; ogni altra eccezione resta un fallimento d'autore.
 fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> PipeError {
     let message = error.to_string();
+    if error.is_instance_of::<crate::python::core::PageParseFail>(py) {
+        tracing::info!(pipeline, pipe, "author pipe could not parse the page: {message}");
+        return PipeError::page_parse(pipe, crate::core::page::PageError::ParseFail { message });
+    }
     tracing::error!(pipeline, pipe, "author pipe raised: {message}");
     error.print(py);
     PipeError::author(pipeline, pipe, message)

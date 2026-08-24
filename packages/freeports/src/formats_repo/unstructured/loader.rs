@@ -8,15 +8,20 @@
 //! Porting di `unstructured/acquisition.py`, con la stessa risoluzione file-o-package e lo stesso
 //! `templates/` aggiunto a `sys.path`.
 //!
-//! **Limite noto e accettato di questa fase (D-M7-3, 2026-08-23).** I moduli d'autore di un repo
-//! formati *reale* importano `freeports.core.Pipeline`, `freeports.standard_funcs.*` e via
-//! dicendo, cioè l'API Python che `PLAN.md` §0 esclude esplicitamente da questa fase: finché i
-//! binding non esistono, un repo formati reale **non è caricabile** da qui. Non è un difetto del
-//! porting: è il perimetro dichiarato. Il contratto che questo modulo pretende dal valore
-//! `pipelines` è perciò definito per **forma** e non per tipo — un oggetto (o una mappa) con gli
-//! attributi `pdf_extract`/`text_filter`/`deserialize`, ciascuno un callable o un iterabile di
-//! callable — che è esattamente il protocollo che il futuro `Pipeline` `#[pyclass]` soddisferà,
-//! così che quando i binding arriveranno non serva una seconda passata.
+//! **Il contratto è per forma, non per tipo** (deciso come D-M7-3 il 2026-08-23, quando l'API
+//! Python non esisteva ancora; confermato in M10, quando è arrivata). Il valore `pipelines` deve
+//! essere una mappa da nome a un oggetto con gli attributi `pdf_extract`/`text_filter`/
+//! `deserialize`, ciascuno un callable o un iterabile di callable. `freeports.core.Pipeline`
+//! ([`crate::python::core::PyPipeline`]) soddisfa esattamente quel protocollo, e infatti il
+//! caricamento di un repo formati reale non ha richiesto una seconda passata qui.
+//!
+//! **Pipe nativi e pipe d'autore.** Un segmento può contenere entrambi: i moduli d'autore
+//! mescolano liberamente `PdfExtractFundStandard(...)` e le proprie `lambda`. I primi arrivano
+//! qui come involucri di [`crate::python::pipes`], e vengono **spacchettati** con
+//! `unwrap_pdf_extract` e sorelle: senza quel passaggio un pipe nativo farebbe un giro
+//! Rust -> Python -> Rust a ogni blocco, e la conversione duck-typed di [`super::py_pipe`]
+//! perderebbe per strada le varianti tipizzate di `BlockValue`. I secondi restano avvolti
+//! nell'adattatore, che è la ragione per cui esiste.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -26,6 +31,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use crate::core::pipeline::{Pipeline, PipelineName};
+
+use crate::python::pipes::{unwrap_deserialize, unwrap_pdf_extract, unwrap_text_filter};
 
 use super::py_pipe::{PyDeserializePipe, PyPdfExtractPipe, PyTextFilterPipe};
 
@@ -205,16 +212,27 @@ pub fn get_pipelines(
                     .enumerate()
                 {
                     let name = format!("{pipeline_name}::{segment}[{i}]");
-                    let func = func.unbind();
                     match segment {
                         "pdf_extract" => {
-                            pipeline.pdf_extract.push(Arc::new(PyPdfExtractPipe::new(&pipeline_name, name, func)));
+                            let pipe = match unwrap_pdf_extract(&func) {
+                                Some(native) => native,
+                                None => Arc::new(PyPdfExtractPipe::new(&pipeline_name, name, func.unbind())),
+                            };
+                            pipeline.pdf_extract.push(pipe);
                         }
                         "text_filter" => {
-                            pipeline.text_filter.push(Arc::new(PyTextFilterPipe::new(&pipeline_name, name, func)));
+                            let pipe = match unwrap_text_filter(&func) {
+                                Some(native) => native,
+                                None => Arc::new(PyTextFilterPipe::new(&pipeline_name, name, func.unbind())),
+                            };
+                            pipeline.text_filter.push(pipe);
                         }
                         _ => {
-                            pipeline.deserialize.push(Arc::new(PyDeserializePipe::new(&pipeline_name, name, func)));
+                            let pipe = match unwrap_deserialize(&func) {
+                                Some(native) => native,
+                                None => Arc::new(PyDeserializePipe::new(&pipeline_name, name, func.unbind())),
+                            };
+                            pipeline.deserialize.push(pipe);
                         }
                     }
                 }
