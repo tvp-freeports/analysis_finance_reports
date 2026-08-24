@@ -15,7 +15,6 @@ use crate::cli::partial_config::{ConfigSource, PartialConfig, defaults, overwrit
 use crate::cli::{freeports_config, job, output};
 use crate::core::algorithm::Algorithm;
 use crate::core::tracing_setup::CsvLogLayer;
-use crate::core::classes::TextBlock;
 use crate::core::page::FormatName;
 use crate::core::schedule::PageClass;
 use crate::formats_repo::metadata;
@@ -110,10 +109,11 @@ impl PyAlgorithm {
         let companies = target_companies_from_py(filter_data)?;
         let previous = previous_results_from_py(filter_data)?;
         let data = filter_data_of(&companies, &previous);
-        let class = PageClass::new(page_class);
-        let blocks: Vec<TextBlock> =
-            self.0.apply_text_filter(&page, &class, &data).map_err(value_error)?;
-        let extracted = self.0.apply_deserializer(&blocks, &class).map_err(value_error)?;
+        // `Algorithm::apply_deserialize` e non `apply_text_filter` + `apply_deserializer`: le due
+        // cose differiscono quando una page class mappa piu' pipeline, vedi il doc-comment di
+        // quel metodo.
+        let extracted =
+            self.0.apply_deserialize(&page, &PageClass::new(page_class), &data).map_err(value_error)?;
         extracted.iter().map(|item| extracted_to_py(py, item)).collect()
     }
 

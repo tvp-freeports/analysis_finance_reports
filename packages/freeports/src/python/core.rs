@@ -349,6 +349,15 @@ impl PyTextBlock {
         self.pdf_block.as_ref().map(|block| block.clone_ref(py))
     }
 
+    /// Attaccare il blocco PDF **dopo** la costruzione e' l'unico modo di avere insieme un
+    /// contenuto scelto e una provenienza: il costruttore normale il contenuto lo eredita, e chi
+    /// ricostruisce un blocco gia' serializzato ha bisogno di entrambe le cose separate (il
+    /// contenuto potrebbe essere stato riscritto dopo). Il riferimento esponeva lo stesso setter.
+    #[setter]
+    fn set_pdf_block(&mut self, pdf_block: Option<Py<PyPdfBlock>>) {
+        self.pdf_block = pdf_block;
+    }
+
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
         let native = self.native(py)?;
         Ok(format!(

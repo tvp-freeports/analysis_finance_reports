@@ -343,6 +343,24 @@ impl Algorithm {
         Ok(self.bundle(class)?.apply_text_filter(page, data)?)
     }
 
+    /// API di test per segmento: la catena **completa** di ogni pipeline della page class data.
+    ///
+    /// Non è la stessa cosa di incatenare a mano [`Self::apply_text_filter`] e
+    /// [`Self::apply_deserializer`], e la differenza conta quando una page class mappa **più di
+    /// una** pipeline — come `merges` di KAIROS-EN23, che ne mappa due (`renames` e `merges`).
+    /// Incatenandoli a mano, i blocchi di testo di *tutte* le pipeline finiscono in un mucchio
+    /// solo e ogni pipe `deserialize` li vede tutti, compresi quelli che non sono suoi: due
+    /// eventi diventano quattro entità. Qui invece ogni pipeline resta una catena chiusa, come
+    /// nella pipeline vera ([`Self::apply`]) e come nel riferimento.
+    pub fn apply_deserialize(
+        &self,
+        page: &Page,
+        class: &PageClass,
+        data: &FilterData<'_>,
+    ) -> Result<Vec<Extracted>, AlgorithmError> {
+        Ok(self.bundle(class)?.apply_deserialize(page, data)?)
+    }
+
     /// API di test per segmento: solo `deserialize`, a partire da blocchi di testo già pronti.
     ///
     /// La firma è quella di `PLAN.md` §5.5 (blocchi in ingresso), non quella del riferimento
@@ -1161,6 +1179,44 @@ mod tests {
             let out = algorithm.apply_deserializer(&blocks, &PageClass::new("a")).unwrap();
             assert_eq!(out.len(), 1);
             assert!(out[0].as_promises().is_some());
+        }
+
+        /// Regressione: quando una page class mappa **due** pipeline, la catena completa non e'
+        /// la composizione a mano di `apply_text_filter` e `apply_deserializer`. Il caso reale e'
+        /// la class `merges` di KAIROS-EN23, che mappa `renames` e `merges`: incatenando a mano,
+        /// ogni pipe `deserialize` vede anche i blocchi dell'altra pipeline e due eventi
+        /// diventano quattro entita'.
+        #[test]
+        fn apply_deserialize_keeps_each_pipeline_a_closed_chain() {
+            let algorithm = Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (PipelineName::new("one"), promising_pipeline("one", "id-one")),
+                    (PipelineName::new("two"), promising_pipeline("two", "id-two")),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(
+                    PageClass::new("a"),
+                    vec![PipelineName::new("one"), PipelineName::new("two")],
+                )]),
+            )
+            .expect("fixture is consistent");
+
+            let page = page(1, &["x"]);
+            let class = PageClass::new("a");
+
+            let chained = algorithm.apply_deserialize(&page, &class, &FilterData::EMPTY).unwrap();
+            assert_eq!(chained.len(), 2, "una entita' per pipeline, non il prodotto incrociato");
+
+            // La composizione a mano e' proprio cio' che non va fatto: la si esercita qui per
+            // fissare la differenza, non perche' sia un'alternativa accettabile.
+            let blocks =
+                algorithm.apply_text_filter(&page, &class, &FilterData::EMPTY).unwrap();
+            let crossed = algorithm.apply_deserializer(&blocks, &class).unwrap();
+            assert_eq!(crossed.len(), 4, "la composizione a mano incrocia le pipeline");
         }
 
         #[test]

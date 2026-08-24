@@ -164,18 +164,20 @@ def _text_block_tag(blk: TextBlock) -> dict:
 
 
 def _text_block_from_tag(data: dict) -> TextBlock:
-    pdf_block = data.get("pdf_block")
-    if pdf_block:
-        return TextBlock(
-            data["type_block"],
-            from_serializable(data.get("metadata") or {}),
-            _pdf_block_from_tag(pdf_block),
-        )
-    return TextBlock.from_content(
+    # Sempre `from_content` + attacco del blocco PDF, mai il costruttore a tre argomenti: quello
+    # il contenuto lo **eredita** dal blocco PDF, e qui il contenuto registrato puo' essere stato
+    # riscritto dal modulo d'autore dopo la costruzione (succede davvero: ANIMA_SICAV-EN24 e
+    # KAIROS-EN23 tolgono un suffisso dal nome del fondo). Ereditandolo si perderebbe la
+    # riscrittura, e la fixture tornerebbe diversa da cio' che era stato registrato.
+    block = TextBlock.from_content(
         data["type_block"],
         from_serializable(data.get("metadata") or {}),
         _block_content(data),
     )
+    pdf_block = data.get("pdf_block")
+    if pdf_block:
+        block.pdf_block = _pdf_block_from_tag(pdf_block)
+    return block
 
 
 def to_serializable(obj: Any) -> Any:

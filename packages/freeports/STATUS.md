@@ -17,7 +17,7 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M7 | `formats_repo` | ✅ chiusa | `id_format`, `metadata`, `orchestration`, `structured::{tables,page_classify,investments}`, `semistructured::{formats_mapping,args,native}`, `unstructured::{loader,py_pipe}`, `Algorithm::load`; piu' `formats_utils::pdf_extract::standard_funcs` (8 pipe, D-M7-1) e `output::classes::{fund,investment}` anticipati da M8 (D-M7-2). 1828 test unitari + 32 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api` estesa con `standard_funcs`, `formats_repo`, `output` e `get_table_coordinates`/`TablePosMeasureUnit` |
 | M8 | `output` | ✅ chiusa | `output::classes::{fund_change_name, fund_esg_indicator, fund_sfdr_classification, fund_assets, assets_manager}`, le 7 varianti restanti di `core::pipeline::Extracted`, le 8 funzioni deferite di M4, `output::files_schema`, `output::routines::{accumulate, write}`. I 3 bug di fixture nei test scritti da `test-writer` (vedi la nota di chiusura sotto) sono stati corretti; `cargo test`: 2092 passati/0 falliti (lib) + 34 d'integrazione (10+22+2) passati; `cargo clippy --all-targets`: solo il warning preesistente di `select/pdf_line/area.rs` (M3) |
 | M9 | `cli` | ✅ chiusa | `input::{companies_db, download}` (stub pre-esistenti, pull-in per Q1), `cli::{conf_parse::DocumentSpec, partial_config, config_locations::{cmd,env,file}, freeports_config, batch, job, output, run::execute}`, `main.rs` reale; `core::tracing_setup::Verbosity` riaperto (M0, Q5: 6 livelli, `-v`/`-q` manopole indipendenti) e `output::routines::write` riaperto (M8, Q6: `OutFlags::separate_out` + profili `SingleFile`/`Structured`/`compressed` reali); 2428 test unitari + 63 d'integrazione (10+29+22+2) verdi, `cargo clippy --all-targets` pulito salvo il warning preesistente M3 e 5 nuovi confinati a codice di test; `api::cli` abilitata, chiude `PLAN.md` §9 |
-| M10 | Chiusura e confronto | 🟡 in corso | API Python (`src/python/`, `#[pymodule] freeports` — niente `_native`/`_internals`), `pyproject.toml`/`cdylib`, `freeports_dev` migrato ai percorsi pubblici. **Nessuna modifica al repo formati.** 2471 test unitari + 63 d'integrazione verdi, `cargo clippy --all-targets` come a M9 (6 warning, tutti preesistenti). `pytest tests/formats` sul repo formati reale: 248 passati / 11 falliti contro la baseline 252/7 del motore Python — **tutti i CSV di business coincidono su tutti e 21 i formati**; restano 7 fallimenti su `.log.csv` (gli stessi 7 formati che fallivano anche in baseline) e 4 fixture a pagina singola diventate obsolete. Vedi la voce M10 sotto |
+| M10 | Chiusura e confronto | 🟡 in corso | API Python (`src/python/`, `#[pymodule] freeports` — niente `_native`/`_internals`), `pyproject.toml`/`cdylib`, `freeports_dev` migrato ai percorsi pubblici. **Nessuna modifica al codice del repo formati.** 2474 test unitari + 63 d'integrazione verdi (doc-test inclusi), `cargo clippy --all-targets` con gli stessi 6 warning di M9. `pytest tests/formats` sul repo formati reale: **259 passati / 0 falliti**, contro la baseline 252/7 del motore Python. Il binario `freeports` gira end-to-end su un report reale. Vedi la voce M10 sotto |
 
 Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato)
 
@@ -795,30 +795,29 @@ port.
 
 ### Confronto con il motore Python, sul repo formati reale
 
-`pytest tests/formats` (21 formati, 259 test): **248 passati / 11 falliti**, contro la baseline
-del motore Python **252 / 7** misurata prima di toccare qualsiasi cosa.
+`pytest tests/formats` (21 formati, 259 test): **259 passati / 0 falliti**, contro la baseline del
+motore Python **252 / 7** misurata prima di toccare qualsiasi cosa. Tutti i CSV di business
+coincidono, su tutti e 21 i formati, e coincide anche `.log.csv`.
 
-**Tutti i CSV di business coincidono, su tutti e 21 i formati**: `investments`, `funds`,
-`funds_assets`, `assets_managers`, `investments_managers_to_funds`, `funds_change_name`,
-`funds_sfdr_classification`, `funds_esg_indicators` e `investments_add_infos.yaml`.
+Anche il **binario** gira end-to-end su un report reale
+(`cargo run -- --repo ... -f EURIZON-EN23 -o ...`), con gli stessi output del percorso Python.
 
-Gli 11 fallimenti sono di due sole specie:
+### Fixture rigenerate (le uniche, e su autorizzazione esplicita)
 
-1. **7 test d'integrazione, solo su `.log.csv`** — CARNE-EN23, DANSKEINVEST-EN24, FINECO-EN23@IR,
-   MEDIOLANUM-EN24, MEDIOLANUM-ES24.B, MEDIOLANUM-IT24.A, MEDIOLANUM-IT24.C. Sono **gli stessi 7
-   formati che fallivano in baseline** (là per un mismatch di dtype su una colonna vuota), e sono
-   esattamente i 7 le cui fixture `.log.csv` non sono vuote. Il layer CSV di `tracing` funziona e
-   scrive righe, ma il motore non porta nell'evento il contesto che il riferimento ci metteva
-   (`Page`, `Matched Company`, `Company`) e consolida in una riga sola le tre che il riferimento
-   emetteva per ogni campo perso. È il buco già annotato a M9 ("campo dedicato per la colonna
-   `Matched Company`"), non una regressione di M10.
-2. **4 fixture a pagina singola diventate obsolete** — ANIMA_SICAV-EN24 `text_filter[23]`,
-   KAIROS-EN23 `text_filter[30]`/`[61]` e `deserialize[104]`. In tutti e quattro il blocco `FUND`
-   registrato nella fixture conserva un suffisso `(in EUR)` che il modulo d'autore toglie
-   (`txt_blk.content = fund_remove_regex.sub("", txt_blk.content)`); il motore lo toglie davvero,
-   la fixture no. Che la fixture sia quella vecchia e non il motore a sbagliare lo dice il test
-   d'integrazione degli stessi due formati, che passa: `investments.csv` non contiene il suffisso.
-   Si risolvono con `freeports-dev make-tests`, non con una correzione del codice.
+Dieci file, nessun altro toccato:
+
+- I **7 `.log.csv`** dei formati che ne hanno uno non vuoto. Il formato è cambiato per scelta
+  concordata con l'utente (2026-08-24): una riga per evento invece delle tre che il riferimento
+  scriveva per ogni campo perso. Le colonne di contesto (`Page`, `Matched Company`, `Company`,
+  `Field name`) sono ora popolate e coincidono con quelle del riferimento.
+- **3 fixture `txt_blks` a pagina singola** (ANIMA_SICAV-EN24 pagina 23, KAIROS-EN23 pagine 30 e
+  61): registravano un blocco `FUND` col suffisso `(in EUR)` che il modulo d'autore toglie. Il
+  motore lo toglie davvero; la fixture era rimasta indietro.
+
+Una quarta fixture era stata rigenerata e poi **ripristinata**: `KAIROS-EN23/2/.../104-results.json`
+passava da 2 a 4 entità, e quello non era invecchiamento della fixture ma un bug del motore (vedi
+il punto 11 qui sotto). Vale come regola generale: una fixture che cambia *numero* di risultati va
+guardata, non accettata.
 
 ### Bug del port trovati e corretti dal confronto
 
@@ -860,11 +859,38 @@ documenti veri.
     to_int(txt)`). I due convertitori sono ora `Arc<dyn Fn...>`; `new(interpret_int, ...)` resta
     identica e nessun chiamante Rust cambia.
 
+11. **Una page class mappata a più pipeline incrociava i segmenti nell'API a segmenti.**
+    `Algorithm` esponeva `apply_pdf_extract`/`apply_text_filter`/`apply_deserializer`, e lo shim
+    ricomponeva a mano gli ultimi due per ottenere la catena completa. Con **due** pipeline sulla
+    stessa class — `merges` di KAIROS-EN23 mappa `renames` e `merges` — i blocchi di testo delle
+    due finivano in un mucchio solo e ogni pipe `deserialize` li vedeva tutti: due eventi
+    diventavano quattro entità. Aggiunto `Algorithm::apply_deserialize(page, class, data)`, che
+    delega a `PipelinesBundle::apply_deserialize` e tiene ogni pipeline una catena chiusa, come
+    fa la pipeline vera. La pipeline completa non era affetta, solo l'API a segmenti.
+12. **Il binario e il `.so` registravano due copie delle stesse classi Python.** Il crate è
+    compilato due volte (`cdylib` per Python, `rlib` dentro il binario e i test) e PyO3 registra i
+    tipi **per artefatto**: il modulo d'autore importava `freeports` dal `.so` installato mentre il
+    motore gli passava oggetti dell'`rlib`, e il primo pipe moriva con
+    `'PdfBlock' object cannot be cast as 'PdfBlock'`. `crate::python::install` semina `sys.modules`
+    col modulo di questo artefatto prima di importare qualunque modulo d'autore (e non fa nulla se
+    `freeports` c'è già, cioè quando siamo dentro il `.so`). I test non lo vedevano perché passano
+    tutti dal `.so`; solo il binario lo esercitava.
+13. **`wrap_pymodule!(freeports)` rompeva i doc-test.** Nei doc-test rustdoc passa il crate come
+    `--extern freeports`, e il nome nudo diventa ambiguo fra il crate e il `#[pymodule] mod
+    freeports` (`E0659`): `cargo test` falliva all'ultimo step. Risolto con `self::freeports`.
+14. **Il round-trip della serializzazione delle fixture perdeva un contenuto riscritto.** Un
+    `TextBlock` con un `pdf_block` veniva ricostruito col costruttore che il contenuto lo
+    **eredita** dal blocco PDF, scartando quello registrato — che il modulo d'autore può aver
+    riscritto. Aggiunto il setter `pdf_block` allo shim (il riferimento ce l'aveva) e la
+    ricostruzione passa da `from_content` più attacco del blocco PDF.
+
 ### Cosa resta aperto
 
-- **`.log.csv` con il contesto del riferimento.** Serve propagare `Page`/`Matched Company`/
-  `Company` fino all'evento `tracing`, e decidere se riprodurre le tre righe per campo perso del
-  riferimento o tenere la riga sola consolidata di adesso. È una scelta di design, non una
-  correzione meccanica: da concordare.
-- **Rigenerare le 4 fixture a pagina singola obsolete** con `freeports-dev make-tests`.
 - **Benchmark** (`PLAN.md` §11, M10) e docs prosa versionate.
+- Due colonne di troppo, fuori dai test: `funds_sfdr_classification.csv` e
+  `funds_esg_indicators.csv` escono con `Format`/`Report` in coda, che il riferimento non scrive.
+  Il plugin di `freeports-dev` non confronta quei due file, quindi la differenza non fa fallire
+  niente — ma esiste, e va decisa: rimuoverle o tenerle.
+- `main.rs` scrive `.log.csv` e `freeports.log` nella **cwd**, non nella cartella di output (dove
+  li scrive `run_job`). `tracing_setup::init` viene chiamato prima che la configurazione sia
+  risolta, quindi allinearli vuol dire spostare l'inizializzazione o riaprire i file dopo.
