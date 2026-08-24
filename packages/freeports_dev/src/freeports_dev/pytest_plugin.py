@@ -9,13 +9,12 @@ from abc import ABC, abstractclassmethod
 from pymupdf import Document
 from pytest import Collector, Function, Directory
 
-from freeports import _native
-from freeports._internals.formats.repo.metadata import get_formats
+from freeports.core import Algorithm
+from freeports.cli import run_job
+from freeports.formats_repo import get_formats
 
-Algorithm = _native.core.Algorithm
-run_job = _native.cli.run_job
-from freeports._internals.core.serialization import load as json_load
-from freeports._internals.core.serialization import from_serializable
+from freeports_dev.serialization import load as json_load
+from freeports_dev.serialization import from_serializable
 import _pytest.fixtures as fixtures
 
 _formats_cache = {"valid": None, "repo_dir": None}
@@ -26,7 +25,7 @@ def _get_valid_formats(session):
     formats_csv = rootdir / "metadata" / "formats.csv"
     if formats_csv.exists():
         if _formats_cache["valid"] is None:
-            _formats_cache["valid"] = set(get_formats(rootdir).index)
+            _formats_cache["valid"] = set(get_formats(rootdir))
             _formats_cache["repo_dir"] = rootdir
         return _formats_cache["valid"]
     return set()

@@ -62,6 +62,42 @@ fn register_submodules(py: Python<'_>, module: &Bound<'_, PyModule>, prefix: &st
     Ok(())
 }
 
+/// Registra in `sys.modules` il `freeports` compilato **dentro questo artefatto**, se non ce n'è
+/// già uno.
+///
+/// # La trappola che questa funzione disinnesca
+///
+/// PyO3 registra il tipo Python di un `#[pyclass]` **per artefatto compilato**. Il crate viene
+/// compilato due volte — come `cdylib` (il `.so` che Python importa) e come `rlib` (dentro il
+/// binario `freeports` e dentro i binari di test) — quindi esistono due `PdfBlock` diversi, e non
+/// si riconoscono a vicenda.
+///
+/// Quando è il binario a girare, il modulo d'autore di un formato fa `from freeports.core import
+/// PdfBlock` e Python gli dà la classe del **`.so` installato**; il blocco che il motore gli passa
+/// però viene dall'`rlib` dentro il binario. L'errore che ne esce è quello, memorabile, di
+/// `'PdfBlock' object cannot be cast as 'PdfBlock'`.
+///
+/// Seminando `sys.modules` *prima* che qualunque modulo d'autore venga importato, `freeports`
+/// risolve al modulo di questo artefatto e i due lati coincidono di nuovo.
+///
+/// **Idempotente, e non sovrascrive mai.** Se `freeports` è già in `sys.modules` siamo dentro il
+/// `.so` (Python lo ha importato per arrivare fin qui) e quello è già l'artefatto giusto:
+/// rimpiazzarlo creerebbe di nuovo il disallineamento, al contrario.
+pub fn install(py: Python<'_>) -> PyResult<()> {
+    let sys_modules = py.import("sys")?.getattr("modules")?;
+    if sys_modules.contains("freeports")? {
+        return Ok(());
+    }
+    // `self::freeports` e non `freeports`: nei doc-test il crate stesso e' passato a rustdoc come
+    // `--extern freeports`, e il nome nudo diventa ambiguo fra il crate e il modulo qui sotto
+    // (`E0659`). Il percorso qualificato dice quale dei due, e vale in ogni contesto.
+    let module = pyo3::wrap_pymodule!(self::freeports)(py).into_bound(py).cast_into::<PyModule>()?;
+    module.setattr("__name__", "freeports")?;
+    sys_modules.set_item("freeports", &module)?;
+    register_submodules(py, &module, "freeports")?;
+    Ok(())
+}
+
 /// Il modulo Python `freeports`.
 ///
 /// Il nome Rust del modulo deve essere `freeports` e non altro: il macro `#[pymodule]` ne deriva
@@ -227,7 +263,6 @@ pub mod freeports {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pyo3::wrap_pymodule;
 
     /// Inietta in `sys.modules` il `freeports` compilato **dentro questo binario di test**.
     ///
@@ -238,11 +273,8 @@ mod tests {
     /// registra il tipo Python di un `#[pyclass]` **per artefatto compilato**, quindi due copie
     /// dello stesso sorgente producono due tipi che non si riconoscono a vicenda.
     fn seed(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
-        let module = wrap_pymodule!(freeports)(py).into_bound(py).cast_into::<PyModule>()?;
-        module.setattr("__name__", "freeports")?;
-        py.import("sys")?.getattr("modules")?.set_item("freeports", &module)?;
-        register_submodules(py, &module, "freeports")?;
-        Ok(module)
+        install(py)?;
+        py.import("sys")?.getattr("modules")?.get_item("freeports")?.cast_into::<PyModule>().map_err(PyErr::from)
     }
 
     /// Esegue `code` con `freeports` già seminato, restituendo l'errore Python se ce n'è uno.
@@ -292,7 +324,7 @@ mod tests {
 
         #[test]
         fn the_other_two_enums_expose_their_variants_too() {
-            run("from freeports.consts import SfdrArticle; assert SfdrArticle.Art8.name == 'Art8'").unwrap();
+            run("from freeports.consts import SfdrArticle; assert SfdrArticle.ART_8.name == 'ART_8'").unwrap();
             run("from freeports.consts import FinancialInstrument as F; assert F.BOND.name == 'BOND'").unwrap();
         }
 
@@ -419,7 +451,7 @@ mod tests {
                 "from freeports.output import FundSfdrClassification as C\n\
                  from freeports.consts import SfdrArticle\n\
                  from freeports.core import Promise\n\
-                 assert C(fund='A', article=SfdrArticle.Art8).article == SfdrArticle.Art8\n\
+                 assert C(fund='A', article=SfdrArticle.ART_8).article == SfdrArticle.ART_8\n\
                  assert C(fund='A', article=Promise('a')).article == Promise('a')",
             )
             .unwrap();
@@ -506,8 +538,8 @@ mod tests {
                  @deserialize_block_type('FUND')\n\
                  def d(blk):\n\
                  \x20   return blk.content\n\
-                 assert d(TextBlock('FUND', content='yes')) == 'yes'\n\
-                 assert d(TextBlock('TABLE_BODY', content='no')) is None",
+                 assert d(TextBlock.from_content('FUND', {}, 'yes')) == 'yes'\n\
+                 assert d(TextBlock.from_content('TABLE_BODY', {}, 'no')) is None",
             )
             .unwrap();
         }
@@ -520,9 +552,9 @@ mod tests {
                  @deserialize_block_types('FUND', 'TABLE_BODY')\n\
                  def d(blk):\n\
                  \x20   return blk.type_block\n\
-                 assert d(TextBlock('FUND', content='x')) == 'FUND'\n\
-                 assert d(TextBlock('TABLE_BODY', content='x')) == 'TABLE_BODY'\n\
-                 assert d(TextBlock('PAGE_CLASS', content='x')) is None",
+                 assert d(TextBlock.from_content('FUND', {}, 'x')) == 'FUND'\n\
+                 assert d(TextBlock.from_content('TABLE_BODY', {}, 'x')) == 'TABLE_BODY'\n\
+                 assert d(TextBlock.from_content('PAGE_CLASS', {}, 'x')) is None",
             )
             .unwrap();
         }
@@ -662,23 +694,59 @@ mod tests {
             run(
                 "from freeports.core import PdfBlock, TextBlock\n\
                  p = PdfBlock('row', content='inherited')\n\
-                 t = TextBlock('fund', pdf_block=p)\n\
+                 t = TextBlock('fund', {}, p)\n\
                  assert t.content == 'inherited', t.content\n\
                  assert t.pdf_block == p",
             )
             .unwrap();
         }
 
+        /// I due costruttori sono separati proprio perche' un `content` e un `pdf_block` insieme
+        /// potrebbero contraddirsi: `from_content` non prende un blocco PDF, e il costruttore non
+        /// prende un contenuto.
         #[test]
-        fn giving_a_text_block_both_a_pdf_block_and_a_content_is_an_error() {
+        fn the_two_text_block_constructors_are_separate() {
             run(
                 "from freeports.core import PdfBlock, TextBlock\n\
+                 t = TextBlock.from_content('fund', {'k': 1}, 'standalone')\n\
+                 assert t.content == 'standalone'\n\
+                 assert t.pdf_block is None\n\
+                 assert t.metadata == {'k': 1}\n\
                  try:\n\
-                 \x20   TextBlock('fund', content='x', pdf_block=PdfBlock('row', content='y'))\n\
-                 except ValueError:\n\
+                 \x20   TextBlock('fund', {}, content='x')\n\
+                 except TypeError:\n\
                  \x20   pass\n\
                  else:\n\
-                 \x20   raise AssertionError('expected a ValueError')",
+                 \x20   raise AssertionError('the constructor must not take a content')",
+            )
+            .unwrap();
+        }
+
+        /// Il codice d'autore riscrive il contenuto di un blocco gia' costruito: e' la ragione per
+        /// cui `TextBlock` non e' `frozen` (vedi il suo doc-comment).
+        #[test]
+        fn a_text_block_content_is_rewritable() {
+            run(
+                "from freeports.core import TextBlock\n\
+                 t = TextBlock.from_content('fund', {}, 'Alpha Fund *')\n\
+                 t.content = t.content.replace('*', '').strip()\n\
+                 assert t.content == 'Alpha Fund'",
+            )
+            .unwrap();
+        }
+
+        /// L'ordine posizionale e' quello del riferimento, ed e' come i moduli d'autore lo
+        /// scrivono davvero: `PdfBlock(tipo, metadata, contenuto)`.
+        #[test]
+        fn the_blocks_take_their_arguments_in_the_reference_order() {
+            run(
+                "from freeports.core import PdfBlock, TextBlock\n\
+                 b = PdfBlock('RELEVANT_BLOCK', {'page': 3}, 'testo')\n\
+                 assert b.metadata == {'page': 3}\n\
+                 assert b.content == 'testo'\n\
+                 t = TextBlock('FUND', {'page': 3}, b)\n\
+                 assert t.metadata == {'page': 3}\n\
+                 assert t.content == 'testo'",
             )
             .unwrap();
         }

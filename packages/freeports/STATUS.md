@@ -17,7 +17,7 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M7 | `formats_repo` | ✅ chiusa | `id_format`, `metadata`, `orchestration`, `structured::{tables,page_classify,investments}`, `semistructured::{formats_mapping,args,native}`, `unstructured::{loader,py_pipe}`, `Algorithm::load`; piu' `formats_utils::pdf_extract::standard_funcs` (8 pipe, D-M7-1) e `output::classes::{fund,investment}` anticipati da M8 (D-M7-2). 1828 test unitari + 32 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api` estesa con `standard_funcs`, `formats_repo`, `output` e `get_table_coordinates`/`TablePosMeasureUnit` |
 | M8 | `output` | ✅ chiusa | `output::classes::{fund_change_name, fund_esg_indicator, fund_sfdr_classification, fund_assets, assets_manager}`, le 7 varianti restanti di `core::pipeline::Extracted`, le 8 funzioni deferite di M4, `output::files_schema`, `output::routines::{accumulate, write}`. I 3 bug di fixture nei test scritti da `test-writer` (vedi la nota di chiusura sotto) sono stati corretti; `cargo test`: 2092 passati/0 falliti (lib) + 34 d'integrazione (10+22+2) passati; `cargo clippy --all-targets`: solo il warning preesistente di `select/pdf_line/area.rs` (M3) |
 | M9 | `cli` | ✅ chiusa | `input::{companies_db, download}` (stub pre-esistenti, pull-in per Q1), `cli::{conf_parse::DocumentSpec, partial_config, config_locations::{cmd,env,file}, freeports_config, batch, job, output, run::execute}`, `main.rs` reale; `core::tracing_setup::Verbosity` riaperto (M0, Q5: 6 livelli, `-v`/`-q` manopole indipendenti) e `output::routines::write` riaperto (M8, Q6: `OutFlags::separate_out` + profili `SingleFile`/`Structured`/`compressed` reali); 2428 test unitari + 63 d'integrazione (10+29+22+2) verdi, `cargo clippy --all-targets` pulito salvo il warning preesistente M3 e 5 nuovi confinati a codice di test; `api::cli` abilitata, chiude `PLAN.md` §9 |
-| M10 | Chiusura e confronto | ⬜ da fare | |
+| M10 | Chiusura e confronto | 🟡 in corso | API Python (`src/python/`, `#[pymodule] freeports` — niente `_native`/`_internals`), `pyproject.toml`/`cdylib`, `freeports_dev` migrato ai percorsi pubblici. **Nessuna modifica al repo formati.** 2471 test unitari + 63 d'integrazione verdi, `cargo clippy --all-targets` come a M9 (6 warning, tutti preesistenti). `pytest tests/formats` sul repo formati reale: 248 passati / 11 falliti contro la baseline 252/7 del motore Python — **tutti i CSV di business coincidono su tutti e 21 i formati**; restano 7 fallimenti su `.log.csv` (gli stessi 7 formati che fallivano anche in baseline) e 4 fixture a pagina singola diventate obsolete. Vedi la voce M10 sotto |
 
 Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato)
 
@@ -769,3 +769,102 @@ loro (D-M7-2). **`output::classes` resta l'unica dipendenza che tiene aperta M4.
   presto, `cli::run::execute` invocato, errori mappati su un exit code non-zero); `freeports
   --help` gira e lista tutti i flag reali; `api::cli` riesporta `CliArgs`/`execute`/`CliError`,
   chiudendo `PLAN.md` §9.
+
+## M10 — API Python e confronto con `freeports_core` (in corso)
+
+### Cosa esiste ora
+
+Il crate espone la sua **API Python**: `src/python/`, un `#[pyo3::pymodule] mod freeports` che
+`pyproject.toml` compila come `cdylib` e `maturin develop` installa. Il pacchetto Python **è**
+l'estensione: non c'è più né `freeports._native` né `freeports._internals` (i due livelli privati
+del vecchio `freeports_core`), e un test lo verifica. I sottomoduli annidati
+(`freeports.core`, `freeports.utils.pdf_extract`, ...) sono registrati in `sys.modules`
+all'inizializzazione, perché un'estensione compilata non è un package.
+
+L'albero è **solo shim**: newtype `#[pyclass]` e `#[pyfunction]` che convertono argomenti e
+chiamano le routine native. Nessuna logica di dominio, e nessun attributo PyO3 sul codice
+esistente — `PLAN.md` §14 vuole PyO3 confinato al bordo, e il bordo è quel modulo.
+
+`freeports_dev` è migrato ai percorsi pubblici. La serializzazione delle fixture di test si è
+spostata in `freeports_dev/serialization.py`: è logica di test, il cui unico consumatore è
+`freeports-dev`, e non ha più un posto dentro `freeports` ora che `_internals` non esiste.
+
+**Il repo formati non è stato modificato.** Nemmeno gli import: erano già tutti sui percorsi
+pubblici. Ogni divergenza di firma è stata assorbita nel layer shim o si è rivelata un bug del
+port.
+
+### Confronto con il motore Python, sul repo formati reale
+
+`pytest tests/formats` (21 formati, 259 test): **248 passati / 11 falliti**, contro la baseline
+del motore Python **252 / 7** misurata prima di toccare qualsiasi cosa.
+
+**Tutti i CSV di business coincidono, su tutti e 21 i formati**: `investments`, `funds`,
+`funds_assets`, `assets_managers`, `investments_managers_to_funds`, `funds_change_name`,
+`funds_sfdr_classification`, `funds_esg_indicators` e `investments_add_infos.yaml`.
+
+Gli 11 fallimenti sono di due sole specie:
+
+1. **7 test d'integrazione, solo su `.log.csv`** — CARNE-EN23, DANSKEINVEST-EN24, FINECO-EN23@IR,
+   MEDIOLANUM-EN24, MEDIOLANUM-ES24.B, MEDIOLANUM-IT24.A, MEDIOLANUM-IT24.C. Sono **gli stessi 7
+   formati che fallivano in baseline** (là per un mismatch di dtype su una colonna vuota), e sono
+   esattamente i 7 le cui fixture `.log.csv` non sono vuote. Il layer CSV di `tracing` funziona e
+   scrive righe, ma il motore non porta nell'evento il contesto che il riferimento ci metteva
+   (`Page`, `Matched Company`, `Company`) e consolida in una riga sola le tre che il riferimento
+   emetteva per ogni campo perso. È il buco già annotato a M9 ("campo dedicato per la colonna
+   `Matched Company`"), non una regressione di M10.
+2. **4 fixture a pagina singola diventate obsolete** — ANIMA_SICAV-EN24 `text_filter[23]`,
+   KAIROS-EN23 `text_filter[30]`/`[61]` e `deserialize[104]`. In tutti e quattro il blocco `FUND`
+   registrato nella fixture conserva un suffisso `(in EUR)` che il modulo d'autore toglie
+   (`txt_blk.content = fund_remove_regex.sub("", txt_blk.content)`); il motore lo toglie davvero,
+   la fixture no. Che la fixture sia quella vecchia e non il motore a sbagliare lo dice il test
+   d'integrazione degli stessi due formati, che passa: `investments.csv` non contiene il suffisso.
+   Si risolvono con `freeports-dev make-tests`, non con una correzione del codice.
+
+### Bug del port trovati e corretti dal confronto
+
+Nessuno di questi era visibile dai test unitari: sono emersi solo facendo girare il motore su
+documenti veri.
+
+1. **`geometrical_indexes` col default sbagliato** (`formats_repo/structured/investments.rs`).
+   `unwrap_or(false)` invece di `unwrap_or(true)`: il riferimento riempie l'argomento solo se la
+   cella CSV non è vuota e lascia altrimenti il default della firma, che è `true`. Con `false` i
+   campi si indicizzano sulla lista *piatta* dei blocchi invece che sulla griglia, e ogni riga con
+   il nome andato a capo sposta le colonne di uno. Era **fatale**: abortiva l'intero documento.
+2. **Il confine verso i pipe d'autore passava dizionari** (`formats_repo/unstructured/py_pipe.rs`).
+   La forma duck-typed di D-M7-3 era giusta finché non esistevano le classi; ora che esistono, un
+   modulo d'autore che scrive `pdf_blks[0].content` — la maggioranza — andava in `AttributeError`.
+   Il confine passa e riceve le classi vere; la forma a dizionario resta accettata **in entrata**.
+   Cade con essa il limite di D-M7-3: le varianti tipizzate di `BlockValue` non degradano più a
+   stringa.
+3. **I metadati di un blocco erano una copia, non il contenitore.** Il codice d'autore li muta in
+   place (`txt_blk.metadata["fund"] = ...`, in ANIMA_SICAV-EN24 e KAIROS-EN23) e la modifica
+   spariva in silenzio. `PdfBlock`/`TextBlock` tengono ora un `Py<PyDict>` vivo, come il
+   riferimento, e la mappa nativa si ricava da lì.
+4. **`PdfBlock`/`TextBlock` avevano l'ordine degli argomenti invertito** rispetto al riferimento
+   (`(type_block, metadata, content)`, che i moduli d'autore scrivono posizionale), `TextBlock` non
+   era mutabile e mancava `TextBlock.from_content`.
+5. **`SfdrArticle` esponeva i nomi Rust** (`Art6`) invece di quelli pubblici (`ART_6`), che sono
+   quelli che il codice d'autore scrive e quelli con cui le fixture nominano la variante.
+6. **`run_job` non scriveva `.log.csv`.** Il layer esiste ma lo installava solo `main.rs`, nella
+   cwd. Ora `run_job` lo installa per chiamata (`with_default`, non `set_global_default`: pytest
+   chiama `run_job` una volta per formato) nella cartella di output.
+7. **`investments_add_infos.yaml`: la data di scadenza usciva senza apici.** `serde_yaml` emette
+   `maturity: 2025-09-22` come scalare nudo, che per `yaml.safe_load` è un `datetime.date` e non
+   una stringa. Tre asserzioni di test M8 pinnavano la forma sbagliata.
+8. **Un `dict` restituito da un pipe `deserialize` veniva smontato nelle sue chiavi**, perché il
+   risultato veniva spacchettato con `try_iter` invece che solo su `list`/`tuple`.
+9. **`PageParseFail` sollevata da un pipe d'autore era fatale.** Diventa `PipeError::PageParse`,
+   l'unica variante non fatale: è la semantica del riferimento, e `eurizon_it24.py` la usa.
+10. **`DeserializerAssetsStandard` accettava un `bool` dove il riferimento accetta un callable.**
+    Due moduli d'autore passano una lambda (`num_converter=lambda txt: 0 if txt == "-" else
+    to_int(txt)`). I due convertitori sono ora `Arc<dyn Fn...>`; `new(interpret_int, ...)` resta
+    identica e nessun chiamante Rust cambia.
+
+### Cosa resta aperto
+
+- **`.log.csv` con il contesto del riferimento.** Serve propagare `Page`/`Matched Company`/
+  `Company` fino all'evento `tracing`, e decidere se riprodurre le tre righe per campo perso del
+  riferimento o tenere la riga sola consolidata di adesso. È una scelta di design, non una
+  correzione meccanica: da concordare.
+- **Rigenerare le 4 fixture a pagina singola obsolete** con `freeports-dev make-tests`.
+- **Benchmark** (`PLAN.md` §11, M10) e docs prosa versionate.

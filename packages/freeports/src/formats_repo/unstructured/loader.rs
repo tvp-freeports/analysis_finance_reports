@@ -97,6 +97,12 @@ fn import_module<'py>(
     };
 
     let load = || -> PyResult<Bound<'py, PyAny>> {
+        // Prima di ogni altra cosa: il modulo d'autore fara' `from freeports.core import PdfBlock`,
+        // e quel `freeports` deve essere **questo** artefatto compilato, non un altro. Vedi
+        // `crate::python::install`, che spiega perche' e che non fa nulla quando siamo gia' dentro
+        // il `.so`.
+        crate::python::install(py)?;
+
         let sys = py.import("sys")?;
         let sys_path = sys.getattr("path")?.cast_into::<PyList>().map_err(PyErr::from)?;
         let templates = formats_repo_dir.join(TEMPLATES_DIR);
@@ -427,10 +433,12 @@ def extract(page):
     return [{"type_block": "RELEVANT_BLOCK", "metadata": {"n": len(page["blocks"])}, "content": "hello"}]
 
 def filter_blocks(blocks, companies):
-    return [{"type_block": "FUND", "metadata": {"seen": len(blocks)}, "content": blocks[0]["content"]}]
+    # `blocks[0].content` e non `blocks[0]["content"]`: dopo M10 un pipe d'autore riceve i
+    # `PdfBlock` veri, come i moduli d'autore di un repo formati reale gia' li scrivevano.
+    return [{"type_block": "FUND", "metadata": {"seen": len(blocks)}, "content": blocks[0].content}]
 
 def deserialize_block(block):
-    return [{"fund-id": block["content"]}]
+    return [{"fund-id": block.content}]
 
 pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
 "#;
@@ -539,6 +547,37 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
                 assert_eq!(blocks[0].type_block, BlockType::RELEVANT_BLOCK);
                 assert_eq!(blocks[0].content, BlockValue::from("hello"));
                 assert_eq!(blocks[0].metadata.get("n"), Some(&BlockValue::from(1i64)));
+            });
+        }
+
+        /// Regressione: il binario `freeports` linka il crate come `rlib` e ha quindi le **sue**
+        /// classi Python, diverse da quelle del `.so` installato. Se il modulo d'autore importa
+        /// `freeports` prima che il caricamento semini `sys.modules`, i due lati non si
+        /// riconoscono piu' e il primo pipe che riceve un blocco muore con
+        /// `'PdfBlock' object cannot be cast as 'PdfBlock'`. Vedi `crate::python::install`.
+        #[test]
+        fn loading_a_format_seeds_the_in_process_freeports_module() {
+            let source = "
+from freeports.core import PdfBlock
+
+class _P:
+    def __init__(self):
+        self.pdf_extract = None
+        self.text_filter = None
+        self.deserialize = None
+
+pipelines = {'authored': _P()}
+";
+            let dir = repo_with_module("A-EN24", source);
+            get_pipelines(dir.path(), "A-EN24").unwrap();
+            Python::attach(|py| {
+                let module = py.import("sys").unwrap().getattr("modules").unwrap();
+                let seeded = module.get_item("freeports").unwrap();
+                let seeded_type = seeded.getattr("core").unwrap().getattr("PdfBlock").unwrap();
+                // L'identita' che conta: la classe raggiungibile da Python e quella che questo
+                // artefatto registra devono essere **lo stesso oggetto**.
+                let ours = py.get_type::<crate::python::core::PyPdfBlock>();
+                assert!(seeded_type.is(&ours), "the seeded PdfBlock is not this artifact's");
             });
         }
 

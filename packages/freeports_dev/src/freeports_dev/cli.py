@@ -82,17 +82,15 @@ def _cmd_inspect_page(args):
         print_pdf_blks_table_MD,
         print_pdf_blks_table_ASCII,
     )
-    from freeports import _native
-
-    Algorithm = _native.core.Algorithm
+    from freeports.core import Algorithm
     from freeports_dev.input_db import get_test_companies as gtc
 
     base_path = repo / "tests" / "formats"
     report_file = args.report or (base_path / args.format / "report.pdf")
 
-    from freeports._internals.formats.repo.metadata import get_formats
+    from freeports.formats_repo import get_formats
 
-    a = Algorithm.load(repo, args.format, list(get_formats(repo).index))
+    a = Algorithm.load(repo, args.format, get_formats(repo))
     page = get_page_dict(str(report_file), args.page)
 
     if args.mode in ("structured", "semistructured", "unstructured"):
@@ -129,16 +127,14 @@ def _cmd_inspect_page(args):
 def _cmd_inspect_document(args):
     repo = _resolve_repo(args.repo)
 
-    from freeports import _native
-
-    Algorithm = _native.core.Algorithm
-    from freeports._internals.formats.repo.metadata import get_formats
+    from freeports.core import Algorithm
+    from freeports.formats_repo import get_formats
     import pymupdf
 
     base_path = repo / "tests" / "formats"
     report_file = args.report or (base_path / args.format / "report.pdf")
 
-    a = Algorithm.load(repo, args.format, list(get_formats(repo).index))
+    a = Algorithm.load(repo, args.format, get_formats(repo))
     pdf_file = pymupdf.Document(str(report_file))
 
     if args.page is not None:

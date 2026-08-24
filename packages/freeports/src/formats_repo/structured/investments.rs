@@ -88,7 +88,13 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
         config.args.perc_net_assets.map(i64::from),
         config.args.acquisition_currency.map(i64::from),
         config.args.acquisition_cost.map(i64::from),
-        additional.and_then(|a| a.geometrical_indexing).unwrap_or(false),
+        // I default sono quelli del **costruttore** di `TextFilterInvestmentsStandard`, non `false`
+        // per entrambi: il riferimento riempie l'argomento solo quando la cella CSV non è vuota
+        // (`_set_if_not_na`), e lascia altrimenti il default della firma, che per
+        // `geometrical_indexes` è `true`. Un `false` qui fa indicizzare i campi sulla lista
+        // *piatta* dei blocchi invece che sulla griglia, e ogni riga con un nome andato a capo
+        // sposta le colonne di uno.
+        additional.and_then(|a| a.geometrical_indexing).unwrap_or(true),
         additional.and_then(|a| a.merge_previous).unwrap_or(false),
     )
     .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;

@@ -6,11 +6,9 @@ from freeports_dev.create_test_page import (
     get_page_dict,
 )
 from freeports_dev.input_db import get_test_companies as gtc
-from freeports import _native
-
-Algorithm = _native.core.Algorithm
-from freeports._internals.formats.repo.metadata import get_formats
-from freeports._internals.core.serialization import (
+from freeports.core import Algorithm
+from freeports.formats_repo import get_formats
+from freeports_dev.serialization import (
     dump as json_dump,
     to_serializable,
     from_serializable,
@@ -91,7 +89,7 @@ def add_page_test(
             filter_data = gtc(repo_root)
         out_filter_data_file = None
 
-    a = Algorithm.load(repo_root, fmt, list(get_formats(repo_root).index))
+    a = Algorithm.load(repo_root, fmt, get_formats(repo_root))
     page = None
     if report_file is not None:
         report_file = Path(report_file)

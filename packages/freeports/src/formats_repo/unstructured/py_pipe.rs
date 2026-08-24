@@ -4,30 +4,23 @@
 //! dall'autore di un formato implementano gli stessi trait dei pipe nativi, quindi il motore non
 //! sa — e non deve sapere — se un pipe è Rust o Python.
 //!
-//! # Il contratto verso Python, e perché è duck-typed
+//! # Il contratto verso Python
 //!
-//! In questa fase il crate **non** espone alcuna API Python (`PLAN.md` §0: nessun binding, niente
-//! `cdylib`), quindi non esistono classi `PdfBlock`/`TextBlock`/`Promise` che il codice d'autore
-//! possa importare. La conversione è perciò definita per *forma*, non per tipo — decisione
-//! **D-M7-3** dell'utente (2026-08-23):
+//! Un pipe d'autore riceve e restituisce le **classi vere** di [`crate::python`]: `PdfBlock`,
+//! `TextBlock`, `Promise`, le entità di `freeports.output`, gli enum di `freeports.consts`. È ciò
+//! che i moduli d'autore importano e costruiscono (`from freeports.core import PdfBlock`), quindi
+//! è ciò che devono ricevere.
 //!
-//! | Concetto | Forma accettata da Python |
-//! |---|---|
-//! | `Promise` | un oggetto con gli attributi `id`, `strict`, `multiple`, oppure una mappa con esattamente quelle tre chiavi |
-//! | `PdfBlock` | un oggetto o una mappa con `type_block`, `metadata`, `content` |
-//! | `TextBlock` | come sopra, più un `pdf_block` facoltativo |
-//! | `BlockValue` | i tipi primitivi Python (`None`, `bool`, `int`, `float`, `str`), più `list`/`tuple`, `set`/`frozenset`, `dict` |
+//! Fino a M9 non era possibile: il crate non esponeva alcuna API Python, e il confine era definito
+//! per *forma* invece che per tipo (decisione **D-M7-3**, 2026-08-23) — un `dict` con le chiavi
+//! `type_block`/`metadata`/`content` al posto di un `PdfBlock`. Quella forma resta accettata **in
+//! entrata**, come rete di sicurezza per un pipe che costruisca i propri risultati a mano, ma non
+//! è più ciò che viene passato in uscita: un modulo d'autore che scrive `pdf_blks[0].content` —
+//! e sono la maggioranza — su un `dict` andrebbe in `AttributeError`.
 //!
-//! Gli attributi scelti **non** sono inventati: sono esattamente quelli che le classi
-//! corrispondenti espongono già in `freeports_core` (i getter `id`/`strict`/`multiple` di
-//! `Promise`, i campi `type_block`/`metadata`/`content` di `PdfBlock`). Quando i binding
-//! arriveranno, le classi vere soddisferanno questo protocollo senza che qui cambi nulla — che è
-//! la ragione per cui è stato scelto così invece di aspettare i binding.
-//!
-//! **Limite noto e accettato**: le varianti tipizzate di `BlockValue` (`Date`, `Currency`,
-//! `SfdrArticle`, `FinancialInstrument`) non hanno una forma Python in questa fase — nessun
-//! codice d'autore può costruirle senza le classi — e arrivano quindi come stringhe, che è ciò
-//! che i pipe `deserialize` a valle già sanno convertire.
+//! Con le classi vere sparisce anche il limite che D-M7-3 si portava dietro: le varianti tipizzate
+//! di `BlockValue` (`Date`, `Currency`, `SfdrArticle`, `FinancialInstrument`) arrivano ora come i
+//! rispettivi shim e non degradate a stringa.
 //!
 //! # Errori
 //!
@@ -89,6 +82,13 @@ pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     // tutti gli effetti, e il ramo generico se la mangerebbe.
     if looks_like_promise(object) {
         return Ok(BlockValue::Promise(promise_from_py(object)?));
+    }
+    // Le classi vere (`Currency`, `SfdrArticle`, `FinancialInstrument`, `datetime.date`, ...):
+    // dopo il ramo promessa, perché quello riconosce anche la *forma* dizionario che il
+    // convertitore degli shim vedrebbe come una mappa qualunque; prima dei rami generici, perché
+    // uno shim di enum non è né una stringa né una mappa e cadrebbe nell'errore finale.
+    if let Ok(value) = crate::python::convert::block_value_from_py(object) {
+        return Ok(value);
     }
     if let Ok(dict) = object.cast::<PyDict>() {
         let mut map = BTreeMap::new();
@@ -160,12 +160,18 @@ fn block_parts(object: &Bound<'_, PyAny>) -> PyResult<(BlockType, BTreeMap<Strin
 
 /// Un `PdfBlock` da un oggetto che ne ha la forma.
 pub fn pdf_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<PdfBlock> {
+    if let Ok(block) = object.extract::<PyRef<'_, crate::python::core::PyPdfBlock>>() {
+        return block.native(object.py());
+    }
     let (type_block, metadata, content) = block_parts(object)?;
     Ok(PdfBlock::new(type_block, metadata, content))
 }
 
 /// Un `TextBlock` da un oggetto che ne ha la forma. Il `pdf_block` è facoltativo.
 pub fn text_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<TextBlock> {
+    if let Ok(block) = object.extract::<PyRef<'_, crate::python::core::PyTextBlock>>() {
+        return block.native(object.py());
+    }
     let (type_block, metadata, content) = block_parts(object)?;
     let pdf_block = match field(object, "pdf_block") {
         Some(value) if !value.is_none() => Some(pdf_block_from_py(&value)?),
@@ -224,24 +230,29 @@ pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<B
 
 /// Un `PdfBlock` come dizionario Python.
 pub fn pdf_block_to_py<'py>(py: Python<'py>, block: &PdfBlock) -> PyResult<Bound<'py, PyAny>> {
-    let dict = PyDict::new(py);
-    dict.set_item("type_block", block.type_block.as_str())?;
-    dict.set_item("metadata", block_value_to_py(py, &BlockValue::Map(block.metadata.clone()))?)?;
-    dict.set_item("content", block_value_to_py(py, &block.content)?)?;
-    Ok(dict.into_any())
+    Ok(Bound::new(py, crate::python::core::PyPdfBlock::from_native(py, block)?)?.into_any())
 }
 
-/// Un `TextBlock` come dizionario Python.
+/// Un `TextBlock` come oggetto Python, per passarlo a un pipe d'autore.
 pub fn text_block_to_py<'py>(py: Python<'py>, block: &TextBlock) -> PyResult<Bound<'py, PyAny>> {
-    let dict = PyDict::new(py);
-    dict.set_item("type_block", block.type_block.as_str())?;
-    dict.set_item("metadata", block_value_to_py(py, &BlockValue::Map(block.metadata.clone()))?)?;
-    dict.set_item("content", block_value_to_py(py, &block.content)?)?;
-    match &block.pdf_block {
-        Some(pdf_block) => dict.set_item("pdf_block", pdf_block_to_py(py, pdf_block)?)?,
-        None => dict.set_item("pdf_block", py.None())?,
+    Ok(Bound::new(py, crate::python::core::PyTextBlock::from_native(py, block)?)?.into_any())
+}
+
+/// Il risultato di un pipe `deserialize` d'autore come lista di oggetti Python, senza convertirli.
+///
+/// Sono spacchettate **solo** liste e tuple, non un iterabile qualunque: un pipe `deserialize` può
+/// legittimamente restituire un `dict` — è la forma con cui un autore dichiara una mappa di
+/// promesse — e un `dict` in Python è iterabile *sulle sue chiavi*. Trattarlo come sequenza lo
+/// smonterebbe in stringhe. È la stessa regola del riferimento, che distingue esplicitamente
+/// `list`/`tuple` da tutto il resto.
+fn flatten<'py>(result: &Bound<'py, PyAny>) -> PyResult<Vec<Bound<'py, PyAny>>> {
+    if result.is_none() {
+        return Ok(Vec::new());
     }
-    Ok(dict.into_any())
+    if result.is_instance_of::<PyList>() || result.is_instance_of::<PyTuple>() {
+        return result.try_iter()?.collect();
+    }
+    Ok(vec![result.clone()])
 }
 
 /// Il risultato di un callable d'autore, appiattito in una lista.
@@ -345,13 +356,26 @@ impl TextFilterPipe for PyTextFilterPipe {
                 for block in blocks {
                     py_blocks.append(pdf_block_to_py(py, block)?)?;
                 }
-                // Le società bersaglio arrivano come lista di stringhe; i risultati degli step
-                // precedenti non hanno ancora una forma Python (le entità di `output::classes`
-                // sono ancora in gran parte M8) e arrivano come lista vuota.
+                // Il `filter_data` è ciò che il codice d'autore riceve come secondo argomento:
+                // al primo step dello schedule le società bersaglio, dopo l'accumulo dei
+                // risultati degli step precedenti. Entrambi come oggetti veri — le società come
+                // `CompanyMatchInfos`, i risultati come le entità di `freeports.output` — perché
+                // è ciò che i moduli d'autore ci fanno sopra (`c.name`, `isinstance`, gli
+                // attributi delle entità).
                 let py_data = PyList::empty(py);
-                if let FilterData::TargetCompanies(companies) = data {
-                    for company in *companies {
-                        py_data.append(company.name())?;
+                match data {
+                    FilterData::TargetCompanies(companies) => {
+                        for company in *companies {
+                            py_data.append(Bound::new(
+                                py,
+                                crate::python::input::PyCompanyMatchInfos::from(company.clone()),
+                            )?)?;
+                        }
+                    }
+                    FilterData::Previous(previous) => {
+                        for extracted in *previous {
+                            py_data.append(crate::python::pipes::extracted_to_py(py, extracted)?)?;
+                        }
                     }
                 }
                 self.func.bind(py).call1((py_blocks, py_data))
@@ -387,29 +411,36 @@ impl DeserializePipe for PyDeserializePipe {
 
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
         Python::attach(|py| {
-            let call = || -> PyResult<Vec<BlockValue>> {
+            let call = || -> PyResult<Vec<Extracted>> {
                 let py_block = text_block_to_py(py, block)?;
                 let result = self.func.bind(py).call1((py_block,))?;
-                each(&result, block_value_from_py)
-            };
-            let values = call().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-
-            let mut out = Vec::new();
-            for value in values {
-                let BlockValue::Map(map) = value else {
-                    return Err(PipeError::author(
-                        &self.pipeline,
-                        &self.name,
-                        "an author deserialize pipe must return promise mappings in this phase",
-                    ));
-                };
-                let mut entries = PromiseEntries::new();
-                for (id, item) in map {
-                    entries.push(id, item);
+                let mut out = Vec::new();
+                for item in flatten(&result)? {
+                    if item.is_none() {
+                        continue;
+                    }
+                    // Un'entità vera (`Fund`, `Equity`, `FundAssets`, ...) è ciò che un pipe
+                    // d'autore restituisce quasi sempre.
+                    if let Some(extracted) = crate::python::pipes::extracted_from_py(&item)? {
+                        out.push(extracted);
+                        continue;
+                    }
+                    // Altrimenti resta la forma "mappa di promesse", che è come un autore
+                    // dichiara un valore da risolvere più avanti nello schedule.
+                    let BlockValue::Map(map) = block_value_from_py(&item)? else {
+                        return Err(pyo3::exceptions::PyTypeError::new_err(
+                            "an author deserialize pipe must return an output entity, a promise mapping, or None",
+                        ));
+                    };
+                    let mut entries = PromiseEntries::new();
+                    for (id, value) in map {
+                        entries.push(id, value);
+                    }
+                    out.push(Extracted::Promises(entries));
                 }
-                out.push(Extracted::Promises(entries));
-            }
-            Ok(out)
+                Ok(out)
+            };
+            call().map_err(|e| author_error(py, &self.pipeline, &self.name, e))
         })
     }
 }

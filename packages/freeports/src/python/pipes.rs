@@ -61,8 +61,10 @@ impl PyPdfExtractPipe {
 impl PyPdfExtractPipe {
     /// L'argomento è il dict che PyMuPDF restituisce per una pagina, come nel riferimento.
     fn __call__(&self, page: &Bound<'_, PyAny>) -> PyResult<Vec<PyPdfBlock>> {
+        let py = page.py();
         let page = page_from_py(page)?;
-        Ok(self.0.extract(&page).map_err(pipe_error)?.into_iter().map(PyPdfBlock::from).collect())
+        let blocks = self.0.extract(&page).map_err(pipe_error)?;
+        blocks.iter().map(|block| PyPdfBlock::from_native(py, block)).collect()
     }
 
     #[getter]
@@ -97,11 +99,13 @@ impl PyTextFilterPipe {
         pdf_blks: &Bound<'_, PyAny>,
         filter_data: &Bound<'_, PyAny>,
     ) -> PyResult<Vec<PyTextBlock>> {
+        let py = pdf_blks.py();
         let blocks = pdf_blocks_from_py(pdf_blks)?;
         let companies = target_companies_from_py(filter_data)?;
         let previous = previous_results_from_py(filter_data)?;
         let data = filter_data_of(&companies, &previous);
-        Ok(self.0.filter(&blocks, &data).map_err(pipe_error)?.into_iter().map(PyTextBlock::from).collect())
+        let out = self.0.filter(&blocks, &data).map_err(pipe_error)?;
+        out.iter().map(|block| PyTextBlock::from_native(py, block)).collect()
     }
 
     #[getter]
@@ -140,7 +144,7 @@ impl PyDeserializePipe {
         py: Python<'py>,
         txt_blk: PyRef<'_, PyTextBlock>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let results = self.0.deserialize(txt_blk.inner()).map_err(pipe_error)?;
+        let results = self.0.deserialize(&txt_blk.native(py)?).map_err(pipe_error)?;
         match results.into_iter().next() {
             Some(extracted) => extracted_to_py(py, &extracted),
             None => Ok(py.None().into_bound(py)),
@@ -202,7 +206,10 @@ pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
 pub fn pdf_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<PdfBlock>> {
     blocks
         .try_iter()?
-        .map(|item| Ok(item?.extract::<PyRef<'_, PyPdfBlock>>()?.inner().clone()))
+        .map(|item| {
+            let item = item?;
+            item.extract::<PyRef<'_, PyPdfBlock>>()?.native(item.py())
+        })
         .collect()
 }
 
@@ -210,7 +217,10 @@ pub fn pdf_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<PdfBlock>> 
 pub fn text_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<TextBlock>> {
     blocks
         .try_iter()?
-        .map(|item| Ok(item?.extract::<PyRef<'_, PyTextBlock>>()?.inner().clone()))
+        .map(|item| {
+            let item = item?;
+            item.extract::<PyRef<'_, PyTextBlock>>()?.native(item.py())
+        })
         .collect()
 }
 

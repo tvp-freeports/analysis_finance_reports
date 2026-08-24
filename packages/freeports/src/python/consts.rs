@@ -44,6 +44,11 @@ macro_rules! enum_shim {
                 ($name_of)(value)
             }
 
+            /// Il nome pubblico della variante avvolta.
+            pub fn variant_name_of(&self) -> &'static str {
+                Self::variant_name(self.0)
+            }
+
             fn by_name(name: &str) -> Option<$shim> {
                 $variants.iter().copied().find(|v| Self::variant_name(*v) == name).map($shim)
             }
@@ -94,10 +99,14 @@ const INSTRUMENT_VARIANTS: [FinancialInstrument; 2] =
     [FinancialInstrument::EQUITY, FinancialInstrument::BOND];
 
 enum_shim!(PyCurrency, Currency, "Currency", Currency::variants(), |v: Currency| v.code());
+// I nomi visibili da Python sono `ART_6`/`ART_8`/`ART_9`, non gli identificatori Rust
+// `Art6`/`Art8`/`Art9`: sono quelli che il codice d'autore scrive (`SfdrArticle.ART_6` in
+// `eurizon_it24.py`) e quelli con cui le fixture gia' registrate nominano la variante. La
+// convenzione di scrittura del crate resta `CamelCase`; il nome pubblico e' un'altra cosa.
 enum_shim!(PySfdrArticle, SfdrArticle, "SfdrArticle", SFDR_VARIANTS, |v: SfdrArticle| match v {
-    SfdrArticle::Art6 => "Art6",
-    SfdrArticle::Art8 => "Art8",
-    SfdrArticle::Art9 => "Art9",
+    SfdrArticle::Art6 => "ART_6",
+    SfdrArticle::Art8 => "ART_8",
+    SfdrArticle::Art9 => "ART_9",
 });
 enum_shim!(
     PyFinancialInstrument,

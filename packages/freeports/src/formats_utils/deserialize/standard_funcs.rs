@@ -271,13 +271,23 @@ impl DeserializerInvestmentStandard {
         match value {
             None | Some(BlockValue::Null) => None,
             Some(promise @ BlockValue::Promise(_)) => Some(promise.clone()),
-            Some(BlockValue::Str(text)) => match cast(text) {
-                Ok(v) => Some(BlockValue::from(v)),
-                Err(err) => {
-                    tracing::error!(field, data = text.replace('\n', "\\n"), "Error casting, skipping field: {err}");
-                    None
+            Some(BlockValue::Str(text)) => {
+                // Lo span porta il nome del campo nella colonna `Field name` del `.log.csv` anche
+                // sugli eventi che nascono **dentro** `cast` (per esempio il `forcing cast` di
+                // `deserialize::cast`), che il nome del campo non lo conoscono.
+                let field_span = tracing::info_span!("field", field);
+                let _field_guard = field_span.enter();
+                match cast(text) {
+                    Ok(v) => Some(BlockValue::from(v)),
+                    Err(err) => {
+                        // Una riga sola che dice le tre cose che il riferimento spalmava su tre:
+                        // il dato che non si converte, perché, e che il campo viene perso.
+                        let data = text.replace('\n', "\\n");
+                        tracing::error!("could not cast {data:?}: {err} - field skipped");
+                        None
+                    }
                 }
-            },
+            }
             Some(other) => already_typed(other).map(BlockValue::from),
         }
     }
@@ -292,6 +302,20 @@ impl DeserializerInvestmentStandard {
 
         let company = cast::to_str(md.get("company").and_then(BlockValue::as_str).unwrap_or_default());
         let company_match = cast::to_str(md.get("company match").and_then(BlockValue::as_str).unwrap_or_default());
+
+        // Le due colonne "societa'" del `.log.csv` vengono da qui. Sono messe su uno span e non
+        // sui singoli eventi perche' devono valere per *tutto* cio' che la deserializzazione di
+        // questa riga produce, compresi gli eventi che nascono dentro `deserialize::cast` e che
+        // non hanno modo di conoscerle. Attenzione ai nomi: `company` e' il bersaglio
+        // riconosciuto e finisce nella colonna `Matched Company`, `company_match` e' il testo
+        // grezzo della riga e finisce in `Company` -- inversione ereditata dal riferimento, vedi
+        // il doc-comment di `core::tracing_setup`.
+        let row_span = tracing::info_span!(
+            "investment",
+            company = %company,
+            company_match = %company_match,
+        );
+        let _row_guard = row_span.enter();
 
         let fields = InvestmentFields {
             company,

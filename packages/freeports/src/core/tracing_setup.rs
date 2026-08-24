@@ -144,24 +144,34 @@
 //! | campo tracing | colonna CSV |
 //! |---|---|
 //! | `page` | `Page` |
-//! | *(nessuno, vedi nota sotto)* | `Matched Company` |
-//! | `company` | `Company` |
+//! | `company` | `Matched Company` |
+//! | `company_match` | `Company` |
 //! | `field` | `Field name` |
 //! | `row` | `Row` |
 //! | `column` | `Column` |
 //! | messaggio dell'evento (`message`) | `Message` |
 //!
-//! **Domanda aperta, segnalata dal test-writer**: il vecchio `.log.csv` (Python,
-//! `_internals/core/logging.py::CsvFormatter`) popolava sia `Matched Company` (il nome della
-//! società così come appare nel PDF) sia `Company` (la società riconosciuta dall'algoritmo) da
-//! un'unica stringa `vertical_ref` incastrata a runtime. Le istruzioni di questa milestone
-//! elencano solo cinque campi tracing (`page`/`company`/`field`/`row`/`column`), senza un campo
-//! distinto per la società "come scritta nel PDF". Decisione presa qui, da confermare: la
-//! colonna `Matched Company` resta **sempre vuota** in M0 (nessun campo tracing la alimenta); la
-//! colonna va popolata in una milestone successiva quando/se verrà introdotto un campo tracing
-//! dedicato (es. `company_match`). I test sotto (`tests::csv_layer::field_capture::
-//! matched_company_column_is_always_blank_in_m0`) fissano questo comportamento come atteso *per
-//! ora*: se la decisione viene ribaltata, quel test va aggiornato insieme all'implementazione.
+//! **I nomi delle due colonne "società" sono invertiti rispetto all'intuizione**, ed è così anche
+//! nel riferimento: `company` è la società **bersaglio riconosciuta** (`NORDEA`) e va in
+//! `Matched Company`; `company_match` è il testo grezzo della riga che l'ha fatta scattare
+//! (`Nordea Kredit Realkreditaktieselskab 4.00% 01.07.25`) e va in `Company`.
+//!
+//! La domanda aperta di M0 — quale campo alimentasse `Matched Company` — è chiusa in M10 con
+//! l'introduzione del campo `company_match`: fino ad allora quella colonna restava sempre vuota.
+//! I due campi non vengono messi sugli eventi uno per uno ma su uno **span** che avvolge la
+//! deserializzazione di una riga di investimento, che è il modo idiomatico in `tracing` di dare
+//! un contesto a tutti gli eventi che ne discendono (e il layer li eredita già, vedi
+//! `on_event`).
+//!
+//! # Una riga per evento, non tre per fallimento
+//!
+//! Il riferimento scriveva **tre** righe per ogni campo perso: un `ERROR` con ciò che era andato
+//! storto, e due `WARN` con la mitigazione e la conseguenza. Qui un fallimento di cast è una riga
+//! sola, che dice entrambe le cose (`"Error casting, skipping field: ..."`) — scelta concordata
+//! con l'utente (2026-08-24): il criterio originale resta valido, ma una riga per evento è la
+//! forma idiomatica di `tracing`, dove il livello dice già la gravità e il messaggio la
+//! conseguenza. Resta invece una riga a sé la mitigazione **riuscita** (il `forcing cast` di
+//! `deserialize::cast`), che è un'informazione diversa: lì non si è perso niente.
 //!
 //! Escaping CSV: nessuna logica scritta a mano, si delega interamente alle regole di default del
 //! crate `csv` (delimitatore `,`, quoting `Necessary`, terminatore di riga `\n`) — i test in
@@ -287,7 +297,7 @@ pub const CSV_HEADER: &str = "Page,Matched Company,Company,Field name,Row,Column
 /// (directly on the event, or inherited from an enclosing span) — see the module doc's "Regola
 /// di selezione delle righe di `.log.csv`". Kept separate from `message`, which always feeds the
 /// `Message` column but never by itself triggers a row.
-const TAGGED_FIELDS: [&str; 5] = ["page", "company", "field", "row", "column"];
+const TAGGED_FIELDS: [&str; 6] = ["page", "company", "company_match", "field", "row", "column"];
 
 /// Field values collected from a single event or span, restricted to the columns `CsvLogLayer`
 /// actually cares about (the five tagged fields above, plus the event's own `message`) — other
@@ -414,10 +424,15 @@ where
             return;
         }
 
+        // I nomi delle due colonne "societa'" sono invertiti rispetto all'intuizione, ed e' cosi'
+        // anche nel riferimento: `company` e' il nome della societa' **bersaglio riconosciuta**
+        // (per esempio `NORDEA`) e finisce in `Matched Company`; `company_match` e' il testo
+        // grezzo della riga che l'ha fatta scattare (`Nordea Kredit Realkreditaktieselskab 4.00%
+        // 01.07.25`) e finisce in `Company`.
         let row = [
             merged.get("page"),
-            "", // Matched Company: always blank in M0, see the module doc's "domanda aperta".
             merged.get("company"),
+            merged.get("company_match"),
             merged.get("field"),
             merged.get("row"),
             merged.get("column"),
@@ -919,7 +934,7 @@ mod tests {
             use pretty_assertions::assert_eq;
 
             #[test]
-            fn captures_all_five_tagged_fields_from_a_single_event() {
+            fn captures_all_tagged_fields_from_a_single_event() {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(".log.csv");
                 let layer = CsvLogLayer::create(&path).expect("csv layer construction");
@@ -928,6 +943,7 @@ mod tests {
                     tracing::warn!(
                         page = 12u64,
                         company = "Acme Corp",
+                        company_match = "Acme Corporation PLC",
                         field = "NAV",
                         row = 3u64,
                         column = 2u64,
@@ -937,28 +953,57 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["12", "", "Acme Corp", "NAV", "3", "2", "value out of expected range"])
+                    row([
+                        "12",
+                        "Acme Corp",
+                        "Acme Corporation PLC",
+                        "NAV",
+                        "3",
+                        "2",
+                        "value out of expected range"
+                    ])
                 );
                 assert_eq!(content, expected);
             }
 
+            /// Le due colonne "societa'" sono invertite rispetto all'intuizione: vedi il
+            /// doc-comment del modulo. `company` e' il bersaglio riconosciuto, `company_match` il
+            /// testo che l'ha fatto scattare.
             #[test]
-            fn matched_company_column_is_always_blank_in_m0() {
-                // See the module doc's "domanda aperta" note: no tracing field feeds this
-                // column yet. Fixed here as the current expected behavior, not as an
-                // endorsement -- flagged to the user in the test-writer's report.
+            fn the_two_company_columns_come_from_their_own_fields() {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(".log.csv");
                 let layer = CsvLogLayer::create(&path).expect("csv layer construction");
                 let subscriber = tracing_subscriber::registry().with(layer);
                 tracing::subscriber::with_default(subscriber, || {
-                    tracing::info!(page = 1u64, company = "Whatever SA", "tagged message");
+                    tracing::info!(
+                        page = 1u64,
+                        company = "NORDEA",
+                        company_match = "Nordea Kredit 4.00%",
+                        "tagged message"
+                    );
                 });
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let header_and_row: Vec<&str> = content.lines().collect();
                 assert_eq!(header_and_row.len(), 2, "expected exactly one data row");
                 let cells: Vec<&str> = header_and_row[1].split(',').collect();
-                assert_eq!(cells[1], "", "the \"Matched Company\" column must be blank in M0");
+                assert_eq!(cells[1], "NORDEA", "\"Matched Company\" comes from `company`");
+                assert_eq!(cells[2], "Nordea Kredit 4.00%", "\"Company\" comes from `company_match`");
+            }
+
+            /// `company_match` da solo basta a produrre una riga: e' un campo taggato come gli
+            /// altri, non un accessorio che ne accompagna uno.
+            #[test]
+            fn company_match_alone_selects_a_row() {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(".log.csv");
+                let layer = CsvLogLayer::create(&path).expect("csv layer construction");
+                let subscriber = tracing_subscriber::registry().with(layer);
+                tracing::subscriber::with_default(subscriber, || {
+                    tracing::info!(company_match = "Solo", "tagged message");
+                });
+                let content = std::fs::read_to_string(&path).expect("read .log.csv");
+                assert_eq!(content.lines().count(), 2, "expected exactly one data row");
             }
 
             #[test]
@@ -1085,7 +1130,7 @@ mod tests {
                 let layer = CsvLogLayer::create(&path).expect("csv layer construction");
                 let subscriber = tracing_subscriber::registry().with(layer);
                 tracing::subscriber::with_default(subscriber, || {
-                    tracing::info!(page = 1u64, company = "Acme, Inc.", "ok");
+                    tracing::info!(page = 1u64, company_match = "Acme, Inc.", "ok");
                 });
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!("{CSV_HEADER}1,,\"Acme, Inc.\",,,,ok\n");

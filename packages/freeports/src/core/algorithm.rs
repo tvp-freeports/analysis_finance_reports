@@ -276,6 +276,12 @@ impl Algorithm {
                     FilterData::Previous(&previous)
                 };
 
+                // Lo span dà a ogni evento prodotto dai pipe di questa pagina il numero di
+                // pagina, che è la colonna `Page` del `.log.csv`: nessun pipe lo conosce da sé,
+                // e passarlo a mano fino in fondo vorrebbe dire aggiungerlo a ogni firma.
+                let page_span = tracing::info_span!("page", page = scheduled_page.page.number);
+                let _page_guard = page_span.enter();
+
                 let results = match bundle.apply(scheduled_page.page, &data) {
                     Ok(results) => results,
                     Err(error) if error.is_page_failure() => {

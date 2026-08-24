@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use crate::core::classes::{BlockValue, PdfBlock, TextBlock};
+use crate::core::classes::{BlockType, BlockValue, PdfBlock, TextBlock};
 use crate::core::promise::Promise;
 
 use super::convert::{block_value_from_py, block_value_to_py, metadata_from_py, metadata_to_py};
@@ -80,19 +80,40 @@ impl PyPromise {
 }
 
 /// Shim Python di [`PdfBlock`].
-#[pyclass(name = "PdfBlock", module = "freeports.core", frozen, eq, hash)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PyPdfBlock(PdfBlock);
-
-impl From<PdfBlock> for PyPdfBlock {
-    fn from(value: PdfBlock) -> Self {
-        PyPdfBlock(value)
-    }
+///
+/// # Perché i metadati sono un `dict` Python e non la mappa nativa
+///
+/// Il codice d'autore **muta i metadati in place**: `txt_blk.metadata["fund"] = ...`
+/// (`anima_sicav_en24.py`, `kairos_en23.py`). Se il getter costruisse un dizionario nuovo a ogni
+/// lettura, quella riga scriverebbe su un oggetto usa-e-getta e la modifica sparirebbe senza un
+/// errore — il modo peggiore di divergere. Il dizionario è quindi **il** contenitore dei
+/// metadati, creato una volta alla costruzione e restituito sempre lo stesso, esattamente come
+/// nel riferimento (che teneva un `Py<PyDict>`). La mappa nativa si ricava da lì quando serve,
+/// con [`PyPdfBlock::native`].
+#[pyclass(name = "PdfBlock", module = "freeports.core", frozen)]
+pub struct PyPdfBlock {
+    type_block: BlockType,
+    metadata: Py<PyDict>,
+    content: BlockValue,
 }
 
 impl PyPdfBlock {
-    pub fn inner(&self) -> &PdfBlock {
-        &self.0
+    /// Lo shim di un blocco nativo. Copia i metadati in un `dict` Python vivo.
+    pub fn from_native(py: Python<'_>, block: &PdfBlock) -> PyResult<Self> {
+        Ok(PyPdfBlock {
+            type_block: block.type_block.clone(),
+            metadata: metadata_to_py(py, &block.metadata)?.unbind(),
+            content: block.content.clone(),
+        })
+    }
+
+    /// Il blocco nativo corrispondente allo stato **attuale** dello shim, metadati inclusi.
+    pub fn native(&self, py: Python<'_>) -> PyResult<PdfBlock> {
+        Ok(PdfBlock::new(
+            self.type_block.clone(),
+            metadata_from_py(Some(self.metadata.bind(py).as_any()))?,
+            self.content.clone(),
+        ))
     }
 }
 
@@ -104,6 +125,7 @@ impl PyPdfBlock {
     #[new]
     #[pyo3(signature = (type_block, metadata=None, content=None))]
     fn new(
+        py: Python<'_>,
         type_block: &str,
         metadata: Option<&Bound<'_, PyAny>>,
         content: Option<&Bound<'_, PyAny>>,
@@ -112,57 +134,120 @@ impl PyPdfBlock {
             Some(value) => block_value_from_py(value)?,
             None => BlockValue::Null,
         };
-        Ok(PyPdfBlock(PdfBlock::new(type_block.to_string(), metadata_from_py(metadata)?, content)))
+        Ok(PyPdfBlock {
+            type_block: BlockType::new(type_block.to_string()),
+            metadata: metadata_dict(py, metadata)?.unbind(),
+            content,
+        })
     }
 
     #[getter]
     fn type_block(&self) -> &str {
-        self.0.type_block.as_str()
+        self.type_block.as_str()
     }
 
     #[getter]
-    fn metadata<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        metadata_to_py(py, &self.0.metadata)
+    fn metadata(&self, py: Python<'_>) -> Py<PyDict> {
+        self.metadata.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_metadata(&self, py: Python<'_>, value: Option<&Bound<'_, PyAny>>) -> PyResult<()> {
+        let replacement = metadata_dict(py, value)?;
+        let current = self.metadata.bind(py);
+        current.clear();
+        current.update(replacement.as_mapping())?;
+        Ok(())
     }
 
     #[getter]
     fn content<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        block_value_to_py(py, &self.0.content)
+        block_value_to_py(py, &self.content)
     }
 
-    fn __repr__(&self) -> String {
-        format!(
-            "PdfBlock(type_block={:?}, metadata={}, content={})",
-            self.0.type_block.as_str(),
-            render_metadata(&self.0.metadata),
-            render_value(&self.0.content)
-        )
+    fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
+        let py = other.py();
+        match other.extract::<PyRef<'_, PyPdfBlock>>() {
+            Ok(other) => match (self.native(py), other.native(py)) {
+                (Ok(a), Ok(b)) => a == b,
+                _ => false,
+            },
+            Err(_) => false,
+        }
     }
+
+    fn __hash__(&self, py: Python<'_>) -> PyResult<u64> {
+        use std::hash::{DefaultHasher, Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        self.native(py)?.hash(&mut hasher);
+        Ok(hasher.finish())
+    }
+
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        let native = self.native(py)?;
+        Ok(format!(
+            "PdfBlock(type_block={:?}, metadata={}, content={})",
+            native.type_block.as_str(),
+            render_metadata(&native.metadata),
+            render_value(&native.content)
+        ))
+    }
+}
+
+/// Il `dict` vivo dei metadati di un blocco, a partire dall'argomento del costruttore.
+fn metadata_dict<'py>(py: Python<'py>, value: Option<&Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyDict>> {
+    metadata_to_py(py, &metadata_from_py(value)?)
 }
 
 /// Shim Python di [`TextBlock`].
 ///
-/// **Non è `frozen`**, a differenza di `PdfBlock`: il codice d'autore riscrive il contenuto di un
-/// blocco già costruito (`txt_blk.content = fund_remove_regex.sub("", txt_blk.content)` in
-/// `anima_sicav_en24.py`, e lo stesso in `kairos_en23.py`). Uguaglianza e hash sono quindi scritti
-/// a mano invece di essere derivati: PyO3 concede `hash` solo a una classe `frozen`, e qui la
-/// mutabilità è un requisito. Restano coerenti fra loro — entrambi guardano lo stesso
-/// `TextBlock` — con l'avvertenza consueta di un oggetto mutabile e hashabile: mutarlo mentre è
-/// in un set lo rende irreperibile. È esattamente la situazione del riferimento, dove `TextBlock`
-/// era una classe Python normale con gli stessi setter.
+/// Non è `frozen`: il codice d'autore riscrive il contenuto di un blocco già costruito
+/// (`txt_blk.content = fund_remove_regex.sub("", txt_blk.content)` in `anima_sicav_en24.py`, lo
+/// stesso in `kairos_en23.py`). Uguaglianza e hash sono perciò scritti a mano invece che derivati
+/// — PyO3 concede `hash` solo a una classe `frozen` — con l'avvertenza consueta di un oggetto
+/// mutabile e hashabile: mutarlo mentre è dentro un set lo rende irreperibile. È esattamente la
+/// situazione del riferimento, dove `TextBlock` era una classe Python normale con gli stessi
+/// setter.
+///
+/// I metadati sono un `dict` Python vivo per la stessa ragione di [`PyPdfBlock`]: vedi il suo
+/// doc-comment.
 #[pyclass(name = "TextBlock", module = "freeports.core")]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PyTextBlock(TextBlock);
-
-impl From<TextBlock> for PyTextBlock {
-    fn from(value: TextBlock) -> Self {
-        PyTextBlock(value)
-    }
+pub struct PyTextBlock {
+    type_block: BlockType,
+    metadata: Py<PyDict>,
+    content: BlockValue,
+    pdf_block: Option<Py<PyPdfBlock>>,
 }
 
 impl PyTextBlock {
-    pub fn inner(&self) -> &TextBlock {
-        &self.0
+    /// Lo shim di un blocco nativo.
+    pub fn from_native(py: Python<'_>, block: &TextBlock) -> PyResult<Self> {
+        let pdf_block = match &block.pdf_block {
+            Some(pdf_block) => Some(Py::new(py, PyPdfBlock::from_native(py, pdf_block)?)?),
+            None => None,
+        };
+        Ok(PyTextBlock {
+            type_block: block.type_block.clone(),
+            metadata: metadata_to_py(py, &block.metadata)?.unbind(),
+            content: block.content.clone(),
+            pdf_block,
+        })
+    }
+
+    /// Il blocco nativo corrispondente allo stato **attuale** dello shim.
+    pub fn native(&self, py: Python<'_>) -> PyResult<TextBlock> {
+        let metadata = metadata_from_py(Some(self.metadata.bind(py).as_any()))?;
+        Ok(match &self.pdf_block {
+            Some(pdf_block) => {
+                let mut block =
+                    TextBlock::new(self.type_block.clone(), metadata, pdf_block.bind(py).borrow().native(py)?);
+                // `TextBlock::new` eredita il contenuto dal blocco PDF; se l'autore lo ha
+                // riscritto dopo, vince la riscrittura.
+                block.content = self.content.clone();
+                block
+            }
+            None => TextBlock::from_content(self.type_block.clone(), metadata, self.content.clone()),
+        })
     }
 }
 
@@ -175,23 +260,21 @@ impl PyTextBlock {
     #[new]
     #[pyo3(signature = (type_block, metadata=None, pdf_block=None))]
     fn new(
+        py: Python<'_>,
         type_block: &str,
         metadata: Option<&Bound<'_, PyAny>>,
-        pdf_block: Option<PyRef<'_, PyPdfBlock>>,
+        pdf_block: Option<Py<PyPdfBlock>>,
     ) -> PyResult<PyTextBlock> {
-        let metadata = metadata_from_py(metadata)?;
-        match pdf_block {
-            Some(pdf_block) => Ok(PyTextBlock(TextBlock::new(
-                type_block.to_string(),
-                metadata,
-                pdf_block.inner().clone(),
-            ))),
-            None => Ok(PyTextBlock(TextBlock::from_content(
-                type_block.to_string(),
-                metadata,
-                BlockValue::Null,
-            ))),
-        }
+        let content = match &pdf_block {
+            Some(block) => block.bind(py).borrow().content.clone(),
+            None => BlockValue::Null,
+        };
+        Ok(PyTextBlock {
+            type_block: BlockType::new(type_block.to_string()),
+            metadata: metadata_dict(py, metadata)?.unbind(),
+            content,
+            pdf_block,
+        })
     }
 
     /// `TextBlock.from_content(type_block, metadata, content)` — un blocco di testo che non viene
@@ -199,6 +282,7 @@ impl PyTextBlock {
     #[staticmethod]
     #[pyo3(signature = (type_block, metadata=None, content=None))]
     fn from_content(
+        py: Python<'_>,
         type_block: &str,
         metadata: Option<&Bound<'_, PyAny>>,
         content: Option<&Bound<'_, PyAny>>,
@@ -207,66 +291,72 @@ impl PyTextBlock {
             Some(value) => block_value_from_py(value)?,
             None => BlockValue::Null,
         };
-        Ok(PyTextBlock(TextBlock::from_content(
-            type_block.to_string(),
-            metadata_from_py(metadata)?,
+        Ok(PyTextBlock {
+            type_block: BlockType::new(type_block.to_string()),
+            metadata: metadata_dict(py, metadata)?.unbind(),
             content,
-        )))
+            pdf_block: None,
+        })
     }
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
+        let py = other.py();
         match other.extract::<PyRef<'_, PyTextBlock>>() {
-            Ok(other) => self.0 == other.0,
+            Ok(other) => match (self.native(py), other.native(py)) {
+                (Ok(a), Ok(b)) => a == b,
+                _ => false,
+            },
             Err(_) => false,
         }
     }
 
-    fn __hash__(&self) -> u64 {
+    fn __hash__(&self, py: Python<'_>) -> PyResult<u64> {
         use std::hash::{DefaultHasher, Hash, Hasher};
         let mut hasher = DefaultHasher::new();
-        self.0.hash(&mut hasher);
-        hasher.finish()
+        self.native(py)?.hash(&mut hasher);
+        Ok(hasher.finish())
     }
 
     #[getter]
     fn type_block(&self) -> &str {
-        self.0.type_block.as_str()
+        self.type_block.as_str()
     }
 
     #[getter]
-    fn metadata<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        metadata_to_py(py, &self.0.metadata)
+    fn metadata(&self, py: Python<'_>) -> Py<PyDict> {
+        self.metadata.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_metadata(&mut self, py: Python<'_>, value: Option<&Bound<'_, PyAny>>) -> PyResult<()> {
+        self.metadata = metadata_dict(py, value)?.unbind();
+        Ok(())
     }
 
     #[getter]
     fn content<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        block_value_to_py(py, &self.0.content)
+        block_value_to_py(py, &self.content)
     }
 
     #[setter]
     fn set_content(&mut self, value: &Bound<'_, PyAny>) -> PyResult<()> {
-        self.0.content = block_value_from_py(value)?;
-        Ok(())
-    }
-
-    #[setter]
-    fn set_metadata(&mut self, value: Option<&Bound<'_, PyAny>>) -> PyResult<()> {
-        self.0.metadata = metadata_from_py(value)?;
+        self.content = block_value_from_py(value)?;
         Ok(())
     }
 
     #[getter]
-    fn pdf_block(&self) -> Option<PyPdfBlock> {
-        self.0.pdf_block.as_ref().map(|block| PyPdfBlock((**block).clone()))
+    fn pdf_block(&self, py: Python<'_>) -> Option<Py<PyPdfBlock>> {
+        self.pdf_block.as_ref().map(|block| block.clone_ref(py))
     }
 
-    fn __repr__(&self) -> String {
-        format!(
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
+        let native = self.native(py)?;
+        Ok(format!(
             "TextBlock(type_block={:?}, metadata={}, content={})",
-            self.0.type_block.as_str(),
-            render_metadata(&self.0.metadata),
-            render_value(&self.0.content)
-        )
+            native.type_block.as_str(),
+            render_metadata(&native.metadata),
+            render_value(&native.content)
+        ))
     }
 }
 
@@ -283,7 +373,9 @@ fn render_value(value: &BlockValue) -> String {
         BlockValue::Str(v) => format!("{v:?}"),
         BlockValue::Date(v) => format!("date({v})"),
         BlockValue::Currency(v) => format!("Currency.{}", v.code()),
-        BlockValue::SfdrArticle(v) => format!("SfdrArticle.{v:?}"),
+        BlockValue::SfdrArticle(v) => {
+            format!("SfdrArticle.{}", super::consts::PySfdrArticle::from(*v).variant_name_of())
+        }
         BlockValue::FinancialInstrument(v) => format!("FinancialInstrument.{v:?}"),
         BlockValue::Promise(v) => format!("Promise({:?})", v.id()),
         BlockValue::List(items) => {

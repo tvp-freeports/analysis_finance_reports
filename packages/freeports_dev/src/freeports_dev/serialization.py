@@ -119,11 +119,31 @@ def _pdf_block_tag(blk: PdfBlock) -> dict:
     }
 
 
+def _block_content(data: dict) -> Any:
+    """Il contenuto di un blocco, ricostruito.
+
+    Le fixture registrate dal riferimento serializzavano una `Promise` nel campo `content` di un
+    blocco **senza** il tag `__promise__`, come `{"id": "..."}` e basta: il modello Pydantic che
+    leggeva quel campo lo dichiarava tipizzato (`Optional[str | _PromiseModel]`) e Pydantic ne
+    deduceva il tipo dalla forma. Senza Pydantic quella deduzione va rifatta a mano, altrimenti la
+    promessa torna come dizionario e il confronto con l'output del motore fallisce su un blocco
+    per pagina.
+    """
+    content = data.get("content")
+    if (
+        isinstance(content, dict)
+        and set(content) <= {"id", "strict", "multiple"}
+        and "id" in content
+    ):
+        return _promise_from_tag(content)
+    return from_serializable(content)
+
+
 def _pdf_block_from_tag(data: dict) -> PdfBlock:
     return PdfBlock(
         data["type_block"],
         from_serializable(data.get("metadata") or {}),
-        from_serializable(data.get("content")),
+        _block_content(data),
     )
 
 
@@ -146,15 +166,15 @@ def _text_block_tag(blk: TextBlock) -> dict:
 def _text_block_from_tag(data: dict) -> TextBlock:
     pdf_block = data.get("pdf_block")
     if pdf_block:
-        return TextBlock.from_pdf_block(
-            _pdf_block_from_tag(pdf_block),
+        return TextBlock(
             data["type_block"],
             from_serializable(data.get("metadata") or {}),
+            _pdf_block_from_tag(pdf_block),
         )
     return TextBlock.from_content(
         data["type_block"],
         from_serializable(data.get("metadata") or {}),
-        from_serializable(data.get("content")),
+        _block_content(data),
     )
 
 

@@ -14,6 +14,7 @@ use crate::cli::config_locations::file;
 use crate::cli::partial_config::{ConfigSource, PartialConfig, defaults, overwrite};
 use crate::cli::{freeports_config, job, output};
 use crate::core::algorithm::Algorithm;
+use crate::core::tracing_setup::CsvLogLayer;
 use crate::core::classes::TextBlock;
 use crate::core::page::FormatName;
 use crate::core::schedule::PageClass;
@@ -72,11 +73,10 @@ impl PyAlgorithm {
     }
 
     fn apply_pdf_extract(&self, page: &Bound<'_, PyAny>, page_class: &str) -> PyResult<Vec<PyPdfBlock>> {
+        let py = page.py();
         let page = page_from_py(page)?;
-        self.0
-            .apply_pdf_extract(&page, &PageClass::new(page_class))
-            .map(|blocks| blocks.into_iter().map(PyPdfBlock::from).collect())
-            .map_err(value_error)
+        let blocks = self.0.apply_pdf_extract(&page, &PageClass::new(page_class)).map_err(value_error)?;
+        blocks.iter().map(|block| PyPdfBlock::from_native(py, block)).collect()
     }
 
     #[pyo3(signature = (page, filter_data, page_class))]
@@ -86,14 +86,16 @@ impl PyAlgorithm {
         filter_data: &Bound<'_, PyAny>,
         page_class: &str,
     ) -> PyResult<Vec<PyTextBlock>> {
+        let py = page.py();
         let page = page_from_py(page)?;
         let companies = target_companies_from_py(filter_data)?;
         let previous = previous_results_from_py(filter_data)?;
         let data = filter_data_of(&companies, &previous);
-        self.0
+        let blocks = self
+            .0
             .apply_text_filter(&page, &PageClass::new(page_class), &data)
-            .map(|blocks| blocks.into_iter().map(PyTextBlock::from).collect())
-            .map_err(value_error)
+            .map_err(value_error)?;
+        blocks.iter().map(|block| PyTextBlock::from_native(py, block)).collect()
     }
 
     #[pyo3(signature = (page, filter_data, page_class))]
@@ -222,9 +224,34 @@ pub fn py_run_job(
     let config = freeports_config::validate(overwrite(defaults(), overlay, ConfigSource::Cmd))
         .map_err(value_error)?;
 
-    let outcomes = job::run(&config).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-    output::write_results(&config, &outcomes).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-    Ok(())
+    // Il `.log.csv` accanto agli altri CSV, come fa il riferimento — la cartella di output, non la
+    // cwd in cui il binario lo scrive. È un file che i test d'integrazione confrontano, quindi
+    // deve esistere anche quando non ha nessuna riga da scrivere: `CsvLogLayer::create` ne emette
+    // subito l'intestazione.
+    //
+    // Il layer è installato **per chiamata** con `with_default` e non con `set_global_default`:
+    // un processo pytest chiama `run_job` una volta per formato, e un subscriber globale si può
+    // installare una sola volta per processo. `with_default` usa lo scope thread-local, che ha
+    // comunque la precedenza su un eventuale globale.
+    if config.out_profile != OutStructureMode::SingleFile {
+        std::fs::create_dir_all(&config.out_path).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+    }
+    let log_dir = if config.out_profile == OutStructureMode::SingleFile {
+        config.out_path.parent().unwrap_or(Path::new(".")).to_path_buf()
+    } else {
+        config.out_path.clone()
+    };
+    let csv_layer = CsvLogLayer::create(&log_dir.join(".log.csv")).map_err(value_error)?;
+    let subscriber = {
+        use tracing_subscriber::layer::SubscriberExt;
+        tracing_subscriber::registry().with(csv_layer)
+    };
+
+    tracing::subscriber::with_default(subscriber, || {
+        let outcomes = job::run(&config).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        output::write_results(&config, &outcomes).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        Ok(())
+    })
 }
 
 /// Shim Python del file di configurazione `freeports.yaml`.

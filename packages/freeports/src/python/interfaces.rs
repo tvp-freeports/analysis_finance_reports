@@ -114,23 +114,31 @@ macro_rules! standard_txt_blk {
         #[pyclass(name = $py_name, module = "freeports.interfaces", frozen)]
         pub struct $shim;
 
+        // `from_content`/`from_name` prendono `&self` benche' clippy si aspetti il contrario da un
+        // `from_*`: qui non sono costruttori del proprio tipo ma metodi di un oggetto *callable*
+        // registrato nel modulo (vedi il doc-comment del macro), e un metodo di un'istanza deve
+        // prendere `self`. Il nome e' quello del riferimento e non e' negoziabile.
+        #[allow(clippy::wrong_self_convention)]
         #[pymethods]
         impl $shim {
             fn __call__(
                 &self,
+                py: Python<'_>,
                 pdf_blk: PyRef<'_, PyPdfBlock>,
                 funds: &Bound<'_, PyAny>,
             ) -> PyResult<PyTextBlock> {
-                Ok(PyTextBlock::from($from_block(pdf_blk.inner().clone(), &match_funds(funds)?)))
+                let block = $from_block(pdf_blk.native(py)?, &match_funds(funds)?);
+                PyTextBlock::from_native(py, &block)
             }
 
-            fn from_content(&self, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
-                Ok(PyTextBlock::from($from_content(name, &match_funds(funds)?)))
+            fn from_content(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
+                let block = $from_content(name, &match_funds(funds)?);
+                PyTextBlock::from_native(py, &block)
             }
 
             /// Alias storico di `from_content`, mantenuto perché il riferimento lo esponeva.
-            fn from_name(&self, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
-                self.from_content(name, funds)
+            fn from_name(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
+                self.from_content(py, name, funds)
             }
         }
     };
@@ -154,18 +162,31 @@ standard_txt_blk!(
 #[pyclass(name = "StandardFundTextBlock", module = "freeports.interfaces", frozen)]
 pub struct PyStandardFundTextBlock;
 
+// Vedi la nota su `clippy::wrong_self_convention` nel macro `standard_txt_blk!`.
+#[allow(clippy::wrong_self_convention)]
 #[pymethods]
 impl PyStandardFundTextBlock {
-    fn __call__(&self, pdf_blk: PyRef<'_, PyPdfBlock>) -> PyTextBlock {
-        PyTextBlock::from(builders::standard_fund_txt_blk(pdf_blk.inner().clone()))
+    fn __call__(&self, py: Python<'_>, pdf_blk: PyRef<'_, PyPdfBlock>) -> PyResult<PyTextBlock> {
+        let block = builders::standard_fund_txt_blk(pdf_blk.native(py)?);
+        PyTextBlock::from_native(py, &block)
     }
 
-    fn from_content(&self, fund: &str) -> PyTextBlock {
-        PyTextBlock::from(builders::standard_fund_txt_blk_from_content(fund))
+    fn from_content(&self, py: Python<'_>, fund: &str) -> PyResult<PyTextBlock> {
+        PyTextBlock::from_native(py, &builders::standard_fund_txt_blk_from_content(fund))
     }
 
-    fn from_name(&self, fund: &str) -> PyTextBlock {
-        self.from_content(fund)
+    fn from_name(&self, py: Python<'_>, fund: &str) -> PyResult<PyTextBlock> {
+        self.from_content(py, fund)
+    }
+
+    /// Da un `MatchFund`, di cui prende il nome: e' la forma che i moduli d'autore usano quando
+    /// il fondo arriva dal confronto con le societa' bersaglio invece che da un blocco PDF.
+    fn from_matched_fund(&self, py: Python<'_>, fund: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
+        let name: String = match fund.extract::<PyRef<'_, crate::python::utils::text_filter::PyMatchFund>>() {
+            Ok(matched) => matched.inner().name().to_string(),
+            Err(_) => fund.getattr("name")?.extract()?,
+        };
+        self.from_content(py, &name)
     }
 }
 

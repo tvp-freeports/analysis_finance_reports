@@ -2,8 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
-from freeports._internals.input.companies_db import get_target_companies
-from freeports._internals.cli.conf_parse import FreeportsFileConfig
+from freeports.input import get_target_companies
+from freeports.cli import FreeportsFileConfig
 
 
 def get_default_input_db_path():

@@ -4,11 +4,8 @@ import textwrap
 from pathlib import Path
 from typing import List
 import dill
-from freeports import _native
-
-Algorithm = _native.core.Algorithm
-PdfBlock = _native.core.PdfBlock
-from freeports._internals.formats.repo.metadata import get_formats
+from freeports.core import Algorithm, PdfBlock
+from freeports.formats_repo import get_formats
 
 extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
 
@@ -66,12 +63,8 @@ def print_pdf_line_sets(page, strings, mode="structured"):
     if isinstance(strings, str):
         strings = [strings]
     first_string = True
-    from freeports._internals.formats.utils.pdf_extract.pdf_blks_acquire import (
-        pdflines_from_pagedict,
-    )
-    from freeports import _native
+    from freeports.utils.pdf_extract import PdfLineSelection, pdflines_from_pagedict
 
-    PdfLineSelection = _native.core.PdfLineSelection
     lines = pdflines_from_pagedict(page)
     for txt in strings:
         exl = PdfLineSelection.text(txt).select(lines)

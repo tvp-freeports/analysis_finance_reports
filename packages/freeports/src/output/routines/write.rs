@@ -567,8 +567,35 @@ fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Resul
     write_csv_table(path, &header, &rows)
 }
 
+/// Scrive `investments_add_infos.yaml`.
+///
+/// Il YAML e' costruito a mano, e non con `serde_yaml::to_string`, per una ragione sola: la data
+/// di scadenza deve uscire **fra apici** (`maturity: '2025-09-22'`). `serde_yaml` la emette come
+/// scalare nudo, e uno scalare della forma `AAAA-MM-GG` e' un *timestamp* per la YAML 1.1 che
+/// `yaml.safe_load` di PyYAML implementa: rileggendo il file, quel campo tornerebbe come
+/// `datetime.date` invece che come stringa. Il riferimento (PyYAML in scrittura) lo quotava, e i
+/// consumatori del file si aspettano una stringa -- una differenza invisibile a occhio ma non a
+/// chi rilegge.
+///
+/// Il resto del documento e' banale (una mappa di mappe di due scalari), quindi la scrittura
+/// manuale non rinuncia a niente: nessun campo puo' contenere caratteri da quotare o strutture
+/// annidate.
 fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditionalInfoRow>) -> Result<(), WriteFilesError> {
-    let yaml = serde_yaml::to_string(infos).map_err(|e| WriteFilesError::Yaml { path: path.display().to_string(), source: e })?;
+    if infos.is_empty() {
+        return std::fs::write(path, "{}\n").map_err(|e| io_err("write", path, e));
+    }
+    let mut yaml = String::new();
+    for (id, row) in infos {
+        yaml.push_str(&format!("{id}:\n"));
+        match &row.maturity {
+            Some(date) => yaml.push_str(&format!("  maturity: '{date}'\n")),
+            None => yaml.push_str("  maturity: null\n"),
+        }
+        match row.interest_rate {
+            Some(rate) => yaml.push_str(&format!("  interest_rate: {rate}\n")),
+            None => yaml.push_str("  interest_rate: null\n"),
+        }
+    }
     std::fs::write(path, yaml).map_err(|e| io_err("write", path, e))
 }
 
@@ -1020,7 +1047,7 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
-            assert_eq!(read(&out, "investments_add_infos.yaml"), "1:\n  maturity: 2028-03-30\n  interest_rate: 0.035\n");
+            assert_eq!(read(&out, "investments_add_infos.yaml"), "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n");
         }
 
         #[test]
@@ -1035,7 +1062,7 @@ mod tests {
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
             assert_eq!(
                 read(&out, "investments_add_infos.yaml"),
-                "1:\n  maturity: 2030-06-15\n  interest_rate: null\n2:\n  maturity: null\n  interest_rate: null\n"
+                "1:\n  maturity: '2030-06-15'\n  interest_rate: null\n2:\n  maturity: null\n  interest_rate: null\n"
             );
         }
     }
@@ -1163,7 +1190,7 @@ mod tests {
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
             let content = std::fs::read_to_string(out.join("investments").join("dicts.yaml")).unwrap();
-            assert_eq!(content, "1:\n  maturity: 2028-03-30\n  interest_rate: 0.035\n");
+            assert_eq!(content, "1:\n  maturity: '2028-03-30'\n  interest_rate: 0.035\n");
         }
 
         #[test]
