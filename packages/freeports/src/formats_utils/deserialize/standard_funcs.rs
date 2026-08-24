@@ -35,6 +35,54 @@
 //! (`metadata["page_type"]`), che solleva se la chiave manca del tutto — qui l'equivalente e'
 //! `metadata_or_fail("page_type")`: una chiave **assente** (non semplicemente valorizzata a
 //! `Null`) e' quindi un `Err`, non un `Ok(BlockValue::Null)`.
+//!
+//! ---
+//!
+//! **M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 8): le cinque funzioni restanti.**
+//! `output::classes` esiste ora, quindi queste sono costruibili — chiude anche M4.
+//!
+//! ```text
+//! pub struct DeserializeSfdrArticleStandard;
+//! impl DeserializeSfdrArticleStandard {
+//!     // Non filtra per `type_block` (come il riferimento): costruisce sempre.
+//!     pub fn call(&self, txt_blk: &TextBlock) -> Result<FundSfdrClassification, DeserializeStandardFuncsError>;
+//! }
+//!
+//! pub struct DeserializerManagmentCompanyStandard;      // legge MANAGEMENT_COMPANY -> ManagementCompany
+//! pub struct DeserializerInvestmentsManagerFromManco;   // legge MANAGEMENT_COMPANY -> InvestmentsManager
+//! pub struct DeserializerInvestmentsManagerStandard;    // legge INVESTMENTS_MANAGER -> InvestmentsManager
+//! // Le tre condividono un helper privato (`fn build_manager<T>(txt_blk, expected_type, ctor)`):
+//! // se `txt_blk.type_block != expected_type`, `Ok(None)`; altrimenti il `content` viene
+//! // collassato (`split_whitespace().collect::<Vec<_>>().join(" ")`, non un `.trim()`) e passato
+//! // insieme a `metadata["managed_funds"]` al costruttore dell'entità.
+//!
+//! pub struct DeserializerAssetsStandard { /* interpret_int: bool, date_converter: fn(&str) -> Result<Date, CastError> */ }
+//! impl Default for DeserializerAssetsStandard { /* interpret_int = true, date_converter = cast::to_date */ }
+//! impl DeserializerAssetsStandard {
+//!     pub fn new(interpret_int: bool, date_converter: fn(&str) -> Result<Date, CastError>) -> Self;
+//!     pub fn call(&self, txt_blk: &TextBlock) -> Result<FundAssets, DeserializeStandardFuncsError>;
+//! }
+//! ```
+//!
+//! **`DeserializerAssetsStandard` — dettagli del contratto:**
+//! - `fund`/`currency`/`tot_assets`/`net_assets`/`liabilities` sono obbligatori: chiave assente
+//!   (o `Null`) -> `MissingField`.
+//! - `currency`/`tot_assets`/`net_assets`/`liabilities` accettano **sia** un `BlockValue` già
+//!   tipizzato (`Currency`/`Int`/`Float`) **sia** una stringa da convertire (`cast::to_currency`,
+//!   `cast::to_int`/`cast::to_float` a seconda di `interpret_int`) — stesso pattern duale già
+//!   usato da `DeserializerInvestmentStandard::required` in questo file, non un'invenzione nuova:
+//!   `TextFilterAssetsStandard` (M8, `text_filter::standard_funcs`) produce già `currency` come
+//!   `BlockValue::Currency`, quindi il percorso "già tipizzato" è quello davvero esercitato dalla
+//!   pipeline reale, il percorso stringa resta per fixture costruite a mano/altri formati.
+//! - **Quirk verbatim da preservare**: le parentesi vengono tolte dal testo di `liabilities`
+//!   *prima* della conversione — `"(200)"` diventa `200.0`, non `-200.0`.
+//! - `date` è opzionale: assente o `Null` -> `None`; una stringa viene passata a
+//!   `date_converter`; un fallimento di conversione (quando la chiave c'è) fa perdere l'intera
+//!   riga (`LineParseFail`), non è un campo "provato" come in `DeserializerInvestmentStandard`.
+//! - **Giudizio non pienamente verificato, segnalato nel report**: il default proposto da
+//!   `agent-memory/M8-implementation-plan.md` §2 per `Default` (`interpret_int = true`) non è
+//!   mai stato verificato contro un formato reale in `analysis_finance_reports_formats` — è
+//!   un'estrapolazione dal default di `DeserializerInvestmentStandard`, non un fatto accertato.
 
 use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::classes::{BlockType, TextBlock};
@@ -42,7 +90,10 @@ use crate::core::pipeline::{DeserializePipe, Extracted, PipeError};
 use crate::core::schedule::PageClass;
 use crate::formats_utils::deserialize::cast::{self, CastError};
 use crate::output::classes::OutputClassError;
+use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
 use crate::output::classes::fund::Fund;
+use crate::output::classes::fund_assets::FundAssets;
+use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
 use crate::output::classes::investment::{Bond, Equity, InvestmentFields};
 
 #[derive(Debug, thiserror::Error)]
@@ -304,6 +355,238 @@ impl DeserializePipe for DeserializerInvestmentStandard {
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
         let extracted = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
         Ok(extracted.into_iter().collect())
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 8): le cinque funzioni restanti.
+// ---------------------------------------------------------------------------------------------
+
+/// Costruisce una [`FundSfdrClassification`] da un blocco `SFDR_ARTICLE`. Non filtra per
+/// `type_block` (come il riferimento): costruisce sempre, da `content` (nome del fondo) e
+/// `metadata["article"]` (obbligatorio).
+pub struct DeserializeSfdrArticleStandard;
+
+impl DeserializeSfdrArticleStandard {
+    pub fn call(
+        &self,
+        txt_blk: &TextBlock,
+    ) -> Result<FundSfdrClassification, DeserializeStandardFuncsError> {
+        let fund = txt_blk.content.str_or_fail("content")?;
+        let article = txt_blk.metadata_or_fail("article")?;
+        Ok(FundSfdrClassification::build(fund, article)?)
+    }
+}
+
+impl DeserializePipe for DeserializeSfdrArticleStandard {
+    fn name(&self) -> &str {
+        "DeserializeSfdrArticleStandard"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let classification = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(vec![Extracted::FundSfdrClassification(classification)])
+    }
+}
+
+/// Il corpo condiviso dai tre deserializzatori "manager" (`agent-memory/
+/// M8-implementation-plan.md` §2): se `txt_blk.type_block != expected_type`, `Ok(None)` — il pipe
+/// non ha nulla da dire; altrimenti il `content` viene collassato (`split_whitespace().join(" ")`,
+/// non un `.trim()` semplice) e passato insieme a `metadata["managed_funds"]` al costruttore
+/// dell'entità.
+fn build_manager<T>(
+    txt_blk: &TextBlock,
+    expected_type: &crate::core::classes::BlockType,
+    ctor: impl Fn(&BlockValue, &BlockValue) -> Result<T, OutputClassError>,
+) -> Result<Option<T>, DeserializeStandardFuncsError> {
+    if &txt_blk.type_block != expected_type {
+        return Ok(None);
+    }
+    let name = txt_blk.content.str_or_fail("content")?;
+    let normalized_name = name.split_whitespace().collect::<Vec<_>>().join(" ");
+    let managed_funds = txt_blk.metadata_or_fail("managed_funds")?;
+    Ok(Some(ctor(&BlockValue::from(normalized_name), managed_funds)?))
+}
+
+/// Legge un blocco `MANAGEMENT_COMPANY` e costruisce una [`ManagementCompany`].
+pub struct DeserializerManagmentCompanyStandard;
+
+impl DeserializerManagmentCompanyStandard {
+    pub fn call(
+        &self,
+        txt_blk: &TextBlock,
+    ) -> Result<Option<ManagementCompany>, DeserializeStandardFuncsError> {
+        build_manager(txt_blk, &BlockType::MANAGEMENT_COMPANY, ManagementCompany::build)
+    }
+}
+
+impl DeserializePipe for DeserializerManagmentCompanyStandard {
+    fn name(&self) -> &str {
+        "DeserializerManagmentCompanyStandard"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let manager = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(manager.map(Extracted::ManagementCompany).into_iter().collect())
+    }
+}
+
+/// Legge lo **stesso** blocco `MANAGEMENT_COMPANY`, ma costruisce un [`InvestmentsManager`]: due
+/// formati diversi usano l'uno o l'altro deserializzatore sullo stesso tipo di blocco, mai
+/// insieme sulla stessa pipeline.
+pub struct DeserializerInvestmentsManagerFromManco;
+
+impl DeserializerInvestmentsManagerFromManco {
+    pub fn call(
+        &self,
+        txt_blk: &TextBlock,
+    ) -> Result<Option<InvestmentsManager>, DeserializeStandardFuncsError> {
+        build_manager(txt_blk, &BlockType::MANAGEMENT_COMPANY, InvestmentsManager::build)
+    }
+}
+
+impl DeserializePipe for DeserializerInvestmentsManagerFromManco {
+    fn name(&self) -> &str {
+        "DeserializerInvestmentsManagerFromManco"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let manager = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(manager.map(Extracted::InvestmentsManager).into_iter().collect())
+    }
+}
+
+/// Come [`DeserializerInvestmentsManagerFromManco`], ma legge da un blocco `INVESTMENTS_MANAGER`
+/// (non `MANAGEMENT_COMPANY`).
+pub struct DeserializerInvestmentsManagerStandard;
+
+impl DeserializerInvestmentsManagerStandard {
+    pub fn call(
+        &self,
+        txt_blk: &TextBlock,
+    ) -> Result<Option<InvestmentsManager>, DeserializeStandardFuncsError> {
+        build_manager(txt_blk, &BlockType::INVESTMENTS_MANAGER, InvestmentsManager::build)
+    }
+}
+
+impl DeserializePipe for DeserializerInvestmentsManagerStandard {
+    fn name(&self) -> &str {
+        "DeserializerInvestmentsManagerStandard"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let manager = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(manager.map(Extracted::InvestmentsManager).into_iter().collect())
+    }
+}
+
+/// Costruisce un [`FundAssets`] da un blocco `RELEVANT_BLOCK` prodotto da
+/// `TextFilterAssetsStandard`.
+///
+/// `num_converter` è configurabile (`interpret_int` sceglie fra `cast::to_int`/`cast::to_float`,
+/// stesso pattern di `DeserializerInvestmentStandard`); `date_converter` è di default
+/// [`cast::to_date`] ma sostituibile.
+pub struct DeserializerAssetsStandard {
+    interpret_int: bool,
+    date_converter: fn(&str) -> Result<crate::commons::date::Date, CastError>,
+}
+
+impl Default for DeserializerAssetsStandard {
+    /// **Giudizio non pienamente verificato** (vedi il doc-comment di modulo): `interpret_int =
+    /// true` è un'estrapolazione dal default di `DeserializerInvestmentStandard`, non un fatto
+    /// verificato contro un formato reale.
+    fn default() -> Self {
+        Self { interpret_int: true, date_converter: cast::to_date }
+    }
+}
+
+impl DeserializerAssetsStandard {
+    pub fn new(
+        interpret_int: bool,
+        date_converter: fn(&str) -> Result<crate::commons::date::Date, CastError>,
+    ) -> Self {
+        Self { interpret_int, date_converter }
+    }
+
+    /// Converte importi con `num_converter`: già tipizzato è accettato direttamente, una stringa
+    /// passa per `cast::to_int`/`cast::to_float` a seconda di `interpret_int` — stesso pattern
+    /// duale di `DeserializerInvestmentStandard::required`.
+    fn cast_amount(&self, field: &'static str, value: &BlockValue) -> Result<f64, DeserializeStandardFuncsError> {
+        match value {
+            BlockValue::Str(text) => {
+                let result = if self.interpret_int { cast::to_int(text, false).map(|v| v as f64) } else { cast::to_float(text, false) };
+                result.map_err(|source| DeserializeStandardFuncsError::LineParseFail { field, source })
+            }
+            other => other
+                .as_float()
+                .or_else(|| other.as_int().map(|v| v as f64))
+                .ok_or(DeserializeStandardFuncsError::MissingField { field }),
+        }
+    }
+
+    /// Legge un campo obbligatorio dei metadati, riportando `MissingField` se assente o `Null`.
+    fn required_field<'a>(
+        md: &'a std::collections::BTreeMap<String, BlockValue>,
+        field: &'static str,
+    ) -> Result<&'a BlockValue, DeserializeStandardFuncsError> {
+        match md.get(field) {
+            None | Some(BlockValue::Null) => Err(DeserializeStandardFuncsError::MissingField { field }),
+            Some(value) => Ok(value),
+        }
+    }
+
+    pub fn call(&self, txt_blk: &TextBlock) -> Result<FundAssets, DeserializeStandardFuncsError> {
+        let md = &txt_blk.metadata;
+
+        let fund = Self::required_field(md, "fund")?.str_or_fail("fund")?.to_string();
+        let currency = match Self::required_field(md, "currency")? {
+            BlockValue::Currency(c) => BlockValue::Currency(*c),
+            BlockValue::Str(text) => BlockValue::from(
+                cast::to_currency(text)
+                    .map_err(|source| DeserializeStandardFuncsError::LineParseFail { field: "currency", source })?,
+            ),
+            _ => return Err(DeserializeStandardFuncsError::MissingField { field: "currency" }),
+        };
+
+        let tot_assets = self.cast_amount("tot_assets", Self::required_field(md, "tot_assets")?)?;
+        let net_assets = self.cast_amount("net_assets", Self::required_field(md, "net_assets")?)?;
+
+        // Stranezza da preservare verbatim: le parentesi vengono tolte dal testo *prima* della
+        // conversione, quindi "(200)" (convenzione contabile per negativo) diventa 200.0, non
+        // -200.0 — non è un bug da correggere, è il comportamento del riferimento.
+        let liabilities_raw = Self::required_field(md, "liabilities")?;
+        let liabilities = match liabilities_raw {
+            BlockValue::Str(text) => {
+                let cleaned = text.replace(['(', ')'], "");
+                self.cast_amount("liabilities", &BlockValue::Str(cleaned))?
+            }
+            other => self.cast_amount("liabilities", other)?,
+        };
+
+        let date = match md.get("date") {
+            None | Some(BlockValue::Null) => None,
+            Some(BlockValue::Date(d)) => Some(BlockValue::Date(*d)),
+            Some(value) => {
+                let text = value.str_or_fail("date")?;
+                Some(BlockValue::from(
+                    (self.date_converter)(text)
+                        .map_err(|source| DeserializeStandardFuncsError::LineParseFail { field: "date", source })?,
+                ))
+            }
+        };
+
+        Ok(FundAssets::build(fund, tot_assets, liabilities, net_assets, &currency, date.as_ref())?)
+    }
+}
+
+impl DeserializePipe for DeserializerAssetsStandard {
+    fn name(&self) -> &str {
+        "DeserializerAssetsStandard"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let assets = self.call(block).map_err(|e| e.into_pipe_error(self.name()))?;
+        Ok(vec![Extracted::FundAssets(assets)])
     }
 }
 
@@ -638,6 +921,413 @@ mod tests {
                 let mut md = base_metadata();
                 md.insert("market value".to_string(), BlockValue::from("nope"));
                 let err = DeserializerInvestmentStandard::default().deserialize(&equity_block(md)).unwrap_err();
+                assert!(!err.is_page_failure());
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // M8: le cinque funzioni deferite (`agent-memory/M8-implementation-plan.md` §2, passo 8),
+    // costruibili ora che `output::classes` esiste. `DeserializeSfdrArticleStandard` non filtra
+    // per `type_block` (come nel riferimento); le tre funzioni "manager" lo fanno, e condividono
+    // un helper privato comune (`build_manager`, vedi §2).
+    // -----------------------------------------------------------------------------------------
+
+    mod deserialize_sfdr_article {
+        use super::*;
+        use crate::commons::consts::SfdrArticle;
+
+        fn sfdr_block(content: BlockValue, article: Option<BlockValue>) -> TextBlock {
+            let metadata = article.map(|a| BTreeMap::from([("article".to_string(), a)])).unwrap_or_default();
+            TextBlock::from_content(BlockType::SFDR_ARTICLE, metadata, content)
+        }
+
+        #[test]
+        fn builds_a_classification_from_content_and_the_article_metadata() {
+            let blk = sfdr_block(BlockValue::from("Alpha Fund"), Some(BlockValue::from(SfdrArticle::Art8)));
+            let classification = DeserializeSfdrArticleStandard.call(&blk).unwrap();
+            assert_eq!(classification.fund, "Alpha Fund");
+            assert_eq!(classification.article.resolved(), Some(&SfdrArticle::Art8));
+        }
+
+        #[test]
+        fn a_missing_article_key_is_an_error() {
+            let blk = sfdr_block(BlockValue::from("Alpha Fund"), None);
+            assert!(DeserializeSfdrArticleStandard.call(&blk).is_err());
+        }
+
+        #[test]
+        fn a_non_string_content_is_an_error() {
+            let blk = sfdr_block(BlockValue::from(1i64), Some(BlockValue::from(SfdrArticle::Art6)));
+            assert!(DeserializeSfdrArticleStandard.call(&blk).is_err());
+        }
+
+        #[test]
+        fn a_wrongly_typed_article_is_an_error() {
+            let blk = sfdr_block(BlockValue::from("Alpha Fund"), Some(BlockValue::from("Art. 8")));
+            assert!(DeserializeSfdrArticleStandard.call(&blk).is_err());
+        }
+
+        mod as_a_deserialize_pipe {
+            use super::*;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_error_messages() {
+                assert_eq!(DeserializeSfdrArticleStandard.name(), "DeserializeSfdrArticleStandard");
+            }
+
+            #[test]
+            fn a_matching_block_produces_exactly_one_classification_result() {
+                let blk = sfdr_block(BlockValue::from("Alpha Fund"), Some(BlockValue::from(SfdrArticle::Art9)));
+                let out = DeserializeSfdrArticleStandard.deserialize(&blk).unwrap();
+                assert_eq!(out.len(), 1);
+                assert!(out[0].as_fund_sfdr_classification().is_some());
+            }
+
+            #[test]
+            fn a_missing_article_is_a_value_error_not_a_page_failure() {
+                let blk = sfdr_block(BlockValue::from("Alpha Fund"), None);
+                let err = DeserializeSfdrArticleStandard.deserialize(&blk).unwrap_err();
+                assert!(!err.is_page_failure());
+            }
+        }
+    }
+
+    /// I tre deserializzatori "manager" condividono lo stesso corpo (helper `build_manager`), a
+    /// meno del tipo di blocco atteso e dell'entità costruita — vedi il doc-comment di modulo.
+    mod manager_deserializers {
+        use super::*;
+        use std::collections::BTreeSet;
+
+        fn managed_funds_value(names: &[&str]) -> BlockValue {
+            BlockValue::Set(names.iter().map(|n| BlockValue::from(*n)).collect())
+        }
+
+        fn manager_block(
+            type_block: BlockType,
+            content: &str,
+            managed_funds: Option<BlockValue>,
+        ) -> TextBlock {
+            let metadata = managed_funds
+                .map(|f| BTreeMap::from([("managed_funds".to_string(), f)]))
+                .unwrap_or_default();
+            TextBlock::from_content(type_block, metadata, content)
+        }
+
+        mod management_company {
+            use super::*;
+
+            #[test]
+            fn builds_a_management_company_from_a_matching_block() {
+                let blk = manager_block(
+                    BlockType::MANAGEMENT_COMPANY,
+                    "  Acme   Manager  \n",
+                    Some(managed_funds_value(&["Fund A", "Fund B"])),
+                );
+                let manager = DeserializerManagmentCompanyStandard.call(&blk).unwrap().unwrap();
+                assert_eq!(manager.data.name, "Acme Manager");
+                assert_eq!(
+                    manager.data.managed_funds,
+                    BTreeSet::from(["Fund A".to_string(), "Fund B".to_string()])
+                );
+            }
+
+            #[test]
+            fn a_block_of_another_type_is_skipped_rather_than_rejected() {
+                let blk = manager_block(BlockType::INVESTMENTS_MANAGER, "Acme", Some(managed_funds_value(&[])));
+                assert!(DeserializerManagmentCompanyStandard.call(&blk).unwrap().is_none());
+            }
+
+            #[test]
+            fn a_skipped_block_produces_no_extracted_result() {
+                let blk = manager_block(BlockType::INVESTMENTS_MANAGER, "Acme", Some(managed_funds_value(&[])));
+                assert!(DeserializerManagmentCompanyStandard.deserialize(&blk).unwrap().is_empty());
+            }
+
+            #[test]
+            fn a_missing_managed_funds_key_is_an_error() {
+                let blk = manager_block(BlockType::MANAGEMENT_COMPANY, "Acme", None);
+                assert!(DeserializerManagmentCompanyStandard.call(&blk).is_err());
+            }
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_error_messages() {
+                assert_eq!(DeserializerManagmentCompanyStandard.name(), "DeserializerManagmentCompanyStandard");
+            }
+        }
+
+        /// Stesso tipo di blocco di `DeserializerManagmentCompanyStandard` (`MANAGEMENT_COMPANY`),
+        /// ma costruisce un `InvestmentsManager`.
+        mod investments_manager_from_manco {
+            use super::*;
+
+            #[test]
+            fn builds_an_investments_manager_from_a_management_company_block() {
+                let blk = manager_block(
+                    BlockType::MANAGEMENT_COMPANY,
+                    "Acme Manager",
+                    Some(managed_funds_value(&["Fund A"])),
+                );
+                let manager = DeserializerInvestmentsManagerFromManco.call(&blk).unwrap().unwrap();
+                assert_eq!(manager.data.name, "Acme Manager");
+            }
+
+            #[test]
+            fn an_investments_manager_typed_block_is_skipped() {
+                let blk = manager_block(
+                    BlockType::INVESTMENTS_MANAGER,
+                    "Acme Manager",
+                    Some(managed_funds_value(&["Fund A"])),
+                );
+                assert!(DeserializerInvestmentsManagerFromManco.call(&blk).unwrap().is_none());
+            }
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_error_messages() {
+                assert_eq!(
+                    DeserializerInvestmentsManagerFromManco.name(),
+                    "DeserializerInvestmentsManagerFromManco"
+                );
+            }
+        }
+
+        /// Come sopra, ma legge da un blocco `INVESTMENTS_MANAGER` (non `MANAGEMENT_COMPANY`).
+        mod investments_manager_standard {
+            use super::*;
+
+            #[test]
+            fn builds_an_investments_manager_from_an_investments_manager_block() {
+                let blk = manager_block(
+                    BlockType::INVESTMENTS_MANAGER,
+                    "Acme Manager",
+                    Some(managed_funds_value(&["Fund A"])),
+                );
+                let manager = DeserializerInvestmentsManagerStandard.call(&blk).unwrap().unwrap();
+                assert_eq!(manager.data.name, "Acme Manager");
+            }
+
+            #[test]
+            fn a_management_company_typed_block_is_skipped() {
+                let blk = manager_block(
+                    BlockType::MANAGEMENT_COMPANY,
+                    "Acme Manager",
+                    Some(managed_funds_value(&["Fund A"])),
+                );
+                assert!(DeserializerInvestmentsManagerStandard.call(&blk).unwrap().is_none());
+            }
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_error_messages() {
+                assert_eq!(DeserializerInvestmentsManagerStandard.name(), "DeserializerInvestmentsManagerStandard");
+            }
+
+            #[test]
+            fn a_matching_block_produces_exactly_one_extracted_result() {
+                let blk = manager_block(
+                    BlockType::INVESTMENTS_MANAGER,
+                    "Acme Manager",
+                    Some(managed_funds_value(&["Fund A"])),
+                );
+                let out = DeserializerInvestmentsManagerStandard.deserialize(&blk).unwrap();
+                assert_eq!(out.len(), 1);
+                assert!(out[0].as_investments_manager().is_some());
+            }
+        }
+    }
+
+    mod deserializer_assets {
+        use super::*;
+        use crate::commons::consts::Currency;
+        use crate::commons::date::Date;
+
+        fn assets_metadata(overrides: &[(&str, BlockValue)]) -> BTreeMap<String, BlockValue> {
+            let mut md = BTreeMap::from([
+                ("fund".to_string(), BlockValue::from("Alpha Fund")),
+                ("currency".to_string(), BlockValue::from("EUR")),
+                ("tot_assets".to_string(), BlockValue::from("1000")),
+                ("net_assets".to_string(), BlockValue::from("800")),
+                ("liabilities".to_string(), BlockValue::from("200")),
+            ]);
+            for (k, v) in overrides {
+                md.insert((*k).to_string(), v.clone());
+            }
+            md
+        }
+
+        fn assets_block(metadata: BTreeMap<String, BlockValue>) -> TextBlock {
+            TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, "")
+        }
+
+        mod required_fields {
+            use super::*;
+
+            #[test]
+            fn builds_fund_assets_from_a_fully_populated_block() {
+                let assets =
+                    DeserializerAssetsStandard::default().call(&assets_block(assets_metadata(&[]))).unwrap();
+                assert_eq!(assets.fund, "Alpha Fund");
+                assert_eq!(assets.currency.resolved(), Some(&Currency::EUR));
+                assert_eq!(assets.tot_assets.into_inner(), 1000.0);
+                assert_eq!(assets.net_assets.into_inner(), 800.0);
+                assert_eq!(assets.liabilities.into_inner(), 200.0);
+            }
+
+            #[test]
+            fn a_missing_fund_key_is_an_error() {
+                let mut md = assets_metadata(&[]);
+                md.remove("fund");
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn a_missing_currency_key_is_an_error() {
+                let mut md = assets_metadata(&[]);
+                md.remove("currency");
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn a_missing_tot_assets_key_is_an_error() {
+                let mut md = assets_metadata(&[]);
+                md.remove("tot_assets");
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn a_missing_net_assets_key_is_an_error() {
+                let mut md = assets_metadata(&[]);
+                md.remove("net_assets");
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn a_missing_liabilities_key_is_an_error() {
+                let mut md = assets_metadata(&[]);
+                md.remove("liabilities");
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+
+            #[test]
+            fn an_already_typed_currency_is_accepted_directly() {
+                let md = assets_metadata(&[("currency", BlockValue::from(Currency::USD))]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert_eq!(assets.currency.resolved(), Some(&Currency::USD));
+            }
+
+            #[test]
+            fn an_unknown_currency_text_is_an_error() {
+                let md = assets_metadata(&[("currency", BlockValue::from("XYZ"))]);
+                assert!(DeserializerAssetsStandard::default().call(&assets_block(md)).is_err());
+            }
+        }
+
+        mod num_converter {
+            use super::*;
+
+            #[test]
+            fn interprets_amounts_as_integers_by_default() {
+                let md = assets_metadata(&[("tot_assets", BlockValue::from("1.000"))]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert_eq!(assets.tot_assets.into_inner(), 1000.0);
+            }
+
+            #[test]
+            fn interprets_amounts_as_floats_when_configured_so() {
+                let md = assets_metadata(&[
+                    ("tot_assets", BlockValue::from("1.000,5")),
+                    ("net_assets", BlockValue::from("800,5")),
+                ]);
+                let deserializer = DeserializerAssetsStandard::new(false, cast::to_date);
+                let assets = deserializer.call(&assets_block(md)).unwrap();
+                assert_eq!(assets.tot_assets.into_inner(), 1000.5);
+            }
+
+            #[test]
+            fn an_unreadable_amount_loses_the_whole_line() {
+                let md = assets_metadata(&[("tot_assets", BlockValue::from("not a number"))]);
+                let err = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap_err();
+                assert!(matches!(err, DeserializeStandardFuncsError::LineParseFail { field: "tot_assets", .. }));
+            }
+        }
+
+        /// La stranezza da preservare verbatim (`agent-memory/M8-implementation-plan.md` §2): le
+        /// parentesi vengono tolte da `liabilities` **prima** della conversione, quindi
+        /// `"(200)"` diventa `200.0`, non `-200.0`.
+        mod liabilities_parentheses_quirk {
+            use super::*;
+
+            #[test]
+            fn parenthesized_liabilities_become_positive_not_negative() {
+                let md = assets_metadata(&[("liabilities", BlockValue::from("(200)"))]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert_eq!(assets.liabilities.into_inner(), 200.0);
+            }
+
+            #[test]
+            fn liabilities_without_parentheses_are_unaffected() {
+                let md = assets_metadata(&[("liabilities", BlockValue::from("200"))]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert_eq!(assets.liabilities.into_inner(), 200.0);
+            }
+        }
+
+        mod date_field {
+            use super::*;
+
+            #[test]
+            fn an_absent_date_key_becomes_none_not_an_error() {
+                let md = assets_metadata(&[]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert!(assets.date.is_none());
+            }
+
+            #[test]
+            fn a_null_date_becomes_none_too() {
+                let md = assets_metadata(&[("date", BlockValue::Null)]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert!(assets.date.is_none());
+            }
+
+            #[test]
+            fn a_textual_date_is_converted_with_the_configured_converter() {
+                let md = assets_metadata(&[("date", BlockValue::from("2024-12-31"))]);
+                let assets = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap();
+                assert_eq!(
+                    assets.date.and_then(|d| d.resolved().copied()),
+                    Some(Date::new(2024, 12, 31).unwrap())
+                );
+            }
+
+            #[test]
+            fn an_unreadable_date_loses_the_whole_line() {
+                let md = assets_metadata(&[("date", BlockValue::from("not a date"))]);
+                let err = DeserializerAssetsStandard::default().call(&assets_block(md)).unwrap_err();
+                assert!(matches!(err, DeserializeStandardFuncsError::LineParseFail { field: "date", .. }));
+            }
+        }
+
+        mod as_a_deserialize_pipe {
+            use super::*;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_error_messages() {
+                assert_eq!(DeserializerAssetsStandard::default().name(), "DeserializerAssetsStandard");
+            }
+
+            #[test]
+            fn a_matching_block_produces_exactly_one_extracted_result() {
+                let out = DeserializerAssetsStandard::default()
+                    .deserialize(&assets_block(assets_metadata(&[])))
+                    .unwrap();
+                assert_eq!(out.len(), 1);
+                assert!(out[0].as_fund_assets().is_some());
+            }
+
+            #[test]
+            fn a_missing_required_field_is_a_value_error_not_a_page_failure() {
+                let mut md = assets_metadata(&[]);
+                md.remove("fund");
+                let err = DeserializerAssetsStandard::default().deserialize(&assets_block(md)).unwrap_err();
                 assert!(!err.is_page_failure());
             }
         }

@@ -29,7 +29,12 @@ use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::page::PageError;
 use crate::core::promise_resolution::PromiseMap;
 use crate::core::schedule::PageClass;
+use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
 use crate::output::classes::fund::Fund;
+use crate::output::classes::fund_assets::FundAssets;
+use crate::output::classes::fund_change_name::{FundMerge, FundRename};
+use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
+use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
 use crate::output::classes::investment::{Bond, Equity};
 use crate::formats_utils::pdf_extract::commons::CommonsError;
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
@@ -192,10 +197,10 @@ impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for PromiseEntri
 /// il "ricomponi i risultati per tipo" di `run_documents` diventa un `match` che il compilatore
 /// verifica (`PLAN.md` §5.4).
 ///
-/// **Ancora parziale.** M5 l'aveva aperto con le sole `Promises`/`PageClass`; M7 aggiunge le tre
+/// **Ora completo.** M5 l'aveva aperto con le sole `Promises`/`PageClass`; M7 ha aggiunto le tre
 /// entità che la decisione D-M7-2 dell'utente ha anticipato da M8 (`Fund`, `Equity`, `Bond`, le
-/// uniche che i pipe `deserialize` standard sappiano già costruire). Le sette varianti restanti di
-/// `PLAN.md` §5.4 arrivano con il resto di `output::classes` in M8.
+/// uniche che i pipe `deserialize` standard sapessero già costruire). M8 aggiunge le sette
+/// varianti restanti di `PLAN.md` §5.4, chiudendo il modulo.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Extracted {
     /// Una partecipazione azionaria su una società bersaglio.
@@ -204,6 +209,20 @@ pub enum Extracted {
     Bond(Bond),
     /// Un fondo, con il solo nome.
     Fund(Fund),
+    /// Il patrimonio di un fondo a una certa data.
+    FundAssets(FundAssets),
+    /// La classificazione SFDR (art. 6/8/9) dichiarata di un fondo.
+    FundSfdrClassification(FundSfdrClassification),
+    /// Un indicatore ESG di un fondo.
+    FundEsgIndicator(FundEsgIndicator),
+    /// La rinomina di un fondo.
+    FundRename(FundRename),
+    /// La fusione di un fondo in un altro.
+    FundMerge(FundMerge),
+    /// La società di gestione di un fondo.
+    ManagementCompany(ManagementCompany),
+    /// Il gestore degli investimenti di un fondo.
+    InvestmentsManager(InvestmentsManager),
     /// Le promesse depositate dal pipe, da versare nella multimappa di risoluzione.
     Promises(PromiseEntries),
     /// L'esito della pipeline di classificazione: la class della pagina, o `None` se il pipe non
@@ -252,6 +271,62 @@ impl Extracted {
     pub fn as_bond(&self) -> Option<&Bond> {
         match self {
             Extracted::Bond(bond) => Some(bond),
+            _ => None,
+        }
+    }
+
+    /// Il patrimonio del fondo, se questo risultato ne è uno.
+    pub fn as_fund_assets(&self) -> Option<&FundAssets> {
+        match self {
+            Extracted::FundAssets(assets) => Some(assets),
+            _ => None,
+        }
+    }
+
+    /// La classificazione SFDR, se questo risultato ne è una.
+    pub fn as_fund_sfdr_classification(&self) -> Option<&FundSfdrClassification> {
+        match self {
+            Extracted::FundSfdrClassification(classification) => Some(classification),
+            _ => None,
+        }
+    }
+
+    /// L'indicatore ESG, se questo risultato ne è uno.
+    pub fn as_fund_esg_indicator(&self) -> Option<&FundEsgIndicator> {
+        match self {
+            Extracted::FundEsgIndicator(indicator) => Some(indicator),
+            _ => None,
+        }
+    }
+
+    /// La rinomina, se questo risultato ne è una.
+    pub fn as_fund_rename(&self) -> Option<&FundRename> {
+        match self {
+            Extracted::FundRename(rename) => Some(rename),
+            _ => None,
+        }
+    }
+
+    /// La fusione, se questo risultato ne è una.
+    pub fn as_fund_merge(&self) -> Option<&FundMerge> {
+        match self {
+            Extracted::FundMerge(merge) => Some(merge),
+            _ => None,
+        }
+    }
+
+    /// La società di gestione, se questo risultato ne è una.
+    pub fn as_management_company(&self) -> Option<&ManagementCompany> {
+        match self {
+            Extracted::ManagementCompany(company) => Some(company),
+            _ => None,
+        }
+    }
+
+    /// Il gestore degli investimenti, se questo risultato ne è uno.
+    pub fn as_investments_manager(&self) -> Option<&InvestmentsManager> {
+        match self {
+            Extracted::InvestmentsManager(manager) => Some(manager),
             _ => None,
         }
     }
@@ -518,6 +593,221 @@ mod tests {
             let data = FilterData::EMPTY;
             assert!(data.target_companies().is_empty());
             assert!(data.previous().is_empty());
+        }
+    }
+
+    /// M8: le sette varianti d'entità che `output::classes` aggiunge (`agent-memory/
+    /// M8-implementation-plan.md` §3 passo 7), più i loro accessori `as_*` e un `match`
+    /// esaustivo che ne previene la regressione silenziosa.
+    mod new_entity_variants {
+        use super::*;
+        use crate::commons::consts::{Currency, SfdrArticle};
+        use crate::commons::date::Date;
+        use crate::output::classes::assets_manager::{InvestmentsManager, ManagementCompany};
+        use crate::output::classes::fund_assets::FundAssets;
+        use crate::output::classes::fund_change_name::{FundMerge, FundRename};
+        use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
+        use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
+        use crate::output::classes::investment::InvestmentFields;
+        use std::collections::BTreeSet;
+
+        fn equity() -> Equity {
+            Equity::build(InvestmentFields::new(
+                "Acme Corp",
+                "Acme",
+                BlockValue::from("Alpha Fund"),
+                BlockValue::from(1000.0),
+                BlockValue::from(Currency::EUR),
+            ))
+            .expect("fixed, valid fixture")
+        }
+
+        fn bond() -> Bond {
+            Bond::build(
+                InvestmentFields::new(
+                    "Acme Corp",
+                    "Acme",
+                    BlockValue::from("Alpha Fund"),
+                    BlockValue::from(1000.0),
+                    BlockValue::from(Currency::EUR),
+                ),
+                None,
+                None,
+            )
+            .expect("fixed, valid fixture")
+        }
+
+        fn fund_assets() -> FundAssets {
+            FundAssets::build("Alpha Fund", 100.0, 40.0, 60.0, &BlockValue::from(Currency::EUR), None)
+                .expect("fixed, valid fixture")
+        }
+
+        fn fund_sfdr_classification() -> FundSfdrClassification {
+            FundSfdrClassification::build("Alpha Fund", &BlockValue::from(SfdrArticle::Art8))
+                .expect("fixed, valid fixture")
+        }
+
+        fn fund_esg_indicator() -> FundEsgIndicator {
+            FundEsgIndicator::build(&BlockValue::from("Alpha Fund"), "GHG intensity", "12.3")
+                .expect("fixed, valid fixture")
+        }
+
+        fn fund_rename() -> FundRename {
+            FundRename::build("Old Fund", "New Fund", &BlockValue::from(Date::new(2025, 1, 1).unwrap()))
+                .expect("fixed, valid fixture")
+        }
+
+        fn fund_merge() -> FundMerge {
+            FundMerge::build("Old Fund", "New Fund", &BlockValue::from(Date::new(2025, 1, 1).unwrap()))
+                .expect("fixed, valid fixture")
+        }
+
+        fn management_company() -> ManagementCompany {
+            ManagementCompany::build(&BlockValue::from("Acme AM"), &BlockValue::Set(BTreeSet::new()))
+                .expect("fixed, valid fixture")
+        }
+
+        fn investments_manager() -> InvestmentsManager {
+            InvestmentsManager::build(&BlockValue::from("Acme IM"), &BlockValue::Set(BTreeSet::new()))
+                .expect("fixed, valid fixture")
+        }
+
+        /// Un esemplare per ciascuna delle dodici varianti di `Extracted`, nell'ordine di
+        /// dichiarazione di `PLAN.md` §5.4. Le prove di esaustività sotto iterano su questa lista,
+        /// stesso schema di `BlockValue::tests::one_of_each` (M2).
+        fn one_of_each() -> Vec<Extracted> {
+            vec![
+                Extracted::Equity(equity()),
+                Extracted::Bond(bond()),
+                Extracted::Fund(Fund::new("Alpha Fund")),
+                Extracted::FundAssets(fund_assets()),
+                Extracted::FundSfdrClassification(fund_sfdr_classification()),
+                Extracted::FundEsgIndicator(fund_esg_indicator()),
+                Extracted::FundRename(fund_rename()),
+                Extracted::FundMerge(fund_merge()),
+                Extracted::ManagementCompany(management_company()),
+                Extracted::InvestmentsManager(investments_manager()),
+                Extracted::Promises(PromiseEntries::new()),
+                Extracted::PageClass(None),
+            ]
+        }
+
+        mod accessors {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn as_fund_assets_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::FundAssets(_));
+                    assert_eq!(e.as_fund_assets().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_fund_sfdr_classification_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::FundSfdrClassification(_));
+                    assert_eq!(e.as_fund_sfdr_classification().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_fund_esg_indicator_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::FundEsgIndicator(_));
+                    assert_eq!(e.as_fund_esg_indicator().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_fund_rename_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::FundRename(_));
+                    assert_eq!(e.as_fund_rename().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_fund_merge_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::FundMerge(_));
+                    assert_eq!(e.as_fund_merge().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_management_company_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::ManagementCompany(_));
+                    assert_eq!(e.as_management_company().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            #[test]
+            fn as_investments_manager_returns_some_only_for_its_own_variant() {
+                for e in one_of_each() {
+                    let expect_some = matches!(e, Extracted::InvestmentsManager(_));
+                    assert_eq!(e.as_investments_manager().is_some(), expect_some, "{e:?}");
+                }
+            }
+
+            /// Le sette varianti nuove non devono mai soddisfare gli accessori di M5
+            /// (`as_fund`/`as_equity`/`as_bond`/`as_promises`/`as_page_class`).
+            #[test]
+            fn the_five_pre_existing_accessors_reject_every_new_variant_too() {
+                for e in one_of_each() {
+                    assert_eq!(e.as_fund().is_some(), matches!(e, Extracted::Fund(_)), "{e:?}");
+                    assert_eq!(e.as_equity().is_some(), matches!(e, Extracted::Equity(_)), "{e:?}");
+                    assert_eq!(e.as_bond().is_some(), matches!(e, Extracted::Bond(_)), "{e:?}");
+                    assert_eq!(e.as_promises().is_some(), matches!(e, Extracted::Promises(_)), "{e:?}");
+                    assert_eq!(e.as_page_class().is_some(), matches!(e, Extracted::PageClass(_)), "{e:?}");
+                }
+            }
+        }
+
+        /// Il `match` esaustivo — senza `_ =>` — su tutte e dodici le varianti: se una tredicesima
+        /// venisse aggiunta senza toccare questo test, il compilatore lo segnalerebbe qui.
+        mod exhaustive_match {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn label(e: &Extracted) -> &'static str {
+                match e {
+                    Extracted::Equity(_) => "equity",
+                    Extracted::Bond(_) => "bond",
+                    Extracted::Fund(_) => "fund",
+                    Extracted::FundAssets(_) => "fund_assets",
+                    Extracted::FundSfdrClassification(_) => "fund_sfdr_classification",
+                    Extracted::FundEsgIndicator(_) => "fund_esg_indicator",
+                    Extracted::FundRename(_) => "fund_rename",
+                    Extracted::FundMerge(_) => "fund_merge",
+                    Extracted::ManagementCompany(_) => "management_company",
+                    Extracted::InvestmentsManager(_) => "investments_manager",
+                    Extracted::Promises(_) => "promises",
+                    Extracted::PageClass(_) => "page_class",
+                }
+            }
+
+            #[test]
+            fn every_variant_matches_its_own_arm_in_declaration_order() {
+                let expected = [
+                    "equity",
+                    "bond",
+                    "fund",
+                    "fund_assets",
+                    "fund_sfdr_classification",
+                    "fund_esg_indicator",
+                    "fund_rename",
+                    "fund_merge",
+                    "management_company",
+                    "investments_manager",
+                    "promises",
+                    "page_class",
+                ];
+                let labels: Vec<&str> = one_of_each().iter().map(label).collect();
+                assert_eq!(labels, expected);
+            }
         }
     }
 }

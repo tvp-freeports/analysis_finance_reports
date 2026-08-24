@@ -1,12 +1,14 @@
 //! Le entità che i pipe `deserialize` producono: ciò che finisce nei CSV di output.
 //!
-//! **Stato: parziale.** `PLAN.md` §11 assegna l'intero modulo a M8; M7 ne anticipa due file —
-//! [`fund`] e [`investment`] — per **decisione dell'utente D-M7-2** (2026-08-23,
+//! **Stato: completo (M8).** `PLAN.md` §11 assegna l'intero modulo a M8; M7 ne aveva anticipato
+//! due file — [`fund`] e [`investment`] — per **decisione dell'utente D-M7-2** (2026-08-23,
 //! `agent-memory/M7-implementation-plan.md` §0): senza `Fund`/`Equity`/`Bond` i due deserializer
 //! `DeserializerFundStandard`/`DeserializerInvestmentStandard` non esistono, e senza quelli il
 //! segmento `deserialize` della pipeline structured `investments` non è costruibile — cioè la
 //! fusione dei tre livelli, che è *il* focus di test di M7, non sarebbe verificabile end-to-end
-//! su una pipeline reale. Gli altri cinque file restano stub fino a M8.
+//! su una pipeline reale. M8 aggiunge le cinque entità restanti —
+//! [`assets_manager`]/[`fund_assets`]/[`fund_change_name`]/[`fund_esg_indicator`]/
+//! [`fund_sfdr_classification`] — chiudendo il modulo.
 //!
 //! **Un solo enum d'errore per tutto `output::classes`** ([`OutputClassError`]) invece di uno per
 //! sottomodulo: le validazioni di campo sono le stesse per tutte le entità (Pydantic le
@@ -48,6 +50,17 @@ pub enum OutputClassError {
     /// Un campo numerico è fuori dal dominio ammesso.
     #[error("field '{field}': {constraint}, got {value}")]
     OutOfRange { field: &'static str, constraint: FloatConstraint, value: String },
+    /// L'equazione contabile di [`fund_assets::FundAssets`] non torna, oltre la tolleranza
+    /// `1e-4`. Non è un [`FloatConstraint`] perché non è un vincolo su un singolo campo, ma
+    /// incrociato fra tre.
+    #[error(
+        "unbalanced fund assets: liabilities ({liabilities}) + net_assets ({net_assets}) != tot_assets ({tot_assets})"
+    )]
+    UnbalancedFundAssets {
+        tot_assets: ordered_float::OrderedFloat<f64>,
+        liabilities: ordered_float::OrderedFloat<f64>,
+        net_assets: ordered_float::OrderedFloat<f64>,
+    },
 }
 
 /// I domini numerici che Pydantic esprimeva come annotazioni di tipo.

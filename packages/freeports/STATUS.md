@@ -11,11 +11,11 @@ considerare il lavoro finito. Il piano è in `PLAN.md`; qui c'è solo *dove siam
 | M1 | `commons` | ✅ chiusa | `date`, `geometry`, `sets` (+ `ast_simple`/`ast_smart`/`indipendent_atoms`), `consts`, `flag_expr`, `i18n`; 407 test verdi, `cargo clippy` pulito; `api::consts` abilitato in `lib.rs` |
 | M2 | `core` dati | ✅ chiusa | `normalization`, `promise`, `classes`(+`value`), `promise_resolution`, `promisable`, `match_fund`; 617 test verdi, `cargo clippy` pulito; `api::core` abilitato in `api.rs` |
 | M3 | `pdf_extract` | ✅ chiusa | `pdf_line`, `relative`, `select::{pdf_line,relative}` (+`pdf_line::{area,font,font_size,text}`), `tabularizer::{collapse,coordinates}`, `position`, `commons`; 969 test verdi, `cargo clippy` pulito salvo un warning inevitabile in test verbatim (vedi sotto); `api::utils::pdf_extract` abilitato in `api.rs` per la parte già pronta |
-| M4 | `text_filter` + `deserialize` | 🟡 in corso | Fatto: `deserialize::cast`, `text_filter::matcher`, `text_filter::standard_txt_blk_builders`, `TextFilterPageClassifyStandard`, `extract_currency_from_text`, `DeserializerPageClassifyStandard` (M4) e `TextFilterInvestmentsStandard` + `PdfBlocksTable` (aggiunto a chiusura di M5). M7 ha aggiunto `DeserializerFundStandard` e `DeserializerInvestmentStandard`, le cui entità sono state anticipate da M8 (D-M7-2). **Restano deferite 8 funzioni**, che dipendono dal resto di `output::classes` (M8) |
+| M4 | `text_filter` + `deserialize` | ✅ chiusa | Chiusa da M8: le 8 funzioni deferite (`DeserializeSfdrArticleStandard`, `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`, `DeserializerInvestmentsManagerStandard`, `DeserializerAssetsStandard`, `TextFilterSfdrArticleStandard`, `TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`) sono ora implementate — vedi la voce di chiusura M8 sotto per dettagli |
 | M5 | Motore (pipeline/algorithm) | ✅ chiusa | `core::page`, `core::schedule`, `core::pipeline::{data,segment,bundle}`, `core::pipeline::Pipeline`, `core::algorithm`; 1365 test unitari + 10 d'integrazione (`tests/algorithm_end_to_end.rs`) verdi, `cargo clippy --all-targets` senza warning nuovi; `api::core` estesa con `Pipeline`/`Algorithm` e il resto del motore. `Algorithm::load` resta a M7 (legge il repo formati) |
 | M6 | `input::document` | ✅ chiusa | `input::document::{page_dict, selection}` (+ modulo radice); 1417 test unitari + 10 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api::utils::pdf_extract` estesa con le 4 funzioni di §9 rimaste da M3, nuovo `api::input` |
 | M7 | `formats_repo` | ✅ chiusa | `id_format`, `metadata`, `orchestration`, `structured::{tables,page_classify,investments}`, `semistructured::{formats_mapping,args,native}`, `unstructured::{loader,py_pipe}`, `Algorithm::load`; piu' `formats_utils::pdf_extract::standard_funcs` (8 pipe, D-M7-1) e `output::classes::{fund,investment}` anticipati da M8 (D-M7-2). 1828 test unitari + 32 d'integrazione verdi, `cargo clippy --all-targets` senza warning nuovi; `api` estesa con `standard_funcs`, `formats_repo`, `output` e `get_table_coordinates`/`TablePosMeasureUnit` |
-| M8 | `output` | ⬜ da fare | |
+| M8 | `output` | ✅ chiusa | `output::classes::{fund_change_name, fund_esg_indicator, fund_sfdr_classification, fund_assets, assets_manager}`, le 7 varianti restanti di `core::pipeline::Extracted`, le 8 funzioni deferite di M4, `output::files_schema`, `output::routines::{accumulate, write}`. I 3 bug di fixture nei test scritti da `test-writer` (vedi la nota di chiusura sotto) sono stati corretti; `cargo test`: 2092 passati/0 falliti (lib) + 34 d'integrazione (10+22+2) passati; `cargo clippy --all-targets`: solo il warning preesistente di `select/pdf_line/area.rs` (M3) |
 | M9 | `cli` | ⬜ da fare | |
 | M10 | Chiusura e confronto | ⬜ da fare | |
 
@@ -478,6 +478,19 @@ da `PLAN.md`, va annotata qui con la data e riportata nella sezione giusta di `P
   moduli sintetici che non importano `freeports` — ma **blocca M10**, che deve confrontare
   l'output con `freeports_core` su un formato reale: o si anticipa una parte dei binding, o M10
   confronta solo formati puramente structured/semistructured. *Da decidere prima di M10.*
+- **`OutStructureMode::{SingleFile, Structured}` e `OutFlags::compressed` restano a M9** (M8, Q1.2
+  confermata dall'utente 2026-08-23): `output::routines::write` li rifiuta con un
+  `WriteFilesError` tipizzato (`UnsupportedProfile`/`CompressionNotSupported`), senza toccare il
+  filesystem. Da implementare quando M9 introdurrà davvero un flag da riga di comando che li
+  seleziona.
+- ~~**Tre test di M8 scritti da `test-writer` restavano falliti**~~ — **corretti il 2026-08-24**
+  (fixture, non codice di produzione): un fixture di `DeserializerAssetsStandard` che rompeva
+  l'equazione contabile di `FundAssets` senza volerlo, un `expected` di
+  `TextFilterManagmentCompanyStandard` costruito con nomi non maiuscolizzati (mentre
+  `Fund::name()` lo è sempre, come nel riferimento), e un test di `TextFilterSfdrArticleStandard`
+  il cui commento assumeva una rimozione di prefisso ancorata all'inizio della stringa mentre sia
+  il riferimento sia il doc-comment del modulo specificano `str::replace` non ancorato. Analisi e
+  correzione complete nella voce di chiusura M8 sopra. `cargo test` è verde senza riserve.
 
 ## Domande aperte
 
@@ -506,3 +519,102 @@ entità di `output::classes` ancora inesistenti (`DeserializeSfdrArticleStandard
 restano da implementare non appena M8 esiste. Erano dieci: `DeserializerFundStandard` e
 `DeserializerInvestmentStandard` sono state scritte in M7, insieme alle due entità che servivano
 loro (D-M7-2). **`output::classes` resta l'unica dipendenza che tiene aperta M4.**
+
+- 2026-08-24 — M8 chiusa (`agent-memory/M8-implementation-plan.md`), e con essa M4 (le 8 funzioni
+  deferite sopra sono ora implementate). Le tre decisioni **Q1.1/Q1.2/Q2** dell'utente (2026-08-23,
+  vedi `agent-memory/M8-implementation-plan.md` §0) sono riportate in `PLAN.md` §13: `output::routines`
+  possiede `OutStructureMode`/`OutFlags` (non `cli::conf_parse`); solo il profilo `Regular` è
+  implementato (`SingleFile`/`Structured`/`OutFlags::compressed` sono `WriteFilesError` tipizzati,
+  non un panic, deferiti a M9 — annotato come voce aperta trasversale, vedi sotto); `api::output`
+  riesporta i nomi reali (`FundRename`/`FundMerge`, `FundSfdrClassification`, `FundEsgIndicator`),
+  non la lettera di `PLAN.md` §9.
+
+  **Tre test scritti da `test-writer` restano falliti — analizzati a fondo, non modificabili senza
+  toccare codice di test (vietato), segnalati qui per la revisione di `test-writer`/dell'utente:**
+
+  1. `formats_utils::deserialize::standard_funcs::tests::deserializer_assets::num_converter::
+     interprets_amounts_as_floats_when_configured_so` — il fixture cambia solo `tot_assets` (a
+     `"1.000,5"` → `1000.5`) lasciando `net_assets`/`liabilities` ai default (`800`/`200`, che
+     sommano a `1000`): l'equazione contabile di `FundAssets::build` (`liabilities + net_assets ==
+     tot_assets`, tolleranza `1e-4`, dallo stesso identico vincolo verificato dal riferimento
+     Python/`freeports_core` — non un'invenzione di questo porting) rifiuta lo sbilanciamento di
+     `0.5`. Il test si aspetta `.unwrap()` con successo: sembra un fixture che verifica solo la
+     conversione numerica senza accorgersi che rompe l'invariante contabile verificato altrove
+     nello stesso file (es. `rejects_a_difference_clearly_outside_the_tolerance` in
+     `output/classes/fund_assets.rs`).
+  2. `formats_utils::text_filter::standard_funcs::tests::text_filter_managment_company::
+     builds_the_same_block_as_the_standard_txt_blk_helper` — confronta l'output reale (che usa
+     `Fund::name()`, cioè il nome normalizzato e **maiuscolizzato** — `"ALPHA FUND"`/`"BETA FUND"`,
+     esattamente come fa anche il riferimento Python in `get_funds`/`item.getattr("name")`) con un
+     `expected` costruito da `MatchFund::new("Alpha Fund")`/`MatchFund::new("Beta Fund")` (case
+     originale, non maiuscolizzato). Un `Fund` non espone in nessun modo il nome nella sua
+     scrittura originale (per design, M2/M7: `Fund::name()` è sempre maiuscolo); l'`expected` del
+     test sembra costruito senza questo vincolo in mente.
+  3. `formats_utils::text_filter::standard_funcs::tests::text_filter_sfdr_article::
+     prefix_stripping::literal_prefixes_are_applied_before_regex_prefixes` — il commento del test
+     ragiona assumendo che la rimozione dei prefissi letterali sia **ancorata all'inizio della
+     stringa** ("il letterale non troverebbe più nulla da togliere all'inizio"), ma sia il
+     doc-comment del modulo sia il riferimento Python (`fund_name = fund_name.replace(prefix.as_str(),
+     "")`, verificato in `packages/freeports_core/src/formats_utils/text_filter/standard_funcs.rs`)
+     specificano una sostituzione **non ancorata** (`str::replace`, ovunque la sottostringa
+     compaia). Con la semantica corretta (e verificata contro il riferimento) il contenuto finale è
+     `"Acme Fund"` (che matcha correttamente il fondo-investimento noto), non `"Prefix: Acme
+     Fund"` come asserito dal test.
+
+  In tutti e tre i casi l'implementazione è stata verificata contro il riferimento
+  `freeports_core` (dove esiste) e contro gli altri test dello stesso file (che restano verdi):
+  nessuna modifica di produzione risolverebbe questi tre casi senza violare un invariante
+  verificato altrove o divergere dal riferimento senza una ragione documentata.
+
+  **Correzione (2026-08-24)**: i tre fixture sono stati corretti (non il codice di produzione),
+  dopo un riscontro indipendente della sessione orchestratrice contro `freeports_core` che ha
+  confermato l'analisi dell'`implementer` in tutti e tre i casi:
+  1. Il fixture di `interprets_amounts_as_floats_when_configured_so` ora imposta anche
+     `net_assets` a `"800,5"` (oltre a `tot_assets = "1.000,5"`), così l'equazione contabile
+     torna bilanciata a `1000.5` mentre resta esercitato il percorso di conversione a float.
+  2. `builds_the_same_block_as_the_standard_txt_blk_helper` ora deriva il proprio set `expected`
+     chiamando `MatchFund::new` sul `Fund::name()` reale degli stessi `Fund` usati in `previous`
+     (non da letterali indipendenti), cosí non può più divergere dalla scrittura maiuscola che
+     l'implementazione produce davvero.
+  3. `literal_prefixes_are_applied_before_regex_prefixes` è stato riprogettato con un caso che
+     dimostra davvero la precedenza (letterale non ancorato "Foo " + regex ancorata "^Extra Foo "
+     su input "Extra Foo Bar" → "Extra Bar"), invece di un caso in cui i due ordini di
+     applicazione producevano per caso lo stesso risultato scorretto.
+
+  `cargo test`: 2092 test unitari passati (0 falliti) + 34 d'integrazione (10+22+2) verdi;
+  `cargo clippy --all-targets`: solo il warning preesistente e documentato di
+  `select/pdf_line/area.rs` (M3), nessun altro. M8 è ✅ chiusa senza riserve.
+
+  **Decisioni prese durante l'implementazione (non richiedevano conferma):**
+  - `output::routines` split in `accumulate.rs`/`write.rs` (più `routines.rs` come solo `pub mod`
+    + re-export), come raccomandato da `agent-memory/M8-implementation-plan.md` §1: un enum
+    d'errore per fase (`AccumulateError`/`WriteFilesError`) invece di un unico enum gigante.
+  - `output::routines::write` scrive ogni CSV con intestazione **sempre presente** anche a zero
+    righe: il crate `csv` scrive l'intestazione solo alla prima `.serialize()`, quindi mai se non
+    ci sono righe — risolto disabilitando l'auto-intestazione (`has_headers(false)`) e scrivendola
+    esplicitamente prima di ogni riga.
+  - `investments_add_infos.yaml` usa `serde_yaml` direttamente su
+    `TransformedTables::additional_infos` (un `BTreeMap`, che deriva `Serialize`): l'output
+    coincide byte-per-byte con quello preteso dai test senza bisogno di riprodurre a mano il
+    formato PyYAML del riferimento (non più un requisito di fedeltà, `files_schema`/`routines` non
+    sono moduli verbatim).
+  - `output::routines::accumulate` conferma leggendo il riferimento che `assets_managers` è
+    davvero un'unica tabella con un solo indice per nome condiviso fra `ManagementCompany` e
+    `InvestmentsManager` (verificato contro `Accumulator::manager_index` di `freeports_core`, non
+    assunto).
+  - `TextFilterSfdrArticleStandard::new`/`TextFilterAssetsStandard::new` validano i pattern regex
+    a costruzione (`StandardFuncsError::InvalidPattern`), non a chiamata; `TextFilterAssetsStandard`
+    valida anche che `date_regex` abbia esattamente un gruppo catturante a costruzione
+    (`Regex::captures_len()`), evitando un panic su `.at(1)` a runtime.
+  - `DeserializerAssetsStandard::default()`'s `interpret_int = true` resta **non verificato**
+    contro un formato reale in `analysis_finance_reports_formats` (già segnalato dal test-writer
+    nel doc-comment del modulo): non risolto in questa sessione, resta un'estrapolazione dal
+    default di `DeserializerInvestmentStandard`.
+
+  Stato finale verificato: `cargo test` — 2089 test unitari passati, **3 falliti** (vedi sopra,
+  bug di fixture non di produzione), 0 ignorati; più 34 test d'integrazione (10
+  `algorithm_end_to_end.rs` + 22 `formats_repo_loading.rs` + 2 nuovi `output_routines.rs`) tutti
+  verdi; `cargo clippy --all-targets` — il warning preesistente e documentato di
+  `select/pdf_line/area.rs` (M3), più un secondo warning (`cloned_ref_to_slice_refs`) dentro uno
+  dei 3 test sopra elencati, anch'esso non correggibile senza toccare codice di test; `grep -rn
+  "todo!()" src/ tests/` — nessun risultato.

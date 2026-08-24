@@ -57,18 +57,86 @@
 //! Nessuna delle due passate individua mai una sotto-stringa che non sia delimitata da un confine
 //! di parola vero e proprio: una tripletta di lettere maiuscole incollata ad altre lettere o
 //! cifre adiacenti (es. `"EURUSD"`, `"100EUR"`) non conta.
+//!
+//! ---
+//!
+//! **M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 9): le tre funzioni restanti.**
+//!
+//! ```text
+//! pub struct TextFilterSfdrArticleStandard { /* prefissi letterali + regex, demand_investment_funds_match */ }
+//! impl TextFilterSfdrArticleStandard {
+//!     pub fn new(prefix_strings: Vec<String>, prefix_patterns: Vec<String>, demand_investment_funds_match: bool)
+//!         -> Result<Self, StandardFuncsError>;
+//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
+//! }
+//!
+//! pub struct TextFilterManagmentCompanyStandard;
+//! impl TextFilterManagmentCompanyStandard {
+//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
+//! }
+//!
+//! pub struct TextFilterAssetsStandard { /* date_regex: Option<Regex>, remove_from_fund_regexes: Vec<Regex> */ }
+//! impl TextFilterAssetsStandard {
+//!     pub fn new(date_regex: Option<&str>, remove_from_fund_regexes: Vec<String>) -> Result<Self, StandardFuncsError>;
+//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
+//! }
+//! ```
+//!
+//! **`TextFilterSfdrArticleStandard::call`**: prende il **primo** blocco di `pdf_blks` (lista
+//! vuota -> [`StandardFuncsError::NoPdfBlocks`], già esistente — stesso errore di
+//! `TextFilterPageClassifyStandard`, non un errore "non fatale" come `ExpectedTextBlockNotFound`,
+//! perché nel riferimento nessuno lo cattura), legge `content` (nome fondo), toglie i prefissi
+//! letterali (`str::replace`) e poi quelli a pattern (`Regex::replace_all` con `""`), in
+//! quest'ordine. Costruisce un `MatchFund` dal nome ripulito; verifica appartenenza all'insieme
+//! dei fondi-investimento (`Equity`/`Bond` **risolti** — `.data.fund.resolved()` — visti in
+//! `data.previous()`) **solo se** `demand_investment_funds_match` è vero. Se il match non serve o
+//! è soddisfatto: un blocco `SFDR_ARTICLE` con `content` = nome ripulito, `metadata` = quella del
+//! primo blocco pdf (porta già `"article"`, scritta da `PdfExtractSfdrArticleStandard`, M7).
+//! Altrimenti: lista vuota, non un errore.
+//!
+//! **`TextFilterManagmentCompanyStandard::call`**: costruisce l'insieme dei `MatchFund` dai
+//! `Fund` **risolti** (`.name()`) visti in `data.previous()`; cerca il **primo** blocco
+//! `MANAGEMENT_COMPANY` fra `pdf_blks` (nessuno trovato ->
+//! [`StandardFuncsError::ExpectedTextBlockNotFound`], variante già esistente); chiama
+//! `standard_management_company_txt_blk` (M4) — non lo reimplementa.
+//!
+//! **`TextFilterAssetsStandard::call`**: itera **tutti** i `pdf_blks` (nessun filtro per
+//! `type_block`: si presume che il segmento gli passi solo `RELEVANT_BLOCK` prodotti da
+//! `PdfExtractAssetsStandard`), legge `metadata["fund"]` (obbligatorio), applica
+//! `remove_from_fund_regexes` (0+ pattern, sostituzione con `""`, applicati **prima** del
+//! confronto), verifica appartenenza all'insieme dei `Fund` risolti di `data.previous()` — un
+//! fondo non presente **non produce nulla per quel blocco** (non un errore, il ciclo continua con
+//! gli altri blocchi). Se presente: applica opzionalmente `date_regex` su `metadata["date"]` (un
+//! solo gruppo catturante — validato **a costruzione**, non a chiamata: un pattern con zero o più
+//! di un gruppo è un [`StandardFuncsError::InvalidPattern`] al momento di `new`, non un panic su
+//! `.at(1)` a runtime); un valore che non matcha affatto il pattern configurato è invece
+//! [`StandardFuncsError::DateRegexMismatch`] a chiamata. Converte `metadata["currency"]` con
+//! [`extract_currency_from_text`] (già in questo file) e la riscrive come `BlockValue::Currency`
+//! — coerente con la decisione di `DeserializerAssetsStandard` (M8,
+//! `formats_utils::deserialize::standard_funcs`) di accettare una valuta già tipizzata come
+//! percorso primario. Il blocco risultante è `TextBlock::from_content(RELEVANT_BLOCK, metadata,
+//! "")`, come nel riferimento.
+//!
+//! **Due varianti nuove di [`StandardFuncsError`]**, che l'implementer deve aggiungere (il
+//! test-writer non tocca l'enum esistente): `InvalidPattern { pattern: String, message: String }`
+//! (pattern regex non valido, o con un numero di gruppi catturanti sbagliato, a costruzione) e
+//! `DateRegexMismatch { text: String }` (il pattern è valido ma non matcha il valore a chiamata).
 
 use once_cell::sync::Lazy;
 use onig::Regex;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::commons::consts::Currency;
 use crate::core::classes::value::BlockValue;
 use crate::core::classes::{BlockType, PdfBlock, TextBlock};
+use crate::core::match_fund::MatchFund;
 use crate::core::page::PageError;
-use crate::core::pipeline::{FilterData, PipeError, TextFilterPipe};
+use crate::core::pipeline::{Extracted, FilterData, PipeError, TextFilterPipe};
 use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, match_company};
-use crate::formats_utils::text_filter::standard_txt_blk_builders::standard_fund_txt_blk;
+use crate::formats_utils::text_filter::standard_txt_blk_builders::{
+    standard_fund_txt_blk, standard_management_company_txt_blk,
+};
+use crate::output::classes::fund::Fund;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StandardFuncsError {
@@ -99,6 +167,13 @@ pub enum StandardFuncsError {
     Match { message: String },
     #[error("inconsistent investments table: {message}")]
     InconsistentTable { message: String },
+    /// Un pattern regex non e' valido, o non ha il numero di gruppi catturanti richiesto —
+    /// verificato a **costruzione**, non a chiamata.
+    #[error("invalid pattern '{pattern}': {message}")]
+    InvalidPattern { pattern: String, message: String },
+    /// Il pattern e' valido ma non matcha il valore dato a chiamata.
+    #[error("value '{text}' does not match the configured date pattern")]
+    DateRegexMismatch { text: String },
 }
 
 impl StandardFuncsError {
@@ -758,6 +833,217 @@ static DATE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
     .collect()
 });
 
+/// Compila un pattern regex fornito da un repo formati, traducendo un pattern non valido in un
+/// errore tipizzato invece di un `panic!` — a differenza dei pattern fissi di libreria sopra
+/// (`PERC_REGEXES`/`DATE_REGEXES`/...), questi arrivano da configurazione esterna.
+fn compile_pattern(pattern: &str) -> Result<Regex, StandardFuncsError> {
+    Regex::new(pattern).map_err(|e| StandardFuncsError::InvalidPattern {
+        pattern: pattern.to_string(),
+        message: e.description().to_string(),
+    })
+}
+
+/// I fondi visti come `Fund` **risolti** (`.name()`) negli step precedenti dello schedule, come
+/// insieme di [`MatchFund`] — condiviso da `TextFilterManagmentCompanyStandard` e
+/// `TextFilterAssetsStandard`.
+fn resolved_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
+    data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).map(MatchFund::new).collect()
+}
+
+/// Il pipe `text_filter` per la classificazione SFDR (art. 6/8/9) di un fondo.
+///
+/// Vedi il doc-comment del modulo per l'algoritmo esatto: prende il **primo** blocco pdf, toglie
+/// gli eventuali prefissi letterali (ancorati all'inizio della stringa, come un vero prefisso —
+/// non una sostituzione di sottostringa ovunque compaia) e poi quelli a pattern, in
+/// quest'ordine; verifica opzionalmente l'appartenenza all'insieme dei fondi-investimento visti
+/// negli step precedenti.
+pub struct TextFilterSfdrArticleStandard {
+    prefix_strings: Vec<String>,
+    prefix_patterns: Vec<Regex>,
+    demand_investment_funds_match: bool,
+}
+
+impl TextFilterSfdrArticleStandard {
+    pub fn new(
+        prefix_strings: Vec<String>,
+        prefix_patterns: Vec<String>,
+        demand_investment_funds_match: bool,
+    ) -> Result<Self, StandardFuncsError> {
+        let prefix_patterns =
+            prefix_patterns.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { prefix_strings, prefix_patterns, demand_investment_funds_match })
+    }
+
+    /// I nomi (risolti) dei fondi-investimento (`Equity`/`Bond`) visti negli step precedenti.
+    fn resolved_investment_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
+        data.previous()
+            .iter()
+            .filter_map(|e| e.as_equity().map(|eq| &eq.data).or_else(|| e.as_bond().map(|b| &b.data)))
+            .filter_map(|inv| inv.fund.resolved())
+            .map(MatchFund::new)
+            .collect()
+    }
+
+    pub fn call(
+        &self,
+        pdf_blks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let first = pdf_blks.first().ok_or(StandardFuncsError::NoPdfBlocks)?;
+        let mut fund_name = first.content.str_or_fail("content")?.to_string();
+
+        // Prefissi letterali: `str::replace` — una sostituzione della sottostringa ovunque
+        // compaia, esattamente come il riferimento (`fund_name.replace(prefix.as_str(), "")`),
+        // applicati in ordine prima dei prefissi a pattern.
+        for prefix in &self.prefix_strings {
+            fund_name = fund_name.replace(prefix.as_str(), "");
+        }
+        for pattern in &self.prefix_patterns {
+            fund_name = pattern.replace_all(&fund_name, "");
+        }
+
+        if self.demand_investment_funds_match {
+            let known = Self::resolved_investment_funds(data);
+            if !known.contains(&MatchFund::new(&fund_name)) {
+                return Ok(Vec::new());
+            }
+        }
+
+        Ok(vec![TextBlock::from_content(BlockType::SFDR_ARTICLE, first.metadata.clone(), fund_name)])
+    }
+}
+
+impl TextFilterPipe for TextFilterSfdrArticleStandard {
+    fn name(&self) -> &str {
+        "TextFilterSfdrArticleStandard"
+    }
+
+    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
+
+/// Il pipe `text_filter` per la società di gestione: cerca il **primo** blocco
+/// `MANAGEMENT_COMPANY` e delega a [`standard_management_company_txt_blk`] (M4) — non lo
+/// reimplementa.
+pub struct TextFilterManagmentCompanyStandard;
+
+impl TextFilterManagmentCompanyStandard {
+    pub fn call(
+        &self,
+        pdf_blks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let block = pdf_blks
+            .iter()
+            .find(|b| b.type_block == BlockType::MANAGEMENT_COMPANY)
+            .ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?;
+        let funds = resolved_funds(data);
+        Ok(vec![standard_management_company_txt_blk(block.clone(), &funds)])
+    }
+}
+
+impl TextFilterPipe for TextFilterManagmentCompanyStandard {
+    fn name(&self) -> &str {
+        "TextFilterManagmentCompanyStandard"
+    }
+
+    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
+
+/// Il pipe `text_filter` per il patrimonio di un fondo. Itera **tutti** i `pdf_blks` (nessun
+/// filtro per `type_block`: si presume che il segmento gli passi solo `RELEVANT_BLOCK` prodotti
+/// da `PdfExtractAssetsStandard`).
+pub struct TextFilterAssetsStandard {
+    date_regex: Option<Regex>,
+    remove_from_fund_regexes: Vec<Regex>,
+}
+
+impl TextFilterAssetsStandard {
+    pub fn new(
+        date_regex: Option<&str>,
+        remove_from_fund_regexes: Vec<String>,
+    ) -> Result<Self, StandardFuncsError> {
+        let date_regex = date_regex
+            .map(|p| {
+                let compiled = compile_pattern(p)?;
+                if compiled.captures_len() != 1 {
+                    return Err(StandardFuncsError::InvalidPattern {
+                        pattern: p.to_string(),
+                        message: format!(
+                            "expected exactly one capturing group, found {}",
+                            compiled.captures_len()
+                        ),
+                    });
+                }
+                Ok(compiled)
+            })
+            .transpose()?;
+        let remove_from_fund_regexes =
+            remove_from_fund_regexes.iter().map(|p| compile_pattern(p)).collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { date_regex, remove_from_fund_regexes })
+    }
+
+    pub fn call(
+        &self,
+        pdf_blks: &[PdfBlock],
+        data: &FilterData<'_>,
+    ) -> Result<Vec<TextBlock>, StandardFuncsError> {
+        let known_funds = resolved_funds(data);
+        let mut out = Vec::new();
+
+        for blk in pdf_blks {
+            let raw_fund = blk.metadata_or_fail("fund")?.str_or_fail("fund")?;
+            let mut fund_name = raw_fund.to_string();
+            for pattern in &self.remove_from_fund_regexes {
+                fund_name = pattern.replace_all(&fund_name, "");
+            }
+
+            if !known_funds.contains(&MatchFund::new(&fund_name)) {
+                continue;
+            }
+
+            let mut metadata = blk.metadata.clone();
+            metadata.insert("fund".to_string(), BlockValue::from(fund_name));
+
+            if let Some(date_regex) = &self.date_regex
+                && let Some(date_value) = metadata.get("date").cloned()
+            {
+                let text = date_value.str_or_fail("date")?;
+                let captured = date_regex
+                    .captures(text)
+                    .and_then(|caps| caps.at(1))
+                    .ok_or_else(|| StandardFuncsError::DateRegexMismatch { text: text.to_string() })?;
+                metadata.insert("date".to_string(), BlockValue::from(captured));
+            }
+
+            let currency_text = metadata.get("currency").ok_or_else(|| {
+                StandardFuncsError::Value(crate::core::classes::value::BlockValueError::MissingField {
+                    field: "currency".to_string(),
+                })
+            })?;
+            let currency = extract_currency_from_text(currency_text.str_or_fail("currency")?)?;
+            metadata.insert("currency".to_string(), BlockValue::from(currency));
+
+            out.push(TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, ""));
+        }
+
+        Ok(out)
+    }
+}
+
+impl TextFilterPipe for TextFilterAssetsStandard {
+    fn name(&self) -> &str {
+        "TextFilterAssetsStandard"
+    }
+
+    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
+        self.call(blocks, data).map_err(|e| e.into_pipe_error(self.name()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1393,6 +1679,454 @@ mod tests {
                 .unwrap_err();
             assert!(matches!(err, PipeError::Value { .. }));
             assert!(!err.is_page_failure());
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // M8: le tre funzioni deferite (`agent-memory/M8-implementation-plan.md` §2, passo 9).
+    // -----------------------------------------------------------------------------------------
+
+    mod text_filter_sfdr_article {
+        use super::*;
+        use crate::commons::consts::Currency as Cur;
+        use crate::output::classes::investment::{Equity, InvestmentFields};
+
+        fn sfdr_pdf_block(content: &str) -> PdfBlock {
+            let metadata = BTreeMap::from([("article".to_string(), BlockValue::from("Art. 8"))]);
+            PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, content)
+        }
+
+        fn investment_fund(fund: &str) -> Extracted {
+            Extracted::Equity(
+                Equity::build(InvestmentFields::new(
+                    "Acme Corp",
+                    "Acme",
+                    BlockValue::from(fund),
+                    BlockValue::from(1.0),
+                    BlockValue::from(Cur::EUR),
+                ))
+                .unwrap(),
+            )
+        }
+
+        mod construction {
+            use super::*;
+
+            #[test]
+            fn empty_prefixes_are_accepted() {
+                assert!(TextFilterSfdrArticleStandard::new(vec![], vec![], true).is_ok());
+            }
+
+            #[test]
+            fn an_invalid_regex_prefix_is_rejected_at_construction() {
+                assert!(TextFilterSfdrArticleStandard::new(vec![], vec!["(unterminated".to_string()], true).is_err());
+            }
+        }
+
+        mod prefix_stripping {
+            use super::*;
+
+            #[test]
+            fn a_literal_prefix_is_stripped() {
+                let filter = TextFilterSfdrArticleStandard::new(vec!["Prefix: ".to_string()], vec![], true).unwrap();
+                let previous = vec![investment_fund("Acme Fund")];
+                let blks = vec![sfdr_pdf_block("Prefix: Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
+            }
+
+            #[test]
+            fn a_regex_prefix_is_stripped_too() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec!["^Prefix \\d+: ".to_string()], true).unwrap();
+                let previous = vec![investment_fund("Acme Fund")];
+                let blks = vec![sfdr_pdf_block("Prefix 42: Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Acme Fund"));
+            }
+
+            #[test]
+            fn literal_prefixes_are_applied_before_regex_prefixes() {
+                // Il letterale è un `str::replace` **non ancorato** (verificato contro il
+                // riferimento congelato: `fund_name.replace(prefix.as_str(), "")`), quindi rimuove
+                // "Foo " ovunque compaia, non solo in testa. Con questo input l'ordine conta
+                // davvero: se il letterale va per primo toglie "Foo " a metà stringa, lasciando
+                // "Extra Bar" — su cui la regex ancorata "^Extra Foo " non trova più nulla da
+                // togliere (il suo "Foo " è già sparito). Se la regex andasse per prima, invece,
+                // matcherebbe l'intero prefisso "Extra Foo " sull'input originale e lo
+                // rimuoverebbe, lasciando solo "Bar". I due ordini producono risultati diversi,
+                // a dimostrazione che il letterale va davvero applicato per primo.
+                let filter = TextFilterSfdrArticleStandard::new(
+                    vec!["Foo ".to_string()],
+                    vec!["^Extra Foo ".to_string()],
+                    true,
+                )
+                .unwrap();
+                let previous = vec![investment_fund("Extra Bar")];
+                let blks = vec![sfdr_pdf_block("Extra Foo Bar")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("Extra Bar"));
+            }
+        }
+
+        mod investment_fund_match {
+            use super::*;
+
+            #[test]
+            fn a_fund_present_among_resolved_investments_matches() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
+                let previous = vec![investment_fund("Acme Fund")];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+
+            #[test]
+            fn a_fund_not_present_produces_nothing_when_match_is_demanded() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
+                let previous = vec![investment_fund("Someone Else Fund")];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn no_match_is_demanded_when_the_flag_is_false() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let previous: Vec<Extracted> = vec![];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+
+            #[test]
+            fn an_unresolved_investment_fund_does_not_count_as_a_match() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], true).unwrap();
+                let pending_equity = Extracted::Equity(
+                    Equity::build(InvestmentFields::new(
+                        "Acme Corp",
+                        "Acme",
+                        crate::core::promise::Promise::new("fund-id").into(),
+                        BlockValue::from(1.0),
+                        BlockValue::from(Cur::EUR),
+                    ))
+                    .unwrap(),
+                );
+                let previous = vec![pending_equity];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert!(out.is_empty());
+            }
+        }
+
+        mod pdf_blocks_and_metadata {
+            use super::*;
+
+            #[test]
+            fn an_empty_list_of_pdf_blocks_is_an_error() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let previous: Vec<Extracted> = vec![];
+                assert!(matches!(
+                    filter.call(&[], &FilterData::Previous(&previous)),
+                    Err(StandardFuncsError::NoPdfBlocks)
+                ));
+            }
+
+            #[test]
+            fn only_the_first_pdf_block_is_used() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let previous: Vec<Extracted> = vec![];
+                let blks = vec![sfdr_pdf_block("First Fund"), sfdr_pdf_block("Second Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].content.as_str(), Some("First Fund"));
+            }
+
+            #[test]
+            fn the_metadata_of_the_first_block_is_carried_over() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let previous: Vec<Extracted> = vec![];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].metadata.get("article"), Some(&BlockValue::from("Art. 8")));
+            }
+
+            #[test]
+            fn the_result_is_typed_as_sfdr_article() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let previous: Vec<Extracted> = vec![];
+                let blks = vec![sfdr_pdf_block("Acme Fund")];
+                let out = filter.call(&blks, &FilterData::Previous(&previous)).unwrap();
+                assert_eq!(out[0].type_block, BlockType::SFDR_ARTICLE);
+            }
+        }
+
+        mod as_a_text_filter_pipe {
+            use super::*;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                assert_eq!(filter.name(), "TextFilterSfdrArticleStandard");
+            }
+
+            #[test]
+            fn an_empty_pdf_block_list_is_a_fatal_error_not_a_page_failure() {
+                let filter = TextFilterSfdrArticleStandard::new(vec![], vec![], false).unwrap();
+                let err = filter.filter(&[], &FilterData::EMPTY).unwrap_err();
+                assert!(!err.is_page_failure());
+            }
+        }
+    }
+
+    mod text_filter_managment_company {
+        use super::*;
+        use crate::output::classes::fund::Fund;
+
+        fn manco_block(content: &str) -> PdfBlock {
+            PdfBlock::bare(BlockType::MANAGEMENT_COMPANY, content)
+        }
+
+        #[test]
+        fn builds_the_same_block_as_the_standard_txt_blk_helper() {
+            let block = manco_block("Acme AM");
+            let previous = vec![Extracted::Fund(Fund::new("Alpha Fund")), Extracted::Fund(Fund::new("Beta Fund"))];
+            let via_filter = TextFilterManagmentCompanyStandard
+                .call(std::slice::from_ref(&block), &FilterData::Previous(&previous))
+                .unwrap();
+
+            // `Fund::name()` normalizza e maiuscolizza (`ALPHA FUND`, non `Alpha Fund`): il set
+            // atteso va derivato dagli stessi `Fund` di `previous`, non da letterali indipendenti,
+            // altrimenti diverge dalla scrittura che `TextFilterManagmentCompanyStandard` produce
+            // davvero in `managed_funds` (che usa `MatchFund::name()`, il nome come scritto).
+            let funds: BTreeSet<MatchFund> = previous
+                .iter()
+                .map(|extracted| MatchFund::new(extracted.as_fund().unwrap().name().unwrap()))
+                .collect();
+            let expected = standard_management_company_txt_blk(block, &funds);
+            assert_eq!(via_filter, vec![expected]);
+        }
+
+        #[test]
+        fn no_management_company_block_is_an_expected_text_block_not_found_error() {
+            let previous: Vec<Extracted> = vec![];
+            let blks = vec![PdfBlock::bare(BlockType::TABLE_BODY, "irrelevant")];
+            assert!(matches!(
+                TextFilterManagmentCompanyStandard.call(&blks, &FilterData::Previous(&previous)),
+                Err(StandardFuncsError::ExpectedTextBlockNotFound)
+            ));
+        }
+
+        #[test]
+        fn an_empty_list_of_pdf_blocks_is_also_an_expected_text_block_not_found_error() {
+            let previous: Vec<Extracted> = vec![];
+            assert!(matches!(
+                TextFilterManagmentCompanyStandard.call(&[], &FilterData::Previous(&previous)),
+                Err(StandardFuncsError::ExpectedTextBlockNotFound)
+            ));
+        }
+
+        #[test]
+        fn the_first_management_company_block_is_used_when_several_are_present() {
+            let previous: Vec<Extracted> = vec![];
+            let blks = vec![manco_block("First"), manco_block("Second")];
+            let out =
+                TextFilterManagmentCompanyStandard.call(&blks, &FilterData::Previous(&previous)).unwrap();
+            assert_eq!(out[0].content.as_str(), Some("First"));
+        }
+
+        #[test]
+        fn an_unresolved_fund_does_not_contribute_to_managed_funds() {
+            let previous = vec![Extracted::Fund(
+                Fund::from_value(&BlockValue::Promise(crate::core::promise::Promise::new("id"))).unwrap(),
+            )];
+            let block = manco_block("Acme AM");
+            let out =
+                TextFilterManagmentCompanyStandard.call(&[block], &FilterData::Previous(&previous)).unwrap();
+            let managed_funds = out[0].metadata.get("managed_funds").unwrap().as_set().unwrap();
+            assert!(managed_funds.is_empty());
+        }
+
+        mod as_a_text_filter_pipe {
+            use super::*;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                assert_eq!(TextFilterManagmentCompanyStandard.name(), "TextFilterManagmentCompanyStandard");
+            }
+
+            #[test]
+            fn a_missing_management_company_block_is_a_fatal_error_not_a_page_failure() {
+                let err = TextFilterManagmentCompanyStandard.filter(&[], &FilterData::EMPTY).unwrap_err();
+                assert!(!err.is_page_failure());
+            }
+        }
+    }
+
+    mod text_filter_assets {
+        use super::*;
+        use crate::output::classes::fund::Fund;
+
+        fn asset_block(fund: &str, currency: &str, date: Option<&str>) -> PdfBlock {
+            let mut metadata = BTreeMap::from([
+                ("fund".to_string(), BlockValue::from(fund)),
+                ("currency".to_string(), BlockValue::from(currency)),
+            ]);
+            if let Some(d) = date {
+                metadata.insert("date".to_string(), BlockValue::from(d));
+            }
+            PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, "")
+        }
+
+        fn known_funds() -> Vec<Extracted> {
+            vec![Extracted::Fund(Fund::new("Alpha Fund"))]
+        }
+
+        mod construction {
+            use super::*;
+
+            #[test]
+            fn no_date_regex_and_no_removal_patterns_are_accepted() {
+                assert!(TextFilterAssetsStandard::new(None, vec![]).is_ok());
+            }
+
+            #[test]
+            fn a_date_regex_with_exactly_one_capturing_group_is_accepted() {
+                assert!(TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).is_ok());
+            }
+
+            #[test]
+            fn a_date_regex_with_zero_capturing_groups_is_rejected() {
+                assert!(TextFilterAssetsStandard::new(Some(r"\d{2}/\d{2}/\d{4}"), vec![]).is_err());
+            }
+
+            #[test]
+            fn a_date_regex_with_more_than_one_capturing_group_is_rejected() {
+                assert!(TextFilterAssetsStandard::new(Some(r"(\d{2})/(\d{2})/\d{4}"), vec![]).is_err());
+            }
+
+            #[test]
+            fn an_invalid_removal_pattern_is_rejected() {
+                assert!(TextFilterAssetsStandard::new(None, vec!["(unterminated".to_string()]).is_err());
+            }
+        }
+
+        mod fund_filtering {
+            use super::*;
+
+            #[test]
+            fn a_fund_present_among_resolved_funds_produces_a_block() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+
+            #[test]
+            fn a_fund_not_present_produces_nothing_for_that_block_not_an_error() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Nobody's Fund", "EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn other_blocks_still_produce_output_when_one_fund_does_not_match() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks =
+                    vec![asset_block("Nobody's Fund", "EUR", None), asset_block("Alpha Fund", "EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out.len(), 1);
+            }
+
+            #[test]
+            fn remove_from_fund_regexes_are_applied_before_the_match() {
+                let filter = TextFilterAssetsStandard::new(None, vec!["^Prefix ".to_string()]).unwrap();
+                let blks = vec![asset_block("Prefix Alpha Fund", "EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out.len(), 1);
+                assert_eq!(out[0].metadata.get("fund"), Some(&BlockValue::from("Alpha Fund")));
+            }
+        }
+
+        mod date_and_currency {
+            use super::*;
+
+            #[test]
+            fn the_date_regex_extracts_its_single_capturing_group() {
+                let filter = TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "EUR", Some("As of 31/12/2024"))];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out[0].metadata.get("date"), Some(&BlockValue::from("31/12/2024")));
+            }
+
+            #[test]
+            fn a_date_that_does_not_match_the_configured_pattern_is_an_error() {
+                let filter = TextFilterAssetsStandard::new(Some(r"(\d{2}/\d{2}/\d{4})"), vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "EUR", Some("no date here"))];
+                let err = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap_err();
+                assert!(matches!(err, StandardFuncsError::DateRegexMismatch { .. }));
+            }
+
+            #[test]
+            fn without_a_configured_date_regex_the_date_field_is_left_untouched() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "EUR", Some("As of 31/12/2024"))];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out[0].metadata.get("date"), Some(&BlockValue::from("As of 31/12/2024")));
+            }
+
+            #[test]
+            fn the_currency_is_extracted_from_free_text_and_typed() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "Reported in EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out[0].metadata.get("currency"), Some(&BlockValue::from(Currency::EUR)));
+            }
+
+            #[test]
+            fn an_unreadable_currency_is_an_error() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "no currency here", None)];
+                assert!(filter.call(&blks, &FilterData::Previous(&known_funds())).is_err());
+            }
+        }
+
+        mod result_shape {
+            use super::*;
+
+            #[test]
+            fn the_result_is_a_relevant_block_with_empty_content() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "EUR", None)];
+                let out = filter.call(&blks, &FilterData::Previous(&known_funds())).unwrap();
+                assert_eq!(out[0].type_block, BlockType::RELEVANT_BLOCK);
+                assert_eq!(out[0].content.as_str(), Some(""));
+            }
+
+            #[test]
+            fn a_missing_fund_key_is_an_error() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let metadata = BTreeMap::from([("currency".to_string(), BlockValue::from("EUR"))]);
+                let blk = PdfBlock::new(BlockType::RELEVANT_BLOCK, metadata, "");
+                assert!(filter.call(&[blk], &FilterData::Previous(&known_funds())).is_err());
+            }
+        }
+
+        mod as_a_text_filter_pipe {
+            use super::*;
+
+            #[test]
+            fn the_pipe_name_identifies_it_in_errors() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                assert_eq!(filter.name(), "TextFilterAssetsStandard");
+            }
+
+            #[test]
+            fn an_unreadable_currency_is_a_fatal_error_through_the_trait_too() {
+                let filter = TextFilterAssetsStandard::new(None, vec![]).unwrap();
+                let blks = vec![asset_block("Alpha Fund", "no currency here", None)];
+                let err = filter.filter(&blks, &FilterData::Previous(&known_funds())).unwrap_err();
+                assert!(!err.is_page_failure());
+            }
         }
     }
 }

@@ -133,14 +133,24 @@ pub mod standard_funcs {
     }
 
     pub mod text_filter {
+        //! M8 aggiunge le tre funzioni restanti (`TextFilterSfdrArticleStandard`,
+        //! `TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`), che dipendevano da
+        //! `output::classes`.
         pub use crate::formats_utils::text_filter::standard_funcs::{
-            StandardFuncsError, TextFilterInvestmentsStandard, TextFilterPageClassifyStandard,
+            StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
+            TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrArticleStandard,
         };
     }
 
     pub mod deserialize {
+        //! M8 aggiunge le cinque funzioni restanti (`DeserializeSfdrArticleStandard`,
+        //! `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
+        //! `DeserializerInvestmentsManagerStandard`, `DeserializerAssetsStandard`), che dipendevano
+        //! da `output::classes` — chiude anche M4.
         pub use crate::formats_utils::deserialize::standard_funcs::{
-            DeserializeStandardFuncsError, DeserializerFundStandard, DeserializerInvestmentStandard,
+            DeserializeSfdrArticleStandard, DeserializeStandardFuncsError, DeserializerAssetsStandard,
+            DeserializerFundStandard, DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
+            DeserializerInvestmentsManagerStandard, DeserializerManagmentCompanyStandard,
             DeserializerPageClassifyStandard,
         };
     }
@@ -161,10 +171,19 @@ pub mod formats_repo {
 pub mod output {
     //! Le entità prodotte dai pipe `deserialize`.
     //!
-    //! **Parziale**: `PLAN.md` §9 ne elenca otto, ma `output::classes` è di M8 — M7 ne ha
-    //! anticipate tre (`Fund`, `Equity`, `Bond`) perché senza di esse la pipeline structured
-    //! `investments` non è costruibile (decisione D-M7-2). Le altre arrivano con M8.
+    //! **Completo da M8.** `PLAN.md` §9 elenca questa superficie con nomi che non corrispondono
+    //! a quelli reali del codice (`FundChangeName` singolare invece di `FundRename`/`FundMerge`;
+    //! `SfdrArticle` invece di `FundSfdrClassification`, che collide col nome già pubblico di
+    //! `consts::SfdrArticle`; `FundEsgIndicators` plurale invece di `FundEsgIndicator` singolare)
+    //! — riesportati qui sono i nomi **reali** già scelti nel codice, non la lettera di §9
+    //! (`PLAN.md` §13, decisione Q2, stessa filosofia già usata per `get_table_coordinates`/
+    //! `TablePosMeasureUnit` in M7). M7 aveva anticipato `Fund`/`Equity`/`Bond` (decisione D-M7-2).
+    pub use crate::output::classes::assets_manager::{AssetsManagerData, InvestmentsManager, ManagementCompany};
     pub use crate::output::classes::fund::Fund;
+    pub use crate::output::classes::fund_assets::FundAssets;
+    pub use crate::output::classes::fund_change_name::{FundChangeNameData, FundMerge, FundRename};
+    pub use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
+    pub use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
     pub use crate::output::classes::investment::{Bond, Equity, InvestmentData, InvestmentFields};
     pub use crate::output::classes::{FloatConstraint, OutputClassError};
 }
