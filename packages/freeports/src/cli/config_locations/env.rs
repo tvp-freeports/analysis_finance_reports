@@ -33,7 +33,7 @@
 //! | `FREEPORTS_SAVE_PDF` | `save_pdf` (`"true"`/`"false"`, case-insensitive) |
 //! | `FREEPORTS_FORMAT` | `format` (passthrough) |
 //! | `FREEPORTS_CONFIG_FILE` | `config_file` |
-//! | `FREEPORTS_TARGET_LIST` | `target_lists` -- **un solo elemento**, il valore grezzo intero, mai spezzato: stesso comportamento del riferimento (`Lists`'s `BeforeValidator` avvolge una stringa singola in una lista a un elemento, non la spezza su un separatore) |
+//! | freeports_env!(`TARGET_LIST`) | `target_lists` -- **un solo elemento**, il valore grezzo intero, mai spezzato: stesso comportamento del riferimento (`Lists`'s `BeforeValidator` avvolge una stringa singola in una lista a un elemento, non la spezza su un separatore) |
 //! | `FREEPORTS_FORMATS_REPO_PATH` | `formats_repo_path` |
 //! | `FREEPORTS_INPUT_DB_PATH` | `input_db_path` |
 //!
@@ -51,6 +51,12 @@ use std::path::PathBuf;
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
+
+
+
+macro_rules! freeports_env {
+    ($var:literal) => (concat!("FREEPORTS_",$var))
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum EnvConfigError {
@@ -96,18 +102,18 @@ fn parse_positive_usize(variable: &'static str, value: &str) -> Result<usize, En
 }
 
 pub fn load() -> Result<PartialConfig, EnvConfigError> {
-    let url = env_var("FREEPORTS_URL");
-    let pdf = env_var("FREEPORTS_PDF");
+    let url = env_var(freeports_env!("URL"));
+    let pdf = env_var(freeports_env!("PDF"));
     let singular =
         if url.is_some() || pdf.is_some() { Some(DocumentSpec { url, path: pdf.map(PathBuf::from), name: None }) } else { None };
 
-    let plural = env_var("FREEPORTS_REPORTS")
+    let plural = env_var(freeports_env!("REPORTS"))
         .map(|value| {
             value
                 .split(DOC_SPEC_SEPARATOR)
                 .map(|s| {
                     DocumentSpec::parse(s).map_err(|source| EnvConfigError::InvalidReportSpecifier {
-                        variable: "FREEPORTS_REPORTS",
+                        variable: freeports_env!("REPORTS"),
                         value: s.to_string(),
                         source,
                     })
@@ -118,25 +124,25 @@ pub fn load() -> Result<PartialConfig, EnvConfigError> {
 
     let reports = resolve_singular_and_plural_reports(singular, plural).map_err(|source| EnvConfigError::ReportsConflict { source })?;
 
-    let verbosity = env_var("FREEPORTS_VERBOSITY").map(|v| parse_verbosity(&v)).transpose()?;
+    let verbosity = env_var(freeports_env!("VERBOSITY")).map(|v| parse_verbosity(&v)).transpose()?;
     let n_workers =
-        env_var("FREEPORTS_N_WORKERS").map(|v| parse_positive_usize("FREEPORTS_N_WORKERS", &v)).transpose()?;
-    let save_pdf = env_var("FREEPORTS_SAVE_PDF").map(|v| parse_bool("FREEPORTS_SAVE_PDF", &v)).transpose()?;
+        env_var(freeports_env!("N_WORKERS")).map(|v| parse_positive_usize(freeports_env!("N_WORKERS"), &v)).transpose()?;
+    let save_pdf = env_var(freeports_env!("SAVE_PDF")).map(|v| parse_bool(freeports_env!("SAVE_PDF"), &v)).transpose()?;
 
     Ok(PartialConfig {
         verbosity,
         reports,
-        target_lists: env_var("FREEPORTS_TARGET_LIST").map(|v| vec![v]),
-        format: env_var("FREEPORTS_FORMAT"),
-        out_path: env_var("FREEPORTS_OUT_PATH").map(PathBuf::from),
+        target_lists: env_var(freeports_env!("TARGET_LIST")).map(|v| vec![v]),
+        format: env_var(freeports_env!("FORMAT")),
+        out_path: env_var(freeports_env!("OUT_PATH")).map(PathBuf::from),
         out_profile: None,
         out_flags: None,
         n_workers,
-        batch_file: env_var("FREEPORTS_BATCH_FILE").map(PathBuf::from),
+        batch_file: env_var(freeports_env!("BATCH_FILE")).map(PathBuf::from),
         save_pdf,
-        formats_repo_path: env_var("FREEPORTS_FORMATS_REPO_PATH").map(PathBuf::from),
-        input_db_path: env_var("FREEPORTS_INPUT_DB_PATH").map(PathBuf::from),
-        config_file: env_var("FREEPORTS_CONFIG_FILE").map(PathBuf::from),
+        formats_repo_path: env_var(freeports_env!("FORMATS_REPO_PATH")).map(PathBuf::from),
+        input_db_path: env_var(freeports_env!("INPUT_DB_PATH")).map(PathBuf::from),
+        config_file: env_var(freeports_env!("CONFIG_FILE")).map(PathBuf::from),
     })
 }
 
@@ -151,19 +157,19 @@ mod tests {
     /// prima di ogni test (evita che l'ambiente reale della shell di sviluppo influenzi un test)
     /// sia per restaurarlo esattamente al termine.
     const ALL_VARS: &[&str] = &[
-        "FREEPORTS_URL",
-        "FREEPORTS_PDF",
-        "FREEPORTS_REPORTS",
-        "FREEPORTS_VERBOSITY",
-        "FREEPORTS_N_WORKERS",
-        "FREEPORTS_BATCH_FILE",
-        "FREEPORTS_OUT_PATH",
-        "FREEPORTS_SAVE_PDF",
-        "FREEPORTS_FORMAT",
-        "FREEPORTS_CONFIG_FILE",
-        "FREEPORTS_TARGET_LIST",
-        "FREEPORTS_FORMATS_REPO_PATH",
-        "FREEPORTS_INPUT_DB_PATH",
+        freeports_env!("URL"),
+        freeports_env!("PDF"),
+        freeports_env!("REPORTS"),
+        freeports_env!("VERBOSITY"),
+        freeports_env!("N_WORKERS"),
+        freeports_env!("BATCH_FILE"),
+        freeports_env!("OUT_PATH"),
+        freeports_env!("SAVE_PDF"),
+        freeports_env!("FORMAT"),
+        freeports_env!("CONFIG_FILE"),
+        freeports_env!("TARGET_LIST"),
+        freeports_env!("FORMATS_REPO_PATH"),
+        freeports_env!("INPUT_DB_PATH"),
     ];
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -222,7 +228,7 @@ mod tests {
         #[test]
         fn out_path_is_mapped() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_OUT_PATH", "/tmp/out");
+            scope.set(freeports_env!("OUT_PATH"), "/tmp/out");
             let config = load().unwrap();
             assert_eq!(config.out_path, Some(PathBuf::from("/tmp/out")));
         }
@@ -230,7 +236,7 @@ mod tests {
         #[test]
         fn batch_file_is_mapped() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_BATCH_FILE", "/tmp/batch.csv");
+            scope.set(freeports_env!("BATCH_FILE"), "/tmp/batch.csv");
             let config = load().unwrap();
             assert_eq!(config.batch_file, Some(PathBuf::from("/tmp/batch.csv")));
         }
@@ -238,7 +244,7 @@ mod tests {
         #[test]
         fn format_is_mapped_as_a_raw_passthrough_string() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_FORMAT", "ACME-EN24");
+            scope.set(freeports_env!("FORMAT"), "ACME-EN24");
             let config = load().unwrap();
             assert_eq!(config.format, Some("ACME-EN24".to_string()));
         }
@@ -246,7 +252,7 @@ mod tests {
         #[test]
         fn config_file_is_mapped() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_CONFIG_FILE", "/etc/freeports.yaml");
+            scope.set(freeports_env!("CONFIG_FILE"), "/etc/freeports.yaml");
             let config = load().unwrap();
             assert_eq!(config.config_file, Some(PathBuf::from("/etc/freeports.yaml")));
         }
@@ -254,7 +260,7 @@ mod tests {
         #[test]
         fn formats_repo_path_is_mapped() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_FORMATS_REPO_PATH", "/opt/formats");
+            scope.set(freeports_env!("FORMATS_REPO_PATH"), "/opt/formats");
             let config = load().unwrap();
             assert_eq!(config.formats_repo_path, Some(PathBuf::from("/opt/formats")));
         }
@@ -262,7 +268,7 @@ mod tests {
         #[test]
         fn input_db_path_is_mapped() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_INPUT_DB_PATH", "/opt/db");
+            scope.set(freeports_env!("INPUT_DB_PATH"), "/opt/db");
             let config = load().unwrap();
             assert_eq!(config.input_db_path, Some(PathBuf::from("/opt/db")));
         }
@@ -270,7 +276,7 @@ mod tests {
         #[test]
         fn n_workers_is_mapped_as_a_positive_integer() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_N_WORKERS", "4");
+            scope.set(freeports_env!("N_WORKERS"), "4");
             let config = load().unwrap();
             assert_eq!(config.n_workers, Some(4));
         }
@@ -278,14 +284,14 @@ mod tests {
         #[test]
         fn n_workers_zero_is_rejected_not_positive() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_N_WORKERS", "0");
+            scope.set(freeports_env!("N_WORKERS"), "0");
             assert!(load().is_err());
         }
 
         #[test]
         fn n_workers_non_numeric_is_a_typed_error_not_a_panic() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_N_WORKERS", "not-a-number");
+            scope.set(freeports_env!("N_WORKERS"), "not-a-number");
             let result = std::panic::catch_unwind(|| load());
             assert!(result.is_ok(), "must not panic");
             assert!(result.unwrap().is_err());
@@ -297,7 +303,7 @@ mod tests {
         #[test_case::test_case("FALSE", false; "uppercase false")]
         fn save_pdf_accepts_case_insensitive_booleans(value: &str, expected: bool) {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_SAVE_PDF", value);
+            scope.set(freeports_env!("SAVE_PDF"), value);
             let config = load().unwrap();
             assert_eq!(config.save_pdf, Some(expected));
         }
@@ -305,7 +311,7 @@ mod tests {
         #[test]
         fn save_pdf_with_an_unrecognized_value_is_a_typed_error() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_SAVE_PDF", "maybe");
+            scope.set(freeports_env!("SAVE_PDF"), "maybe");
             assert!(load().is_err());
         }
 
@@ -315,7 +321,7 @@ mod tests {
             // one-element list, not split on any separator (even if it happens to contain a
             // comma or the batch/report separator).
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_TARGET_LIST", "TEST,OTHER");
+            scope.set(freeports_env!("TARGET_LIST"), "TEST,OTHER");
             let config = load().unwrap();
             assert_eq!(config.target_lists, Some(vec!["TEST,OTHER".to_string()]));
         }
@@ -332,7 +338,7 @@ mod tests {
         #[test_case::test_case("trace", Verbosity::Trace)]
         fn every_variant_name_is_accepted_lowercase(value: &str, expected: Verbosity) {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_VERBOSITY", value);
+            scope.set(freeports_env!("VERBOSITY"), value);
             let config = load().unwrap();
             assert_eq!(config.verbosity, Some(expected));
         }
@@ -342,14 +348,14 @@ mod tests {
         #[test_case::test_case("TRACE")]
         fn variant_names_are_case_insensitive(value: &str) {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_VERBOSITY", value);
+            scope.set(freeports_env!("VERBOSITY"), value);
             assert!(load().is_ok());
         }
 
         #[test]
         fn an_unrecognized_verbosity_string_is_a_typed_error_not_a_panic() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_VERBOSITY", "abc");
+            scope.set(freeports_env!("VERBOSITY"), "abc");
             let result = std::panic::catch_unwind(|| load());
             assert!(result.is_ok(), "must not panic");
             assert!(result.unwrap().is_err());
@@ -371,7 +377,7 @@ mod tests {
         #[test]
         fn url_alone_becomes_a_one_element_reports_list_with_only_a_url() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_URL", "https://example.com/report.pdf");
+            scope.set(freeports_env!("URL"), "https://example.com/report.pdf");
             let config = load().unwrap();
             let reports = config.reports.expect("reports must be set");
             assert_eq!(reports.len(), 1);
@@ -382,7 +388,7 @@ mod tests {
         #[test]
         fn pdf_alone_becomes_a_one_element_reports_list_with_only_a_path() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_PDF", "/tmp/report.pdf");
+            scope.set(freeports_env!("PDF"), "/tmp/report.pdf");
             let config = load().unwrap();
             let reports = config.reports.expect("reports must be set");
             assert_eq!(reports.len(), 1);
@@ -393,8 +399,8 @@ mod tests {
         #[test]
         fn url_and_pdf_together_combine_into_a_single_spec() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_URL", "https://example.com/report.pdf");
-            scope.set("FREEPORTS_PDF", "/tmp/report.pdf");
+            scope.set(freeports_env!("URL"), "https://example.com/report.pdf");
+            scope.set(freeports_env!("PDF"), "/tmp/report.pdf");
             let config = load().unwrap();
             let reports = config.reports.expect("reports must be set");
             assert_eq!(reports.len(), 1);
@@ -416,7 +422,7 @@ mod tests {
         #[test]
         fn a_single_element_reports_list_parses_one_specifier() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_REPORTS", "https://example.com/a.pdf");
+            scope.set(freeports_env!("REPORTS"), "https://example.com/a.pdf");
             let config = load().unwrap();
             let reports = config.reports.unwrap();
             assert_eq!(reports.len(), 1);
@@ -430,7 +436,7 @@ mod tests {
                 "https://example.com/a.pdf{sep}https://example.com/b.pdf{sep}https://example.com/c.pdf",
                 sep = crate::cli::conf_parse::DOC_SPEC_SEPARATOR
             );
-            scope.set("FREEPORTS_REPORTS", &value);
+            scope.set(freeports_env!("REPORTS"), &value);
             let config = load().unwrap();
             let reports = config.reports.unwrap();
             assert_eq!(reports.len(), 3);
@@ -446,7 +452,7 @@ mod tests {
                 "https://example.com/a.pdf:report-a.pdf:Report A{sep}report-b.pdf:Report B",
                 sep = crate::cli::conf_parse::DOC_SPEC_SEPARATOR
             );
-            scope.set("FREEPORTS_REPORTS", &value);
+            scope.set(freeports_env!("REPORTS"), &value);
             let config = load().unwrap();
             let reports = config.reports.unwrap();
             assert_eq!(reports.len(), 2);
@@ -458,7 +464,7 @@ mod tests {
         fn an_invalid_element_is_a_typed_error_not_a_panic() {
             let scope = EnvScope::new();
             let value = format!("a:b:c:d{sep}ok.pdf", sep = crate::cli::conf_parse::DOC_SPEC_SEPARATOR);
-            scope.set("FREEPORTS_REPORTS", &value);
+            scope.set(freeports_env!("REPORTS"), &value);
             let result = std::panic::catch_unwind(|| load());
             assert!(result.is_ok(), "must not panic");
             assert!(result.unwrap().is_err());
@@ -471,23 +477,23 @@ mod tests {
         #[test]
         fn reports_and_url_together_is_an_explicit_error() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_REPORTS", "https://example.com/a.pdf");
-            scope.set("FREEPORTS_URL", "https://example.com/b.pdf");
+            scope.set(freeports_env!("REPORTS"), "https://example.com/a.pdf");
+            scope.set(freeports_env!("URL"), "https://example.com/b.pdf");
             assert!(load().is_err(), "FREEPORTS_REPORTS + FREEPORTS_URL together must be rejected, not silently merged");
         }
 
         #[test]
         fn reports_and_pdf_together_is_an_explicit_error() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_REPORTS", "https://example.com/a.pdf");
-            scope.set("FREEPORTS_PDF", "/tmp/report.pdf");
+            scope.set(freeports_env!("REPORTS"), "https://example.com/a.pdf");
+            scope.set(freeports_env!("PDF"), "/tmp/report.pdf");
             assert!(load().is_err());
         }
 
         #[test]
         fn reports_alone_without_url_or_pdf_is_never_a_conflict() {
             let scope = EnvScope::new();
-            scope.set("FREEPORTS_REPORTS", "https://example.com/a.pdf");
+            scope.set(freeports_env!("REPORTS"), "https://example.com/a.pdf");
             assert!(load().is_ok());
         }
     }
