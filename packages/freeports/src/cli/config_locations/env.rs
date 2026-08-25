@@ -77,7 +77,7 @@ fn env_var(name: &str) -> Option<String> {
 fn parse_verbosity(value: &str) -> Result<Verbosity, EnvConfigError> {
     match value.to_ascii_lowercase().as_str() {
         "silent" => Ok(Verbosity::Silent),
-        "erroronly" => Ok(Verbosity::ErrorOnly),
+        "error" => Ok(Verbosity::ErrorOnly),
         "warn" => Ok(Verbosity::Warn),
         "info" => Ok(Verbosity::Info),
         "debug" => Ok(Verbosity::Debug),
@@ -331,7 +331,7 @@ mod tests {
         use super::*;
 
         #[test_case::test_case("silent", Verbosity::Silent)]
-        #[test_case::test_case("erroronly", Verbosity::ErrorOnly)]
+        #[test_case::test_case("error", Verbosity::ErrorOnly)]
         #[test_case::test_case("warn", Verbosity::Warn)]
         #[test_case::test_case("info", Verbosity::Info)]
         #[test_case::test_case("debug", Verbosity::Debug)]

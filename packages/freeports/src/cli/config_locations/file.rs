@@ -199,7 +199,7 @@ pub fn find_config() -> Option<PathBuf> {
 fn parse_verbosity(path: &Path, value: &str) -> Result<Verbosity, FileConfigError> {
     match value.to_ascii_lowercase().as_str() {
         "silent" => Ok(Verbosity::Silent),
-        "erroronly" => Ok(Verbosity::ErrorOnly),
+        "error" => Ok(Verbosity::ErrorOnly),
         "warn" => Ok(Verbosity::Warn),
         "info" => Ok(Verbosity::Info),
         "debug" => Ok(Verbosity::Debug),
