@@ -149,12 +149,12 @@ pub fn fulfill_promises<T: PromisableFields>(
     entity: &mut T,
     map: &FlatPromiseMap,
 ) -> Result<Fulfilled<T>, PromisableError> {
-    let mut multipli = Vec::new();
+    let mut multiples = Vec::new();
 
     // Fase 1: promesse normali, risolte sul posto.
     for (field, promise) in entity.pending() {
         if promise.multiple() {
-            multipli.push((field, promise));
+            multiples.push((field, promise));
             continue;
         }
         match map.fulfill(&promise) {
@@ -164,36 +164,36 @@ pub fn fulfill_promises<T: PromisableFields>(
         }
     }
 
-    if multipli.is_empty() {
+    if multiples.is_empty() {
         return Ok(Fulfilled::InPlace);
     }
 
     // Fase 2: promesse multiple, una copia per valore.
-    let mut espansioni = vec![entity.clone()];
-    for (field, promise) in multipli {
-        let valori = match map.fulfill(&promise) {
+    let mut expansions = vec![entity.clone()];
+    for (field, promise) in multiples {
+        let values = match map.fulfill(&promise) {
             Ok(v) => v,
             Err(err) if promise.strict() => return Err(err.into()),
             Err(_) => return Ok(Fulfilled::Dropped),
         };
         // `FlatPromiseMap::fulfill` su una promessa `multiple` restituisce sempre una `List` non
-        // vuota; il ramo `altro` copre solo il caso in cui quel contratto cambiasse.
-        let valori = match valori {
+        // vuota; il ramo `other` copre solo il caso in cui quel contratto cambiasse.
+        let values = match values {
             BlockValue::List(items) => items,
-            altro => vec![altro],
+            other => vec![other],
         };
-        let mut prossime = Vec::with_capacity(espansioni.len() * valori.len());
-        for base in &espansioni {
-            for valore in &valori {
-                let mut copia = base.clone();
-                assign(&mut copia, field, valore.clone())?;
-                prossime.push(copia);
+        let mut next = Vec::with_capacity(expansions.len() * values.len());
+        for base in &expansions {
+            for value in &values {
+                let mut copy = base.clone();
+                assign(&mut copy, field, value.clone())?;
+                next.push(copy);
             }
         }
-        espansioni = prossime;
+        expansions = next;
     }
 
-    Ok(Fulfilled::Expanded(espansioni))
+    Ok(Fulfilled::Expanded(expansions))
 }
 
 /// Assegna un campo riportando il nome del campo nell'errore: senza questo, un
@@ -215,30 +215,30 @@ mod tests {
     /// Entita' di prova con due campi promettibili e uno mai promesso, il minimo per esercitare
     /// entrambe le fasi e il prodotto cartesiano.
     #[derive(Debug, Clone, PartialEq, Eq)]
-    struct Investimento {
-        fondo: Promised<String>,
-        quantita: Promised<i64>,
-        nota: String,
+    struct Investment {
+        fund: Promised<String>,
+        quantity: Promised<i64>,
+        note: String,
     }
 
-    impl Investimento {
-        fn new(fondo: Promised<String>, quantita: Promised<i64>) -> Self {
-            Investimento { fondo, quantita, nota: "fissa".into() }
+    impl Investment {
+        fn new(fund: Promised<String>, quantity: Promised<i64>) -> Self {
+            Investment { fund, quantity, note: "fissa".into() }
         }
 
-        fn risolto(fondo: &str, quantita: i64) -> Self {
-            Investimento::new(Promised::Resolved(fondo.into()), Promised::Resolved(quantita))
+        fn resolved(fund: &str, quantity: i64) -> Self {
+            Investment::new(Promised::Resolved(fund.into()), Promised::Resolved(quantity))
         }
     }
 
-    impl PromisableFields for Investimento {
+    impl PromisableFields for Investment {
         fn pending(&self) -> Vec<(&'static str, Promise)> {
             let mut out = Vec::new();
-            if let Some(p) = self.fondo.pending() {
-                out.push(("fondo", p.clone()));
+            if let Some(p) = self.fund.pending() {
+                out.push(("fund", p.clone()));
             }
-            if let Some(p) = self.quantita.pending() {
-                out.push(("quantita", p.clone()));
+            if let Some(p) = self.quantity.pending() {
+                out.push(("quantity", p.clone()));
             }
             out
         }
@@ -249,142 +249,142 @@ mod tests {
             value: BlockValue,
         ) -> Result<(), BlockValueError> {
             match field {
-                "fondo" => self.fondo = Promised::Resolved(value.str_or_fail(field)?.to_string()),
-                "quantita" => self.quantita = Promised::Resolved(value.int_or_fail(field)?),
-                altro => return Err(BlockValueError::MissingField { field: altro.to_string() }),
+                "fund" => self.fund = Promised::Resolved(value.str_or_fail(field)?.to_string()),
+                "quantity" => self.quantity = Promised::Resolved(value.int_or_fail(field)?),
+                other => return Err(BlockValueError::MissingField { field: other.to_string() }),
             }
             Ok(())
         }
     }
 
-    fn mappa(pairs: Vec<(&str, BlockValue)>) -> FlatPromiseMap {
+    fn flat_map(pairs: Vec<(&str, BlockValue)>) -> FlatPromiseMap {
         pairs.into_iter().collect()
     }
 
-    fn pendente(raw: &str) -> Promised<String> {
+    fn pending(raw: &str) -> Promised<String> {
         Promised::Pending(Promise::new(raw))
     }
 
-    fn pendente_i64(raw: &str) -> Promised<i64> {
+    fn pending_i64(raw: &str) -> Promised<i64> {
         Promised::Pending(Promise::new(raw))
     }
 
-    mod campo_promesso {
+    mod promised_field {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn distingue_risolto_da_pendente() {
-            let risolto: Promised<i64> = Promised::Resolved(3);
-            assert!(risolto.is_resolved());
-            assert!(!risolto.is_pending());
-            assert_eq!(risolto.resolved(), Some(&3));
-            assert_eq!(risolto.pending(), None);
+        fn distinguishes_resolved_from_pending() {
+            let resolved: Promised<i64> = Promised::Resolved(3);
+            assert!(resolved.is_resolved());
+            assert!(!resolved.is_pending());
+            assert_eq!(resolved.resolved(), Some(&3));
+            assert_eq!(resolved.pending(), None);
 
-            let pendente = pendente_i64("x!");
-            assert!(pendente.is_pending());
-            assert!(!pendente.is_resolved());
-            assert_eq!(pendente.resolved(), None);
-            assert_eq!(pendente.pending(), Some(&Promise::new("x!")));
+            let pending_field = pending_i64("x!");
+            assert!(pending_field.is_pending());
+            assert!(!pending_field.is_resolved());
+            assert_eq!(pending_field.resolved(), None);
+            assert_eq!(pending_field.pending(), Some(&Promise::new("x!")));
         }
 
         #[test]
-        fn into_resolved_consuma_il_campo() {
+        fn into_resolved_consumes_the_field() {
             assert_eq!(Promised::Resolved("x".to_string()).into_resolved(), Some("x".to_string()));
-            assert_eq!(pendente("x").into_resolved(), None);
+            assert_eq!(pending("x").into_resolved(), None);
         }
 
         #[test]
-        fn map_trasforma_solo_il_valore_risolto() {
+        fn map_transforms_only_the_resolved_value() {
             assert_eq!(Promised::Resolved(2_i64).map(|v| v * 2), Promised::Resolved(4));
-            assert_eq!(pendente_i64("x").map(|v| v * 2), Promised::Pending(Promise::new("x")));
+            assert_eq!(pending_i64("x").map(|v| v * 2), Promised::Pending(Promise::new("x")));
         }
 
         #[test]
-        fn si_costruisce_da_una_promessa() {
-            let campo: Promised<i64> = Promise::new("x[]").into();
-            assert_eq!(campo, Promised::Pending(Promise::new("x[]")));
+        fn is_built_from_a_promise() {
+            let field: Promised<i64> = Promise::new("x[]").into();
+            assert_eq!(field, Promised::Pending(Promise::new("x[]")));
         }
 
         #[test]
-        fn serializza_come_valore_o_come_promessa() {
+        fn serializes_as_value_or_as_promise() {
             assert_eq!(serde_json::to_string(&Promised::Resolved(3_i64)).unwrap(), "3");
-            assert_eq!(serde_json::to_string(&pendente_i64("fund[]!")).unwrap(), "\"fund[]!\"");
+            assert_eq!(serde_json::to_string(&pending_i64("fund[]!")).unwrap(), "\"fund[]!\"");
         }
     }
 
-    mod nessuna_promessa {
+    mod no_promise {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn un_entita_gia_risolta_resta_sul_posto_e_intatta() {
-            let mut entita = Investimento::risolto("Acme", 10);
-            let prima = entita.clone();
-            assert_eq!(fulfill_promises(&mut entita, &FlatPromiseMap::new()).unwrap(), Fulfilled::InPlace);
-            assert_eq!(entita, prima);
+        fn an_already_resolved_entity_stays_in_place_and_intact() {
+            let mut entity = Investment::resolved("Acme", 10);
+            let before = entity.clone();
+            assert_eq!(fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap(), Fulfilled::InPlace);
+            assert_eq!(entity, before);
         }
     }
 
-    mod fase_sul_posto {
+    mod in_place_phase {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn risolve_un_campo_promesso() {
-            let mut entita = Investimento::new(pendente("fund"), Promised::Resolved(10));
-            let map = mappa(vec![("fund", BlockValue::from("Acme"))]);
-            assert_eq!(fulfill_promises(&mut entita, &map).unwrap(), Fulfilled::InPlace);
-            assert_eq!(entita.fondo, Promised::Resolved("Acme".into()));
+        fn resolves_a_promised_field() {
+            let mut entity = Investment::new(pending("fund"), Promised::Resolved(10));
+            let map = flat_map(vec![("fund", BlockValue::from("Acme"))]);
+            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::InPlace);
+            assert_eq!(entity.fund, Promised::Resolved("Acme".into()));
         }
 
         #[test]
-        fn risolve_piu_campi_nella_stessa_passata() {
-            let mut entita = Investimento::new(pendente("fund"), pendente_i64("qty"));
-            let map = mappa(vec![("fund", BlockValue::from("Acme")), ("qty", BlockValue::Int(7))]);
-            assert_eq!(fulfill_promises(&mut entita, &map).unwrap(), Fulfilled::InPlace);
-            assert_eq!(entita, Investimento::risolto("Acme", 7));
+        fn resolves_multiple_fields_in_the_same_pass() {
+            let mut entity = Investment::new(pending("fund"), pending_i64("qty"));
+            let map = flat_map(vec![("fund", BlockValue::from("Acme")), ("qty", BlockValue::Int(7))]);
+            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::InPlace);
+            assert_eq!(entity, Investment::resolved("Acme", 7));
         }
 
         #[test]
-        fn non_tocca_i_campi_non_promessi() {
-            let mut entita = Investimento::new(pendente("fund"), Promised::Resolved(10));
-            let map = mappa(vec![("fund", BlockValue::from("Acme"))]);
-            fulfill_promises(&mut entita, &map).unwrap();
-            assert_eq!(entita.nota, "fissa");
-            assert_eq!(entita.quantita, Promised::Resolved(10));
+        fn does_not_touch_unpromised_fields() {
+            let mut entity = Investment::new(pending("fund"), Promised::Resolved(10));
+            let map = flat_map(vec![("fund", BlockValue::from("Acme"))]);
+            fulfill_promises(&mut entity, &map).unwrap();
+            assert_eq!(entity.note, "fissa");
+            assert_eq!(entity.quantity, Promised::Resolved(10));
         }
 
         #[test]
-        fn su_una_lista_prende_l_ultimo_valore() {
-            let mut entita = Investimento::new(pendente("fund"), Promised::Resolved(1));
-            let map = mappa(vec![(
+        fn on_a_list_takes_the_last_value() {
+            let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
+            let map = flat_map(vec![(
                 "fund",
                 BlockValue::List(vec![BlockValue::from("Vecchio"), BlockValue::from("Nuovo")]),
             )]);
-            fulfill_promises(&mut entita, &map).unwrap();
-            assert_eq!(entita.fondo, Promised::Resolved("Nuovo".into()));
+            fulfill_promises(&mut entity, &map).unwrap();
+            assert_eq!(entity.fund, Promised::Resolved("Nuovo".into()));
         }
     }
 
-    mod promessa_irrisolvibile {
+    mod unresolvable_promise {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn non_strict_fa_sparire_l_entita() {
-            let mut entita = Investimento::new(pendente("assente"), Promised::Resolved(1));
+        fn non_strict_makes_the_entity_disappear() {
+            let mut entity = Investment::new(pending("assente"), Promised::Resolved(1));
             assert_eq!(
-                fulfill_promises(&mut entita, &FlatPromiseMap::new()).unwrap(),
+                fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap(),
                 Fulfilled::Dropped
             );
         }
 
         #[test]
-        fn strict_e_un_errore() {
-            let mut entita = Investimento::new(pendente("assente!"), Promised::Resolved(1));
+        fn strict_is_an_error() {
+            let mut entity = Investment::new(pending("assente!"), Promised::Resolved(1));
             assert_eq!(
-                fulfill_promises(&mut entita, &FlatPromiseMap::new()).unwrap_err(),
+                fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap_err(),
                 PromisableError::Promise(PromiseError::Unresolved { id: "assente".into() })
             );
         }
@@ -393,100 +393,100 @@ mod tests {
         /// all'appiattimento (`promise_resolution`) diventa un drop o un errore a seconda di
         /// `strict`, non un errore di appiattimento.
         #[test]
-        fn una_promessa_sopravvissuta_all_appiattimento_si_comporta_come_un_id_assente() {
-            let map = mappa(vec![("fund", BlockValue::Promise(Promise::new("nowhere")))]);
+        fn a_promise_surviving_flattening_behaves_like_a_missing_id() {
+            let map = flat_map(vec![("fund", BlockValue::Promise(Promise::new("nowhere")))]);
 
-            let mut non_strict = Investimento::new(pendente("fund"), Promised::Resolved(1));
+            let mut non_strict = Investment::new(pending("fund"), Promised::Resolved(1));
             assert_eq!(fulfill_promises(&mut non_strict, &map).unwrap(), Fulfilled::Dropped);
 
-            let mut strict = Investimento::new(pendente("fund!"), Promised::Resolved(1));
+            let mut strict = Investment::new(pending("fund!"), Promised::Resolved(1));
             assert!(fulfill_promises(&mut strict, &map).is_err());
         }
 
         #[test]
-        fn un_valore_null_conta_come_assente() {
-            let map = mappa(vec![("fund", BlockValue::Null)]);
-            let mut entita = Investimento::new(pendente("fund"), Promised::Resolved(1));
-            assert_eq!(fulfill_promises(&mut entita, &map).unwrap(), Fulfilled::Dropped);
+        fn a_null_value_counts_as_missing() {
+            let map = flat_map(vec![("fund", BlockValue::Null)]);
+            let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
+            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
         }
 
         #[test]
-        fn una_multiple_non_strict_irrisolvibile_fa_sparire_l_entita() {
-            let mut entita = Investimento::new(pendente("assente[]"), Promised::Resolved(1));
+        fn an_unresolvable_non_strict_multiple_makes_the_entity_disappear() {
+            let mut entity = Investment::new(pending("assente[]"), Promised::Resolved(1));
             assert_eq!(
-                fulfill_promises(&mut entita, &FlatPromiseMap::new()).unwrap(),
+                fulfill_promises(&mut entity, &FlatPromiseMap::new()).unwrap(),
                 Fulfilled::Dropped
             );
         }
 
         #[test]
-        fn una_multiple_strict_irrisolvibile_e_un_errore() {
-            let mut entita = Investimento::new(pendente("assente[]!"), Promised::Resolved(1));
-            assert!(fulfill_promises(&mut entita, &FlatPromiseMap::new()).is_err());
+        fn an_unresolvable_strict_multiple_is_an_error() {
+            let mut entity = Investment::new(pending("assente[]!"), Promised::Resolved(1));
+            assert!(fulfill_promises(&mut entity, &FlatPromiseMap::new()).is_err());
         }
 
         /// Il drop vince sull'espansione: se un campo normale non si risolve, la fase 2 non parte
         /// nemmeno.
         #[test]
-        fn un_campo_normale_irrisolvibile_impedisce_l_espansione() {
-            let mut entita = Investimento::new(pendente("assente"), pendente_i64("qty[]"));
-            let map = mappa(vec![(
+        fn an_unresolvable_normal_field_prevents_the_expansion() {
+            let mut entity = Investment::new(pending("assente"), pending_i64("qty[]"));
+            let map = flat_map(vec![(
                 "qty",
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
             )]);
-            assert_eq!(fulfill_promises(&mut entita, &map).unwrap(), Fulfilled::Dropped);
+            assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
         }
     }
 
-    mod fase_di_espansione {
+    mod expansion_phase {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        fn espansioni(esito: Fulfilled<Investimento>) -> Vec<Investimento> {
-            match esito {
+        fn expansions(outcome: Fulfilled<Investment>) -> Vec<Investment> {
+            match outcome {
                 Fulfilled::Expanded(v) => v,
-                altro => panic!("attesa un'espansione, trovato {altro:?}"),
+                other => panic!("attesa un'espansione, trovato {other:?}"),
             }
         }
 
         #[test]
-        fn una_copia_per_valore() {
-            let mut entita = Investimento::new(pendente("fund[]"), Promised::Resolved(1));
-            let map = mappa(vec![(
+        fn one_copy_per_value() {
+            let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
+            let map = flat_map(vec![(
                 "fund",
                 BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B"), BlockValue::from("C")]),
             )]);
-            let copie = espansioni(fulfill_promises(&mut entita, &map).unwrap());
-            let nomi: Vec<&str> = copie.iter().filter_map(|c| c.fondo.resolved()).map(String::as_str).collect();
-            assert_eq!(nomi, vec!["A", "B", "C"]);
+            let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
+            let names: Vec<&str> = copies.iter().filter_map(|c| c.fund.resolved()).map(String::as_str).collect();
+            assert_eq!(names, vec!["A", "B", "C"]);
         }
 
         /// Un solo valore resta comunque un'espansione, non un `InPlace`: il chiamante deve
         /// sostituire l'entita' con il contenuto della lista in entrambi i casi.
         #[test]
-        fn un_valore_solo_produce_comunque_un_espansione() {
-            let mut entita = Investimento::new(pendente("fund[]"), Promised::Resolved(1));
-            let map = mappa(vec![("fund", BlockValue::from("A"))]);
-            let copie = espansioni(fulfill_promises(&mut entita, &map).unwrap());
-            assert_eq!(copie, vec![Investimento::risolto("A", 1)]);
+        fn a_single_value_still_produces_an_expansion() {
+            let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
+            let map = flat_map(vec![("fund", BlockValue::from("A"))]);
+            let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
+            assert_eq!(copies, vec![Investment::resolved("A", 1)]);
         }
 
         #[test]
-        fn due_campi_multiple_danno_il_prodotto_cartesiano() {
-            let mut entita = Investimento::new(pendente("fund[]"), pendente_i64("qty[]"));
-            let map = mappa(vec![
+        fn two_multiple_fields_give_the_cartesian_product() {
+            let mut entity = Investment::new(pending("fund[]"), pending_i64("qty[]"));
+            let map = flat_map(vec![
                 ("fund", BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B")])),
                 ("qty", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)])),
             ]);
-            let copie = espansioni(fulfill_promises(&mut entita, &map).unwrap());
-            assert_eq!(copie.len(), 6);
-            let coppie: Vec<(&str, i64)> = copie
+            let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
+            assert_eq!(copies.len(), 6);
+            let pairs: Vec<(&str, i64)> = copies
                 .iter()
-                .filter_map(|c| Some((c.fondo.resolved()?.as_str(), *c.quantita.resolved()?)))
+                .filter_map(|c| Some((c.fund.resolved()?.as_str(), *c.quantity.resolved()?)))
                 .collect();
             // Il campo che compare per primo in `pending` varia piu' lentamente.
             assert_eq!(
-                coppie,
+                pairs,
                 vec![("A", 1), ("A", 2), ("A", 3), ("B", 1), ("B", 2), ("B", 3)]
             );
         }
@@ -494,71 +494,71 @@ mod tests {
         /// L'ordine delle due fasi, reso osservabile: il campo normale e' gia' risolto in *ogni*
         /// copia, quindi e' stato risolto una volta sola, prima dell'espansione.
         #[test]
-        fn le_copie_portano_gia_i_campi_risolti_nella_prima_fase() {
-            let mut entita = Investimento::new(pendente("fund"), pendente_i64("qty[]"));
-            let map = mappa(vec![
+        fn the_copies_already_carry_the_fields_resolved_in_the_first_phase() {
+            let mut entity = Investment::new(pending("fund"), pending_i64("qty[]"));
+            let map = flat_map(vec![
                 ("fund", BlockValue::from("Acme")),
                 ("qty", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
             ]);
-            let copie = espansioni(fulfill_promises(&mut entita, &map).unwrap());
-            assert_eq!(copie, vec![Investimento::risolto("Acme", 1), Investimento::risolto("Acme", 2)]);
+            let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
+            assert_eq!(copies, vec![Investment::resolved("Acme", 1), Investment::resolved("Acme", 2)]);
         }
 
         #[test]
-        fn una_multiple_su_un_valore_scalare_produce_una_copia_sola() {
-            let mut entita = Investimento::new(Promised::Resolved("Acme".into()), pendente_i64("qty[]"));
-            let map = mappa(vec![("qty", BlockValue::Int(9))]);
+        fn a_multiple_on_a_scalar_value_produces_a_single_copy() {
+            let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
+            let map = flat_map(vec![("qty", BlockValue::Int(9))]);
             assert_eq!(
-                espansioni(fulfill_promises(&mut entita, &map).unwrap()),
-                vec![Investimento::risolto("Acme", 9)]
+                expansions(fulfill_promises(&mut entity, &map).unwrap()),
+                vec![Investment::resolved("Acme", 9)]
             );
         }
 
         #[test]
-        fn le_copie_sono_indipendenti_fra_loro() {
-            let mut entita = Investimento::new(pendente("fund[]"), Promised::Resolved(1));
-            let map = mappa(vec![(
+        fn the_copies_are_independent_from_each_other() {
+            let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
+            let map = flat_map(vec![(
                 "fund",
                 BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B")]),
             )]);
-            let mut copie = espansioni(fulfill_promises(&mut entita, &map).unwrap());
-            copie[0].nota = "cambiata".into();
-            assert_eq!(copie[1].nota, "fissa");
+            let mut copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
+            copies[0].note = "cambiata".into();
+            assert_eq!(copies[1].note, "fissa");
         }
     }
 
-    mod errori_di_tipo {
+    mod type_errors {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn un_valore_del_tipo_sbagliato_nomina_il_campo() {
-            let mut entita = Investimento::new(pendente("fund"), Promised::Resolved(1));
-            let map = mappa(vec![("fund", BlockValue::Int(3))]);
-            let err = fulfill_promises(&mut entita, &map).unwrap_err();
+        fn a_value_of_the_wrong_type_names_the_field() {
+            let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
+            let map = flat_map(vec![("fund", BlockValue::Int(3))]);
+            let err = fulfill_promises(&mut entity, &map).unwrap_err();
             assert_eq!(
                 err,
                 PromisableError::Field {
-                    field: "fondo",
+                    field: "fund",
                     source: BlockValueError::TypeMismatch {
-                        field: "fondo".into(),
+                        field: "fund".into(),
                         expected: "str",
                         found: "int",
                     },
                 }
             );
-            assert_eq!(err.to_string(), "field 'fondo': field 'fondo' expected str, found int");
+            assert_eq!(err.to_string(), "field 'fund': field 'fund' expected str, found int");
         }
 
         #[test]
-        fn un_errore_di_tipo_in_espansione_interrompe_tutto() {
-            let mut entita = Investimento::new(Promised::Resolved("Acme".into()), pendente_i64("qty[]"));
-            let map = mappa(vec![(
+        fn a_type_error_during_expansion_stops_everything() {
+            let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
+            let map = flat_map(vec![(
                 "qty",
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::from("non un numero")]),
             )]);
-            let err = fulfill_promises(&mut entita, &map).unwrap_err();
-            assert!(matches!(err, PromisableError::Field { field: "quantita", .. }), "{err:?}");
+            let err = fulfill_promises(&mut entity, &map).unwrap_err();
+            assert!(matches!(err, PromisableError::Field { field: "quantity", .. }), "{err:?}");
         }
     }
 }

@@ -75,29 +75,29 @@ mod tests {
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("Hello World", "hello world"; "minuscole di base")]
-        #[test_case("  Hello   World  ", "hello world"; "trim e collasso spazi")]
-        #[test_case("Café", "cafe"; "una lettera accentata")]
-        #[test_case("MÜLLER", "muller"; "accentate maiuscole abbassate prima")]
-        #[test_case("Straße", "strasse"; "eszett espande in doppia s")]
-        #[test_case("Rock & Roll", "rock and roll"; "e commerciale espande in and")]
-        #[test_case("A,B-C–D+E", "a b c d e"; "separatori diventano spazi")]
-        #[test_case("Don't say \"no\"!", "dont say no"; "rumore cancellato non spaziato")]
-        #[test_case("café œuf æon", "cafe oeuf aeon"; "espansioni multi carattere")]
-        #[test_case("It’s fine", "its fine"; "apostrofo tipografico cancellato")]
-        #[test_case("Øresund", "oresund"; "lettere scandinave")]
-        #[test_case("ÁÀÂÄ ÍÌÎÏ ÓÒÔÖ ÚÙÛÜ Ñ Ç", "aaaa iiii oooo uuuu n c"; "tutte le classi di accenti")]
-        #[test_case("{a}[b](c)?d/e.f", "abcdef"; "tutta la punteggiatura di rumore")]
-        #[test_case("", ""; "stringa vuota")]
-        #[test_case("   ", ""; "solo spazi")]
-        #[test_case("...", ""; "solo rumore")]
-        #[test_case("---", ""; "solo separatori")]
-        fn normalizza_come_atteso(input: &str, expected: &str) {
+        #[test_case("Hello World", "hello world"; "basic lowercasing")]
+        #[test_case("  Hello   World  ", "hello world"; "trim and collapse spaces")]
+        #[test_case("Café", "cafe"; "one accented letter")]
+        #[test_case("MÜLLER", "muller"; "accented uppercase lowered first")]
+        #[test_case("Straße", "strasse"; "eszett expands into double s")]
+        #[test_case("Rock & Roll", "rock and roll"; "ampersand expands into and")]
+        #[test_case("A,B-C–D+E", "a b c d e"; "separators become spaces")]
+        #[test_case("Don't say \"no\"!", "dont say no"; "noise removed without spacing")]
+        #[test_case("café œuf æon", "cafe oeuf aeon"; "multi character expansions")]
+        #[test_case("It’s fine", "its fine"; "typographic apostrophe removed")]
+        #[test_case("Øresund", "oresund"; "scandinavian letters")]
+        #[test_case("ÁÀÂÄ ÍÌÎÏ ÓÒÔÖ ÚÙÛÜ Ñ Ç", "aaaa iiii oooo uuuu n c"; "all accent classes")]
+        #[test_case("{a}[b](c)?d/e.f", "abcdef"; "all noise punctuation")]
+        #[test_case("", ""; "empty string")]
+        #[test_case("   ", ""; "spaces only")]
+        #[test_case("...", ""; "noise only")]
+        #[test_case("---", ""; "separators only")]
+        fn normalizes_as_expected(input: &str, expected: &str) {
             assert_eq!(deep_normalize_string(input), expected);
         }
 
         #[test]
-        fn e_idempotente() {
+        fn is_idempotent() {
             for input in ["Café  Fund–A", "Rock & Roll", "Straße 1", "  ", "ØMEGA/AB"] {
                 let once = deep_normalize_string(input);
                 assert_eq!(deep_normalize_string(&once), once, "input: {input:?}");
@@ -105,11 +105,11 @@ mod tests {
         }
 
         #[test]
-        fn non_lascia_mai_spazi_doppi_o_ai_bordi() {
+        fn never_leaves_double_spaces_or_edges() {
             for input in ["  a - b  ", "a,,,b", "a + + b", "-a-", "  Café  ,  Fund  "] {
                 let out = deep_normalize_string(input);
-                assert!(!out.contains("  "), "spazi doppi in {out:?} (input {input:?})");
-                assert_eq!(out.trim(), out, "bordi non puliti in {out:?}");
+                assert!(!out.contains("  "), "double spaces in {out:?} (input {input:?})");
+                assert_eq!(out.trim(), out, "unclean edges in {out:?}");
             }
         }
     }
@@ -119,19 +119,19 @@ mod tests {
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("  Hello   World  ", true, "hello world"; "minuscole di default")]
-        #[test_case("  Hello   World  ", false, "Hello World"; "conserva le maiuscole")]
-        #[test_case("", true, ""; "stringa vuota")]
-        #[test_case("NoWhitespace", false, "NoWhitespace"; "token singolo invariato")]
-        #[test_case("Café", false, "Café"; "gli accenti non vengono toccati")]
-        #[test_case("a\tb\nc", false, "a b c"; "tab e newline contano come spazi")]
-        #[test_case("A, B", false, "A, B"; "la punteggiatura resta")]
-        fn normalizza_come_atteso(input: &str, lower: bool, expected: &str) {
+        #[test_case("  Hello   World  ", true, "hello world"; "default lowercasing")]
+        #[test_case("  Hello   World  ", false, "Hello World"; "keeps the case")]
+        #[test_case("", true, ""; "empty string")]
+        #[test_case("NoWhitespace", false, "NoWhitespace"; "single token unchanged")]
+        #[test_case("Café", false, "Café"; "accents are not touched")]
+        #[test_case("a\tb\nc", false, "a b c"; "tab and newline count as spaces")]
+        #[test_case("A, B", false, "A, B"; "punctuation stays")]
+        fn normalizes_as_expected(input: &str, lower: bool, expected: &str) {
             assert_eq!(normalize_string(input, lower), expected);
         }
 
         #[test]
-        fn e_idempotente_per_entrambi_i_casing() {
+        fn is_idempotent_for_both_casings() {
             for input in ["  A  B  ", "Café Fund", ""] {
                 for lower in [true, false] {
                     let once = normalize_string(input, lower);
@@ -146,19 +146,19 @@ mod tests {
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("  Hello World  ", false, "HelloWorld"; "rimuove tutti gli spazi, tiene le maiuscole")]
-        #[test_case("  Hello World  ", true, "helloworld"; "rimuove tutti gli spazi e abbassa")]
-        #[test_case("Test", false, "Test"; "parola singola invariata")]
-        #[test_case("Test", true, "test"; "parola singola abbassata")]
-        #[test_case("", false, ""; "stringa vuota")]
-        #[test_case("   ", false, ""; "solo spazi")]
-        #[test_case("a\tb\nc", false, "abc"; "tab e newline rimossi come gli spazi")]
-        fn normalizza_come_atteso(input: &str, lower: bool, expected: &str) {
+        #[test_case("  Hello World  ", false, "HelloWorld"; "removes all spaces, keeps the case")]
+        #[test_case("  Hello World  ", true, "helloworld"; "removes all spaces and lowercases")]
+        #[test_case("Test", false, "Test"; "single word unchanged")]
+        #[test_case("Test", true, "test"; "single word lowered")]
+        #[test_case("", false, ""; "empty string")]
+        #[test_case("   ", false, ""; "spaces only")]
+        #[test_case("a\tb\nc", false, "abc"; "tab and newline removed like spaces")]
+        fn normalizes_as_expected(input: &str, lower: bool, expected: &str) {
             assert_eq!(normalize_word(input, lower), expected);
         }
 
         #[test]
-        fn non_contiene_mai_spazi() {
+        fn never_contains_spaces() {
             for input in ["  a b  c ", "\t\n", "x", ""] {
                 assert!(!normalize_word(input, false).contains(char::is_whitespace), "input {input:?}");
             }
@@ -167,19 +167,19 @@ mod tests {
 
     /// I tre livelli non sono intercambiabili: questo modulo fissa in cosa differiscono, cosi'
     /// che un cambio accidentale di uno dei tre rompa un test invece di passare inosservato.
-    mod differenze_fra_i_livelli {
+    mod differences_between_levels {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn solo_deep_rimuove_accenti_e_punteggiatura() {
+        fn only_deep_removes_accents_and_punctuation() {
             let input = "Café, S.p.A.";
             assert_eq!(deep_normalize_string(input), "cafe spa");
             assert_eq!(normalize_string(input, true), "café, s.p.a.");
         }
 
         #[test]
-        fn solo_word_elimina_gli_spazi_invece_di_collassarli() {
+        fn only_word_removes_spaces_instead_of_collapsing_them() {
             let input = "A  B";
             assert_eq!(normalize_string(input, false), "A B");
             assert_eq!(normalize_word(input, false), "AB");

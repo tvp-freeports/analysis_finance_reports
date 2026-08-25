@@ -136,26 +136,26 @@ impl<'de> Deserialize<'de> for Promise {
 mod tests {
     use super::*;
 
-    mod suffissi {
+    mod suffixes {
         use super::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("ref", "ref", false, false; "id nudo")]
-        #[test_case("ref!", "ref", true, false; "bang finale accende strict")]
-        #[test_case("ref[]", "ref", false, true; "parentesi finali accendono multiple")]
-        #[test_case("ref[]!", "ref", true, true; "parentesi poi bang accendono entrambi")]
-        #[test_case("ref![]", "ref!", false, true; "bang poi parentesi: solo multiple")]
-        #[test_case("!", "", true, false; "solo un bang")]
-        #[test_case("[]", "", false, true; "solo parentesi")]
-        #[test_case("", "", false, false; "stringa vuota")]
-        #[test_case("a!b", "a!b", false, false; "bang non finale non conta")]
-        #[test_case("a[]b", "a[]b", false, false; "parentesi non finali non contano")]
-        #[test_case("ref[", "ref[", false, false; "parentesi spaiata")]
-        #[test_case("ref]", "ref]", false, false; "parentesi chiusa sola")]
-        #[test_case("ref!!", "ref!", true, false; "solo un bang viene tolto")]
-        #[test_case("ref[][]", "ref[]", false, true; "solo una coppia viene tolta")]
-        fn new_interpreta_i_suffissi(raw: &str, id: &str, strict: bool, multiple: bool) {
+        #[test_case("ref", "ref", false, false; "bare id")]
+        #[test_case("ref!", "ref", true, false; "trailing bang turns on strict")]
+        #[test_case("ref[]", "ref", false, true; "trailing brackets turn on multiple")]
+        #[test_case("ref[]!", "ref", true, true; "brackets then bang turn on both")]
+        #[test_case("ref![]", "ref!", false, true; "bang then brackets: only multiple")]
+        #[test_case("!", "", true, false; "bang only")]
+        #[test_case("[]", "", false, true; "brackets only")]
+        #[test_case("", "", false, false; "empty string")]
+        #[test_case("a!b", "a!b", false, false; "non-trailing bang doesn't count")]
+        #[test_case("a[]b", "a[]b", false, false; "non-trailing brackets don't count")]
+        #[test_case("ref[", "ref[", false, false; "unpaired bracket")]
+        #[test_case("ref]", "ref]", false, false; "lone closing bracket")]
+        #[test_case("ref!!", "ref!", true, false; "only one bang is stripped")]
+        #[test_case("ref[][]", "ref[]", false, true; "only one pair is stripped")]
+        fn new_interprets_the_suffixes(raw: &str, id: &str, strict: bool, multiple: bool) {
             let p = Promise::new(raw);
             assert_eq!(p.id(), id);
             assert_eq!(p.strict(), strict, "strict per {raw:?}");
@@ -166,22 +166,22 @@ mod tests {
         /// **prima** di `[]`, quindi `"ref![]"` non finisce con `!` e resta non-strict, mentre
         /// `"ref[]!"` accende entrambi i flag.
         #[test]
-        fn ordine_di_strip_non_e_simmetrico() {
-            let bang_poi_parentesi = Promise::new("ref![]");
-            assert_eq!(bang_poi_parentesi.id(), "ref!");
-            assert!(!bang_poi_parentesi.strict());
-            assert!(bang_poi_parentesi.multiple());
+        fn strip_order_is_not_symmetric() {
+            let bang_then_brackets = Promise::new("ref![]");
+            assert_eq!(bang_then_brackets.id(), "ref!");
+            assert!(!bang_then_brackets.strict());
+            assert!(bang_then_brackets.multiple());
 
-            let parentesi_poi_bang = Promise::new("ref[]!");
-            assert_eq!(parentesi_poi_bang.id(), "ref");
-            assert!(parentesi_poi_bang.strict());
-            assert!(parentesi_poi_bang.multiple());
+            let brackets_then_bang = Promise::new("ref[]!");
+            assert_eq!(brackets_then_bang.id(), "ref");
+            assert!(brackets_then_bang.strict());
+            assert!(brackets_then_bang.multiple());
 
-            assert_ne!(bang_poi_parentesi, parentesi_poi_bang);
+            assert_ne!(bang_then_brackets, brackets_then_bang);
         }
 
         #[test]
-        fn flag_gia_acceso_lascia_il_suffisso_nell_id() {
+        fn flag_already_on_leaves_suffix_in_id() {
             let strict = Promise::with_flags("weird!", true, false);
             assert_eq!(strict.id(), "weird!");
             assert!(strict.strict());
@@ -197,24 +197,24 @@ mod tests {
         }
 
         #[test]
-        fn with_flags_a_flag_spenti_coincide_con_new() {
+        fn with_flags_with_flags_off_matches_new() {
             for raw in ["ref", "ref!", "ref[]", "ref[]!", "ref![]", "", "!", "[]"] {
                 assert_eq!(Promise::with_flags(raw, false, false), Promise::new(raw), "raw {raw:?}");
             }
         }
     }
 
-    mod forma_canonica {
+    mod canonical_form {
         use super::*;
         use pretty_assertions::assert_eq;
         use test_case::test_case;
 
-        #[test_case("ref", "ref"; "nessun flag")]
-        #[test_case("ref!", "ref!"; "solo strict")]
-        #[test_case("ref[]", "ref[]"; "solo multiple")]
-        #[test_case("ref[]!", "ref[]!"; "entrambi in forma canonica")]
-        #[test_case("ref![]", "ref![]"; "entrambi in forma non canonica restano distinguibili")]
-        fn display_riformatta_in_forma_canonica(raw: &str, expected: &str) {
+        #[test_case("ref", "ref"; "no flags")]
+        #[test_case("ref!", "ref!"; "strict only")]
+        #[test_case("ref[]", "ref[]"; "multiple only")]
+        #[test_case("ref[]!", "ref[]!"; "both in canonical form")]
+        #[test_case("ref![]", "ref![]"; "both in non-canonical form stay distinguishable")]
+        fn display_reformats_to_canonical_form(raw: &str, expected: &str) {
             assert_eq!(Promise::new(raw).to_string(), expected);
         }
 
@@ -223,7 +223,7 @@ mod tests {
         /// Verificata in modo esaustivo su tutte le combinazioni di id "difficili" (che
         /// contengono essi stessi i suffissi) e di flag iniziali.
         #[test]
-        fn la_forma_canonica_si_riparsa_identica() {
+        fn canonical_form_reparses_identically() {
             let ids = ["", "a", "a!", "a[]", "a![]", "a[]!", "!", "[]", "][", "a!!", "a[][]"];
             for id in ids {
                 for strict in [false, true] {
@@ -237,7 +237,7 @@ mod tests {
         }
     }
 
-    mod identita {
+    mod identity {
         use super::*;
         use pretty_assertions::assert_eq;
         use std::collections::hash_map::DefaultHasher;
@@ -250,7 +250,7 @@ mod tests {
         }
 
         #[test]
-        fn uguali_solo_se_id_e_flag_coincidono() {
+        fn equal_only_when_id_and_flags_match() {
             let base = Promise::new("ref");
             assert_eq!(base, Promise::new("ref"));
             assert_ne!(base, Promise::new("ref!"));
@@ -259,12 +259,12 @@ mod tests {
         }
 
         #[test]
-        fn promesse_uguali_hanno_lo_stesso_hash() {
+        fn equal_promises_have_the_same_hash() {
             assert_eq!(hash_of(&Promise::new("ref[]!")), hash_of(&Promise::with_flags("ref", true, true)));
         }
 
         #[test]
-        fn l_ordinamento_segue_id_poi_strict_poi_multiple() {
+        fn ordering_follows_id_then_strict_then_multiple() {
             let mut v = [
                 Promise::with_flags("b", false, false),
                 Promise::with_flags("a", true, false),
@@ -282,13 +282,13 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn serializza_come_stringa_canonica() {
+        fn serializes_as_canonical_string() {
             let p = Promise::new("fund[]!");
             assert_eq!(serde_json::to_string(&p).unwrap(), "\"fund[]!\"");
         }
 
         #[test]
-        fn ogni_promessa_costruibile_sopravvive_al_json() {
+        fn every_constructible_promise_survives_json() {
             for raw in ["ref", "ref!", "ref[]", "ref[]!", "ref![]", "", "a b/c"] {
                 let p = Promise::new(raw);
                 let json = serde_json::to_string(&p).unwrap();
@@ -298,25 +298,25 @@ mod tests {
         }
 
         #[test]
-        fn deserializza_solo_da_stringa() {
+        fn deserializes_only_from_string() {
             assert!(serde_json::from_str::<Promise>("42").is_err());
             assert!(serde_json::from_str::<Promise>("{\"id\":\"x\"}").is_err());
         }
     }
 
-    mod errori {
+    mod errors {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn unresolved_riporta_l_id_senza_suffissi() {
+        fn unresolved_reports_id_without_suffixes() {
             let err = Promise::new("fund[]!").unresolved();
             assert_eq!(err, PromiseError::Unresolved { id: "fund".into() });
             assert_eq!(err.to_string(), "promise 'fund' has no value in the resolution map");
         }
 
         #[test]
-        fn circular_mostra_la_catena_intera() {
+        fn circular_shows_the_full_chain() {
             let err = PromiseError::Circular { chain: vec!["a".into(), "b".into(), "a".into()] };
             assert_eq!(err.to_string(), "circular promise chain: a -> b -> a");
         }

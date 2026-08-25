@@ -20,7 +20,7 @@
 //!
 //! **Limite noto**: `Float(NaN)` e' un valore legittimo in memoria (`OrderedFloat` lo rende
 //! `Eq`/`Ord`/`Hash`) ma non sopravvive a un giro in JSON, perche' JSON non ha un `NaN`. Vedi
-//! `tests::serde_roundtrip::nan_non_sopravvive_al_json`.
+//! `tests::serde_roundtrip::nan_does_not_survive_json`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -99,7 +99,7 @@ macro_rules! typed_accessor {
 impl BlockValue {
     /// Il nome della variante, identico al valore del tag `kind` usato da serde. E' quello che
     /// finisce nei messaggi d'errore, quindi la coincidenza fra i due non e' casuale: e'
-    /// verificata da `tests::serde_roundtrip::kind_coincide_con_il_tag_serde`.
+    /// verificata da `tests::serde_roundtrip::kind_matches_the_serde_tag`.
     pub fn kind(&self) -> &'static str {
         match self {
             BlockValue::Null => "null",
@@ -261,7 +261,7 @@ mod tests {
 
     /// Un esemplare per ogni variante, nell'ordine di dichiarazione dell'enum. Le prove di
     /// esaustivita' (`kind`, accessori, serde) iterano su questa lista, cosi' che aggiungere una
-    /// variante senza aggiornarla faccia fallire `copre_tutte_le_varianti`.
+    /// variante senza aggiornarla faccia fallire `covers_all_variants`.
     fn one_of_each() -> Vec<BlockValue> {
         vec![
             BlockValue::Null,
@@ -285,7 +285,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn copre_tutte_le_varianti() {
+        fn covers_all_variants() {
             // Il `match` esaustivo in `kind` e' la garanzia lato compilatore; questo test e' la
             // garanzia che `one_of_each` — usato da tutti gli altri test — resti completo.
             let kinds: Vec<&str> = one_of_each().iter().map(BlockValue::kind).collect();
@@ -299,13 +299,13 @@ mod tests {
         }
 
         #[test]
-        fn i_nomi_sono_tutti_distinti() {
+        fn the_names_are_all_distinct() {
             let kinds: BTreeSet<&str> = one_of_each().iter().map(BlockValue::kind).collect();
             assert_eq!(kinds.len(), one_of_each().len());
         }
 
         #[test]
-        fn is_null_e_is_promise_riconoscono_solo_la_propria_variante() {
+        fn is_null_and_is_promise_recognize_only_their_own_variant() {
             for v in one_of_each() {
                 assert_eq!(v.is_null(), v.kind() == "null", "{v:?}");
                 assert_eq!(v.is_promise(), v.kind() == "promise", "{v:?}");
@@ -313,12 +313,12 @@ mod tests {
         }
     }
 
-    mod accessori {
+    mod accessors {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn ogni_accessore_legge_la_propria_variante() {
+        fn each_accessor_reads_its_own_variant() {
             assert_eq!(BlockValue::Bool(true).as_bool(), Some(true));
             assert_eq!(BlockValue::Int(-7).as_int(), Some(-7));
             assert_eq!(BlockValue::from(1.5).as_float(), Some(1.5));
@@ -343,12 +343,12 @@ mod tests {
         /// Ogni accessore deve dire `None` su *tutte* le altre dodici varianti, non solo su
         /// quella che verrebbe in mente scrivendo il test a mano.
         #[test]
-        fn ogni_accessore_rifiuta_tutte_le_altre_varianti() {
+        fn each_accessor_rejects_all_other_variants() {
             /// Nome della variante che l'accessore accetta, e l'accessore stesso ridotto a
             /// un predicato — l'unico modo di metterli tutti nella stessa lista, visto che i
             /// dodici hanno tipi di ritorno diversi.
-            type Accessore = (&'static str, fn(&BlockValue) -> bool);
-            let checks: Vec<Accessore> = vec![
+            type Accessor = (&'static str, fn(&BlockValue) -> bool);
+            let checks: Vec<Accessor> = vec![
                 ("bool", |v| v.as_bool().is_some()),
                 ("int", |v| v.as_int().is_some()),
                 ("float", |v| v.as_float().is_some()),
@@ -367,14 +367,14 @@ mod tests {
                     assert_eq!(
                         accessor(&value),
                         value.kind() == expected_kind,
-                        "accessore {expected_kind} su valore {value:?}"
+                        "accessor {expected_kind} on value {value:?}"
                     );
                 }
             }
         }
 
         #[test]
-        fn or_fail_riporta_campo_atteso_e_trovato() {
+        fn or_fail_reports_expected_and_found_field() {
             let err = BlockValue::Int(1).str_or_fail("fund_name").unwrap_err();
             assert_eq!(
                 err,
@@ -388,7 +388,7 @@ mod tests {
         }
 
         #[test]
-        fn or_fail_ha_successo_esattamente_quando_as_ha_successo() {
+        fn or_fail_succeeds_exactly_when_as_succeeds() {
             for value in one_of_each() {
                 assert_eq!(value.as_int().is_some(), value.int_or_fail("f").is_ok(), "{value:?}");
                 assert_eq!(value.as_str().is_some(), value.str_or_fail("f").is_ok(), "{value:?}");
@@ -399,7 +399,7 @@ mod tests {
         /// `Null` non e' un jolly: non soddisfa nessun accessore tipizzato. E' la ragione per cui
         /// esiste `is_null` separato.
         #[test]
-        fn null_non_soddisfa_nessun_accessore() {
+        fn null_satisfies_no_accessor() {
             let null = BlockValue::Null;
             assert!(null.as_bool().is_none());
             assert!(null.as_int().is_none());
@@ -411,17 +411,17 @@ mod tests {
         /// `Int` e `Float` sono varianti distinte: nessuna conversione implicita fra le due, cosi'
         /// che un CSV che dichiara un intero non passi silenziosamente per un float e viceversa.
         #[test]
-        fn int_e_float_non_si_convertono_a_vicenda() {
+        fn int_and_float_do_not_convert_into_each_other() {
             assert!(BlockValue::Int(1).as_float().is_none());
             assert!(BlockValue::from(1.0).as_int().is_none());
         }
     }
 
-    mod lettura_di_campi {
+    mod field_reading {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        fn mappa() -> BlockValue {
+        fn map_value() -> BlockValue {
             BlockValue::Map(BTreeMap::from([
                 ("nome".to_string(), BlockValue::from("Acme")),
                 ("valore".to_string(), BlockValue::Int(3)),
@@ -429,20 +429,20 @@ mod tests {
         }
 
         #[test]
-        fn get_legge_una_chiave_presente() {
-            assert_eq!(mappa().get("nome"), Some(&BlockValue::from("Acme")));
+        fn get_reads_a_present_key() {
+            assert_eq!(map_value().get("nome"), Some(&BlockValue::from("Acme")));
         }
 
         #[test]
-        fn get_da_none_sia_per_chiave_assente_sia_per_non_mappa() {
-            assert_eq!(mappa().get("assente"), None);
+        fn get_returns_none_for_missing_key_or_non_map() {
+            assert_eq!(map_value().get("assente"), None);
             assert_eq!(BlockValue::Int(1).get("nome"), None);
         }
 
         #[test]
-        fn get_or_fail_distingue_chiave_assente_da_valore_non_mappa() {
+        fn get_or_fail_distinguishes_missing_key_from_non_map_value() {
             assert_eq!(
-                mappa().get_or_fail("assente").unwrap_err(),
+                map_value().get_or_fail("assente").unwrap_err(),
                 BlockValueError::MissingField { field: "assente".into() }
             );
             assert_eq!(
@@ -452,19 +452,19 @@ mod tests {
         }
 
         #[test]
-        fn get_or_fail_ha_successo_esattamente_quando_get_ha_successo() {
-            let valori = [mappa(), BlockValue::Int(1), BlockValue::Map(BTreeMap::new()), BlockValue::Null];
-            for v in valori {
-                for chiave in ["nome", "assente", ""] {
-                    assert_eq!(v.get(chiave).is_some(), v.get_or_fail(chiave).is_ok(), "{v:?} / {chiave}");
+        fn get_or_fail_succeeds_exactly_when_get_succeeds() {
+            let values = [map_value(), BlockValue::Int(1), BlockValue::Map(BTreeMap::new()), BlockValue::Null];
+            for v in values {
+                for key in ["nome", "assente", ""] {
+                    assert_eq!(v.get(key).is_some(), v.get_or_fail(key).is_ok(), "{v:?} / {key}");
                 }
             }
         }
 
         #[test]
-        fn i_messaggi_di_errore_nominano_il_campo() {
+        fn error_messages_name_the_field() {
             assert_eq!(
-                mappa().get_or_fail("assente").unwrap_err().to_string(),
+                map_value().get_or_fail("assente").unwrap_err().to_string(),
                 "missing field 'assente'"
             );
             assert_eq!(
@@ -474,12 +474,12 @@ mod tests {
         }
     }
 
-    mod conversioni {
+    mod conversions {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn from_copre_i_tipi_scalari() {
+        fn from_covers_scalar_types() {
             assert_eq!(BlockValue::from(true), BlockValue::Bool(true));
             assert_eq!(BlockValue::from(3_i64), BlockValue::Int(3));
             assert_eq!(BlockValue::from(3.5_f64), BlockValue::Float(OrderedFloat(3.5)));
@@ -488,16 +488,16 @@ mod tests {
         }
 
         #[test]
-        fn option_none_diventa_null() {
-            let assente: Option<i64> = None;
-            assert_eq!(BlockValue::from(assente), BlockValue::Null);
+        fn option_none_becomes_null() {
+            let absent: Option<i64> = None;
+            assert_eq!(BlockValue::from(absent), BlockValue::Null);
             assert_eq!(BlockValue::from(Some(4_i64)), BlockValue::Int(4));
-            let stringa: Option<&str> = None;
-            assert_eq!(BlockValue::from(stringa), BlockValue::Null);
+            let absent_str: Option<&str> = None;
+            assert_eq!(BlockValue::from(absent_str), BlockValue::Null);
         }
 
         #[test]
-        fn from_copre_i_contenitori() {
+        fn from_covers_containers() {
             assert_eq!(
                 BlockValue::from(vec![BlockValue::Int(1)]),
                 BlockValue::List(vec![BlockValue::Int(1)])
@@ -513,7 +513,7 @@ mod tests {
         }
     }
 
-    mod ordine_e_hash {
+    mod order_and_hash {
         use super::*;
         use pretty_assertions::assert_eq;
         use std::collections::hash_map::DefaultHasher;
@@ -526,16 +526,16 @@ mod tests {
         }
 
         #[test]
-        fn l_ordine_fra_varianti_segue_la_dichiarazione() {
-            let mut valori = one_of_each();
-            let atteso = valori.clone();
-            valori.reverse();
-            valori.sort();
-            assert_eq!(valori, atteso);
+        fn order_among_variants_follows_declaration() {
+            let mut values = one_of_each();
+            let expected = values.clone();
+            values.reverse();
+            values.sort();
+            assert_eq!(values, expected);
         }
 
         #[test]
-        fn dentro_una_variante_ordina_per_contenuto() {
+        fn within_a_variant_orders_by_content() {
             assert!(BlockValue::Int(1) < BlockValue::Int(2));
             assert!(BlockValue::from("a") < BlockValue::from("b"));
             assert!(BlockValue::from(1.0) < BlockValue::from(2.0));
@@ -545,54 +545,54 @@ mod tests {
         /// ne' il valore ne' l'hash. E' cio' che nel riferimento richiedeva la mutazione di
         /// `metadata` in `__hash__` (`PLAN.md` D3) e che qui viene gratis dai contenitori ordinati.
         #[test]
-        fn l_ordine_di_inserimento_non_cambia_hash_ne_uguaglianza() {
-            let diretto = BlockValue::Set(BTreeSet::from([
+        fn insertion_order_does_not_change_hash_or_equality() {
+            let forward = BlockValue::Set(BTreeSet::from([
                 BlockValue::Int(1),
                 BlockValue::from("b"),
                 BlockValue::Int(2),
             ]));
-            let mut inverso = BTreeSet::new();
-            inverso.insert(BlockValue::from("b"));
-            inverso.insert(BlockValue::Int(2));
-            inverso.insert(BlockValue::Int(1));
-            let inverso = BlockValue::Set(inverso);
-            assert_eq!(diretto, inverso);
-            assert_eq!(hash_of(&diretto), hash_of(&inverso));
+            let mut reversed = BTreeSet::new();
+            reversed.insert(BlockValue::from("b"));
+            reversed.insert(BlockValue::Int(2));
+            reversed.insert(BlockValue::Int(1));
+            let reversed = BlockValue::Set(reversed);
+            assert_eq!(forward, reversed);
+            assert_eq!(hash_of(&forward), hash_of(&reversed));
 
-            let mut mappa_a = BTreeMap::new();
-            mappa_a.insert("x".to_string(), BlockValue::Int(1));
-            mappa_a.insert("y".to_string(), BlockValue::Int(2));
-            let mut mappa_b = BTreeMap::new();
-            mappa_b.insert("y".to_string(), BlockValue::Int(2));
-            mappa_b.insert("x".to_string(), BlockValue::Int(1));
-            assert_eq!(hash_of(&BlockValue::from(mappa_a)), hash_of(&BlockValue::from(mappa_b)));
+            let mut map_a = BTreeMap::new();
+            map_a.insert("x".to_string(), BlockValue::Int(1));
+            map_a.insert("y".to_string(), BlockValue::Int(2));
+            let mut map_b = BTreeMap::new();
+            map_b.insert("y".to_string(), BlockValue::Int(2));
+            map_b.insert("x".to_string(), BlockValue::Int(1));
+            assert_eq!(hash_of(&BlockValue::from(map_a)), hash_of(&BlockValue::from(map_b)));
         }
 
         /// L'ordine di una `List` invece conta: e' una sequenza, non un insieme.
         #[test]
-        fn l_ordine_di_una_lista_conta() {
+        fn list_order_matters() {
             let a = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
             let b = BlockValue::List(vec![BlockValue::Int(2), BlockValue::Int(1)]);
             assert_ne!(a, b);
         }
 
         #[test]
-        fn valori_annidati_restano_confrontabili_e_hashabili() {
-            let annidato = BlockValue::Map(BTreeMap::from([(
+        fn nested_values_remain_comparable_and_hashable() {
+            let nested = BlockValue::Map(BTreeMap::from([(
                 "dentro".to_string(),
                 BlockValue::List(vec![BlockValue::Set(BTreeSet::from([BlockValue::Int(1)]))]),
             )]));
-            assert_eq!(hash_of(&annidato), hash_of(&annidato.clone()));
-            assert_eq!(annidato.cmp(&annidato.clone()), std::cmp::Ordering::Equal);
+            assert_eq!(hash_of(&nested), hash_of(&nested.clone()));
+            assert_eq!(nested.cmp(&nested.clone()), std::cmp::Ordering::Equal);
         }
 
         /// Un `BlockValue` puo' essere elemento di un insieme e chiave di una mappa ordinata: e'
         /// la ragione per cui l'enum e' `Ord` e non solo `Eq`.
         #[test]
-        fn usabile_come_elemento_di_insieme() {
-            let insieme: BTreeSet<BlockValue> = one_of_each().into_iter().collect();
-            assert_eq!(insieme.len(), one_of_each().len());
-            assert!(insieme.contains(&BlockValue::Null));
+        fn usable_as_a_set_element() {
+            let set: BTreeSet<BlockValue> = one_of_each().into_iter().collect();
+            assert_eq!(set.len(), one_of_each().len());
+            assert!(set.contains(&BlockValue::Null));
         }
     }
 
@@ -601,7 +601,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn ogni_variante_sopravvive_al_json() {
+        fn every_variant_survives_json() {
             for value in one_of_each() {
                 let json = serde_json::to_string(&value).unwrap();
                 let back: BlockValue = serde_json::from_str(&json).unwrap();
@@ -610,7 +610,7 @@ mod tests {
         }
 
         #[test]
-        fn kind_coincide_con_il_tag_serde() {
+        fn kind_matches_the_serde_tag() {
             for value in one_of_each() {
                 let json: serde_json::Value = serde_json::to_value(&value).unwrap();
                 assert_eq!(json["kind"], serde_json::Value::from(value.kind()), "{value:?}");
@@ -618,7 +618,7 @@ mod tests {
         }
 
         #[test]
-        fn la_forma_e_taggata_adiacentemente() {
+        fn the_shape_is_adjacently_tagged() {
             assert_eq!(serde_json::to_string(&BlockValue::Int(3)).unwrap(), r#"{"kind":"int","v":3}"#);
             assert_eq!(serde_json::to_string(&BlockValue::Null).unwrap(), r#"{"kind":"null"}"#);
             assert_eq!(
@@ -636,8 +636,8 @@ mod tests {
         }
 
         #[test]
-        fn valori_profondamente_annidati_sopravvivono() {
-            let annidato = BlockValue::Map(BTreeMap::from([
+        fn deeply_nested_values_survive() {
+            let nested = BlockValue::Map(BTreeMap::from([
                 (
                     "lista".to_string(),
                     BlockValue::List(vec![
@@ -647,17 +647,17 @@ mod tests {
                 ),
                 ("insieme".to_string(), BlockValue::Set(BTreeSet::from([BlockValue::from("a")]))),
             ]));
-            let json = serde_json::to_string(&annidato).unwrap();
-            assert_eq!(serde_json::from_str::<BlockValue>(&json).unwrap(), annidato);
+            let json = serde_json::to_string(&nested).unwrap();
+            assert_eq!(serde_json::from_str::<BlockValue>(&json).unwrap(), nested);
         }
 
         #[test]
-        fn un_kind_sconosciuto_e_un_errore() {
+        fn an_unknown_kind_is_an_error() {
             assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"decimal","v":1}"#).is_err());
         }
 
         #[test]
-        fn un_contenuto_del_tipo_sbagliato_e_un_errore() {
+        fn wrong_type_content_is_an_error() {
             assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"int","v":"tre"}"#).is_err());
             assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"currency","v":"EURO"}"#).is_err());
         }
@@ -667,13 +667,13 @@ mod tests {
         /// si rompe (serializzazione o rilettura), solo che non produca silenziosamente un valore
         /// diverso.
         #[test]
-        fn nan_non_sopravvive_al_json() {
+        fn nan_does_not_survive_json() {
             let nan = BlockValue::from(f64::NAN);
             match serde_json::to_string(&nan) {
                 Err(_) => {}
                 Ok(json) => assert!(
                     serde_json::from_str::<BlockValue>(&json).is_err(),
-                    "NaN e' tornato indietro da {json}"
+                    "NaN came back from {json}"
                 ),
             }
         }

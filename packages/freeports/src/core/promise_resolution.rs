@@ -97,9 +97,9 @@ impl PromiseMap {
     /// depositano promesse al livello superiore, mai sepolte in un contenitore.
     pub fn flatten(&self) -> Result<FlatPromiseMap, PromiseError> {
         let mut resolved = BTreeMap::new();
-        let mut in_corso = Vec::new();
+        let mut in_progress = Vec::new();
         for id in self.entries.keys() {
-            self.resolve_id(id, &mut in_corso, &mut resolved)?;
+            self.resolve_id(id, &mut in_progress, &mut resolved)?;
         }
         Ok(FlatPromiseMap { entries: resolved })
     }
@@ -110,48 +110,48 @@ impl PromiseMap {
     fn resolve_id(
         &self,
         id: &str,
-        in_corso: &mut Vec<String>,
+        in_progress: &mut Vec<String>,
         resolved: &mut BTreeMap<String, BlockValue>,
     ) -> Result<(), PromiseError> {
         if resolved.contains_key(id) {
             return Ok(());
         }
-        if let Some(inizio) = in_corso.iter().position(|visitato| visitato == id) {
-            let mut chain: Vec<String> = in_corso[inizio..].to_vec();
+        if let Some(start) = in_progress.iter().position(|visited| visited == id) {
+            let mut chain: Vec<String> = in_progress[start..].to_vec();
             chain.push(id.to_string());
             return Err(PromiseError::Circular { chain });
         }
         // Un id di cui non sappiamo nulla non e' un errore: chi lo riferisce si tiene la promessa.
-        let Some(contributi) = self.entries.get(id) else {
+        let Some(contributions) = self.entries.get(id) else {
             return Ok(());
         };
 
-        in_corso.push(id.to_string());
-        let mut appiattiti = Vec::with_capacity(contributi.len());
-        for contributo in contributi {
-            match contributo {
+        in_progress.push(id.to_string());
+        let mut flattened = Vec::with_capacity(contributions.len());
+        for contribution in contributions {
+            match contribution {
                 BlockValue::Promise(promise) => {
-                    self.resolve_id(promise.id(), in_corso, resolved)?;
+                    self.resolve_id(promise.id(), in_progress, resolved)?;
                     match resolved.get(promise.id()) {
-                        Some(valore) => appiattiti.push(valore.clone()),
+                        Some(value) => flattened.push(value.clone()),
                         // L'id riferito non esiste, o esiste senza contributi: la promessa resta.
-                        None => appiattiti.push(contributo.clone()),
+                        None => flattened.push(contribution.clone()),
                     }
                 }
-                altro => appiattiti.push(altro.clone()),
+                other => flattened.push(other.clone()),
             }
         }
-        in_corso.pop();
+        in_progress.pop();
 
-        let unico = if appiattiti.len() == 1 {
-            appiattiti.pop()
-        } else if appiattiti.is_empty() {
+        let single = if flattened.len() == 1 {
+            flattened.pop()
+        } else if flattened.is_empty() {
             None
         } else {
-            Some(BlockValue::List(appiattiti))
+            Some(BlockValue::List(flattened))
         };
-        if let Some(valore) = unico {
-            resolved.insert(id.to_string(), valore);
+        if let Some(value) = single {
+            resolved.insert(id.to_string(), value);
         }
         Ok(())
     }
@@ -191,19 +191,19 @@ impl FlatPromiseMap {
     /// la nota in testa al modulo) vengono scartati: se non ne resta nessun altro, la promessa e'
     /// [`PromiseError::Unresolved`].
     pub fn fulfill(&self, promise: &Promise) -> Result<BlockValue, PromiseError> {
-        let registrato = self.entries.get(promise.id()).ok_or_else(|| promise.unresolved())?;
-        let candidati: Vec<&BlockValue> = match registrato {
+        let registered = self.entries.get(promise.id()).ok_or_else(|| promise.unresolved())?;
+        let candidates: Vec<&BlockValue> = match registered {
             BlockValue::Null | BlockValue::Promise(_) => Vec::new(),
-            BlockValue::List(valori) => valori.iter().filter(|v| !v.is_promise()).collect(),
-            scalare => vec![scalare],
+            BlockValue::List(values) => values.iter().filter(|v| !v.is_promise()).collect(),
+            scalar => vec![scalar],
         };
         if promise.multiple() {
-            if candidati.is_empty() {
+            if candidates.is_empty() {
                 return Err(promise.unresolved());
             }
-            return Ok(BlockValue::List(candidati.into_iter().cloned().collect()));
+            return Ok(BlockValue::List(candidates.into_iter().cloned().collect()));
         }
-        candidati.last().map(|v| (*v).clone()).ok_or_else(|| promise.unresolved())
+        candidates.last().map(|v| (*v).clone()).ok_or_else(|| promise.unresolved())
     }
 }
 
@@ -229,12 +229,12 @@ mod tests {
         BlockValue::Promise(Promise::new(raw))
     }
 
-    mod multimappa {
+    mod multimap {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn accumula_i_contributi_in_ordine() {
+        fn accumulates_contributions_in_order() {
             let mut map = PromiseMap::new();
             map.push("fund", 1_i64);
             map.push("fund", 2_i64);
@@ -242,7 +242,7 @@ mod tests {
         }
 
         #[test]
-        fn merge_versa_piu_coppie_alla_volta() {
+        fn merge_pours_multiple_pairs_at_once() {
             let mut map = PromiseMap::new();
             map.merge([("a", 1_i64), ("b", 2_i64)]);
             map.merge([("a", 3_i64)]);
@@ -252,7 +252,7 @@ mod tests {
         }
 
         #[test]
-        fn una_mappa_nuova_e_vuota() {
+        fn a_new_map_is_empty() {
             let map = PromiseMap::new();
             assert!(map.is_empty());
             assert_eq!(map.len(), 0);
@@ -260,32 +260,32 @@ mod tests {
         }
 
         #[test]
-        fn si_costruisce_da_un_iteratore() {
+        fn is_built_from_an_iterator() {
             let map: PromiseMap = [("a", 1_i64), ("a", 2_i64), ("b", 3_i64)].into_iter().collect();
             assert_eq!(map.get("a"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
             assert_eq!(map.len(), 2);
         }
 
         #[test]
-        fn itera_in_ordine_di_chiave() {
+        fn iterates_in_key_order() {
             let map: PromiseMap = [("z", 1_i64), ("a", 2_i64), ("m", 3_i64)].into_iter().collect();
-            let chiavi: Vec<&str> = map.iter().map(|(k, _)| k.as_str()).collect();
-            assert_eq!(chiavi, vec!["a", "m", "z"]);
+            let keys: Vec<&str> = map.iter().map(|(k, _)| k.as_str()).collect();
+            assert_eq!(keys, vec!["a", "m", "z"]);
         }
     }
 
-    mod appiattimento {
+    mod flattening {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn un_contributo_solo_resta_scalare() {
+        fn a_single_contribution_stays_scalar() {
             let map: PromiseMap = [("x", 42_i64)].into_iter().collect();
             assert_eq!(map.flatten().unwrap().get("x"), Some(&BlockValue::Int(42)));
         }
 
         #[test]
-        fn piu_contributi_diventano_una_lista() {
+        fn multiple_contributions_become_a_list() {
             let map: PromiseMap = [("x", 1_i64), ("x", 2_i64), ("x", 3_i64)].into_iter().collect();
             let flat = map.flatten().unwrap();
             assert_eq!(
@@ -295,12 +295,12 @@ mod tests {
         }
 
         #[test]
-        fn una_mappa_vuota_si_appiattisce_in_una_mappa_vuota() {
+        fn an_empty_map_flattens_to_an_empty_map() {
             assert!(PromiseMap::new().flatten().unwrap().is_empty());
         }
 
         #[test]
-        fn un_id_senza_contributi_sparisce() {
+        fn an_id_without_contributions_disappears() {
             let mut map = PromiseMap::new();
             map.entries.insert("vuoto".into(), Vec::new());
             let flat = map.flatten().unwrap();
@@ -309,7 +309,7 @@ mod tests {
         }
 
         #[test]
-        fn risolve_un_riferimento_semplice() {
+        fn resolves_a_simple_reference() {
             let map: PromiseMap =
                 [("source", promise("target")), ("target", BlockValue::Int(99))].into_iter().collect();
             let flat = map.flatten().unwrap();
@@ -318,7 +318,7 @@ mod tests {
         }
 
         #[test]
-        fn risolve_una_catena_di_riferimenti() {
+        fn resolves_a_chain_of_references() {
             let map: PromiseMap =
                 [("a", promise("b")), ("b", promise("c")), ("c", BlockValue::Int(7))].into_iter().collect();
             let flat = map.flatten().unwrap();
@@ -327,22 +327,22 @@ mod tests {
         }
 
         #[test]
-        fn un_riferimento_a_una_lista_riceve_la_lista_intera() {
+        fn a_reference_to_a_list_receives_the_whole_list() {
             let map: PromiseMap =
                 [("src", promise("t")), ("t", BlockValue::Int(1)), ("t", BlockValue::Int(2))]
                     .into_iter()
                     .collect();
             let flat = map.flatten().unwrap();
-            let attesa = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
-            assert_eq!(flat.get("src"), Some(&attesa));
-            assert_eq!(flat.get("t"), Some(&attesa));
+            let expected = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
+            assert_eq!(flat.get("src"), Some(&expected));
+            assert_eq!(flat.get("t"), Some(&expected));
         }
 
         /// Caso che nel riferimento costava una passata a vuoto in piu': un id con due contributi
         /// che sono entrambi promesse. Qui e' una visita sola, e il risultato e' la lista dei due
         /// valori riferiti, nell'ordine di inserimento.
         #[test]
-        fn un_id_con_due_contributi_promessi_diventa_la_lista_dei_valori() {
+        fn an_id_with_two_promised_contributions_becomes_the_list_of_values() {
             let map: PromiseMap = [
                 ("x", promise("a")),
                 ("x", promise("b")),
@@ -356,7 +356,7 @@ mod tests {
         }
 
         #[test]
-        fn i_contributi_non_promessi_restano_accanto_a_quelli_risolti() {
+        fn unpromised_contributions_stay_alongside_resolved_ones() {
             let map: PromiseMap =
                 [("x", BlockValue::from("fisso")), ("x", promise("a")), ("a", BlockValue::Int(5))]
                     .into_iter()
@@ -369,7 +369,7 @@ mod tests {
         }
 
         #[test]
-        fn i_flag_della_promessa_non_influenzano_l_appiattimento() {
+        fn the_promise_flags_do_not_affect_flattening() {
             // Strict e multiple contano al momento di risolvere un'entita', non qui: `flatten`
             // sostituisce comunque il valore registrato per l'id riferito.
             let map: PromiseMap =
@@ -378,29 +378,29 @@ mod tests {
         }
 
         #[test]
-        fn non_scende_dentro_i_contenitori() {
-            let annidata = BlockValue::List(vec![promise("t")]);
+        fn does_not_descend_into_containers() {
+            let nested = BlockValue::List(vec![promise("t")]);
             let map: PromiseMap =
-                [("src", annidata.clone()), ("t", BlockValue::Int(1))].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("src"), Some(&annidata));
+                [("src", nested.clone()), ("t", BlockValue::Int(1))].into_iter().collect();
+            assert_eq!(map.flatten().unwrap().get("src"), Some(&nested));
         }
     }
 
     /// La politica scelta dall'utente (2026-08-22): un riferimento che non porta da nessuna parte
     /// non e' un errore di appiattimento.
-    mod riferimenti_pendenti {
+    mod pending_references {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn un_id_sconosciuto_lascia_la_promessa_al_suo_posto() {
+        fn an_unknown_id_leaves_the_promise_in_place() {
             let map: PromiseMap = [("source", promise("nowhere"))].into_iter().collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("source"), Some(&promise("nowhere")));
         }
 
         #[test]
-        fn un_riferimento_a_un_id_senza_contributi_lascia_la_promessa() {
+        fn a_reference_to_an_id_without_contributions_leaves_the_promise() {
             let mut map = PromiseMap::new();
             map.push("source", Promise::new("vuoto"));
             map.entries.insert("vuoto".into(), Vec::new());
@@ -408,7 +408,7 @@ mod tests {
         }
 
         #[test]
-        fn una_catena_che_finisce_nel_nulla_si_ferma_sulla_promessa_pendente() {
+        fn a_chain_that_ends_in_nothing_stops_on_the_pending_promise() {
             let map: PromiseMap = [("a", promise("b")), ("b", promise("nowhere"))].into_iter().collect();
             let flat = map.flatten().unwrap();
             assert_eq!(flat.get("b"), Some(&promise("nowhere")));
@@ -416,7 +416,7 @@ mod tests {
         }
 
         #[test]
-        fn un_riferimento_pendente_non_impedisce_agli_altri_di_risolversi() {
+        fn a_pending_reference_does_not_prevent_others_from_resolving() {
             let map: PromiseMap =
                 [("a", promise("nowhere")), ("b", promise("c")), ("c", BlockValue::Int(3))]
                     .into_iter()
@@ -427,12 +427,12 @@ mod tests {
         }
     }
 
-    mod cicli {
+    mod cycles {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn un_riferimento_a_se_stesso_e_un_ciclo() {
+        fn a_self_reference_is_a_cycle() {
             let map: PromiseMap = [("a", promise("a"))].into_iter().collect();
             assert_eq!(
                 map.flatten().unwrap_err(),
@@ -441,7 +441,7 @@ mod tests {
         }
 
         #[test]
-        fn due_id_che_si_riferiscono_a_vicenda_sono_un_ciclo() {
+        fn two_ids_that_reference_each_other_are_a_cycle() {
             let map: PromiseMap = [("a", promise("b")), ("b", promise("a"))].into_iter().collect();
             assert_eq!(
                 map.flatten().unwrap_err(),
@@ -450,7 +450,7 @@ mod tests {
         }
 
         #[test]
-        fn la_catena_riportata_copre_l_intero_ciclo() {
+        fn the_reported_chain_covers_the_whole_cycle() {
             let map: PromiseMap =
                 [("a", promise("b")), ("b", promise("c")), ("c", promise("a"))].into_iter().collect();
             let err = map.flatten().unwrap_err();
@@ -465,7 +465,7 @@ mod tests {
         /// primo id visitato, non dal primo id del ciclo — cosi' il messaggio mostra anche come ci
         /// si e' arrivati.
         #[test]
-        fn un_cammino_che_entra_in_un_ciclo_riporta_anche_l_ingresso() {
+        fn a_path_that_enters_a_cycle_also_reports_the_entry_point() {
             let map: PromiseMap =
                 [("ingresso", promise("a")), ("a", promise("b")), ("b", promise("a"))]
                     .into_iter()
@@ -480,16 +480,16 @@ mod tests {
         /// dall'ordine in cui i contributi sono stati inseriti: i messaggi d'errore sono
         /// riproducibili.
         #[test]
-        fn la_catena_riportata_e_deterministica() {
-            let dritta: PromiseMap =
+        fn the_reported_chain_is_deterministic() {
+            let forward: PromiseMap =
                 [("a", promise("b")), ("b", promise("c")), ("c", promise("a"))].into_iter().collect();
-            let rovescia: PromiseMap =
+            let reversed: PromiseMap =
                 [("c", promise("a")), ("b", promise("c")), ("a", promise("b"))].into_iter().collect();
-            assert_eq!(dritta.flatten().unwrap_err(), rovescia.flatten().unwrap_err());
+            assert_eq!(forward.flatten().unwrap_err(), reversed.flatten().unwrap_err());
         }
 
         #[test]
-        fn un_ciclo_fa_fallire_l_intero_appiattimento() {
+        fn a_cycle_fails_the_entire_flattening() {
             let map: PromiseMap =
                 [("sano", BlockValue::Int(1)), ("a", promise("b")), ("b", promise("a"))]
                     .into_iter()
@@ -498,7 +498,7 @@ mod tests {
         }
     }
 
-    mod risoluzione {
+    mod resolution {
         use super::*;
         use pretty_assertions::assert_eq;
 
@@ -507,13 +507,13 @@ mod tests {
         }
 
         #[test]
-        fn un_valore_scalare_si_risolve_in_se_stesso() {
+        fn a_scalar_value_resolves_to_itself() {
             let map = flat(vec![("fund", BlockValue::from("Acme"))]);
             assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::from("Acme"));
         }
 
         #[test]
-        fn su_una_lista_vince_l_ultimo_valore() {
+        fn on_a_list_the_last_value_wins() {
             let map = flat(vec![(
                 "fund",
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)]),
@@ -522,22 +522,22 @@ mod tests {
         }
 
         #[test]
-        fn una_promessa_multiple_ottiene_sempre_una_lista() {
-            let scalare = flat(vec![("fund", BlockValue::Int(1))]);
+        fn a_multiple_promise_always_gets_a_list() {
+            let scalar = flat(vec![("fund", BlockValue::Int(1))]);
             assert_eq!(
-                scalare.fulfill(&Promise::new("fund[]")).unwrap(),
+                scalar.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1)])
             );
 
-            let lista = flat(vec![("fund", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]))]);
+            let list = flat(vec![("fund", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]))]);
             assert_eq!(
-                lista.fulfill(&Promise::new("fund[]")).unwrap(),
+                list.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
             );
         }
 
         #[test]
-        fn un_id_assente_e_irrisolvibile() {
+        fn a_missing_id_is_unresolvable() {
             let map = flat(vec![("altro", BlockValue::Int(1))]);
             assert_eq!(
                 map.fulfill(&Promise::new("fund")).unwrap_err(),
@@ -548,7 +548,7 @@ mod tests {
         /// Un `Null` registrato conta come valore *assente*, non come valore nullo: e' la
         /// semantica del riferimento (`if value.is_none(): raise KeyError`).
         #[test]
-        fn un_valore_null_e_irrisolvibile() {
+        fn a_null_value_is_unresolvable() {
             let map = flat(vec![("fund", BlockValue::Null)]);
             assert!(map.fulfill(&Promise::new("fund")).is_err());
             assert!(map.fulfill(&Promise::new("fund[]")).is_err());
@@ -557,7 +557,7 @@ mod tests {
         /// Il seguito della politica sui riferimenti pendenti: una promessa sopravvissuta
         /// all'appiattimento non risolve nulla, ed e' qui che diventa un errore.
         #[test]
-        fn un_valore_ancora_promessa_e_irrisolvibile() {
+        fn a_value_still_a_promise_is_unresolvable() {
             let map = flat(vec![("fund", promise("nowhere"))]);
             assert_eq!(
                 map.fulfill(&Promise::new("fund")).unwrap_err(),
@@ -566,7 +566,7 @@ mod tests {
         }
 
         #[test]
-        fn dentro_una_lista_le_promesse_pendenti_vengono_scartate() {
+        fn pending_promises_inside_a_list_are_discarded() {
             let map = flat(vec![(
                 "fund",
                 BlockValue::List(vec![BlockValue::Int(1), promise("nowhere"), BlockValue::Int(2)]),
@@ -579,14 +579,14 @@ mod tests {
         }
 
         #[test]
-        fn una_lista_di_sole_promesse_pendenti_e_irrisolvibile() {
+        fn a_list_of_only_pending_promises_is_unresolvable() {
             let map = flat(vec![("fund", BlockValue::List(vec![promise("a"), promise("b")]))]);
             assert!(map.fulfill(&Promise::new("fund")).is_err());
             assert!(map.fulfill(&Promise::new("fund[]")).is_err());
         }
 
         #[test]
-        fn una_lista_vuota_e_irrisolvibile() {
+        fn an_empty_list_is_unresolvable() {
             let map = flat(vec![("fund", BlockValue::List(Vec::new()))]);
             assert!(map.fulfill(&Promise::new("fund")).is_err());
             assert!(map.fulfill(&Promise::new("fund[]")).is_err());
@@ -595,35 +595,35 @@ mod tests {
         /// `strict` non cambia *se* una promessa si risolve, solo cosa succede a chi la contiene
         /// quando non si risolve — decisione che spetta a `promisable`.
         #[test]
-        fn strict_non_cambia_l_esito_della_risoluzione() {
+        fn strict_does_not_change_the_resolution_outcome() {
             let map = flat(vec![("fund", BlockValue::Int(1))]);
             assert_eq!(map.fulfill(&Promise::new("fund!")).unwrap(), BlockValue::Int(1));
-            let vuota = FlatPromiseMap::new();
+            let empty = FlatPromiseMap::new();
             assert_eq!(
-                vuota.fulfill(&Promise::new("fund!")).unwrap_err(),
-                vuota.fulfill(&Promise::new("fund")).unwrap_err()
+                empty.fulfill(&Promise::new("fund!")).unwrap_err(),
+                empty.fulfill(&Promise::new("fund")).unwrap_err()
             );
         }
 
         #[test]
-        fn l_errore_nomina_l_id_senza_suffissi() {
-            let vuota = FlatPromiseMap::new();
+        fn the_error_names_the_id_without_suffixes() {
+            let empty = FlatPromiseMap::new();
             assert_eq!(
-                vuota.fulfill(&Promise::new("fund[]!")).unwrap_err(),
+                empty.fulfill(&Promise::new("fund[]!")).unwrap_err(),
                 PromiseError::Unresolved { id: "fund".into() }
             );
         }
     }
 
     /// Le proprieta' che devono valere su input generati, non solo sui casi scritti a mano.
-    mod invarianti {
+    mod invariants {
         use super::*;
         use pretty_assertions::assert_eq;
 
         /// Appiattire due volte non cambia nulla: la mappa appiattita, reinserita in una
         /// multimappa, si appiattisce in se stessa.
         #[test]
-        fn l_appiattimento_e_idempotente() {
+        fn flattening_is_idempotent() {
             let map: PromiseMap = [
                 ("a", promise("b")),
                 ("b", BlockValue::Int(1)),
@@ -633,31 +633,31 @@ mod tests {
             ]
             .into_iter()
             .collect();
-            let una_volta = map.flatten().unwrap();
-            let reinserita: PromiseMap =
-                una_volta.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-            assert_eq!(reinserita.flatten().unwrap(), una_volta);
+            let once = map.flatten().unwrap();
+            let reinserted: PromiseMap =
+                once.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            assert_eq!(reinserted.flatten().unwrap(), once);
         }
 
         /// Una catena lineare lunga si risolve tutta sullo stesso valore finale, senza esplosioni
         /// combinatorie: ogni id viene appiattito una volta sola grazie alla memoizzazione.
         #[test]
-        fn una_catena_lunga_si_risolve_tutta_sul_valore_finale() {
-            const LUNGHEZZA: usize = 500;
+        fn a_long_chain_resolves_entirely_to_the_final_value() {
+            const LENGTH: usize = 500;
             let mut map = PromiseMap::new();
-            for i in 0..LUNGHEZZA {
+            for i in 0..LENGTH {
                 map.push(format!("id{i}"), Promise::new(&format!("id{}", i + 1)));
             }
-            map.push(format!("id{LUNGHEZZA}"), 42_i64);
+            map.push(format!("id{LENGTH}"), 42_i64);
             let flat = map.flatten().unwrap();
-            for i in 0..=LUNGHEZZA {
+            for i in 0..=LENGTH {
                 assert_eq!(flat.get(&format!("id{i}")), Some(&BlockValue::Int(42)), "id{i}");
             }
         }
 
         /// Molti id che puntano tutti allo stesso bersaglio: nessun ciclo, tutti risolti.
         #[test]
-        fn molti_riferimenti_allo_stesso_id_si_risolvono_tutti() {
+        fn many_references_to_the_same_id_all_resolve() {
             let mut map = PromiseMap::new();
             map.push("target", 7_i64);
             for i in 0..200 {
@@ -672,34 +672,34 @@ mod tests {
         /// Un ciclo lungo viene comunque rilevato, e la catena riportata ha esattamente la
         /// lunghezza del ciclo piu' uno (la ripetizione finale).
         #[test]
-        fn un_ciclo_lungo_viene_rilevato() {
-            const LUNGHEZZA: usize = 300;
+        fn a_long_cycle_is_detected() {
+            const LENGTH: usize = 300;
             let mut map = PromiseMap::new();
-            for i in 0..LUNGHEZZA {
-                map.push(format!("id{i:03}"), Promise::new(&format!("id{:03}", (i + 1) % LUNGHEZZA)));
+            for i in 0..LENGTH {
+                map.push(format!("id{i:03}"), Promise::new(&format!("id{:03}", (i + 1) % LENGTH)));
             }
             match map.flatten().unwrap_err() {
-                PromiseError::Circular { chain } => assert_eq!(chain.len(), LUNGHEZZA + 1),
-                altro => panic!("atteso un ciclo, trovato {altro:?}"),
+                PromiseError::Circular { chain } => assert_eq!(chain.len(), LENGTH + 1),
+                other => panic!("atteso un ciclo, trovato {other:?}"),
             }
         }
 
         /// Se nessun contributo e' una promessa, l'appiattimento e' pura riduzione: ogni id
         /// conserva i suoi valori, nell'ordine, e nessuno puo' fallire.
         #[test]
-        fn senza_promesse_l_appiattimento_conserva_i_contributi() {
-            for n_contributi in 1..8_usize {
+        fn without_promises_flattening_preserves_the_contributions() {
+            for n_contributions in 1..8_usize {
                 let mut map = PromiseMap::new();
-                for i in 0..n_contributi {
+                for i in 0..n_contributions {
                     map.push("x", i as i64);
                 }
                 let flat = map.flatten().unwrap();
-                let atteso = if n_contributi == 1 {
+                let expected = if n_contributions == 1 {
                     BlockValue::Int(0)
                 } else {
-                    BlockValue::List((0..n_contributi).map(|i| BlockValue::Int(i as i64)).collect())
+                    BlockValue::List((0..n_contributions).map(|i| BlockValue::Int(i as i64)).collect())
                 };
-                assert_eq!(flat.get("x"), Some(&atteso), "con {n_contributi} contributi");
+                assert_eq!(flat.get("x"), Some(&expected), "con {n_contributions} contributi");
             }
         }
     }

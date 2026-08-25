@@ -47,16 +47,12 @@ impl Translator {
 mod tests {
     use super::*;
 
-    /// The real Italian catalog shipped with `freeports_core`
+    /// The real Italian catalog originally shipped with `freeports_core`
     /// (`packages/freeports_core/python/freeports/_internals/locales/it/LC_MESSAGES/messages.mo`,
-    /// compiled from `messages.po` by the existing gettext toolchain). Reached via a relative
-    /// `include_bytes!` into the frozen `freeports_core` tree instead of duplicating the binary
-    /// `.mo` into this crate: it's data, not logic, and a second copy would drift silently
-    /// (verified this relative path actually resolves from this file's location before relying
-    /// on it here).
-    const IT_MO: &[u8] = include_bytes!(
-        "../../../freeports_core/python/freeports/_internals/locales/it/LC_MESSAGES/messages.mo"
-    );
+    /// compiled from `messages.po` by the existing gettext toolchain), copied verbatim into this
+    /// crate's `testdata/` now that `freeports_core` itself is being removed — the tree it used
+    /// to be reached from relatively no longer exists.
+    const IT_MO: &[u8] = include_bytes!("testdata/messages.it.mo");
 
     mod catalog_parsing {
         use super::*;

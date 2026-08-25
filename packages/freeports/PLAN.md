@@ -1,779 +1,607 @@
-# `freeports` — piano di riscrittura in Rust
+# `freeports` — piano: parallelizzazione, logging, documentazione, correzioni
 
-Documento di progetto per la riscrittura di `packages/freeports_core` in un crate Rust
-indipendente. Sorgente dei requisiti: `packages/freeports_core/riscrittura.txt`, più i target
-in `analysis_finance_reports/targets/`.
+Documento di progetto per il lavoro che segue la riscrittura in Rust. Sorgente dei requisiti:
+`packages/richieste.txt` (4 richieste dell'utente, 2026-08-24).
 
-Questo piano **non fa affidamento su commenti, `agent-memory/` o decisioni precedenti**: la
-struttura e i costrutti sono ripensati da zero, `freeports_core` è usato solo come riferimento
-di logica.
-
----
-
-## 0. Scopo, perimetro, non-obiettivi
-
-**Scopo.** Ottenere un crate `freeports` in cui *tutta* la logica è Rust nativo, senza PyO3
-diffuso e senza Pydantic/pandas/pandera, ragionando prima lato Rust e solo dopo (fase
-successiva, non pianificata qui) esponendo la stessa API a Python via maturin.
-
-**Perimetro di questa fase.**
-
-- Crate `freeports` (`lib` + `bin` omonimi) in `packages/freeports/`, che si compila e si testa
-  in modo del tutto indipendente da `packages/freeports_core/`.
-- Nessuno shim `py_*` / `PyStruct` per l'API Python: si resta in Rust.
-- È accettato che `freeports-dev` si rompa e che i test attuali non passino durante la
-  migrazione.
-
-**Non-obiettivi (espliciti).**
-
-- Nessun binding Python della API pubblica in questa fase.
-- Nessun quarto segmento (`targets/3_add_segments.md`): il design lo rende però *economico*
-  da aggiungere dopo (§5.2).
-- Nessuna compatibilità binaria/pickle con i fixture esistenti.
-
-**Da portare invariato — non ridisegnare.** L'utente ha confermato esplicitamente che questa
-parte gli piace com'è implementata e va lasciata così; si porta *verbatim*, cambiando solo il
-minimo indispensabile (rimozione di PyO3, adeguamento ai nomi/tipi nuovi di `PdfLine` e
-`BlockValue`, aggiunta dei test mancanti):
-
-- `formats_utils::pdf_extract::pdf_line` — i **dati** della riga PDF;
-- `formats_utils::pdf_extract::select` — le **selezioni** (`select::pdf_line::{area, font,
-  font_size, text}`) e le **selezioni relative** (`select::relative`, più il macchinario generico
-  `OptionallyRelative` in `pdf_extract::relative`);
-- `formats_utils::pdf_extract::tabularizer` (`collapse`, `coordinates`) e `position`.
-
-Se durante il porting sembra emergere un miglioramento in questi moduli, **non applicarlo**:
-segnalalo e chiedi, non riscriverlo di iniziativa.
-
-**Da preservare quasi invariato** (stessa logica, ma libera di essere riorganizzata dove serve):
-`formats_utils::text_filter`, `formats_utils::deserialize`, `commons::sets`, `commons::geometry`,
-`commons::flag_expr`.
-
-**Da ripensare interamente**: `Algorithm`, `Pipeline`, `PipelinesBundle`, i segmenti, il
-caricamento del repo formati, il modello dei blocchi, la risoluzione delle promise, l'output.
-
----
-
-## 1. Collocazione e build
-
-```
-analysis_finance_reports/packages/freeports/     <- nuovo crate, indipendente
-analysis_finance_reports/packages/freeports_core/ <- resta com'è, intoccato
-```
-
-Crate, binario e (in futuro) modulo Python si chiamano tutti `freeports`, come richiesto.
-Finché non esistono gli shim Python il crate è `crate-type = ["rlib"]`: niente `cdylib`,
-niente `pyproject.toml`, niente maturin — si compila con `cargo build` e si testa con
-`cargo test`. PyO3 resta comunque una dipendenza, con `auto-initialize`, perché il binario
-deve incorporare un interprete per i due soli punti di contatto con Python (§3).
-
-Comandi:
+Il piano precedente — la riscrittura vera e propria, milestone M0..M10, tutte chiuse — non e'
+piu' in albero ma resta recuperabile da git:
 
 ```bash
-cd packages/freeports
-cargo check
-cargo test
-cargo build --release
+git show 13284baa:packages/freeports/PLAN.md
+git show 13284baa:packages/freeports/STATUS.md
 ```
+
+I suoi **principi architetturali (§2)**, lo **stile dei test (§10)** e le **decisioni prese
+(§12/§13)** restano validi e vincolanti anche qui: questo documento aggiunge, non sostituisce.
 
 ---
 
-## 2. Principi architetturali
+## 0. Punto di partenza (verificato, non assunto)
 
-1. **Il core non conosce Python.** `Py<PyAny>` compare solo in tre moduli
-   (`input::document`, `formats_repo::unstructured`, `formats_repo::semistructured` per il
-   fallback autore). Ogni altro modulo lavora su tipi Rust.
-2. **Il confine Python è un adattatore, non una dipendenza.** I pipe definiti in Python
-   implementano gli stessi trait dei pipe nativi (§5.1): il resto del sistema non sa se un
-   pipe è Rust o Python.
-3. **Tutto ciò che attraversa un segmento è serializzabile.** `PdfBlock`/`TextBlock` e le
-   classi di output derivano `Serialize`/`Deserialize`: i fixture di `freeports-dev` diventano
-   JSON prodotto/consumato da serde, non pickle né Pydantic.
-4. **Errori tipizzati, mai panici sul percorso utente.** Un enum d'errore per modulo con
-   `thiserror`; `PageParseFail` e simili diventano varianti d'errore, non eccezioni.
-5. **Logging solo `tracing`.** Nessun `logging` Python. Il file `.log.csv` diventa un
-   `tracing_subscriber::Layer` che scrive righe CSV (§8).
-6. **Regex con `onig` (Oniguruma), non con il crate `regex`**: i pattern nei repo formati sono
-   scritti con sintassi Python/PCRE (backreference, lookaround) che `regex` non supporta.
-7. **Niente pandas/pandera/polars per leggere il repo formati.** CSV letti con il crate `csv`
-   in struct tipizzate + validazione esplicita. Le "join" di pandas diventano `HashMap` su
-   chiavi derivate; è codice più lungo ma leggibile e con errori localizzabili alla riga.
-
----
-
-## 3. I due (soli) punti di contatto con Python
-
-| Punto | Modulo | Perché |
-|---|---|---|
-| Caricamento del PDF | `input::document` | PyMuPDF è lo strumento giusto e non ha equivalente Rust maturo. Si chiama `fitz` una volta per documento, si estrae il `page.get_text("dict")`, lo si converte **subito** in `core::page::Page` nativo. |
-| Esecuzione dei pipe definiti dall'autore | `formats_repo::unstructured`, `formats_repo::semistructured` | I formati unstructured sono, per definizione, codice Python dell'autore del formato. |
-
-Il `Bound<'_, PyAny>` originale della pagina viene **conservato** accanto alla `Page` nativa
-(`Page::raw`), perché un pipe Python si aspetta il dizionario PyMuPDF: si converte una volta
-per i pipe nativi e si passa il dict originale a quelli Python, senza riconversioni.
-
-Gestione errori: un `PyErr` che esce da un pipe autore viene loggato con `tracing::error!`
-(traceback incluso) e convertito in `PipeError::Author { pipeline, pipe, message }` al confine.
-Nessun `PyErr` risale oltre `formats_repo`.
-
----
-
-## 4. Modello dati del core
-
-### 4.1 `BlockValue` (`core::classes::value`)
-
-`metadata` e `content` devono poter contenere valori eterogenei ed essere serializzabili in
-JSON. Si sceglie **un enum Rust**, non `PyAny` (che romperebbe il principio 1 e renderebbe
-impossibile serde).
-
-```rust
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum BlockValue {
-    Null,
-    Bool(bool),
-    Int(i64),
-    Float(OrderedFloat<f64>),
-    Str(String),
-    Date(Date),
-    Currency(Currency),
-    SfdrArticle(SfdrArticle),
-    FinancialInstrument(FinancialInstrument),
-    Promise(Promise),
-    List(Vec<BlockValue>),
-    Set(BTreeSet<BlockValue>),
-    Map(BTreeMap<String, BlockValue>),
-}
-```
-
-Note di design:
-
-- `OrderedFloat` (già usato altrove nel progetto) rende l'enum `Eq + Hash + Ord`, quindi
-  `BlockValue` è direttamente usabile come chiave/elemento di insieme. **Sparisce così il
-  trucco del `__hash__` che mutava `metadata` convertendo `set`/`list` in `frozenset`**: era
-  un effetto collaterale sorprendente del Python, non serve più.
-- `Set`/`Map` usano contenitori ordinati: l'hash e la serializzazione diventano deterministici.
-- Accessori tipizzati (`as_str`, `as_int`, `as_promise`, `get`, `get_or_fail`) con errore
-  `BlockValueError::TypeMismatch { field, expected, found }`, così i deserializer non fanno
-  `unwrap`.
-- Conversione da/verso Python (`FromPyObject`/`IntoPyObject`) implementata **solo** nel modulo
-  di confine: se un pipe Python restituisce un oggetto non convertibile è un errore d'autore,
-  non un `PyAny` opaco che si propaga.
-
-### 4.2 `PdfBlock` / `TextBlock` (`core::classes`)
-
-```rust
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BlockType(String);          // newtype: gli enum Python arrivano come stringa
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct PdfBlock {
-    pub type_block: BlockType,
-    pub metadata: BTreeMap<String, BlockValue>,
-    pub content: BlockValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct TextBlock {
-    pub type_block: BlockType,
-    pub metadata: BTreeMap<String, BlockValue>,
-    pub content: BlockValue,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pdf_block: Option<Box<PdfBlock>>,
-}
-```
-
-- `type_block` è una **stringa** (newtype) e non un enum chiuso: i tipi di blocco sono
-  estendibili dai repo formati, quindi un enum chiuso in libreria non funziona. Il newtype dà
-  comunque type-safety rispetto a un `String` nudo e un posto dove mettere le costanti dei tipi
-  standard (`BlockType::FUND`, `BlockType::CURRENCY`, ...).
-- `content` è un `BlockValue` (non `String`): deve poter essere una `Promise` — è già così oggi.
-- `TextBlock::from_content` resta come costruttore separato (senza `pdf_block`).
-- Serializzazione: `serde_json` diretto, niente modulo `serialization.py`. `to_json`/`from_json`
-  sono metodi della struct.
-
-### 4.3 `Promise` e risoluzione (`core::promise`, `promisable`, `promise_resolution`)
-
-Semantica invariata rispetto a oggi (suffissi `!` = strict, `[]` = multiple, con l'ordine di
-strip che va verificato con test dedicati), ma:
-
-- `PromiseMap` è `HashMap<String, Vec<BlockValue>>` nativo, non un dict Python.
-- `flatten_promise_map` risolve le catene e rileva i cicli restituendo
-  `Err(PromiseError::Circular { chain })` invece di sollevare. Un riferimento **pendente** (id
-  assente dalla mappa) non e' invece un errore di appiattimento: la `Promise` resta al suo posto
-  nella mappa appiattita, e la politica la decide `fulfill_promises` — non-strict `Dropped`,
-  strict `Err(PromiseError::Unresolved)`. Confermato dall'utente il 2026-08-22 (§13); e' una
-  divergenza voluta dal riferimento, che in quel caso faceva uscire un `CircularPromisesChain`
-  fuorviante.
-- `PromisableFields` diventa un trait con `pending()` / `resolve_field()` come oggi, ma il
-  contratto di ritorno di `fulfill_promises` è espresso in Rust:
-
-```rust
-pub enum Fulfilled<T> {
-    InPlace,          // risolto sul posto
-    Dropped,          // promise non-strict irrisolvibile -> l'entità sparisce
-    Expanded(Vec<T>), // promise `multiple` -> una copia per valore
-}
-```
-
-  Questo elimina il triplo significato di `Option<Vec<_>>` del codice attuale.
-
-### 4.4 `Page` e `Document` (`core::page`)
-
-```rust
-pub struct Document {
-    pub id: DocumentId,      // nome corto o path/url, vedi targets/2_multireport_support.md
-    pub format: FormatName,
-    pub pages: Vec<Page>,
-}
-
-pub struct Page {
-    pub number: u32,              // 1-based, come oggi
-    pub size: (f32, f32),
-    pub lines: Vec<PdfLine>,
-    pub images: Vec<PageImage>,
-    raw: Option<Py<PyAny>>,       // dict PyMuPDF, solo per i pipe Python
-}
-```
-
-La rotazione delle bbox e il collasso degli span (oggi in `pdf_blks_acquire.py`) diventano
-funzioni pure in `input::document`, testabili senza PyMuPDF a partire da dict costruiti a mano.
-
----
-
-## 5. Il cuore: pipe, segmenti, pipeline, algoritmo
-
-È la parte da ripensare davvero. Oggi in Rust `PipeSet` è un `Vec<Py<PyAny>>` deduplicato per
-identità, e i tre segmenti sono tre `#[pyclass]` con metodi copiaincollati perché PyO3 ammette
-un solo blocco `#[pymethods]`. Tutto questo sparisce.
-
-### 5.1 I pipe sono trait, non callable
-
-```rust
-pub trait PdfExtractPipe: Send + Sync {
-    fn name(&self) -> &str;
-    fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError>;
-}
-
-pub trait TextFilterPipe: Send + Sync {
-    fn name(&self) -> &str;
-    fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError>;
-}
-
-pub trait DeserializePipe: Send + Sync {
-    fn name(&self) -> &str;
-    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError>;
-}
-```
-
-Tre implementatori possibili per ciascun trait, uno per livello di specifica:
-
-| Livello | Implementatore | Dove nasce |
-|---|---|---|
-| structured | struct native con parametri (`PdfExtractInvestmentsStandard`, ...) | costruite da `formats_repo::structured` leggendo CSV |
-| semistructured | le stesse struct native, risolte **per nome**, oppure un `PyPipe` se il nome è definito dall'autore | `formats_repo::semistructured` |
-| unstructured | `PyPdfExtractPipe`/`PyTextFilterPipe`/`PyDeserializePipe` che wrappano un callable Python | `formats_repo::unstructured` |
-
-`name()` esiste per il logging e i messaggi d'errore: oggi un pipe che fallisce non è
-identificabile.
-
-`Send + Sync` è richiesto ora, non dopo: rende possibile la parallelizzazione per
-pagina/documento senza riprogettare (i pipe Python restano serializzati dal GIL, ma il resto
-scala).
-
-### 5.2 `Segment<P>`: una sola implementazione per tre segmenti
-
-```rust
-pub struct Segment<P: ?Sized>(Vec<Arc<P>>);
-
-pub type PdfExtractSegment = Segment<dyn PdfExtractPipe>;
-pub type TextFilterSegment = Segment<dyn TextFilterPipe>;
-pub type DeserializeSegment = Segment<dyn DeserializePipe>;
-
-impl<P: ?Sized> Segment<P> {
-    pub fn push(&mut self, pipe: Arc<P>);        // dedup per Arc::ptr_eq
-    pub fn iter(&self) -> impl Iterator<Item = &Arc<P>>;
-    pub fn is_empty(&self) -> bool;
-}
-impl<P: ?Sized> std::ops::Add for Segment<P> { /* unione preservando l'ordine */ }
-```
-
-Generico su `P` invece che triplicato: le semantiche di deduplicazione, unione, iterazione
-sono scritte una volta sola. Aggiungere un quarto segmento (target 3) diventa: un trait nuovo,
-un `type` alias, un campo in `Pipeline`.
-
-**Ordine.** Oggi il Python usa un `set`, quindi l'ordine dei pipe è quello di hash. Qui
-l'ordine è quello di inserimento, deterministico. È una differenza volontaria: rende i test
-riproducibili.
-
-### 5.3 `Pipeline` e `PipelinesBundle`
-
-```rust
-pub struct Pipeline {
-    pub name: PipelineName,
-    pub pdf_extract: PdfExtractSegment,
-    pub text_filter: TextFilterSegment,
-    pub deserialize: DeserializeSegment,
-}
-
-impl Pipeline {
-    pub fn is_complete(&self) -> bool;
-    pub fn apply(&self, page: &Page, data: &FilterData<'_>) -> Result<Vec<Extracted>, PipeError>;
-}
-impl std::ops::Add for Pipeline { /* fonde i tre segmenti — è così che structured + semistructured + unstructured si combinano */ }
-
-pub struct PipelinesBundle(Vec<Pipeline>);
-```
-
-`Pipeline` ha ora un `name`: oggi il nome vive solo come chiave della mappa, e questo rende
-i messaggi d'errore inutilizzabili.
-
-`PipelineBundle` espone `apply`, `apply_pdf_extract`, `apply_text_filter`, `apply_deserialize`
-(le tre parziali servono alla API di test di `freeports-dev`).
-
-### 5.4 `FilterData` ed `Extracted`
-
-Due enum che rimpiazzano il dispatch per `isinstance` su liste Python eterogenee:
-
-```rust
-pub enum FilterData<'a> {
-    TargetCompanies(&'a [CompanyMatchInfos]),  // primo step dello schedule
-    Previous(&'a [Extracted]),                 // step successivi
-}
-
-pub enum Extracted {
-    Equity(Equity), Bond(Bond),
-    Fund(Fund), FundAssets(FundAssets),
-    FundSfdrClassification(FundSfdrClassification),
-    FundEsgIndicator(FundEsgIndicator),
-    FundRename(FundRename), FundMerge(FundMerge),
-    ManagementCompany(ManagementCompany), InvestmentsManager(InvestmentsManager),
-    Promises(PromiseEntries),        // il dict che i deserializer restituiscono
-    PageClass(Option<PageClass>),    // output della pipeline di classificazione
-}
-```
-
-Con `Extracted` il "ricomponi i risultati per tipo" di `run_documents` diventa un `match`
-esaustivo che il compilatore verifica, invece di una catena di `is_instance_of`.
-
-### 5.5 `Algorithm`
-
-```rust
-pub struct Algorithm {
-    format: FormatName,
-    page_classify: PipelinesBundle,
-    page_class_finalizer: PageClassFinalizer,   // Identity | Python(Py<PyAny>)
-    schedule: Schedule,                          // Vec<ScheduleStep>
-    bundles: HashMap<PageClass, PipelinesBundle>,
-}
-```
-
-API pubblica (i nomi sono quelli richiesti in `riscrittura.txt`):
-
-| Metodo | Firma (concettuale) | Ruolo |
-|---|---|---|
-| `load` | `(repo: &Path, format: &FormatName) -> Result<Algorithm, LoadError>` | carica structured + semistructured + unstructured, fonde le pipeline omonime, valida schedule/mapping |
-| `classify_pages` | `(&self, doc: &Document) -> Result<Vec<Option<PageClass>>, _>` | classifica le pagine di **un** documento e applica il finalizer |
-| `classify_pages_multidocument` | `(&self, docs: &[Document]) -> Result<Vec<Vec<Option<PageClass>>>, _>` | il finalizer gira **per documento** (target 2) |
-| `apply` | `(&self, doc: &Document, companies: &[CompanyMatchInfos]) -> Result<DocumentResults, _>` | pipeline completa su un documento |
-| `apply_multidocument` | `(&self, docs: &[Document], companies: &[CompanyMatchInfos]) -> Result<Vec<DocumentResults>, _>` | classificazione per documento, **schedule sull'unione delle pagine** (target 2) |
-| `apply_pdf_extract` | `(&self, page: &Page, class: &PageClass) -> Result<Vec<PdfBlock>, _>` | API di test per segmento |
-| `apply_text_filter` | `(&self, page: &Page, class: &PageClass, data: &FilterData) -> Result<Vec<TextBlock>, _>` | idem |
-| `apply_deserializer` | `(&self, blocks: &[TextBlock], class: &PageClass) -> Result<Vec<Extracted>, _>` | idem |
-
-**Multi-documento nativo dal primo giorno.** `targets/2_multireport_support.md` chiede
-esattamente la semantica che i nomi `*_multidocument` implicano: classificare per documento,
-schedulare sull'unione. Farlo ora costa poco; retrofittarlo dopo costerebbe una seconda
-riscrittura di `Algorithm`. `apply` diventa il caso particolare di `apply_multidocument` con un
-solo documento — non due implementazioni.
-
-`schedule_pages` non ricostruisce più tuple `(doc_name, page_n, page)` non tipizzate:
-
-```rust
-pub struct ScheduledPage<'a> { pub doc: &'a Document, pub page: &'a Page, pub class: PageClass }
-```
-
-Il fallimento di una pagina (`PageParseFail`) resta non fatale: si logga con
-`tracing::warn!(doc, page, "pagina saltata")` e si prosegue — ma ora il warning **arriva**
-davvero al log, a differenza di oggi (la gerarchia di logger Python era scollegata e i
-messaggi non raggiungevano `.log.csv`).
-
----
-
-## 6. Caricamento del repo formati
-
-### 6.1 `formats_repo::structured`
-
-Oggi: pandas + pandera, 4 CSV letti, indicizzati con `MultiIndex`, joinati, validati. Da
-portare a:
-
-1. `structured::tables` — una struct `#[derive(Deserialize)]` per CSV
-   (`args.csv`, `additional_args.csv`, `deselection_lists.csv`, `partial_pipes.csv`),
-   lette col crate `csv`.
-2. `formats_repo::id_format` — parsing di `<formato>(<pipeline>)/<indice>` con `onig`, e
-   derivazione di `(format_name, pipeline_name, pipe_index)` incluse le due politiche per
-   l'indice mancante (`zero` per one-to-many, `infer` per one-to-maybe) che oggi sono
-   `cumcount()` di pandas.
-3. La join diventa: chiave `ComputedId = (format, pipeline, index)`, `HashMap<ComputedId, Row>`,
-   e un errore esplicito se una riga di una tabella secondaria non ha corrispondenza (oggi
-   `validate="one_to_one"` di pandas).
-4. `structured::investments` e `structured::page_classify` costruiscono i pipe nativi con i
-   parametri letti (è la parte che oggi sta in `pipelines/investments.py`).
-
-Le validazioni pandera diventano funzioni `fn validate(&self) -> Result<(), TableError>` sulla
-riga, con il numero di riga nel messaggio.
-
-### 6.2 `formats_repo::semistructured`
-
-Sostanzialmente il porting di quanto già esiste, ripulito da PyO3:
-
-- `formats_mapping` legge `formats_mapping.csv`;
-- `args` legge `args/{segment}.yaml` con `serde_yaml` (mantenendo la regola: chiave
-  `"{format}({pipeline})"`, fallback alla chiave nuda `format` **solo** con pipeline vuota; se
-  il valore è una lista, l'elemento è scelto per posizione contando i pipe già emessi per quel
-  `(pipeline, segmento)`, non l'indice della riga CSV);
-- `native` è il registro nome → costruttore nativo;
-- se il nome non è nativo, si cerca in `local_extensions/{segment}.py` (modulo dell'autore) e
-  si costruisce un `PyPipe`. Nome presente in entrambi = errore di configurazione.
-
-### 6.3 `formats_repo::unstructured`
-
-- `loader` — caricamento dinamico del modulo Python del formato (`importlib.util`), con la
-  stessa risoluzione file/package di oggi e `templates/` aggiunto a `sys.path`.
-- `py_pipe` — gli adattatori `PyPdfExtractPipe` ecc. Conversioni:
-  `Page::raw` → argomento; risultato → `Vec<PdfBlock>` via `FromPyObject` su `BlockValue`.
-- `compute_page_class` dell'autore diventa `PageClassFinalizer::Python`.
-
-### 6.4 Fusione dei tre livelli
-
-`Algorithm::load` costruisce `HashMap<PipelineName, Pipeline>` per ciascun livello e li somma
-con `Pipeline + Pipeline` (§5.3), poi verifica che ogni pipeline sia completa. È l'unico punto
-in cui i tre livelli si incontrano: nessun altro modulo sa che esistono.
-
----
-
-## 7. Output
-
-`output::classes` — le entità (`Equity`, `Bond`, `Fund`, `FundAssets`, `FundMerge`,
-`FundRename`, `FundSfdrClassification`, `FundEsgIndicator`, `ManagementCompany`,
-`InvestmentsManager`) come struct Rust con `Serialize`/`Deserialize` e `PromisableFields`.
-Niente Pydantic: le validazioni di campo (`PositiveFloat`, `confloat(0,1)`) diventano
-costruttori che restituiscono `Result`.
-
-`output::files_schema` — le righe dei CSV con le loro chiavi e unicità (già oggi in Rust,
-si porta quasi invariato).
-
-`output::routines` — assemblaggio `Extracted` → tabelle → CSV. Decisione: **eliminare polars**
-e scrivere i CSV con il crate `csv`. L'unica join reale (investments ↔ bond info) è una lookup
-su `HashMap`; polars è una dipendenza pesante per quel poco.
-
-Colonna `report` sempre presente (anche fuori dalla modalità batch) e niente `prefix out`,
-come chiede `targets/2_multireport_support.md`: uniforma gli schemi output batch/non-batch.
-
----
-
-## 8. Errori e logging
-
-**Errori.** Un enum per modulo con `thiserror`, e una gerarchia esplicita:
-
-```
-PipeError            -> fallimento di un singolo pipe (Author | Extraction | Cast | ...)
-PageError            -> PageParseFail equivalente, non fatale: la pagina si salta
-LoadError            -> caricamento repo formati (CSV, YAML, moduli Python)
-ConfigError          -> CLI/env/file
-OutputError          -> scrittura risultati
-```
-
-`PageParseFail`, `LineParseFail`, `ExtractionFieldFail`, `ExpectedPdfBlockNotFound`,
-`ExpectedTextBlockNotFound` — oggi eccezioni Python — diventano varianti di `PipeError`/`PageError`.
-
-**Logging.** Solo `tracing`. Tre destinazioni configurate in `core::tracing_setup`:
-
-1. stderr, verbosità da `-v`/`-vv`/`-vvv`;
-2. `freeports.log`, filtro `debug`;
-3. `.log.csv`, implementato come `Layer` custom che intercetta gli eventi con i campi
-   `page`/`company`/`field`/`row`/`column` e li scrive come riga CSV.
-
-I "contextual infos" (pagina corrente, batch, investment) diventano `tracing::span!` con campi:
-niente stato globale mutabile come oggi (`LOG_CONTEXTUAL_INFOS`).
-
----
-
-## 9. API pubblica
-
-Superficie da esporre (da `riscrittura.txt`), realizzata come modulo `api` con sole re-export;
-l'albero interno resta libero di cambiare.
-
-```
-cli::{CliArgs, execute}
-consts::{Currency, SfdrArticle, FinancialInstrument}
-core::{PdfBlock, TextBlock, Pipeline, Promise, Algorithm}
-utils::pdf_extract::{pdfline_selection_from_dict, pdfline_selection_from_str,
-                     pdfimages_from_pagedict, pdflines_from_pagedict,
-                     get_groups, get_table_coordinates,
-                     CellGeometry, SplittingState, NullableState, Limits,
-                     RowConfig, ColumnConfig, TableConfig,
-                     CollapseAlgorithm, TablePosAlgorithm, TablePosMeasureUnit}
-utils::text_filter::{normalize_string, investment_fund_filter_data, extract_currency_from_text}
-utils::deserialize::{perc_to_float, to_int, to_float, to_str, to_currency, to_date,
-                     to_int_en_month, to_date_with_en_month, to_int_it_month, to_date_with_it_month}
-standard_builders::text_blocks::{standard_management_company_txt_blk,
-                                 standard_investmet_manager_txt_blk, standard_fund_txt_blk}
-standard_builders::pdf_blocks::{}                  // vuoto oggi, il modulo esiste come segnaposto
-standard_funcs::pdf_extract::{PdfExtractPageClassifyStandard, PdfExtractInvestmentsStandard,
-                              PdfExtractCurrencyStandard, PdfExtractCurrencyConstant,
-                              PdfExtractFundStandard, PdfExtractManagmentCompanyStandard,
-                              PdfExtractSfdrArticleStandard, PdfExtractAssetsStandard}
-standard_funcs::text_filter::{TextFilterPageClassifyStandard, TextFilterInvestmentsStandard,
-                              TextFilterManagmentCompanyStandard, TextFilterSfdrArticleStandard,
-                              TextFilterAssetsStandard}
-standard_funcs::deserialize::{DeserializerPageClassifyStandard, DeserializerInvestmentStandard,
-                              DeserializerFundStandard, DeserializerManagmentCompanyStandard,
-                              DeserializerInvestmentsManagerStandard,
-                              DeserializerInvestmentsManagerFromManco,
-                              DeserializeSfdrArticleStandard, DeserializerAssetsStandard}
-input::{load_target_companies, compile_target_companies}
-output::{Bond, Equity, Fund, FundAssets, FundMerge, FundChangeName, SfdrArticle, FundEsgIndicators}
-```
-
-Regola: **niente `pub` verso l'esterno se non passa da `api`**. I moduli interni sono
-`pub(crate)` salvo dove servono ai test di integrazione.
-
----
-
-## 10. Stile dei test
-
-**Regola generale, valida per tutto il crate: i test sono raggruppati per argomento tramite
-sottomoduli.** Nessun elenco piatto di `#[test]` dentro `mod tests`.
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    mod construction {
-        use super::*;
-        #[test] fn rejects_negative_market_value() { /* ... */ }
-        #[test] fn accepts_promise_as_fund_name() { /* ... */ }
-    }
-
-    mod serde_roundtrip {
-        use super::*;
-        #[test] fn nested_maps_survive_json() { /* ... */ }
-    }
-
-    mod hashing {
-        use super::*;
-        #[test] fn set_order_does_not_affect_hash() { /* ... */ }
-    }
-}
-```
-
-Criteri:
-
-- **Un sottomodulo per argomento**: unità testata (funzione, costruttore, metodo) oppure
-  invariante trasversale (`serde_roundtrip`, `error_cases`, `edge_geometry`). Sottomoduli
-  annidati quando l'argomento è ampio.
-- **Esaustività**: ogni variante di enum, ogni ramo di `match`, ogni ramo di errore ha almeno
-  un test. Per le funzioni di parsing/cast, tabelle di casi con `test_case`.
-- **Stress test** dove la logica è combinatoria (algebra degli insiemi, selezioni relative,
-  tabularizer): input generati in loop, invarianti verificate (idempotenza, commutatività,
-  De Morgan, `contains` coerente con l'AST semplificato).
-- **Nomi dei test = comportamento atteso**, non nome del metodo:
-  `resolves_last_value_when_promise_is_not_multiple`, non `test_fulfill`.
-- **Test di integrazione** in `tests/`, un file per flusso: `tests/algorithm_end_to_end.rs`,
-  `tests/formats_repo_loading.rs`, `tests/cli_config.rs`. Usano un repo formati minimale
-  costruito in un `tempfile::TempDir`, non fixture esterni.
-- **Niente Python nei test unitari.** Solo i test di `formats_repo::unstructured` e
-  `input::document` possono attaccarsi all'interprete, e sono marcati e isolati in
-  sottomoduli `mod python_boundary`.
-- TDD: i test si scrivono prima dell'implementazione, milestone per milestone, e non si
-  modificano per farli passare.
-
----
-
-## 11. Milestone
-
-L'ordine è dal basso verso l'alto (prima i moduli con meno dipendenze), come da
-`targets/1_rust_rewrite.md`. Ogni milestone deve chiudersi con `cargo test` verde.
-
-| # | Milestone | Contenuto | Focus dei test |
-|---|---|---|---|
-| **M0** | Scaffolding | `Cargo.toml`, albero moduli, `tracing_setup`, tipi d'errore base | compila; il layer `.log.csv` scrive righe attese |
-| **M1** | `commons` | `date`, `geometry`, `sets` (3 sottomoduli), `consts`, `flag_expr`, `i18n` | algebra insiemi esaustiva + stress; parsing date; ogni valuta |
-| **M2** | `core` dati | `classes` + `value`, `promise`, `promisable`, `promise_resolution`, `normalization`, `match_fund` | roundtrip serde; hash/eq; catene di promise incluse quelle circolari |
-| **M3** | `pdf_extract` | `pdf_line`, `relative`, `select/*`, `position`, `tabularizer/*`, `commons` | selezioni combinatorie; geometrie degeneri; tabelle irregolari |
-| **M4** | `text_filter` + `deserialize` | `matcher`, `standard_funcs` (x2), `standard_txt_blk_builders`, `cast` (scope reale in corso: dopo M5 resta deferito **solo** ciò che dipende da `output::classes` — vedi `STATUS.md`) | matching societario; ogni cast con casi limite e localizzazioni |
-| **M5** | **motore** | `page`, `pipeline/data`, `pipeline/segment`, `pipeline/bundle`, `pipeline`, `schedule`, `algorithm` | dedup e ordine dei pipe; schedule multi-documento; pagina che fallisce |
-| **M6** | `input::document` | PyMuPDF → `Page`, rotazione bbox, collasso span, immagini | funzioni pure su dict costruiti a mano; un test di confine con PyMuPDF |
-| **M7** | `formats_repo` | `id_format`, `metadata`, `orchestration`, `structured/*`, `semistructured/*`, `unstructured/*` | ogni CSV malformato dà l'errore giusto con la riga giusta; fusione dei 3 livelli |
-| **M8** | `output` | `classes`, `files_schema`, `routines` | promesse risolte prima della scrittura; CSV byte-per-byte su casi noti |
-| **M9** | `cli` | `config_locations/*`, `partial_config`, `conf_parse`, `freeports_config`, `batch`, `job`, `run`, `main` | precedenza cmd > env > file; parsing `<url>:<path>:<name>` (vedi `targets/conf_parse.md`) |
-| **M10** | Chiusura | rimozione dei residui, confronto output con `freeports_core` su un formato reale, benchmark, docs | end-to-end su repo formati reale |
-
-Dipendenze fra milestone: M1 → M2 → {M3, M4} → M5 → {M6, M7} → M8 → M9 → M10.
-M6 e M7 sono i due punti PyO3 e possono procedere in parallelo.
-
----
-
-## 12. Decisioni prese (e perché)
-
-| # | Decisione | Motivazione |
-|---|---|---|
-| D1 | `metadata`/`content` sono un enum Rust (`BlockValue`), non `PyAny` | serde, hash deterministico, nessun PyO3 nel core |
-| D2 | `type_block` è una stringa in un newtype, non un enum chiuso | i tipi di blocco li estendono i repo formati |
-| D3 | Sparisce il `__hash__` che mutava `metadata` | era un effetto collaterale; con `BTreeMap`/`BTreeSet` non serve |
-| D4 | I pipe sono trait object `Arc<dyn ...>`, i segmenti sono `Segment<P>` generico | una sola implementazione invece di tre; quarto segmento economico |
-| D5 | Ordine dei pipe = inserimento (non `set` come in Python) | determinismo e test riproducibili |
-| D6 | `Pipeline` e i pipe hanno un `name` | messaggi d'errore utilizzabili |
-| D7 | Multi-documento nativo da subito (`apply_multidocument`) | è già nella API richiesta e nel target 2; retrofittarlo dopo costa una seconda riscrittura |
-| D8 | Niente pandas/pandera/**polars**: solo il crate `csv` + validazione esplicita | dipendenze pesanti per join banali; errori localizzati alla riga |
-| D9 | `onig` invece di `regex` | i pattern dei repo formati usano sintassi PCRE |
-| D10 | `thiserror` come unica nuova dipendenza "di comodo" | elimina centinaia di righe di `impl Display`/`From` scritte a mano |
-| D11 | `Date` scritto a mano in `commons::date`, niente `chrono` | servono solo parse/format/confronto, nessuna aritmetica di calendario |
-| D12 | `crate-type = ["rlib"]` finché non ci sono gli shim | build e test più veloci, nessun vincolo maturin in questa fase |
-| D13 | I test unitari non toccano Python, salvo i due moduli di confine | i test restano veloci e deterministici |
-| D14 | `tabularizer`, `pdf_line`, `select` (incl. `relative`) si portano **verbatim** | l'utente ha usato a lungo quel codice e ne è soddisfatto: ridisegnarlo sarebbe rischio senza guadagno (vedi §0) |
-
----
-
-## 13. Punti confermati e domande ancora aperte
-
-### Confermato dall'utente
-
-| Punto | Esito |
+| Fatto | Misura |
 |---|---|
-| Nome cartella | `packages/freeports/` va bene, resta questo |
-| `commons::date` e `core::page` | aggiunta approvata, restano dove sono |
-| `pdf_extract::pdf_line` vs `select::pdf_line` vs `select::relative` | interpretazione corretta: **dati** / **selezioni** / **selezioni relative** |
-| `tabularizer`, `pdf_line`, `select` (incl. `relative`) | **si portano com'è**, non si ridisegnano (vedi §0) |
-| `int_value()` di `FinancialInstrument`/`SfdrArticle` | confermato: **non serve**, resta omesso definitivamente (2026-08-22) |
-| `Set::Universe / _` in `commons::sets` | confermato: **il panic non tipizzato va bene così**, resta un limite documentato, non un target futuro (2026-08-22) |
-| Riferimento promise pendente (id assente dalla mappa) | confermato: **la promise passa**. `flatten` la lascia irrisolta e non e' un errore; decide `fulfill_promises` (non-strict ⇒ `Dropped`, strict ⇒ `Unresolved`). `Circular` resta riservato ai cicli veri (2026-08-22) |
-| `select::pdf_line::text` — regex vs matching semplice | confermato: matching verbatim ad ancore `^`/`$` (prefisso/suffisso/sottostringa/esatto) come `TextAstLeaf` del riferimento, **niente** `onig`. Un vecchio doc-comment di stub parlava di "regex onig" per errore (2026-08-23) |
-| `CellGeometry` duplicato (position vs tabularizer) | confermato: **un solo tipo canonico**, in `tabularizer::coordinates` (quello validato, usato davvero dall'algoritmo); `position::{RowConfig,ColumnConfig,TableConfig}` non ne avevano comunque bisogno (2026-08-23) |
-| `pdf_extract::relative` — genericizzare `RelativeInfo`/`OptionallyRelative` oltre `PdfLine`? | confermato: **no**, resta agganciato a `&[PdfLine]` come nel riferimento; è solo spostato di un livello da `select::relative` a `pdf_extract::relative` (2026-08-23) |
-| `PdfLine.font` — tipo dato normalizzato a costruzione o stringa grezza? | confermato: **normalizzato a costruzione** (`Font`, per le stesse ragioni di performance del riferimento), ma definito in `pdf_line.rs` (dati) e non in `select::pdf_line::font` (selezioni): gli impl di selezione (`Container`/`Overlappable`/`AtomOperations`, `FontSet`) restano in `select::pdf_line::font`, che importa `Font` da `pdf_line` — lecito in Rust, la posizione di un `impl` non è vincolata a quella del tipo (2026-08-23) |
-| `collapse_table_rows` — panic su `indexes` vuoto senza config colonne (ereditato verbatim dal riferimento) | confermato: **si accetta e si documenta**, stesso trattamento di `Set::Universe / _` in M1 — limite noto, non un target per M3. Da rivedere quando M5 collega `collapse_table_rows` a dati di pagina reali (2026-08-23) |
-| `FilterData` — semantica (era la domanda che bloccava M5, §13 punto 1) | confermato: **come il riferimento**, enum a due varianti mutuamente esclusive. Primo step dello schedule ⇒ solo le target companies; step successivi ⇒ solo l'accumulo dei risultati di **tutti** gli step precedenti. Conseguenza accettata: un pipe che ha bisogno delle target companies funziona solo se schedulato al primo step, com'è già oggi (2026-08-23) |
-| `Page::raw` — subito o quando arriva il primo consumatore (M6/M7)? | confermato: **subito**. Averlo da ora impedisce di scrivere codice che dipende da `Clone`/`PartialEq` su `Page`, derive che quel campo rende comunque impossibili. Risolve la contraddizione fra §4.4 (che lo colloca in `core::page`) e §2 principio 1: il campo è privato e nessun modulo fuori dal confine Python lo legge (2026-08-23) |
-| Pagina la cui page class compare in **due step** dello schedule | confermato: **si accumulano** i risultati invece di sovrascriverli. Divergenza voluta dal riferimento, dove `res[(doc,page)] = risultati_dello_step` fa sparire dall'output quelli del primo step (che però hanno alimentato il `filter_data` del secondo). Nei casi normali il comportamento è identico; da ricordare nel confronto output di M10 (2026-08-23) |
-| `pub` vs `pub(crate)` sull'albero interno (da M0, non introdotto da M3) | confermato: **si lascia com'è per ora**, annotato come voce trasversale alle milestone da affrontare a parte (es. pulizia M10), non da correggere dentro M3 (2026-08-23) |
-| `formats_utils::pdf_extract::standard_funcs` — a quale milestone appartiene? (§13 punto 6) | confermato: **M7, tutti e otto i pipe**. Nessuno dei `PdfExtract*` dipende da `output::classes`, e sono esattamente cio' che `formats_repo::{structured,semistructured}` costruisce leggendo i CSV: spezzarli avrebbe lasciato meta' modulo inerte. Decisione D-M7-1 (2026-08-23) |
-| Il segmento `deserialize` della pipeline structured `investments`, bloccato da `output::classes` (M8) | confermato: **si anticipano da M8 `output::classes::{fund, investment}`**, cosi' M7 chiude completa. Divergenza consapevole dalla scelta fatta per M4 (opzione C, deferire): senza `DeserializerFundStandard`/`DeserializerInvestmentStandard` la pipeline structured piu' usata del repo resterebbe incompleta, e la fusione dei tre livelli — *il* focus di test di M7 — non sarebbe verificabile end-to-end. Decisione D-M7-2 (2026-08-23) |
-| `formats_repo::unstructured` — i moduli d'autore importano l'API Python, che §0 esclude da questa fase | confermato: **si implementa ora, duck-typed, con moduli sintetici nei test**. `pipelines` e i blocchi sono accettati per *forma* (attributi `pdf_extract`/`text_filter`/`deserialize`; `type_block`/`metadata`/`content`; `id`/`strict`/`multiple`), che e' esattamente cio' che le classi di `freeports_core` gia' espongono: quando i binding arriveranno non servira' una seconda passata. Resta il limite dichiarato che **un repo formati reale non e' caricabile** finche' i binding non esistono. Decisione D-M7-3 (2026-08-23) |
-| Q1.1 — dove vive il tipo di struttura dei file di output (`OutStructureMode`/`OutFlags`), visto che `output` (M8) precede `cli` (M9)? | confermato: **appartiene a `output::routines`**, non a `cli::conf_parse` (ancora uno stub in M8); `cli` lo riuserà quando esisterà. Stesso principio di layering già usato per `Algorithm::load` (in `formats_repo`, non in `core`) (2026-08-23) |
-| Q1.2 — M8 implementa subito tutti e tre i profili (`Regular`/`SingleFile`/`Structured`) + compressione, o solo `Regular`? | confermato: **solo `Regular`** (una directory, un CSV per tabella) — è l'unico che serve al focus di test dichiarato ("CSV byte-per-byte su casi noti"). `SingleFile`/`Structured`/`OutFlags::compressed` restano a M9 e falliscono con un errore tipizzato esplicito (`WriteFilesError::UnsupportedProfile`/`CompressionNotSupported`), non un panic né un'implementazione silenziosamente incompleta (2026-08-23) |
-| Q2 — `api::output` riesporta i nomi letterali di §9 (`FundChangeName`, `SfdrArticle`, `FundEsgIndicators`) o i nomi reali già scelti nel codice? | confermato: **i nomi reali** (`FundRename`/`FundMerge`, `FundSfdrClassification`, `FundEsgIndicator`) — `FundChangeName` non corrisponde a un singolo tipo (sono due, distinti per tipo non per campo), e `output::SfdrArticle` collidrebbe col nome già pubblico di `consts::SfdrArticle`. Stessa filosofia già applicata a `get_table_coordinates`/`TablePosMeasureUnit` in M7 (2026-08-23) |
+| Sorgenti del crate | 116 file `.rs`, 49.042 righe |
+| Test | 2.474 unitari + 63 d'integrazione, verdi |
+| Repo formati | `pytest tests/formats`: 259 passati / 0 falliti (baseline motore Python: 252/7) |
+| Righe di doc-comment | 6.103, di cui ~2.961 in italiano |
+| Siti di logging | **19** in tutto il crate, in 10 file su 116 |
+| `span!` esistenti | **3** (`page`, `field`, la coppia societa' in `deserialize`) |
+| `n_workers` | esiste in `FreeportsConfig` e in `--workers/-j`, **non e' usato da nessuna parte** |
+| Fixture a pagina singola (repo formati) | 76 pagine x 3 file = 228 JSON, 175 dei quali con tag di modulo legacy |
+| Report di test reali | 21 PDF, mediana **288 pagine**, media 480, massimo **1.824** |
 
-### Ancora da decidere
-
-1. ~~**`FilterData`**~~ — **risolta il 2026-08-23** (vedi la tabella "Confermato dall'utente"
-   sopra): si tiene la semantica del riferimento, enum a due varianti mutuamente esclusive.
-   Non blocca più M5, che è chiusa.
-2. **Fixture di `freeports-dev`** — sono pickle Python; con serde diventano JSON e vanno
-   rigenerati. Confermi, e in quale milestone (M8 o M10)? *Blocca M10, non prima.*
-3. **`.log.csv`** — deve continuare a esistere con le stesse colonne
-   (`Page,Matched Company,Company,Field name,Row,Column,Message`)? *Blocca M0 (il `Layer`), ma
-   si può implementare con le colonne attuali e cambiarle dopo senza costi.* **Implementato con
-   queste colonne in M0** (2026-08-22): riga scritta solo se l'evento/span porta almeno uno dei
-   campi `page`/`company`/`field`/`row`/`column`; `Matched Company` resta sempre vuota (nessun
-   campo tracing la alimenta ancora) — non blocca più, ma resta da confermare se `Matched
-   Company` debba ricevere un campo dedicato in una milestone futura.
-4. ~~**`TablePosMeasureUnit`**~~ — **risolta il 2026-08-23, in M7**. Il tipo *esiste* nel
-   riferimento: non in Rust, ma in `formats/utils/pdf_extract/position.py`, dove e' l'unita' di
-   misura della `tolerance` del `get_table_coordinates` che parte dalle **righe** di una pagina
-   invece che da celle gia' costruite. M3 non ne aveva trovato traccia perche' quel wrapper non
-   era ancora stato portato — ed e' lui, non la funzione per celle, quello che §9 elenca e che gli
-   autori di formato chiamano davvero. M7 lo porta in `pdf_extract::tabularizer`
-   (`get_table_coordinates_from_lines` + `TablePosMeasureUnit` + `TableCoordinatesConfig`), e
-   `api::utils::pdf_extract` lo esporta sotto il nome `get_table_coordinates`, rinominando
-   `get_table_coordinates_from_cells` quello per celle esportato da M3.
-5. **`pub` vs `pub(crate)` sull'intero albero interno** (`commons`, `core`, `formats_utils`, ...,
-   `lib.rs`) — da M0 tutto e' `pub mod`, non `pub(crate) mod` come richiesto da §14: i tipi interni
-   sono raggiungibili da fuori crate col percorso completo, bypassando la superficie curata di
-   `api`. Non e' stato introdotto da M3 (che si limita a continuare il pattern esistente), ma e'
-   una voce trasversale a tutte le milestone finora. *Non blocca nessuna milestone corrente;
-   da affrontare come task a parte (candidato: pulizia M10), non dentro una singola milestone.*
-6. ~~**A quale milestone appartiene `formats_utils::pdf_extract::standard_funcs`?**~~ —
-   **risolta il 2026-08-23**: appartiene a **M7**, con tutti e otto i pipe (decisione D-M7-1
-   dell'utente, vedi la tabella "Confermato dall'utente" sopra). §11 riga M7 va letta come
-   comprensiva di questo modulo.
-
-Regola generale: se durante l'implementazione emerge una decisione di design non coperta da
-questo documento, **si chiede all'utente** e si annota la risposta qui in §13, non la si decide
-di iniziativa.
+Questi ultimi due numeri sono il dato che orienta tutta la §3 (parallelizzazione): il documento
+tipico non ha "qualche decina" di pagine, ne ha **centinaia**.
 
 ---
 
-## 14. Come lavorare a questo piano
+## 1. Le quattro aree e il loro ordine
 
-Questa sezione serve a chi (agente o persona) apre il progetto senza avere in mano la
-conversazione in cui il piano è nato.
+| Fase | Richiesta | Contenuto | Dipende da |
+|---|---|---|---|
+| **F** | 4 | Correzioni: lingua inglese, ambiguita' della multimap delle promise, rigenerazione delle fixture a pagina singola | — |
+| **L** | 2 | Logging: nuovo schema `.log.csv` con lo span logico, strumentazione capillare, `.freeports.log.yaml` | F (baseline pulita) |
+| **P** | 1 | Parallelizzazione a piu' livelli, configurabile | L |
+| **D** | 3 | Documentazione: doc-comment, whitepaper, strategia sphinx/mdbook/rustdoc | F, L, P |
 
-### Prima di scrivere una riga di codice
+**Perche' questo ordine, e non quello della richiesta.**
 
-Leggere, in quest'ordine:
-
-1. questo file, per intero — non solo la milestone di turno;
-2. `STATUS.md` (stessa cartella), per sapere dove si è arrivati e cosa è stato deciso strada facendo;
-3. `packages/freeports_core/riscrittura.txt` — le parole originali dell'utente sull'albero dei
-   moduli e sulla API pubblica; questo piano ne è l'elaborazione, non lo sostituisce;
-4. `analysis_finance_reports/AGENTS.md`, sezione "Architecture Overview", per il dominio
-   (classificazione pagine → schedule → tre segmenti → promise);
-5. il codice di `packages/freeports_core/` **solo come riferimento di logica**. I commenti e i
-   documenti in `agent-memory/` di quel package descrivono un design precedente e in parte
-   superato: leggerli come ispirazione, mai come vincolo.
-
-### Regola d'oro sul codice esistente
-
-`freeports_core` non si tocca: resta congelato per tutta la migrazione, serve da riferimento e da
-termine di paragone per l'output finale (M10). Tutte le nuove feature (target 2 e 3) entrano solo
-nel crate nuovo.
-
-### Ciclo di lavoro per milestone
-
-Una milestone è l'unità di lavoro. Per ciascuna:
-
-1. **Requisiti** — rileggere la riga corrispondente in §11 e le sezioni di design collegate.
-   Se qualcosa non è specificato, chiedere (§13, regola generale).
-2. **Test prima** — scrivere i test seguendo lo stile di §10 (sottomoduli per argomento,
-   esaustività su varianti/rami/errori). I test sono il contratto: non si modificano per farli
-   passare.
-3. **Implementazione** — far passare i test. Per i moduli "da portare invariato" (§0) il lavoro
-   è un porting, non una riscrittura.
-4. **Chiusura** — `cargo test` verde e `cargo clippy` senza warning nuovi; aggiornare `STATUS.md`
-   (cosa è fatto, cosa è stato deciso, cosa resta aperto); abilitare in `src/lib.rs` le re-export
-   di `api` che la milestone rende disponibili (§9).
-
-Una milestone non si considera chiusa se lascia `todo!()` o test ignorati.
-
-### Ordine e parallelismo
-
-`M1 → M2 → {M3, M4} → M5 → {M6, M7} → M8 → M9 → M10`.
-M3 e M4 sono indipendenti fra loro; M6 e M7 sono i due punti di contatto con Python e possono
-procedere in parallelo. Tutto il resto è sequenziale: non anticipare M5 prima che M2 sia chiusa,
-perché il motore è costruito sopra `BlockValue`/`Extracted`.
-
-### Convenzioni di codice
-
-- Edizione 2024. Niente `unwrap`/`expect` fuori dai test, salvo invarianti dimostrate con un
-  commento accanto.
-- Un enum d'errore per modulo, con `thiserror`; mai `Box<dyn Error>` nella API pubblica.
-- Documentazione: `//!` sul modulo che spiega *perché* esiste e come si incastra; `///` sugli
-  item pubblici. I commenti spiegano le decisioni non ovvie, non ripetono il codice.
-- Niente `pub` verso l'esterno che non passi da `api` (§9); il resto è `pub(crate)`.
-- PyO3 solo nei tre moduli di confine (§3). Un `use pyo3` altrove è un errore di design, non una
-  scorciatoia.
+1. **F prima di tutto** perche' la rigenerazione delle fixture a pagina singola stabilisce la
+   baseline verde su cui misurare qualunque altra modifica, e perche' la rinomina degli
+   identificatori italiani tocca gli stessi file che L e D riscriveranno: farla dopo vorrebbe dire
+   toccarli due volte.
+2. **L prima di P**, e questo e' il punto non ovvio. Gli span di `tracing` **non attraversano da
+   soli** un confine di thread: dentro una closure `rayon` `Span::current()` e' vuoto, e va
+   riagganciato esplicitamente. Se si parallelizza prima e si strumenta dopo, la strumentazione va
+   scritta due volte (una versione sequenziale e una che si porta dietro lo span). In piu' la
+   gerarchia di span che la richiesta 2 chiede (`run/pipeline_investment/pdf_extract/...`) e'
+   esattamente la mappa dei punti dove la richiesta 1 vuole parallelizzare: descriverla prima
+   significa progettare la parallelizzazione su una struttura gia' esplicita.
+3. **P prima di D** perche' il whitepaper deve descrivere il modello di esecuzione definitivo, non
+   quello intermedio.
+4. **D per ultima**, e assorbe la traduzione dei doc-comment (vedi Q-F1): sono le stesse righe.
 
 ---
 
-## 15. Rischi e criticità
+## 2. Fase F — correzioni (richiesta 4)
 
-| Rischio | Impatto | Mitigazione |
+### F1. Tutto in inglese
+
+**Stato reale.** L'inventario e' fatto: ~187 nomi di funzione/test contengono parole italiane
+(concentrati in `core/classes.rs`, `core/match_fund.rs`, `core/normalization.rs`,
+`core/promise_resolution.rs`, `core/promisable.rs`, `core/classes/value.rs`), e ~30 file hanno
+variabili locali italiane (`appiattiti`, `contributi`, `candidati`, `unico`, `in_corso`,
+`valori`, `attesa`, `riga`, ...). Il file piu' colpito e' `core/promise_resolution.rs`.
+
+**Perimetro F1**: identificatori (funzioni, variabili locali, campi privati, nomi di test e di
+sottomodulo di test). **Non** i doc-comment — quelli sono D2, che li riscrive comunque.
+
+**Metodo.** Rinomine meccaniche, un modulo per volta, `cargo test` dopo ciascuno. Nessuna
+rinomina di API pubblica senza segnalarla: se un nome italiano e' esposto in `api.rs` o in
+`python.rs`, cambia anche il contratto verso il repo formati e ricade sotto la regola "cambiamenti
+al repo formati si propongono, non si applicano" (vedi §7).
+
+### F2. Multimap delle promise: `BlockValue::List` e' ambiguo (l'utente ha ragione)
+
+**Il dubbio dell'utente e' confermato dal codice, non e' teorico.** In
+`core/promise_resolution.rs`:
+
+- `PromiseMap::flatten` (righe ~145-152) riduce N contributi per lo stesso id a **un solo**
+  `BlockValue`: 1 contributo -> quel contributo; N>1 contributi -> `BlockValue::List(contributi)`;
+  0 contributi -> l'id sparisce.
+- `FlatPromiseMap::fulfill` (righe ~193-205) legge quel valore e, **se e' una `List`, la tratta
+  come l'elenco dei candidati**: promessa `multiple` -> tutti; promessa normale -> `candidati.last()`.
+
+Quindi un id con **un solo** contributo che e' *davvero* una lista (`BlockValue::List([a, b])`)
+e' bit-per-bit indistinguibile da **due** contributi scalari `a` e `b`. Una promessa normale su
+quel valore restituisce `b` invece della lista intera; una promessa `multiple` restituisce
+`[a, b]` invece di `[[a, b]]`. Non e' un caso di scuola: `BlockValue::List` e' una variante
+legittima che un pipe puo' depositare.
+
+E' un **bug latente**, non una scelta di design: nessun commento del modulo lo rivendica, e il
+riferimento Python aveva la stessa forma (`mapping.get(id, [value])`) per ragioni di comodita',
+non per disegno.
+
+**Ricade sotto la politica dei bug ereditati** (`agent-memory`, "rust-migration-bugfix-policy"):
+si porta all'utente con piu' opzioni, non si sceglie da soli. Le tre da mettere sul tavolo:
+
+- **(a) Separare il contenitore dal contributo.** `FlatPromiseMap` non memorizza un `BlockValue`
+  ma un `Contributions(Vec<BlockValue>)` (o `FlatPromiseMap { entries: BTreeMap<String,
+  Vec<BlockValue>> }`, che e' la stessa cosa senza tipo nuovo): un contributo resta un contributo,
+  una lista resta una lista. `fulfill` diventa banale e totale. E' la correzione alla radice; costa
+  il cambio di una firma pubblica e la revisione dei test di `flatten`.
+- **(b) Variante nuova `BlockValue::Multi(Vec<BlockValue>)`**, distinta da `List`, usata solo
+  dall'appiattimento. Meno invasiva sulle firme, ma aggiunge una variante a un enum che attraversa
+  serializzazione, `Ord`, `PartialEq` e la API Python: costo nascosto alto.
+- **(c) Parametro opt-in** (la forma che l'utente ha gia' scelto per `keep_sign` in M4): `flatten`
+  prende un flag che, se attivo, conserva la distinzione; i chiamanti esistenti passano il valore
+  che riproduce il comportamento attuale. Minimo rischio di regressione, ma lascia il default
+  sbagliato.
+
+**Raccomandazione: (a)**, perche' e' l'unica che elimina l'ambiguita' invece di aggirarla, e
+perche' `FlatPromiseMap` non e' un tipo che il repo formati costruisce a mano (lo produce il
+motore) — la superficie da adeguare e' interna. Da confermare: **Q-F2**.
+
+### F3. Fixture a pagina singola rigenerate, `_LEGACY_MODULES` rimosso
+
+Il codice incriminato e' esattamente questo, in
+`packages/freeports_dev/src/freeports_dev/serialization.py`:
+
+```python
+_LEGACY_MODULES = {
+    "freeports._internals.output.classes_schema": "freeports.output",
+    "freeports._internals.commons.consts":        "freeports.consts",
+    "freeports._native":                          "freeports.core",
+    "freeports._internals.core.classes":          "freeports.core",
+}
+```
+
+Rimappa in lettura i tag delle fixture vecchie. Fa passare i test raccontando che il layout
+`_native`/`_internals` esiste ancora: e' proprio la retrocompatibilita' fuorviante che la
+richiesta chiede di togliere, ed e' incoerente con la regola gia' registrata "niente `_native`
+ne' `_internals`".
+
+**Piano.**
+
+1. Script di rigenerazione che cammina `tests/formats/*/pages/<page_class>/<N>-*.json`, ne ricava
+   `(formato, page_class, pagina)` dal percorso, e per ciascuno chiama
+   `freeports-dev make-tests --format F --page N --page-class C` con il `report.pdf` del formato.
+   76 pagine, 26 formati.
+2. **Precondizione per formato**: si rigenerano le fixture di un formato **solo se il suo test
+   d'integrazione e' verde** (`out/*.csv` invariati). Rigenerare una fixture significa dichiarare
+   corretto cio' che il motore produce oggi: senza il test d'integrazione verde a fare da
+   contro-prova, si rischia di cristallizzare un errore. Un formato con l'integrazione rossa si
+   ferma e si segnala.
+3. Rimozione di `_LEGACY_MODULES` e di `_resolve_module`; `_resolve_class` importa il modulo del
+   tag e basta.
+4. Verifica: nessun `_internals`/`_native` residuo nei 228 JSON (`grep`), suite completa verde.
+
+**Vincolo assoluto**: `tests/formats/*/out/**` — i CSV di riferimento e il loro `.log.csv` — **non
+si toccano in questa fase**. La richiesta autorizza la rigenerazione dei *test a pagina singola*,
+non degli output d'integrazione, che restano la specifica eseguibile del motore. (La fase L li
+mette pero' in discussione: vedi **Q-L1**, che e' bloccante.)
+
+---
+
+## 3. Fase L — logging (richiesta 2)
+
+### L1. Nuovo schema di `.log.csv`: la colonna dello span logico
+
+**Header attuale** (`core::tracing_setup::CSV_HEADER`):
+
+```
+Page,Matched Company,Company,Field name,Row,Column,Message
+```
+
+**Header proposto**:
+
+```
+Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message
+```
+
+Mappatura richiesta -> implementazione:
+
+| Colonna vecchia | Colonna nuova | Campo `tracing` | Nota |
+|---|---|---|---|
+| `Page` | `Page` | `page` | invariata |
+| — | `Activity` | *(nessuno: calcolata)* | percorso degli span attivi, dal piu' esterno al piu' interno, unito con `/` |
+| `Matched Company` | `First coord ref` | `coord_ref_1` | oggi alimentata da `company` |
+| `Company` | *(eliminata)* | — | l'utente: "non serve piu'" |
+| `Field name` | `Second coord ref` | `coord_ref_2` | oggi alimentata da `field` |
+| `Row` | `First coord` | `coord_1` | il valore include l'unita': `row 12` |
+| `Column` | `Second coord` | `coord_2` | idem: `col 3` |
+| `Message` | `Message` | `message` | invariata |
+
+**Semantica generalizzata** (e' il punto della richiesta): le due coordinate sono il **punto della
+pagina** che ha fatto scattare l'evento, con unita' di misura dipendente dal contesto — oggi riga
+e colonna di una tabella, domani un'ascissa in punti PDF o un indice di riga di testo. I due *ref*
+sono ancoraggi **testuali** alla stessa posizione, non identificatori univoci: servono a un umano
+per ritrovare il punto in un viewer PDF (e' il motivo per cui "Matched Company" funzionava bene).
+Chi emette l'evento formatta il valore con la sua unita'; il layer non interpreta, stampa.
+
+**`Activity` — la gerarchia degli span.** Vocabolario proposto, dall'esterno all'interno:
+
+```
+run / job[<config>] / document[<id>] / classify
+                                     / step[<n>] / page[<n>] / class[<page_class>]
+                                                  / pipeline[<nome>] / pdf_extract   / pipe[<nome>]
+                                                                     / text_filter   / pipe[<nome>]
+                                                                     / deserialize   / pipe[<nome>]
+                                     / output / write[<file>]
+load / formats_repo[<path>] / format[<nome>]
+```
+
+reso in colonna come `run/document[AMUNDI-EN24]/step[0]/page[44]/pipeline[investments]/deserialize/pipe[deserialize_investment]`.
+Il nome dello span dice **cosa** stava facendo il codice; il modulo sorgente (`target` di
+`tracing`) resta disponibile e va nel file `freeports.log`, non nel CSV.
+
+**Regola di selezione delle righe**: invariata nella forma (una riga solo se l'evento, per se' o
+per eredita' dagli span, porta almeno uno dei campi taggati) ma i campi da controllare diventano
+`page`/`coord_ref_1`/`coord_ref_2`/`coord_1`/`coord_2`. Da decidere se `Activity`, che ora c'e'
+sempre, debba da sola bastare a produrre una riga (**Q-L2**): se bastasse, `.log.csv` diventerebbe
+un log completo e non piu' il registro degli eventi *localizzati*, che e' il suo scopo. La
+raccomandazione e' **no**: `Activity` arricchisce la riga, non la giustifica.
+
+**Determinismo (vincolo che lega L a P).** `.log.csv` e' confrontato da fixture: l'ordine delle
+righe deve essere riproducibile. Con la fase P gli eventi nascono su thread diversi e l'ordine di
+arrivo al layer non e' piu' quello logico. Il layer deve quindi **accumulare** le righe con una
+chiave d'ordine (documento, pagina, indice step, sequenza) e scriverle ordinate alla chiusura,
+invece di scriverle in streaming. E' una modifica di `CsvLogLayer` da fare **in L1**, prima di P,
+anche se il motivo si manifesta solo dopo.
+
+### L2. Strumentazione capillare, file per file
+
+Oggi ci sono 19 log in tutto. La richiesta e' "cospargere tutto il codice di tutti i log che
+possono servire, file per file, di tutti i livelli che servono": e' un lavoro di sweep su 116
+file, e va fatto con una **convenzione scritta prima**, altrimenti diventa rumore.
+
+Convenzione proposta per livello:
+
+| Livello | Cosa ci va | Esempi |
 |---|---|---|
-| Il confine con i pipe Python è la parte più fragile (conversioni, errori, GIL) | alto | isolato in due moduli, con test di confine dedicati; `BlockValue` come contratto esplicito invece di `PyAny` |
-| Le validazioni pandera non sono documentate: riportarle a mano può perdere controlli | medio | M7 parte dalla lettura riga per riga degli schema Python, con un test per ogni check |
-| Rigenerare i fixture nasconde regressioni | medio | M10 confronta l'output CSV con quello di `freeports_core` su un formato reale, prima di rigenerare |
-| Il rewrite è lungo e i due crate divergono nel frattempo | medio | `freeports_core` resta congelato durante la migrazione; le nuove feature (target 2, 3) entrano solo nel nuovo crate |
-| Superficie API pubblica grande da riesportare a mano | basso | modulo `api` costruito incrementalmente, una riga per milestone |
+| `error!` | il lavoro richiesto non e' stato prodotto | pipe fallito in modo non recuperabile, config non risolvibile, repo formati non caricabile |
+| `warn!` | il lavoro prosegue ma qualcosa e' andato perso | pagina saltata, cast fallito e campo scartato, promessa non risolta, colonna assente |
+| `info!` | i passaggi che un utente vuole vedere senza chiedere | documento caricato (N pagine), formato riconosciuto, step iniziato/finito, file scritto |
+| `debug!` | i passaggi interni utili a chi sviluppa un formato | blocchi prodotti da un pipe (conteggio), page class assegnate, promesse depositate, tabella tabularizzata (righe x colonne) |
+| `trace!` | il dettaglio che serve solo in un debug attivo | il contenuto dei blocchi, le selezioni valutate riga per riga, i confronti di matching |
+
+Regole trasversali:
+- **Ogni funzione che puo' fallire e assorbe l'errore** deve loggarlo prima di assorbirlo.
+- **Nessun log dentro un ciclo caldo a livello superiore a `trace!`** (il tabularizer gira su
+  migliaia di righe).
+- **Gli span si aprono nei punti di orchestrazione** (`algorithm`, `pipeline`, `segment`, `job`,
+  `run`, `output`), non dentro i pipe: un pipe eredita lo span di chi lo chiama.
+- I campi delle coordinate si mettono **sugli span**, non sui singoli eventi, come gia' si fa oggi
+  per `field` e la coppia societa'.
+
+Ordine di sweep per area (ognuna e' un'unita' di lavoro autonoma, con i suoi test):
+`cli` -> `input` -> `formats_repo` -> `core` (algorithm/pipeline/schedule) -> `formats_utils`
+-> `output` -> `commons`.
+
+### L3. `.freeports.log.yaml` a verbosita' massima
+
+Alla verbosita' massima (`-vvv`, `Verbosity::Trace`) si genera anche un file YAML con la
+**serializzazione degli errori**. Da progettare come un quarto layer, `YamlLogLayer`, accanto ai
+tre esistenti (stderr, `freeports.log`, `.log.csv`).
+
+Forma proposta del record (un documento YAML, lista di errori):
+
+```yaml
+- activity: run/document[AMUNDI-EN24]/step[0]/page[44]/pipeline[investments]/deserialize
+  level: WARN
+  target: freeports::formats_utils::deserialize::cast
+  message: "Error casting, skipping field: ..."
+  coords: { first_ref: NORDEA, second_ref: market_value, first: row 12, second: col 3 }
+  error:
+    type: CastError::NotANumber
+    display: "cannot cast 'n/a' to f64"
+    source:
+      - "invalid float literal"
+```
+
+Punto di progetto da risolvere (**Q-L3**): gli enum d'errore del crate sono `thiserror`, **non
+`Serialize`**. Due strade: (a) derivare `Serialize` su tutti gli enum d'errore — invasivo,
+~25 enum, e vincola la loro forma; (b) serializzare un **record strutturale** (nome del tipo via
+`std::any::type_name`, `Display`, catena di `source()`), che non tocca gli enum e funziona anche
+per errori di terze parti. Raccomandazione: **(b)**, con (a) eventualmente dopo, solo per gli
+enum di cui serva davvero il dettaglio dei campi.
+
+Da decidere anche: solo eventi `error!`/`warn!` o tutti; percorso del file (accanto a `.log.csv`,
+quindi nella cartella di output); flag dedicato `--log-yaml` oppure implicito in `-vvv`.
+
+Nota tecnica da verificare in fase di implementazione: `serde_yaml` 0.9 (gia' in `Cargo.toml`) e'
+**non piu' mantenuto** a monte. Se il file YAML diventa un artefatto di prodotto conviene valutare
+un sostituto mantenuto prima di costruirci sopra.
+
+---
+
+## 4. Fase P — parallelizzazione (richiesta 1)
+
+### P0. Prima di parallelizzare: misurare
+
+Nessuna delle scelte qui sotto va fatta a intuito. Il primo passo produce un profilo su almeno
+tre report reali di taglia diversa (per esempio MEDIOLANUM-ES24.B: 29 pagine; UBS-EN23: 222;
+AMUNDI-EN24: 1.824), che risponda a tre domande:
+
+1. quanto pesa `input::document::load_document_pages` (PyMuPDF, **sotto GIL**) sul totale;
+2. quanto pesa la classificazione rispetto agli step;
+3. quanto pesano i tre segmenti l'uno rispetto all'altro, e quanto un singolo pipe.
+
+Senza questi numeri, P1..P4 sono ipotesi. Con questi numeri, meta' delle ipotesi si cancella.
+
+### Il vincolo che decide tutto: il GIL
+
+Il crate tocca Python in due punti (`PLAN.md` storico §3), ed entrambi sono rilevanti qui:
+
+- **caricamento del PDF** — `load_document_pages` cicla su **tutte** le pagine dentro un solo
+  `Python::attach`, chiamando `load_page`/`get_text("dict")`. PyMuPDF non rilascia il GIL: su un
+  documento da 1.824 pagine questo e' un blocco seriale che **nessun thread puo' accelerare**;
+- **pipe definiti dall'autore** (formati `unstructured`) — ogni chiamata riprende il GIL, quindi
+  N thread su pipe Python si serializzano fra loro.
+
+Conseguenze dirette:
+
+- i **thread** pagano solo dove il lavoro e' Rust puro: `pdf_extract`/`text_filter`/`deserialize`
+  nativi, tabularizer, matching, regex `onig`, cast. Per i formati `structured` e
+  `semistructured` — la maggioranza — e' la parte grossa;
+- per i formati `unstructured` la parallelizzazione a thread **non dara' guadagno**, e va rilevata
+  e degradata a sequenziale invece di pagare l'overhead per niente;
+- l'unico modo per parallelizzare davvero *anche* la parte Python e' il **multi-processo**, che ha
+  senso solo al livello piu' grosso (P1), dove i job sono gia' indipendenti e non c'e' nulla da
+  ricomporre in memoria.
+
+### P1. Livello job / documento — **processi**, il guadagno maggiore
+
+In modalita' batch, `cli::batch::load_jobs` produce N `PartialConfig` indipendenti e
+`cli::run::execute` li esegue in un `for` sequenziale. Ogni job carica il proprio PDF, esegue il
+proprio algoritmo, scrive i propri CSV: **nessuna memoria condivisa**.
+
+Proposta: eseguire i job in **processi figli** (`std::process::Command` sul proprio eseguibile con
+la config del job, oppure `fork` non e' portabile — meglio il primo), con un pool di dimensione
+`jobs`. E' l'unico livello che scavalca il GIL, e in batch e' anche quello con il rapporto
+guadagno/rischio migliore.
+
+Da risolvere: raccolta dei log dei figli (ogni figlio scrive il proprio `.log.csv`? si uniscono a
+fine corsa? — l'unione va fatta **ordinata**, vedi L1), propagazione del codice d'uscita, e cosa
+succede se due job scrivono nella stessa cartella di output. **Q-P1**.
+
+Alternativa piu' semplice, da valutare in P0: thread anche qui, accettando che i tratti Python si
+serializzino. Piu' semplice da implementare e da diagnosticare, guadagno parziale.
+
+### P2. Livello pagina — **thread (rayon)**, il guadagno strutturale
+
+Due punti, entrambi in `core::algorithm`:
+
+- **`classify_pages`** (righe ~202-230): cicla su tutte le pagine del documento applicando le
+  pipeline di classificazione. E' il punto che la richiesta cita per primo ("le deve parsare tutte
+  quindi e' lungo") ed e' esatto: mediana 288 pagine, punta 1.824. I contributi vanno raccolti
+  **in ordine di pagina** perche' il finalizer riceve un `Vec<Option<PageClass>>` posizionale:
+  quindi `par_iter().map(...).collect()`, mai `for_each` + push.
+- **il ciclo sulle pagine di uno step** (righe ~269-305): le pagine dello stesso step sono
+  indipendenti per costruzione — un test esistente lo garantisce esplicitamente
+  (`pages_of_the_same_step_do_not_see_each_others_results`). E' la parallelizzazione piu' naturale
+  di tutto il motore.
+
+Precondizioni gia' soddisfatte (verificate, non assunte): i tre trait dei pipe sono `Send + Sync`
+per scelta esplicita di M5, `Page` e' `Send + Sync`, `Algorithm` e i bundle sono dietro `Arc`.
+
+Attenzione a tre cose:
+1. **`Page::raw` e' un `Py<PyAny>`**: il suo `Drop` richiede il GIL. Va verificato che la
+   distruzione di pagine su thread rayon non prenda il GIL a raffica (eventualmente rilasciando i
+   `raw` in un punto solo).
+2. **Ordine dei risultati**: `produced_in_this_step` e `per_page` devono risultare identici al
+   caso sequenziale. E' il vincolo di determinismo di §6.
+3. **Span**: ogni closure deve riagganciare lo span del chiamante (`let span =
+   tracing::Span::current(); ... span.in_scope(|| ...)`), altrimenti la colonna `Activity` si
+   svuota proprio dove serve.
+
+### P3. Livello page class / pipeline dentro uno step
+
+La richiesta chiede di parallelizzare "per le diverse page_class se sono nello stesso step" e "per
+pipeline" dentro un bundle. Tecnicamente e' possibile (stessi trait `Send + Sync`), ma:
+
+- le page class dentro uno step sono tipicamente **1-3**, e le pagine sono centinaia: e' P2 che
+  satura i core, non P3;
+- annidare rayon dentro rayon non e' un errore (il pool e' work-stealing e gestisce il nesting),
+  ma rende il profilo illeggibile e il determinismo piu' delicato.
+
+Raccomandazione: **implementarlo, ma con default disattivato** (`pipelines = 1`), utile per il
+caso patologico "un documento con pochissime pagine e molte pipeline pesanti". Attivabile da
+configurazione.
+
+### P4. Livello pipe dentro un segmento — la risposta e' "quasi mai"
+
+L'utente lo dice esplicitamente ("non so bene... se ci fosse un modo semplice di aiutare il
+compilatore"). Risposta netta, perche' e' la parte dove l'intuizione inganna:
+
+- **il compilatore Rust non parallelizza da solo**. Non esiste un attributo che renda parallelo un
+  ciclo; `rustc` auto-vettorizza (SIMD) solo cicli numerici semplici, e qui il lavoro e' stringhe,
+  regex Oniguruma e `HashMap` — niente da vettorizzare. Non c'e' un "modo semplice di dirlo al
+  compilatore": o si usano i thread, o e' sequenziale;
+- **i pipe di un segmento sono pochi** (tipicamente 1-5) e ciascuno costa poco: il costo di
+  distribuzione di rayon (decine di microsecondi) e' dello stesso ordine del lavoro;
+- l'**unica** eccezione con numeri veri e' `DeserializeSegment::apply`, che cicla
+  **pipe x blocchi** e i blocchi di una pagina densa sono centinaia o migliaia. Li' un
+  `par_iter` sui *blocchi* (non sui pipe) con una **soglia** (sotto N blocchi resta sequenziale)
+  puo' pagare — ma solo se P0 lo mostra.
+
+Quindi: P4 = una sola parallelizzazione, condizionata a soglia, sui blocchi di `deserialize`, e
+solo se misurata. Tutto il resto resta sequenziale per scelta, non per dimenticanza.
+
+### P5. Configurazione
+
+`n_workers` esiste gia' (config, `--workers/-j`, `FREEPORTS_N_WORKERS`) e non e' usato: diventa il
+default globale. Sopra ci va una sezione dedicata, con override per livello:
+
+```yaml
+parallelism:
+  jobs: auto        # P1 — processi in batch.     auto = min(n_cpu, n_job)
+  pages: auto       # P2 — thread rayon.          auto = n_cpu
+  pipelines: 1      # P3 — disattivato di default
+  deserialize_blocks_threshold: 0   # P4 — 0 = disattivato
+```
+
+Regole: `auto` risolve a runtime; `1` ovunque deve produrre **esattamente** il comportamento
+sequenziale di oggi (ed e' il modo di verificare il determinismo, §6); `--workers/-j N` senza
+altro imposta `pages = N` e lascia il resto al default. Le variabili d'ambiente seguono lo schema
+gia' esistente in `cli::config_locations::env`.
+
+---
+
+## 5. Fase D — documentazione (richiesta 3)
+
+### D1. La strategia (da decidere per prima)
+
+**Cosa c'e' oggi**: `docs/` con Sphinx (`sphinx_rtd_theme`, `autodoc`, `autosummary`,
+`napoleon`, `intersphinx`, `coverage`), ~9.000 parole di prosa vera in `usage/`, `dev/`,
+`validation/`, **quattro locali gettext** (`en`, `fr`, `it`, `pt`) e un `.readthedocs.yaml`.
+E `docs/source/_generated/*.rst` che documenta via autodoc un pacchetto — `freeports_analysis` —
+che **non esiste piu' da due riscritture**; `conf.py` fa `from freeports_analysis import *`, quindi
+oggi la build o e' rotta o e' vuota.
+
+**Cosa serve domani**, tre pubblici distinti:
+
+| Pubblico | Contenuto | Strumento naturale |
+|---|---|---|
+| Chi sviluppa il crate | API Rust, modulo per modulo | **rustdoc** (`cargo doc`), generato dai doc-comment di D2 |
+| Chi scrive un formato | API Python esposta da PyO3, guide "come si fa un formato / un repo formati / un input-db" | **Sphinx** (autodoc funziona sul modulo compilato, e' importabile) |
+| Chi valuta il progetto | Whitepaper: installazione, uso, scelte di design e perche', metodologia di validazione | **prosa**, in uno dei due |
+
+**Raccomandazione: un sito Sphinx solo, piu' rustdoc pubblicato accanto**, non mdbook. Motivi:
+
+1. le **traduzioni gia' esistono** in quattro lingue con il flusso gettext: mdbook le rifarebbe da
+   zero con un secondo meccanismo (`mdbook-i18n-helpers`);
+2. `validation/` (metodologie, asserzioni, grant) e' gia' li' ed e' contenuto vivo, non
+   riscrivibile a costo zero;
+3. `.readthedocs.yaml` e la pubblicazione esistono gia';
+4. abilitando **MyST** la prosa nuova si scrive in Markdown dentro Sphinx: si ottiene la comodita'
+   di scrittura di mdbook senza un secondo toolchain;
+5. rustdoc non va integrato ne' duplicato: si genera con `cargo doc` e si pubblica come
+   sotto-percorso, linkato dall'indice. Duplicare l'API Rust in `.rst` a mano invecchierebbe in
+   una settimana.
+
+Da fare comunque, indipendentemente dalla scelta: **cancellare `docs/source/_generated/`** e
+riparare `conf.py` (che oggi importa un pacchetto morto). **Q-D2** per la conferma della
+strategia e per la sorte delle traduzioni.
+
+### D2. Doc-comment del sorgente
+
+I doc-comment attuali sono, per ammissione della richiesta, "traccie operative" scritte durante il
+porting: contengono contratti per l'implementatore, riferimenti a `M9-implementation-plan.md §0
+Q5`, tabelle di test, note su cosa era rimandato a quale milestone. Servivano ad allora; oggi sono
+rumore per chi legge il codice.
+
+Regola di riscrittura, modulo per modulo:
+
+- **resta**: cosa fa il modulo, quali invarianti garantisce, come si usa, perche' e' fatto cosi'
+  dove la scelta non e' ovvia, i limiti noti;
+- **sparisce**: riferimenti a milestone e a piani, contratti "l'implementazione deve...", blocchi
+  di codice che descrivono firme gia' presenti sotto, cronologia delle decisioni (che vive in
+  `agent-memory/` e in questo file);
+- **si aggiunge**: esempi eseguibili (`/// ```` `) dove il tipo e' non banale — diventano doc-test,
+  quindi documentazione che non puo' invecchiare in silenzio;
+- **lingua: inglese**, coerentemente con F1 (**Q-F1**).
+
+Nota di processo: nella convenzione di questo workspace i **commenti nel codice sono compito di
+`implementer`, non di `docs-writer`** (`CLAUDE.md`: docs-writer "Not for writing in-code comments").
+D2 va quindi eseguita come lavoro di implementazione, area per area, non come lavoro di
+documentazione.
+
+### D3. Whitepaper
+
+Documento in prosa, per umani, che spieghi didatticamente: cos'e' il problema (estrarre dati
+strutturati da report finanziari PDF eterogenei), installazione, uso da CLI e da Python, il
+modello di esecuzione (documento -> pagine -> classificazione -> schedule -> page class ->
+pipeline -> tre segmenti -> output, e da dove viene questa forma), **come si scrive un formato**,
+**come si crea e si mantiene un repo dei formati**, **come si fa un input-db**, il sistema dei
+grant/validazione, e le scelte di design con le alternative scartate (perche' Rust, perche'
+Oniguruma e non `regex`, perche' PyMuPDF resta l'unico ponte Python, perche' le promesse, perche'
+tre segmenti e non quattro).
+
+Materiale gia' esistente da cui attingere, non da riscrivere da zero: `docs/source/dev/code.rst`
+(1.768 parole), `docs/source/usage/command.rst` (1.304), `docs/source/validation/**` (~2.500), e
+il `PLAN.md` storico §2/§12/§13, che contiene gia' le motivazioni delle scelte in forma
+discorsiva.
+
+### D4. Riporto e riconciliazione dei contenuti Sphinx esistenti
+
+Passata di verifica su ogni `.rst` non generato: ancora vero? riferito a nomi vivi? Le parti su
+`freeports_analysis`/`freeports_core` vanno riscritte sui nomi attuali, quelle su comandi e
+config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiato semantica su
+`-v`/`-q`), quelle di validazione controllate contro `freeports_validate`.
+
+---
+
+## 6. Invarianti che valgono per tutte e quattro le fasi
+
+1. **`tests/formats/*/out/**` non si tocca.** Sono la specifica eseguibile. Se l'output diverge, ha
+   sbagliato il motore. L'unica eccezione possibile e' `out/.log.csv` in fase L, e **solo** con
+   autorizzazione esplicita (Q-L1).
+2. **Determinismo**: con `parallelism` a 1 ovunque, l'output deve essere **identico byte per byte**
+   a quello di oggi; con N > 1, identico a quello con 1. Da rendere un test, non una speranza:
+   stessa corsa a 1 e a N worker, confronto dei file prodotti.
+3. **Nessuna regressione dei test**: 2.474 unitari + 63 d'integrazione + 259 del repo formati.
+4. **Stile dei test**: sottomoduli per argomento dentro `mod tests`, mai una lista piatta.
+5. **Cambiamenti al codice del repo formati**: si propongono, non si applicano.
+6. **Bug ereditati**: si correggono alla radice, ma sempre chiedendo prima, offrendo l'opzione
+   "parametro opt-in con il vecchio comportamento come default".
+
+---
+
+## 7. Domande aperte — bloccanti
+
+| # | Fase | Domanda |
+|---|---|---|
+| **Q-F1** | F/D | "Tutto in inglese" comprende anche i ~2.961 righe di doc-comment italiani? Raccomandazione: si', ma tradotti dentro D2 (che li riscrive comunque), non in F1 — cosi' non si toccano due volte. |
+| **Q-F2** | F | Quale forma per la correzione dell'ambiguita' `BlockValue::List` nelle promesse: (a) contributi separati dal valore, (b) variante `Multi`, (c) parametro opt-in? Raccomandazione: (a). |
+| **Q-F3** | F | Confermi che la rigenerazione riguarda i 228 JSON a pagina singola di tutti i 26 formati, e che `out/**` resta intatto? |
+| **Q-L1** | L | Il nuovo schema di `.log.csv` **invalida i 31 `tests/formats/*/out/.log.csv`**, che sono file "che non si toccano". Autorizzi la loro rigenerazione una tantum come parte di L1 (e con quale verifica), oppure il motore deve poter scrivere anche il formato vecchio (flag di compatibilita')? Senza risposta L1 non parte. |
+| **Q-L2** | L | Nome e posizione della colonna dello span (proposto: `Activity`, seconda); vocabolario e separatore degli span (proposto: `/`); e soprattutto: la presenza di `Activity` da sola basta a generare una riga in `.log.csv`? (raccomandazione: no) |
+| **Q-L3** | L | `.freeports.log.yaml`: solo `-vvv` o flag dedicato? solo errori/warning o tutti gli eventi? record strutturale (raccomandato) o `Serialize` derivato su ~25 enum d'errore? |
+| **Q-P1** | P | Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale? |
+| **Q-P2** | P | Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice. |
+| **Q-D1** | D | Il whitepaper e' rivolto anche a un pubblico non tecnico (finanziario/istituzionale) o solo a sviluppatori? Cambia registro e struttura. |
+| **Q-D2** | D | Confermi "un solo sito Sphinx + MyST + rustdoc accanto", scartando mdbook? E le quattro traduzioni (`en`/`fr`/`it`/`pt`) si mantengono, si congelano, o si riducono? |
+
+---
+
+## 8. Agenti e modelli consigliati
+
+Legenda: **O** = Opus (ragionamento architetturale, rischio alto, ambiguita' reale) · **S** =
+Sonnet (lavoro definito, ampio, meccanico o semi-meccanico) · **H** = Haiku (inventari, grep,
+conteggi).
+
+| Fase | Passo | Agente | Modello | Perche' |
+|---|---|---|---|---|
+| F1 | Inventario italiano->inglese | `Explore` | H | e' solo ricerca; il risultato e' una lista |
+| F1 | Rinomine | `refactorer` | S | comportamento invariato per definizione, e' riorganizzazione |
+| F2 | Analisi dell'ambiguita' promesse | `requirements-analyst` | **O** | e' una scelta di modello dati con effetti su serializzazione, API e fixture |
+| F2 | Contro-analisi | `critic` | **O** | prima di cambiare un tipo che attraversa tutto il motore |
+| F2 | Test poi implementazione | `test-writer` -> `implementer` | O -> S | i test sono la parte difficile; l'implementazione segue |
+| F3 | Script di rigenerazione + rimozione legacy | `implementer` | S | meccanico, ma con la precondizione "integrazione verde" da rispettare |
+| L1 | Schema `.log.csv` + span + determinismo | `implementation-planner` | **O** | qui si decide una struttura che P eredita; sbagliarla costa due volte |
+| L1 | Test poi implementazione del layer | `test-writer` -> `implementer` | **O** -> **O** | layer `tracing` multi-thread con ordinamento: e' codice sottile |
+| L2 | Sweep di strumentazione, area per area | `implementer` | S | 116 file, convenzione gia' scritta: volume, non difficolta'. Un'area per sessione |
+| L2 | Verifica del rumore prodotto | `critic` | S | leggere un `.log.csv` reale e dire cosa e' inutile |
+| L3 | `.freeports.log.yaml` | `implementation-planner` -> `test-writer` -> `implementer` | O -> O -> S | la forma del record e' progetto; il resto e' esecuzione |
+| P0 | Profilo su 3 report reali | `implementer` (o sessione diretta) | S | e' misura: `cargo build --release`, `perf`/timing, tabella |
+| P1-P4 | Requisiti e strategia | `requirements-analyst` | **O** | GIL, processi vs thread, determinismo: e' la decisione piu' rischiosa del piano |
+| P1-P4 | Piano | `implementation-planner` | **O** | |
+| P1-P4 | Revisione avversariale | `critic` | **O** | data race e non-determinismo non li trova un test scritto distrattamente |
+| P1-P4 | Test poi implementazione | `test-writer` -> `implementer` | **O** -> **O** | |
+| P5 | Configurazione | `implementer` | S | segue schemi gia' esistenti in `cli::config_locations` |
+| D1 | Strategia documentale | `requirements-analyst` + `docs-writer` | **O** | decisione strutturale, e riguarda anche le traduzioni |
+| D2 | Doc-comment, area per area | `implementer` | S | per convenzione del workspace i commenti sono di `implementer`, non di `docs-writer` |
+| D3 | Whitepaper | `docs-writer` | **O** | prosa didattica lunga con motivazioni: e' il lavoro dove il modello si sente |
+| D4 | Riporto Sphinx | `docs-writer` | S | riconciliazione di testo esistente |
+| — | Skill/permessi nuovi (es. rigenerazione fixture) | `tool-smith` | S | |
+
+**Note d'uso.**
+
+- Le fasi **F1**, **L2** e **D2** sono *sweep*: molto volume, poca ambiguita'. Vanno spezzate per
+  area (`cli`, `input`, `formats_repo`, `core`, `formats_utils`, `output`, `commons`) e affidate
+  una per volta, non tutte insieme.
+- Le fasi **F2**, **L1**, **L3** e tutta **P** hanno ambiguita' vera: li' l'ordine
+  `requirements-analyst -> (domande all'utente) -> implementation-planner -> critic -> test-writer
+  -> implementer` va rispettato per intero, e conviene Opus fino a `test-writer` compreso.
+- Ogni agente di questo workspace ha istruzione di **chiedere all'utente** quando incontra un
+  giudizio non suo: le domande di §7 vanno risposte prima, non aggirate.
+
+---
+
+## 9. Rischi
+
+1. **Q-L1 e' un vero conflitto di regole**, non un dettaglio: il nuovo schema `.log.csv` e la
+   regola "gli output di riferimento non si toccano" non possono essere veri insieme. Va risolto
+   dall'utente prima di scrivere una riga di L1.
+2. **La parallelizzazione puo' rendere i test instabili** (flaky) invece che falsi: un test che
+   passa 9 volte su 10 e' peggio di uno rosso. Il vincolo di determinismo (§6.2) e il test
+   "1 worker vs N worker" servono esattamente a questo.
+3. **Il GIL puo' azzerare il guadagno atteso** sui formati `unstructured`. Se P0 mostra che il
+   caricamento PyMuPDF domina, P2 dara' molto meno del previsto e il grosso del lavoro dovra'
+   spostarsi su P1 (processi).
+4. **Lo sweep di logging puo' produrre rumore** invece di informazione: 116 file strumentati senza
+   convenzione diventano un `.log.csv` illeggibile. La convenzione di L2 va fissata e verificata
+   su un'area sola prima di applicarla alle altre sei.
+5. **La documentazione invecchia**: il whitepaper scritto prima che P sia chiusa descrivera' un
+   motore che non esiste. E' il motivo per cui D e' ultima.

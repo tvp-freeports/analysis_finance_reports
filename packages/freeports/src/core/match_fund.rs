@@ -103,43 +103,43 @@ impl<'de> Deserialize<'de> for MatchFund {
 mod tests {
     use super::*;
 
-    mod costruzione {
+    mod construction {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn conserva_il_nome_originale() {
+        fn keeps_the_original_name() {
             assert_eq!(MatchFund::new("Café  Fund").name(), "Café  Fund");
         }
 
         #[test]
-        fn calcola_la_forma_normalizzata() {
+        fn computes_the_normalized_form() {
             assert_eq!(MatchFund::new("Café  Fund").normalized(), "cafe fund");
         }
 
         #[test]
-        fn accetta_sia_str_sia_string() {
+        fn accepts_both_str_and_string() {
             assert_eq!(MatchFund::new("A").normalized(), MatchFund::new(String::from("A")).normalized());
         }
 
         #[test]
-        fn un_nome_vuoto_e_legittimo() {
-            let vuoto = MatchFund::new("");
-            assert_eq!(vuoto.name(), "");
-            assert_eq!(vuoto.normalized(), "");
+        fn an_empty_name_is_legitimate() {
+            let empty = MatchFund::new("");
+            assert_eq!(empty.name(), "");
+            assert_eq!(empty.normalized(), "");
         }
 
         /// La normalizzazione e' idempotente, quindi normalizzare un nome gia' normalizzato da'
         /// la stessa identita': un `MatchFund` costruito dalla forma normalizzata di un altro e'
         /// uguale all'originale.
         #[test]
-        fn la_forma_normalizzata_ha_la_stessa_identita_dell_originale() {
-            let originale = MatchFund::new("Café, S.p.A. – Fondo");
-            assert_eq!(MatchFund::new(originale.normalized()), originale);
+        fn the_normalized_form_has_the_same_identity_as_the_original() {
+            let original = MatchFund::new("Café, S.p.A. – Fondo");
+            assert_eq!(MatchFund::new(original.normalized()), original);
         }
     }
 
-    mod identita {
+    mod identity {
         use super::*;
         use pretty_assertions::assert_eq;
         use std::collections::hash_map::DefaultHasher;
@@ -151,72 +151,72 @@ mod tests {
             h.finish()
         }
 
-        #[test_case("Café Fund", "CAFE   FUND"; "accenti e maiuscole")]
-        #[test_case("Acme S.p.A.", "Acme SpA"; "punteggiatura")]
-        #[test_case("Rock & Roll", "Rock and Roll"; "e commerciale")]
-        #[test_case("Fondo-Alpha", "Fondo Alpha"; "trattino come separatore")]
-        #[test_case("  Alpha  ", "Alpha"; "spazi ai bordi")]
-        fn nomi_equivalenti_sono_lo_stesso_fondo(a: &str, b: &str) {
+        #[test_case("Café Fund", "CAFE   FUND"; "accents and case")]
+        #[test_case("Acme S.p.A.", "Acme SpA"; "punctuation")]
+        #[test_case("Rock & Roll", "Rock and Roll"; "ampersand")]
+        #[test_case("Fondo-Alpha", "Fondo Alpha"; "hyphen as separator")]
+        #[test_case("  Alpha  ", "Alpha"; "edge spaces")]
+        fn equivalent_names_are_the_same_fund(a: &str, b: &str) {
             let (a, b) = (MatchFund::new(a), MatchFund::new(b));
             assert_eq!(a, b);
-            assert_eq!(hash_of(&a), hash_of(&b), "hash incoerente con l'uguaglianza");
+            assert_eq!(hash_of(&a), hash_of(&b), "hash inconsistent with equality");
             assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal);
         }
 
-        #[test_case("Fund A", "Fund B"; "nomi diversi")]
-        #[test_case("Alpha Fund", "Alphafund"; "lo spazio conta")]
-        fn nomi_diversi_sono_fondi_diversi(a: &str, b: &str) {
+        #[test_case("Fund A", "Fund B"; "different names")]
+        #[test_case("Alpha Fund", "Alphafund"; "the space matters")]
+        fn different_names_are_different_funds(a: &str, b: &str) {
             assert_ne!(MatchFund::new(a), MatchFund::new(b));
         }
 
         #[test]
-        fn matches_evita_di_costruire_un_secondo_match_fund() {
-            let fondo = MatchFund::new("Café Fund");
-            assert!(fondo.matches("CAFE  FUND"));
-            assert!(!fondo.matches("Altro Fondo"));
+        fn matches_avoids_constructing_a_second_match_fund() {
+            let fund = MatchFund::new("Café Fund");
+            assert!(fund.matches("CAFE  FUND"));
+            assert!(!fund.matches("Altro Fondo"));
         }
 
         #[test]
-        fn matches_e_uguaglianza_concordano_sempre() {
-            let nomi = ["Café Fund", "CAFE FUND", "Altro", "", "  ", "Rock & Roll", "Rock and Roll"];
-            for a in nomi {
-                let fondo = MatchFund::new(a);
-                for b in nomi {
-                    assert_eq!(fondo.matches(b), fondo == MatchFund::new(b), "{a:?} vs {b:?}");
+        fn matches_and_equality_always_agree() {
+            let names = ["Café Fund", "CAFE FUND", "Altro", "", "  ", "Rock & Roll", "Rock and Roll"];
+            for a in names {
+                let fund = MatchFund::new(a);
+                for b in names {
+                    assert_eq!(fund.matches(b), fund == MatchFund::new(b), "{a:?} vs {b:?}");
                 }
             }
         }
 
         #[test]
-        fn e_usabile_come_chiave_di_insieme() {
+        fn is_usable_as_a_set_key() {
             use std::collections::HashSet;
-            let mut insieme = HashSet::new();
-            insieme.insert(MatchFund::new("Café Fund"));
-            insieme.insert(MatchFund::new("CAFE   FUND"));
-            insieme.insert(MatchFund::new("Altro"));
-            assert_eq!(insieme.len(), 2);
+            let mut set = HashSet::new();
+            set.insert(MatchFund::new("Café Fund"));
+            set.insert(MatchFund::new("CAFE   FUND"));
+            set.insert(MatchFund::new("Altro"));
+            assert_eq!(set.len(), 2);
         }
 
         #[test]
-        fn ordina_per_forma_normalizzata_non_per_nome_originale() {
-            let mut fondi = [MatchFund::new("beta"), MatchFund::new("Alpha"), MatchFund::new("Ómega")];
-            fondi.sort();
-            let normalizzati: Vec<&str> = fondi.iter().map(MatchFund::normalized).collect();
-            assert_eq!(normalizzati, vec!["alpha", "beta", "omega"]);
+        fn sorts_by_normalized_form_not_by_original_name() {
+            let mut funds = [MatchFund::new("beta"), MatchFund::new("Alpha"), MatchFund::new("Ómega")];
+            funds.sort();
+            let normalized: Vec<&str> = funds.iter().map(MatchFund::normalized).collect();
+            assert_eq!(normalized, vec!["alpha", "beta", "omega"]);
         }
     }
 
-    mod rappresentazione {
+    mod representation {
         use super::*;
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn display_mostra_la_forma_normalizzata() {
+        fn display_shows_the_normalized_form() {
             assert_eq!(MatchFund::new("Café  Fund").to_string(), "cafe fund");
         }
 
         #[test]
-        fn debug_mostra_entrambe_le_forme() {
+        fn debug_shows_both_forms() {
             let debug = format!("{:?}", MatchFund::new("Café Fund"));
             assert!(debug.contains("Café Fund"), "{debug}");
             assert!(debug.contains("cafe fund"), "{debug}");
@@ -228,20 +228,20 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn serializza_il_nome_originale() {
+        fn serializes_the_original_name() {
             assert_eq!(serde_json::to_string(&MatchFund::new("Café Fund")).unwrap(), "\"Café Fund\"");
         }
 
         #[test]
-        fn rilegge_nome_e_forma_normalizzata() {
-            let originale = MatchFund::new("Café  Fund");
-            let riletto: MatchFund = serde_json::from_str(&serde_json::to_string(&originale).unwrap()).unwrap();
-            assert_eq!(riletto.name(), originale.name());
-            assert_eq!(riletto.normalized(), originale.normalized());
+        fn rereads_name_and_normalized_form() {
+            let original = MatchFund::new("Café  Fund");
+            let reread: MatchFund = serde_json::from_str(&serde_json::to_string(&original).unwrap()).unwrap();
+            assert_eq!(reread.name(), original.name());
+            assert_eq!(reread.normalized(), original.normalized());
         }
 
         #[test]
-        fn deserializza_solo_da_stringa() {
+        fn deserializes_only_from_a_string() {
             assert!(serde_json::from_str::<MatchFund>("42").is_err());
         }
     }
