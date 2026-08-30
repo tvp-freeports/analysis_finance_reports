@@ -73,6 +73,7 @@ use crate::cli::freeports_config::{self, FreeportsConfig, FreeportsConfigError};
 use crate::cli::job::{self, JobError};
 use crate::cli::output::{self, OutputError};
 use crate::cli::partial_config::{ConfigSource, defaults, overwrite};
+use crate::core::tracing_setup::{LogHandle, TracingSetupError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CliError {
@@ -90,18 +91,40 @@ pub enum CliError {
     Job(#[from] JobError),
     #[error(transparent)]
     Output(#[from] OutputError),
+    /// Il registro `.log.csv` non ha potuto prendere posto accanto agli output (cartella non
+    /// creabile, file non apribile). Non e' un errore del job, ma non va nemmeno ingoiato: senza
+    /// registro l'utente perde le diagnostiche localizzate proprio della corsa che sta lanciando.
+    #[error(transparent)]
+    Logging(#[from] TracingSetupError),
 }
 
-/// Passi 1-7 della sequenza di merge (`M9-implementation-plan.md` §1): cmd/env/prima-passata
-/// (per scoprire `CONFIG_FILE`)/file/merge reale/(batch -> N righe | non-batch -> 1), **senza**
-/// eseguire alcun job né scrivere alcun output.
+/// Config resolution entry point (`M9-implementation-plan.md` §1): passi 1-7 della sequenza di
+/// merge -- cmd/env/prima-passata (per scoprire `CONFIG_FILE`)/file/merge reale/(batch -> N righe
+/// | non-batch -> 1), **senza** eseguire alcun job né scrivere alcun output. Opens its own span:
+/// each of `to_partial_config`/`env::load`/`file::load`/`batch::load_jobs`/`freeports_config::
+/// validate` already logs its own failure at the point the specific typed error is constructed, so
+/// this function does not re-log a propagated error, only the resolution steps genuinely local to
+/// it (which config file ends up in effect, whether batch mode applies, how many jobs came out).
 pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> {
+    let span = tracing::info_span!("resolve_config");
+    let _guard = span.enter();
+
     let cmd_partial = args.to_partial_config()?;
     let env_partial = env::load()?;
 
     // Prima passata: solo per scoprire `CONFIG_FILE`.
     let first_pass = overwrite(overwrite(defaults(), env_partial.clone(), ConfigSource::Env), cmd_partial.clone(), ConfigSource::Cmd);
-    let config_file_path = first_pass.values.config_file.clone().or_else(file::find_config);
+    // No log in the common (`None`) branch: `file::find_config` already logs, more specifically,
+    // whether/where it found a configuration file -- logging again here would just repeat it.
+    // Only the override branch below adds information `find_config` never gets a chance to log
+    // (it isn't even called).
+    let config_file_path = match first_pass.values.config_file.clone() {
+        Some(path) => {
+            tracing::debug!(config_file = %path.display(), "configuration file location set via cmd/env, skipping the search tiers");
+            Some(path)
+        }
+        None => file::find_config(),
+    };
     let file_partial = file::load(config_file_path.as_deref())?;
 
     // Merge reale: default <- file <- env <- cmd.
@@ -111,16 +134,21 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
         ConfigSource::Cmd,
     );
 
-    match merged.values.batch_file.clone() {
-        Some(batch_file) => batch::load_jobs(&batch_file)?
-            .into_iter()
-            .map(|row| {
-                let row_merged = overwrite(merged.clone(), row, ConfigSource::Batch);
-                freeports_config::validate(row_merged).map_err(CliError::from)
-            })
-            .collect(),
-        None => Ok(vec![freeports_config::validate(merged)?]),
-    }
+    let configs = match merged.values.batch_file.clone() {
+        Some(batch_file) => {
+            tracing::info!(batch_file = %batch_file.display(), "resolving batch configuration");
+            batch::load_jobs(&batch_file)?
+                .into_iter()
+                .map(|row| {
+                    let row_merged = overwrite(merged.clone(), row, ConfigSource::Batch);
+                    freeports_config::validate(row_merged).map_err(CliError::from)
+                })
+                .collect::<Result<Vec<_>, _>>()?
+        }
+        None => vec![freeports_config::validate(merged)?],
+    };
+    tracing::debug!(job_count = configs.len(), "resolved job configuration(s)");
+    Ok(configs)
 }
 
 /// `resolve_configs(args)?`, poi `cli::job::run` per ciascuna configurazione risolta (risultati
@@ -129,8 +157,23 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
 /// `out_profile`/`out_flags`) vengono dalla **prima** configurazione risolta -- il piano non
 /// specifica quale usare quando le righe di batch potessero, in linea di principio, differire
 /// anche su quei campi.
-pub fn execute(args: CliArgs) -> Result<(), CliError> {
+///
+/// Opens the outermost `run` span (`PLAN.md` §3's `Activity` root) so that every nested span
+/// opened downstream (`resolve_config`, `job`, `document`, ...) -- and any error each of them logs
+/// at its own boundary -- carries `run/...` context. No error is re-logged here: each of
+/// `resolve_configs`/`job::run` already logs its own failure once, closest to where it happens.
+pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
+    let span = tracing::info_span!("run");
+    let _guard = span.enter();
+
     let configs = resolve_configs(args)?;
+    // Il primo momento in cui si sa dove vanno gli output, e quindi dove va `.log.csv`: prima di
+    // questa riga il registro non ha ancora una destinazione (`CsvLogLayer::deferred`), e le righe
+    // gia' prodotte dalla risoluzione della configurazione sono in memoria. Stessa scelta della
+    // prima configurazione risolta che governa gia' i parametri di scrittura in modalita' batch.
+    if let Some(first) = configs.first() {
+        log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
+    }
     let mut outcomes = Vec::new();
     for config in &configs {
         outcomes.extend(job::run(config)?);
@@ -144,6 +187,21 @@ pub fn execute(args: CliArgs) -> Result<(), CliError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Un `LogHandle` usa e getta per i test di `execute`, con entrambe le destinazioni in una
+    /// tempdir che sparisce a fine test. `execute` chiama `set_csv_dir` sulla cartella di output
+    /// risolta: senza un handle vero non lo si potrebbe esercitare, e con uno vero non si sporca
+    /// mai la cwd della suite.
+    fn test_log_handle() -> crate::core::tracing_setup::LogHandle {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let handle = crate::core::tracing_setup::log_handle_for_tests(dir.path())
+            .expect("test log handle");
+        // La tempdir viene lasciata in vita per tutta la durata del processo di test: `execute`
+        // riapre comunque il csv nella cartella di output vera, e tenerla viva evita che la
+        // destinazione di fallback sparisca sotto i piedi di `close()`.
+        std::mem::forget(dir);
+        handle
+    }
     use crate::cli::config_locations::cmd::CliArgs;
     use clap::Parser;
     use std::sync::Mutex;
@@ -294,7 +352,8 @@ mod tests {
                 "--config",
                 config_path.to_str().unwrap(),
             ]);
-            let result = std::panic::catch_unwind(|| execute(args));
+            let handle = test_log_handle();
+            let result = std::panic::catch_unwind(|| execute(args, &handle));
             assert!(result.is_ok(), "must not panic");
             assert!(matches!(result.unwrap(), Err(CliError::Cmd(_))));
         }
@@ -317,7 +376,7 @@ mod tests {
                 config_path.to_str().unwrap(),
                 // Deliberately no --target-list: `require_target_lists` must reject this.
             ]);
-            let result = execute(args);
+            let result = execute(args, &test_log_handle());
             assert!(matches!(result, Err(CliError::Validate(_))), "got {result:?}");
         }
 
@@ -343,8 +402,15 @@ mod tests {
                 "TEST",
                 "--config",
                 config_path.to_str().unwrap(),
+                // `--out` non e' decorativo: e' l'unico test di questo modulo che arriva *oltre*
+                // la risoluzione della configurazione, quindi l'unico in cui `execute` chiama
+                // `set_csv_dir`. Senza, `out_path` prende il suo default -- la cwd, che per un
+                // binario di test e' la radice del package -- e la suite lascia un `.log.csv`
+                // di sola intestazione dentro `packages/freeports/` a ogni `cargo test`.
+                "--out",
+                dir.path().join("out").to_str().unwrap(),
             ]);
-            let result = execute(args);
+            let result = execute(args, &test_log_handle());
             assert!(matches!(result, Err(CliError::Job(_))), "got {result:?}");
         }
     }
@@ -428,7 +494,8 @@ mod tests {
                 config_path.to_str().unwrap(),
             ]);
 
-            execute(args).expect("a fully valid, self-contained invocation must succeed end to end");
+            execute(args, &test_log_handle())
+                .expect("a fully valid, self-contained invocation must succeed end to end");
             assert!(out_dir.join("investments.csv").is_file());
             assert!(out_dir.join("funds.csv").is_file());
         }

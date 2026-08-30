@@ -146,6 +146,7 @@ pub fn get_formats(formats_repo_dir: &Path) -> Result<Vec<String>, MetadataError
         }
         names.push(name);
     }
+    tracing::debug!(format_count = names.len(), "read format names from formats.csv");
     Ok(names)
 }
 
@@ -188,7 +189,20 @@ pub fn url_to_format(
             best = Some(row);
         }
     }
-    Ok(best.map(|row| row.format_name.clone()))
+    match best {
+        Some(row) => {
+            tracing::debug!(
+                url,
+                format = row.format_name.as_str(),
+                "resolved a url to a format by its longest matching prefix"
+            );
+            Ok(Some(row.format_name.clone()))
+        }
+        None => {
+            tracing::trace!(url, "no known url prefix matches this url");
+            Ok(None)
+        }
+    }
 }
 
 /// Tutti gli URL dichiarati, raggruppati per formato e nell'ordine del file.
@@ -197,10 +211,12 @@ pub fn get_url_mapping(
     format_names: &[String],
 ) -> Result<HashMap<String, Vec<String>>, MetadataError> {
     let rows = read_url_mapping(formats_repo_dir, format_names)?;
+    let url_count = rows.len();
     let mut mapping: HashMap<String, Vec<String>> = HashMap::new();
     for row in rows {
         mapping.entry(row.format_name).or_default().push(row.url);
     }
+    tracing::debug!(format_count = mapping.len(), url_count, "grouped urls by format");
     Ok(mapping)
 }
 

@@ -140,6 +140,7 @@ fn read_table(path: &Path) -> Result<Table, CompaniesDbError> {
     for result in reader.records() {
         records.push(result.map_err(map_err)?);
     }
+    tracing::debug!(path = %path.display(), row_count = records.len(), "csv table read");
     Ok(Table { path: path.to_path_buf(), headers, records })
 }
 
@@ -250,6 +251,7 @@ fn load_companies(input_db_directory: &Path) -> Result<Vec<CompanyRow>, Companie
         }
         rows.push(CompanyRow { name, bud: buds[i].clone(), regex: regexs[i].clone() });
     }
+    tracing::info!(company_count = rows.len(), path = %path.display(), "companies database loaded");
     Ok(rows)
 }
 
@@ -266,7 +268,7 @@ fn load_additional(
     let table = read_table(&path)?;
     let companies = table.required_str_column("Company name")?;
     let values = table.required_str_column(value_column)?;
-    companies
+    let result: Result<Vec<(String, String)>, CompaniesDbError> = companies
         .into_iter()
         .zip(values)
         .map(|(company_name, value)| {
@@ -275,7 +277,11 @@ fn load_additional(
             }
             Ok((company_name, value))
         })
-        .collect()
+        .collect();
+    if let Ok(entries) = &result {
+        tracing::debug!(path = %path.display(), value_column, count = entries.len(), "additional company entries loaded");
+    }
+    result
 }
 
 fn load_lists(input_db_directory: &Path) -> Result<HashSet<String>, CompaniesDbError> {
@@ -293,6 +299,7 @@ fn load_lists(input_db_directory: &Path) -> Result<HashSet<String>, CompaniesDbE
         require_valid_date(&dates[i], &format!("{}, list '{name}'", path.display()))?;
         let _ = &institutions[i]; // presenza/tipo già garantiti da `required_str_column`
     }
+    tracing::debug!(path = %path.display(), list_count = seen.len(), "lists loaded");
     Ok(seen)
 }
 
@@ -305,7 +312,7 @@ fn load_company_to_list(
     let table = read_table(&path)?;
     let lists = table.required_str_column("List name")?;
     let companies = table.required_str_column("Company name")?;
-    lists
+    let result: Result<Vec<(String, String)>, CompaniesDbError> = lists
         .into_iter()
         .zip(companies)
         .map(|(list_name, company_name)| {
@@ -317,7 +324,11 @@ fn load_company_to_list(
             }
             Ok((list_name, company_name))
         })
-        .collect()
+        .collect();
+    if let Ok(entries) = &result {
+        tracing::debug!(path = %path.display(), mapping_count = entries.len(), "company-to-list mappings loaded");
+    }
+    result
 }
 
 fn load_markets(input_db_directory: &Path) -> Result<HashSet<String>, CompaniesDbError> {
@@ -330,6 +341,7 @@ fn load_markets(input_db_directory: &Path) -> Result<HashSet<String>, CompaniesD
             return Err(CompaniesDbError::Duplicate { path: path.clone(), kind: "market name", value: name });
         }
     }
+    tracing::debug!(path = %path.display(), market_count = seen.len(), "markets loaded");
     Ok(seen)
 }
 
@@ -347,7 +359,7 @@ fn load_tickers(
     // `\A`/`\z` (non `^`/`$`): ancorati all'intera stringa, non a un'eventuale riga interna.
     let symbol_re = onig::Regex::new(r"\A[A-Z]{2,6}\z")
         .expect("pattern letterale fisso, valido per costruzione -- verificato a compile time");
-    (0..markets.len())
+    let result: Result<Vec<(String, String, String)>, CompaniesDbError> = (0..markets.len())
         .map(|i| {
             let (market_name, company_name, symbol) = (markets[i].clone(), companies[i].clone(), symbols[i].clone());
             if !market_names.contains(&market_name) {
@@ -361,7 +373,11 @@ fn load_tickers(
             }
             Ok((market_name, company_name, symbol))
         })
-        .collect()
+        .collect();
+    if let Ok(tickers) = &result {
+        tracing::debug!(path = %path.display(), ticker_count = tickers.len(), "tickers loaded");
+    }
+    result
 }
 
 #[derive(Default)]
@@ -420,6 +436,7 @@ pub fn load_target_companies(
 
     // Ordine di `companies.csv` preservato, non alfabetico -- vedi il doc-comment del modulo:
     // `match_company`/`match_fast` e' un algoritmo "primo prefisso che matcha vince".
+    let target_list_count = target_lists.len();
     let target_lists: HashSet<&str> = target_lists.iter().map(String::as_str).collect();
     let result: Vec<TargetCompanyInput> = companies
         .into_iter()
@@ -431,6 +448,7 @@ pub fn load_target_companies(
             Some(TargetCompanyInput { name: company.name, regexs: agg.regexs, symbols: agg.symbols, buds: agg.buds })
         })
         .collect();
+    tracing::info!(target_company_count = result.len(), target_list_count, "target companies selected");
     Ok(result)
 }
 
@@ -442,7 +460,10 @@ pub fn compile_target_companies(
     target_lists: &[String],
 ) -> Result<Vec<CompanyMatchInfos>, CompileTargetCompaniesError> {
     let companies = load_target_companies(input_db_directory, target_lists)?;
-    Ok(CompanyMatchInfos::compile_from_target_companies(companies)?)
+    let company_count = companies.len();
+    let compiled = CompanyMatchInfos::compile_from_target_companies(companies)?;
+    tracing::debug!(company_count, "target companies compiled into match patterns");
+    Ok(compiled)
 }
 
 #[cfg(test)]

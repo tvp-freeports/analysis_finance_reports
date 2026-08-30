@@ -39,6 +39,7 @@ use crate::core::pipeline::bundle::PipelinesBundle;
 use crate::core::pipeline::{Extracted, FilterData, Pipeline, PipeError, PipelineName};
 use crate::core::schedule::{PageClass, Schedule, ScheduleError};
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
+use crate::core::tracing_setup::log_error;
 
 /// Chi ha l'ultima parola sulla classificazione delle pagine di un documento.
 ///
@@ -203,8 +204,20 @@ impl Algorithm {
         &self,
         doc: &Document,
     ) -> Result<Vec<Option<PageClass>>, AlgorithmError> {
+        let classify_span = tracing::info_span!("classify");
+        let _classify_guard = classify_span.enter();
+
         let mut raw = Vec::with_capacity(doc.pages.len());
         for page in &doc.pages {
+            // Lo span `page` serve qui esattamente come nel ciclo degli step piu' sotto: senza,
+            // tutti gli eventi dei tre segmenti della classificazione (la maggioranza degli
+            // eventi di un'esecuzione) arrivavano al `.log.csv` **senza numero di pagina**, e
+            // nessun `pipe` puo' conoscerlo da se'. Era l'unico buco rimasto: nella fase di
+            // esecuzione `page_span` avvolge gia' `bundle.apply`, quindi `pdf_extract`,
+            // `text_filter` e `deserialize` lo ereditano tutti.
+            let page_span = tracing::info_span!("page", page = page.number);
+            let _page_guard = page_span.enter();
+
             for result in self.page_classify.apply(page, &FilterData::EMPTY)? {
                 match result {
                     Extracted::PageClass(class) => raw.push(class),
@@ -227,6 +240,7 @@ impl Algorithm {
                 classifications: classified.len(),
             });
         }
+        tracing::debug!(pages = classified.len(), "page classes assigned");
         Ok(classified)
     }
 
@@ -267,44 +281,62 @@ impl Algorithm {
         let mut previous: Vec<Extracted> = Vec::new();
 
         for (step_index, step_pages) in scheduled.iter().enumerate() {
+            // Lo span di orchestrazione dello step: `class`/`page` (sotto) e `pipeline`/i tre
+            // segmenti/`pipe` (dentro `bundle.apply`) vi si annidano tutti, dando a ogni evento
+            // prodotto durante questo step il suo posto nell'`Activity` del `.log.csv`
+            // (`PLAN.md` §3 L1/L2).
+            let step_span = tracing::info_span!("step", step = step_index);
+            let _step_guard = step_span.enter();
+            tracing::info!(pages = step_pages.len(), "step started");
+
             let mut produced_in_this_step: Vec<Extracted> = Vec::new();
-            for scheduled_page in step_pages {
-                let bundle = self.bundle(&scheduled_page.class)?;
-                let data = if step_index == 0 {
-                    FilterData::TargetCompanies(companies)
-                } else {
-                    FilterData::Previous(&previous)
-                };
+            // Le pagine di uno step sono già raggruppate per class in ordine contiguo (`Schedule::
+            // assign` le costruisce cosi', class per class): `chunk_by` isola ogni gruppo senza
+            // dover riordinare o confrontare a mano.
+            for class_group in step_pages.chunk_by(|a, b| a.class == b.class) {
+                let class_span = tracing::info_span!("class", class = %class_group[0].class);
+                let _class_guard = class_span.enter();
 
-                // Lo span dà a ogni evento prodotto dai pipe di questa pagina il numero di
-                // pagina, che è la colonna `Page` del `.log.csv`: nessun pipe lo conosce da sé,
-                // e passarlo a mano fino in fondo vorrebbe dire aggiungerlo a ogni firma.
-                let page_span = tracing::info_span!("page", page = scheduled_page.page.number);
-                let _page_guard = page_span.enter();
+                for scheduled_page in class_group {
+                    let bundle = self.bundle(&scheduled_page.class)?;
+                    let data = if step_index == 0 {
+                        FilterData::TargetCompanies(companies)
+                    } else {
+                        FilterData::Previous(&previous)
+                    };
 
-                let results = match bundle.apply(scheduled_page.page, &data) {
-                    Ok(results) => results,
-                    Err(error) if error.is_page_failure() => {
-                        // Non fatale: si logga e si prosegue. A differenza del riferimento — dove
-                        // la gerarchia di logger Python era scollegata e il messaggio non
-                        // raggiungeva `.log.csv` — qui il warning arriva davvero (`PLAN.md` §5.5).
-                        tracing::warn!(
-                            document = %scheduled_page.doc.id,
-                            page = scheduled_page.page.number,
-                            error = %error,
-                            "pagina saltata"
-                        );
-                        Vec::new()
-                    }
-                    Err(error) => return Err(error.into()),
-                };
+                    // Lo span dà a ogni evento prodotto dai pipe di questa pagina il numero di
+                    // pagina, che è la colonna `Page` del `.log.csv`: nessun pipe lo conosce da
+                    // sé, e passarlo a mano fino in fondo vorrebbe dire aggiungerlo a ogni firma.
+                    let page_span = tracing::info_span!("page", page = scheduled_page.page.number);
+                    let _page_guard = page_span.enter();
 
-                produced_in_this_step.extend(results.iter().cloned());
-                let entry = per_page
-                    .entry((scheduled_page.doc_index, scheduled_page.page.number))
-                    .or_insert_with(|| (scheduled_page.class.clone(), Vec::new()));
-                entry.1.extend(results);
+                    let results = match bundle.apply(scheduled_page.page, &data) {
+                        Ok(results) => results,
+                        Err(error) if error.is_page_failure() => {
+                            // Non fatale: si logga e si prosegue. A differenza del riferimento —
+                            // dove la gerarchia di logger Python era scollegata e il messaggio non
+                            // raggiungeva `.log.csv` — qui il warning arriva davvero
+                            // (`PLAN.md` §5.5).
+                            tracing::warn!(
+                                document = %scheduled_page.doc.id,
+                                page = scheduled_page.page.number,
+                                error = log_error(&error),
+                                "page skipped: {error}"
+                            );
+                            Vec::new()
+                        }
+                        Err(error) => return Err(error.into()),
+                    };
+
+                    produced_in_this_step.extend(results.iter().cloned());
+                    let entry = per_page
+                        .entry((scheduled_page.doc_index, scheduled_page.page.number))
+                        .or_insert_with(|| (scheduled_page.class.clone(), Vec::new()));
+                    entry.1.extend(results);
+                }
             }
+            tracing::info!(produced = produced_in_this_step.len(), "step finished");
             previous.extend(produced_in_this_step);
         }
 
@@ -373,6 +405,10 @@ impl Algorithm {
     ) -> Result<Vec<Extracted>, AlgorithmError> {
         let mut out = Vec::new();
         for pipeline in self.bundle(class)?.iter() {
+            // Bypassa `Pipeline::apply` (che apre lo span da sé): questa API di test chiama il
+            // segmento direttamente, quindi lo span `pipeline[<nome>]` va aperto qui a mano.
+            let pipeline_span = tracing::info_span!("pipeline", pipeline = %pipeline.name);
+            let _pipeline_guard = pipeline_span.enter();
             out.extend(pipeline.deserialize.apply(blocks)?);
         }
         Ok(out)

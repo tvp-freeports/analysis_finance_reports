@@ -41,6 +41,7 @@ use crate::output::classes::investment::{Bond, Equity, InvestmentFields};
 
 use super::convert::block_value_from_py;
 use super::core::PyPromise;
+use crate::core::tracing_setup::log_error;
 
 /// Un errore di costruzione di un'entità come `ValueError` Python.
 fn value_error<E: std::fmt::Display>(error: E) -> PyErr {
@@ -276,7 +277,10 @@ entity_pymethods!(PyFund, "Fund", {
         #[new]
         #[pyo3(signature = (name))]
         fn new(name: &Bound<'_, PyAny>) -> PyResult<PyFund> {
-            Ok(PyFund(Fund::from_value(&block_value_from_py(name)?).map_err(value_error)?))
+            Ok(PyFund(Fund::from_value(&block_value_from_py(name)?).map_err(|e| {
+                tracing::error!(error = log_error(&e), "Fund construction failed: {e}");
+                value_error(e)
+            })?))
         }
 
         /// Il nome maiuscolizzato, come nel riferimento — oppure la promessa, se ancora pendente.
@@ -354,7 +358,10 @@ entity_pymethods!(PyEquity, "Equity", investment, {
                 acquisition_cost,
                 acquisition_currency,
             )?;
-            Ok(PyEquity(Equity::build(fields).map_err(value_error)?))
+            Ok(PyEquity(Equity::build(fields).map_err(|e| {
+                tracing::error!(error = log_error(&e), "Equity construction failed: {e}");
+                value_error(e)
+            })?))
         }
 });
 
@@ -391,7 +398,10 @@ entity_pymethods!(PyBond, "Bond", investment, {
                 acquisition_currency,
             )?;
             let maturity = date_argument("maturity", maturity)?;
-            Ok(PyBond(Bond::build(fields, maturity, interest_rate).map_err(value_error)?))
+            Ok(PyBond(Bond::build(fields, maturity, interest_rate).map_err(|e| {
+                tracing::error!(error = log_error(&e), "Bond construction failed: {e}");
+                value_error(e)
+            })?))
         }
 
         #[getter]
@@ -421,11 +431,15 @@ fn date_argument(field: &str, value: Option<&Bound<'_, PyAny>>) -> PyResult<Opti
     let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
     match block_value_from_py(value)? {
         BlockValue::Date(date) => Ok(Some(date)),
-        BlockValue::Str(raw) => raw.parse::<Date>().map(Some).map_err(value_error),
-        other => Err(pyo3::exceptions::PyTypeError::new_err(format!(
-            "'{field}' must be a date, found a {}",
-            other.kind()
-        ))),
+        BlockValue::Str(raw) => raw.parse::<Date>().map(Some).map_err(|e| {
+            tracing::error!(error = log_error(&e), field, raw = %raw, "cannot parse as a date: {e}");
+            value_error(e)
+        }),
+        other => {
+            let kind = other.kind();
+            tracing::error!(field, kind, "expected a date, found a different kind of value");
+            Err(pyo3::exceptions::PyTypeError::new_err(format!("'{field}' must be a date, found a {kind}")))
+        }
     }
 }
 
@@ -443,8 +457,12 @@ entity_pymethods!(PyFundAssets, "FundAssets", {
             let currency = block_value_from_py(currency)?;
             let date = date.filter(|v| !v.is_none()).map(block_value_from_py).transpose()?;
             Ok(PyFundAssets(
-                FundAssets::build(fund, tot_assets, liabilities, net_assets, &currency, date.as_ref())
-                    .map_err(value_error)?,
+                FundAssets::build(fund, tot_assets, liabilities, net_assets, &currency, date.as_ref()).map_err(
+                    |e| {
+                        tracing::error!(error = log_error(&e), "FundAssets construction failed: {e}");
+                        value_error(e)
+                    },
+                )?,
             ))
         }
 
@@ -504,7 +522,10 @@ macro_rules! change_name_shim {
                 date: &Bound<'_, PyAny>,
             ) -> PyResult<$shim> {
                 let date = block_value_from_py(date)?;
-                Ok($shim(<$native>::build(old_name, current_name, &date).map_err(value_error)?))
+                Ok($shim(<$native>::build(old_name, current_name, &date).map_err(|e| {
+                    tracing::error!(error = log_error(&e), entity = $py_name, "construction failed: {e}");
+                    value_error(e)
+                })?))
             }
 
             #[getter]
@@ -537,7 +558,10 @@ entity_pymethods!(PyFundEsgIndicator, "FundEsgIndicator", {
         #[pyo3(signature = (*, fund, name, value))]
         fn new(fund: &Bound<'_, PyAny>, name: String, value: String) -> PyResult<PyFundEsgIndicator> {
             let fund = block_value_from_py(fund)?;
-            Ok(PyFundEsgIndicator(FundEsgIndicator::build(&fund, name, value).map_err(value_error)?))
+            Ok(PyFundEsgIndicator(FundEsgIndicator::build(&fund, name, value).map_err(|e| {
+                tracing::error!(error = log_error(&e), "FundEsgIndicator construction failed: {e}");
+                value_error(e)
+            })?))
         }
 
         #[getter]
@@ -562,7 +586,10 @@ entity_pymethods!(PyFundSfdrClassification, "FundSfdrClassification", {
         fn new(fund: String, article: &Bound<'_, PyAny>) -> PyResult<PyFundSfdrClassification> {
             let article = block_value_from_py(article)?;
             Ok(PyFundSfdrClassification(
-                FundSfdrClassification::build(fund, &article).map_err(value_error)?,
+                FundSfdrClassification::build(fund, &article).map_err(|e| {
+                    tracing::error!(error = log_error(&e), "FundSfdrClassification construction failed: {e}");
+                    value_error(e)
+                })?,
             ))
         }
 
@@ -597,7 +624,10 @@ macro_rules! assets_manager_shim {
                         .collect::<PyResult<_>>()?,
                 );
                 let name = BlockValue::Str(name);
-                Ok($shim(<$native>::build(&name, &managed_funds).map_err(value_error)?))
+                Ok($shim(<$native>::build(&name, &managed_funds).map_err(|e| {
+                    tracing::error!(error = log_error(&e), entity = $py_name, "construction failed: {e}");
+                    value_error(e)
+                })?))
             }
 
             #[getter]

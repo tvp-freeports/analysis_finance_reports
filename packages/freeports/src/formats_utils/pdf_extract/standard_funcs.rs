@@ -184,7 +184,19 @@ impl PdfExtractPageClassifyStandard {
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
+        // Si logga solo il riconoscimento riuscito, e con la prima riga d'intestazione che lo ha
+        // prodotto: il caso `matched = false` e' la norma (ogni page class viene provata su ogni
+        // pagina del documento) e non dice nulla, mentre il testo dell'intestazione riconosciuta
+        // e' esattamente cio' che si cerca con Ctrl-F nel PDF.
         let matched = self.header_sets.iter().all(|hs| !select(hs, &page.lines).is_empty());
+        if matched {
+            let header = self
+                .header_sets
+                .first()
+                .and_then(|hs| select(hs, &page.lines).first().map(|line| line.text().clone()))
+                .unwrap_or_default();
+            tracing::debug!(coord_ref_2 = %self.page_type, found = %header, "page class recognized by its header");
+        }
         let page_type =
             if matched { BlockValue::from(self.page_type.as_str()) } else { BlockValue::Null };
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
@@ -287,6 +299,7 @@ impl PdfExtractSfdrArticleStandard {
             });
         }
         let text: String = funds.iter().map(|line| line.text().as_str()).collect();
+        tracing::debug!(article = ?article, "SFDR article determined");
 
         let metadata = BTreeMap::from([("article".to_string(), BlockValue::from(article))]);
         Ok(vec![PdfBlock::new(BlockType::SFDR_ARTICLE, metadata, BlockValue::from(text))])
@@ -382,6 +395,7 @@ impl PdfExtractInvestmentsStandard {
         }
         let rows: Vec<PdfLine> = page.lines.iter().filter(|line| set.contains(line)).cloned().collect();
         if rows.is_empty() {
+            tracing::debug!("investments body set selected no line, nothing to tabularize");
             return Ok(Vec::new());
         }
 
@@ -392,6 +406,11 @@ impl PdfExtractInvestmentsStandard {
             ..Default::default()
         };
         let coords = get_table_coordinates_from_lines(&rows, &config)?;
+        tracing::debug!(
+            found = %rows.first().map(|line| line.text().clone()).unwrap_or_default(),
+            lines = rows.len(),
+            "investments table body selected"
+        );
 
         let widths: Vec<f32> = rows
             .iter()
@@ -683,6 +702,23 @@ impl PdfExtractAssetsStandard {
         .into_iter()
         .min()
         .unwrap_or(0);
+        if fund_texts.len() != n_out
+            || currency_texts.len() != n_out
+            || tot_assets_text.len() != n_out
+            || liabilities_text.len() != n_out
+            || net_assets_text.len() != n_out
+        {
+            tracing::warn!(
+                funds = fund_texts.len(),
+                currencies = currency_texts.len(),
+                tot_assets = tot_assets_text.len(),
+                liabilities = liabilities_text.len(),
+                net_assets = net_assets_text.len(),
+                kept = n_out,
+                "assets columns have mismatched lengths - extra entries dropped"
+            );
+        }
+        tracing::debug!(entries = n_out, table_condition = self.table_condition, "assets extracted");
 
         Ok((0..n_out)
             .map(|i| {

@@ -205,7 +205,7 @@ mod tests {
         #[test]
         fn fulfilling_against_a_map_produces_the_same_rename_as_direct_construction() {
             let mut rename = promised_rename();
-            let map = FlatPromiseMap::from_iter([("date-id".to_string(), BlockValue::from(resolved_date()))]);
+            let map = FlatPromiseMap::from_pairs([("date-id".to_string(), BlockValue::from(resolved_date()))]);
             assert_eq!(fulfill_promises(&mut rename, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(rename, FundRename::build("Old", "New", &BlockValue::from(resolved_date())).unwrap());
         }
@@ -213,7 +213,7 @@ mod tests {
         #[test]
         fn a_merge_resolves_the_same_shared_field_as_a_rename() {
             let mut merge = FundMerge::build("Old", "New", &BlockValue::Promise(P::new("date-id"))).unwrap();
-            let map = FlatPromiseMap::from_iter([("date-id".to_string(), BlockValue::from(resolved_date()))]);
+            let map = FlatPromiseMap::from_pairs([("date-id".to_string(), BlockValue::from(resolved_date()))]);
             assert_eq!(fulfill_promises(&mut merge, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(merge.data.date.resolved(), Some(&resolved_date()));
         }

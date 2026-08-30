@@ -57,11 +57,13 @@ pub enum CommonsError {
 
 /// Il testo della prima riga di `lines` (nell'ordine dato) che `selection` seleziona.
 pub fn select_expected_text(selection: &PdfLineSet, lines: &[PdfLine], name: &str) -> Result<String, CommonsError> {
-    lines
-        .iter()
-        .find(|line| selection.contains(line))
-        .map(|line| line.text().clone())
-        .ok_or_else(|| CommonsError::ExpectedTextNotFound { name: name.to_string() })
+    let found = lines.iter().find(|line| selection.contains(line)).map(|line| line.text().clone());
+    // Il testo scelto, non un booleano: e' la riga che un autore di formati va a cercare nel PDF.
+    match &found {
+        Some(text) => tracing::trace!(coord_ref_2 = name, found = %text, "selection resolved to a line"),
+        None => tracing::debug!(coord_ref_2 = name, "selection matched no line on this page"),
+    }
+    found.ok_or_else(|| CommonsError::ExpectedTextNotFound { name: name.to_string() })
 }
 
 /// Estrae un unico `PdfBlock` "bare" dal testo selezionato, o fallisce l'intera pagina.

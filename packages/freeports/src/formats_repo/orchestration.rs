@@ -18,6 +18,10 @@
 //! *parametro*. Il motivo è che la dipendenza inversa (orchestrazione → caricamento pipeline →
 //! orchestrazione) è un ciclo, che nel riferimento è tollerabile solo perché passa da Python; qui
 //! il chiamante — `Algorithm::load`, che le pipeline le ha già in mano — le passa e basta.
+//!
+//! **Log**: ogni funzione pubblica gira dentro lo span `format[<nome>]` che `Algorithm::load`
+//! apre (`PLAN.md` §3 L2), quindi i suoi eventi non ripetono `format_name` come campo — lo
+//! ereditano dallo span, come vuole la regola 4 della convenzione.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -209,6 +213,7 @@ pub fn get_schedule(
         rows.iter().enumerate().filter(|(_, row)| row.format_name == format_name).collect();
 
     if matching.is_empty() {
+        tracing::debug!("format absent from algorithms_schedule.csv, scheduling every mapped page class in one step");
         let mapping = get_mapping(formats_repo_dir, format_name, format_names, defined_pipelines)?;
         let mut step = ScheduleStep::new();
         // Ordinato: `mapping` è una `HashMap`, e uno schedule che cambia ordine a ogni esecuzione
@@ -218,7 +223,9 @@ pub fn get_schedule(
         for class in classes {
             step.push(class);
         }
-        return Ok(Schedule::new(vec![step]));
+        let schedule = Schedule::new(vec![step]);
+        tracing::debug!(step_count = schedule.steps().len(), "built schedule");
+        return Ok(schedule);
     }
 
     let mut steps = vec![ScheduleStep::new()];
@@ -228,7 +235,9 @@ pub fn get_schedule(
             steps.push(ScheduleStep::new());
         }
     }
-    Ok(Schedule::new(steps))
+    let schedule = Schedule::new(steps);
+    tracing::debug!(step_count = schedule.steps().len(), "built schedule");
+    Ok(schedule)
 }
 
 /// Le pipeline che, per `format_name`, sostituiscono la classificazione di pagina standard.
@@ -262,8 +271,12 @@ pub fn get_pageclassify_pipelines(
     }
 
     if !found {
+        tracing::debug!(
+            "format absent from pageclassify_overwrite.csv, falling back to the unnamed pipeline as page classifier"
+        );
         return Ok(HashSet::from([PipelineName::new("")]));
     }
+    tracing::debug!(pipeline_count = pipelines.len(), "read page classifying pipelines");
     Ok(pipelines)
 }
 
@@ -300,13 +313,23 @@ pub fn get_mapping(
     }
 
     if !found {
+        // Qui il riferimento richiama `pipelines_acquisition.get_pipelines` (risalendo all'intero
+        // caricamento del repo formati); questo porting evita il ciclo prendendo le pipeline già
+        // costruite come parametro (`defined_pipelines`, vedi il doc-comment del modulo) — non c'è
+        // quindi un confine Python da loggare qui.
+        tracing::debug!(
+            "format absent from mapping.csv, mapping each of its own pipelines onto a page class of the same name"
+        );
         let classifiers = get_pageclassify_pipelines(formats_repo_dir, format_name, format_names)?;
-        return Ok(defined_pipelines
+        let mapping: HashMap<PageClass, HashSet<PipelineName>> = defined_pipelines
             .iter()
             .filter(|name| !classifiers.contains(name))
             .map(|name| (PageClass::new(name.as_str()), HashSet::from([name.clone()])))
-            .collect());
+            .collect();
+        tracing::debug!(class_count = mapping.len(), "built page class mapping");
+        return Ok(mapping);
     }
+    tracing::debug!(class_count = mapping.len(), "built page class mapping");
     Ok(mapping)
 }
 

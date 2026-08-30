@@ -55,6 +55,10 @@ pub enum SelectPdfLineSet {
 
 impl Container for SelectPdfLineSet {
     type Elem = PdfLine;
+    /// Nessun log qui, a nessun livello. E' la foglia di ogni selezione: gira una volta per
+    /// riga per foglia per pipe per pagina, e l'esito del singolo confronto non e' una
+    /// informazione — quella utile e' *quale riga* una selezione ha infine scelto, che e' cio'
+    /// che `select_expected_text` logga una volta sola, col testo trovato.
     fn contains(&self, ele: &PdfLine) -> bool {
         match self {
             Self::Font(a) => a.contains(ele.font()),

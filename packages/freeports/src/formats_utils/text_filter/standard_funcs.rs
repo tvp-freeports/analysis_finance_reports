@@ -213,6 +213,11 @@ impl TextFilterPageClassifyStandard {
             }
         }
         let page_type = found.cloned().unwrap_or(BlockValue::Null);
+        // Come per `PdfExtractPageClassifyStandard`: la non-classificazione e' il caso normale su
+        // quasi ogni pagina, e loggarla riempirebbe il file senza dire niente.
+        if !page_type.is_null() {
+            tracing::debug!(coord_ref_2 = ?page_type, "page class assigned");
+        }
         let metadata = BTreeMap::from([("page_type".to_string(), page_type)]);
         Ok(vec![TextBlock::new(BlockType::PAGE_CLASS, metadata, last.clone())])
     }
@@ -554,6 +559,14 @@ impl TextFilterInvestmentsStandard {
 
         let mut inv = self.run_loop(&investments_blks, target_companies)?;
         if inv.is_empty() {
+            if !results.is_empty() {
+                // Quirk of the reference, preserved verbatim (see the doc-comment above): the
+                // fund/currency blocks already built above are discarded along with the empty
+                // investments table.
+                tracing::debug!(
+                    "no investment rows extracted - discarding the fund/currency blocks already built for this page"
+                );
+            }
             return Ok(Vec::new());
         }
         let fund = fund_found.unwrap_or(BlockValue::Null);
@@ -562,6 +575,7 @@ impl TextFilterInvestmentsStandard {
             txt_blk.metadata.insert("fund".to_string(), fund.clone());
             txt_blk.metadata.insert("currency".to_string(), currency.clone());
         }
+        tracing::debug!(coord_ref_1 = ?fund, rows = inv.len(), "investment rows extracted");
         results.extend(inv);
         Ok(results)
     }
@@ -696,7 +710,17 @@ impl TextFilterInvestmentsStandard {
                 out.push(txt_blk);
                 Ok(())
             }
-            Err(StandardFuncsError::ExpectedTextBlockNotFound) => Ok(()),
+            Err(StandardFuncsError::ExpectedTextBlockNotFound) => {
+                // `coord_ref_1`, non un campo `company` qualsiasi: la prima colonna di ancoraggio
+                // del `.log.csv` esiste proprio per questo, un testo con cui ritrovare la riga
+                // dentro il PDF. Come campo libero finiva fuori dalle colonne e restava leggibile
+                // solo su stderr.
+                tracing::warn!(
+                    coord_ref_1 = company,
+                    "expected text block not found near the matched company - row skipped"
+                );
+                Ok(())
+            }
             Err(other) => Err(other),
         }
     }
@@ -905,6 +929,7 @@ impl TextFilterSfdrArticleStandard {
         if self.demand_investment_funds_match {
             let known = Self::resolved_investment_funds(data);
             if !known.contains(&MatchFund::new(&fund_name)) {
+                tracing::debug!(fund = fund_name, "SFDR article discarded: fund not an investment fund seen so far");
                 return Ok(Vec::new());
             }
         }
@@ -1002,6 +1027,7 @@ impl TextFilterAssetsStandard {
             }
 
             if !known_funds.contains(&MatchFund::new(&fund_name)) {
+                tracing::trace!(fund = fund_name, "assets block skipped: fund not among the known funds");
                 continue;
             }
 
@@ -1030,6 +1056,7 @@ impl TextFilterAssetsStandard {
             out.push(TextBlock::from_content(BlockType::RELEVANT_BLOCK, metadata, ""));
         }
 
+        tracing::debug!(blocks = out.len(), "assets blocks matched against known funds");
         Ok(out)
     }
 }

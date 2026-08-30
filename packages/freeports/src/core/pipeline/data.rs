@@ -177,6 +177,12 @@ impl PromiseEntries {
 
     /// Versa i contributi nella multimappa, in ordine.
     pub fn merge_into(&self, map: &mut PromiseMap) {
+        // Gli id, non il conteggio: sono la chiave con cui una promessa si ritrova poi nel
+        // registro delle promesse non risolte.
+        tracing::debug!(
+            ids = %self.0.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "),
+            "promises deposited"
+        );
         map.merge(self.0.iter().map(|(k, v)| (k.clone(), v.clone())));
     }
 }

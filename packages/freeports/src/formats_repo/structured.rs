@@ -82,5 +82,6 @@ pub fn get_pipelines(
             None => merged.insert(name, pipeline),
         };
     }
+    tracing::debug!(pipeline_count = merged.len(), "built structured pipelines");
     Ok(merged)
 }

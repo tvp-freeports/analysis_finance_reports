@@ -17,13 +17,16 @@ use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 use crate::python::consts::PyCurrency;
 use crate::python::pipes::PyPdfExtractPipe;
 use crate::python::utils::pdf_extract::{PyPdfLineSelection, PyTablePosAlgorithm};
+use crate::core::tracing_setup::log_error;
 
 /// Una selezione nativa da un oggetto Python, con un messaggio che nomina l'argomento.
 fn selection_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<PdfLineSelection> {
-    object
-        .extract::<PyRef<'_, PyPdfLineSelection>>()
-        .map(|selection| selection.selection())
-        .map_err(|_| PyValueError::new_err(format!("{name} must be a PdfLineSelection")))
+    object.extract::<PyRef<'_, PyPdfLineSelection>>().map(|selection| selection.selection()).map_err(|_| {
+        // A format wiring mistake, not a per-value failure: logged before the error only lives
+        // as a Python exception (rule 1 of L2), same reasoning as `python::input`.
+        tracing::error!(argument = name, "expected a PdfLineSelection, got something else");
+        PyValueError::new_err(format!("{name} must be a PdfLineSelection"))
+    })
 }
 
 /// Come [`selection_of`], per un argomento opzionale.
@@ -43,7 +46,10 @@ fn selections_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLineS
     }
     object
         .try_iter()
-        .map_err(|_| PyValueError::new_err(format!("{name} must be a PdfLineSelection or an iterable of them")))?
+        .map_err(|_| {
+            tracing::error!(argument = name, "expected a PdfLineSelection or an iterable of them");
+            PyValueError::new_err(format!("{name} must be a PdfLineSelection or an iterable of them"))
+        })?
         .map(|item| selection_of(name, &item?))
         .collect()
 }
@@ -59,7 +65,10 @@ fn flags_of(
         Some(object) if object.is_none() => Ok(TablePosAlgorithm::Default),
         Some(object) => Ok(object
             .extract::<PyRef<'_, PyTablePosAlgorithm>>()
-            .map_err(|_| PyValueError::new_err("algorithm flags must be a TablePosAlgorithm"))?
+            .map_err(|_| {
+                tracing::error!("expected a TablePosAlgorithm for the algorithm flags argument");
+                PyValueError::new_err("algorithm flags must be a TablePosAlgorithm")
+            })?
             .native()),
     }
 }
@@ -259,6 +268,9 @@ pub fn py_pdf_extract_assets_standard(
         table_condition,
         skip_column,
     };
-    let pipe = PdfExtractAssetsStandard::build(args).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let pipe = PdfExtractAssetsStandard::build(args).map_err(|e| {
+        tracing::error!(error = log_error(&e), "PdfExtractAssetsStandard construction failed: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
     Ok(PyPdfExtractPipe::new(Arc::new(pipe)))
 }

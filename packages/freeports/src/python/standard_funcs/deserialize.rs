@@ -15,6 +15,7 @@ use crate::formats_utils::deserialize::standard_funcs::{
 
 use crate::python::convert::date_from_py;
 use crate::python::pipes::PyDeserializePipe;
+use crate::core::tracing_setup::log_error;
 
 /// `DeserializerPageClassifyStandard()`.
 #[pyfunction]
@@ -81,7 +82,10 @@ pub fn py_deserializer_investment_standard(
 fn num_converter_of(callable: Py<PyAny>) -> NumConverter {
     Arc::new(move |text: &str| {
         Python::attach(|py| {
-            callable.bind(py).call1((text,)).and_then(|value| value.extract::<f64>()).map_err(|_| {
+            callable.bind(py).call1((text,)).and_then(|value| value.extract::<f64>()).map_err(|err| {
+                // The Python exception's own detail is discarded past this point (rule 1 of L2):
+                // logged here, same "cast failed" severity as `python::utils::deserialize::cast_error`.
+                tracing::warn!(error = log_error(&err), data = text, "custom num_converter callable failed: {err}");
                 CastError::NotANumber { data: text.to_string() }
             })
         })
@@ -96,12 +100,24 @@ fn num_converter_of(callable: Py<PyAny>) -> NumConverter {
 fn date_converter_of(callable: Py<PyAny>) -> DateConverter {
     Arc::new(move |text: &str| {
         Python::attach(|py| {
-            let unrecognized = || CastError::UnrecognizedDateFormat { data: text.to_string() };
-            let value = callable.bind(py).call1((text,)).map_err(|_| unrecognized())?;
+            let unrecognized = |detail: Option<String>| {
+                // Same rationale as `num_converter_of`: the Python-side detail (exception or
+                // unrecognized return value) is discarded past this point, so it is logged here.
+                match detail {
+                    Some(detail) => tracing::warn!(data = text, "custom date_converter callable failed: {detail}"),
+                    None => tracing::warn!(data = text, "custom date_converter callable returned an unrecognized date value"),
+                }
+                CastError::UnrecognizedDateFormat { data: text.to_string() }
+            };
+            let value = callable.bind(py).call1((text,)).map_err(|err| unrecognized(Some(err.to_string())))?;
             if let Ok(Some(date)) = date_from_py(&value) {
                 return Ok(date);
             }
-            value.extract::<String>().ok().and_then(|iso| iso.parse::<Date>().ok()).ok_or_else(unrecognized)
+            value
+                .extract::<String>()
+                .ok()
+                .and_then(|iso| iso.parse::<Date>().ok())
+                .ok_or_else(|| unrecognized(None))
         })
     })
 }

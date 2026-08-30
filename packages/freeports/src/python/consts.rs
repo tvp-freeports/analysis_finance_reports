@@ -80,6 +80,10 @@ macro_rules! enum_shim {
             #[classmethod]
             fn __class_getitem__(_cls: &Bound<'_, PyType>, name: &str) -> PyResult<$shim> {
                 Self::by_name(name).ok_or_else(|| {
+                    // Past this point the lookup failure only lives as a Python `KeyError`,
+                    // invisible to this crate's own tracing/CSV pipeline (same rationale as
+                    // `python/input.rs`'s boundary functions).
+                    tracing::error!(shim = $py_name, name, "unknown enum variant name");
                     pyo3::exceptions::PyKeyError::new_err(format!("{}: {name}", $py_name))
                 })
             }

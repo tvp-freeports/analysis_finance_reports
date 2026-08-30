@@ -13,9 +13,17 @@ use crate::commons::date::Date;
 use crate::formats_utils::deserialize::cast;
 
 use crate::python::consts::PyCurrency;
+use crate::core::tracing_setup::log_error;
 
 /// Un errore di cast come `ValueError` Python — è come il riferimento li faceva arrivare.
+///
+/// Loggato prima della conversione (rule 1 di L2, stesso motivo di
+/// `python::input::py_get_target_companies`): oltre questo punto l'errore vive solo come eccezione
+/// Python, invisibile alla pipeline di tracing/`.log.csv` di questo crate. `warn!`, non `error!`:
+/// e' il "cast fallito" canonico della convenzione, non un fallimento che impedisce di produrre il
+/// lavoro richiesto — molto codice d'autore lo cattura e prosegue (`try_cast` del riferimento).
 fn cast_error(error: cast::CastError) -> PyErr {
+    tracing::warn!(error = log_error(&error), "cast failed: {error}");
     pyo3::exceptions::PyValueError::new_err(error.to_string())
 }
 
@@ -151,6 +159,9 @@ macro_rules! block_type_decorator {
                 args: &Bound<'py, PyTuple>,
             ) -> PyResult<Bound<'py, PyAny>> {
                 let Some(block) = args.iter().last() else {
+                    // A wiring mistake in the format's own code, not a per-value cast failure:
+                    // the decorated deserializer was called with no arguments at all.
+                    tracing::error!("block-type decorator called with no arguments, no text block to read");
                     return Err(pyo3::exceptions::PyTypeError::new_err(
                         "a block-type decorator needs the text block as its last argument",
                     ));

@@ -54,5 +54,6 @@ pub fn get_pipelines(
             .push(Arc::new(PdfExtractPageClassifyStandard::new(header_sets, &config.class)));
     }
 
+    tracing::debug!(pipeline_count = pipelines.len(), "built page classify pipelines");
     Ok(pipelines)
 }

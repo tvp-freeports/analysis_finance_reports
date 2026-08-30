@@ -97,6 +97,7 @@ use serde::de::Error as _;
 use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FileConfigError {
@@ -128,7 +129,22 @@ pub(crate) fn local_config_in(dir: &Path) -> Option<PathBuf> {
         onig::Regex::new(r"(?i)^\.?freeports[-._]?(config|conf)\.ya?ml$")
             .expect("fixed pattern, valid by construction -- verified at compile time"),
     ];
-    let entries: Vec<PathBuf> = std::fs::read_dir(dir).ok()?.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+    let entries: Vec<PathBuf> = match std::fs::read_dir(dir) {
+        Ok(entries) => entries
+            .filter_map(|e| match e {
+                Ok(entry) => Some(entry),
+                Err(e) => {
+                    tracing::warn!(error = log_error(&e), dir = %dir.display(), "cannot read a directory entry while searching for a configuration file, skipping it: {e}");
+                    None
+                }
+            })
+            .map(|e| e.path())
+            .collect(),
+        Err(e) => {
+            tracing::warn!(error = log_error(&e), dir = %dir.display(), "cannot list directory while searching for a configuration file: {e}");
+            return None;
+        }
+    };
     for pattern in &patterns {
         for path in &entries {
             let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
@@ -192,8 +208,19 @@ pub(crate) fn system_config() -> Option<PathBuf> {
 }
 
 pub fn find_config() -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
-    local_config_in(&cwd).or_else(|| user_config_in(dirs::config_local_dir().as_deref())).or_else(system_config)
+    let cwd = match std::env::current_dir() {
+        Ok(cwd) => cwd,
+        Err(e) => {
+            tracing::warn!(error = log_error(&e), "cannot read the current directory, skipping the cwd configuration-file tier: {e}");
+            return None;
+        }
+    };
+    let found = local_config_in(&cwd).or_else(|| user_config_in(dirs::config_local_dir().as_deref())).or_else(system_config);
+    match &found {
+        Some(path) => tracing::debug!(path = %path.display(), "found a configuration file"),
+        None => tracing::debug!("no configuration file found in the cwd/user/system tiers"),
+    }
+    found
 }
 
 fn parse_verbosity(path: &Path, value: &str) -> Result<Verbosity, FileConfigError> {
@@ -233,10 +260,21 @@ fn value_as_string_list(path: &Path, key: &'static str, value: &serde_yaml::Valu
     items.iter().map(|item| value_as_string(path, key, item)).collect()
 }
 
+/// Wraps [`load_impl`] to log any failure exactly once -- this is the only place every
+/// `FileConfigError` variant is actually constructed (directly or via the small `value_as_*`/
+/// `parse_verbosity` helpers below).
+pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
+    let result = load_impl(path);
+    if let Err(e) = &result {
+        tracing::error!(error = log_error(e), "{e}");
+    }
+    result
+}
+
 /// `path: None` -> `Ok(PartialConfig::default())` (nessun file, nessun errore). `path: Some` ->
 /// legge e valida lo YAML a quel percorso -- chiave sconosciuta -> `UnknownKey` (scelta del
 /// test-writer, vedi il doc-comment del modulo).
-pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
+fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     let Some(path) = path else {
         return Ok(PartialConfig::default());
     };
@@ -312,6 +350,7 @@ pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     let reports = resolve_singular_and_plural_reports(singular, plural)
         .map_err(|source| FileConfigError::ReportsConflict { path: path.to_path_buf(), source })?;
 
+    tracing::info!(path = %path.display(), "loaded configuration from file");
     Ok(PartialConfig {
         verbosity,
         reports,

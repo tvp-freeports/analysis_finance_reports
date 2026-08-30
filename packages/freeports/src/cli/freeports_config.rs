@@ -71,6 +71,7 @@ use crate::cli::partial_config::MergedConfig;
 use crate::core::tracing_setup::Verbosity;
 use crate::formats_repo::metadata::{get_formats, url_to_format};
 use crate::output::routines::write::{OutFlags, OutStructureMode};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FreeportsConfig {
@@ -112,18 +113,29 @@ pub enum FreeportsConfigError {
 fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_path: Option<&std::path::Path>) -> Result<String, FreeportsConfigError> {
     let mut detected: Option<String> = None;
     if let Some(repo) = formats_repo_path {
-        let format_names = get_formats(repo).map_err(|_| FreeportsConfigError::NoFormatSpecifiedOrDetected)?;
+        let format_names = get_formats(repo).map_err(|e| {
+            // The specific reason `get_formats` failed (e.g. a malformed `formats.csv`) is lost
+            // once folded into `NoFormatSpecifiedOrDetected`, which reads as "you didn't specify a
+            // format" even when one was given explicitly and only detection failed.
+            tracing::warn!(error = log_error(&e), formats_repo = %repo.display(), "cannot read known formats, format detection is unavailable: {e}");
+            FreeportsConfigError::NoFormatSpecifiedOrDetected
+        })?;
         for report in reports {
             let Some(url) = &report.url else { continue };
-            let Ok(Some(found)) = url_to_format(repo, &format_names, url) else { continue };
-            match &detected {
-                None => detected = Some(found),
-                Some(current) if *current != found => {
-                    return Err(FreeportsConfigError::ConflictingDetectedFormats {
-                        detected: vec![current.clone(), found],
-                    });
+            match url_to_format(repo, &format_names, url) {
+                Ok(Some(found)) => {
+                    match &detected {
+                        None => detected = Some(found),
+                        Some(current) if *current != found => {
+                            return Err(FreeportsConfigError::ConflictingDetectedFormats {
+                                detected: vec![current.clone(), found],
+                            });
+                        }
+                        Some(_) => {}
+                    }
                 }
-                Some(_) => {}
+                Ok(None) => {}
+                Err(e) => tracing::warn!(error = log_error(&e), url, "cannot detect format from this report url: {e}"),
             }
         }
     }
@@ -139,6 +151,7 @@ fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_
             }
             return Ok(explicit.to_string());
         }
+        tracing::info!(format = detected.as_str(), "format detected from report url");
         return Ok(detected.clone());
     }
 
@@ -180,7 +193,11 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
             }
             (Some(url), None) => {
                 let path = if save_pdf {
-                    Some(std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("report.pdf"))
+                    let cwd = std::env::current_dir().unwrap_or_else(|e| {
+                        tracing::warn!(error = log_error(&e), "cannot read the current directory, defaulting the download destination to \".\": {e}");
+                        PathBuf::from(".")
+                    });
+                    Some(cwd.join("report.pdf"))
                 } else {
                     None
                 };
@@ -232,9 +249,21 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
 }
 
 fn glob_pdf_files(dir: &std::path::Path) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) => {
+            tracing::warn!(error = log_error(&e), dir = %dir.display(), "cannot list directory for pdf expansion, no reports found here: {e}");
+            return Vec::new();
+        }
+    };
     let mut pdfs: Vec<PathBuf> = entries
-        .filter_map(|e| e.ok())
+        .filter_map(|e| match e {
+            Ok(entry) => Some(entry),
+            Err(e) => {
+                tracing::warn!(error = log_error(&e), dir = %dir.display(), "cannot read a directory entry, skipping it: {e}");
+                None
+            }
+        })
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("pdf")))
         .collect();
@@ -257,7 +286,19 @@ fn set_compress_flag(out_path: PathBuf, mut out_flags: OutFlags) -> (PathBuf, Ou
     }
 }
 
+/// Wraps [`validate_impl`] to log the outcome exactly once -- this is the only place every
+/// `FreeportsConfigError` variant is actually constructed (directly, or -- for `InputNotSpecified`
+/// -- by wrapping a `DocumentSpecError` from `cli::conf_parse`).
 pub fn validate(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfigError> {
+    let result = validate_impl(merged);
+    match &result {
+        Ok(config) => tracing::debug!(format = %config.format, "configuration validated"),
+        Err(e) => tracing::error!(error = log_error(e), "cannot validate configuration: {e}"),
+    }
+    result
+}
+
+fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfigError> {
     let values = merged.values;
 
     // 1. `require_target_lists` -- fallisce veloce, controllo di presenza puro.

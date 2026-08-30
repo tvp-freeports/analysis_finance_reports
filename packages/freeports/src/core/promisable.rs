@@ -26,6 +26,7 @@ use serde::{Serialize, Serializer};
 use super::classes::value::{BlockValue, BlockValueError};
 use super::promise::{Promise, PromiseError};
 use super::promise_resolution::FlatPromiseMap;
+use crate::core::tracing_setup::log_error;
 
 /// Un campo che o e' gia' risolto, o e' ancora una promessa.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -160,7 +161,18 @@ pub fn fulfill_promises<T: PromisableFields>(
         match map.fulfill(&promise) {
             Ok(value) => assign(entity, field, value)?,
             Err(err) if promise.strict() => return Err(err.into()),
-            Err(_) => return Ok(Fulfilled::Dropped),
+            Err(err) => {
+                // Non-strict: l'entita' sparisce invece di risalire come errore (`Fulfilled::
+                // Dropped`) — e' il caso "promessa non risolta" della convenzione di livello, va
+                // loggato prima di scartare l'entita'.
+                tracing::warn!(
+                    coord_ref_2 = field,
+                    promise = %promise,
+                    error = log_error(&err),
+                    "unresolved promise: entity dropped - {err}"
+                );
+                return Ok(Fulfilled::Dropped);
+            }
         }
     }
 
@@ -174,10 +186,21 @@ pub fn fulfill_promises<T: PromisableFields>(
         let values = match map.fulfill(&promise) {
             Ok(v) => v,
             Err(err) if promise.strict() => return Err(err.into()),
-            Err(_) => return Ok(Fulfilled::Dropped),
+            Err(err) => {
+                tracing::warn!(
+                    coord_ref_2 = field,
+                    promise = %promise,
+                    error = log_error(&err),
+                    "unresolved promise: entity dropped - {err}"
+                );
+                return Ok(Fulfilled::Dropped);
+            }
         };
         // `FlatPromiseMap::fulfill` su una promessa `multiple` restituisce sempre una `List` non
-        // vuota; il ramo `other` copre solo il caso in cui quel contratto cambiasse.
+        // vuota; il ramo `other` copre solo il caso in cui quel contratto cambiasse. I suoi
+        // elementi sono i contributi uno per uno, e un contributo puo' essere esso stesso una
+        // `List`: in quel caso la copia riceve quella lista come valore del campo, e sta a
+        // `resolve_field` accettarla o rifiutarla.
         let values = match values {
             BlockValue::List(items) => items,
             other => vec![other],
@@ -257,8 +280,11 @@ mod tests {
         }
     }
 
+    /// Chiavi ripetute = contributi multipli per lo stesso id: `from_pairs` accumula, non
+    /// sovrascrive. E' cosi' che si esprime "due candidati per lo stesso id" — un unico valore
+    /// [`BlockValue::List`] sarebbe invece **un** contributo che e' una lista, cosa diversa.
     fn flat_map(pairs: Vec<(&str, BlockValue)>) -> FlatPromiseMap {
-        pairs.into_iter().collect()
+        FlatPromiseMap::from_pairs(pairs)
     }
 
     fn pending(raw: &str) -> Promised<String> {
@@ -355,13 +381,15 @@ mod tests {
             assert_eq!(entity.quantity, Promised::Resolved(10));
         }
 
+        /// Due contributi per lo stesso id (due pagine che promettono lo stesso campo): vince
+        /// l'ultimo, cioe' la pagina piu' recente.
         #[test]
-        fn on_a_list_takes_the_last_value() {
+        fn on_several_contributions_takes_the_last_value() {
             let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
-            let map = flat_map(vec![(
-                "fund",
-                BlockValue::List(vec![BlockValue::from("Vecchio"), BlockValue::from("Nuovo")]),
-            )]);
+            let map = flat_map(vec![
+                ("fund", BlockValue::from("Vecchio")),
+                ("fund", BlockValue::from("Nuovo")),
+            ]);
             fulfill_promises(&mut entity, &map).unwrap();
             assert_eq!(entity.fund, Promised::Resolved("Nuovo".into()));
         }
@@ -403,9 +431,15 @@ mod tests {
             assert!(fulfill_promises(&mut strict, &map).is_err());
         }
 
+        /// Un contributo `Null` conta come valore assente. La mappa si costruisce qui passando
+        /// per `flatten`, che e' l'unico modo in cui un `Null` puo' presentarsi nella realta':
+        /// dalla decisione dell'utente su C3 (2026-08-29) il `Null` viene scartato gia'
+        /// dall'appiattimento, quindi l'id non arriva nemmeno a `fulfill`.
         #[test]
         fn a_null_value_counts_as_missing() {
-            let map = flat_map(vec![("fund", BlockValue::Null)]);
+            let promises: crate::core::promise_resolution::PromiseMap =
+                [("fund", BlockValue::Null)].into_iter().collect();
+            let map = promises.flatten().unwrap();
             let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
             assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
         }
@@ -430,10 +464,7 @@ mod tests {
         #[test]
         fn an_unresolvable_normal_field_prevents_the_expansion() {
             let mut entity = Investment::new(pending("assente"), pending_i64("qty[]"));
-            let map = flat_map(vec![(
-                "qty",
-                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]),
-            )]);
+            let map = flat_map(vec![("qty", BlockValue::Int(1)), ("qty", BlockValue::Int(2))]);
             assert_eq!(fulfill_promises(&mut entity, &map).unwrap(), Fulfilled::Dropped);
         }
     }
@@ -452,10 +483,11 @@ mod tests {
         #[test]
         fn one_copy_per_value() {
             let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
-            let map = flat_map(vec![(
-                "fund",
-                BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B"), BlockValue::from("C")]),
-            )]);
+            let map = flat_map(vec![
+                ("fund", BlockValue::from("A")),
+                ("fund", BlockValue::from("B")),
+                ("fund", BlockValue::from("C")),
+            ]);
             let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
             let names: Vec<&str> = copies.iter().filter_map(|c| c.fund.resolved()).map(String::as_str).collect();
             assert_eq!(names, vec!["A", "B", "C"]);
@@ -475,8 +507,11 @@ mod tests {
         fn two_multiple_fields_give_the_cartesian_product() {
             let mut entity = Investment::new(pending("fund[]"), pending_i64("qty[]"));
             let map = flat_map(vec![
-                ("fund", BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B")])),
-                ("qty", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)])),
+                ("fund", BlockValue::from("A")),
+                ("fund", BlockValue::from("B")),
+                ("qty", BlockValue::Int(1)),
+                ("qty", BlockValue::Int(2)),
+                ("qty", BlockValue::Int(3)),
             ]);
             let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
             assert_eq!(copies.len(), 6);
@@ -498,7 +533,8 @@ mod tests {
             let mut entity = Investment::new(pending("fund"), pending_i64("qty[]"));
             let map = flat_map(vec![
                 ("fund", BlockValue::from("Acme")),
-                ("qty", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
+                ("qty", BlockValue::Int(1)),
+                ("qty", BlockValue::Int(2)),
             ]);
             let copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
             assert_eq!(copies, vec![Investment::resolved("Acme", 1), Investment::resolved("Acme", 2)]);
@@ -517,10 +553,10 @@ mod tests {
         #[test]
         fn the_copies_are_independent_from_each_other() {
             let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
-            let map = flat_map(vec![(
-                "fund",
-                BlockValue::List(vec![BlockValue::from("A"), BlockValue::from("B")]),
-            )]);
+            let map = flat_map(vec![
+                ("fund", BlockValue::from("A")),
+                ("fund", BlockValue::from("B")),
+            ]);
             let mut copies = expansions(fulfill_promises(&mut entity, &map).unwrap());
             copies[0].note = "cambiata".into();
             assert_eq!(copies[1].note, "fissa");
@@ -550,15 +586,33 @@ mod tests {
             assert_eq!(err.to_string(), "field 'fund': field 'fund' expected str, found int");
         }
 
+        /// Tre contributi per lo stesso id, di cui il secondo del tipo sbagliato: l'espansione
+        /// parte davvero (il primo valore si assegna), poi il valore malformato la interrompe e
+        /// l'errore risale invece di produrre copie parziali.
+        ///
+        /// L'errore atteso e' verificato per intero, non con un `matches!` sul solo nome del
+        /// campo: senza `found: "str"` il test resterebbe verde anche se l'espansione non
+        /// avvenisse affatto e a fallire fosse l'assegnazione di un contenitore intero.
         #[test]
         fn a_type_error_during_expansion_stops_everything() {
             let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));
-            let map = flat_map(vec![(
-                "qty",
-                BlockValue::List(vec![BlockValue::Int(1), BlockValue::from("non un numero")]),
-            )]);
+            let map = flat_map(vec![
+                ("qty", BlockValue::Int(1)),
+                ("qty", BlockValue::from("non un numero")),
+                ("qty", BlockValue::Int(3)),
+            ]);
             let err = fulfill_promises(&mut entity, &map).unwrap_err();
-            assert!(matches!(err, PromisableError::Field { field: "quantity", .. }), "{err:?}");
+            assert_eq!(
+                err,
+                PromisableError::Field {
+                    field: "quantity",
+                    source: BlockValueError::TypeMismatch {
+                        field: "quantity".into(),
+                        expected: "int",
+                        found: "str",
+                    },
+                }
+            );
         }
     }
 }

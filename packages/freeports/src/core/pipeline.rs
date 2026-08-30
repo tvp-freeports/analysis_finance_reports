@@ -89,6 +89,11 @@ impl Pipeline {
         page: &Page,
         data: &FilterData<'_>,
     ) -> Result<Vec<Extracted>, PipeError> {
+        // Punto di orchestrazione del vocabolario `Activity` (`PLAN.md` §3 L1/L2): i tre segmenti
+        // (aperti dentro `Segment::apply`) e i `pipe[<nome>]` di ciascuno si annidano qui sotto.
+        let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
+        let _pipeline_guard = pipeline_span.enter();
+
         let pdf_blocks = self.pdf_extract.apply(page)?;
         let text_blocks = self.text_filter.apply(&pdf_blocks, data)?;
         self.deserialize.apply(&text_blocks)
@@ -96,6 +101,8 @@ impl Pipeline {
 
     /// Solo il primo segmento — API di test per segmento (`freeports-dev`, `PLAN.md` §5.3).
     pub fn apply_pdf_extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+        let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
+        let _pipeline_guard = pipeline_span.enter();
         self.pdf_extract.apply(page)
     }
 
@@ -105,6 +112,8 @@ impl Pipeline {
         page: &Page,
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError> {
+        let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
+        let _pipeline_guard = pipeline_span.enter();
         let pdf_blocks = self.pdf_extract.apply(page)?;
         self.text_filter.apply(&pdf_blocks, data)
     }

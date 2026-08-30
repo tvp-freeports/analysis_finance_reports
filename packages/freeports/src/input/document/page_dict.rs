@@ -163,11 +163,20 @@ pub fn pdflines_from_pagedict(page: &PageDict, auto_rotate: bool) -> Vec<PdfLine
         .filter(|s| {
             let (x0, y0, x1, y1) = s.bbox;
             if s.size <= 0.0 {
-                tracing::warn!(size = s.size, "discarding a pdf span with non-positive font size");
+                tracing::warn!(
+                    coord_ref_1 = %s.text,
+                    size = s.size,
+                    "discarding a pdf span with non-positive font size"
+                );
                 return false;
             }
             if !(x0 < x1 && y0 < y1) {
-                tracing::warn!(x0, y0, x1, y1, "discarding a pdf span with a degenerate or inverted bbox");
+                tracing::warn!(
+                    coord_ref_1 = %s.text,
+                    coord_1 = %format!("x {x0}..{x1}"),
+                    coord_2 = %format!("y {y0}..{y1}"),
+                    "discarding a pdf span with a degenerate or inverted bbox"
+                );
                 return false;
             }
             true
@@ -278,7 +287,13 @@ fn parse_block(block: &Bound<'_, PyDict>) -> Result<PageDictBlock, PageError> {
             let data = extract_bytes(&dict_get(block, "image", parse_fail)?, "image", parse_fail)?;
             Ok(PageDictBlock::ImageRaster { bbox, ext, data })
         }
-        _ => Ok(PageDictBlock::Other),
+        _ => {
+            // Not an error, and not necessarily lost work either (`PyMuPDFBlockType::IMAGE_VECTOR`
+            // and any other block type are ignored by design, see the doc-comment above) -- too
+            // common in real pdfs (vector graphics, logos) to warrant `warn!`.
+            tracing::trace!(block_type, "unhandled block type, treated as Other");
+            Ok(PageDictBlock::Other)
+        }
     }
 }
 

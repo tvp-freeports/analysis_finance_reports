@@ -271,6 +271,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
         }
     }
     let flat = promise_map.flatten()?;
+    tracing::debug!(documents = outcomes.len(), promise_ids = flat.len(), "promise map flattened");
 
     // Fase 2: ogni entità viene risolta e versata nella tabella giusta.
     let mut acc = Accumulator::default();
@@ -407,6 +408,17 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
         }
     }
 
+    tracing::debug!(
+        investments = acc.investments.len(),
+        funds = acc.funds.len(),
+        funds_change_name = acc.funds_change_name.len(),
+        funds_assets = acc.funds_assets.len(),
+        funds_sfdr_classification = acc.funds_sfdr_classification.len(),
+        funds_esg_indicators = acc.funds_esg_indicators.len(),
+        assets_managers = acc.assets_managers.len(),
+        investments_managers = acc.investments_managers_to_funds.len(),
+        "accumulated tables"
+    );
     Ok(acc.finalize()?)
 }
 

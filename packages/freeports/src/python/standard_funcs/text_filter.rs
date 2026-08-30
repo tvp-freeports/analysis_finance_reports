@@ -12,6 +12,7 @@ use crate::formats_utils::text_filter::standard_funcs::{
 };
 
 use crate::python::pipes::PyTextFilterPipe;
+use crate::core::tracing_setup::log_error;
 
 /// Il tipo `re.Pattern`, per distinguere una regex compilata da una stringa letterale.
 fn re_pattern_type(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
@@ -81,7 +82,10 @@ pub fn py_text_filter_investments_standard(
         geometrical_indexes,
         merge_prev,
     )
-    .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    .map_err(|e| {
+        tracing::error!(error = log_error(&e), "TextFilterInvestmentsStandard construction failed: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
@@ -109,13 +113,17 @@ pub fn py_text_filter_sfdr_article_standard(
             } else if item.is_instance(&pattern_type)? {
                 prefix_patterns.push(pattern_source(&item)?);
             } else {
+                tracing::error!("fund_prefix item is neither a str nor a re.Pattern");
                 return Err(PyValueError::new_err("fund_prefix items must be str or re.Pattern"));
             }
         }
     }
 
     let pipe = TextFilterSfdrArticleStandard::new(prefix_strings, prefix_patterns, demand_investment_funds_match)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        .map_err(|e| {
+            tracing::error!(error = log_error(&e), "TextFilterSfdrArticleStandard construction failed: {e}");
+            PyValueError::new_err(e.to_string())
+        })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
@@ -145,7 +153,9 @@ pub fn py_text_filter_assets_standard(
         Some(object) => scalar_or_iterable(object)?.iter().map(source_of).collect::<PyResult<_>>()?,
     };
 
-    let pipe = TextFilterAssetsStandard::new(date_regex.as_deref(), remove_from_fund_regexes)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let pipe = TextFilterAssetsStandard::new(date_regex.as_deref(), remove_from_fund_regexes).map_err(|e| {
+        tracing::error!(error = log_error(&e), "TextFilterAssetsStandard construction failed: {e}");
+        PyValueError::new_err(e.to_string())
+    })?;
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }

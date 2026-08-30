@@ -146,7 +146,7 @@ mod tests {
         #[test]
         fn fulfilling_against_a_map_resolves_the_fund_field() {
             let mut indicator = promised_indicator();
-            let map = FlatPromiseMap::from_iter([("fund-id".to_string(), BlockValue::from("Resolved Fund"))]);
+            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Resolved Fund"))]);
             assert_eq!(fulfill_promises(&mut indicator, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(indicator.fund.resolved().map(String::as_str), Some("Resolved Fund"));
         }

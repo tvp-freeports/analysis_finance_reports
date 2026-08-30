@@ -7,10 +7,25 @@
 //!    diverse possono contribuire allo stesso id (il nome del fondo che compare piu' volte, il
 //!    totale ripetuto in fondo a ogni tabella);
 //! 2. a documento finito la multimappa viene **appiattita** ([`PromiseMap::flatten`]): i
-//!    riferimenti fra promesse vengono seguiti, e ogni id resta con un solo valore — scalare se
-//!    il contributo era uno solo, [`BlockValue::List`] se erano piu' d'uno;
+//!    riferimenti fra promesse vengono seguiti e sostituiti dai contributi dell'id riferito, ma
+//!    ogni id conserva la propria **sequenza** di contributi;
 //! 3. le entita' prodotte dai deserializzatori vengono risolte contro la [`FlatPromiseMap`]
 //!    risultante (`crate::core::promisable`).
+//!
+//! **Contenitore e contributo sono cose diverse.** L'appiattimento non sintetizza nessuna lista:
+//! `[("x", 1), ("x", 2)]` lascia due contributi, `[("x", List([1, 2]))]` ne lascia **uno** che e'
+//! una lista, e le due mappe appiattite sono distinguibili. Un pipe d'autore che voglia depositare
+//! piu' contributi per lo stesso id non restituisce quindi un dict con valore-lista
+//! (`{"id": [a, b]}`, che vale un contributo solo), ma una lista di dict separati
+//! (`[{"id": a}, {"id": b}]`): `PyDeserializePipe::deserialize` appiattisce il valore restituito
+//! dal pipe, ogni dict diventa un `Extracted::Promises` a se' stante e tutti confluiscono nella
+//! stessa multimappa, che accumula per chiave. Il meccanismo e' preesistente e indipendente da
+//! questa distinzione.
+//!
+//! **Un [`BlockValue::Null`] e' un non-contributo** (decisione dell'utente, 2026-08-29): viene
+//! scartato gia' durante l'appiattimento, come se non fosse mai stato depositato. Un id i cui
+//! contributi erano tutti `Null` sparisce percio' dalla mappa appiattita, esattamente come un id
+//! che non ha mai avuto contributi.
 //!
 //! **Riferimenti pendenti (decisione dell'utente, 2026-08-22).** Una promessa che punta a un id
 //! di cui la mappa non sa nulla **non e' un errore qui**: resta nella mappa appiattita come
@@ -36,10 +51,15 @@ pub struct PromiseMap {
     entries: BTreeMap<String, Vec<BlockValue>>,
 }
 
-/// Mappa `id -> valore unico`, prodotta da [`PromiseMap::flatten`] e usata per risolvere.
+/// Mappa `id -> contributi appiattiti`, prodotta da [`PromiseMap::flatten`] e usata per risolvere.
+///
+/// Invariante: nessun id vi compare con un vettore vuoto — un id che dopo l'appiattimento non ha
+/// lasciato alcun contributo semplicemente non entra nella mappa. E' cio' che permette a un
+/// riferimento di distinguere "id risolto" da "id senza nulla da dare" guardando la sola presenza
+/// della chiave.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FlatPromiseMap {
-    entries: BTreeMap<String, BlockValue>,
+    entries: BTreeMap<String, Vec<BlockValue>>,
 }
 
 impl PromiseMap {
@@ -84,13 +104,23 @@ impl PromiseMap {
         self.entries.iter().map(|(k, v)| (k, v.as_slice()))
     }
 
-    /// Segue i riferimenti fra promesse e riduce ogni id a un valore solo.
+    /// Segue i riferimenti fra promesse, lasciando a ogni id la sua sequenza di contributi.
     ///
-    /// Un id con un solo contributo diventa quel contributo; con piu' d'uno diventa una
-    /// [`BlockValue::List`] nell'ordine di inserimento; senza contributi sparisce dalla mappa
-    /// appiattita. I riferimenti pendenti restano `Promise` (vedi la nota in testa al modulo);
-    /// un ciclo e' [`PromiseError::Circular`], con la catena completa dal primo id visitato fino
-    /// alla ripetizione.
+    /// Un contributo che non e' una promessa si conserva tale e quale, contenitori compresi: il
+    /// numero di contributi non si perde, e un unico contributo [`BlockValue::List`] resta
+    /// distinguibile da piu' contributi scalari. Fanno eccezione i [`BlockValue::Null`], che sono
+    /// non-contributi e vengono scartati qui; un id che resta senza contributi — perche' non ne
+    /// aveva o perche' erano tutti `Null` — sparisce dalla mappa appiattita.
+    ///
+    /// Un contributo `Promise` che punta a un id risolto viene sostituito da **tutti** i
+    /// contributi di quell'id, innestati al posto suo e nel loro ordine: un riferimento *eredita*
+    /// i contributi del bersaglio. Impacchettarli in una lista sola reintrodurrebbe l'ambiguita'
+    /// fra contenitore e contributo al passaggio del riferimento. Due riferimenti allo stesso
+    /// bersaglio ne innestano quindi i contributi due volte.
+    ///
+    /// I riferimenti pendenti restano `Promise` (vedi la nota in testa al modulo); un ciclo e'
+    /// [`PromiseError::Circular`], con la catena completa dal primo id visitato fino alla
+    /// ripetizione.
     ///
     /// La ricorsione **non** scende dentro liste, insiemi e mappe: una `Promise` annidata dentro
     /// un `BlockValue::List` non viene risolta, esattamente come nel riferimento. I pipe
@@ -101,17 +131,22 @@ impl PromiseMap {
         for id in self.entries.keys() {
             self.resolve_id(id, &mut in_progress, &mut resolved)?;
         }
+        tracing::debug!(ids = resolved.len(), "promise map flattened");
         Ok(FlatPromiseMap { entries: resolved })
     }
 
     /// Visita in profondita' un singolo id. `in_corso` e' il cammino corrente (rileva i cicli),
     /// `resolved` e' la memoizzazione (ogni id si appiattisce una volta sola, anche se molti altri
     /// lo riferiscono).
+    ///
+    /// L'invariante "nessun vettore vuoto in `resolved`" regge per induzione sulla profondita'
+    /// della visita: si inserisce solo quando il vettore accumulato e' non vuoto, e i contributi
+    /// ereditati da un riferimento vengono da un id gia' inserito, quindi gia' non vuoto.
     fn resolve_id(
         &self,
         id: &str,
         in_progress: &mut Vec<String>,
-        resolved: &mut BTreeMap<String, BlockValue>,
+        resolved: &mut BTreeMap<String, Vec<BlockValue>>,
     ) -> Result<(), PromiseError> {
         if resolved.contains_key(id) {
             return Ok(());
@@ -130,12 +165,21 @@ impl PromiseMap {
         let mut flattened = Vec::with_capacity(contributions.len());
         for contribution in contributions {
             match contribution {
+                // Un `Null` non e' un valore nullo: e' un contributo che non c'e'.
+                BlockValue::Null => {}
                 BlockValue::Promise(promise) => {
                     self.resolve_id(promise.id(), in_progress, resolved)?;
                     match resolved.get(promise.id()) {
-                        Some(value) => flattened.push(value.clone()),
-                        // L'id riferito non esiste, o esiste senza contributi: la promessa resta.
-                        None => flattened.push(contribution.clone()),
+                        // Il riferimento eredita i contributi del bersaglio, innestati al posto
+                        // suo: impacchettarli in una lista li renderebbe un contributo solo.
+                        Some(values) => flattened.extend(values.iter().cloned()),
+                        // L'id riferito non esiste, o non ha lasciato contributi: la promessa
+                        // resta pendente. Non e' un errore (vedi il doc-comment del modulo), ma
+                        // e' il dettaglio che serve solo in un debug attivo.
+                        None => {
+                            tracing::trace!(id, target = promise.id(), "reference kept pending: target has no contributions");
+                            flattened.push(contribution.clone());
+                        }
                     }
                 }
                 other => flattened.push(other.clone()),
@@ -143,15 +187,8 @@ impl PromiseMap {
         }
         in_progress.pop();
 
-        let single = if flattened.len() == 1 {
-            flattened.pop()
-        } else if flattened.is_empty() {
-            None
-        } else {
-            Some(BlockValue::List(flattened))
-        };
-        if let Some(value) = single {
-            resolved.insert(id.to_string(), value);
+        if !flattened.is_empty() {
+            resolved.insert(id.to_string(), flattened);
         }
         Ok(())
     }
@@ -162,8 +199,14 @@ impl FlatPromiseMap {
         FlatPromiseMap::default()
     }
 
-    pub fn get(&self, id: &str) -> Option<&BlockValue> {
-        self.entries.get(id)
+    /// I contributi appiattiti registrati per `id`, in ordine. Mai vuoto: un id senza contributi
+    /// non entra nella mappa.
+    ///
+    /// I contributi non sono filtrati: possono ancora contenere riferimenti pendenti, che solo
+    /// [`FlatPromiseMap::fulfill`] scarta. I [`BlockValue::Null`] invece non ci sono mai, perche'
+    /// l'appiattimento li ha gia' scartati.
+    pub fn get(&self, id: &str) -> Option<&[BlockValue]> {
+        self.entries.get(id).map(Vec::as_slice)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -174,29 +217,33 @@ impl FlatPromiseMap {
         self.entries.len()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &BlockValue)> {
-        self.entries.iter()
+    /// Gli id con i loro contributi, in ordine di chiave. Come [`FlatPromiseMap::get`], i
+    /// contributi non sono filtrati: i riferimenti pendenti ci sono ancora.
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &[BlockValue])> {
+        self.entries.iter().map(|(k, v)| (k, v.as_slice()))
     }
 
     /// Risolve una promessa contro questa mappa.
     ///
-    /// - id assente, valore [`BlockValue::Null`], o valore ancora `Promise`: la promessa non e'
-    ///   risolvibile, [`PromiseError::Unresolved`];
-    /// - promessa *multiple*: si ottiene sempre una [`BlockValue::List`], anche quando il valore
-    ///   registrato era scalare;
-    /// - promessa normale su una lista: vince **l'ultimo** valore, cioe' il contributo della
-    ///   pagina piu' recente.
-    ///
-    /// In entrambi i casi con lista, i contributi rimasti `Promise` (riferimenti pendenti, vedi
-    /// la nota in testa al modulo) vengono scartati: se non ne resta nessun altro, la promessa e'
-    /// [`PromiseError::Unresolved`].
+    /// - id assente dalla mappa: [`PromiseError::Unresolved`];
+    /// - i contributi rimasti `Promise` (riferimenti pendenti, vedi la nota in testa al modulo)
+    ///   vengono scartati; se non resta nessun candidato la promessa e' `Unresolved`. I `Null` non
+    ///   arrivano fin qui: l'appiattimento li ha gia' scartati;
+    /// - promessa *multiple*: [`BlockValue::List`] dei candidati, sempre non vuota. Un candidato
+    ///   che e' esso stesso una lista vi finisce dentro come elemento, senza essere sciolto;
+    /// - promessa normale: vince **l'ultimo** candidato, cioe' il contributo della pagina piu'
+    ///   recente, restituito tale e quale — se e' una lista, si ottiene quella lista.
     pub fn fulfill(&self, promise: &Promise) -> Result<BlockValue, PromiseError> {
-        let registered = self.entries.get(promise.id()).ok_or_else(|| promise.unresolved())?;
-        let candidates: Vec<&BlockValue> = match registered {
-            BlockValue::Null | BlockValue::Promise(_) => Vec::new(),
-            BlockValue::List(values) => values.iter().filter(|v| !v.is_promise()).collect(),
-            scalar => vec![scalar],
-        };
+        let contributions = self.entries.get(promise.id()).ok_or_else(|| promise.unresolved())?;
+        let candidates: Vec<&BlockValue> =
+            contributions.iter().filter(|v| !v.is_promise()).collect();
+        if candidates.len() != contributions.len() {
+            tracing::trace!(
+                id = promise.id(),
+                pending = contributions.len() - candidates.len(),
+                "pending contributions ignored while fulfilling"
+            );
+        }
         if promise.multiple() {
             if candidates.is_empty() {
                 return Err(promise.unresolved());
@@ -215,9 +262,25 @@ impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for PromiseMap {
     }
 }
 
-impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for FlatPromiseMap {
-    fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
-        FlatPromiseMap { entries: iter.into_iter().map(|(k, v)| (k.into(), v.into())).collect() }
+/// Fuori dai test l'unico produttore legittimo di una [`FlatPromiseMap`] e'
+/// [`PromiseMap::flatten`]: non esiste una `FromIterator`, perche' un `Into<BlockValue>` lascerebbe
+/// scivolare dentro in silenzio un `vec![a, b]` come **unico** contributo-lista, che e' proprio
+/// l'ambiguita' che questo modulo elimina.
+#[cfg(test)]
+impl FlatPromiseMap {
+    /// Costruisce una mappa gia' appiattita da coppie `(id, contributo)`, **accumulando** per
+    /// chiave: chiavi ripetute sono contributi multipli dello stesso id, non sovrascritture.
+    pub(crate) fn from_pairs<K, V, I>(pairs: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+        K: Into<String>,
+        V: Into<BlockValue>,
+    {
+        let mut entries: BTreeMap<String, Vec<BlockValue>> = BTreeMap::new();
+        for (id, contribution) in pairs {
+            entries.entry(id.into()).or_default().push(contribution.into());
+        }
+        FlatPromiseMap { entries }
     }
 }
 
@@ -278,19 +341,23 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
+        /// Non c'e' nessuna "scalarizzazione": un contributo solo resta un contributo solo, in un
+        /// vettore lungo uno. E' il punto di F2 — il numero di contributi non si perde.
         #[test]
-        fn a_single_contribution_stays_scalar() {
+        fn a_single_contribution_stays_alone() {
             let map: PromiseMap = [("x", 42_i64)].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("x"), Some(&BlockValue::Int(42)));
+            assert_eq!(map.flatten().unwrap().get("x"), Some(&[BlockValue::Int(42)][..]));
         }
 
+        /// Piu' contributi restano piu' contributi: non vengono impacchettati in un
+        /// [`BlockValue::List`], che sarebbe indistinguibile da un unico contributo-lista.
         #[test]
-        fn multiple_contributions_become_a_list() {
+        fn multiple_contributions_stay_separate() {
             let map: PromiseMap = [("x", 1_i64), ("x", 2_i64), ("x", 3_i64)].into_iter().collect();
             let flat = map.flatten().unwrap();
             assert_eq!(
                 flat.get("x"),
-                Some(&BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)]))
+                Some(&[BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)][..])
             );
         }
 
@@ -308,13 +375,41 @@ mod tests {
             assert!(flat.is_empty());
         }
 
+        /// Caso speciale del test qui sopra (decisione dell'utente su Q-F2b/C3, 2026-08-29): un
+        /// contributo [`BlockValue::Null`] e' un *non*-contributo, scartato gia' durante
+        /// l'appiattimento. Un id di soli `Null` produce percio' un vettore vuoto, e un vettore
+        /// vuoto non entra nella mappa appiattita: l'id sparisce esattamente come se non avesse
+        /// mai avuto contributi.
+        #[test]
+        fn a_null_only_id_disappears_from_the_flat_map() {
+            let map: PromiseMap =
+                [("solo-null", BlockValue::Null), ("solo-null", BlockValue::Null)].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("solo-null"), None);
+            assert!(flat.is_empty());
+        }
+
+        /// Un `Null` in mezzo ad altri contributi non sopravvive e non puo' quindi diventare il
+        /// valore vincente: sparisce lui, non gli altri.
+        #[test]
+        fn a_null_contribution_disappears_from_among_the_others() {
+            let map: PromiseMap =
+                [("x", BlockValue::Int(1)), ("x", BlockValue::Null), ("x", BlockValue::Int(2))]
+                    .into_iter()
+                    .collect();
+            assert_eq!(
+                map.flatten().unwrap().get("x"),
+                Some(&[BlockValue::Int(1), BlockValue::Int(2)][..])
+            );
+        }
+
         #[test]
         fn resolves_a_simple_reference() {
             let map: PromiseMap =
                 [("source", promise("target")), ("target", BlockValue::Int(99))].into_iter().collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("source"), Some(&BlockValue::Int(99)));
-            assert_eq!(flat.get("target"), Some(&BlockValue::Int(99)));
+            assert_eq!(flat.get("source"), Some(&[BlockValue::Int(99)][..]));
+            assert_eq!(flat.get("target"), Some(&[BlockValue::Int(99)][..]));
         }
 
         #[test]
@@ -322,27 +417,31 @@ mod tests {
             let map: PromiseMap =
                 [("a", promise("b")), ("b", promise("c")), ("c", BlockValue::Int(7))].into_iter().collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("a"), Some(&BlockValue::Int(7)));
-            assert_eq!(flat.get("b"), Some(&BlockValue::Int(7)));
+            assert_eq!(flat.get("a"), Some(&[BlockValue::Int(7)][..]));
+            assert_eq!(flat.get("b"), Some(&[BlockValue::Int(7)][..]));
         }
 
+        /// Un riferimento **eredita i contributi** del bersaglio, in ordine: non li impacchetta in
+        /// una lista, altrimenti l'ambiguita' F2 rientrerebbe dalla porta del riferimento (un
+        /// bersaglio con due contributi scalari tornerebbe indistinguibile, per chi lo riferisce,
+        /// da un bersaglio con un solo contributo-lista).
         #[test]
-        fn a_reference_to_a_list_receives_the_whole_list() {
+        fn a_reference_receives_the_contributions_of_its_target() {
             let map: PromiseMap =
                 [("src", promise("t")), ("t", BlockValue::Int(1)), ("t", BlockValue::Int(2))]
                     .into_iter()
                     .collect();
             let flat = map.flatten().unwrap();
-            let expected = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
-            assert_eq!(flat.get("src"), Some(&expected));
-            assert_eq!(flat.get("t"), Some(&expected));
+            let expected = [BlockValue::Int(1), BlockValue::Int(2)];
+            assert_eq!(flat.get("src"), Some(&expected[..]));
+            assert_eq!(flat.get("t"), Some(&expected[..]));
         }
 
         /// Caso che nel riferimento costava una passata a vuoto in piu': un id con due contributi
-        /// che sono entrambi promesse. Qui e' una visita sola, e il risultato e' la lista dei due
-        /// valori riferiti, nell'ordine di inserimento.
+        /// che sono entrambi promesse. Qui e' una visita sola, e il risultato sono i due valori
+        /// riferiti, nell'ordine di inserimento.
         #[test]
-        fn an_id_with_two_promised_contributions_becomes_the_list_of_values() {
+        fn an_id_with_two_promised_contributions_becomes_the_values_of_both() {
             let map: PromiseMap = [
                 ("x", promise("a")),
                 ("x", promise("b")),
@@ -352,7 +451,7 @@ mod tests {
             .into_iter()
             .collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("x"), Some(&BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])));
+            assert_eq!(flat.get("x"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
         }
 
         #[test]
@@ -362,19 +461,68 @@ mod tests {
                     .into_iter()
                     .collect();
             let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("x"), Some(&[BlockValue::from("fisso"), BlockValue::Int(5)][..]));
+        }
+
+        /// I contributi ereditati da un riferimento si innestano **al posto della promessa**, non
+        /// in coda: l'ordine di inserimento dei contributi propri e' conservato attorno a loro.
+        #[test]
+        fn a_reference_splices_the_contributions_of_its_target_among_its_own() {
+            let map: PromiseMap = [
+                ("x", promise("a")),
+                ("x", BlockValue::Int(5)),
+                ("a", BlockValue::Int(1)),
+                ("a", BlockValue::Int(2)),
+            ]
+            .into_iter()
+            .collect();
+            let flat = map.flatten().unwrap();
             assert_eq!(
                 flat.get("x"),
-                Some(&BlockValue::List(vec![BlockValue::from("fisso"), BlockValue::Int(5)]))
+                Some(&[BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(5)][..])
             );
+        }
+
+        /// Due riferimenti allo stesso bersaglio multi-contributo innestano i suoi contributi due
+        /// volte: la cardinalita' di `x` e' la somma, non il numero di riferimenti. E' il delta
+        /// osservabile piu' ampio dello splicing (`critic`, C2), e si vede anche sulla promessa
+        /// *multiple*, che qui espande in quattro copie.
+        #[test]
+        fn two_references_to_the_same_multi_contribution_target_splice_twice() {
+            let map: PromiseMap = [
+                ("x", promise("a")),
+                ("x", promise("a")),
+                ("a", BlockValue::Int(1)),
+                ("a", BlockValue::Int(2)),
+            ]
+            .into_iter()
+            .collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(
+                flat.get("x"),
+                Some(
+                    &[BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(1), BlockValue::Int(2)][..]
+                )
+            );
+            assert_eq!(
+                flat.fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![
+                    BlockValue::Int(1),
+                    BlockValue::Int(2),
+                    BlockValue::Int(1),
+                    BlockValue::Int(2),
+                ])
+            );
+            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), BlockValue::Int(2));
         }
 
         #[test]
         fn the_promise_flags_do_not_affect_flattening() {
             // Strict e multiple contano al momento di risolvere un'entita', non qui: `flatten`
-            // sostituisce comunque il valore registrato per l'id riferito.
+            // sostituisce comunque la promessa con i contributi dell'id riferito.
             let map: PromiseMap =
                 [("src", promise("t[]!")), ("t", BlockValue::Int(1))].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("src"), Some(&BlockValue::Int(1)));
+            assert_eq!(map.flatten().unwrap().get("src"), Some(&[BlockValue::Int(1)][..]));
         }
 
         #[test]
@@ -382,7 +530,187 @@ mod tests {
             let nested = BlockValue::List(vec![promise("t")]);
             let map: PromiseMap =
                 [("src", nested.clone()), ("t", BlockValue::Int(1))].into_iter().collect();
-            assert_eq!(map.flatten().unwrap().get("src"), Some(&nested));
+            assert_eq!(map.flatten().unwrap().get("src"), Some(&[nested][..]));
+        }
+
+        /// L'invariante da cui dipende tutto il resto: nella mappa appiattita nessun id ha un
+        /// vettore di contributi vuoto. E' cio' che permette a un riferimento di distinguere "id
+        /// risolto" da "id senza nulla da dare" guardando la sola presenza della chiave.
+        #[test]
+        fn the_flat_map_never_holds_an_empty_contribution_list() {
+            let mut map = PromiseMap::new();
+            map.push("scalare", 1_i64);
+            map.push("multi", 1_i64);
+            map.push("multi", 2_i64);
+            map.push("riferimento", Promise::new("multi"));
+            map.push("pendente", Promise::new("nowhere"));
+            map.push("contenitore-vuoto", BlockValue::List(Vec::new()));
+            map.push("solo-null", BlockValue::Null);
+            map.entries.insert("senza-contributi".into(), Vec::new());
+
+            let flat = map.flatten().unwrap();
+            for (id, contributions) in flat.iter() {
+                assert!(!contributions.is_empty(), "l'id `{id}` ha un vettore di contributi vuoto");
+            }
+            assert_eq!(flat.get("solo-null"), None);
+            assert_eq!(flat.get("senza-contributi"), None);
+            // Un contenitore vuoto e' invece un valore vero, e resta.
+            assert_eq!(flat.get("contenitore-vuoto"), Some(&[BlockValue::List(Vec::new())][..]));
+        }
+    }
+
+    /// Il cuore di F2: un contributo che *e'* un contenitore non e' la stessa cosa di N contributi.
+    /// Attraversa appiattimento e risoluzione, perche' il vecchio disegno confondeva le due cose in
+    /// entrambe le fasi (`flatten` sintetizzava una `List`, `fulfill` la ri-scioglieva).
+    mod container_valued_contributions {
+        use super::*;
+        use pretty_assertions::{assert_eq, assert_ne};
+        use std::collections::BTreeSet;
+
+        fn one_list_contribution() -> FlatPromiseMap {
+            let map: PromiseMap =
+                [("x", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]))]
+                    .into_iter()
+                    .collect();
+            map.flatten().unwrap()
+        }
+
+        fn two_scalar_contributions() -> FlatPromiseMap {
+            let map: PromiseMap = [("x", BlockValue::Int(1)), ("x", BlockValue::Int(2))].into_iter().collect();
+            map.flatten().unwrap()
+        }
+
+        /// Il test che pinna il bug: le due mappe erano indistinguibili dopo l'appiattimento, e da
+        /// li' in poi nessuna informazione poteva piu' separarle.
+        #[test]
+        fn one_list_contribution_is_not_two_scalar_contributions() {
+            let container = one_list_contribution();
+            let scalars = two_scalar_contributions();
+            assert_eq!(
+                container.get("x"),
+                Some(&[BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])][..])
+            );
+            assert_eq!(scalars.get("x"), Some(&[BlockValue::Int(1), BlockValue::Int(2)][..]));
+            assert_ne!(container, scalars);
+        }
+
+        #[test]
+        fn a_normal_promise_on_a_single_list_contribution_returns_the_whole_list() {
+            assert_eq!(
+                one_list_contribution().fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
+            );
+        }
+
+        #[test]
+        fn a_normal_promise_on_two_scalar_contributions_still_returns_the_last() {
+            assert_eq!(
+                two_scalar_contributions().fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::Int(2)
+            );
+        }
+
+        #[test]
+        fn a_multiple_promise_on_a_single_list_contribution_wraps_it() {
+            assert_eq!(
+                one_list_contribution().fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])])
+            );
+        }
+
+        #[test]
+        fn a_multiple_promise_on_two_scalar_contributions_returns_both() {
+            assert_eq!(
+                two_scalar_contributions().fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
+            );
+        }
+
+        /// Da contrapporre a `resolution::an_id_with_zero_contributions_is_unresolvable`: "un
+        /// contributo che e' una lista vuota" e "nessun contributo" sono due cose diverse, che nel
+        /// vecchio disegno collassavano nella stessa.
+        #[test]
+        fn an_empty_list_is_a_legitimate_value() {
+            let map: PromiseMap = [("x", BlockValue::List(Vec::new()))].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("x"), Some(&[BlockValue::List(Vec::new())][..]));
+            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), BlockValue::List(Vec::new()));
+            assert_eq!(
+                flat.fulfill(&Promise::new("x[]")).unwrap(),
+                BlockValue::List(vec![BlockValue::List(Vec::new())])
+            );
+        }
+
+        #[test]
+        fn a_nested_list_contribution_survives_intact() {
+            let nested = BlockValue::List(vec![
+                BlockValue::List(vec![BlockValue::Int(1)]),
+                BlockValue::List(vec![BlockValue::Int(2)]),
+            ]);
+            let map: PromiseMap = [("x", nested.clone())].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("x"), Some(&[nested.clone()][..]));
+            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), nested);
+        }
+
+        /// Il fix non deve essere scritto sulla sola variante `List`: un `Set` e' un contenitore
+        /// come gli altri e non e' mai stato sciolto, ma va pinnato perche' non lo diventi.
+        #[test]
+        fn a_set_contribution_survives_intact() {
+            let set = BlockValue::Set(BTreeSet::from([BlockValue::Int(1), BlockValue::Int(2)]));
+            let map: PromiseMap = [("x", set.clone())].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("x"), Some(&[set.clone()][..]));
+            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), set.clone());
+            assert_eq!(flat.fulfill(&Promise::new("x[]")).unwrap(), BlockValue::List(vec![set]));
+        }
+
+        #[test]
+        fn a_map_contribution_survives_intact() {
+            let inner = BlockValue::Map(BTreeMap::from([
+                ("a".to_string(), BlockValue::Int(1)),
+                ("b".to_string(), BlockValue::Int(2)),
+            ]));
+            let map: PromiseMap = [("x", inner.clone())].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("x"), Some(&[inner.clone()][..]));
+            assert_eq!(flat.fulfill(&Promise::new("x")).unwrap(), inner.clone());
+            assert_eq!(flat.fulfill(&Promise::new("x[]")).unwrap(), BlockValue::List(vec![inner]));
+        }
+
+        /// Lo stesso bug, ma attraversato da un riferimento: `src` eredita **un** contributo (che
+        /// e' una lista), non due.
+        #[test]
+        fn a_reference_to_an_id_whose_only_contribution_is_a_list_yields_the_list() {
+            let list = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
+            let map: PromiseMap = [("src", promise("t")), ("t", list.clone())].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("src"), Some(&[list.clone()][..]));
+            assert_eq!(flat.get("t"), Some(&[list.clone()][..]));
+            assert_eq!(flat.fulfill(&Promise::new("src")).unwrap(), list);
+        }
+
+        /// Round-trip: appiattire, reinserire in una multimappa e riappiattire non scioglie il
+        /// contenitore. Nel vecchio disegno l'informazione si perdeva al primo giro, in modo
+        /// irreversibile.
+        #[test]
+        fn flattening_a_list_contribution_twice_does_not_unwrap_it() {
+            let map: PromiseMap = [
+                ("contenitore", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
+                ("separati", BlockValue::Int(1)),
+                ("separati", BlockValue::Int(2)),
+            ]
+            .into_iter()
+            .collect();
+            let once = map.flatten().unwrap();
+            let reinserted: PromiseMap = once
+                .iter()
+                .flat_map(|(id, contributions)| {
+                    contributions.iter().map(move |v| (id.clone(), v.clone()))
+                })
+                .collect();
+            assert_eq!(reinserted.flatten().unwrap(), once);
+            assert_ne!(once.get("contenitore"), once.get("separati"));
         }
     }
 
@@ -396,7 +724,7 @@ mod tests {
         fn an_unknown_id_leaves_the_promise_in_place() {
             let map: PromiseMap = [("source", promise("nowhere"))].into_iter().collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("source"), Some(&promise("nowhere")));
+            assert_eq!(flat.get("source"), Some(&[promise("nowhere")][..]));
         }
 
         #[test]
@@ -404,15 +732,27 @@ mod tests {
             let mut map = PromiseMap::new();
             map.push("source", Promise::new("vuoto"));
             map.entries.insert("vuoto".into(), Vec::new());
-            assert_eq!(map.flatten().unwrap().get("source"), Some(&promise("vuoto")));
+            assert_eq!(map.flatten().unwrap().get("source"), Some(&[promise("vuoto")][..]));
+        }
+
+        /// Conseguenza della decisione su C3 (2026-08-29): i `Null` sono gia' spariti quando lo
+        /// splicing guarda il bersaglio, quindi un id di soli `Null` e' indistinguibile da un id
+        /// senza contributi — la promessa resta pendente, non eredita nessun `Null`.
+        #[test]
+        fn a_reference_to_a_null_only_target_stays_pending() {
+            let map: PromiseMap =
+                [("source", promise("t")), ("t", BlockValue::Null)].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(flat.get("source"), Some(&[promise("t")][..]));
+            assert_eq!(flat.get("t"), None);
         }
 
         #[test]
         fn a_chain_that_ends_in_nothing_stops_on_the_pending_promise() {
             let map: PromiseMap = [("a", promise("b")), ("b", promise("nowhere"))].into_iter().collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("b"), Some(&promise("nowhere")));
-            assert_eq!(flat.get("a"), Some(&promise("nowhere")));
+            assert_eq!(flat.get("b"), Some(&[promise("nowhere")][..]));
+            assert_eq!(flat.get("a"), Some(&[promise("nowhere")][..]));
         }
 
         #[test]
@@ -422,8 +762,8 @@ mod tests {
                     .into_iter()
                     .collect();
             let flat = map.flatten().unwrap();
-            assert_eq!(flat.get("a"), Some(&promise("nowhere")));
-            assert_eq!(flat.get("b"), Some(&BlockValue::Int(3)));
+            assert_eq!(flat.get("a"), Some(&[promise("nowhere")][..]));
+            assert_eq!(flat.get("b"), Some(&[BlockValue::Int(3)][..]));
         }
     }
 
@@ -502,8 +842,10 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
+        /// Chiavi ripetute = contributi multipli per lo stesso id: `from_pairs` accumula, non
+        /// sovrascrive.
         fn flat(pairs: Vec<(&str, BlockValue)>) -> FlatPromiseMap {
-            pairs.into_iter().collect()
+            FlatPromiseMap::from_pairs(pairs)
         }
 
         #[test]
@@ -512,26 +854,28 @@ mod tests {
             assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::from("Acme"));
         }
 
+        /// Chi arriva dopo vince: e' l'ordine delle pagine.
         #[test]
-        fn on_a_list_the_last_value_wins() {
-            let map = flat(vec![(
-                "fund",
-                BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2), BlockValue::Int(3)]),
-            )]);
+        fn on_several_contributions_the_last_one_wins() {
+            let map = flat(vec![
+                ("fund", BlockValue::Int(1)),
+                ("fund", BlockValue::Int(2)),
+                ("fund", BlockValue::Int(3)),
+            ]);
             assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::Int(3));
         }
 
         #[test]
         fn a_multiple_promise_always_gets_a_list() {
-            let scalar = flat(vec![("fund", BlockValue::Int(1))]);
+            let single = flat(vec![("fund", BlockValue::Int(1))]);
             assert_eq!(
-                scalar.fulfill(&Promise::new("fund[]")).unwrap(),
+                single.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1)])
             );
 
-            let list = flat(vec![("fund", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]))]);
+            let several = flat(vec![("fund", BlockValue::Int(1)), ("fund", BlockValue::Int(2))]);
             assert_eq!(
-                list.fulfill(&Promise::new("fund[]")).unwrap(),
+                several.fulfill(&Promise::new("fund[]")).unwrap(),
                 BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])
             );
         }
@@ -547,11 +891,21 @@ mod tests {
 
         /// Un `Null` registrato conta come valore *assente*, non come valore nullo: e' la
         /// semantica del riferimento (`if value.is_none(): raise KeyError`).
+        ///
+        /// Dalla decisione su C3 (2026-08-29) la via interna e' cambiata — il `Null` viene
+        /// scartato gia' da `flatten`, quindi l'id non compare affatto nella mappa appiattita —
+        /// ma l'esito osservabile e' lo stesso di prima. Il test passa percio' da una
+        /// [`FlatPromiseMap`] costruita a mano a una prodotta da `flatten`, che e' l'unico modo in
+        /// cui un `Null` puo' presentarsi nella realta'.
         #[test]
         fn a_null_value_is_unresolvable() {
-            let map = flat(vec![("fund", BlockValue::Null)]);
-            assert!(map.fulfill(&Promise::new("fund")).is_err());
-            assert!(map.fulfill(&Promise::new("fund[]")).is_err());
+            let map: PromiseMap = [("fund", BlockValue::Null)].into_iter().collect();
+            let flat = map.flatten().unwrap();
+            assert_eq!(
+                flat.fulfill(&Promise::new("fund")).unwrap_err(),
+                PromiseError::Unresolved { id: "fund".into() }
+            );
+            assert!(flat.fulfill(&Promise::new("fund[]")).is_err());
         }
 
         /// Il seguito della politica sui riferimenti pendenti: una promessa sopravvissuta
@@ -566,11 +920,12 @@ mod tests {
         }
 
         #[test]
-        fn pending_promises_inside_a_list_are_discarded() {
-            let map = flat(vec![(
-                "fund",
-                BlockValue::List(vec![BlockValue::Int(1), promise("nowhere"), BlockValue::Int(2)]),
-            )]);
+        fn pending_promise_contributions_are_discarded() {
+            let map = flat(vec![
+                ("fund", BlockValue::Int(1)),
+                ("fund", promise("nowhere")),
+                ("fund", BlockValue::Int(2)),
+            ]);
             assert_eq!(map.fulfill(&Promise::new("fund")).unwrap(), BlockValue::Int(2));
             assert_eq!(
                 map.fulfill(&Promise::new("fund[]")).unwrap(),
@@ -579,15 +934,21 @@ mod tests {
         }
 
         #[test]
-        fn a_list_of_only_pending_promises_is_unresolvable() {
-            let map = flat(vec![("fund", BlockValue::List(vec![promise("a"), promise("b")]))]);
+        fn an_id_with_only_pending_contributions_is_unresolvable() {
+            let map = flat(vec![("fund", promise("a")), ("fund", promise("b"))]);
             assert!(map.fulfill(&Promise::new("fund")).is_err());
             assert!(map.fulfill(&Promise::new("fund[]")).is_err());
         }
 
+        /// Un id presente ma con zero contributi non puo' esistere in una mappa prodotta da
+        /// `flatten` (vedi `flattening::the_flat_map_never_holds_an_empty_contribution_list`): lo
+        /// si costruisce a mano, dall'interno del modulo, solo per fissare cosa farebbe `fulfill`
+        /// se ci arrivasse. Da non confondere con
+        /// `container_valued_contributions::an_empty_list_is_a_legitimate_value`.
         #[test]
-        fn an_empty_list_is_unresolvable() {
-            let map = flat(vec![("fund", BlockValue::List(Vec::new()))]);
+        fn an_id_with_zero_contributions_is_unresolvable() {
+            let mut map = FlatPromiseMap::new();
+            map.entries.insert("fund".into(), Vec::new());
             assert!(map.fulfill(&Promise::new("fund")).is_err());
             assert!(map.fulfill(&Promise::new("fund[]")).is_err());
         }
@@ -621,7 +982,12 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         /// Appiattire due volte non cambia nulla: la mappa appiattita, reinserita in una
-        /// multimappa, si appiattisce in se stessa.
+        /// multimappa un contributo alla volta, si appiattisce in se stessa.
+        ///
+        /// L'idempotenza regge anche con lo splicing: un contributo rimasto `Promise` punta per
+        /// costruzione a un id **assente** dalla mappa appiattita, quindi al secondo giro resta
+        /// pendente invece di innestare qualcosa di nuovo. La fixture include un contributo che e'
+        /// esso stesso una `List`, cosi' la proprieta' copre anche il caso F2.
         #[test]
         fn flattening_is_idempotent() {
             let map: PromiseMap = [
@@ -630,17 +996,26 @@ mod tests {
                 ("b", BlockValue::Int(2)),
                 ("c", BlockValue::from("x")),
                 ("d", promise("nowhere")),
+                ("e", BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)])),
             ]
             .into_iter()
             .collect();
             let once = map.flatten().unwrap();
-            let reinserted: PromiseMap =
-                once.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            let reinserted: PromiseMap = once
+                .iter()
+                .flat_map(|(id, contributions)| {
+                    contributions.iter().map(move |v| (id.clone(), v.clone()))
+                })
+                .collect();
             assert_eq!(reinserted.flatten().unwrap(), once);
         }
 
-        /// Una catena lineare lunga si risolve tutta sullo stesso valore finale, senza esplosioni
-        /// combinatorie: ogni id viene appiattito una volta sola grazie alla memoizzazione.
+        /// Una catena lineare lunga si risolve tutta sullo stesso valore finale, e ogni id resta
+        /// con **un solo** contributo: ogni anello riferisce un bersaglio che ne ha uno, quindi lo
+        /// splicing non allunga nulla. (Con riferimenti ripetuti la lunghezza puo' invece
+        /// raddoppiare a ogni anello — vedi
+        /// `flattening::two_references_to_the_same_multi_contribution_target_splice_twice`.)
+        /// Il costo di visita resta lineare grazie alla memoizzazione.
         #[test]
         fn a_long_chain_resolves_entirely_to_the_final_value() {
             const LENGTH: usize = 500;
@@ -651,7 +1026,7 @@ mod tests {
             map.push(format!("id{LENGTH}"), 42_i64);
             let flat = map.flatten().unwrap();
             for i in 0..=LENGTH {
-                assert_eq!(flat.get(&format!("id{i}")), Some(&BlockValue::Int(42)), "id{i}");
+                assert_eq!(flat.get(&format!("id{i}")), Some(&[BlockValue::Int(42)][..]), "id{i}");
             }
         }
 
@@ -665,7 +1040,7 @@ mod tests {
             }
             let flat = map.flatten().unwrap();
             for i in 0..200 {
-                assert_eq!(flat.get(&format!("src{i}")), Some(&BlockValue::Int(7)));
+                assert_eq!(flat.get(&format!("src{i}")), Some(&[BlockValue::Int(7)][..]));
             }
         }
 
@@ -684,23 +1059,71 @@ mod tests {
             }
         }
 
-        /// Se nessun contributo e' una promessa, l'appiattimento e' pura riduzione: ogni id
-        /// conserva i suoi valori, nell'ordine, e nessuno puo' fallire.
+        /// Se nessun contributo e' una promessa, l'appiattimento non e' una riduzione ma
+        /// l'identita': ogni id conserva **tutti** i suoi contributi, nell'ordine, elemento per
+        /// elemento — contenitori compresi. E' la proprieta' che il vecchio disegno non poteva
+        /// soddisfare, perche' con `n == 1` restituiva il contributo scalarizzato e con `n > 1`
+        /// una `List` sintetica.
         #[test]
-        fn without_promises_flattening_preserves_the_contributions() {
+        fn without_promises_flattening_preserves_every_contribution() {
             for n_contributions in 1..8_usize {
                 let mut map = PromiseMap::new();
                 for i in 0..n_contributions {
-                    map.push("x", i as i64);
+                    map.push("scalari", i as i64);
+                    map.push("contenitori", BlockValue::List(vec![BlockValue::Int(i as i64)]));
+                    map.push("misti", i as i64);
+                    map.push("misti", BlockValue::List(vec![BlockValue::Int(i as i64)]));
                 }
                 let flat = map.flatten().unwrap();
-                let expected = if n_contributions == 1 {
-                    BlockValue::Int(0)
-                } else {
-                    BlockValue::List((0..n_contributions).map(|i| BlockValue::Int(i as i64)).collect())
-                };
-                assert_eq!(flat.get("x"), Some(&expected), "con {n_contributions} contributi");
+                assert_eq!(flat.len(), map.len(), "con {n_contributions} contributi");
+                for (id, contributions) in map.iter() {
+                    assert_eq!(
+                        flat.get(id),
+                        Some(contributions),
+                        "id `{id}` con {n_contributions} contributi"
+                    );
+                }
             }
+        }
+
+        /// Su volume: un contributo-lista in posizione nota (non l'ultima) non viene ne' sciolto
+        /// ne' spostato. Copre insieme ordine, non-scioglimento e assenza di appiattimenti
+        /// accidentali.
+        #[test]
+        fn a_long_list_of_contributions_keeps_a_list_valued_one_in_place() {
+            const TOTAL: usize = 200;
+            const CONTAINER_AT: usize = 137;
+            let container = BlockValue::List(vec![BlockValue::Int(-1), BlockValue::Int(-2)]);
+
+            let mut map = PromiseMap::new();
+            for i in 0..TOTAL {
+                if i == CONTAINER_AT {
+                    map.push("x", container.clone());
+                } else {
+                    map.push("x", i as i64);
+                }
+            }
+
+            let flat = map.flatten().unwrap();
+            let contributions = flat.get("x").expect("l'id ha contributi");
+            assert_eq!(contributions.len(), TOTAL);
+            assert_eq!(contributions[CONTAINER_AT], container);
+            assert_eq!(contributions[0], BlockValue::Int(0));
+
+            let expanded = flat.fulfill(&Promise::new("x[]")).unwrap();
+            match expanded {
+                BlockValue::List(values) => {
+                    assert_eq!(values.len(), TOTAL);
+                    assert_eq!(values[CONTAINER_AT], container);
+                    assert_eq!(values[TOTAL - 1], BlockValue::Int((TOTAL - 1) as i64));
+                }
+                other => panic!("attesa una lista, trovato {other:?}"),
+            }
+
+            assert_eq!(
+                flat.fulfill(&Promise::new("x")).unwrap(),
+                BlockValue::Int((TOTAL - 1) as i64)
+            );
         }
     }
 }

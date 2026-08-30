@@ -36,6 +36,7 @@
 //! un input arbitrario — verificato dal test di stress sotto (100+ stringhe generate).
 //!
 use std::path::PathBuf;
+use crate::core::tracing_setup::log_error;
 
 /// Separatore condiviso fra `cli::batch` (righe CSV) e `config_locations::env`
 /// (`FREEPORTS_REPORTS`, `M9-implementation-plan.md` §0 Q3) -- un'unica costante, non due
@@ -71,7 +72,15 @@ const URL_SCHEMES: [&str; 2] = ["http://", "https://"];
 /// alla grammatica.
 fn abspath(segment: &str) -> PathBuf {
     let path = PathBuf::from(segment);
-    if path.is_absolute() { path } else { std::env::current_dir().map(|cwd| cwd.join(&path)).unwrap_or(path) }
+    if path.is_absolute() {
+        return path;
+    }
+    std::env::current_dir()
+        .map(|cwd| cwd.join(&path))
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = log_error(&e), segment, "cannot read the current directory, keeping this document path relative: {e}");
+            path
+        })
 }
 
 /// Spezza `body` (già privato dello schema url, se presente) in segmenti separati da `:` non

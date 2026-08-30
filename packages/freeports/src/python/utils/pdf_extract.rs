@@ -28,10 +28,33 @@ use crate::formats_utils::pdf_extract::tabularizer::{
 use crate::formats_utils::pdf_extract::relative::RelativeInfo;
 use crate::input::document::page_dict::{self, PageDict};
 use crate::input::document::selection;
+use crate::core::tracing_setup::log_error;
 
 /// Un errore nativo come `ValueError` Python.
-fn value_error<E: std::fmt::Display>(error: E) -> PyErr {
+///
+/// Loggato prima della conversione (rule 1 di L2, stesso motivo di
+/// `python::input::py_get_target_companies`): oltre questo punto l'errore vive solo come eccezione
+/// Python, invisibile alla pipeline di tracing/`.log.csv` di questo crate. `error!`, non `warn!`:
+/// a differenza dei cast per valore (`python::utils::deserialize::cast_error`), qui il fallimento
+/// e' su un'intera pagina/configurazione/selezione, non su un singolo valore che il codice
+/// d'autore prova e scarta.
+/// Aggancia anche il campo `error` strutturato, cosi' che `freeports.log.jsonl` (e, a `-vvv`,
+/// `.freeports.log.yaml`) ne portino forma `Debug`, forma `Display` e catena di `source()` e non
+/// la sola stringa del messaggio — L5, richiesta dell'utente. Il limite che lo impediva prima era
+/// il vincolo `Display` di questa firma, tenuto per l'unico chiamante che passa una `String`:
+/// quel caso ha ora la sua funzione, [`value_error_msg`], e questa puo' chiedere un vero
+/// `std::error::Error`.
+fn value_error<E: std::error::Error + 'static>(error: E) -> PyErr {
+    tracing::error!(error = log_error(&error), "pdf_extract call failed: {error}");
     pyo3::exceptions::PyValueError::new_err(error.to_string())
+}
+
+/// La variante per il solo chiamante che non ha un errore da passare ma un messaggio gia'
+/// composto (`pdfline_selection_from_dict`, che descrive una mappatura Python malformata). Stesso
+/// evento, senza la parte strutturata: non c'e' nessun `Err` da serializzare.
+fn value_error_msg(message: String) -> PyErr {
+    tracing::error!("pdf_extract call failed: {message}");
+    pyo3::exceptions::PyValueError::new_err(message)
 }
 
 // =================================================================================================
@@ -323,6 +346,7 @@ fn bound_from_py(value: &Bound<'_, PyAny>) -> PyResult<OptionallyRelative<f32, P
         return Ok(OptionallyRelative::Absolute(absolute));
     }
     let selection = value.extract::<PyPdfLineSelection>().map_err(|_| {
+        tracing::error!("area_from_bounds: a bound was neither a number nor a PdfLineSelection");
         pyo3::exceptions::PyTypeError::new_err(
             "an area bound must be a number or a PdfLineSelection",
         )
@@ -350,7 +374,8 @@ impl PyPdfLineSet {
 #[pyo3(name = "pdflines_from_pagedict", signature = (page, auto_rotate=true))]
 pub fn py_pdflines_from_pagedict(page: &Bound<'_, PyDict>, auto_rotate: bool) -> PyResult<Vec<PyPdfLine>> {
     let page = PageDict::from_py(page).map_err(value_error)?;
-    Ok(page_dict::pdflines_from_pagedict(&page, auto_rotate).into_iter().map(PyPdfLine).collect())
+    let lines = page_dict::pdflines_from_pagedict(&page, auto_rotate);
+    Ok(lines.into_iter().map(PyPdfLine).collect())
 }
 
 /// Le immagini raster di una pagina, dallo stesso dict.
@@ -358,7 +383,8 @@ pub fn py_pdflines_from_pagedict(page: &Bound<'_, PyDict>, auto_rotate: bool) ->
 #[pyo3(name = "pdfimages_from_pagedict", signature = (page))]
 pub fn py_pdfimages_from_pagedict(page: &Bound<'_, PyDict>) -> PyResult<Vec<PyPageImage>> {
     let page = PageDict::from_py(page).map_err(value_error)?;
-    Ok(page_dict::pdfimages_from_pagedict(&page).into_iter().map(PyPageImage).collect())
+    let images = page_dict::pdfimages_from_pagedict(&page);
+    Ok(images.into_iter().map(PyPageImage).collect())
 }
 
 /// Shim Python di [`PageImage`].
@@ -395,7 +421,7 @@ pub fn py_pdfline_selection_from_str(input: &str) -> PyResult<PyPdfLineSelection
 #[pyo3(name = "pdfline_selection_from_dict", signature = (data))]
 pub fn py_pdfline_selection_from_dict(data: &Bound<'_, PyAny>) -> PyResult<PyPdfLineSelection> {
     let spec: selection::InputPdfLineSet = serde_json::from_str(&py_to_json(data)?)
-        .map_err(|e| value_error(format!("not a valid line-selection mapping: {e}")))?;
+        .map_err(|e| value_error_msg(format!("not a valid line-selection mapping: {e}")))?;
     selection::pdfline_selection_from_dict(&spec).map(into_shim).map_err(value_error)
 }
 
@@ -489,7 +515,9 @@ pub fn py_get_table_coordinates(
         company_col,
         collapse,
     };
-    get_table_coordinates_from_lines(&lines_from_py(lines)?, &config).map_err(value_error)
+    let lines = lines_from_py(lines)?;
+    let coords = get_table_coordinates_from_lines(&lines, &config).map_err(value_error)?;
+    Ok(coords)
 }
 
 /// Shim Python di [`Limits`], l'intervallo `(a, b)` con `a < b`.

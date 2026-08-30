@@ -32,6 +32,7 @@ use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 use crate::input::document::page_dict::{self, PageDict};
 
 use super::core::{PyPdfBlock, PyTextBlock};
+use crate::core::tracing_setup::log_error;
 
 /// Un errore di pipe come `RuntimeError` Python.
 fn pipe_error<E: std::fmt::Display>(error: E) -> PyErr {
@@ -63,7 +64,17 @@ impl PyPdfExtractPipe {
     fn __call__(&self, page: &Bound<'_, PyAny>) -> PyResult<Vec<PyPdfBlock>> {
         let py = page.py();
         let page = page_from_py(page)?;
-        let blocks = self.0.extract(&page).map_err(pipe_error)?;
+        let blocks = self.0.extract(&page).map_err(|e| {
+            // Called directly from Python (not through `core::algorithm`'s engine, which never
+            // goes through this wrapper's `__call__`), so this is the only place a failure of
+            // this specific invocation can ever be recorded before it becomes a Python
+            // `RuntimeError`, invisible to this crate's own tracing/CSV pipeline.
+            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native pdf_extract pipe called from Python failed: {e}");
+            pipe_error(e)
+        })?;
+        // `trace!`, not `debug!`: mirrors `formats_repo::unstructured::py_pipe`'s own pipes,
+        // which run once per page (rule 2, hot per-page dispatch).
+        tracing::trace!(pipe = self.0.name(), block_count = blocks.len(), "native pdf_extract pipe called from Python");
         blocks.iter().map(|block| PyPdfBlock::from_native(py, block)).collect()
     }
 
@@ -104,7 +115,11 @@ impl PyTextFilterPipe {
         let companies = target_companies_from_py(filter_data)?;
         let previous = previous_results_from_py(filter_data)?;
         let data = filter_data_of(&companies, &previous);
-        let out = self.0.filter(&blocks, &data).map_err(pipe_error)?;
+        let out = self.0.filter(&blocks, &data).map_err(|e| {
+            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native text_filter pipe called from Python failed: {e}");
+            pipe_error(e)
+        })?;
+        tracing::trace!(pipe = self.0.name(), block_count = out.len(), "native text_filter pipe called from Python");
         out.iter().map(|block| PyTextBlock::from_native(py, block)).collect()
     }
 
@@ -144,7 +159,12 @@ impl PyDeserializePipe {
         py: Python<'py>,
         txt_blk: PyRef<'_, PyTextBlock>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let results = self.0.deserialize(&txt_blk.native(py)?).map_err(pipe_error)?;
+        let results = self.0.deserialize(&txt_blk.native(py)?).map_err(|e| {
+            tracing::error!(error = log_error(&e), pipe = self.0.name(), "native deserialize pipe called from Python failed: {e}");
+            pipe_error(e)
+        })?;
+        // `trace!`: runs once per text block, the finest granularity of the three (rule 2).
+        tracing::trace!(pipe = self.0.name(), result_count = results.len(), "native deserialize pipe called from Python");
         match results.into_iter().next() {
             Some(extracted) => extracted_to_py(py, &extracted),
             None => Ok(py.None().into_bound(py)),

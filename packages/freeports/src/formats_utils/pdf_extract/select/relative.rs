@@ -297,9 +297,12 @@ impl RelativeInfo<FontSet> for RelativeFontSet {
     fn contextualize(self, lines: &[PdfLine]) -> FontSet {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
-        lines
-            .iter()
-            .filter(|l| line_set.contains(l))
+        let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
+        if matched.is_empty() {
+            tracing::trace!("RelativeFontSet: target selection matched no line, resolved to an empty set");
+        }
+        matched
+            .into_iter()
             .map(|l| FontSet::from_atom(l.font().clone()))
             .reduce(|a, b| a | b)
             .unwrap_or(FontSet::empty())
@@ -310,9 +313,12 @@ impl RelativeInfo<TextSet> for RelativeTextSet {
     fn contextualize(self, lines: &[PdfLine]) -> TextSet {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
-        lines
-            .iter()
-            .filter(|l| line_set.contains(l))
+        let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
+        if matched.is_empty() {
+            tracing::trace!("RelativeTextSet: target selection matched no line, resolved to an empty set");
+        }
+        matched
+            .into_iter()
             .map(|l| TextSet::new(&format!("^{}$", l.text())))
             .reduce(|a, b| a | b)
             .unwrap_or(TextSet::empty())
@@ -323,9 +329,12 @@ impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
     fn contextualize(self, lines: &[PdfLine]) -> FontSizeInterval {
         let Self::Select(r) = self;
         let line_set = r.contextualize(lines);
-        lines
-            .iter()
-            .filter(|l| line_set.contains(l))
+        let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
+        if matched.is_empty() {
+            tracing::trace!("RelativeFontSizeInterval: target selection matched no line, resolved to an empty set");
+        }
+        matched
+            .into_iter()
             .map(|l| {
                 let fs = *l.font_size();
                 let a = max(OrderedFloat(0.0), OrderedFloat(fs - 1e-4)).into_inner();
@@ -361,11 +370,11 @@ impl RelativeArea {
     fn contextualize_movewindow(lines: &[PdfLine], target: PdfLineSelection, vec: (f32, f32), width_mult: f32, height_mult: f32) -> Area {
         let line_set = target.contextualize(lines);
         let (x, y) = vec;
-        lines
-            .iter()
-            .filter(|l| line_set.contains(l))
-            .map(|l| l.bbox().as_tuple())
-            .next()
+        let anchor = lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next();
+        if anchor.is_none() {
+            tracing::trace!("RelativeArea::MoveWindow: target selection matched no line, resolved to an empty area");
+        }
+        anchor
             .map(|(x0, y0, x1, y1)| {
                 let w = x1 - x0;
                 let h = y1 - y0;
@@ -386,7 +395,10 @@ impl RelativeArea {
                 let line_set = rls.contextualize(lines);
                 match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
                     Some((_, _, x1, _)) => x1,
-                    None => 0.0,
+                    None => {
+                        tracing::trace!(side = "x0", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        0.0
+                    }
                 }
             }
         };
@@ -396,7 +408,10 @@ impl RelativeArea {
                 let line_set = rls.contextualize(lines);
                 match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
                     Some((x0, _, _, _)) => x0,
-                    None => 10e+6,
+                    None => {
+                        tracing::trace!(side = "x1", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        10e+6
+                    }
                 }
             }
         };
@@ -406,7 +421,10 @@ impl RelativeArea {
                 let line_set = rls.contextualize(lines);
                 match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
                     Some((_, _, _, y1)) => y1,
-                    None => 0.0,
+                    None => {
+                        tracing::trace!(side = "y0", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        0.0
+                    }
                 }
             }
         };
@@ -416,7 +434,10 @@ impl RelativeArea {
                 let line_set = rls.contextualize(lines);
                 match lines.iter().filter(|l| line_set.contains(l)).map(|l| l.bbox().as_tuple()).next() {
                     Some((_, y0, _, _)) => y0,
-                    None => 10e+6,
+                    None => {
+                        tracing::trace!(side = "y1", "RelativeArea::Bounds: side selection matched no line, using fallback bound");
+                        10e+6
+                    }
                 }
             }
         };
@@ -424,7 +445,11 @@ impl RelativeArea {
     }
     fn contextualize_selection(lines: &[PdfLine], set: PdfLineSelection) -> Area {
         let line_set = set.contextualize(lines);
-        lines.iter().filter(|l| line_set.contains(l)).map(|l| Area::from_atom(*l.bbox())).reduce(|a, b| a | b).unwrap_or(Area::empty())
+        let matched: Vec<&PdfLine> = lines.iter().filter(|l| line_set.contains(l)).collect();
+        if matched.is_empty() {
+            tracing::trace!("RelativeArea::Select: target selection matched no line, resolved to an empty area");
+        }
+        matched.into_iter().map(|l| Area::from_atom(*l.bbox())).reduce(|a, b| a | b).unwrap_or(Area::empty())
     }
 }
 

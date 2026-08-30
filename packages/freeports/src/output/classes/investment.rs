@@ -437,9 +437,9 @@ mod tests {
         #[test]
         fn resolving_fills_the_field_in_place() {
             let mut equity = promised_equity();
-            let map = FlatPromiseMap::from_iter([
-                ("fund-id".to_string(), vec![BlockValue::from("Alpha Fund")]),
-                ("cur-id".to_string(), vec![BlockValue::from(Currency::USD)]),
+            let map = FlatPromiseMap::from_pairs([
+                ("fund-id".to_string(), BlockValue::from("Alpha Fund")),
+                ("cur-id".to_string(), BlockValue::from(Currency::USD)),
             ]);
             assert_eq!(fulfill_promises(&mut equity, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(equity.data.fund.resolved().map(String::as_str), Some("Alpha Fund"));
@@ -450,7 +450,7 @@ mod tests {
         fn resolving_an_integer_into_a_float_field_works() {
             let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
             let mut equity = Equity::build(f).unwrap();
-            let map = FlatPromiseMap::from_iter([("mv".to_string(), vec![BlockValue::from(1500i64)])]);
+            let map = FlatPromiseMap::from_pairs([("mv".to_string(), BlockValue::from(1500i64))]);
             fulfill_promises(&mut equity, &map).unwrap();
             assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(1500.0));
         }
@@ -459,7 +459,7 @@ mod tests {
         fn a_bond_resolves_the_same_shared_fields_as_an_equity() {
             let f = InvestmentFields { fund: BlockValue::Promise(Promise::new("fund-id")), ..fields() };
             let mut bond = Bond::build(f, None, None).unwrap();
-            let map = FlatPromiseMap::from_iter([("fund-id".to_string(), vec![BlockValue::from("Alpha Fund")])]);
+            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Alpha Fund"))]);
             fulfill_promises(&mut bond, &map).unwrap();
             assert_eq!(bond.data.fund.resolved().map(String::as_str), Some("Alpha Fund"));
         }

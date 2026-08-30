@@ -142,7 +142,16 @@ impl Algorithm {
     /// modulo del crate che definisce il tipo, quindi la API pubblica resta quella che
     /// `PLAN.md` §5.5 chiede, `Algorithm::load`, senza invertire le dipendenze.
     pub fn load(formats_repo_dir: &Path, format_name: &FormatName) -> Result<Algorithm, LoadError> {
+        // I due span nidificati del vocabolario `Activity` per il ramo di caricamento
+        // (`PLAN.md` §3 L1/L2): nessun altro punto del crate ne apre uno per `formats_repo`/
+        // `format`, quindi le coordinate di ogni evento emesso durante il caricamento — dal CSV
+        // dei metadati fino all'ultima pipeline unstructured — arrivano da qui.
+        let repo_span = tracing::info_span!("formats_repo", path = %formats_repo_dir.display());
+        let _repo_guard = repo_span.enter();
         let name = format_name.as_str();
+        let format_span = tracing::info_span!("format", format = name);
+        let _format_guard = format_span.enter();
+
         let known_formats = metadata::get_formats(formats_repo_dir)?;
         if !known_formats.iter().any(|f| f == name) {
             return Err(LoadError::UnknownFormat { format: name.to_string(), known: known_formats.len() });
@@ -170,13 +179,17 @@ impl Algorithm {
             })
             .collect();
 
-        Ok(Algorithm::new(
+        let pipeline_count = sorted_pipelines.len();
+        let step_count = schedule.steps().len();
+        let algorithm = Algorithm::new(
             format_name.clone(),
             sorted_pipelines,
             &classify_names,
             finalizer,
             schedule,
             sorted_mapping,
-        )?)
+        )?;
+        tracing::info!(pipeline_count, step_count, "format algorithm loaded");
+        Ok(algorithm)
     }
 }

@@ -62,6 +62,7 @@ use std::path::{Path, PathBuf};
 
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum BatchError {
@@ -139,9 +140,26 @@ fn row_to_partial_config(row: usize, fields: &std::collections::HashMap<&str, St
     Ok(PartialConfig { reports, format, save_pdf, target_lists, ..PartialConfig::default() })
 }
 
+/// Batch job dispatch: wraps [`load_jobs_impl`] in its own span (`path` is the coordinate that
+/// identifies this batch operation, the closest thing to a "config source path" this module has)
+/// and logs the outcome exactly once -- this is the only place every `BatchError` variant is
+/// actually constructed (directly, via [`batch_csv_err`], or via [`row_to_partial_config`]/
+/// [`parse_bool`]).
+pub fn load_jobs(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
+    let span = tracing::info_span!("batch", path = %path.display());
+    let _guard = span.enter();
+
+    let result = load_jobs_impl(path);
+    match &result {
+        Ok(jobs) => tracing::info!(job_count = jobs.len(), "loaded batch file"),
+        Err(e) => tracing::error!(error = log_error(e), "cannot load batch file: {e}"),
+    }
+    result
+}
+
 /// Righe numerate a partire da 1 (l'intestazione non conta), stesso ordine del file. Un CSV con
 /// la sola intestazione (zero righe dati) -> `Ok(Vec::new())`, non un errore.
-pub fn load_jobs(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
+fn load_jobs_impl(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
     let mut reader =
         csv::ReaderBuilder::new().has_headers(true).from_path(path).map_err(|e| batch_csv_err(path, e))?;
 

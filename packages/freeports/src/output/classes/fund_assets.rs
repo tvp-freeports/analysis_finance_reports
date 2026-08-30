@@ -273,7 +273,7 @@ mod tests {
         #[test]
         fn resolving_currency_and_date_works_in_place() {
             let mut assets = promised_assets();
-            let map = FlatPromiseMap::from_iter([
+            let map = FlatPromiseMap::from_pairs([
                 ("cur-id".to_string(), BlockValue::from(Currency::USD)),
                 ("date-id".to_string(), BlockValue::from(Date::new(2024, 1, 1).unwrap())),
             ]);

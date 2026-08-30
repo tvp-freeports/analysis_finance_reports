@@ -141,7 +141,7 @@ mod tests {
         #[test]
         fn fulfilling_against_a_map_resolves_the_article_field() {
             let mut classification = promised_classification();
-            let map = FlatPromiseMap::from_iter([("article-id".to_string(), BlockValue::from(SfdrArticle::Art9))]);
+            let map = FlatPromiseMap::from_pairs([("article-id".to_string(), BlockValue::from(SfdrArticle::Art9))]);
             assert_eq!(fulfill_promises(&mut classification, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(classification.article.resolved(), Some(&SfdrArticle::Art9));
         }

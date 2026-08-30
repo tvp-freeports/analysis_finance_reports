@@ -86,6 +86,10 @@ const FONT_SIZE_PRECISION: f32 = 1e-3;
 /// Costruisce una `PdfLineSelection` (sempre `Absolute`, mai `Relative`) intersecando i criteri
 /// presenti.
 pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
+    // Called once per selection spec while a formats repo loads, potentially thousands of times
+    // across a whole repo (rule 2): never above `trace!`.
+    tracing::trace!(?data, "building a pdf line selection from a dict spec");
+
     let font_size_set = match data.font_size {
         Some(fs) if fs <= 0.0 => return Err(LineSelectionError::FontSizeNotPositive(fs)),
         Some(fs) => Some(FontSizeInterval::from_precision(fs, FONT_SIZE_PRECISION)),
@@ -177,6 +181,9 @@ fn parse_bound_pair(text: &str) -> (Option<f32>, Option<f32>) {
 /// `"text"`) in un `InputPdfLineSet`, poi **delega** a [`pdfline_selection_from_dict`]
 /// (D-M6-6 di `agent-memory/M6-implementation-plan.md`).
 pub fn pdfline_selection_from_str(input: &str) -> Result<PdfLineSelection, LineSelectionError> {
+    // Same volume caveat as `pdfline_selection_from_dict` (rule 2): `trace!` only.
+    tracing::trace!(input, "parsing a compact pdf line selection expression");
+
     let captures = LINE_SET_REGEXP
         .captures(input)
         .expect("every group in LINE_SET_REGEXP is optional, so it matches any string, including the empty one");

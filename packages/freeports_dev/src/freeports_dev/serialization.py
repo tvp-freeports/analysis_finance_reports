@@ -28,29 +28,15 @@ from freeports.core import PdfBlock, Promise, TextBlock
 # serve qui (`.name`, `__module__`/`__qualname__`, e la lookup `cls[NOME]`) ce l'hanno.
 _ENUM_LIKE_TYPES = (Enum, Currency, SfdrArticle, FinancialInstrument)
 
-# Le fixture registrate prima della riscrittura in Rust portano i percorsi di modulo del vecchio
-# layout `freeports._internals`. Non vengono riscritte: si rimappano in lettura, cosi' una
-# fixture vecchia e una nuova si confrontano senza doverle rigenerare tutte.
-_LEGACY_MODULES = {
-    "freeports._internals.output.classes_schema": "freeports.output",
-    "freeports._internals.commons.consts": "freeports.consts",
-    "freeports._native": "freeports.core",
-    "freeports._internals.core.classes": "freeports.core",
-}
-
 
 class SerializationError(Exception):
     """Un oggetto non e' serializzabile, o un tag non e' risolvibile."""
 
 
-def _resolve_module(module_path: str) -> str:
-    return _LEGACY_MODULES.get(module_path, module_path)
-
-
 def _resolve_class(tag: str):
-    """La classe nominata da un tag `modulo:QualName`, rimappando i percorsi vecchi."""
+    """La classe nominata da un tag `modulo:QualName`."""
     module_path, qualname = tag.rsplit(":", 1)
-    module = importlib.import_module(_resolve_module(module_path))
+    module = importlib.import_module(module_path)
     try:
         return getattr(module, qualname)
     except AttributeError as exc:
@@ -75,7 +61,7 @@ def _is_entity(obj: Any) -> bool:
 def _promise_tag(p: Promise) -> dict:
     return {
         "__promise__": True,
-        "id": str(p),
+        "id": p.id,
         "strict": p.strict,
         "multiple": p.multiple,
     }

@@ -60,9 +60,11 @@ pub fn download_pdf(url: &str, pdf: Option<&Path>) -> Result<Vec<u8>, DownloadEr
         .into_reader()
         .read_to_end(&mut buf)
         .map_err(|source| DownloadError::Io { path: pdf.map(Path::to_path_buf).unwrap_or_default(), source })?;
+    tracing::debug!(url, byte_count = buf.len(), "download completed");
 
     if let Some(path) = pdf {
         std::fs::write(path, &buf).map_err(|source| DownloadError::Io { path: path.to_path_buf(), source })?;
+        tracing::info!(path = %path.display(), byte_count = buf.len(), "downloaded pdf written to disk");
     }
 
     Ok(buf)

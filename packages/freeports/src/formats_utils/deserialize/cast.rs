@@ -35,7 +35,7 @@
 //! - **Warning di forced-cast via `tracing`**: `to_float`/`to_int`/`perc_to_float` emettono
 //!   `tracing::warn!(...)` quando il dato non e' gia' in forma numerica pulita (rispettivamente,
 //!   per `perc_to_float`, quando un `%` letterale forza la normalizzazione nonostante
-//!   `norm=false`) — senza impostare `page`/`company`/`field` (arriveranno da uno span aperto in
+//!   `norm=false`) — senza impostare `page`/`coord_ref_1`/`coord_ref_2` (arriveranno da uno span aperto in
 //!   M5+, `agent-memory/M4-implementation-plan.md` §2). `mod forced_cast_warnings` verifica solo
 //!   che l'evento venga emesso (via un `tracing_subscriber::Layer` di test, non tramite
 //!   `.log.csv`/`CsvLogLayer`: quel layer scrive una riga solo se l'evento porta almeno uno dei

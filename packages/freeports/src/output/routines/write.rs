@@ -194,14 +194,23 @@ fn csv_err(path: &Path, source: csv::Error) -> WriteFilesError {
 /// Scrive `rows` come CSV in `path`, con l'intestazione `header` **sempre presente** — anche a
 /// zero righe, a differenza del comportamento di default del crate `csv` (che scrive
 /// l'intestazione solo alla prima `serialize`, quindi mai se non c'e' nessuna riga).
+///
+/// Apre lo span `write[<file>]` (`PLAN.md` §3 L1/L2's `Activity` vocabulary): questa e' la
+/// primitiva comune per ogni singolo CSV di output, quindi il punto giusto in cui annidarlo sotto
+/// lo span `output` gia' aperto da `cli::output::write_results`.
 fn write_csv_table<T: Serialize>(path: &Path, header: &[&str], rows: &[T]) -> Result<(), WriteFilesError> {
+    let span = tracing::info_span!("write", file = %path.display());
+    let _guard = span.enter();
+
     let mut wtr =
         csv::WriterBuilder::new().has_headers(false).from_path(path).map_err(|e| csv_err(path, e))?;
     wtr.write_record(header).map_err(|e| csv_err(path, e))?;
     for row in rows {
         wtr.serialize(row).map_err(|e| csv_err(path, e))?;
     }
-    wtr.flush().map_err(|e| io_err("flush", path, e))
+    wtr.flush().map_err(|e| io_err("flush", path, e))?;
+    tracing::info!(rows = rows.len(), "file written");
+    Ok(())
 }
 
 fn sfdr_label(article: SfdrArticle) -> &'static str {
@@ -514,7 +523,9 @@ fn split_by_report_and_format<'a, T>(
 }
 
 fn write_investments_csv_separate(out_dir: &Path, rows: &[InvestmentRow]) -> Result<(), WriteFilesError> {
-    for (report, format, group) in split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str()) {
+    let groups = split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str());
+    tracing::debug!(groups = groups.len(), "splitting investments by report and format for separate_out");
+    for (report, format, group) in groups {
         let path = out_dir.join(format!("investments__{report}__{format}.csv"));
         let csv_rows: Vec<InvestmentCsvRow> = group.into_iter().map(InvestmentCsvRow::from).collect();
         write_csv_table(&path, &INVESTMENTS_HEADER, &csv_rows)?;
@@ -523,7 +534,9 @@ fn write_investments_csv_separate(out_dir: &Path, rows: &[InvestmentRow]) -> Res
 }
 
 fn write_funds_assets_csv_separate(out_dir: &Path, rows: &[FundAssetsRow]) -> Result<(), WriteFilesError> {
-    for (report, format, group) in split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str()) {
+    let groups = split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str());
+    tracing::debug!(groups = groups.len(), "splitting funds_assets by report and format for separate_out");
+    for (report, format, group) in groups {
         let path = out_dir.join(format!("funds_assets__{report}__{format}.csv"));
         let csv_rows: Vec<FundAssetsCsvRow> = group.into_iter().map(FundAssetsCsvRow::from).collect();
         write_csv_table(&path, &FUNDS_ASSETS_HEADER, &csv_rows)?;
@@ -581,8 +594,13 @@ fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Resul
 /// manuale non rinuncia a niente: nessun campo puo' contenere caratteri da quotare o strutture
 /// annidate.
 fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditionalInfoRow>) -> Result<(), WriteFilesError> {
+    let span = tracing::info_span!("write", file = %path.display());
+    let _guard = span.enter();
+
     if infos.is_empty() {
-        return std::fs::write(path, "{}\n").map_err(|e| io_err("write", path, e));
+        std::fs::write(path, "{}\n").map_err(|e| io_err("write", path, e))?;
+        tracing::info!(entries = 0, "file written");
+        return Ok(());
     }
     let mut yaml = String::new();
     for (id, row) in infos {
@@ -596,7 +614,9 @@ fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditional
             None => yaml.push_str("  interest_rate: null\n"),
         }
     }
-    std::fs::write(path, yaml).map_err(|e| io_err("write", path, e))
+    std::fs::write(path, yaml).map_err(|e| io_err("write", path, e))?;
+    tracing::info!(entries = infos.len(), "file written");
+    Ok(())
 }
 
 fn write_regular(tables: &TransformedTables, out_dir: &Path, separate_out: bool) -> Result<(), WriteFilesError> {
@@ -710,33 +730,55 @@ fn write_structured(tables: &TransformedTables, out_dir: &Path) -> Result<(), Wr
     write_additional_infos_yaml(&sub.join("dicts.yaml"), &tables.additional_infos)
 }
 
+/// Il nome file di `path`, o una stringa vuota se `path` non ne ha uno o non e' UTF-8 valido —
+/// caso limite assorbito silenziosamente dal riferimento (`unwrap_or_default`), quindi loggato qui
+/// prima di procedere con un nome d'archivio degradato (regola 1 di L2).
+fn file_name_or_warn(path: &Path) -> &str {
+    match path.file_name().and_then(|n| n.to_str()) {
+        Some(name) => name,
+        None => {
+            tracing::warn!(path = %path.display(), "path has no valid UTF-8 file name; using an empty archive name");
+            ""
+        }
+    }
+}
+
 /// Porting diretto di `compress_single_file`: `.gz` sibling di `path` (non `.tar.gz`, non c'è una
 /// directory da archiviare).
 fn compress_single_file(path: &Path) -> Result<(), WriteFilesError> {
-    let archive_name = format!("{}.gz", path.file_name().and_then(|n| n.to_str()).unwrap_or_default());
+    let archive_name = format!("{}.gz", file_name_or_warn(path));
     let archive_path = path.with_file_name(archive_name);
+
+    let span = tracing::info_span!("write", file = %archive_path.display());
+    let _guard = span.enter();
+
     let mut input = File::open(path).map_err(|e| io_err("open", path, e))?;
     let output = File::create(&archive_path).map_err(|e| io_err("create", &archive_path, e))?;
     let mut encoder = flate2::write::GzEncoder::new(output, flate2::Compression::default());
     std::io::copy(&mut input, &mut encoder).map_err(|e| io_err("gzip", path, e))?;
     encoder.finish().map_err(|e| io_err("finish gzip", path, e))?;
+    tracing::info!("file written");
     Ok(())
 }
 
 /// Porting diretto di `compress_directory`: `.tar.gz` **sibling** di `dir` (non dentro `dir`
 /// stessa).
 fn compress_directory(dir: &Path) -> Result<(), WriteFilesError> {
-    let archive_name = format!("{}.tar.gz", dir.file_name().and_then(|n| n.to_str()).unwrap_or_default());
-    let archive_path = dir.with_file_name(archive_name);
+    let dir_name = file_name_or_warn(dir);
+    let archive_path = dir.with_file_name(format!("{dir_name}.tar.gz"));
+
+    let span = tracing::info_span!("write", file = %archive_path.display());
+    let _guard = span.enter();
+
     let output = File::create(&archive_path).map_err(|e| io_err("create", &archive_path, e))?;
     let encoder = flate2::write::GzEncoder::new(output, flate2::Compression::default());
     let mut builder = tar::Builder::new(encoder);
-    let arcname = dir.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-    builder.append_dir_all(arcname, dir).map_err(|e| io_err("tar", dir, e))?;
+    builder.append_dir_all(dir_name, dir).map_err(|e| io_err("tar", dir, e))?;
     builder
         .into_inner()
         .and_then(|mut e| e.flush())
         .map_err(|e| io_err("finish tar.gz", &archive_path, e))?;
+    tracing::info!("file written");
     Ok(())
 }
 
@@ -749,6 +791,7 @@ pub fn write_files(
     profile: OutStructureMode,
     flags: OutFlags,
 ) -> Result<(), WriteFilesError> {
+    tracing::debug!(profile = ?profile, flags = ?flags, "resolved output profile and flags");
     let remove_uncompressed = !out_dir.exists();
 
     match profile {
@@ -762,11 +805,13 @@ pub fn write_files(
             compress_single_file(out_dir)?;
             if remove_uncompressed {
                 std::fs::remove_file(out_dir).map_err(|e| io_err("remove", out_dir, e))?;
+                tracing::info!(path = %out_dir.display(), "removed uncompressed output after compression");
             }
         } else {
             compress_directory(out_dir)?;
             if remove_uncompressed {
                 std::fs::remove_dir_all(out_dir).map_err(|e| io_err("remove", out_dir, e))?;
+                tracing::info!(path = %out_dir.display(), "removed uncompressed output after compression");
             }
         }
     }

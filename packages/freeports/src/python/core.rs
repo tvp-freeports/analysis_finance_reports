@@ -170,7 +170,15 @@ impl PyPdfBlock {
         match other.extract::<PyRef<'_, PyPdfBlock>>() {
             Ok(other) => match (self.native(py), other.native(py)) {
                 (Ok(a), Ok(b)) => a == b,
-                _ => false,
+                _ => {
+                    // `__eq__` non puo' restituire un `PyResult`: un metadato non convertibile in
+                    // `BlockValue` viene assorbito qui in un "non uguale" invece di risalire come
+                    // errore, quindi va loggato prima (regola 1 di L2).
+                    tracing::warn!(
+                        "PdfBlock.__eq__ could not convert metadata to native form; treating as not equal"
+                    );
+                    false
+                }
             },
             Err(_) => false,
         }
@@ -304,7 +312,14 @@ impl PyTextBlock {
         match other.extract::<PyRef<'_, PyTextBlock>>() {
             Ok(other) => match (self.native(py), other.native(py)) {
                 (Ok(a), Ok(b)) => a == b,
-                _ => false,
+                _ => {
+                    // Stessa ragione di `PyPdfBlock::__eq__`: `__eq__` non puo' propagare
+                    // l'errore di conversione, quindi lo si logga prima di assorbirlo.
+                    tracing::warn!(
+                        "TextBlock.__eq__ could not convert metadata to native form; treating as not equal"
+                    );
+                    false
+                }
             },
             Err(_) => false,
         }
@@ -477,10 +492,13 @@ impl PyPipeline {
         text_filter: Option<&Bound<'_, PyAny>>,
         deserialize: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<Self> {
+        let pdf_extract = segment_list(py, "pdf_extract", pdf_extract)?;
+        let text_filter = segment_list(py, "text_filter", text_filter)?;
+        let deserialize = segment_list(py, "deserialize", deserialize)?;
         Ok(PyPipeline {
-            pdf_extract: segment_list(py, "pdf_extract", pdf_extract)?.unbind(),
-            text_filter: segment_list(py, "text_filter", text_filter)?.unbind(),
-            deserialize: segment_list(py, "deserialize", deserialize)?.unbind(),
+            pdf_extract: pdf_extract.unbind(),
+            text_filter: text_filter.unbind(),
+            deserialize: deserialize.unbind(),
         })
     }
 

@@ -39,7 +39,14 @@ impl Translator {
     /// original relies on (untranslated strings degrade gracefully to the original text rather
     /// than erroring).
     pub fn gettext(&self, msg_id: &str) -> String {
-        self.catalog.gettext(msg_id).to_string()
+        let translated = self.catalog.gettext(msg_id);
+        if translated == msg_id {
+            // The fallback itself is by design, not an error (see the doc comment above), but a
+            // missing catalog entry is exactly the kind of gap a translator maintaining `.mo`
+            // files wants visibility into without having to ask.
+            tracing::debug!(msg_id, "no translation found, falling back to the original message");
+        }
+        translated.to_string()
     }
 }
 

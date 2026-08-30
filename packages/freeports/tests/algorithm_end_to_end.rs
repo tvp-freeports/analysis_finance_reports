@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use freeports::api::core::{
     Algorithm, BlockType, BlockValue, Document, Extracted, FilterData, Page, PageClass,
-    PageClassFinalizer, PdfBlock, PdfExtractPipe, PipeError, Pipeline, PipelineName, PromiseMap,
-    Schedule, ScheduleStep, TextBlock, TextFilterPipe,
+    PageClassFinalizer, PdfBlock, PdfExtractPipe, PipeError, Pipeline, PipelineName, Promise,
+    PromiseMap, Schedule, ScheduleStep, TextBlock, TextFilterPipe,
 };
 use freeports::api::core::{DeserializePipe, PromiseEntries};
 
@@ -140,6 +140,30 @@ impl DeserializePipe for PromiseFundName {
     }
 }
 
+/// Deposita **un solo** contributo, che è però un contenitore: le parole del contenuto del blocco
+/// raccolte in una `BlockValue::List`.
+///
+/// È la prova, attraverso la sola superficie `freeports::api`, che un contributo-contenitore non
+/// viene confuso con N contributi scalari (F2): un id con un solo contributo-lista deve restare
+/// distinguibile da un id con tante parole quante ne contiene la lista.
+struct PromiseWordsAsOneList;
+
+impl DeserializePipe for PromiseWordsAsOneList {
+    fn name(&self) -> &str {
+        "promise-words-as-one-list"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let content = block.content.as_str().ok_or_else(|| {
+            PipeError::extraction("promise-words-as-one-list", "block content is not a string")
+        })?;
+        let words: Vec<BlockValue> = content.split_whitespace().map(BlockValue::from).collect();
+        let mut entries = PromiseEntries::new();
+        entries.push("fund_words", BlockValue::List(words));
+        Ok(vec![Extracted::Promises(entries)])
+    }
+}
+
 /// Registra quante target companies e quanti risultati precedenti ha visto, e non produce nulla:
 /// serve a verificare la semantica di `FilterData` attraverso il motore intero.
 struct CountingFilter {
@@ -200,6 +224,15 @@ fn pipeline(
 /// L'algoritmo del test: classifica ogni pagina, poi in due step elabora prima le pagine
 /// `fund_info` e poi quelle `investments`.
 fn algorithm(investments_filter: Arc<dyn TextFilterPipe>) -> Algorithm {
+    algorithm_with(investments_filter, Arc::new(PromiseFundName))
+}
+
+/// Come [`algorithm`], ma con il deserializzatore che deposita le promesse scelto dal chiamante:
+/// serve a esercitare forme diverse di contributo attraverso lo stesso motore.
+fn algorithm_with(
+    investments_filter: Arc<dyn TextFilterPipe>,
+    promising: Arc<dyn DeserializePipe>,
+) -> Algorithm {
     let classify = pipeline(
         "classify",
         Arc::new(SplitLines),
@@ -210,13 +243,13 @@ fn algorithm(investments_filter: Arc<dyn TextFilterPipe>) -> Algorithm {
         "fund_info",
         Arc::new(SplitLines),
         KeepType::pipe("keep-fund", BlockType::FUND_NAME),
-        Arc::new(PromiseFundName),
+        Arc::clone(&promising),
     );
     let investments = pipeline(
         "investments",
         Arc::new(SplitLines),
         investments_filter,
-        Arc::new(PromiseFundName),
+        promising,
     );
 
     Algorithm::new(
@@ -285,8 +318,10 @@ mod single_document {
         );
     }
 
+    /// I contributi depositati da pagine diverse restano **due contributi** anche dopo
+    /// l'appiattimento: la multimappa non li fonde in un unico valore.
     #[test]
-    fn the_promises_deposited_across_pages_resolve_to_one_value() {
+    fn the_promises_deposited_across_pages_resolve_to_two_contributions() {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
         let outcome = algorithm.apply(&document("d", "Alpha Fund"), &[]).unwrap();
 
@@ -305,10 +340,16 @@ mod single_document {
         let flattened = promises.flatten().unwrap();
         assert_eq!(
             flattened.get("fund_name"),
-            Some(&BlockValue::List(vec![
-                BlockValue::from("Alpha Fund"),
-                BlockValue::from("Acme Corp"),
-            ]))
+            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+        );
+        // Promessa normale: vince l'ultima pagina. Promessa multiple: entrambe.
+        assert_eq!(
+            flattened.fulfill(&Promise::new("fund_name")).unwrap(),
+            BlockValue::from("Acme Corp")
+        );
+        assert_eq!(
+            flattened.fulfill(&Promise::new("fund_name[]")).unwrap(),
+            BlockValue::List(vec![BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")])
         );
     }
 
@@ -317,6 +358,75 @@ mod single_document {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
         let broken = Document::new("d", "TESTFMT-EN24", vec![page(1, &["no prefix here"])]);
         assert!(algorithm.apply(&broken, &[]).is_err());
+    }
+}
+
+/// F2, visto da fuori: un contributo che è un contenitore non è N contributi.
+mod container_valued_promises {
+    use super::*;
+
+    /// Raccoglie in una multimappa tutte le promesse depositate dalle pagine di un `outcome`.
+    fn collect(outcome: &freeports::api::core::DocumentOutcome) -> PromiseMap {
+        let mut promises = PromiseMap::new();
+        for page in &outcome.pages {
+            for result in &page.results {
+                if let Some(entries) = result.as_promises() {
+                    entries.merge_into(&mut promises);
+                }
+            }
+        }
+        promises
+    }
+
+    /// Ogni pagina deposita **un solo** contributo, che è una lista di parole. Dopo
+    /// l'appiattimento devono restare due contributi (uno per pagina), ognuno la sua lista
+    /// intatta — non quattro parole sciolte.
+    #[test]
+    fn a_list_contribution_survives_flattening_and_reaches_fulfill_intact() {
+        let algorithm = algorithm_with(
+            KeepType::pipe("keep-rows", BlockType::TABLE_BODY),
+            Arc::new(PromiseWordsAsOneList),
+        );
+        let outcome = algorithm.apply(&document("d", "Alpha Fund"), &[]).unwrap();
+        let promises = collect(&outcome);
+
+        assert_eq!(promises.get("fund_words").map(<[BlockValue]>::len), Some(2));
+
+        let alpha = BlockValue::List(vec![BlockValue::from("Alpha"), BlockValue::from("Fund")]);
+        let acme = BlockValue::List(vec![BlockValue::from("Acme"), BlockValue::from("Corp")]);
+
+        let flattened = promises.flatten().unwrap();
+        assert_eq!(flattened.get("fund_words"), Some(&[alpha.clone(), acme.clone()][..]));
+
+        // Promessa normale: vince l'ultimo contributo, ed è **la lista**, non il suo ultimo
+        // elemento — è esattamente il punto in cui il contenitore veniva confuso col contributo.
+        assert_eq!(
+            flattened.fulfill(&Promise::new("fund_words")).unwrap(),
+            acme.clone()
+        );
+        // Promessa multiple: due valori, ognuno la sua lista.
+        assert_eq!(
+            flattened.fulfill(&Promise::new("fund_words[]")).unwrap(),
+            BlockValue::List(vec![alpha, acme])
+        );
+    }
+
+    /// Lo stesso documento, deserializzato una volta in contributi-lista e una volta in contributi
+    /// scalari: le due mappe appiattite devono restare **diverse**.
+    #[test]
+    fn one_list_contribution_per_page_is_not_the_same_as_one_scalar_per_page() {
+        let doc = document("d", "Alpha Fund");
+        let filter = || KeepType::pipe("keep-rows", BlockType::TABLE_BODY);
+
+        let containers = algorithm_with(filter(), Arc::new(PromiseWordsAsOneList));
+        let scalars = algorithm_with(filter(), Arc::new(PromiseFundName));
+
+        let from_containers = collect(&containers.apply(&doc, &[]).unwrap()).flatten().unwrap();
+        let from_scalars = collect(&scalars.apply(&doc, &[]).unwrap()).flatten().unwrap();
+
+        assert_eq!(from_containers.get("fund_words").map(<[BlockValue]>::len), Some(2));
+        assert_eq!(from_scalars.get("fund_name").map(<[BlockValue]>::len), Some(2));
+        assert_ne!(from_containers.get("fund_words"), from_scalars.get("fund_name"));
     }
 }
 

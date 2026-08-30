@@ -25,7 +25,7 @@
 
 use std::sync::Arc;
 
-use crate::core::classes::{PdfBlock, TextBlock};
+use crate::core::classes::{BlockValue, PdfBlock, TextBlock};
 use crate::core::page::Page;
 
 use super::data::{Extracted, FilterData, PipeError};
@@ -137,6 +137,54 @@ impl<P: ?Sized> FromIterator<Arc<P>> for Segment<P> {
     }
 }
 
+/// Un estratto breve del contenuto di un blocco, pensato per una riga di log: il **testo** che un
+/// autore di formati puo' incollare in Ctrl-F dentro il PDF per ritrovare il punto.
+///
+/// E' la ragione per cui i log dei tre segmenti non si limitano piu' a contare i blocchi
+/// prodotti: un `blocks=12` non e' ancorabile a niente, mentre la prima riga di testo estratta
+/// dice subito *dove* e' successo. Il conteggio resta, come campo secondario.
+///
+/// Un contenitore (`List`/`Set`/`Map`) si riduce al primo elemento, ricorsivamente: un pipe che
+/// produce una tabella deve mostrare la prima cella, non `List([...])`.
+fn searchable_excerpt(value: &BlockValue) -> String {
+    /// Oltre questa soglia il testo viene troncato con un'ellissi: una riga di log deve restare
+    /// una riga.
+    const MAX_CHARS: usize = 60;
+
+    let raw = match value {
+        BlockValue::Null => String::new(),
+        BlockValue::Str(text) => text.clone(),
+        BlockValue::List(items) => items.first().map(searchable_excerpt).unwrap_or_default(),
+        BlockValue::Set(items) => items.iter().next().map(searchable_excerpt).unwrap_or_default(),
+        BlockValue::Map(entries) => {
+            entries.values().next().map(searchable_excerpt).unwrap_or_default()
+        }
+        other => format!("{other:?}"),
+    };
+    if raw.chars().count() <= MAX_CHARS {
+        raw
+    } else {
+        format!("{}…", raw.chars().take(MAX_CHARS).collect::<String>())
+    }
+}
+
+/// La riga di log di un segmento, emessa **solo se c'e' davvero qualcosa da dire**: almeno un
+/// risultato *e* un estratto non vuoto con cui ancorarlo alla pagina.
+///
+/// La condizione "estratto non vuoto" non e' pignoleria. `PdfExtractPageClassifyStandard`
+/// restituisce sempre esattamente un blocco, anche quando la pagina non appartiene alla sua page
+/// class, e quel blocco ha contenuto vuoto: contare i blocchi produceva 11.259 righe identiche e
+/// prive di contenuto su un solo documento, meta' dell'intero `.log.csv` a `-vv`.
+fn log_segment_output(message: &'static str, produced: usize, sample: Option<&BlockValue>) {
+    if produced == 0 {
+        return;
+    }
+    let Some(excerpt) = sample.map(searchable_excerpt).filter(|text| !text.is_empty()) else {
+        return;
+    };
+    tracing::debug!(found = %excerpt, produced, "{}", message);
+}
+
 pub type PdfExtractSegment = Segment<dyn PdfExtractPipe>;
 pub type TextFilterSegment = Segment<dyn TextFilterPipe>;
 pub type DeserializeSegment = Segment<dyn DeserializePipe>;
@@ -144,9 +192,21 @@ pub type DeserializeSegment = Segment<dyn DeserializePipe>;
 impl PdfExtractSegment {
     /// Concatena i blocchi prodotti da ogni pipe, nell'ordine di inserimento.
     pub fn apply(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+        let segment_span = tracing::info_span!("pdf_extract");
+        let _segment_guard = segment_span.enter();
+
         let mut out = Vec::new();
         for pipe in self.iter() {
-            out.extend(pipe.extract(page)?);
+            // Span innermost del vocabolario `Activity` (`PLAN.md` §3 L1/L2): incapsula la
+            // singola chiamata a un pipe, non l'intero segmento.
+            let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
+            let _pipe_guard = pipe_span.enter();
+            let blocks = pipe.extract(page)?;
+            // Solo se il pipe ha davvero prodotto qualcosa. Un pipe che non si applica a questa
+            // pagina e' il caso normale — ogni page class viene provata su ogni pagina — e la sua
+            // riga vuota era da sola meta' del `.log.csv` a `-vv`.
+            log_segment_output("pdf blocks extracted", blocks.len(), blocks.first().map(|b| &b.content));
+            out.extend(blocks);
         }
         Ok(out)
     }
@@ -159,9 +219,16 @@ impl TextFilterSegment {
         blocks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError> {
+        let segment_span = tracing::info_span!("text_filter");
+        let _segment_guard = segment_span.enter();
+
         let mut out = Vec::new();
         for pipe in self.iter() {
-            out.extend(pipe.filter(blocks, data)?);
+            let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
+            let _pipe_guard = pipe_span.enter();
+            let filtered = pipe.filter(blocks, data)?;
+            log_segment_output("text blocks kept", filtered.len(), filtered.first().map(|b| &b.content));
+            out.extend(filtered);
         }
         Ok(out)
     }
@@ -177,11 +244,24 @@ impl DeserializeSegment {
     /// [`Extracted::PageClass(None)`](crate::core::pipeline::Extracted::PageClass), una variante
     /// esplicita.
     pub fn apply(&self, blocks: &[TextBlock]) -> Result<Vec<Extracted>, PipeError> {
+        let segment_span = tracing::info_span!("deserialize");
+        let _segment_guard = segment_span.enter();
+
         let mut out = Vec::new();
         for pipe in self.iter() {
+            // Il conteggio si logga una volta per pipe, non per blocco: un pipe di
+            // deserializzazione gira su tutti i blocchi della pagina (rule L2 "nessun log sopra
+            // trace in un ciclo caldo"), mentre lo span `pipe` avvolge comunque ogni singola
+            // chiamata, come richiesto dal vocabolario `Activity`.
+            let mut produced = 0usize;
             for block in blocks {
-                out.extend(pipe.deserialize(block)?);
+                let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
+                let _pipe_guard = pipe_span.enter();
+                let results = pipe.deserialize(block)?;
+                produced += results.len();
+                out.extend(results);
             }
+            log_segment_output("entities deserialized", produced, blocks.first().map(|b| &b.content));
         }
         Ok(out)
     }

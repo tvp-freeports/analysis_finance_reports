@@ -27,6 +27,8 @@ freeports*conf*.yml
 conf*freeports.yaml
 conf*freeports.yml
 freeports.log
+freeports.log.jsonl
+.freeports.log.yaml
 .benchmarks
 .continue
 pylint.json

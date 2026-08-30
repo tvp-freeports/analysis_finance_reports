@@ -51,6 +51,7 @@ use std::path::PathBuf;
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
+use crate::core::tracing_setup::log_error;
 
 
 
@@ -71,7 +72,14 @@ pub enum EnvConfigError {
 }
 
 fn env_var(name: &str) -> Option<String> {
-    std::env::var(name).ok()
+    match std::env::var(name) {
+        Ok(value) => Some(value),
+        Err(std::env::VarError::NotPresent) => None,
+        Err(e @ std::env::VarError::NotUnicode(_)) => {
+            tracing::warn!(error = log_error(&e), name, "ignoring non-unicode environment variable: {e}");
+            None
+        }
+    }
 }
 
 fn parse_verbosity(value: &str) -> Result<Verbosity, EnvConfigError> {
@@ -88,8 +96,8 @@ fn parse_verbosity(value: &str) -> Result<Verbosity, EnvConfigError> {
 
 fn parse_bool(variable: &'static str, value: &str) -> Result<bool, EnvConfigError> {
     match value.to_ascii_lowercase().as_str() {
-        "true" => Ok(true),
-        "false" => Ok(false),
+        "true" | "yes" | "1" | "y" | "t" => Ok(true),
+        "false" | "no" | "0" | "n" | "f" => Ok(false),
         _ => Err(EnvConfigError::InvalidValue { variable, value: value.to_string() }),
     }
 }
@@ -101,7 +109,18 @@ fn parse_positive_usize(variable: &'static str, value: &str) -> Result<usize, En
     }
 }
 
+/// Wraps [`load_impl`] to log any failure exactly once -- this is the only place all four
+/// `EnvConfigError` variants are actually constructed (directly or via the small `parse_*`
+/// helpers below).
 pub fn load() -> Result<PartialConfig, EnvConfigError> {
+    let result = load_impl();
+    if let Err(e) = &result {
+        tracing::error!(error = log_error(e), "invalid configuration from environment variables: {e}");
+    }
+    result
+}
+
+fn load_impl() -> Result<PartialConfig, EnvConfigError> {
     let url = env_var(freeports_env!("URL"));
     let pdf = env_var(freeports_env!("PDF"));
     let singular =

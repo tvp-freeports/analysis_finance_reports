@@ -62,6 +62,7 @@ use crate::formats_repo::LoadError;
 use crate::input::companies_db::{CompileTargetCompaniesError, compile_target_companies};
 use crate::input::document::{DocumentError, load_document};
 use crate::input::download::{DownloadError, download_pdf};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JobError {
@@ -100,6 +101,7 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
     if let Some(path) = &spec.path
         && path.is_file()
     {
+        tracing::info!(path = %path.display(), "using the existing local document, no download needed");
         return Ok((path.clone(), false));
     }
 
@@ -108,15 +110,32 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
     let url = spec.url.as_deref().expect("freeports_config::validate guarantees a url here");
     match &spec.path {
         Some(path) => {
+            tracing::info!(url, path = %path.display(), "downloading document");
             download_pdf(url, Some(path))?;
             Ok((path.clone(), false))
         }
         None => {
             let temp_path = temp_download_path();
+            tracing::info!(url, path = %temp_path.display(), "downloading document to a temporary file");
             download_pdf(url, Some(&temp_path))?;
             Ok((temp_path, true))
         }
     }
+}
+
+/// Job dispatch: opens the `job` span (`format` is the closest thing to a job identity this
+/// module has -- a job is a single, already-validated `FreeportsConfig`) around
+/// [`run_impl`] and logs the outcome exactly once.
+pub fn run(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
+    let span = tracing::info_span!("job", format = %config.format);
+    let _guard = span.enter();
+
+    let result = run_impl(config);
+    match &result {
+        Ok(outcomes) => tracing::info!(outcome_count = outcomes.len(), "job finished"),
+        Err(e) => tracing::error!(error = log_error(e), "job failed: {e}"),
+    }
+    result
 }
 
 /// Un solo `Algorithm::load` per l'intero job (anche con più documenti): risolve ogni
@@ -125,18 +144,27 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
 /// spec, già garantito `Some` dopo `freeports_config::validate`), compila le target companies
 /// (skip se `target_lists` è vuota: nessuna azienda bersaglio, nessuna lettura di
 /// `input_db_path`), poi `Algorithm::apply_multidocument`.
-pub fn run(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
+fn run_impl(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
+    // Not logged here: `JobError::MissingFormatsRepoPath` relies solely on `run`'s outer wrapper
+    // for its one log line, same as every other `JobError` variant.
     let formats_repo_path = config.formats_repo_path.as_deref().ok_or(JobError::MissingFormatsRepoPath)?;
     let algorithm = Algorithm::load(formats_repo_path, &FormatName::new(config.format.clone()))?;
 
     let mut documents = Vec::with_capacity(config.reports.len());
     let mut temp_files = Vec::new();
     for spec in &config.reports {
+        let id = spec.name.clone().unwrap_or_default();
+        // Opened here, at the point where the job dispatches per-document work (not inside
+        // `resolve_document_path`/`load_document`, which are leaves): a future instrumentation of
+        // `input::document::load_document` inherits this span, giving its events the
+        // `job/document` `Activity` context for free.
+        let doc_span = tracing::info_span!("document", id = %id);
+        let _doc_guard = doc_span.enter();
+
         let (path, is_temp) = resolve_document_path(spec)?;
         if is_temp {
             temp_files.push(path.clone());
         }
-        let id = spec.name.clone().unwrap_or_default();
         let document = load_document(&path, id, config.format.clone(), true)?;
         documents.push(document);
     }
@@ -159,7 +187,9 @@ pub fn run(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
     let outcomes = algorithm.apply_multidocument(&documents, &companies)?;
 
     for temp in temp_files {
-        let _ = std::fs::remove_file(temp);
+        if let Err(e) = std::fs::remove_file(&temp) {
+            tracing::warn!(error = log_error(&e), path = %temp.display(), "failed to remove temporary downloaded file: {e}");
+        }
     }
 
     Ok(outcomes)

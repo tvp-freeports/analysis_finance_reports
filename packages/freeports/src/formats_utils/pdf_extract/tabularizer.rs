@@ -141,13 +141,24 @@ pub fn get_table_coordinates_from_lines(
             // traduzione fedele del `cols[company_col].splitting = None` del riferimento, dove il
             // default costruito era invece `SplittingState.DISALLOW`.
             col.splitting = None;
+        } else {
+            tracing::warn!(
+                company_col,
+                columns = cols.len(),
+                "company_col is out of range for this table - ignored, every column stays non-splittable"
+            );
         }
         table_config.cols = Some(cols);
     }
 
-    if config.collapse {
-        return Ok(collapse::collapse_table_rows(coords, &table_config, config.collapse_algorithm));
-    }
+    let coords = if config.collapse {
+        collapse::collapse_table_rows(coords, &table_config, config.collapse_algorithm)
+    } else {
+        coords
+    };
+    let rows = coords.iter().map(|(row, _)| *row).max().map_or(0, |m| m + 1);
+    let cols = coords.iter().map(|(_, col)| *col).max().map_or(0, |m| m + 1);
+    tracing::debug!(rows, cols, cells = coords.len(), "table tabularized");
     Ok(coords)
 }
 

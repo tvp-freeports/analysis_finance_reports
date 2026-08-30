@@ -32,7 +32,16 @@ pub struct Fund {
     /// La forma profondamente normalizzata (minuscola) del nome, oppure la promessa che la
     /// produrrà. È privata perché il nome "vero" — quello che si legge e si scrive — è
     /// [`Fund::name`], che la maiuscolizza.
-    #[serde(with = "serde_promised")]
+    ///
+    /// **Rinominato in serde come `name`** (`#[serde(rename)]`) invece di lasciare trapelare
+    /// `n_name`: `__serialize_fields__()` (`python/output.rs`) deriva le chiavi di una fixture di
+    /// test dalla forma serde per costruzione, sul presupposto — vero per le altre sei entità —
+    /// che coincidano con gli argomenti del costruttore Python. Senza questa rename l'unica
+    /// eccezione era proprio qui: una fixture rigenerata scriveva `n_name` e la sua rilettura
+    /// falliva con `Fund.__new__() got an unexpected keyword argument 'n_name'`. La rinormalizzazione
+    /// in [`Fund::from_value`] è idempotente, quindi ricostruire da un valore già normalizzato
+    /// (quello scritto sotto la chiave `name`) produce lo stesso `Fund`.
+    #[serde(with = "serde_promised", rename = "name")]
     n_name: Promised<String>,
 }
 
@@ -170,7 +179,7 @@ mod tests {
         #[test]
         fn fulfilling_against_a_map_produces_the_same_fund_as_direct_construction() {
             let mut fund = promised_fund();
-            let map = FlatPromiseMap::from_iter([("fund-id".to_string(), vec![BlockValue::from("Alpha Fund")])]);
+            let map = FlatPromiseMap::from_pairs([("fund-id".to_string(), BlockValue::from("Alpha Fund"))]);
             assert_eq!(fulfill_promises(&mut fund, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(fund, Fund::new("Alpha Fund"));
         }

@@ -51,6 +51,11 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
         for i in 0..page_count {
             // `Page::number` e' 1-based, mentre `fitz`/PyMuPDF indicizza le pagine da 0.
             let page_number = u32::try_from(i + 1).expect("a pdf with more than u32::MAX pages does not occur in practice");
+            // Orchestration point (rule 3): grouping the sub-steps below (load, get_text, parse,
+            // build) under one span per page, so their events/logs share a `page` coordinate --
+            // same field name as the `page` span opened later by `core::algorithm`.
+            let page_span = tracing::info_span!("page", page = page_number);
+            let _page_guard = page_span.enter();
 
             let py_page = doc.call_method1("load_page", (i,)).map_err(|e| DocumentError::Page {
                 number: page_number,
@@ -70,9 +75,19 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
             let images = pdfimages_from_pagedict(&page_dict);
             let raw = dict.clone().into_any().unbind();
 
+            // La prima riga di testo della pagina, non solo i conteggi: a `-vv` questa riga per
+            // pagina diventa un indice del documento con cui orientarsi, invece di 1140 righe
+            // indistinguibili.
+            tracing::debug!(
+                found = %lines.first().map(|line| line.text().clone()).unwrap_or_default(),
+                line_count = lines.len(),
+                image_count = images.len(),
+                "page loaded"
+            );
             pages.push(Page::new(page_number, (page_dict.width, page_dict.height), lines, images).with_raw(raw));
         }
 
+        tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
         Ok(pages)
     })
 }

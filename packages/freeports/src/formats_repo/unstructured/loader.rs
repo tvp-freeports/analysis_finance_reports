@@ -130,7 +130,10 @@ fn import_module<'py>(
     };
 
     match load() {
-        Ok(module) => Ok(Some(module)),
+        Ok(module) => {
+            tracing::debug!(format = format_name, "imported the author's unstructured module");
+            Ok(Some(module))
+        }
         Err(error) => {
             let message = error.to_string();
             tracing::error!(format = format_name, "failed to load author module: {message}");
@@ -190,9 +193,11 @@ pub fn get_pipelines(
 ) -> Result<HashMap<PipelineName, Pipeline>, UnstructuredError> {
     Python::attach(|py| {
         let Some(module) = import_module(py, formats_repo_dir, format_name)? else {
+            tracing::trace!(format = format_name, "no author module for this format, no unstructured pipelines");
             return Ok(HashMap::new());
         };
         let Some(pipelines) = field(&module, "pipelines") else {
+            tracing::trace!(format = format_name, "the author module has no 'pipelines' attribute");
             return Ok(HashMap::new());
         };
         let mapping = pipelines
@@ -245,6 +250,7 @@ pub fn get_pipelines(
             }
             out.insert(PipelineName::new(pipeline_name), pipeline);
         }
+        tracing::debug!(pipeline_count = out.len(), "built unstructured pipelines");
         Ok(out)
     })
 }
@@ -307,7 +313,16 @@ impl crate::core::algorithm::PageClassFinalize for PyPageClassFinalizer {
                 self.func.bind(py).call1((input,))?.extract()
             };
             match call() {
-                Ok(result) => Ok(result.into_iter().map(|name| name.map(PageClass::new)).collect()),
+                Ok(result) => {
+                    let classes: Vec<Option<PageClass>> =
+                        result.into_iter().map(|name| name.map(PageClass::new)).collect();
+                    tracing::debug!(
+                        format = self.format,
+                        class_count = classes.len(),
+                        "page classes finalized by the author's compute_page_class"
+                    );
+                    Ok(classes)
+                }
                 Err(error) => {
                     let message = error.to_string();
                     tracing::error!(format = self.format, "compute_page_class raised: {message}");
@@ -326,7 +341,10 @@ pub fn get_page_class_finalizer(
 ) -> Result<crate::core::algorithm::PageClassFinalizer, UnstructuredError> {
     use crate::core::algorithm::PageClassFinalizer;
     Ok(match get_compute_page_class(formats_repo_dir, format_name)? {
-        Some(func) => PageClassFinalizer::Custom(Arc::new(PyPageClassFinalizer::new(format_name, func))),
+        Some(func) => {
+            tracing::debug!(format = format_name, "using the author's compute_page_class as page class finalizer");
+            PageClassFinalizer::Custom(Arc::new(PyPageClassFinalizer::new(format_name, func)))
+        }
         None => PageClassFinalizer::Identity,
     })
 }

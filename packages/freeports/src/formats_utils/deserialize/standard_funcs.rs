@@ -95,6 +95,7 @@ use crate::output::classes::fund::Fund;
 use crate::output::classes::fund_assets::FundAssets;
 use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
 use crate::output::classes::investment::{Bond, Equity, InvestmentFields};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeserializeStandardFuncsError {
@@ -205,7 +206,7 @@ impl DeserializePipe for DeserializerFundStandard {
 /// convertono — è il `LineParseFail` del riferimento. I campi opzionali (`quantity`,
 /// `% net assets`, `acquisition cost`, `acquisition currency`) sono invece "provati": se non ci
 /// sono, sono `Null`, o non si convertono, il campo resta vuoto e la riga sopravvive, con un
-/// `tracing::error!` che lo segnala. È il comportamento del `try_cast` del riferimento, e la
+/// `tracing::warn!` che lo segnala. È il comportamento del `try_cast` del riferimento, e la
 /// ragione per cui una singola cella illeggibile non fa perdere l'intera posizione.
 pub struct DeserializerInvestmentStandard {
     cost_and_value_interpret_int: bool,
@@ -272,18 +273,24 @@ impl DeserializerInvestmentStandard {
             None | Some(BlockValue::Null) => None,
             Some(promise @ BlockValue::Promise(_)) => Some(promise.clone()),
             Some(BlockValue::Str(text)) => {
-                // Lo span porta il nome del campo nella colonna `Field name` del `.log.csv` anche
-                // sugli eventi che nascono **dentro** `cast` (per esempio il `forcing cast` di
-                // `deserialize::cast`), che il nome del campo non lo conoscono.
-                let field_span = tracing::info_span!("field", field);
+                // Lo span porta il nome del campo nella colonna `Second coord ref` del `.log.csv`
+                // anche sugli eventi che nascono **dentro** `cast` (per esempio il `forcing cast`
+                // di `deserialize::cast`), che il nome del campo non lo conoscono. Il nome dello
+                // span resta `"field"` (la sua eventuale rinomina secondo il vocabolario di
+                // `Activity` e' lavoro di L2, non di L1); cambia solo il nome del campo.
+                let field_span = tracing::info_span!("field", coord_ref_2 = field);
                 let _field_guard = field_span.enter();
                 match cast(text) {
                     Ok(v) => Some(BlockValue::from(v)),
                     Err(err) => {
                         // Una riga sola che dice le tre cose che il riferimento spalmava su tre:
-                        // il dato che non si converte, perché, e che il campo viene perso.
+                        // il dato che non si converte, perché, e che il campo viene perso. `warn!`,
+                        // non `error!` (L2 review, 2026-08-29): il record sopravvive senza questo
+                        // campo, come dice il doc-comment di `optional` qui sopra — è esattamente
+                        // il "cast fallito e campo scartato" della convenzione, non un caso in cui
+                        // il lavoro richiesto non è stato prodotto.
                         let data = text.replace('\n', "\\n");
-                        tracing::error!("could not cast {data:?}: {err} - field skipped");
+                        tracing::warn!(error = log_error(&err), "could not cast {data:?}: {err} - field skipped");
                         None
                     }
                 }
@@ -303,18 +310,13 @@ impl DeserializerInvestmentStandard {
         let company = cast::to_str(md.get("company").and_then(BlockValue::as_str).unwrap_or_default());
         let company_match = cast::to_str(md.get("company match").and_then(BlockValue::as_str).unwrap_or_default());
 
-        // Le due colonne "societa'" del `.log.csv` vengono da qui. Sono messe su uno span e non
-        // sui singoli eventi perche' devono valere per *tutto* cio' che la deserializzazione di
+        // La colonna "First coord ref" del `.log.csv` viene da qui. E' messa su uno span e non
+        // sui singoli eventi perche' deve valere per *tutto* cio' che la deserializzazione di
         // questa riga produce, compresi gli eventi che nascono dentro `deserialize::cast` e che
-        // non hanno modo di conoscerle. Attenzione ai nomi: `company` e' il bersaglio
-        // riconosciuto e finisce nella colonna `Matched Company`, `company_match` e' il testo
-        // grezzo della riga e finisce in `Company` -- inversione ereditata dal riferimento, vedi
-        // il doc-comment di `core::tracing_setup`.
-        let row_span = tracing::info_span!(
-            "investment",
-            company = %company,
-            company_match = %company_match,
-        );
+        // non hanno modo di conoscerla. `company_match` (il testo grezzo della riga) non e' piu'
+        // un campo di tracing (la colonna `Company` che alimentava e' stata eliminata, L1): resta
+        // solo come campo di dominio di `InvestmentFields.company_match`, sotto.
+        let row_span = tracing::info_span!("investment", coord_ref_1 = %company);
         let _row_guard = row_span.enter();
 
         let fields = InvestmentFields {

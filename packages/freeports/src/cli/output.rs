@@ -25,7 +25,8 @@
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
 use crate::output::routines::accumulate::{AccumulateError, accumulate};
-use crate::output::routines::write::{WriteFilesError, write_files};
+use crate::output::routines::write::{OutStructureMode, WriteFilesError, write_files};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum OutputError {
@@ -35,9 +36,39 @@ pub enum OutputError {
     Write(#[from] WriteFilesError),
 }
 
+/// La cartella in cui va `.log.csv` per una configurazione risolta: **accanto agli output**.
+///
+/// In profilo `SingleFile` `out_path` e' il file, non la cartella, quindi si prende il suo padre.
+/// La stessa funzione serve i due punti d'ingresso (CLI e `python::api::py_run_job`), che prima
+/// duplicavano questa scelta: divergere qui vorrebbe dire che lo stesso job scrive il registro in
+/// due posti diversi a seconda di come e' stato lanciato.
+pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
+    if config.out_profile == OutStructureMode::SingleFile {
+        config.out_path.parent().unwrap_or(std::path::Path::new(".")).to_path_buf()
+    } else {
+        config.out_path.clone()
+    }
+}
+
+/// Opens the `output` span (`PLAN.md` §3's `Activity` vocabulary places this orchestration point
+/// right under `run`/`job`/`document`, sibling to `pipeline`) around [`write_results_impl`] and
+/// logs the outcome exactly once, same pattern as `job::run`/`batch::load_jobs`. `out_path` is the
+/// coordinate that identifies this write, so it goes on the span, not on the individual events.
+pub fn write_results(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
+    let span = tracing::info_span!("output", out_path = %config.out_path.display());
+    let _guard = span.enter();
+
+    let result = write_results_impl(config, outcomes);
+    match &result {
+        Ok(()) => tracing::info!(document_count = outcomes.len(), "wrote results to disk"),
+        Err(e) => tracing::error!(error = log_error(e), "failed to write results: {e}"),
+    }
+    result
+}
+
 /// `accumulate(outcomes)` poi `write_files(&tables, &config.out_path, config.out_profile,
 /// config.out_flags)` -- nessun'altra logica.
-pub fn write_results(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
+fn write_results_impl(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
     let tables = accumulate(outcomes)?;
     write_files(&tables, &config.out_path, config.out_profile, config.out_flags)?;
     Ok(())

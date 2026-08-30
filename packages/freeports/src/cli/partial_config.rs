@@ -93,6 +93,7 @@ use std::path::PathBuf;
 use crate::cli::conf_parse::DocumentSpec;
 use crate::core::tracing_setup::Verbosity;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PartialConfig {
@@ -140,7 +141,10 @@ pub struct MergedConfig {
 /// `Path(".")` del riferimento: `Path::new(".").parent()` è `Some("")` in Rust (percorso vuoto,
 /// mai esistente), a differenza di `pathlib.Path(".").parent` in Python.
 pub fn defaults() -> MergedConfig {
-    let out_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let out_path = std::env::current_dir().unwrap_or_else(|e| {
+        tracing::warn!(error = log_error(&e), "cannot read the current directory, defaulting out_path to \".\": {e}");
+        PathBuf::from(".")
+    });
     MergedConfig {
         values: PartialConfig {
             verbosity: Some(Verbosity::Warn),

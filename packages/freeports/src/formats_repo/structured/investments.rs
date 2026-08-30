@@ -134,6 +134,7 @@ pub fn get_pipelines(
         }
     }
 
+    tracing::debug!(pipeline_count = pipelines.len(), "built investments pipelines");
     Ok(pipelines)
 }
 

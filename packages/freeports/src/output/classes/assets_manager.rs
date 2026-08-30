@@ -222,7 +222,7 @@ mod tests {
         fn fulfilling_a_management_company_against_any_map_is_always_in_place() {
             let mut mc = ManagementCompany::build(&BlockValue::from("Acme"), &funds_value(&["Fund A"])).unwrap();
             let before = mc.clone();
-            let map = FlatPromiseMap::from_iter([("whatever".to_string(), BlockValue::from(1i64))]);
+            let map = FlatPromiseMap::from_pairs([("whatever".to_string(), BlockValue::from(1i64))]);
             assert_eq!(fulfill_promises(&mut mc, &map).unwrap(), Fulfilled::InPlace);
             assert_eq!(mc, before, "nothing should have changed");
         }

@@ -7,6 +7,7 @@ use crate::core::normalization;
 use crate::formats_utils::text_filter::standard_funcs::extract_currency_from_text;
 
 use crate::python::consts::PyCurrency;
+use crate::core::tracing_setup::log_error;
 
 /// Shim Python di [`MatchFund`]: un nome di fondo che sa confrontarsi con un altro dopo la
 /// normalizzazione profonda.
@@ -80,9 +81,11 @@ pub fn py_normalize_word(input: &str, lower: bool) -> String {
 #[pyfunction]
 #[pyo3(name = "extract_currency_from_text", signature = (text))]
 pub fn py_extract_currency_from_text(text: &str) -> PyResult<PyCurrency> {
-    extract_currency_from_text(text)
-        .map(PyCurrency::from)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    extract_currency_from_text(text).map(PyCurrency::from).map_err(|e| {
+        // Past this point the error only lives as a Python exception (rule 1 of L2).
+        tracing::error!(error = log_error(&e), "extract_currency_from_text failed: {e}");
+        pyo3::exceptions::PyValueError::new_err(e.to_string())
+    })
 }
 
 /// I due decoratori che sostituiscono l'argomento `filter_data` di un pipe `text_filter` con
@@ -170,10 +173,15 @@ fn match_funds_from<'py>(
             }
             _ => None,
         };
-        if let Some(name) = name
-            && let Ok(name) = name.extract::<String>()
-        {
-            funds.add(Bound::new(py, PyMatchFund::new(&name))?)?;
+        if let Some(name) = name {
+            match name.extract::<String>() {
+                Ok(name) => {
+                    funds.add(Bound::new(py, PyMatchFund::new(&name))?)?;
+                }
+                // Not yet resolved (still a promise): nothing lost, just not comparable yet -
+                // same "kept pending" situation as `promise_resolution::reference kept pending`.
+                Err(_) => tracing::trace!("filter_data entry skipped: its name is not resolved yet"),
+            }
         }
     }
     Ok(funds)

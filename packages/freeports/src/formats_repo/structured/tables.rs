@@ -450,6 +450,7 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
         config.check_disabled_segments(&args_path, i + 1)?;
         configs.push(config);
     }
+    tracing::debug!(config_count = configs.len(), "read investments configuration rows");
     Ok(configs)
 }
 
@@ -492,14 +493,16 @@ pub fn get_page_classify_configs(formats_repo_dir: &Path) -> Result<Vec<PageClas
         }
     }
 
-    Ok(order
+    let configs: Vec<PageClassifyConfig> = order
         .into_iter()
         .map(|id| PageClassifyConfig {
             class: classes.remove(&id).expect("ogni id in `order` è stato inserito in `classes`"),
             header_sets: headers.remove(&id).unwrap_or_default(),
             id,
         })
-        .collect())
+        .collect();
+    tracing::debug!(config_count = configs.len(), "read page classify configuration rows");
+    Ok(configs)
 }
 
 #[cfg(test)]

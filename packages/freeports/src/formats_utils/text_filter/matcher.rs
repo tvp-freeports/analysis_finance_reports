@@ -199,7 +199,8 @@ impl CompanyMatchInfos {
     pub fn compile_from_target_companies(
         companies: Vec<TargetCompanyInput>,
     ) -> Result<Vec<Self>, PatternCompileError> {
-        companies
+        let n_companies = companies.len();
+        let compiled = companies
             .into_iter()
             .map(|company| {
                 let regexs = company
@@ -220,7 +221,9 @@ impl CompanyMatchInfos {
                     symbols,
                 })
             })
-            .collect()
+            .collect::<Result<Vec<_>, _>>()?;
+        tracing::debug!(companies = n_companies, "target company match patterns compiled");
+        Ok(compiled)
     }
 }
 
@@ -249,13 +252,24 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
     let mut res: MatchResult<'a> = Ok(None);
 
     for c in target_companies {
+        // Si logga solo l'esito **positivo**, e col testo che lo ha prodotto. La versione
+        // precedente tracciava ogni confronto, riuscito o no: 300 aziende per ogni frammento di
+        // testo di ogni pagina, quasi tutte righe `matched=false` che non dicono nulla. Il testo
+        // in chiaro e' la cosa utile — si ritrova con Ctrl-F dentro il PDF.
         if txt.contains(&c.n_name) {
+            tracing::trace!(coord_ref_1 = %c.name, found = %text, "company matched by its name");
             return Ok(Some(&c.name));
         }
         for b in &c.buds {
             if txt.contains(b) {
                 for Regex { pattern, reference: r } in &c.regexs {
                     if r.is_match(&txt) {
+                        tracing::trace!(
+                            coord_ref_1 = %c.name,
+                            pattern,
+                            found = %text,
+                            "company matched by one of its regexes"
+                        );
                         match &last_matching_regex {
                             None => {
                                 last_matching_regex = Some((&c.name, pattern));
@@ -291,10 +305,17 @@ fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
 
     for c in target_companies {
         if c.symbols.iter().any(|s| s.reference.is_match(text)) {
+            tracing::trace!(coord_ref_1 = %c.name, found = %text, "company matched by one of its symbols");
             return Ok(Some(&c.name));
         }
         for Regex { pattern, reference: r } in &c.regexs {
             if r.is_match(&txt) {
+                tracing::trace!(
+                    coord_ref_1 = %c.name,
+                    pattern,
+                    found = %text,
+                    "company matched by one of its regexes"
+                );
                 match &last_matching_regex {
                     None => {
                         last_matching_regex = Some((&c.name, pattern));

@@ -288,7 +288,10 @@ fn each<'py, T>(
 fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> PipeError {
     let message = error.to_string();
     if error.is_instance_of::<crate::python::core::PageParseFail>(py) {
-        tracing::info!(pipeline, pipe, "author pipe could not parse the page: {message}");
+        // Non fatale: chi assorbe questo errore (`core::algorithm`, `error.is_page_failure()`)
+        // salta la pagina e prosegue, cioè perde un risultato — è esattamente il caso `warn!`
+        // della convenzione ("pagina saltata"), non un evento puramente informativo.
+        tracing::warn!(pipeline, pipe, "author pipe could not parse the page: {message}");
         return PipeError::page_parse(pipe, crate::core::page::PageError::ParseFail { message });
     }
     tracing::error!(pipeline, pipe, "author pipe raised: {message}");
@@ -326,7 +329,17 @@ impl PdfExtractPipe for PyPdfExtractPipe {
                 .bind(py)
                 .call1((raw.bind(py),))
                 .map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            each(&result, pdf_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))
+            let blocks =
+                each(&result, pdf_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
+            // `trace!`, non `debug!`: questo pipe gira una volta per pagina (regola 2, ciclo
+            // caldo del dispatch per-pagina d'autore).
+            tracing::trace!(
+                pipeline = %self.pipeline,
+                pipe = %self.name,
+                block_count = blocks.len(),
+                "author pdf_extract pipe produced blocks"
+            );
+            Ok(blocks)
         })
     }
 }
@@ -381,7 +394,16 @@ impl TextFilterPipe for PyTextFilterPipe {
                 self.func.bind(py).call1((py_blocks, py_data))
             };
             let result = convert().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            each(&result, text_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))
+            let blocks =
+                each(&result, text_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
+            // `trace!`: gira una volta per pagina, come `PyPdfExtractPipe::extract`.
+            tracing::trace!(
+                pipeline = %self.pipeline,
+                pipe = %self.name,
+                block_count = blocks.len(),
+                "author text_filter pipe produced blocks"
+            );
+            Ok(blocks)
         })
     }
 }
@@ -440,7 +462,16 @@ impl DeserializePipe for PyDeserializePipe {
                 }
                 Ok(out)
             };
-            call().map_err(|e| author_error(py, &self.pipeline, &self.name, e))
+            let extracted = call().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
+            // `trace!`: gira una volta per blocco, ancora più frequente del dispatch per pagina
+            // degli altri due segmenti (regola 2).
+            tracing::trace!(
+                pipeline = %self.pipeline,
+                pipe = %self.name,
+                extracted_count = extracted.len(),
+                "author deserialize pipe produced results"
+            );
+            Ok(extracted)
         })
     }
 }

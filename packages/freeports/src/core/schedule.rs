@@ -197,6 +197,11 @@ impl Schedule {
             }
             scheduled.push(step_pages);
         }
+        tracing::debug!(
+            steps = scheduled.len(),
+            pages = scheduled.iter().map(Vec::len).sum::<usize>(),
+            "pages assigned to schedule"
+        );
         Ok(scheduled)
     }
 }

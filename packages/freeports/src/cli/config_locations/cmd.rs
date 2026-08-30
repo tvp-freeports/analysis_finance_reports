@@ -83,6 +83,7 @@ use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
 use crate::cli::partial_config::PartialConfig;
 use crate::core::tracing_setup::Verbosity;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
+use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, Clone, clap::Parser)]
 #[command(about = "Estrae dati strutturati da report finanziari in formato PDF")]
@@ -143,7 +144,18 @@ fn parse_out_profile(value: &str) -> Result<OutStructureMode, CmdConfigError> {
 }
 
 impl CliArgs {
+    /// Wraps [`Self::to_partial_config_impl`] to log any conversion failure exactly once, at the
+    /// point where the command-line arguments are turned into a `PartialConfig` -- this is the
+    /// only place all three `CmdConfigError` variants are actually constructed.
     pub fn to_partial_config(&self) -> Result<PartialConfig, CmdConfigError> {
+        let result = self.to_partial_config_impl();
+        if let Err(e) = &result {
+            tracing::error!(error = log_error(e), "invalid command-line arguments: {e}");
+        }
+        result
+    }
+
+    fn to_partial_config_impl(&self) -> Result<PartialConfig, CmdConfigError> {
         let reports = if self.input.is_empty() {
             None
         } else {

@@ -122,6 +122,13 @@ si porta all'utente con piu' opzioni, non si sceglie da soli. Le tre da mettere 
 perche' `FlatPromiseMap` non e' un tipo che il repo formati costruisce a mano (lo produce il
 motore) — la superficie da adeguare e' interna. Da confermare: **Q-F2**.
 
+**Chiusa 2026-08-29: opzione (a).** Implementata secondo il piano dettagliato in
+`agent-memory/F2-implementation-plan.md` (con la revisione critica in quel documento §9 e le
+decisioni finali in §10 su tre sotto-domande emerse in corso d'opera: dove si scarta un contributo
+`Null`, come reagire alla rottura silenziosa di `FromIterator`, e se la perdita apparente di
+capacita' sulla superficie Python fosse reale — non lo era). Dettagli e numeri di verifica in
+`STATUS.md` riga F2 e "Decisioni prese durante l'implementazione".
+
 ### F3. Fixture a pagina singola rigenerate, `_LEGACY_MODULES` rimosso
 
 Il codice incriminato e' esattamente questo, in
@@ -160,6 +167,17 @@ ne' `_internals`".
 si toccano in questa fase**. La richiesta autorizza la rigenerazione dei *test a pagina singola*,
 non degli output d'integrazione, che restano la specifica eseguibile del motore. (La fase L li
 mette pero' in discussione: vedi **Q-L1**, che e' bloccante.)
+
+**Chiusa 2026-08-29.** Rigenerati i 228 JSON via `freeports-dev make-tests` (script che cammina
+`pages/<page_class>/<N>-*.json`, cancella i tre file e li rifà, precondizione "integrazione verde"
+soddisfatta da tutti i 26 formati fin dall'inizio); riscritti a mano i 35 `filter_data.json` con la
+stessa mappa dello shim, perché `make-tests` li legge ma non li riscrive mai; rimossi
+`_LEGACY_MODULES`/`_resolve_module`. La rigenerazione ha fatto emergere due bug reali (non ipotesi
+di piano): `_promise_tag` scriveva `str(p)` invece di `p.id`, e `Fund` (unica fra le sette entità)
+aveva il campo serde `n_name` disallineato dal costruttore pubblico `name` — quest'ultimo corretto
+alla radice in `output/classes/fund.rs` con `#[serde(rename = "name")]`, con conferma esplicita
+dell'utente prima di toccare il crate. Dettagli, numeri di verifica e cronologia in `STATUS.md` riga
+F3 e "Decisioni prese durante l'implementazione".
 
 ---
 
@@ -229,6 +247,18 @@ chiave d'ordine (documento, pagina, indice step, sequenza) e scriverle ordinate 
 invece di scriverle in streaming. E' una modifica di `CsvLogLayer` da fare **in L1**, prima di P,
 anche se il motivo si manifesta solo dopo.
 
+**Chiusa 2026-08-29.** Implementata secondo il piano dettagliato in
+`agent-memory/L1-implementation-plan.md` (con la revisione critica in quel documento §10, sei
+osservazioni tutte applicate prima di `test-writer`). Q-L1 risposta: rigenerazione una tantum dei
+31 `tests/formats/*/out/.log.csv`, verificata con checksum SHA-256 sul resto di `out/**` (identico)
+e revisione manuale del delta. Q-L2 risposta: no, `Activity` da sola non basta a generare una riga.
+Durante la revisione manuale e' emersa una scoperta non prevista dal piano (4 dei 31 fixture con
+dati portavano contenuto residuo del vecchio motore Python, mai toccato durante l'intera
+riscrittura Rust): causa verificata e confermata dall'utente, dettagli in `STATUS.md` riga L1 e
+"Decisioni prese durante l'implementazione". Numeri di verifica finali: `cargo test --lib` ->
+**2511 passati, 0 falliti**; `cargo test` -> **65 d'integrazione passati, 0 falliti**; `pytest
+tests/formats` -> **259 passati, 0 falliti**.
+
 ### L2. Strumentazione capillare, file per file
 
 Oggi ci sono 19 log in tutto. La richiesta e' "cospargere tutto il codice di tutti i log che
@@ -253,10 +283,107 @@ Regole trasversali:
   `run`, `output`), non dentro i pipe: un pipe eredita lo span di chi lo chiama.
 - I campi delle coordinate si mettono **sugli span**, non sui singoli eventi, come gia' si fa oggi
   per `field` e la coppia societa'.
+- **Messaggi di log, nomi di span e nomi di campo: in inglese**, coerentemente con F1/D2 (regola
+  resa esplicita qui il 2026-08-29 dopo che l'area `cli` ha trovato un residuo italiano preesistente
+  in `core/algorithm.rs`, `"pagina saltata"` — da correggere quando tocca all'area `core`).
 
 Ordine di sweep per area (ognuna e' un'unita' di lavoro autonoma, con i suoi test):
 `cli` -> `input` -> `formats_repo` -> `core` (algorithm/pipeline/schedule) -> `formats_utils`
 -> `output` -> `commons`.
+
+**Nota di perimetro (2026-08-29, richiesta esplicita dell'utente): `src/python/` non e' una delle
+sette aree sopra, ma e' il layer di binding PyO3 che le specchia una per una** (`python/core.rs`,
+`python/input.rs`, `python/output.rs` rispecchiano le aree omonime; `python/utils/{pdf_extract,
+text_filter,deserialize}.rs` e `python/standard_funcs/{pdf_extract,text_filter,deserialize}.rs`
+rispecchiano `formats_utils/*/standard_funcs.rs` e le funzioni "utils" dello stesso albero).
+Essendo un ottavo albero con nome diverso dalle sette aree elencate, e' il punto piu' facile da
+dimenticare nello sweep. Regola: **quando si strumenta un'area che ha uno specchio in `python/`,
+lo specchio si strumenta nella stessa sessione**, non in un passaggio a parte — in particolare
+`python/utils/*` e `python/standard_funcs/*` vanno fatti insieme a `formats_utils` (dove i pipe
+author-facing chiamano dentro Rust: e' un punto di confine, quindi candidato naturale per
+`debug!`/`warn!` sugli argomenti ricevuti e sugli errori di conversione PyO3). `cli` non ha
+specchio in `python/` (non e' esposto a Python) — nessuna azione aggiuntiva per l'area corrente.
+
+**Chiusa 2026-08-29.** Sweep completato su tutte e sette le aree (`cli` -> `input` ->
+`formats_repo` -> `core` -> `formats_utils` -> `output` -> `commons`) piu' ogni specchio
+`python/` (inclusi i cinque file residui — `interfaces.rs`/`pipes.rs`/`api.rs`/`consts.rs`/
+`convert.rs` — senza una mappatura 1:1 su una singola area, ripiegati sull'ultimo passo
+`commons` come chiusura, invece di lasciarli scoperti o inventare un'ottava area ricorrente).
+Aggiunti gli span mancanti dal vocabolario `Activity` (§3 L1): `formats_repo[<path>]`/
+`format[<nome>]` (in `formats_repo.rs::Algorithm::load`), `classify`/`step[<n>]`/
+`class[<page_class>]`/`pipeline[<nome>]`/`pdf_extract`/`text_filter`/`deserialize`/`pipe[<nome>]`
+(in `core/algorithm.rs` e `core/pipeline/segment.rs`), `write[<file>]` (in
+`output/routines/write.rs`). Corretto il residuo italiano `"pagina saltata"` -> `"page skipped"`
+(area `core`, come previsto) e altri due mislivellamenti trovati durante la revisione
+(`unstructured/py_pipe.rs`: `info!` -> `warn!`; `deserialize/standard_funcs.rs`: `error!` ->
+`warn!`). Verificato ad ogni passo, senza regressioni: `cargo test --lib` 2511/2511, `cargo test`
+65 d'integrazione, `cargo clippy` invariato (6 warning pre-esistenti, mai aumentati). Nessun bug
+di comportamento corretto silenziosamente; un bug gia' noto (`find_config`'s cwd-unreadable
+fallthrough) segnalato e lasciato com'e' per decisione esplicita dell'utente. Due note strutturali
+lasciate aperte per una sessione futura (non bloccanti per L2, dettagli in `STATUS.md`): lo span
+`document[<id>]` non avvolge `classify`/`step`/`page` nel caso multi-documento; `python/api.rs`
+non ha un subscriber `tracing` attivo fuori dallo scope di `py_run_job`, quindi molti dei nuovi
+log in quel file sono no-op nei processi Python/pytest che non passano da `main.rs`.
+
+### L4. Messa a punto del logging dopo L2 (revisione dell'utente)
+
+Non era nel piano originale: nasce dalla revisione dell'utente su L2 chiusa (2026-08-29) — troppi
+log, forma ripetitiva (`class{class=investments} page{page=353}`), programma **~100 volte piu'
+lento** anche a sola verbosita' `warn`, messaggi che contano invece di contestualizzare, e la
+pagina assente negli eventi di `TextFilter`/`Deserialize`.
+
+Diagnosi misurata, decisioni dell'utente e passi in
+`agent-memory/L4-logging-tuning-plan.md`. In sintesi, le quattro linee di intervento:
+
+1. **Prestazioni.** La causa principale non era il volume dei log ma un difetto di installazione:
+   `CsvLogLayer` era montato **senza filtro di livello**, e un layer senza filtro tiene il livello
+   massimo globale del registry a `TRACE`. Correzione: `EventLevelFilter`, che lascia passare
+   sempre gli **span** (altrimenti un `warn!` perde la pagina che eredita dallo span) e filtra solo
+   gli **eventi**, con `max_level_hint` fermo a `SPAN_LEVEL`. Piu': livello per destinazione legato
+   a `-v`/`-q`, `freeports.log` bufferizzato, `FieldVisitor` che non formatta piu' i campi che
+   scarta.
+2. **Forma.** `SpanPathFormat`/`SpanValueFields`/`SpanLabel`: la stessa resa `nome[valore]` in
+   stderr, in `freeports.log` e nella colonna `Activity` del `.log.csv` — che finalmente rispetta
+   il vocabolario di §3 L1 invece di stampare i soli nomi degli span.
+3. **Quantita' e contenuto.** Potatura dei `trace!` per-elemento nei cicli caldi e dei `debug!`
+   "costruito da Python", e riscrittura dei messaggi a conteggio in messaggi **contestuali**:
+   *il testo trovato batte il numero dei blocchi, perche' il testo si cerca con Ctrl-F nel PDF*.
+   Regola operativa che ne discende, da applicare anche a L3 e a ogni log futuro: **una riga di log
+   si emette solo se porta qualcosa con cui ancorarla al documento**.
+4. **La pagina nei tre segmenti.** Unico buco reale: `Algorithm::classify_pages` non apriva lo span
+   `page`. Nella fase di esecuzione i tre segmenti lo ereditavano gia'.
+
+**Chiusa 2026-08-30.** Stesso job (EURIZON-EN23.A, 1140 pagine, verbosita' di default): **13,0
+secondi** contro i **19 minuti** di partenza; `.log.csv` da **2,8 GB** a **609 righe**;
+`pytest tests/formats` da 388 s a **93 s**. `cargo test --lib` 2518/2518, `cargo test` 65
+d'integrazione, `pytest tests/formats` 259/259 dopo la rigenerazione autorizzata di 22 `.log.csv`
+di riferimento (gli altri 277 file di `out/**` byte-identici, provato con checksum). Due punti
+lasciati all'utente, non decisi qui: il livello del `warn!` "no investment rows extracted" (1738
+righe su 1783 nei fixture rigenerati) e il fatto che la chiave `verbosity` del file di
+configurazione **non piloti** il logging (vedi sotto).
+
+**Secondo giro, 2026-08-30** (richieste successive dell'utente, tutte chiuse):
+
+- **`.log.csv` va nella cartella di `out`, non nella cwd.** Il vincolo non e' banale: il CLI
+  installa il subscriber *prima* di risolvere la configurazione (la risoluzione stessa logga), e
+  fino a quel momento non sa dove andranno gli output. `CsvLogLayer::deferred()` nasce senza
+  destinazione, accumula le righe in memoria come gia' faceva dall'L1, e riceve il file da
+  `LogHandle::set_csv_dir` appena `resolve_configs` ritorna. La cartella la calcola una sola
+  funzione condivisa con il percorso Python, `cli::output::log_csv_dir`.
+- **`.log.csv` solo `warn` e `error`** (`CSV_MAX_LEVEL` da `DEBUG` a `WARN`).
+- **Resa della riga per destinazione**: stderr senza timestamp e con livello, `Activity` e target
+  colorati; `freeports.log` con timestamp e senza colori. (Superata da L5: il log su file non e'
+  piu' testo, e stderr non porta piu' il target.)
+- Tre `warn!` portavano il loro ancoraggio testuale come campo libero invece che nelle colonne
+  `First/Second coord ref`: corretti.
+
+**Nota, non corretta in questa fase.** `main.rs` installa il subscriber usando i soli conteggi di
+`-v`/`-q` della riga di comando, *prima* di risolvere la configurazione: la chiave `verbosity` di
+`~/.config/freeports.yaml` (che l'utente ha valorizzata a `trace`) attraversa tutta la catena
+`file`/`env`/`cmd` di `partial_config.rs` e finisce in `FreeportsConfig` senza influenzare nessuna
+delle tre destinazioni di log. Sistemarlo richiede un `tracing_subscriber::reload` applicato dopo
+la risoluzione della config — e' un cambiamento di struttura di `main.rs`, non un ritocco, quindi
+va deciso con l'utente.
 
 ### L3. `.freeports.log.yaml` a verbosita' massima
 
@@ -292,6 +419,74 @@ quindi nella cartella di output); flag dedicato `--log-yaml` oppure implicito in
 Nota tecnica da verificare in fase di implementazione: `serde_yaml` 0.9 (gia' in `Cargo.toml`) e'
 **non piu' mantenuto** a monte. Se il file YAML diventa un artefatto di prodotto conviene valutare
 un sostituto mantenuto prima di costruirci sopra.
+
+**Chiusa 2026-08-30.** `YamlLogLayer`, quarto layer accanto ai tre esistenti. Le tre decisioni
+che il piano lasciava aperte sono state prese dall'utente: **solo `warn!`/`error!`** (e' il log
+degli errori, non un secondo trace); **nella cartella corrente**, non in quella di output, perche'
+e' un artefatto diagnostico e non un prodotto della corsa — al contrario di `.log.csv`, che nello
+stesso giro si e' spostato *dentro* `out`; **implicito in `-vvv`**, nessun flag dedicato.
+
+**Q-L3 risposta: opzione (b)**, il record strutturale, come raccomandato. Con una correzione al
+piano: il campo `type` non e' ottenibile. Un `&dyn Error` non sa dichiarare il proprio tipo
+concreto (`type_name_of_val` su un trait object risponde `dyn core::error::Error`, `Error::type_id`
+e' unstable), quindi al suo posto c'e' `debug`, il `{:?}` dell'errore — che su un enum `thiserror`
+stampa variante e campi (`AlgorithmLoad(UnknownFormat { format: "NOPE", known: 27 })`) ed e'
+strettamente piu' informativo del nome del tipo.
+
+Il punto non ovvio: perche' il file si popoli davvero serviva uno sweep di **53 siti**
+`error!`/`warn!` che l'errore lo interpolavano nel messaggio, dove la catena di `source()` va
+perduta. Ora agganciano anche `error = log_error(&e)`. Il messaggio non e' stato toccato — nessuna
+deriva dei fixture, e stderr/`.log.csv` restano leggibili da un umano — e in cambio la resa
+testuale **non stampa piu' il campo `error`**, che altrimenti direbbe la stessa cosa due volte
+sulla stessa riga.
+
+`serde_yaml` 0.9 e' rimasto: e' gia' dipendenza e gia' scrive `investments_add_infos.yaml`. La nota
+del piano sulla sua manutenzione a monte resta valida come debito, non come blocco.
+
+### L5. Log su file strutturato, stderr leggibile a colpo d'occhio
+
+Non era nel piano: nasce dalla revisione dell'utente su L3/L4 chiuse (2026-08-30). Cinque
+richieste, tutte chiuse lo stesso giorno; passi e diagnosi in
+`agent-memory/L5-structured-log-plan.md`.
+
+1. **`freeports.log` diventa `freeports.log.jsonl`**, strutturato: un oggetto JSON per riga.
+   L'utente lasciava scegliere fra JSON e YAML; la scelta e' **JSON Lines** per due ragioni che
+   vengono entrambe dal volume che il file vede a `-vvv` (3,5 MB, ~12.000 record per un solo job):
+   *streaming* — ogni record raggiunge il writer bufferizzato quando accade, quindi niente si
+   accumula in memoria e il log di un processo morto a meta' resta leggibile, cosa che un array
+   JSON o un documento YAML, che vanno chiusi in fondo, non garantiscono — e *indipendenza della
+   riga*, che tiene funzionanti `grep` e `jq`.
+2. **stderr non porta piu' il `target`** (il percorso del modulo). Era il token piu' lungo della
+   riga ed e' quasi mai cio' che si cerca leggendo una corsa dal vivo. Non e' perso: e' un campo
+   di ogni record del file, dove si puo' filtrare.
+3. **`.log.csv` non compare piu' nella cartella corrente.** Non era una svista di L4 ma il suo
+   fallback: `LogHandle::close` ripiegava sulla cartella data a `init` quando la destinazione non
+   era stata fissata, cosa che accade a ogni corsa che fallisce *prima* della risoluzione della
+   configurazione. Riprodotto con `freeports -i /nonexistent/x.pdf -f NOPE -o ./outdir`, che
+   lasciava in cwd un `.log.csv` di 80 byte (sola intestazione). Il fallback e' stato tolto:
+   nessuna destinazione, nessun file (`CsvLogLayer::discard`). Le righe in sospeso non sono
+   davvero perse — sono eventi che hanno gia' raggiunto stderr e il log su file.
+4. **Quattro colori nel percorso degli span**, non uno: nomi in ciano, valori fra parentesi in
+   magenta chiaro, `/` e `[`/`]` in grigio scuro, campi dell'evento in dim. Tinte diverse e non
+   sfumature della stessa, perche' la richiesta e' distinguere segmenti e parametri *a colpo
+   d'occhio*.
+5. **L'errore serializzato nel log su file**: `LogRecord` e `build_record` sono ora condivisi fra
+   `JsonLogLayer` e `YamlLogLayer`, quindi il `.jsonl` porta lo stesso `ErrorRecord`
+   (`debug`/`display`/catena di `source()`) che L3 aveva introdotto per il solo YAML. Lo sweep dei
+   53 siti fatto in L3 lo popola gia'; l'unico sito rimasto scoperto, `python::utils::pdf_extract::
+   value_error`, e' stato sdoppiato (`value_error` per i veri `std::error::Error`,
+   `value_error_msg` per l'unico chiamante che passa una `String`), cosi' che anche i suoi 9 siti
+   serializzino l'errore.
+
+**Ridondanza da decidere con l'utente.** `.freeports.log.yaml` (L3) e' ora un *sottoinsieme* di
+`freeports.log.jsonl`: a `-vvv` il secondo contiene gia' tutti i record `warn`/`error` con
+l'errore serializzato, piu' tutto il resto. Il primo resta perche' e' piccolo e leggibile da un
+umano, ma la sovrapposizione va detta, non nascosta.
+
+**Nota, non cambiata.** stderr emette le sequenze ANSI anche quando non e' un terminale (comportamento
+di L4, non introdotto qui): con quattro colori invece di uno, un `2>file` ne raccoglie
+sensibilmente di piu'. Un `std::io::IsTerminal` su stderr lo risolverebbe, ma cambia cio' che
+l'utente vede quando redirige, quindi non e' stato fatto di iniziativa.
 
 ---
 
@@ -533,10 +728,10 @@ config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiat
 | # | Fase | Domanda |
 |---|---|---|
 | **Q-F1** | F/D | "Tutto in inglese" comprende anche i ~2.961 righe di doc-comment italiani? Raccomandazione: si', ma tradotti dentro D2 (che li riscrive comunque), non in F1 — cosi' non si toccano due volte. |
-| **Q-F2** | F | Quale forma per la correzione dell'ambiguita' `BlockValue::List` nelle promesse: (a) contributi separati dal valore, (b) variante `Multi`, (c) parametro opt-in? Raccomandazione: (a). |
-| **Q-F3** | F | Confermi che la rigenerazione riguarda i 228 JSON a pagina singola di tutti i 26 formati, e che `out/**` resta intatto? |
-| **Q-L1** | L | Il nuovo schema di `.log.csv` **invalida i 31 `tests/formats/*/out/.log.csv`**, che sono file "che non si toccano". Autorizzi la loro rigenerazione una tantum come parte di L1 (e con quale verifica), oppure il motore deve poter scrivere anche il formato vecchio (flag di compatibilita')? Senza risposta L1 non parte. |
-| **Q-L2** | L | Nome e posizione della colonna dello span (proposto: `Activity`, seconda); vocabolario e separatore degli span (proposto: `/`); e soprattutto: la presenza di `Activity` da sola basta a generare una riga in `.log.csv`? (raccomandazione: no) |
+| **Q-F2** | F | ~~Quale forma per la correzione dell'ambiguita' `BlockValue::List` nelle promesse: (a) contributi separati dal valore, (b) variante `Multi`, (c) parametro opt-in?~~ **Risposta 2026-08-29: (a).** |
+| **Q-F3** | F | ~~Confermi che la rigenerazione riguarda i 228 JSON a pagina singola di tutti i 26 formati, e che `out/**` resta intatto?~~ **Risposta 2026-08-29: si'.** |
+| **Q-L1** | L | ~~Il nuovo schema di `.log.csv` **invalida i 31 `tests/formats/*/out/.log.csv`**, che sono file "che non si toccano". Autorizzi la loro rigenerazione una tantum come parte di L1 (e con quale verifica), oppure il motore deve poter scrivere anche il formato vecchio (flag di compatibilita')?~~ **Risposta 2026-08-29: rigenerazione una tantum**, verifica sul modello di F3 (checksum sul contenuto equivalente, revisione del delta). |
+| **Q-L2** | L | ~~Nome e posizione della colonna dello span (proposto: `Activity`, seconda); vocabolario e separatore degli span (proposto: `/`); e soprattutto: la presenza di `Activity` da sola basta a generare una riga in `.log.csv`?~~ **Risposta 2026-08-29: no**, come raccomandato — `Activity` arricchisce la riga, non la giustifica da sola. |
 | **Q-L3** | L | `.freeports.log.yaml`: solo `-vvv` o flag dedicato? solo errori/warning o tutti gli eventi? record strutturale (raccomandato) o `Serialize` derivato su ~25 enum d'errore? |
 | **Q-P1** | P | Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale? |
 | **Q-P2** | P | Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice. |

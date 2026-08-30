@@ -65,7 +65,12 @@ macro_rules! block_type_catalog {
                     .iter()
                     .find(|m| **m == name)
                     .map(|m| $shim(m))
-                    .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(format!("{}: {name}", $py_name)))
+                    .ok_or_else(|| {
+                        // Same rationale as `python/consts.rs`'s enum shims: past this point the
+                        // failure only lives as a Python `KeyError`.
+                        tracing::error!(catalog = $py_name, name, "unknown block type name");
+                        pyo3::exceptions::PyKeyError::new_err(format!("{}: {name}", $py_name))
+                    })
             }
 
             #[classattr]
@@ -127,12 +132,14 @@ macro_rules! standard_txt_blk {
                 pdf_blk: PyRef<'_, PyPdfBlock>,
                 funds: &Bound<'_, PyAny>,
             ) -> PyResult<PyTextBlock> {
-                let block = $from_block(pdf_blk.native(py)?, &match_funds(funds)?);
+                let funds = match_funds(funds)?;
+                let block = $from_block(pdf_blk.native(py)?, &funds);
                 PyTextBlock::from_native(py, &block)
             }
 
             fn from_content(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
-                let block = $from_content(name, &match_funds(funds)?);
+                let funds = match_funds(funds)?;
+                let block = $from_content(name, &funds);
                 PyTextBlock::from_native(py, &block)
             }
 

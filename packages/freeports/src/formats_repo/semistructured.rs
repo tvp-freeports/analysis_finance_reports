@@ -154,7 +154,10 @@ fn load_author_module<'py>(
         Ok(module)
     };
     match load() {
-        Ok(module) => Ok(Some(module)),
+        Ok(module) => {
+            tracing::debug!(segment = segment.file_stem(), "loaded the author's local extension module");
+            Ok(Some(module))
+        }
         Err(error) => {
             let message = error.to_string();
             tracing::error!(segment = segment.file_stem(), "failed to load local extension: {message}");
@@ -408,6 +411,13 @@ pub fn get_pipelines(
                         build_author(py, segment, name, &row.pipeline_name, &func, &input_class, arg)?
                     }
                 };
+                tracing::debug!(
+                    pipeline = row.pipeline_name.as_str(),
+                    segment = segment.file_stem(),
+                    algorithm = name,
+                    pipe_count = pipes.len(),
+                    "resolved a semistructured algorithm"
+                );
                 *emitted.entry((row.pipeline_name.clone(), segment)).or_insert(0) += pipes.len();
 
                 let pipeline_name = PipelineName::new(&row.pipeline_name);
@@ -420,6 +430,7 @@ pub fn get_pipelines(
         Ok(())
     })?;
 
+    tracing::debug!(pipeline_count = pipelines.len(), "built semistructured pipelines");
     Ok(pipelines)
 }
 
