@@ -76,6 +76,7 @@ fn write_results_impl(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) ->
 
 #[cfg(test)]
 mod tests {
+    use crate::cli::parallelism_config::ParallelismConfig;
     use super::*;
     use crate::cli::freeports_config::FreeportsConfig;
     use crate::core::algorithm::{DocumentOutcome, PageOutcome};
@@ -94,7 +95,7 @@ mod tests {
             out_path: dir.to_path_buf(),
             out_profile: profile,
             out_flags: OutFlags::default(),
-            n_workers: 1,
+            parallelism: ParallelismConfig::SEQUENTIAL,
             batch_file: None,
             save_pdf: true,
             formats_repo_path: None,

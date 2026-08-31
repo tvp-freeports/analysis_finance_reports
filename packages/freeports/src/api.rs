@@ -60,6 +60,9 @@ pub mod core {
     };
     pub use crate::core::classes::{BlockType, BlockValue, BlockValueError, PdfBlock, TextBlock};
     pub use crate::core::page::{Document, DocumentId, FormatName, Page, PageError, PageImage};
+    // P2: il parametro con cui si chiedono le varianti `*_with` di `Algorithm`. Senza, da fuori
+    // il crate esistono solo le firme sequenziali.
+    pub use crate::core::parallelism::Parallelism;
     pub use crate::core::pipeline::bundle::PipelinesBundle;
     pub use crate::core::pipeline::{
         DeserializePipe, DeserializeSegment, Extracted, FilterData, PdfExtractPipe,

@@ -226,7 +226,7 @@ use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{Layer, filter::LevelFilter};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Verbosity {
     Silent,
     ErrorOnly,
@@ -627,6 +627,13 @@ impl SharedFileWriter {
         guard.write_all(b"\n")
     }
 
+    /// Appends bytes verbatim, without adding a newline (P1: the JSON Lines a worker process
+    /// already wrote, newlines included). Goes through the same writer as every other line, so
+    /// the absorbed records land after the parent's instead of racing its buffer.
+    fn append_raw(&self, bytes: &[u8]) -> std::io::Result<()> {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner).write_all(bytes)
+    }
+
     fn flush(&self) -> std::io::Result<()> {
         self.0.lock().unwrap_or_else(PoisonError::into_inner).flush()
     }
@@ -964,6 +971,26 @@ impl CsvLogLayer {
         self.inner.flush_rows()
     }
 
+    /// Appends already-formatted data rows — no header — after everything this layer wrote.
+    ///
+    /// P1: the `.log.csv` of a worker process, absorbed into the parent's. Deliberately *after*
+    /// `close()` has sorted and written the parent's own rows, and deliberately not merged into
+    /// `rows`: a row read back from a CSV file has no `RowOrderKey` to be sorted by, and inventing
+    /// one would put a worker's rows in an order that has nothing to do with when they happened.
+    /// Grouping them per job instead is what Q-P2's answer allows, and it also reads better.
+    pub fn append_rows(&self, rows: &[u8]) -> Result<(), TracingSetupError> {
+        if rows.is_empty() {
+            return Ok(());
+        }
+        let mut file_guard = self.inner.file.lock().unwrap_or_else(PoisonError::into_inner);
+        let Some(file) = file_guard.as_mut() else {
+            return Err(TracingSetupError::CsvDestinationUnset);
+        };
+        file.write_all(rows)
+            .and_then(|()| file.flush())
+            .map_err(|source| TracingSetupError::CsvWrite { source: source.into() })
+    }
+
     /// Throws away every accumulated row **without creating any file**.
     ///
     /// This is what a run that never got a destination does at the end (L5): `.log.csv` belongs
@@ -1119,9 +1146,68 @@ pub struct LogHandle {
     file: SharedFileWriter,
     /// `Some` only at maximum verbosity — see `YamlLogLayer` and `init`.
     yaml: Option<YamlLogLayer>,
+    /// P1: what the worker processes logged, in job order, waiting to be poured into this run's
+    /// own files at `close()`. Held in memory rather than merged file-by-file because the worker
+    /// area is deleted as soon as the jobs are done, while this run's files are only written at
+    /// the very end.
+    /// `Arc` come gli altri due campi: un `LogHandle` clonato deve condividere lo stesso buffer,
+    /// altrimenti la copia che riceve i log dei figli non e' quella su cui si chiama `close()`.
+    absorbed: Arc<Mutex<Vec<WorkerLogs>>>,
+}
+
+/// The three log files one worker process left behind, read verbatim (P1).
+#[derive(Debug, Default)]
+struct WorkerLogs {
+    /// `.log.csv` **without** its header line: the parent's file already has one, and a second
+    /// header in the middle would break every reader.
+    csv_rows: Vec<u8>,
+    jsonl: Vec<u8>,
+    yaml: Vec<u8>,
 }
 
 impl LogHandle {
+    /// Takes in the logs a worker process wrote into its private directory (P1).
+    ///
+    /// Called once per job, in job order, while the worker area still exists; the content is poured
+    /// into this run's own files at `close()`, after everything the parent itself logged. A worker
+    /// that produced no file at all — it died before writing one — is not an error here: the
+    /// missing report is what reports that failure, and losing the log on top of it would only
+    /// replace one diagnosis with two.
+    pub fn absorb_worker_logs(&self, log_dir: &Path) -> Result<(), TracingSetupError> {
+        let read = |name: &str| std::fs::read(log_dir.join(name)).unwrap_or_default();
+        let logs = WorkerLogs {
+            csv_rows: strip_csv_header(&read(CSV_FILE_NAME)),
+            jsonl: read(LOG_FILE_NAME),
+            yaml: read(YAML_FILE_NAME),
+        };
+        self.absorbed.lock().unwrap_or_else(PoisonError::into_inner).push(logs);
+        Ok(())
+    }
+
+    /// Pours every absorbed worker log into this run's files, in job order. Each destination is
+    /// attempted regardless of the others, same rule as `close()` itself.
+    fn pour_absorbed(&self) -> Result<(), TracingSetupError> {
+        let absorbed = std::mem::take(&mut *self.absorbed.lock().unwrap_or_else(PoisonError::into_inner));
+        let mut first_error = None;
+        for logs in &absorbed {
+            let mut record = |result: Result<(), TracingSetupError>| {
+                if let Err(e) = result {
+                    first_error.get_or_insert(e);
+                }
+            };
+            if self.csv.has_destination() {
+                record(self.csv.append_rows(&logs.csv_rows));
+            }
+            record(self.file.append_raw(&logs.jsonl).map_err(|source| TracingSetupError::OpenLogFile {
+                path: PathBuf::from(LOG_FILE_NAME),
+                source,
+            }));
+            if let Some(yaml) = self.yaml.as_ref() {
+                record(yaml.append_raw(&logs.yaml));
+            }
+        }
+        first_error.map_or(Ok(()), Err)
+    }
     /// Points `.log.csv` at `dir`, creating the directory if it does not exist yet, and writes the
     /// header there straight away.
     ///
@@ -1152,13 +1238,30 @@ impl LogHandle {
         // errore riportato, essendo l'artefatto che i test d'integrazione confrontano.
         let csv_result = self.csv.close();
         let yaml_result = self.yaml.as_ref().map_or(Ok(()), YamlLogLayer::close);
+        // Dopo, mai prima: le righe del padre sono ordinate e scritte per prime, e `.log.csv` e
+        // `.freeports.log.yaml` vengono entrambi *troncati* dalla scrittura del padre -- riversare
+        // i figli in anticipo significherebbe scriverli e poi cancellarli.
+        let absorbed_result = self.pour_absorbed();
         let file_result = self.file.flush();
         csv_result?;
         yaml_result?;
+        absorbed_result?;
         file_result.map_err(|source| TracingSetupError::OpenLogFile {
             path: PathBuf::from(LOG_FILE_NAME),
             source,
         })
+    }
+}
+
+/// Drops the header line of a `.log.csv` read back from disk, leaving only data rows.
+///
+/// Byte-level on purpose: the rows are appended verbatim, never re-encoded, so a message containing
+/// a quoted newline stays exactly the CSV record the worker wrote.
+fn strip_csv_header(bytes: &[u8]) -> Vec<u8> {
+    match bytes.iter().position(|&b| b == b'\n') {
+        Some(end) => bytes[end + 1..].to_vec(),
+        // No newline at all: a file holding nothing but a truncated header, or nothing at all.
+        None => Vec::new(),
     }
 }
 
@@ -1175,6 +1278,7 @@ pub fn log_handle_for_tests(log_dir: &Path) -> Result<LogHandle, TracingSetupErr
         csv: CsvLogLayer::deferred(),
         file: file_writer,
         yaml: None,
+        absorbed: Arc::new(Mutex::new(Vec::new())),
     })
 }
 
@@ -1219,17 +1323,22 @@ pub const YAML_LEVEL: LevelFilter = LevelFilter::WARN;
 /// `Error::type_id` is unstable), but `{:?}` on a `thiserror` enum already prints the variant and
 /// its fields — `CastError::NotANumber { value: "n/a" }` — which is strictly more than the type
 /// name would have been.
-#[derive(Debug, Clone, serde::Serialize)]
-struct ErrorRecord {
-    debug: String,
-    display: String,
+///
+/// `pub` and `Deserialize` since P1 (`agent-memory/P1-implementation-plan.md` §2): the same shape
+/// carries a job's failure from a worker process back to the parent, which has to *read* it. The
+/// alternative was a second, identical record type in `cli::worker` — the same `source()` walk with
+/// the same cycle guard, written twice.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ErrorRecord {
+    pub debug: String,
+    pub display: String,
     /// The `source()` chain, outermost cause first. Empty for an error with no source.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    source: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub source: Vec<String>,
 }
 
 impl ErrorRecord {
-    fn from_error(error: &(dyn std::error::Error + 'static)) -> Self {
+    pub fn from_error(error: &(dyn std::error::Error + 'static)) -> Self {
         let mut source = Vec::new();
         let mut current = error.source();
         // Bounded on purpose: a cyclic `source()` chain is a bug in somebody's error type, but it
@@ -1485,6 +1594,24 @@ impl YamlLogLayer {
         }
     }
 
+    /// Appends an already-serialized YAML sequence after the records this layer wrote (P1).
+    ///
+    /// Valid by construction: `serde_yaml` renders a `Vec` as a top-level sequence of `- ` items,
+    /// and two such sequences concatenated are still one sequence. Creates the file when the parent
+    /// itself had nothing to write — a run where only the workers logged is still a run with a log.
+    pub fn append_raw(&self, bytes: &[u8]) -> Result<(), TracingSetupError> {
+        if bytes.is_empty() {
+            return Ok(());
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.inner.path)
+            .map_err(|source| TracingSetupError::OpenYamlFile { path: self.inner.path.clone(), source })?;
+        file.write_all(bytes)
+            .map_err(|source| TracingSetupError::OpenYamlFile { path: self.inner.path.clone(), source })
+    }
+
     /// Serializes everything accumulated so far and writes it, then empties the buffer so a
     /// second call is a no-op. Writes nothing at all when no record was collected.
     pub fn close(&self) -> Result<(), TracingSetupError> {
@@ -1550,7 +1677,7 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
         );
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|source| TracingSetupError::AlreadyInitialized { source })?;
-    Ok(LogHandle { csv, file: file_writer, yaml })
+    Ok(LogHandle { csv, file: file_writer, yaml, absorbed: Arc::new(Mutex::new(Vec::new())) })
 }
 
 #[cfg(test)]
@@ -3262,6 +3389,124 @@ mod tests {
     /// ogni corsa fallita prima della risoluzione della configurazione vi lasciava un `.log.csv`
     /// di sola intestazione. Riprodotto dall'utente e da
     /// `agent-memory/L5-structured-log-plan.md`.
+    /// P1: i log che i processi figli hanno scritto nelle loro cartelle private finiscono nei file
+    /// della corsa, in ordine di job, e senza rovinarne la forma.
+    mod absorbing_worker_logs {
+        use super::*;
+
+        /// Una cartella di log come la lascerebbe un figlio: le tre destinazioni, con l'intestazione
+        /// che il `.log.csv` di ogni corsa ha per contratto.
+        fn worker_log_dir(dir: &std::path::Path, name: &str, message: &str) -> std::path::PathBuf {
+            let log_dir = dir.join(name);
+            std::fs::create_dir_all(&log_dir).unwrap();
+            std::fs::write(
+                log_dir.join(CSV_FILE_NAME),
+                format!("{CSV_HEADER}7,run/job,,,,,{message}\n"),
+            )
+            .unwrap();
+            std::fs::write(log_dir.join(LOG_FILE_NAME), format!("{{\"message\":\"{message}\"}}\n")).unwrap();
+            log_dir
+        }
+
+        fn handle_writing_into(dir: &std::path::Path) -> LogHandle {
+            let handle = log_handle_for_tests(dir).expect("test log handle");
+            handle.set_csv_dir(dir).expect("the csv destination must be settable");
+            handle
+        }
+
+        #[test]
+        fn the_rows_of_every_worker_reach_the_run_csv() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first job spoke")).unwrap();
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "second job spoke")).unwrap();
+            handle.close().unwrap();
+
+            let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
+            assert!(csv.contains("first job spoke"), "the first worker's row is missing:\n{csv}");
+            assert!(csv.contains("second job spoke"), "the second worker's row is missing:\n{csv}");
+        }
+
+        /// Un secondo blocco di intestazione in mezzo al file lo renderebbe illeggibile a qualunque
+        /// lettore CSV -- e i 31 `.log.csv` di riferimento del repo formati sono letti da pytest.
+        #[test]
+        fn the_run_csv_keeps_exactly_one_header() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "a")).unwrap();
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "b")).unwrap();
+            handle.close().unwrap();
+
+            let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
+            assert_eq!(csv.matches(CSV_HEADER.trim_end()).count(), 1, "expected exactly one header in:\n{csv}");
+        }
+
+        /// L'ordine e' quello dei job, non quello in cui i figli hanno finito: e' cio' che rende il
+        /// registro leggibile come una corsa sola.
+        #[test]
+        fn workers_are_poured_in_job_order() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "aaa")).unwrap();
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-1", "bbb")).unwrap();
+            handle.close().unwrap();
+
+            let csv = std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap();
+            assert!(csv.find("aaa") < csv.find("bbb"), "worker rows are out of job order:\n{csv}");
+        }
+
+        #[test]
+        fn the_json_lines_of_every_worker_reach_the_run_log() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+
+            handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first")).unwrap();
+            handle.close().unwrap();
+
+            // `log_handle_for_tests` apre `freeports.log.jsonl` nella cartella che gli si passa,
+            // che qui e' `out` -- non la radice della tempdir.
+            let jsonl = std::fs::read_to_string(out.join(LOG_FILE_NAME)).unwrap();
+            assert!(jsonl.contains("\"first\""), "the worker's json line is missing:\n{jsonl}");
+        }
+
+        /// Un figlio morto prima di scrivere qualunque file non deve far fallire la chiusura: il
+        /// referto mancante segnala gia' quel guasto, e perdere anche il log del padre lo
+        /// raddoppierebbe invece di spiegarlo.
+        #[test]
+        fn a_worker_that_left_no_files_behind_is_not_an_error() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+
+            handle.absorb_worker_logs(&dir.path().join("job-that-never-ran")).expect("an absent log directory is tolerated");
+            handle.close().expect("closing must still succeed");
+        }
+
+        /// Una corsa senza figli non deve comportarsi diversamente da prima di P1.
+        #[test]
+        fn absorbing_nothing_leaves_the_run_files_exactly_as_they_were() {
+            let dir = tempfile::tempdir().unwrap();
+            let out = dir.path().join("out");
+            std::fs::create_dir_all(&out).unwrap();
+            let handle = handle_writing_into(&out);
+            handle.close().unwrap();
+
+            assert_eq!(std::fs::read_to_string(out.join(CSV_FILE_NAME)).unwrap(), CSV_HEADER);
+        }
+    }
+
     mod csv_never_in_the_working_directory {
         use super::*;
 

@@ -64,6 +64,17 @@ impl PipelinesBundle {
     }
 
     /// La catena completa di ogni pipeline, concatenata nell'ordine di inserimento.
+    /// `true` se **ogni** pipeline del bundle scala con i thread.
+    ///
+    /// È la domanda che `Algorithm` fa prima di distribuire le pagine di uno step
+    /// (`agent-memory/P2-implementation-plan.md` D-P2-3). Si risponde per bundle e non per
+    /// formato di proposito: un formato può avere la classificazione in Python e gli step in Rust
+    /// — è il caso di EURIZON-EN23 — e degradare tutto il formato gli toglierebbe il guadagno
+    /// proprio dove P0 lo ha misurato più grande.
+    pub fn scales_with_threads(&self) -> bool {
+        self.0.iter().all(|pipeline| pipeline.scales_with_threads())
+    }
+
     pub fn apply(&self, page: &Page, data: &FilterData<'_>) -> Result<Vec<Extracted>, PipeError> {
         let mut out = Vec::new();
         for pipeline in &self.0 {
@@ -294,6 +305,47 @@ mod tests {
             assert_eq!(
                 bundle.apply_deserialize(&page, &FilterData::EMPTY).unwrap(),
                 bundle.apply(&page, &FilterData::EMPTY).unwrap()
+            );
+        }
+    }
+
+    mod thread_scaling {
+        use super::*;
+
+        fn rust_pipeline(name: &str) -> Pipeline {
+            let mut pipeline = Pipeline::new(name);
+            pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
+            pipeline
+        }
+
+        fn author_pipeline(name: &str) -> Pipeline {
+            let mut pipeline = Pipeline::new(name);
+            pipeline.pdf_extract.push(GilBoundExtract::pipe("author"));
+            pipeline
+        }
+
+        #[test]
+        fn an_empty_bundle_scales() {
+            assert!(PipelinesBundle::new().scales_with_threads());
+        }
+
+        #[test]
+        fn a_bundle_of_rust_pipelines_scales() {
+            let mut bundle = PipelinesBundle::new();
+            bundle.push(rust_pipeline("a"));
+            bundle.push(rust_pipeline("b"));
+            assert!(bundle.scales_with_threads());
+        }
+
+        #[test]
+        fn one_author_pipeline_is_enough_to_stop_the_bundle() {
+            let mut bundle = PipelinesBundle::new();
+            bundle.push(rust_pipeline("a"));
+            bundle.push(author_pipeline("b"));
+            assert!(
+                !bundle.scales_with_threads(),
+                "every pipeline of the bundle runs on the same page: one of them taking the GIL \
+                 serializes that page anyway"
             );
         }
     }

@@ -67,7 +67,8 @@
 //! |---|---|---|
 //! | `verbosity` | `verbosity` | stringa, uno dei sei nomi di variante, case-insensitive (§0 Q5 -- **non** più l'intero `0..5` del riferimento) |
 //! | `out_path` | `out_path` | |
-//! | `n_workers` | `n_workers` | intero positivo |
+//! | `n_workers` | `n_workers` | P5: intero positivo **oppure** `auto`. È il default globale di entrambi i livelli di parallelismo |
+//! | `parallelism` | `parallelism_jobs`/`parallelism_pages` | P5: mappa con le sole sottochiavi `jobs` e `pages`, ciascuna con la grammatica di `n_workers`. Una sottochiave sconosciuta è un `UnknownKey` come al livello superiore |
 //! | `batch_file` | `batch_file` | |
 //! | `save_pdf` | `save_pdf` | booleano YAML nativo |
 //! | `url` | contribuisce allo spec singolare (con `pdf`), poi risolto in `reports` | |
@@ -95,6 +96,7 @@ use std::path::{Path, PathBuf};
 use serde::de::Error as _;
 
 use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
+use crate::cli::parallelism_config::Workers;
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
@@ -242,11 +244,52 @@ fn value_as_string(path: &Path, key: &'static str, value: &serde_yaml::Value) ->
         .ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
 }
 
-fn value_as_positive_usize(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<usize, FileConfigError> {
-    match value.as_u64() {
-        Some(n) if n > 0 => Ok(n as usize),
-        _ => Err(FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") }),
+/// P5: un livello di parallelismo, scritto come intero positivo o come la parola `auto`.
+///
+/// Lo YAML distingue i due casi da se' (`4` e' un numero, `auto` una stringa), quindi non serve
+/// passare per il testo quando il valore e' gia' un intero -- e un `4` fra virgolette resta
+/// comunque accettato, perche' rifiutarlo sarebbe una sottigliezza senza guadagno.
+fn value_as_workers(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<Workers, FileConfigError> {
+    let invalid =
+        || FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") };
+    match value {
+        serde_yaml::Value::String(text) => Workers::parse(text).map_err(|_| invalid()),
+        _ => match value.as_u64() {
+            Some(n) if n > 0 => Ok(Workers::Fixed(n as usize)),
+            _ => Err(invalid()),
+        },
     }
+}
+
+/// La sezione `parallelism:`, con le sue due sole sottochiavi.
+///
+/// Una sottochiave sconosciuta e' un errore come al livello superiore: se `pipelines:` — il terzo
+/// livello che il piano immaginava e che P3 ha chiuso senza implementazione — comparisse in un
+/// file, tacere lo farebbe sembrare attivo.
+fn parallelism_section(
+    path: &Path,
+    value: &serde_yaml::Value,
+) -> Result<(Option<Workers>, Option<Workers>), FileConfigError> {
+    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key: "parallelism",
+        value: format!("{value:?}"),
+    })?;
+    let mut jobs = None;
+    let mut pages = None;
+    for (key, entry) in mapping {
+        match key.as_str().unwrap_or_default() {
+            "jobs" => jobs = Some(value_as_workers(path, "parallelism.jobs", entry)?),
+            "pages" => pages = Some(value_as_workers(path, "parallelism.pages", entry)?),
+            other => {
+                return Err(FileConfigError::UnknownKey {
+                    path: path.to_path_buf(),
+                    key: format!("parallelism.{other}"),
+                });
+            }
+        }
+    }
+    Ok((jobs, pages))
 }
 
 fn value_as_bool(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<bool, FileConfigError> {
@@ -294,9 +337,9 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         }
     };
 
-    const KNOWN_KEYS: [&str; 12] = [
-        "verbosity", "out_path", "n_workers", "batch_file", "save_pdf", "url", "pdf", "reports", "format",
-        "target_lists", "formats_repo", "db_path",
+    const KNOWN_KEYS: [&str; 13] = [
+        "verbosity", "out_path", "n_workers", "parallelism", "batch_file", "save_pdf", "url", "pdf", "reports",
+        "format", "target_lists", "formats_repo", "db_path",
     ];
 
     let mut fields: HashMap<&'static str, serde_yaml::Value> = HashMap::new();
@@ -314,7 +357,9 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     let verbosity = verbosity.map(|v| parse_verbosity(path, &v)).transpose()?;
 
     let out_path = fields.get("out_path").map(|v| value_as_string(path, "out_path", v)).transpose()?.map(PathBuf::from);
-    let n_workers = fields.get("n_workers").map(|v| value_as_positive_usize(path, "n_workers", v)).transpose()?;
+    let n_workers = fields.get("n_workers").map(|v| value_as_workers(path, "n_workers", v)).transpose()?;
+    let (parallelism_jobs, parallelism_pages) =
+        fields.get("parallelism").map(|v| parallelism_section(path, v)).transpose()?.unwrap_or((None, None));
     let batch_file =
         fields.get("batch_file").map(|v| value_as_string(path, "batch_file", v)).transpose()?.map(PathBuf::from);
     let save_pdf = fields.get("save_pdf").map(|v| value_as_bool(path, "save_pdf", v)).transpose()?;
@@ -360,6 +405,8 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         out_profile: None,
         out_flags: None,
         n_workers,
+        parallelism_jobs,
+        parallelism_pages,
         batch_file,
         save_pdf,
         formats_repo_path,
@@ -569,7 +616,61 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = write(dir.path(), "cfg.yaml", "n_workers: 4\n");
             let config = load(Some(&path)).unwrap();
-            assert_eq!(config.n_workers, Some(4));
+            assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
+        }
+
+        /// P5: la sezione dedicata, con i due livelli che P1 e P2 consumano davvero.
+        #[test]
+        fn the_parallelism_section_maps_both_levels() {
+            let dir = tempfile::tempdir().unwrap();
+            let path =
+                write(dir.path(), "cfg.yaml", "parallelism:\n  jobs: 2\n  pages: auto\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.parallelism_jobs, Some(Workers::Fixed(2)));
+            assert_eq!(config.parallelism_pages, Some(Workers::Auto));
+        }
+
+        #[test]
+        fn a_parallelism_section_may_name_a_single_level() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "parallelism:\n  pages: 4\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.parallelism_jobs, None);
+            assert_eq!(config.parallelism_pages, Some(Workers::Fixed(4)));
+        }
+
+        /// `auto` scritto come parola YAML nuda, senza virgolette: e' la forma in cui comparira'
+        /// in ogni file di configurazione scritto a mano.
+        #[test]
+        fn auto_is_accepted_unquoted() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "n_workers: auto\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.n_workers, Some(Workers::Auto));
+        }
+
+        /// `pipelines` e' il livello che P3 ha chiuso senza implementazione: accettarlo in
+        /// silenzio lo farebbe sembrare attivo, che e' peggio di rifiutarlo.
+        #[test]
+        fn an_unknown_sub_key_of_parallelism_is_an_error_that_names_its_path() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "parallelism:\n  pipelines: 2\n");
+            let error = load(Some(&path)).unwrap_err().to_string();
+            assert!(error.contains("parallelism.pipelines"), "{error}");
+        }
+
+        #[test]
+        fn a_parallelism_section_that_is_not_a_mapping_is_an_error() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "parallelism: 4\n");
+            assert!(load(Some(&path)).is_err());
+        }
+
+        #[test]
+        fn zero_is_rejected_inside_the_parallelism_section_too() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "parallelism:\n  jobs: 0\n");
+            assert!(load(Some(&path)).is_err());
         }
 
         #[test]

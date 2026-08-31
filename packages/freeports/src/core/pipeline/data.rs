@@ -151,7 +151,8 @@ impl PipeError {
 /// È la forma tipizzata del dict che nel riferimento i deserializer restituiscono e che
 /// `merge_into_multimap` versa nella multimappa. L'ordine conta: chi arriva dopo vince quando la
 /// promessa non è *multiple* (vedi [`FlatPromiseMap::fulfill`](crate::core::promise_resolution::FlatPromiseMap::fulfill)).
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct PromiseEntries(Vec<(String, BlockValue)>);
 
 impl PromiseEntries {
@@ -207,7 +208,8 @@ impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for PromiseEntri
 /// entità che la decisione D-M7-2 dell'utente ha anticipato da M8 (`Fund`, `Equity`, `Bond`, le
 /// uniche che i pipe `deserialize` standard sapessero già costruire). M8 aggiunge le sette
 /// varianti restanti di `PLAN.md` §5.4, chiudendo il modulo.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum Extracted {
     /// Una partecipazione azionaria su una società bersaglio.
     Equity(Equity),
@@ -768,6 +770,72 @@ mod tests {
                     assert_eq!(e.as_bond().is_some(), matches!(e, Extracted::Bond(_)), "{e:?}");
                     assert_eq!(e.as_promises().is_some(), matches!(e, Extracted::Promises(_)), "{e:?}");
                     assert_eq!(e.as_page_class().is_some(), matches!(e, Extracted::PageClass(_)), "{e:?}");
+                }
+            }
+        }
+
+        /// P1 (`agent-memory/P1-implementation-plan.md` §3): un `Extracted` torna dal processo
+        /// figlio al padre serializzato in JSON. Riusa `one_of_each`, cosi' una tredicesima variante
+        /// entra automaticamente nel round-trip invece di restare scoperta in silenzio.
+        mod serde_round_trip {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            use std::collections::BTreeMap;
+
+            fn round_trip(e: &Extracted) -> Extracted {
+                let json = serde_json::to_string(e).expect("an extracted value must serialize");
+                serde_json::from_str(&json).expect("a serialized extracted value must deserialize back")
+            }
+
+            #[test]
+            fn every_variant_survives_a_json_round_trip() {
+                for e in one_of_each() {
+                    assert_eq!(round_trip(&e), e, "variant did not survive: {e:?}");
+                }
+            }
+
+            /// Le promesse sono l'unica variante che porta una struttura annidata arbitraria
+            /// (`BlockValue`, ricorsivo). Un `PromiseEntries` vuoto, che `one_of_each` usa, non
+            /// direbbe nulla sull'annidamento.
+            #[test]
+            fn promise_entries_survive_with_nested_block_values() {
+                let entries: PromiseEntries = [
+                    ("scalar", BlockValue::Int(42)),
+                    (
+                        "list",
+                        BlockValue::List(vec![BlockValue::Str("a".to_string()), BlockValue::Null, BlockValue::Bool(true)]),
+                    ),
+                    (
+                        "map",
+                        BlockValue::Map(BTreeMap::from([(
+                            "inner".to_string(),
+                            BlockValue::Set(BTreeSet::from([BlockValue::Int(1), BlockValue::Int(2)])),
+                        )])),
+                    ),
+                ]
+                .into_iter()
+                .collect();
+                let e = Extracted::Promises(entries);
+                assert_eq!(round_trip(&e), e);
+            }
+
+            /// L'ordine delle promesse decide chi vince quando la promessa non e' *multiple*
+            /// (vedi `FlatPromiseMap::fulfill`): se il round-trip lo perdesse, un job in parallelo
+            /// produrrebbe un risultato diverso dallo stesso job in sequenziale.
+            #[test]
+            fn the_order_of_promise_entries_is_preserved() {
+                let entries: PromiseEntries =
+                    [("k", BlockValue::Int(1)), ("k", BlockValue::Int(2)), ("k", BlockValue::Int(3))].into_iter().collect();
+                let restored = round_trip(&Extracted::Promises(entries.clone()));
+                assert_eq!(restored, Extracted::Promises(entries));
+            }
+
+            #[test]
+            fn a_page_class_survives_both_when_present_and_when_absent() {
+                for value in [None, Some(PageClass::new("investments"))] {
+                    let e = Extracted::PageClass(value.clone());
+                    assert_eq!(round_trip(&e), e, "page class {value:?} did not survive");
                 }
             }
         }

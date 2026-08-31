@@ -317,6 +317,12 @@ impl PdfExtractPipe for PyPdfExtractPipe {
         &self.name
     }
 
+    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
+    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    fn scales_with_threads(&self) -> bool {
+        false
+    }
+
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         // Il pipe d'autore si aspetta il dizionario PyMuPDF originale, non la `Page` nativa: è la
         // ragione per cui `Page` lo conserva (`PLAN.md` §3).
@@ -360,6 +366,12 @@ impl PyTextFilterPipe {
 impl TextFilterPipe for PyTextFilterPipe {
     fn name(&self) -> &str {
         &self.name
+    }
+
+    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
+    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    fn scales_with_threads(&self) -> bool {
+        false
     }
 
     fn filter(&self, blocks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, PipeError> {
@@ -429,6 +441,12 @@ impl PyDeserializePipe {
 impl DeserializePipe for PyDeserializePipe {
     fn name(&self) -> &str {
         &self.name
+    }
+
+    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
+    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    fn scales_with_threads(&self) -> bool {
+        false
     }
 
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {

@@ -23,7 +23,7 @@
 //! sovrascrive env sovrascrive file sovrascrive default su ogni campo" (`PLAN.md` §11, il focus di
 //! test esplicito di questa milestone) sarebbe dedurlo dagli effetti collaterali su disco di
 //! `execute` -- impraticabile per la maggior parte dei tredici campi di `PartialConfig` (es.
-//! `n_workers`/`out_profile` non lasciano tracce ispezionabili in un CSV). `execute` diventa un
+//! `parallelism`/`out_profile` non lasciano tracce ispezionabili in un CSV). `execute` diventa un
 //! sottile `resolve_configs(args)?` seguito da `job::run` per ciascuna configurazione risolta e
 //! `output::write_results` sul totale concatenato -- **nessuna logica nuova**, solo un punto di
 //! osservazione in più. `tests/cli_config.rs` (`M9-implementation-plan.md` §3 passo 17) usa
@@ -72,7 +72,11 @@ use crate::cli::config_locations::file::{self, FileConfigError};
 use crate::cli::freeports_config::{self, FreeportsConfig, FreeportsConfigError};
 use crate::cli::job::{self, JobError};
 use crate::cli::output::{self, OutputError};
+use crate::cli::parallelism_config::ParallelismConfig;
 use crate::cli::partial_config::{ConfigSource, defaults, overwrite};
+use crate::cli::worker::{self, JobFailure, WorkerError};
+use crate::core::algorithm::DocumentOutcome;
+use crate::core::parallelism::{self, Parallelism};
 use crate::core::tracing_setup::{LogHandle, TracingSetupError};
 
 #[derive(Debug, thiserror::Error)]
@@ -96,6 +100,20 @@ pub enum CliError {
     /// registro l'utente perde le diagnostiche localizzate proprio della corsa che sta lanciando.
     #[error(transparent)]
     Logging(#[from] TracingSetupError),
+    /// Un job eseguito in un processo figlio non ha prodotto risultati (P1). Trasparente di
+    /// proposito: per un fallimento di dominio il messaggio deve essere **identico** a quello che
+    /// il percorso sequenziale avrebbe stampato.
+    #[error(transparent)]
+    Worker(#[from] JobFailure),
+    /// L'infrastruttura dei processi figli non e' partita: area di lavoro non creabile, eseguibile
+    /// non identificabile. Non e' un job fallito -- nessun job e' mai partito.
+    #[error("cannot set up the worker processes: {source}")]
+    WorkerSetup {
+        #[source]
+        source: std::io::Error,
+    },
+    #[error(transparent)]
+    WorkerRequest(#[from] WorkerError),
 }
 
 /// Config resolution entry point (`M9-implementation-plan.md` §1): passi 1-7 della sequenza di
@@ -174,14 +192,119 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
     if let Some(first) = configs.first() {
         log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
     }
-    let mut outcomes = Vec::new();
-    for config in &configs {
-        outcomes.extend(job::run(config)?);
-    }
+    let outcomes = run_jobs(&configs, log_handle)?;
     if let Some(first) = configs.first() {
         output::write_results(first, &outcomes)?;
     }
     Ok(())
+}
+
+/// La sezione `parallelism` che governa questa corsa (P5).
+///
+/// E' quella della **prima** configurazione risolta, la stessa che governa gia' i parametri di
+/// scrittura in modalita' batch: i due livelli sono proprieta' della corsa intera, non di un job,
+/// e le colonne di un file di batch non possono comunque impostarli.
+fn run_parallelism(configs: &[FreeportsConfig]) -> ParallelismConfig {
+    configs.first().map_or_else(ParallelismConfig::default, |first| first.parallelism)
+}
+
+/// Quanti job alla volta (P1) e quante pagine alla volta dentro ciascuno (P2), risolti insieme.
+///
+/// **Insieme e in quest'ordine** perche' il secondo dipende dal primo: in `auto` il budget di core
+/// si divide fra i job concorrenti, cosi' che un batch con quattro job su venti thread hardware ne
+/// usi cinque per job invece di venti. Con un job solo -- il caso non-batch, che e' anche quello in
+/// cui P1 non fa nulla -- restano tutti disponibili, ed e' li' che P2 conta davvero.
+///
+/// Un `pages` **esplicito** non si divide: chi lo scrive lo ha chiesto. In quel caso il prodotto
+/// `jobs x pages` puo' superare i core della macchina, e allora si onora la richiesta e la si
+/// segnala -- `PLAN.md` §2 principio 4 vieta gli override silenziosi, non le configurazioni
+/// scomode.
+fn resolve_parallelism(configs: &[FreeportsConfig]) -> (usize, Parallelism) {
+    let requested = run_parallelism(configs);
+    let jobs = requested.resolve_jobs(configs.len());
+    let pages = requested.resolve_pages(jobs);
+    if let Some(total) = ParallelismConfig::oversubscription(jobs, pages) {
+        tracing::warn!(
+            jobs,
+            pages = pages.pages,
+            total,
+            available = parallelism::available_threads(),
+            "the requested parallelism opens {total} workers on a machine with {} cores",
+            parallelism::available_threads()
+        );
+    }
+    tracing::debug!(
+        requested_jobs = %requested.jobs,
+        requested_pages = %requested.pages,
+        jobs,
+        pages = pages.pages,
+        "parallelism resolved"
+    );
+    (jobs, pages)
+}
+
+/// Esegue i job risolti e ne concatena i risultati in ordine.
+///
+/// Un job solo, o `n_workers` a 1, restano **esattamente** sul `for` sequenziale di sempre: nessun
+/// processo, nessuna area di lavoro temporanea, nessuna differenza osservabile. E' il default, ed e'
+/// la ragione per cui chi non chiede nulla non vede cambiare niente.
+fn run_jobs(configs: &[FreeportsConfig], log_handle: &LogHandle) -> Result<Vec<DocumentOutcome>, CliError> {
+    let (jobs, pages) = resolve_parallelism(configs);
+    if jobs <= 1 {
+        let mut outcomes = Vec::new();
+        for config in configs {
+            outcomes.extend(job::run(config, pages)?);
+        }
+        return Ok(outcomes);
+    }
+    run_jobs_in_processes(configs, jobs, pages, log_handle)
+}
+
+/// I job in processi figli (P1, `agent-memory/P1-implementation-plan.md` §2).
+///
+/// E' l'unico livello di parallelismo che scavalca il GIL, ed e' l'unica ragione per cui vale la
+/// pena pagare un confine di processo: P0 ha misurato che il caricamento PyMuPDF, che nessun thread
+/// puo' accelerare, e' il 35-75% del tempo di un job.
+///
+/// **Attenzione a `current_exe` sotto `cargo test`**: li' restituisce il binario della suite, non
+/// `freeports`. Un test che innescasse questo ramo lancerebbe copie del binario di test, che non
+/// conoscono `--internal-worker` e uscirebbero con un codice non-zero -- un `WorkerError::Died`
+/// pulito, non un ciclo infinito, ma comunque un test che non prova cio' che crede. Il pool vero si
+/// esercita dai test d'integrazione, con `env!("CARGO_BIN_EXE_freeports")`.
+fn run_jobs_in_processes(
+    configs: &[FreeportsConfig],
+    parallelism: usize,
+    page_workers: Parallelism,
+    log_handle: &LogHandle,
+) -> Result<Vec<DocumentOutcome>, CliError> {
+    let executable = std::env::current_exe().map_err(|source| CliError::WorkerSetup { source })?;
+    // Un'area per corsa, che sparisce da sola: i file privati dei figli non sopravvivono al padre
+    // e non compaiono mai accanto ai risultati.
+    let work_area = worker::WorkArea::create()?;
+    let requests = configs
+        .iter()
+        .enumerate()
+        .map(|(index, config)| {
+            worker::prepare_request(work_area.path(), index, config, page_workers.pages)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    tracing::info!(
+        job_count = requests.len(),
+        parallelism,
+        pages = page_workers.pages,
+        "running jobs in worker processes"
+    );
+    let reports = worker::run_in_processes(&executable, &requests, parallelism);
+
+    // Prima di leggere gli esiti, e comunque siano andati: l'area di lavoro sparisce all'uscita da
+    // questa funzione, e i log di un job **fallito** sono i piu' utili di tutti da conservare. Il
+    // padre li riversera' nei propri file alla chiusura, in ordine di job.
+    for request in &requests {
+        log_handle.absorb_worker_logs(&request.log_dir)?;
+    }
+
+    Ok(worker::collect(reports)?)
 }
 
 #[cfg(test)]
@@ -269,6 +392,131 @@ mod tests {
         let path = dir.join("empty.yaml");
         std::fs::write(&path, "").unwrap();
         path
+    }
+
+    /// P1/P5: quale dei due percorsi -- il `for` sequenziale di sempre o il pool di processi figli
+    /// -- prende una corsa, e perche'. La decisione e' tutta in `resolve_parallelism`, quindi si
+    /// prova li' dove non serve avviare nulla; il pool vero gira nei test d'integrazione.
+    mod parallelism_decides_the_path {
+        use super::*;
+        use crate::cli::conf_parse::DocumentSpec;
+        use crate::cli::parallelism_config::Workers;
+        use crate::core::tracing_setup::Verbosity;
+        use crate::output::routines::write::{OutFlags, OutStructureMode};
+        use std::path::PathBuf;
+
+        fn config_with(parallelism: ParallelismConfig) -> FreeportsConfig {
+            FreeportsConfig {
+                verbosity: Verbosity::Warn,
+                reports: vec![DocumentSpec { url: None, path: Some(PathBuf::from("/tmp/a.pdf")), name: Some("a".to_string()) }],
+                target_lists: vec!["TEST".to_string()],
+                format: "FMT".to_string(),
+                out_path: PathBuf::from("/tmp/out"),
+                out_profile: OutStructureMode::Regular,
+                out_flags: OutFlags::default(),
+                parallelism,
+                batch_file: None,
+                save_pdf: false,
+                formats_repo_path: None,
+                input_db_path: None,
+                config_file: None,
+            }
+        }
+
+        fn batch_of(count: usize, jobs: usize) -> Vec<FreeportsConfig> {
+            let parallelism =
+                ParallelismConfig { jobs: Workers::Fixed(jobs), pages: Workers::Fixed(1) };
+            (0..count).map(|_| config_with(parallelism)).collect()
+        }
+
+        fn jobs_of(configs: &[FreeportsConfig]) -> usize {
+            resolve_parallelism(configs).0
+        }
+
+        /// `jobs: 1` -- che dopo P5 si ottiene con un `-j 1`, o con `parallelism.jobs: 1` --
+        /// continua a percorrere esattamente il codice di prima di P1.
+        #[test]
+        fn one_job_worker_keeps_a_batch_sequential() {
+            assert_eq!(jobs_of(&batch_of(8, 1)), 1);
+        }
+
+        #[test]
+        fn a_single_job_is_sequential_however_many_workers_were_asked_for() {
+            assert_eq!(jobs_of(&batch_of(1, 16)), 1);
+        }
+
+        /// P5: il default e' cambiato. Prima di P5 `n_workers` valeva `1` e un batch girava
+        /// sequenziale se nessuno chiedeva altro; ora entrambi i livelli valgono `auto`, quindi un
+        /// batch usa i core della macchina senza che l'utente debba saperlo
+        /// (`agent-memory/P5-implementation-plan.md` D-P5-4).
+        #[test]
+        fn the_default_now_runs_a_batch_in_parallel() {
+            let configs: Vec<FreeportsConfig> =
+                (0..8).map(|_| config_with(ParallelismConfig::default())).collect();
+            let expected = parallelism::available_threads().min(8);
+            assert_eq!(jobs_of(&configs), expected);
+        }
+
+        /// L'altra meta' dello stesso default: le pagine di un job. Con un job solo il budget non
+        /// si divide con nessuno, ed e' li' che P2 conta davvero.
+        #[test]
+        fn the_default_gives_a_lone_job_every_core_for_its_pages() {
+            let configs = vec![config_with(ParallelismConfig::default())];
+            let (jobs, pages) = resolve_parallelism(&configs);
+            assert_eq!(jobs, 1);
+            assert_eq!(pages.pages, parallelism::available_threads());
+        }
+
+        /// L'invariante di `PLAN.md` §6: `1` ovunque percorre il codice sequenziale a entrambi i
+        /// livelli, ed e' il modo con cui si verifica il determinismo.
+        #[test]
+        fn one_everywhere_is_sequential_at_both_levels() {
+            let configs: Vec<FreeportsConfig> =
+                (0..8).map(|_| config_with(ParallelismConfig::SEQUENTIAL)).collect();
+            assert_eq!(resolve_parallelism(&configs), (1, Parallelism::SEQUENTIAL));
+        }
+
+        /// P5 D-P5-3: un `pages` esplicito non si divide fra i job concorrenti. Il prodotto puo'
+        /// superare i core -- la richiesta si onora, e `resolve_parallelism` la segnala.
+        #[test]
+        fn an_explicit_page_count_is_not_divided_among_the_jobs() {
+            let parallelism =
+                ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(7) };
+            let configs: Vec<FreeportsConfig> =
+                (0..4).map(|_| config_with(parallelism)).collect();
+            assert_eq!(resolve_parallelism(&configs), (2, Parallelism::pages(7)));
+        }
+
+        /// Non ha senso avviare piu' processi che job: sarebbero figli che nascono per non fare
+        /// nulla, ciascuno con il costo di un interprete Python da inizializzare.
+        #[test]
+        fn more_workers_than_jobs_are_capped_at_the_number_of_jobs() {
+            assert_eq!(jobs_of(&batch_of(3, 16)), 3);
+        }
+
+        #[test]
+        fn fewer_workers_than_jobs_are_taken_as_they_are() {
+            assert_eq!(jobs_of(&batch_of(16, 4)), 4);
+        }
+
+        /// Un batch vuoto e' un file di batch con la sola intestazione: legittimo, e non deve
+        /// diventare uno `0` che si propaga in un `min` o in un ciclo di thread. Un solo
+        /// lavoratore per zero job non ne avvia comunque nessuno -- `run_jobs` prende il ramo
+        /// sequenziale, che itera su niente.
+        #[test]
+        fn an_empty_batch_never_asks_for_more_than_one_worker() {
+            assert_eq!(jobs_of(&[]), 1);
+        }
+
+        /// Le colonne di un file di batch non possono impostare il parallelismo: il valore e'
+        /// quello della prima configurazione risolta, la stessa che governa gia' i parametri di
+        /// scrittura.
+        #[test]
+        fn the_value_comes_from_the_first_resolved_configuration() {
+            let mut configs = batch_of(4, 3);
+            configs[1].parallelism.jobs = Workers::Fixed(99);
+            assert_eq!(jobs_of(&configs), 3);
+        }
     }
 
     mod resolve_configs_batch_dispatch {

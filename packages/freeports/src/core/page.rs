@@ -29,7 +29,8 @@ use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 /// dà un posto dove mettere il comportamento e impedisce di scambiarlo con un
 /// [`FormatName`] in una firma. `targets/2_multireport_support.md` lo usa come chiave con cui i
 /// risultati vengono raggruppati per documento.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct DocumentId(String);
 
 impl DocumentId {
@@ -61,7 +62,8 @@ impl From<String> for DocumentId {
 }
 
 /// Nome di un formato del repo formati (es. `EURIZON-EN23`).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct FormatName(String);
 
 impl FormatName {

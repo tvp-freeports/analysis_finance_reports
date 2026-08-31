@@ -41,7 +41,7 @@
 //!     pub out_path: std::path::PathBuf,
 //!     pub out_profile: crate::output::routines::write::OutStructureMode,
 //!     pub out_flags: crate::output::routines::write::OutFlags,
-//!     pub n_workers: usize,
+//!     pub parallelism: crate::cli::parallelism_config::ParallelismConfig,
 //!     pub batch_file: Option<std::path::PathBuf>,
 //!     pub save_pdf: bool,
 //!     pub formats_repo_path: Option<std::path::PathBuf>,
@@ -67,13 +67,17 @@
 use std::path::PathBuf;
 
 use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
+use crate::cli::parallelism_config::{ParallelismConfig, Workers};
 use crate::cli::partial_config::MergedConfig;
 use crate::core::tracing_setup::Verbosity;
 use crate::formats_repo::metadata::{get_formats, url_to_format};
 use crate::output::routines::write::{OutFlags, OutStructureMode};
 use crate::core::tracing_setup::log_error;
 
-#[derive(Debug, Clone, PartialEq)]
+/// `Serialize`/`Deserialize` (P1): una configurazione risolta attraversa il confine di processo
+/// verso un job worker, in JSON. E' l'unico motivo per cui sono qui -- nessuna sorgente di
+/// configurazione (file/env/cmd) legge questa struttura, tutte producono un `PartialConfig`.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreeportsConfig {
     pub verbosity: Verbosity,
     pub reports: Vec<DocumentSpec>,
@@ -82,7 +86,10 @@ pub struct FreeportsConfig {
     pub out_path: PathBuf,
     pub out_profile: OutStructureMode,
     pub out_flags: OutFlags,
-    pub n_workers: usize,
+    /// I due livelli di parallelismo gia' risolti a una richiesta ciascuno (P5). Il default
+    /// globale `n_workers` e' stato applicato qui: da questo punto in poi nessuno lo riguarda
+    /// piu', e `cli::run` deve solo tradurre `auto` in un numero.
+    pub parallelism: ParallelismConfig,
     pub batch_file: Option<PathBuf>,
     pub save_pdf: bool,
     pub formats_repo_path: Option<PathBuf>,
@@ -344,7 +351,13 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
         out_path,
         out_profile,
         out_flags,
-        n_workers: values.n_workers.unwrap_or(1),
+        // Il default globale scende sui due livelli qui, e solo qui: un livello che nessuna
+        // sorgente ha toccato eredita `n_workers` (`agent-memory/P5-implementation-plan.md`
+        // D-P5-1), che a sua volta vale `auto` se nemmeno lui e' stato toccato.
+        parallelism: ParallelismConfig {
+            jobs: values.parallelism_jobs.or(values.n_workers).unwrap_or(Workers::Auto),
+            pages: values.parallelism_pages.or(values.n_workers).unwrap_or(Workers::Auto),
+        },
         batch_file: values.batch_file,
         save_pdf,
         formats_repo_path: values.formats_repo_path,
@@ -386,7 +399,9 @@ mod tests {
                 out_path: Some(out_dir),
                 out_profile: Some(OutStructureMode::Regular),
                 out_flags: Some(OutFlags::default()),
-                n_workers: Some(1),
+                n_workers: Some(Workers::Fixed(1)),
+                parallelism_jobs: None,
+                parallelism_pages: None,
                 batch_file: None,
                 save_pdf: Some(true),
                 formats_repo_path: None,
@@ -403,6 +418,112 @@ mod tests {
 
     fn expect_ok(config: ValidConfig) -> FreeportsConfig {
         validate(config.merged).expect("expected a valid configuration to validate successfully")
+    }
+
+    /// P1 (`agent-memory/P1-implementation-plan.md` §3): un `FreeportsConfig` risolto attraversa
+    /// il confine di processo verso un job worker, serializzato in JSON. Il round-trip deve essere
+    /// **fedele campo per campo**: un campo che si perde per strada non fa fallire il figlio, gli fa
+    /// eseguire un job diverso da quello che il padre ha risolto -- un errore silenzioso, il peggior
+    /// tipo. Da qui l'uso di `assert_eq!` sull'intera struttura, non su singoli campi.
+    mod serde_round_trip {
+        use super::*;
+
+        fn round_trip(config: &FreeportsConfig) -> FreeportsConfig {
+            let json = serde_json::to_string(config).expect("a resolved configuration must serialize");
+            serde_json::from_str(&json).expect("a serialized configuration must deserialize back")
+        }
+
+        #[test]
+        fn a_baseline_configuration_survives_a_json_round_trip_unchanged() {
+            let config = expect_ok(ValidConfig::new());
+            assert_eq!(round_trip(&config), config);
+        }
+
+        #[test]
+        fn the_optional_paths_survive_when_they_are_set() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.formats_repo_path = Some(PathBuf::from("/repo/formats"));
+            config.input_db_path = Some(PathBuf::from("/db/input.csv"));
+            config.config_file = Some(PathBuf::from("/etc/freeports.yaml"));
+            config.batch_file = Some(PathBuf::from("/jobs/batch.csv"));
+            assert_eq!(round_trip(&config), config);
+        }
+
+        #[test]
+        fn the_optional_paths_survive_when_they_are_absent() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.formats_repo_path = None;
+            config.input_db_path = None;
+            config.config_file = None;
+            config.batch_file = None;
+            assert_eq!(round_trip(&config), config);
+        }
+
+        /// Un documento puo' arrivare al figlio come url, come path, o come entrambi: sono i tre
+        /// modi in cui `DocumentSpec` esce da `validate`, e vanno tutti oltre il confine.
+        #[test]
+        fn every_shape_of_document_spec_survives() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.reports = vec![
+                DocumentSpec { url: Some("https://example.invalid/a.pdf".to_string()), path: None, name: Some("a".to_string()) },
+                DocumentSpec { url: None, path: Some(PathBuf::from("/tmp/b.pdf")), name: Some("b".to_string()) },
+                DocumentSpec {
+                    url: Some("https://example.invalid/c.pdf".to_string()),
+                    path: Some(PathBuf::from("/tmp/c.pdf")),
+                    name: Some("c".to_string()),
+                },
+            ];
+            assert_eq!(round_trip(&config), config);
+        }
+
+        #[test]
+        fn every_verbosity_level_survives() {
+            for verbosity in [
+                Verbosity::Silent,
+                Verbosity::ErrorOnly,
+                Verbosity::Warn,
+                Verbosity::Info,
+                Verbosity::Debug,
+                Verbosity::Trace,
+            ] {
+                let mut config = expect_ok(ValidConfig::new());
+                config.verbosity = verbosity;
+                assert_eq!(round_trip(&config).verbosity, verbosity, "verbosity {verbosity:?} did not survive");
+            }
+        }
+
+        /// `out_profile` e `out_flags` decidono *dove e come* si scrive. Il figlio non scrive
+        /// l'output finale, ma li porta comunque: sbagliarli qui significherebbe un `.log.csv` in
+        /// un posto diverso da quello che il padre si aspetta.
+        #[test]
+        fn every_out_structure_mode_survives() {
+            for profile in [OutStructureMode::Regular, OutStructureMode::SingleFile, OutStructureMode::Structured] {
+                let mut config = expect_ok(ValidConfig::new());
+                config.out_profile = profile;
+                assert_eq!(round_trip(&config).out_profile, profile, "out profile {profile:?} did not survive");
+            }
+        }
+
+        #[test]
+        fn every_combination_of_out_flags_survives() {
+            for compressed in [false, true] {
+                for separate_out in [false, true] {
+                    let mut config = expect_ok(ValidConfig::new());
+                    config.out_flags = OutFlags { compressed, separate_out };
+                    assert_eq!(round_trip(&config).out_flags, config.out_flags, "out flags {:?} did not survive", config.out_flags);
+                }
+            }
+        }
+
+        /// Le stringhe che attraversano il confine vengono dai repo formati e dai CSV dell'utente:
+        /// non sono ASCII per garanzia di nessuno.
+        #[test]
+        fn non_ascii_names_and_formats_survive() {
+            let mut config = expect_ok(ValidConfig::new());
+            config.format = "FONDO-ITALIÀ-24".to_string();
+            config.target_lists = vec!["società bersaglio".to_string(), "日本".to_string()];
+            assert_eq!(round_trip(&config), config);
+        }
     }
 
     mod baseline_is_valid {
@@ -788,6 +909,66 @@ mod tests {
             config.merged.values.out_profile = Some(OutStructureMode::Regular);
             let result = expect_ok(config);
             assert_eq!(result.out_path, original);
+        }
+    }
+
+    /// P5 (`agent-memory/P5-implementation-plan.md` D-P5-1). `validate` e' il solo punto in cui il
+    /// default globale `n_workers` scende sui due livelli: da qui in poi `FreeportsConfig` porta
+    /// due richieste indipendenti, e chi le legge non sa piu' da quale sorgente vengano.
+    mod parallelism_inheritance {
+        use super::*;
+
+        fn resolved(
+            n_workers: Option<Workers>,
+            jobs: Option<Workers>,
+            pages: Option<Workers>,
+        ) -> ParallelismConfig {
+            let mut config = ValidConfig::new();
+            config.merged.values.n_workers = n_workers;
+            config.merged.values.parallelism_jobs = jobs;
+            config.merged.values.parallelism_pages = pages;
+            expect_ok(config).parallelism
+        }
+
+        #[test]
+        fn the_global_default_reaches_both_levels_when_neither_says_otherwise() {
+            let parallelism = resolved(Some(Workers::Fixed(3)), None, None);
+            assert_eq!(parallelism.jobs, Workers::Fixed(3));
+            assert_eq!(parallelism.pages, Workers::Fixed(3));
+        }
+
+        #[test]
+        fn a_level_override_wins_over_the_global_default() {
+            let parallelism = resolved(Some(Workers::Fixed(3)), Some(Workers::Fixed(8)), None);
+            assert_eq!(parallelism.jobs, Workers::Fixed(8));
+            assert_eq!(parallelism.pages, Workers::Fixed(3));
+        }
+
+        #[test]
+        fn the_two_levels_are_overridden_independently() {
+            let parallelism =
+                resolved(Some(Workers::Fixed(3)), Some(Workers::Fixed(8)), Some(Workers::Auto));
+            assert_eq!(parallelism.jobs, Workers::Fixed(8));
+            assert_eq!(parallelism.pages, Workers::Auto);
+        }
+
+        #[test]
+        fn an_override_stands_on_its_own_without_any_global_default() {
+            let parallelism = resolved(None, Some(Workers::Fixed(2)), None);
+            assert_eq!(parallelism.jobs, Workers::Fixed(2));
+            assert_eq!(parallelism.pages, Workers::Auto);
+        }
+
+        #[test]
+        fn nothing_set_anywhere_is_auto_at_both_levels() {
+            assert_eq!(resolved(None, None, None), ParallelismConfig::default());
+        }
+
+        /// `-j 1` e le sue tre forme equivalenti: e' il modo con cui `PLAN.md` §6 vuole si
+        /// verifichi il determinismo, e deve restare raggiungibile con un solo valore.
+        #[test]
+        fn one_as_the_global_default_is_the_fully_sequential_configuration() {
+            assert_eq!(resolved(Some(Workers::Fixed(1)), None, None), ParallelismConfig::SEQUENTIAL);
         }
     }
 }

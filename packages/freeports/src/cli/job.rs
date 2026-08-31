@@ -39,7 +39,7 @@
 //! /// spec, già garantito `Some` dopo `freeports_config::validate`), compila le target companies
 //! /// (skip se `target_lists` è vuota: nessuna azienda bersaglio, nessuna lettura di
 //! /// `input_db_path`), poi `Algorithm::apply_multidocument`.
-//! pub fn run(config: &crate::cli::freeports_config::FreeportsConfig) -> Result<Vec<crate::core::algorithm::DocumentOutcome>, JobError>;
+//! pub fn run(config: &crate::cli::freeports_config::FreeportsConfig, parallelism: crate::core::parallelism::Parallelism) -> Result<Vec<crate::core::algorithm::DocumentOutcome>, JobError>;
 //! ```
 //!
 //! # Regola di risoluzione di un documento
@@ -57,6 +57,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use crate::cli::conf_parse::DocumentSpec;
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::{Algorithm, AlgorithmError, DocumentOutcome};
+use crate::core::parallelism::Parallelism;
 use crate::core::page::FormatName;
 use crate::formats_repo::LoadError;
 use crate::input::companies_db::{CompileTargetCompaniesError, compile_target_companies};
@@ -126,11 +127,15 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
 /// Job dispatch: opens the `job` span (`format` is the closest thing to a job identity this
 /// module has -- a job is a single, already-validated `FreeportsConfig`) around
 /// [`run_impl`] and logs the outcome exactly once.
-pub fn run(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
+///
+/// `parallelism` e' quante pagine alla volta il motore puo' elaborare (P2). Il job non lo decide:
+/// glielo passa `cli::run`, che e' l'unico posto che sa quanti job stanno girando insieme e quindi
+/// come dividere i core fra loro.
+pub fn run(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
     let span = tracing::info_span!("job", format = %config.format);
     let _guard = span.enter();
 
-    let result = run_impl(config);
+    let result = run_impl(config, parallelism);
     match &result {
         Ok(outcomes) => tracing::info!(outcome_count = outcomes.len(), "job finished"),
         Err(e) => tracing::error!(error = log_error(e), "job failed: {e}"),
@@ -144,7 +149,7 @@ pub fn run(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
 /// spec, già garantito `Some` dopo `freeports_config::validate`), compila le target companies
 /// (skip se `target_lists` è vuota: nessuna azienda bersaglio, nessuna lettura di
 /// `input_db_path`), poi `Algorithm::apply_multidocument`.
-fn run_impl(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> {
+fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
     // Not logged here: `JobError::MissingFormatsRepoPath` relies solely on `run`'s outer wrapper
     // for its one log line, same as every other `JobError` variant.
     let formats_repo_path = config.formats_repo_path.as_deref().ok_or(JobError::MissingFormatsRepoPath)?;
@@ -184,7 +189,7 @@ fn run_impl(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> 
         (false, Some(input_db_path)) => compile_target_companies(input_db_path, &config.target_lists)?,
     };
 
-    let outcomes = algorithm.apply_multidocument(&documents, &companies)?;
+    let outcomes = algorithm.apply_multidocument_with(&documents, &companies, parallelism)?;
 
     for temp in temp_files {
         if let Err(e) = std::fs::remove_file(&temp) {
@@ -197,6 +202,7 @@ fn run_impl(config: &FreeportsConfig) -> Result<Vec<DocumentOutcome>, JobError> 
 
 #[cfg(test)]
 mod tests {
+    use crate::cli::parallelism_config::ParallelismConfig;
     use super::*;
     use crate::cli::conf_parse::DocumentSpec;
     use crate::cli::freeports_config::FreeportsConfig;
@@ -216,7 +222,7 @@ mod tests {
             out_path: dir.to_path_buf(),
             out_profile: OutStructureMode::Regular,
             out_flags: OutFlags::default(),
-            n_workers: 1,
+            parallelism: ParallelismConfig::SEQUENTIAL,
             batch_file: None,
             save_pdf: true,
             formats_repo_path: Some(dir.join("formats_repo_that_does_not_exist")),
@@ -235,7 +241,7 @@ mod tests {
         fn an_unknown_formats_repo_is_a_typed_job_error_not_a_panic() {
             let dir = tempfile::tempdir().unwrap();
             let config = base_config(dir.path());
-            let result = std::panic::catch_unwind(|| run(&config));
+            let result = std::panic::catch_unwind(|| run(&config, Parallelism::SEQUENTIAL));
             assert!(result.is_ok(), "must not panic");
             assert!(matches!(result.unwrap(), Err(JobError::AlgorithmLoad(_))));
         }
@@ -245,7 +251,7 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let mut config = base_config(dir.path());
             config.formats_repo_path = None;
-            let result = run(&config);
+            let result = run(&config, Parallelism::SEQUENTIAL);
             assert!(matches!(result, Err(JobError::MissingFormatsRepoPath)), "got {result:?}");
         }
     }
@@ -334,7 +340,7 @@ mod tests {
                 out_path: dir.to_path_buf(),
                 out_profile: OutStructureMode::Regular,
                 out_flags: OutFlags::default(),
-                n_workers: 1,
+                parallelism: ParallelismConfig::SEQUENTIAL,
                 batch_file: None,
                 save_pdf: true,
                 formats_repo_path: Some(repo.path()),
@@ -356,7 +362,7 @@ mod tests {
             // No `url` at all: if `run` needed to download here it could not (nothing to
             // download from), so success alone already shows the existing local path was used
             // directly.
-            let outcomes = run(&config).expect("must succeed without attempting any network access");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("must succeed without attempting any network access");
             assert_eq!(outcomes.len(), 1);
             assert_eq!(outcomes[0].id.as_str(), "Local Report");
         }
@@ -391,7 +397,7 @@ mod tests {
             let reports = vec![DocumentSpec { url: Some(url), path: None, name: Some("Downloaded Report".to_string()) }];
             let config = config_for(dir.path(), &repo, reports);
 
-            let outcomes = run(&config).expect("must download then load the document successfully");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("must download then load the document successfully");
             assert_eq!(outcomes.len(), 1);
             assert_eq!(outcomes[0].id.as_str(), "Downloaded Report");
         }
@@ -411,7 +417,7 @@ mod tests {
             ];
             let config = config_for(dir.path(), &repo, reports);
 
-            let outcomes = run(&config).unwrap();
+            let outcomes = run(&config, Parallelism::SEQUENTIAL).unwrap();
             assert_eq!(outcomes.len(), 2);
             let ids: Vec<&str> = outcomes.iter().map(|o| o.id.as_str()).collect();
             assert_eq!(ids, vec!["Report A", "Report B"]);
@@ -429,7 +435,7 @@ mod tests {
             config.target_lists = vec![]; // present (not absent -- that's rejected upstream by
             // `freeports_config::validate`), just empty.
 
-            let outcomes = run(&config).expect("an empty target list must not prevent the job from running");
+            let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("an empty target list must not prevent the job from running");
             assert_eq!(outcomes.len(), 1);
         }
     }

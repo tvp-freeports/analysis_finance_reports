@@ -43,7 +43,7 @@ use crate::core::tracing_setup::log_error;
 /// letterali `'|'` duplicati che potrebbero divergere.
 pub const DOC_SPEC_SEPARATOR: char = '|';
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DocumentSpec {
     pub url: Option<String>,
     pub path: Option<PathBuf>,

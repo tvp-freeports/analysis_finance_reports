@@ -24,7 +24,8 @@ use super::page::{Document, Page};
 /// Newtype su `String` e non enum chiuso, per la stessa ragione di
 /// [`BlockType`](crate::core::classes::BlockType): le page class le definiscono i repo formati,
 /// quindi un enum in libreria non può elencarle.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct PageClass(String);
 
 impl PageClass {

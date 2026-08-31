@@ -25,7 +25,9 @@
 //!     pub out_path: Option<std::path::PathBuf>,
 //!     pub out_profile: Option<crate::output::routines::write::OutStructureMode>,
 //!     pub out_flags: Option<crate::output::routines::write::OutFlags>,
-//!     pub n_workers: Option<usize>,
+//!     pub n_workers: Option<crate::cli::parallelism_config::Workers>,
+//!     pub parallelism_jobs: Option<crate::cli::parallelism_config::Workers>,
+//!     pub parallelism_pages: Option<crate::cli::parallelism_config::Workers>,
 //!     pub batch_file: Option<std::path::PathBuf>,
 //!     pub save_pdf: Option<bool>,
 //!     pub formats_repo_path: Option<std::path::PathBuf>,
@@ -57,8 +59,9 @@
 //! differenza di `pathlib.Path(".").parent` in Python (che resta `Path(".")`, sempre esistente) --
 //! un letterale `"."` avrebbe fatto fallire `out_path_exists` per **ogni** configurazione che non
 //! specifica esplicitamente `--out`, l'esatto opposto di un default utile. `out_profile: Some(Regular)`,
-//! `out_flags: Some(OutFlags::default())`, `n_workers: Some(1)` (non il rilevamento automatico
-//! dei core CPU del riferimento -- stessa semplificazione già segnalata in `config_locations::cmd`),
+//! `out_flags: Some(OutFlags::default())`, `n_workers: Some(Workers::Auto)` (**cambiato da P5**: era
+//! `Some(1)`, la semplificazione che rinunciava al rilevamento automatico dei core del riferimento
+//! -- ora `auto` si risolve a runtime, `agent-memory/P5-implementation-plan.md` D-P5-4),
 //! `save_pdf: Some(true)` (come `DEFAULT_CONFIG["SAVE_PDF"]`), `reports: Some(Vec::new())` (nessuna
 //! regola del piano richiede che `reports` provenga da una sorgente esplicita, a differenza di
 //! `target_lists` -- §0 Q8 è specifico di quel campo).
@@ -91,6 +94,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use crate::cli::conf_parse::DocumentSpec;
+use crate::cli::parallelism_config::Workers;
 use crate::core::tracing_setup::Verbosity;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
 use crate::core::tracing_setup::log_error;
@@ -104,7 +108,18 @@ pub struct PartialConfig {
     pub out_path: Option<PathBuf>,
     pub out_profile: Option<OutStructureMode>,
     pub out_flags: Option<OutFlags>,
-    pub n_workers: Option<usize>,
+    /// Il default globale del parallelismo (P5): il valore che ogni livello prende se
+    /// `parallelism.<livello>` non dice altro. Sopravvive al nome storico `n_workers` perche' e'
+    /// il nome che le tre sorgenti espongono da sempre (`--workers`/`-j`, `FREEPORTS_N_WORKERS`,
+    /// chiave YAML `n_workers`).
+    pub n_workers: Option<Workers>,
+    /// Override del livello job (P1). I due livelli sono campi separati e non una
+    /// [`ParallelismConfig`] intera perche' il merge fra sorgenti e' **per campo**: un file di
+    /// configurazione puo' fissare `pages` e l'ambiente `jobs`, e nessuno dei due deve
+    /// cancellare l'altro.
+    pub parallelism_jobs: Option<Workers>,
+    /// Override del livello pagina (P2). Stessa ragione di [`Self::parallelism_jobs`].
+    pub parallelism_pages: Option<Workers>,
     pub batch_file: Option<PathBuf>,
     pub save_pdf: Option<bool>,
     pub formats_repo_path: Option<PathBuf>,
@@ -154,7 +169,9 @@ pub fn defaults() -> MergedConfig {
             out_path: Some(out_path),
             out_profile: Some(OutStructureMode::Regular),
             out_flags: Some(OutFlags::default()),
-            n_workers: Some(1),
+            n_workers: Some(Workers::Auto),
+            parallelism_jobs: None,
+            parallelism_pages: None,
             batch_file: None,
             save_pdf: Some(true),
             formats_repo_path: None,
@@ -185,6 +202,8 @@ pub fn overwrite(mut base: MergedConfig, overlay: PartialConfig, source: ConfigS
     apply!(out_profile);
     apply!(out_flags);
     apply!(n_workers);
+    apply!(parallelism_jobs);
+    apply!(parallelism_pages);
     apply!(batch_file);
     apply!(save_pdf);
     apply!(formats_repo_path);
@@ -365,9 +384,21 @@ mod tests {
             );
         }
 
+        /// P5: il default globale del parallelismo e' `auto`, non piu' `1`. E' il valore che i
+        /// due livelli ereditano quando nessuna sorgente li tocca, ed e' cio' che rende paralleli
+        /// per default sia un batch (P1) sia le pagine di uno step (P2).
         #[test]
-        fn n_workers_defaults_to_one() {
-            assert_eq!(defaults().values.n_workers, Some(1));
+        fn n_workers_defaults_to_auto() {
+            assert_eq!(defaults().values.n_workers, Some(Workers::Auto));
+        }
+
+        /// I due override per livello restano `None`: un livello che nessuno tocca non ha un
+        /// valore proprio, eredita quello globale. Se `defaults()` li impostasse, il default
+        /// globale non potrebbe piu' raggiungerli.
+        #[test]
+        fn the_two_per_level_overrides_are_left_unset() {
+            assert_eq!(defaults().values.parallelism_jobs, None);
+            assert_eq!(defaults().values.parallelism_pages, None);
         }
 
         #[test]

@@ -8,6 +8,10 @@ Lo stato della riscrittura precedente (M0..M10, tutte chiuse) e' recuperabile da
 
 ## Stato per passo
 
+**Fase P chiusa al 2026-08-31**: P0/P1/P2/P5 implementate, P3/P4 chiuse senza implementazione
+perche' la misura non le giustifica. Restano aperte solo la fase D (documentazione) e le
+segnalazioni Q-P0/Q-P2b/Q-P5, che non bloccano nulla.
+
 | # | Passo | Stato | Note |
 |---|---|---|---|
 | **F1** | Tutto in inglese (identificatori e test) | ✅ chiusa | I 6 file concentrati (~187 nomi di funzione/test) sono fatti: `core/{promise,promisable,promise_resolution,classes,classes/value,match_fund,normalization}.rs`. Poi inventario sul resto del crate (script Python: tokenizza ogni identificatore, esclude righe di commento e contenuto delle stringhe, confronta per token esatto — non substring — contro un vocabolario italiano curato, cosi' da non intercettare falsi positivi come italiano "classe/classi" dentro il legittimo inglese "class/classify/PageClass"; verificato contro la versione pre-traduzione di `promise_resolution.rs` per conferma che lo scanner funziona). Risultato: **zero identificatori italiani residui** in tutto il crate, incluse `python/*.rs` e `api.rs` (l'area di confine/API pubblica — controllata comunque, per completezza, ma non serviva alcuna rinomina). Le uniche occorrenze italiane rimaste sono doc-comment/commenti `//` (fuori perimetro, vanno in D2) e contenuto letterale di stringhe di test/fixture (dati, non identificatori — es. `"manco"` come nome di formato inventato nei test, `"testo"` come contenuto di stringa di esempio). `cargo test --lib` -> 2468 passati, 6 falliti (stessi 6 falliti pre-esistenti e indipendenti: attivazione venv/`fitz` mancante, vedi `AGENTS.md`) |
@@ -18,18 +22,18 @@ Lo stato della riscrittura precedente (M0..M10, tutte chiuse) e' recuperabile da
 | **L4** | Messa a punto del logging dopo la revisione dell'utente su L2 | ✅ chiusa (2 giri) | Revisione dell'utente su L2 chiusa: troppi log, forma ripetitiva (`class{class=investments}`), programma ~100x piu' lento, messaggi non contestualizzati, pagina assente in TextFilter/Deserialize. Diagnosi misurata e piano in `agent-memory/L4-logging-tuning-plan.md`. Risultato: **13,0 s** contro i **19 minuti** di partenza sullo stesso job (EURIZON-EN23.A, 1140 pagine, verbosita' di default); `.log.csv` da **2,8 GB** a **609 righe**; `pytest tests/formats` da 388 s a **93 s**. `cargo test --lib` -> **2518 passati, 0 falliti**; `cargo test` -> **65 d'integrazione passati, 0 falliti**; `pytest tests/formats` -> **259 passati, 0 falliti** dopo la rigenerazione dei 22 `.log.csv` (dei 31 confrontati) autorizzata dall'utente; **nessuno** degli altri 277 file di `out/**` toccato, provato con checksum SHA-256 prima/dopo. `cargo clippy` invariato (gli stessi 6 warning pre-esistenti). **Secondo giro (2026-08-30)** su richiesta dell'utente: `.log.csv` spostato nella cartella di `out`, ristretto a `warn`+`error`, e nuova resa della riga su stderr (niente timestamp, livello/`Activity`/target colorati). Dettagli in "Decisioni prese" |
 | **L3** | `.freeports.log.yaml` a verbosita' massima | ✅ chiusa | `YamlLogLayer`, quarto layer accanto ai tre esistenti. **Q-L3 risposta: opzione (b)** — record strutturale (`ErrorRecord`: `debug`/`display`/catena di `source()`), nessun `Serialize` derivato sui ~25 enum d'errore, funziona anche per errori di terze parti. `debug` sostituisce il `type` ipotizzato dal piano: un `&dyn Error` non sa dire il proprio tipo concreto, ma `{:?}` su un enum `thiserror` stampa gia' variante e campi (`AlgorithmLoad(UnknownFormat { format: "NOPE", known: 27 })`), che e' di piu'. Le tre decisioni lasciate aperte dal piano, risposte dall'utente: **solo `warn!`/`error!`**, file **nella cartella corrente** (e' un artefatto diagnostico, non un prodotto della corsa), **implicito in `-vvv`** senza flag dedicato. `serde_yaml` 0.9 tenuto (gia' dipendenza, gia' usato per `investments_add_infos.yaml`); la nota del piano sulla sua manutenzione resta valida ma non blocca. Perche' il file si popoli davvero, sweep di **53 siti** `error!`/`warn!` che interpolavano l'errore nel messaggio: ora vi agganciano anche `error = log_error(&e)`, il messaggio resta invariato (nessuna deriva dei fixture) e stderr non stampa piu' il campo `error` per non ripetere due volte la stessa cosa sulla stessa riga. 11 test in `tests::yaml_layer` |
 | **L5** | Log su file strutturato, stderr leggibile a colpo d'occhio | ✅ chiusa | Revisione dell'utente su L3/L4 chiuse (2026-08-30), cinque richieste, tutte chiuse: (1) `freeports.log` -> **`freeports.log.jsonl`**, un oggetto JSON per riga (`JsonLogLayer`); (2) stderr **senza `target`** (il percorso del modulo), che resta invece un campo di ogni record del file; (3) `.log.csv` **mai piu' nella cartella corrente** — la causa era il fallback di `LogHandle::close`, che scattava a ogni corsa fallita prima della risoluzione della configurazione, riprodotto e rimosso (`CsvLogLayer::discard`); (4) **quattro colori** nel percorso degli span (nomi ciano, valori magenta chiaro, `/` e `[`/`]` grigio scuro, campi in dim) invece di uno solo; (5) **errore serializzato anche nel log su file**, grazie a `LogRecord`/`build_record` condivisi fra `JsonLogLayer` e `YamlLogLayer`. `cargo test --lib` -> **2550 passati, 0 falliti** (12 nuovi: `tests::json_layer`, `tests::csv_never_in_the_working_directory`); `cargo test` -> **65 d'integrazione passati**; `pytest tests/formats` -> **259 passati**, con i 31 `.log.csv` e i 277 altri file di `out/**` **byte-identici** prima/dopo (checksum SHA-256) — nessuna rigenerazione necessaria; `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno in `tracing_setup.rs`). Piano in `agent-memory/L5-structured-log-plan.md`. Dettagli in "Decisioni prese" |
-| **P0** | Profilo su 3 report reali | ⬜ da fare | Nessun passo P parte prima di questo |
-| **P1** | Job/documento — processi | ⬜ da fare | Unico livello che scavalca il GIL. Bloccato su **Q-P1** |
-| **P2** | Pagina — thread rayon (classificazione + step) | ⬜ da fare | Il guadagno strutturale: report con mediana 288 pagine, punta 1.824 |
-| **P3** | Page class / pipeline dentro uno step | ⬜ da fare | Da implementare ma **disattivato di default** |
-| **P4** | Blocchi di `deserialize` sopra soglia | ⬜ da fare | Solo se P0 lo giustifica. Sui *pipe* non si parallelizza: vedi `PLAN.md` §4 P4 |
-| **P5** | Configurazione `parallelism` | ⬜ da fare | `n_workers` esiste gia' in config e in `--workers/-j` ed e' **inutilizzato**: diventa il default globale |
+| **P0** | Profilo su report reali | ✅ chiusa | Misura, non implementazione: **nessun file di produzione toccato**. Strumento in `packages/freeports/examples/p0_profile.rs` (example di cargo, fuori dal binario, da rieseguire dopo P1..P4), che legge gli `info_span!` gia' installati da L2 con un layer `tracing` che accumula il tempo per percorso di span; filtro identico a quello di produzione alla verbosita' di default, overhead sotto la soglia di rumore (profilo 0,70/2,55/17,66/21,30 s contro binario `release` 0,72/2,58/17,75/21,40 s). **Quattro** documenti invece di tre: MEDIOLANUM-ES24.B (29 pagine), UBS-EN23 (222), EURIZON-EN23 (1.140, aggiunto perche' e' l'unico grande **con** pipe Python d'autore), AMUNDI-EN24 (1.824, interamente structured). Le tre risposte: (1) **caricamento PyMuPDF 35-75% del totale**, di cui 72-93% PyMuPDF vero (verificato a parte con lo stesso `load_page`+`get_text("dict")` da Python puro); (2) **classificazione da 1:8,5 a 1:157 rispetto agli step**, e pesa solo dove e' scritta in Python; (3) **`text_filter` e' l'85-96% del lavoro del motore e dentro c'e' un solo pipe**, `TextFilterInvestmentsStandard` (Rust puro, 14-20 ms/pagina, **30-54% del tempo totale di un job**), mentre `deserialize` sta sotto lo 0,2% ovunque. Nessuna regressione: `cargo test --lib` -> **2550 passati, 0 falliti**; `cargo test --test '*'` -> **65 passati, 0 falliti** (12+29+22+2); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nell'example). Rapporto completo in `agent-memory/P0-profile.md`; conseguenze su P2/P4/P5 e rischio §9.3 riportate in `PLAN.md` |
+| **P1** | Job/documento — processi | ✅ chiusa | **Q-P1 e Q-P2 risposte il 2026-08-30**, passo sbloccato e chiuso lo stesso giorno. Piano, checklist e scostamenti in `agent-memory/P1-implementation-plan.md`. La premessa di `PLAN.md` §4 P1 era **sbagliata** e l'ho corretta prima di iniziare: i job **non** scrivono i propri CSV, `execute` concatena i `DocumentOutcome` di tutti e fa **una sola** `write_results` con i parametri della prima configurazione risolta — per questo servono processi **con IPC dei risultati**, non processi indipendenti. Otto passi (P1.1..P1.8): derive serde su config e risultati, modulo `cli::worker` (protocollo a due file JSON), flag nascosto `--internal-worker`, pool a scorrimento con raccolta in slot indicizzati, unione dei log in ordine di job. `cargo test --lib` -> **2.608 passati, 0 falliti** (+58); `cargo test --test '*'` -> **72 passati, 0 falliti** (12+29+**7 nuovi**+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file, nessuna rigenerazione necessaria); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). **Guadagno misurato: 13,34 s -> 7,08 s, 1,88x** su un batch di 2 job (i due EURIZON-EN23) con `-j 2`, tre ripetizioni stabili entro l'1%. Dettagli in "Decisioni prese" |
+| **P2** | Pagina — thread rayon (step, poi classificazione) | ✅ chiusa | Piano, decisioni e scostamenti in `agent-memory/P2-implementation-plan.md`. Ordine di P0 rispettato: prima il ciclo delle pagine di uno step, poi `classify_pages`. Sei passi (P2.1..P2.6): `rayon` + nuovo `core::parallelism` (`Parallelism`, pool dedicato in `OnceLock` — **non** quello globale di rayon, che appartiene a chi incorpora il crate); `scales_with_threads()` sui tre trait dei pipe (default `true`, `false` sui tre `Py*Pipe`) e su `Pipeline`/`PipelinesBundle`; le varianti `apply_with`/`apply_multidocument_with`/`classify_pages_with`/`classify_pages_multidocument_with`, con le firme storiche che restano **sequenziali**; cablaggio `cli::run` -> `cli::job` -> `WorkerRequest.page_workers`. **Guadagno misurato** (20 thread hardware, `examples/p0_profile --pages 1` contro `--pages 20`, due ripetizioni entro l'1%): motore `apply_multidocument` **7,0x** AMUNDI-EN24 (7.197 -> 1.028 ms), **5,1x** UBS-EN23 (611 -> 119 ms), **4,4x** EURIZON-EN23 (11.682 -> 2.656 ms); end-to-end con il binario `release` su EURIZON-EN23 **2,20x** (19,81 s -> 9,02 s), il resto essendo il caricamento PyMuPDF che solo P1 tocca. MEDIOLANUM-ES24.B non guadagna nulla (182 -> 189 ms) ed **è il comportamento voluto**: ha un `deserialize` d'autore, quindi degrada a sequenziale. `cargo test --lib` -> **2.633 passati, 0 falliti** (+25); `cargo test --test '*'` -> **73 passati, 0 falliti** (12+**1 nuovo**+29+7+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). In più, output CSV **byte-identici** fra corsa sequenziale (`taskset -c 0`, che porta `available_parallelism` a 1) e parallela su quattro formati reali, `.log.csv` incluso dove esiste. Una nota sul **tempo** della suite pytest, che non c'entra con P2 ma va detta: gira in 241 s contro i 93 s registrati alla chiusura di L4. Verificato che non dipende da P2 — lo stesso sottoinsieme (`-k AMUNDI-EN24`) impiega **22,13 s con l'estensione costruita da `HEAD`** e **22,12 s con quella di P2**. Il rallentamento e' quindi anteriore a oggi (fra la misura di L4 e `96b7fad6`) e resta da indagare a parte. Dettagli in "Decisioni prese" |
+| **P3** | Page class / pipeline dentro uno step | ❌ chiusa senza implementazione | **P0 e P2 insieme non la giustificano.** P0 aveva gia' misurato «1-2 page class per step e una pipeline dominante»; P2 ha poi preso *tutti* i thread per le pagine di ogni gruppo di class, quindi P3 vivrebbe sopra un ciclo che satura gia' la macchina — due unita' di lavoro annidate in rayon senza thread liberi a cui darle. Il caso patologico che il piano citava a sua difesa ("pochissime pagine e molte pipeline pesanti") **non esiste nel corpus**: il piu' piccolo dei 21 report reali ha 29 pagine, gia' piu' dei 20 thread hardware. E un'opzione disattivata di default non gira mai in produzione, quindi non viene mai esercitata, e resta da mantenere a ogni cambiamento di `core::algorithm`. Conseguenza su P5, identica a quella di P4: `pipelines` sparisce dallo schema invece di restare un'opzione morta. Ragionamento per esteso in `PLAN.md` §4 P3 e in `agent-memory/P5-implementation-plan.md` §0 |
+| **P4** | Blocchi di `deserialize` sopra soglia | ❌ chiusa senza implementazione | **P0 non lo giustifica**: `deserialize` costa 22-27 ms su job da 17-21 s, sotto lo 0,2% del totale su tutti e quattro i documenti — azzerarlo varrebbe lo 0,1%. Sui *pipe* non si parallelizzava comunque (`PLAN.md` §4 P4). Conseguenza su P5: `deserialize_blocks_threshold` tolto dallo schema invece di restare un'opzione morta |
+| **P5** | Configurazione `parallelism` | ✅ chiusa | Piano, decisioni e scostamenti in `agent-memory/P5-implementation-plan.md`. Nuovo modulo `cli::parallelism_config` (`Workers` = `Auto`/`Fixed`, `ParallelismConfig`), che **sostituisce** i due provvisori: `cli::run::{job_parallelism,page_parallelism}` sono spariti, al loro posto `resolve_parallelism`, che risolve i due livelli insieme perche' il secondo dipende dal primo. Superficie: `--workers`/`-j` (default globale di **entrambi** i livelli), `--jobs`/`--pages` (override per livello), `FREEPORTS_N_WORKERS`/`FREEPORTS_PARALLELISM_JOBS`/`FREEPORTS_PARALLELISM_PAGES`, chiavi YAML `n_workers` e `parallelism: {jobs, pages}`; tutte accettano un intero positivo **o** `auto`. **Guadagno misurato con il default** (due job grandi, EURIZON-EN23 + AMUNDI-EN24, binario `release`, due ripetizioni: 39,37/39,73 s contro 16,68/16,70 s): **39,4 s -> 16,7 s, 2,36x**, con l'output **byte-identico** a quello della corsa sequenziale. Prezzo: picco di memoria **783 MB -> ~1,2 GB**. `cargo test --lib` -> **2.681 passati, 0 falliti** (+48); `cargo test --test '*'` -> **83 passati, 0 falliti** (12+1+34+**12** di cui 5 nuovi+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). **Un difetto di P1 scoperto e corretto qui**, vedi "Decisioni prese" |
 | **D1** | Strategia documentale (Sphinx+MyST+rustdoc vs mdbook) | ⬜ da fare | Bloccato su **Q-D2**. `docs/source/_generated/` documenta un pacchetto morto (`freeports_analysis`) e va cancellato in ogni caso |
 | **D2** | Doc-comment riscritti, area per area | ⬜ da fare | 6.103 righe di doc-comment, ~2.961 in italiano. Per convenzione del workspace e' lavoro di `implementer`, non di `docs-writer` |
 | **D3** | Whitepaper | ⬜ da fare | Materiale di partenza: `docs/source/{dev/code,usage/command,validation/**}.rst` + `PLAN.md` storico §2/§12/§13 |
 | **D4** | Riporto e riconciliazione dei contenuti Sphinx | ⬜ da fare | ~9.000 parole di prosa esistente, 4 locali gettext |
 
-Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato)
+Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato) · ❌ chiusa senza implementazione (decisa da una misura, non dimenticata)
 
 ## Baseline al momento della scrittura del piano (2026-08-24, commit `13284baa`)
 
@@ -54,8 +58,11 @@ Testo completo in `PLAN.md` §7. In sintesi:
 | Q-L1 | ~~**L1, e a cascata L2/L3**~~ | ~~I 31 `out/.log.csv` si possono rigenerare, o serve una modalita' di compatibilita'?~~ **Risposta 2026-08-29: si', rigenerazione una tantum.** |
 | Q-L2 | ~~L1~~ | ~~Nome/posizione della colonna span; `Activity` da sola basta a generare una riga?~~ **Risposta 2026-08-29: no, come raccomandato.** |
 | Q-L3 | ~~L3~~ | ~~YAML: quando si genera, cosa contiene, record strutturale o `Serialize` sugli enum?~~ **Risposta 2026-08-30: record strutturale (opzione b); solo `warn`/`error`; solo a `-vvv`, implicito, nella cartella corrente.** |
-| Q-P1 | P1 | Processi figli ammessi, o solo thread? |
-| Q-P2 | P2, P3, P4 | Determinismo byte-per-byte confermato come vincolo? |
+| Q-P0 | l'ordine di tutta la fase P | **Rimandata 2026-08-30** ("procedi con P1"): resta un passo a se', dopo. **Nuova (2026-08-30, aperta da P0).** `TextFilterInvestmentsStandard` da solo e' il 30-54% del tempo totale di un job, ed e' Rust mono-thread e deterministico: si apre un passo di ottimizzazione *interna* di quel pipe prima di P1/P2? |
+| Q-P1 | ~~P1~~ | ~~Processi figli ammessi, o solo thread?~~ **Risposta 2026-08-30: processi figli, con IPC dei risultati verso il padre.** |
+| Q-P2 | ~~P2, P3, P4~~ | ~~Determinismo byte-per-byte confermato come vincolo?~~ **Risposta 2026-08-30: no, basta l'equivalenza semantica.** Nota: P2 e' comunque risultato byte-identico, senza dover spendere il margine concesso. |
+| Q-P5 | nulla — segnalazione | **Nuova (2026-08-31, aperta da P5).** Il default `jobs: auto` rende paralleli i batch senza che nessuno lo chieda: **2,36x** piu' veloce, ma il picco di memoria passa da 783 MB a ~1,2 GB con due soli job grandi, e cresce con il numero di job concorrenti. Va bene cosi', o il default prudente (`jobs: 1`) e' preferibile e il parallelismo va chiesto? E' una riga in `partial_config::defaults`. |
+| Q-P2b | nulla — segnalazione | **Nuova (2026-08-30, aperta da P2).** Il binario `freeports` esce con **SIGSEGV** dopo aver scritto correttamente tutti gli output, sul formato CARNE-EN23. Preesistente e indipendente da P2 (stesso crash sul percorso sequenziale). Si sistema, e come? |
 | Q-D1 | D3 | Il whitepaper parla anche a un pubblico non tecnico? |
 | Q-D2 | D1, D4 | Sphinx unico + rustdoc accanto (scartando mdbook)? Che ne e' delle 4 traduzioni? |
 
@@ -557,6 +564,166 @@ Testo completo in `PLAN.md` §7. In sintesi:
   tocca. Il numero di ieri resta non spiegato: ambientale, non attribuibile ne' a L4 ne' a L5. Chi
   riprende quest'area usi 236 s come riferimento, non 93.
 
+- 2026-08-30 — **Q-P1 risposta: processi figli con IPC dei risultati.** Il padre ri-esegue il
+  proprio eseguibile una volta per job (`std::process::Command`, mai `fork`); ogni figlio serializza
+  il proprio `Vec<DocumentOutcome>` in un file temporaneo e il padre aggrega e scrive **una volta
+  sola**, come oggi. Scartate le due alternative offerte: "ogni figlio scrive il proprio output in
+  una sottocartella" (eviterebbe il lavoro serde ma cambierebbe la semantica di output della
+  modalita' batch, e con essa i file di riferimento del repo formati) e "solo thread" (il GIL
+  riserializzerebbe proprio il caricamento PyMuPDF, cioe' il 35-75% misurato da P0, lasciando a P1
+  un guadagno che P2 copre gia').
+- 2026-08-30 — **Q-P2 risposta: basta l'equivalenza semantica**, il determinismo byte-per-byte non
+  e' un vincolo. L'invariante §6.2 di `PLAN.md` e' stata riscritta di conseguenza. Attuazione scelta
+  in P1, e segnalata all'utente: la risposta *permette* l'ordine non deterministico, non lo impone,
+  quindi dove ordinare costa zero si ordina lo stesso. I risultati dei job vanno in slot indicizzati
+  per posizione, cosi' l'output aggregato resta **byte-identico** a quello sequenziale anche con
+  N > 1 e i 259 test del repo formati restano confrontabili per checksum; il margine concesso si
+  spende solo sull'unione dei tre file di log, dove un ordinamento globale costerebbe un merge vero.
+- 2026-08-30 — **Q-P0 rimandata**, non risposta: l'utente ha scritto "procedi con P1".
+  L'ottimizzazione interna di `TextFilterInvestmentsStandard` (il 30-54% del tempo totale di un job)
+  resta disponibile come passo a se' dopo P1/P2, con il vantaggio di non avere alcun rischio di
+  non-determinismo.
+- 2026-08-30 — **La premessa di `PLAN.md` §4 P1 era sbagliata**, scoperto leggendo il codice prima
+  di iniziare. Il piano diceva che ogni job "scrive i propri CSV: nessuna memoria condivisa";
+  `cli::run::execute` invece concatena i `DocumentOutcome` di tutti i job e chiama
+  `output::write_results` **una volta sola**, con i parametri di scrittura della **prima**
+  configurazione risolta. E' la ragione per cui P1 richiede un IPC dei risultati e non dei semplici
+  processi indipendenti. `PLAN.md` §4 P1 corretto sul posto.
+
+- 2026-08-30 — **P1 chiusa.** Otto passi, ciascuno con i test scritti prima dell'implementazione.
+  Le scelte che meritano di essere ricordate:
+  - **Due file JSON, non una pipe.** Lo stdout di un figlio non e' un canale pulito: PyMuPDF e i
+    pipe Python d'autore ci scrivono quando vogliono. Un file per direzione non ha quel problema,
+    non ha il limite di dimensione di una pipe, e sopravvive al figlio abbastanza da essere letto
+    dopo che e' uscito.
+  - **Un job fallito non e' un figlio fallito.** Un errore di dominio produce un
+    `WorkerReport::Failed` e il figlio esce **con 0**: l'errore e' nel payload. Il codice d'uscita
+    non-zero resta ai fallimenti di protocollo, che il padre riconosce dal referto mancante.
+    Confonderli renderebbe indistinguibile "il PDF non esiste" da "il figlio e' morto di segnale".
+  - **Il messaggio d'errore attraversa il confine verbatim.** L'errore tipizzato no — un enum non
+    si ricostruisce da una stringa — ma `ErrorRecord` porta forma `Debug`, forma `Display` e catena
+    di `source()`, e la forma `Display` e' esattamente cio' che il caso sequenziale stampa. Un test
+    d'integrazione confronta i due stderr: stesso messaggio a `-j 1` e a `-j 2`.
+  - **Il primo fallimento in ordine di job, non il primo arrivato.** E' cio' che rende l'errore
+    riportato lo stesso che il `for` sequenziale avrebbe propagato, comunque siano andate le corse.
+  - **Differenza osservabile da non nascondere**: il `for` sequenziale si ferma al primo job che
+    fallisce, quindi i job successivi non partono mai. Con un pool possono essere gia' partiti. Il
+    padre li lascia finire e poi riporta il primo fallimento in ordine, senza scrivere nulla —
+    stesso errore, stesso codice d'uscita — ma un job successivo a quello fallito **puo' aver
+    prodotto effetti collaterali** che in sequenziale non avrebbe prodotto: in pratica il solo
+    `save_pdf`, cioe' un PDF scaricato e salvato.
+  - **`n_workers` trova il suo primo consumatore.** Esisteva da sempre (config, `--workers`/`-j`,
+    `FREEPORTS_N_WORKERS`) ed era inutilizzato; ora decide quanti job alla volta, limitato dal
+    numero di job. Default 1, quindi **chi non chiede nulla percorre esattamente il codice di
+    prima**. Lo schema `parallelism` completo resta lavoro di P5.
+- 2026-08-30 — **Tre scostamenti dal piano di P1**, decisi durante l'implementazione:
+  1. `tempfile` e' solo una dev-dependency, quindi l'area di lavoro dei figli segue la convenzione
+     gia' in uso in `cli::job` per i PDF temporanei (`std::env::temp_dir()` +
+     `freeports-jobs-<pid>`), con la cancellazione in `Drop` invece che a fine funzione — cosi'
+     l'area sparisce anche quando la corsa esce per un errore. Nessuna dipendenza nuova.
+  2. `ErrorRecord` (L3) e' diventato `pub` e `Deserialize` invece di essere duplicato in
+     `cli::worker`: serviva la stessa forma per far viaggiare un errore, e riscriverla avrebbe
+     duplicato anche la guardia sui cicli di `source()`.
+  3. **L'unione dei log passa dalla memoria, non dai file.** Riversare i figli direttamente nei
+     file del padre non puo' funzionare: `.log.csv` e `.freeports.log.yaml` vengono *troncati*
+     dalla scrittura del padre, che avviene solo alla chiusura, e il `.jsonl` ha un `BufWriter` con
+     un proprio offset — un append esterno verrebbe sovrascritto. I log dei figli sono quindi
+     assorbiti in memoria (`LogHandle::absorb_worker_logs`) mentre l'area di lavoro esiste ancora,
+     e riversati in `close()` **dopo** cio' che il padre ha scritto. Coerente col fatto che le
+     righe del `.log.csv` del padre erano gia' bufferizzate in memoria fino alla chiusura.
+- 2026-08-30 — **Attuazione della risposta a Q-P2, e perche' e' piu' stretta della risposta.**
+  L'equivalenza semantica *permette* l'ordine non deterministico, non lo impone. I risultati dei
+  job vanno in slot indicizzati, che non costano nulla: l'output aggregato resta **byte-identico**
+  a quello sequenziale anche con N figli, ed e' un test d'integrazione (`-j 1` contro `-j 4`), non
+  una speranza. Il margine concesso si spende in due punti soli: lo **stderr** dei figli, ereditato
+  e quindi interlacciato fra job (ogni riga resta intera e porta il proprio percorso di span), e
+  l'**unione dei tre file di log**, raggruppata per job invece che ordinata globalmente — una riga
+  riletta da un CSV non ha piu' la `RowOrderKey` su cui ordinarla, e inventargliene una la
+  metterebbe in un ordine che non ha nulla a che vedere con quando e' successa.
+- 2026-08-30 — **Misura del guadagno di P1.** I quattro PDF di P0 non sono piu' nel workspace; la
+  misura e' stata rifatta sui due EURIZON-EN23 disponibili, come batch di 2 job: **13,34 s a `-j 1`
+  contro 7,08 s a `-j 2`, cioe' 1,88x**, tre ripetizioni stabili entro l'1%. Coerente con P0: il
+  caricamento PyMuPDF e' il 35-75% del tempo e i processi sono l'unico livello che lo parallelizza
+  davvero — un tetto ideale di 2,00x su due job, raggiunto al 94%. **Caveat onesto sulla misura**:
+  entrambe le corse falliscono allo stesso modo *dopo* aver eseguito i due job, nell'aggregazione
+  finale del padre (`funds_assets: duplicate Fund ID|Date`), perche' EURIZON-EN23.A e .B sono due
+  meta' dello stesso report annuale e i loro fondi collidono quando finiscono in un unico output.
+  E' una proprieta' di questa coppia di documenti, non di P1: il lavoro cronometrato e' identico
+  nelle due corse, ed e' tutto il lavoro dei job. Da rifare su documenti indipendenti quando ce ne
+  saranno di nuovo quattro sul disco, insieme al `p0_profile` che `PLAN.md` §4 P0 chiede di
+  rieseguire dopo P1..P4.
+
+- 2026-08-30 — **P2 chiusa.** Le decisioni non previste da `PLAN.md`, tutte motivate in
+  `agent-memory/P2-implementation-plan.md`:
+  - **D-P2-1, pool rayon dedicato.** `core::parallelism` costruisce un `rayon::ThreadPool` proprio,
+    pigramente, in un `OnceLock`. Non si chiama `build_global`: il pool globale appartiene a chi
+    incorpora il crate (l'example `p0_profile`, un consumatore Python, un binario di terze parti), e
+    sequestrarlo sarebbe una decisione presa a nome suo. Se rayon non riesce a costruirlo, il motore
+    torna sul percorso sequenziale invece di fallire — il parallelismo e' un'ottimizzazione, non un
+    requisito di correttezza.
+  - **D-P2-2, il parallelismo e' un parametro e non uno stato dell'`Algorithm`.** Le firme storiche
+    (`apply`, `apply_multidocument`, `classify_pages`, `classify_pages_multidocument`) restano e
+    valgono **sequenziale**; accanto nascono le varianti `*_with(..., Parallelism)`. Nessuno dei
+    2.600 test esistenti ha cambiato comportamento, e il ramo `pages == 1` e' letteralmente il
+    codice di prima.
+  - **D-P2-3, degradazione rilevata per bundle e non per formato.** `PLAN.md` §4 chiedeva di
+    rilevare i pipe Python e degradare a sequenziale; farlo per *formato* sarebbe stato sbagliato, e
+    la misura lo conferma: EURIZON-EN23 ha la classificazione in Python e gli step in Rust,
+    MEDIOLANUM-ES24.B ha un `deserialize` d'autore nella pipeline degli investimenti, UBS-EN23 sta
+    nella cartella `unstructured/` ma usa **solo** pipe standard. Degradando per formato, due dei
+    tre avrebbero perso il guadagno. Meccanismo: `scales_with_threads()` sui tre trait dei pipe,
+    `true` di default, `false` sui tre `Py*Pipe`.
+  - **D-P2-4, l'errore riportato e' quello della pagina di numero piu' basso.** I risultati per
+    pagina si raccolgono in un `Vec<Result<..>>` indicizzato e si riducono **dopo**, in ordine.
+    Costa l'esecuzione delle pagine successive a una che fallisce — il ciclo sequenziale si fermava
+    alla prima — ma rende il messaggio d'errore identico a quello del caso sequenziale senza
+    dipendere da quale reduce interno usi rayon. Un errore fatale a meta' documento e' raro; un
+    messaggio d'errore che cambia da una corsa all'altra no.
+  - **D-P2-5, gli span si riagganciano a mano.** Ogni closure cattura la `Span::current()` del
+    chiamante e la rientra prima di aprire il proprio `page`. Senza, la colonna `Activity` del
+    `.log.csv` si svuoterebbe proprio dove serve. E' l'unico requisito di P2 non verificabile con un
+    test unitario — serve un subscriber **globale**, perche' quello di `with_default` e'
+    thread-local — quindi ha un file d'integrazione tutto suo,
+    `tests/algorithm_parallel_pages.rs`.
+  - **D-P2-6, quanto parallelismo in attesa di P5.** `pages = auto`, **diviso** per il numero di job
+    che P1 esegue insieme, cosi' che un batch `-j 4` su 20 thread non ne apra 80. Il valore viaggia
+    verso il processo figlio in un campo nuovo di `WorkerRequest` (`page_workers`) e non in una
+    variabile d'ambiente, per la stessa ragione per cui ci viaggia la configurazione risolta: il
+    figlio non deve ri-derivare nulla che il padre abbia gia' deciso.
+  - **`python::api::run_job` resta sequenziale**, per due ragioni indipendenti e ognuna sufficiente:
+    il suo subscriber e' installato con `with_default`, il cui scope e' thread-local (i thread rayon
+    non lo vedrebbero, e ogni evento delle pagine distribuite sparirebbe dal `.log.csv` che quella
+    funzione esiste per produrre); e un `#[pyfunction]` gira con il GIL gia' preso dal chiamante,
+    quindi un pipe d'autore su un thread rayon aspetterebbe un GIL che il chiamante non rilascia
+    finche' non ha finito di aspettare i thread — uno stallo, non un rallentamento. La degradazione
+    di `scales_with_threads` lo eviterebbe gia', ma non e' il genere di cosa da lasciare appesa a
+    una sola difesa.
+  - **Il punto 1 di `PLAN.md` §4 P2 (`Page::raw` e il GIL nel `Drop`) non si e' presentato**, e la
+    verifica e' stata fatta leggendo il codice invece di assumerlo: nel ciclo parallelo le pagine
+    sono **prestate** (`&Page` dentro `ScheduledPage`), i `Document` restano di proprieta' di
+    `cli::job::run_impl` e muoiono sul thread chiamante, uno alla volta, esattamente come prima.
+  - **`examples/p0_profile.rs` accetta ora `--pages N`** (default 1, cioe' il comportamento
+    documentato in `agent-memory/P0-profile.md` invariato parola per parola): e' con quel flag che
+    il confronto sequenziale/parallelo di sopra e' stato misurato. Attenzione leggendone le tabelle
+    a `--pages N > 1`: i tempi per percorso di span si sommano **per thread**, quindi il tempo
+    inclusivo di uno span puo' superare il tempo di parete. Il numero confrontabile e'
+    `apply_multidocument`, misurato con un `Instant` e quindi tempo di parete.
+
+- 2026-08-30 — **Bug preesistente scoperto durante le verifiche di P2, non causato da P2 e non
+  corretto: il binario `freeports` esce con SIGSEGV sul formato CARNE-EN23.** Tutti gli output sono
+  scritti correttamente prima del crash (le nove CSV sono byte-identiche fra corsa sequenziale e
+  parallela), e il codice d'uscita 139 arriva **dopo** la fine del lavoro. Il backtrace del core
+  dump lo colloca fuori dal crate: `exit()` -> distruttore statico C++ `mupdf::internal_state` ->
+  `fz_drop_context` -> `fz_flush_warnings` -> callback SWIG di PyMuPDF -> `libpython3.14`, cioe'
+  MuPDF che svuota le proprie warning richiamando Python a interprete gia' finalizzato. Nessun frame
+  di `freeports` e nessun frame di rayon nella catena. Riprodotto tre volte su tre, **identico sul
+  percorso sequenziale** (`taskset -c 0`, che porta `available_parallelism` a 1 e quindi non tocca
+  nemmeno il pool), e -- prova decisiva -- **identico anche sul binario costruito da `HEAD`**
+  (`96b7fad6`, cioe' prima di P1, di P2 e di tutto il lavoro di oggi), compilato in un worktree
+  temporaneo apposta e poi rimosso. Gli altri quattro formati provati (EURIZON-EN23, AMUNDI-EN24, UBS-EN23,
+  DANSKEINVEST-EN24) escono con 0. Non toccato per la politica di
+  `rust-migration-bugfix-policy`: si segnala e si aspetta conferma. Q-P2b.
+
 ## Note aperte lasciate da F2
 
 - **Rottura di API Rust pubblica**, contenuta ma reale: `FlatPromiseMap` e' re-esportato sia da
@@ -577,12 +744,108 @@ Testo completo in `PLAN.md` §7. In sintesi:
   italiano** per scelta di perimetro (F1/F2 non traducono, la traduzione e' D2 — vedi `PLAN.md`
   §2 D2 e Q-F1).
 
+- 2026-08-30 — **P0 chiusa. Strumento: un example di cargo, non codice di produzione.** Il profilo
+  poteva essere ottenuto in due modi: aggiungere un layer di profilazione a `core::tracing_setup`
+  dietro un flag, oppure metterlo fuori dal crate compilato. Scelto il secondo
+  (`packages/freeports/examples/p0_profile.rs`): gli `info_span!` che L2 ha installato ovunque
+  sono gia' tutta la strumentazione che serve, quindi il profilo si legge senza toccare una riga
+  di produzione, senza rischio di deriva sui fixture e senza far crescere il binario. L'example
+  resta in albero perche' la stessa misura va rifatta dopo P1..P4 per verificare il guadagno; non
+  e' compilato da `cargo build` e non entra nel wheel. Due accorgimenti per rendere il numero
+  confrontabile con una corsa vera: il filtro replica `EventLevelFilter` alla verbosita' di
+  default (span sempre, eventi a `WARN` — profilare a `-vvv` avrebbe misurato il logging), e la
+  sequenza eseguita e' quella di `cli::job::run_impl`, non una sua approssimazione. Verificato:
+  binario `release` 0,72/2,58/17,75/21,40 s contro profilo 0,70/2,55/17,66/21,30 s sugli stessi
+  quattro job — l'overhead sta sotto l'avvio del processo.
+- 2026-08-30 — **Quattro documenti invece dei tre chiesti dal piano.** I tre citati da `PLAN.md`
+  §4 P0 (MEDIOLANUM-ES24.B 29 pagine, UBS-EN23 222, AMUNDI-EN24 1.824) lasciavano scoperta una
+  casella che e' proprio quella su cui il piano fondava il rischio §9.3: un documento **grande e
+  con pipe Python d'autore** (AMUNDI-EN24 e' interamente `structured`, cioe' Rust puro). Aggiunto
+  EURIZON-EN23 variante 1 (1.140 pagine, classificazione scritta in Python), ed e' il documento
+  che ha smentito il rischio.
+- 2026-08-30 — **Il rischio `PLAN.md` §9.3 era mal puntato, riscritto.** L'ipotesi era che il GIL
+  azzerasse il guadagno sui formati `unstructured`. La misura dice il contrario: i pipe Python
+  d'autore costano millisecondi, con **una** eccezione (la classificazione di EURIZON-EN23:
+  1,08 s, il 6,1% del job). Il GIL fa male in un punto solo, **PyMuPDF nel caricamento**, che e'
+  il 35-75% del tempo e non e' codice d'autore — non lo si evita scegliendo un livello di
+  specifica diverso. La conclusione operativa del rischio resta valida (su documento singolo P2 ha
+  un tetto di 1,5-2,9x, il grosso e' P1), ma per un motivo diverso da quello scritto.
+- 2026-08-30 — **P4 chiusa senza implementazione.** Il piano condizionava esplicitamente
+  l'unica parallelizzazione dei blocchi di `deserialize` a "solo se P0 lo mostra". P0 non lo
+  mostra: `deserialize` costa 22-27 ms su job da 17-21 secondi, sotto lo 0,2% del totale su tutti
+  e quattro i documenti. Segnato ❌ e non ⬜ perche' e' una decisione presa da una misura, non un
+  lavoro rimandato. Conseguenza su P5: `deserialize_blocks_threshold` esce dallo schema
+  `parallelism` invece di restare un'opzione che non fa niente.
+- 2026-08-30 — **P2 riceve un ordine interno che il piano non aveva.** I due punti di
+  `core::algorithm` non pesano uguale: il ciclo delle pagine di uno step contiene
+  `TextFilterInvestmentsStandard` (l'85-96% del lavoro del motore, Rust puro, nessun GIL) e va
+  parallelizzato per primo; `classify_pages` vale da 1:8,5 a 1:157 di meno, e dove varrebbe
+  qualcosa e' scritta in Python, quindi il GIL la riserializza comunque.
+- 2026-08-30 — **Q-P0, domanda nuova che P0 apre e che va all'utente.** La misura ha trovato una
+  cosa che il piano non prevedeva: un **solo** pipe, `TextFilterInvestmentsStandard`, e' il 30-54%
+  del tempo *totale* di un job su tutti e quattro i documenti (14-20 ms a pagina di investimenti,
+  contro 0,01 ms di un pipe di classificazione standard). E' Rust mono-thread e deterministico:
+  ottimizzarlo internamente — indicizzare le societa' bersaglio invece di scorrerle, ridurre le
+  compilazioni di regex per chiamata — potrebbe valere quanto tutta la fase P, senza alcun rischio
+  di non-determinismo. Da notare che il numero e' un **minimo**: l'input db di test ha 76
+  societa', uno di produzione ne ha molte di piu' e il costo di quel pipe cresce con quel numero.
+  Non fatto di iniziativa: e' un passo che il piano non contiene, e la scelta e' dell'utente.
+
+- 2026-08-31 — **P3 chiusa senza implementazione**, seconda volta che una misura chiude un passo
+  invece di aprirlo (la prima e' P4). Il piano raccomandava di implementarla "con default
+  disattivato", ma quella raccomandazione e' **anteriore a P0** e non teneva conto di P2: oggi le
+  pagine di un gruppo di page class prendono gia' tutti i thread della macchina, quindi P3
+  annide**rebbe** rayon su 1-2 unita' di lavoro senza avere thread liberi a cui darle. Decisa senza
+  chiedere perche' la richiesta originale lo prevede esplicitamente ("non penso abbia senso
+  parallelizzare tutto... valuta una strategia tenendo in conto della mole di lavoro che ogni layer
+  deve fare") e perche' la misura che la chiude e' gia' agli atti (`agent-memory/P0-profile.md`
+  §5). **Se l'utente la rivuole, va riaperta come passo a se'**: non e' una dimenticanza.
+- 2026-08-31 — **P5, D-P5-1: `n_workers` e' il default globale, non un sinonimo di `pages`.**
+  `PLAN.md` §4 P5 conteneva due frasi in tensione fra loro — "«`n_workers` ... diventa il default
+  globale. Sopra ci va una sezione dedicata, con override per livello»" e "«`--workers/-j N` senza
+  altro imposta `pages = N` e lascia il resto al default»". Vinta la prima, che e' anche la piu'
+  utile: `-j N` imposta entrambi i livelli, quindi `-j 1` significa di nuovo *esattamente
+  sequenziale* (l'invariante di §6, prima raggiungibile solo scrivendo due valori) e `-j N` fa
+  qualcosa di sensato anche su un documento solo, dove `jobs` non ha nulla da parallelizzare. La
+  seconda frase era anteriore a P1, quando il livello job non era ancora configurabile. Chi vuole
+  un livello solo ha `--jobs`/`--pages`.
+- 2026-08-31 — **P5, D-P5-4: il default in batch cambia comportamento, di proposito.** Prima
+  `n_workers` valeva `1` e un batch girava sequenziale se nessuno chiedeva altro; ora entrambi i
+  livelli valgono `auto`, come lo schema di `PLAN.md` §4 P5 prescrive e come chiede la richiesta
+  originale ("dei default sensati"). Guadagno **2,36x** su due job grandi. Il prezzo e' la
+  **memoria**: N job concorrenti caricano N PDF interi, e il picco misurato passa da **783 MB** a
+  **~1,2 GB** con due soli job. Su una macchina con molti core e poca RAM un batch grande puo'
+  quindi costare parecchio; il tetto si abbassa con `parallelism.jobs` o `--jobs`. **Segnalato
+  all'utente**: se il default prudente e' preferibile, e' una riga da cambiare
+  (`partial_config::defaults`).
+- 2026-08-31 — **P5, D-P5-3: un `pages` esplicito non si divide fra i job concorrenti.** In `auto`
+  il budget di core si divide (invariante introdotta da P2); un numero scritto dall'utente si
+  onora com'e', anche quando `jobs x pages` supera i core. In quel caso `resolve_parallelism`
+  emette un `warn!` con i tre numeri: `PLAN.md` §2 principio 4 vieta gli override silenziosi, non
+  le configurazioni scomode.
+- 2026-08-31 — **Difetto di P1 scoperto da P5 e corretto: `serde_json` senza `float_roundtrip`.**
+  Il referto che un job worker rimanda al padre e' JSON, e la *lettura* di un `f64` da JSON in
+  `serde_json` **non e' esatta** senza la feature `float_roundtrip`: un valore la cui
+  rappresentazione decimale piu' corta non e' quella scritta torna indietro spostato di un ULP.
+  Effetto osservato: `investments_add_infos.yaml` con `interest_rate: 0.02925` da una corsa
+  sequenziale e `0.029249999999999998` da una corsa in processi — nessun errore, nessun fallimento,
+  solo due output diversi per lo stesso input. Isolato per livello: e' il livello **job** (P1), non
+  quello pagina (P2), che resta byte-identico. Corretto abilitando la feature in `Cargo.toml`, con
+  un test di regressione al confine IPC che fallisce davvero senza di essa
+  (`cli::worker::tests::report_round_trip::a_float_survives_the_report_bit_for_bit`, verificato
+  togliendo e rimettendo la feature). Corretto invece che segnalato soltanto perche' P5 rende quel
+  percorso il **default**: lasciarlo avrebbe significato consegnare un default che viola
+  l'invariante 2 di questo documento. Da rileggere insieme alla chiusura di P1, che dichiarava
+  `out/**` byte-identico — e lo era, perche' quei confronti passavano dal percorso sequenziale.
+
 ## Invarianti (non negoziabili senza l'utente)
 
 1. `tests/formats/*/out/**` non si tocca — unica eccezione possibile `out/.log.csv`, solo con
    autorizzazione esplicita (Q-L1).
 2. Con `parallelism` a 1 l'output e' identico byte per byte a quello di oggi; con N e' identico a
-   quello con 1.
+   quello con 1. *(Verificato end-to-end alla chiusura di P5, sulle quattro combinazioni dei due
+   livelli piu' il default: `tests/cli_worker_processes.rs::parallelism_options`, e a mano su due
+   report reali. E' l'invariante che ha fatto emergere il difetto `float_roundtrip` di P1.)*
 3. Nessuna regressione: 2.474 unitari + 63 d'integrazione + 259 del repo formati.
 4. Test Rust raggruppati per argomento in sottomoduli, mai lista piatta.
 5. Modifiche al codice del repo formati: si propongono, non si applicano.

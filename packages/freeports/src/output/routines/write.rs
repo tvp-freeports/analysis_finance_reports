@@ -143,7 +143,7 @@ use super::accumulate::TransformedTables;
 /// Il profilo di struttura dei file di output. **Solo `Regular` è implementato** in questa
 /// milestone (`PLAN.md` §13, decisione Q1.2): `SingleFile`/`Structured` restano a M9, quando
 /// esiste davvero un flag da riga di comando che li seleziona.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum OutStructureMode {
     Regular,
     SingleFile,
@@ -151,7 +151,7 @@ pub enum OutStructureMode {
 }
 
 /// Flag aggiuntivi sulla scrittura.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OutFlags {
     pub compressed: bool,
     /// M9 (`M9-implementation-plan.md` §0 Q6, riapre M8): un CSV per `Report`/`Format` invece di

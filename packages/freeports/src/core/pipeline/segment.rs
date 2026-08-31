@@ -35,6 +35,19 @@ pub trait PdfExtractPipe: Send + Sync {
     /// Nome del pipe, per il logging e i messaggi d'errore.
     fn name(&self) -> &str;
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError>;
+
+    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    ///
+    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
+    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
+    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
+    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
+    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    ///
+    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    fn scales_with_threads(&self) -> bool {
+        true
+    }
 }
 
 /// Secondo segmento: dai blocchi PDF ai blocchi di testo selezionati.
@@ -45,6 +58,19 @@ pub trait TextFilterPipe: Send + Sync {
         blocks: &[PdfBlock],
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError>;
+
+    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    ///
+    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
+    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
+    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
+    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
+    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    ///
+    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    fn scales_with_threads(&self) -> bool {
+        true
+    }
 }
 
 /// Terzo segmento: da un blocco di testo alle entità estratte.
@@ -54,6 +80,19 @@ pub trait TextFilterPipe: Send + Sync {
 pub trait DeserializePipe: Send + Sync {
     fn name(&self) -> &str;
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError>;
+
+    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    ///
+    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
+    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
+    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
+    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
+    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    ///
+    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    fn scales_with_threads(&self) -> bool {
+        true
+    }
 }
 
 /// Collezione ordinata e deduplicata di pipe dello stesso segmento.
@@ -343,6 +382,126 @@ pub(crate) mod test_pipes {
 
         fn extract(&self, _page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
             Err(self.error.clone())
+        }
+    }
+
+    /// Fallisce **solo** sulle pagine elencate — serve a distinguere quale fallimento viene
+    /// riportato quando più pagine falliscono nello stesso step (P2, D-P2-4).
+    pub(crate) struct FailingOnPages {
+        pub(crate) name: String,
+        pub(crate) pages: Vec<u32>,
+    }
+
+    impl FailingOnPages {
+        pub(crate) fn fatal(name: &str, pages: &[u32]) -> Arc<dyn PdfExtractPipe> {
+            Arc::new(FailingOnPages { name: name.to_string(), pages: pages.to_vec() })
+        }
+    }
+
+    impl PdfExtractPipe for FailingOnPages {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+            if self.pages.contains(&page.number) {
+                return Err(PipeError::extraction(&self.name, format!("page {} is doomed", page.number)));
+            }
+            Ok(page
+                .lines
+                .iter()
+                .map(|line| PdfBlock::bare(BlockType::RELEVANT_BLOCK, line.text().clone()))
+                .collect())
+        }
+    }
+
+    /// Un pipe che dichiara di **non** scalare con i thread, come gli adattatori dei pipe
+    /// d'autore Python (`formats_repo::unstructured::py_pipe`), che riprendono il GIL a ogni
+    /// chiamata. Serve a provare la degradazione a sequenziale senza tirare in ballo Python.
+    pub(crate) struct GilBoundExtract {
+        pub(crate) name: String,
+    }
+
+    impl GilBoundExtract {
+        pub(crate) fn pipe(name: &str) -> Arc<dyn PdfExtractPipe> {
+            Arc::new(GilBoundExtract { name: name.to_string() })
+        }
+    }
+
+    impl PdfExtractPipe for GilBoundExtract {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn scales_with_threads(&self) -> bool {
+            false
+        }
+
+        fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+            Ok(page
+                .lines
+                .iter()
+                .map(|line| PdfBlock::bare(BlockType::RELEVANT_BLOCK, line.text().clone()))
+                .collect())
+        }
+    }
+
+    /// Registra su quale thread è stato eseguito, e — se `wanted` è maggiore di uno — non torna
+    /// finché non sono arrivate `wanted` chiamate o non è scaduta l'attesa.
+    ///
+    /// L'attesa a tempo è deliberata: un `Barrier` vero bloccherebbe per sempre se il motore
+    /// eseguisse le pagine in sequenza, e un test che si pianta non dice cosa è andato storto. Con
+    /// la scadenza, il caso sequenziale **fallisce** invece di appendersi.
+    pub(crate) struct ThreadWitness {
+        pub(crate) name: String,
+        pub(crate) wanted: usize,
+        pub(crate) arrived: std::sync::atomic::AtomicUsize,
+        pub(crate) threads: Mutex<Vec<std::thread::ThreadId>>,
+    }
+
+    impl ThreadWitness {
+        pub(crate) fn new(name: &str, wanted: usize) -> Arc<ThreadWitness> {
+            Arc::new(ThreadWitness {
+                name: name.to_string(),
+                wanted,
+                arrived: std::sync::atomic::AtomicUsize::new(0),
+                threads: Mutex::new(Vec::new()),
+            })
+        }
+
+        /// Quanti thread distinti hanno eseguito questo pipe.
+        pub(crate) fn distinct_threads(&self) -> usize {
+            // `ThreadId` è `Hash` ma non `Ord`: si deduplica con un set, non ordinando.
+            let threads = self.threads.lock().expect("test-only mutex is never poisoned");
+            threads.iter().copied().collect::<std::collections::HashSet<_>>().len()
+        }
+    }
+
+    impl TextFilterPipe for ThreadWitness {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn filter(
+            &self,
+            blocks: &[PdfBlock],
+            _data: &FilterData<'_>,
+        ) -> Result<Vec<TextBlock>, PipeError> {
+            self.threads
+                .lock()
+                .expect("test-only mutex is never poisoned")
+                .push(std::thread::current().id());
+            self.arrived.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            while self.arrived.load(std::sync::atomic::Ordering::SeqCst) < self.wanted
+                && std::time::Instant::now() < deadline
+            {
+                std::thread::yield_now();
+            }
+            Ok(blocks
+                .iter()
+                .map(|b| TextBlock::new(BlockType::PAGE_CLASS, b.metadata.clone(), b.clone()))
+                .collect())
         }
     }
 

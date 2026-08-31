@@ -28,6 +28,8 @@ const ALL_FREEPORTS_VARS: &[&str] = &[
     "FREEPORTS_REPORTS",
     "FREEPORTS_VERBOSITY",
     "FREEPORTS_N_WORKERS",
+    "FREEPORTS_PARALLELISM_JOBS",
+    "FREEPORTS_PARALLELISM_PAGES",
     "FREEPORTS_BATCH_FILE",
     "FREEPORTS_OUT_PATH",
     "FREEPORTS_SAVE_PDF",
@@ -403,8 +405,12 @@ mod out_path_precedence {
     }
 }
 
-mod n_workers_precedence {
+/// P5. Le tre sorgenti si sovrappongono sul default globale come su ogni altro campo, e i due
+/// override per livello si sovrappongono a loro volta al default globale -- ma **per campo**, cosi'
+/// che un file che fissa `pages` e un ambiente che fissa `jobs` non si cancellino a vicenda.
+mod parallelism_precedence {
     use super::*;
+    use freeports::cli::parallelism_config::{ParallelismConfig, Workers};
 
     #[test]
     fn file_overrides_default() {
@@ -412,7 +418,10 @@ mod n_workers_precedence {
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "n_workers: 2\n");
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.n_workers, 2);
+        assert_eq!(
+            config.parallelism,
+            ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(2) }
+        );
     }
 
     #[test]
@@ -422,7 +431,7 @@ mod n_workers_precedence {
         scope.set("FREEPORTS_N_WORKERS", "3");
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "n_workers: 2\n");
         let config = fixture.resolve(&[], &config_file);
-        assert_eq!(config.n_workers, 3);
+        assert_eq!(config.parallelism.jobs, Workers::Fixed(3));
     }
 
     #[test]
@@ -432,7 +441,79 @@ mod n_workers_precedence {
         scope.set("FREEPORTS_N_WORKERS", "3");
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "n_workers: 2\n");
         let config = fixture.resolve(&["--workers", "4"], &config_file);
-        assert_eq!(config.n_workers, 4);
+        assert_eq!(
+            config.parallelism,
+            ParallelismConfig { jobs: Workers::Fixed(4), pages: Workers::Fixed(4) }
+        );
+    }
+
+    /// Il default globale raggiunge i livelli che nessuno tocca, e si ferma davanti a quello che
+    /// una qualunque sorgente ha fissato -- anche una **meno** prioritaria di quella che ha
+    /// impostato il default globale.
+    #[test]
+    fn a_level_set_by_the_file_survives_a_global_default_set_on_the_command_line() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file =
+            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
+        let config = fixture.resolve(&["--workers", "2"], &config_file);
+        assert_eq!(
+            config.parallelism,
+            ParallelismConfig { jobs: Workers::Fixed(2), pages: Workers::Fixed(8) }
+        );
+    }
+
+    /// I due livelli si fondono **per campo**: sorgenti diverse possono fissarne uno ciascuno.
+    #[test]
+    fn one_level_from_the_file_and_the_other_from_the_environment() {
+        let scope = EnvScope::new();
+        let fixture = Fixture::new();
+        scope.set("FREEPORTS_PARALLELISM_JOBS", "3");
+        let config_file =
+            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 5\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(
+            config.parallelism,
+            ParallelismConfig { jobs: Workers::Fixed(3), pages: Workers::Fixed(5) }
+        );
+    }
+
+    /// `--pages` batte `FREEPORTS_PARALLELISM_PAGES`, che batte `parallelism.pages` del file:
+    /// la stessa catena di precedenza di ogni altro campo, sul livello invece che sul globale.
+    #[test]
+    fn the_per_level_options_follow_the_same_precedence_chain() {
+        let scope = EnvScope::new();
+        let fixture = Fixture::new();
+        scope.set("FREEPORTS_PARALLELISM_PAGES", "5");
+        let config_file =
+            write_yaml(fixture.path(), "cfg.yaml", "parallelism:\n  pages: 8\n");
+        let from_env = fixture.resolve(&[], &config_file);
+        assert_eq!(from_env.parallelism.pages, Workers::Fixed(5));
+        let from_cmd = fixture.resolve(&["--pages", "6"], &config_file);
+        assert_eq!(from_cmd.parallelism.pages, Workers::Fixed(6));
+    }
+
+    /// Il default quando nessuna delle tre sorgenti dice niente: `auto` a entrambi i livelli
+    /// (`agent-memory/P5-implementation-plan.md` D-P5-4).
+    #[test]
+    fn nothing_anywhere_is_auto_at_both_levels() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "verbosity: warn\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(config.parallelism, ParallelismConfig::default());
+    }
+
+    /// `auto` esplicito riporta un livello al comportamento automatico dopo che una sorgente meno
+    /// prioritaria lo ha fissato a un numero: senza la parola, un numero in un file di sistema
+    /// non sarebbe piu' annullabile.
+    #[test]
+    fn auto_on_the_command_line_undoes_a_number_from_the_file() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "n_workers: 2\n");
+        let config = fixture.resolve(&["--workers", "auto"], &config_file);
+        assert_eq!(config.parallelism, ParallelismConfig::default());
     }
 }
 

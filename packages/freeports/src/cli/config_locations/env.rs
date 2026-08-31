@@ -13,7 +13,7 @@
 //!     InvalidReportSpecifier { variable: &'static str, value: String, source: DocumentSpecError },
 //!     ReportsConflict { source: SourceReportsConflict },      // FREEPORTS_REPORTS + (URL|PDF)
 //!     InvalidVerbosity { value: String },
-//!     InvalidValue { variable: &'static str, value: String }, // n_workers/save_pdf/... malformati
+//!     InvalidValue { variable: &'static str, value: String }, // n_workers/parallelism/save_pdf/... malformati
 //! }
 //!
 //! pub fn load() -> Result<PartialConfig, EnvConfigError>;
@@ -27,7 +27,9 @@
 //! | `FREEPORTS_PDF` | idem |
 //! | `FREEPORTS_REPORTS` | `reports` (multi-valore, `DOC_SPEC_SEPARATOR`) |
 //! | `FREEPORTS_VERBOSITY` | `verbosity` |
-//! | `FREEPORTS_N_WORKERS` | `n_workers` (intero positivo, `0` è invalido) |
+//! | `FREEPORTS_N_WORKERS` | `n_workers` -- P5: intero positivo **oppure** `auto`, `0` resta invalido. È il default globale di entrambi i livelli di parallelismo |
+//! | `FREEPORTS_PARALLELISM_JOBS` | `parallelism_jobs` (override del livello job, stessa grammatica) |
+//! | `FREEPORTS_PARALLELISM_PAGES` | `parallelism_pages` (override del livello pagina, stessa grammatica) |
 //! | `FREEPORTS_BATCH_FILE` | `batch_file` |
 //! | `FREEPORTS_OUT_PATH` | `out_path` |
 //! | `FREEPORTS_SAVE_PDF` | `save_pdf` (`"true"`/`"false"`, case-insensitive) |
@@ -49,6 +51,7 @@
 use std::path::PathBuf;
 
 use crate::cli::conf_parse::{DOC_SPEC_SEPARATOR, DocumentSpec, DocumentSpecError};
+use crate::cli::parallelism_config::Workers;
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
@@ -102,11 +105,10 @@ fn parse_bool(variable: &'static str, value: &str) -> Result<bool, EnvConfigErro
     }
 }
 
-fn parse_positive_usize(variable: &'static str, value: &str) -> Result<usize, EnvConfigError> {
-    match value.parse::<usize>() {
-        Ok(n) if n > 0 => Ok(n),
-        _ => Err(EnvConfigError::InvalidValue { variable, value: value.to_string() }),
-    }
+/// Le tre variabili di parallelismo (P5) condividono la grammatica di `Workers` -- `auto` o un
+/// intero positivo -- e differiscono solo per il nome che compare nell'errore.
+fn parse_workers(variable: &'static str, value: &str) -> Result<Workers, EnvConfigError> {
+    Workers::parse(value).map_err(|_| EnvConfigError::InvalidValue { variable, value: value.to_string() })
 }
 
 /// Wraps [`load_impl`] to log any failure exactly once -- this is the only place all four
@@ -145,7 +147,13 @@ fn load_impl() -> Result<PartialConfig, EnvConfigError> {
 
     let verbosity = env_var(freeports_env!("VERBOSITY")).map(|v| parse_verbosity(&v)).transpose()?;
     let n_workers =
-        env_var(freeports_env!("N_WORKERS")).map(|v| parse_positive_usize(freeports_env!("N_WORKERS"), &v)).transpose()?;
+        env_var(freeports_env!("N_WORKERS")).map(|v| parse_workers(freeports_env!("N_WORKERS"), &v)).transpose()?;
+    let parallelism_jobs = env_var(freeports_env!("PARALLELISM_JOBS"))
+        .map(|v| parse_workers(freeports_env!("PARALLELISM_JOBS"), &v))
+        .transpose()?;
+    let parallelism_pages = env_var(freeports_env!("PARALLELISM_PAGES"))
+        .map(|v| parse_workers(freeports_env!("PARALLELISM_PAGES"), &v))
+        .transpose()?;
     let save_pdf = env_var(freeports_env!("SAVE_PDF")).map(|v| parse_bool(freeports_env!("SAVE_PDF"), &v)).transpose()?;
 
     Ok(PartialConfig {
@@ -157,6 +165,8 @@ fn load_impl() -> Result<PartialConfig, EnvConfigError> {
         out_profile: None,
         out_flags: None,
         n_workers,
+        parallelism_jobs,
+        parallelism_pages,
         batch_file: env_var(freeports_env!("BATCH_FILE")).map(PathBuf::from),
         save_pdf,
         formats_repo_path: env_var(freeports_env!("FORMATS_REPO_PATH")).map(PathBuf::from),
@@ -168,6 +178,7 @@ fn load_impl() -> Result<PartialConfig, EnvConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cli::parallelism_config::Workers;
     use crate::core::tracing_setup::Verbosity;
     use std::path::PathBuf;
     use std::sync::Mutex;
@@ -181,6 +192,8 @@ mod tests {
         freeports_env!("REPORTS"),
         freeports_env!("VERBOSITY"),
         freeports_env!("N_WORKERS"),
+        freeports_env!("PARALLELISM_JOBS"),
+        freeports_env!("PARALLELISM_PAGES"),
         freeports_env!("BATCH_FILE"),
         freeports_env!("OUT_PATH"),
         freeports_env!("SAVE_PDF"),
@@ -297,7 +310,47 @@ mod tests {
             let scope = EnvScope::new();
             scope.set(freeports_env!("N_WORKERS"), "4");
             let config = load().unwrap();
-            assert_eq!(config.n_workers, Some(4));
+            assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
+        }
+
+        /// P5: le tre variabili accettano anche la parola `auto`, che e' il modo di riportare un
+        /// livello al comportamento automatico dopo che un file di configurazione lo ha fissato.
+        #[test]
+        fn the_three_parallelism_variables_accept_auto() {
+            let scope = EnvScope::new();
+            scope.set(freeports_env!("N_WORKERS"), "auto");
+            scope.set(freeports_env!("PARALLELISM_JOBS"), "AUTO");
+            scope.set(freeports_env!("PARALLELISM_PAGES"), "auto");
+            let config = load().unwrap();
+            assert_eq!(config.n_workers, Some(Workers::Auto));
+            assert_eq!(config.parallelism_jobs, Some(Workers::Auto));
+            assert_eq!(config.parallelism_pages, Some(Workers::Auto));
+        }
+
+        #[test]
+        fn the_two_per_level_variables_are_mapped_separately() {
+            let scope = EnvScope::new();
+            scope.set(freeports_env!("PARALLELISM_JOBS"), "2");
+            scope.set(freeports_env!("PARALLELISM_PAGES"), "8");
+            let config = load().unwrap();
+            assert_eq!(config.n_workers, None);
+            assert_eq!(config.parallelism_jobs, Some(Workers::Fixed(2)));
+            assert_eq!(config.parallelism_pages, Some(Workers::Fixed(8)));
+        }
+
+        #[test]
+        fn a_malformed_per_level_variable_names_itself_in_the_error() {
+            let scope = EnvScope::new();
+            scope.set(freeports_env!("PARALLELISM_PAGES"), "lots");
+            let error = load().unwrap_err().to_string();
+            assert!(error.contains(freeports_env!("PARALLELISM_PAGES")), "{error}");
+        }
+
+        #[test]
+        fn zero_is_rejected_on_the_per_level_variables_too() {
+            let scope = EnvScope::new();
+            scope.set(freeports_env!("PARALLELISM_JOBS"), "0");
+            assert!(load().is_err());
         }
 
         #[test]

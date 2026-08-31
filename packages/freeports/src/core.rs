@@ -5,6 +5,7 @@ pub mod classes;
 pub mod match_fund;
 pub mod normalization;
 pub mod page;
+pub mod parallelism;
 pub mod pipeline;
 pub mod promisable;
 pub mod promise;

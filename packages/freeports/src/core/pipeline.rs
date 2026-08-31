@@ -99,6 +99,17 @@ impl Pipeline {
         self.deserialize.apply(&text_blocks)
     }
 
+    /// `true` se tutti i pipe dei tre segmenti scalano con i thread.
+    ///
+    /// Basta **un** pipe d'autore per rispondere `false`: dentro una pipeline i tre segmenti sono
+    /// in catena, quindi il GIL preso da uno solo serializza comunque l'intera catena della
+    /// pagina.
+    pub fn scales_with_threads(&self) -> bool {
+        self.pdf_extract.iter().all(|pipe| pipe.scales_with_threads())
+            && self.text_filter.iter().all(|pipe| pipe.scales_with_threads())
+            && self.deserialize.iter().all(|pipe| pipe.scales_with_threads())
+    }
+
     /// Solo il primo segmento — API di test per segmento (`freeports-dev`, `PLAN.md` §5.3).
     pub fn apply_pdf_extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
@@ -350,6 +361,38 @@ mod tests {
             let merged = Pipeline::new("p") + Pipeline::new("p");
             assert!(!merged.is_complete());
             assert_eq!(merged.pdf_extract.len(), 0);
+        }
+    }
+
+    mod thread_scaling {
+        use super::*;
+
+        fn complete_pipeline() -> Pipeline {
+            let mut pipeline = Pipeline::new("p");
+            pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
+            pipeline.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            pipeline.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            pipeline
+        }
+
+        #[test]
+        fn a_pipeline_of_plain_rust_pipes_scales() {
+            assert!(complete_pipeline().scales_with_threads());
+        }
+
+        #[test]
+        fn an_empty_pipeline_scales_there_is_nothing_that_does_not() {
+            assert!(Pipeline::new("empty").scales_with_threads());
+        }
+
+        #[test]
+        fn a_single_gil_bound_pipe_stops_the_whole_pipeline() {
+            let mut pipeline = complete_pipeline();
+            pipeline.pdf_extract.push(GilBoundExtract::pipe("author"));
+            assert!(
+                !pipeline.scales_with_threads(),
+                "the three segments are a chain: a GIL taken in one serializes the whole page"
+            );
         }
     }
 }

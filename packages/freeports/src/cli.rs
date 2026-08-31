@@ -6,5 +6,7 @@ pub mod config_locations;
 pub mod freeports_config;
 pub mod job;
 pub mod output;
+pub mod parallelism_config;
 pub mod partial_config;
 pub mod run;
+pub mod worker;

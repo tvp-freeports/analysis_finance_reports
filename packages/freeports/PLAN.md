@@ -504,6 +504,26 @@ AMUNDI-EN24: 1.824), che risponda a tre domande:
 
 Senza questi numeri, P1..P4 sono ipotesi. Con questi numeri, meta' delle ipotesi si cancella.
 
+**Chiusa il 2026-08-30. Numeri completi e ragionamento in `agent-memory/P0-profile.md`**; lo
+strumento (un example di cargo, nessun file di produzione toccato) e'
+`packages/freeports/examples/p0_profile.rs`, e va rieseguito dopo P1..P4 per verificare il
+guadagno. Quattro documenti invece di tre — i tre citati sopra piu' EURIZON-EN23 (1.140 pagine),
+che copre il caso "grande **e** con pipe Python d'autore" che gli altri tre lasciavano scoperto.
+Le tre risposte, in breve:
+
+1. **caricamento: 35-75% del totale**, di cui il 72-93% e' PyMuPDF vero (misurato a parte
+   eseguendo lo stesso `load_page`+`get_text("dict")` da Python puro). E' la parte che nessun
+   thread puo' accelerare;
+2. **la classificazione conta poco**: da 1:8,5 (EURIZON) a 1:157 (AMUNDI) rispetto agli step, e
+   pesa solo dove e' scritta in Python;
+3. **`text_filter` e' l'85-96% del lavoro del motore, e dentro c'e' un solo pipe** —
+   `TextFilterInvestmentsStandard`, Rust puro, 14-20 ms a pagina, dal 30% al 54% del tempo
+   *totale* di un job. `deserialize` sta sotto lo 0,2% ovunque.
+
+Effetti sul resto della fase, riportati nei passi qui sotto: **P4 non si fa** (non e' giustificato
+dalla misura), **P2 va fatto prima sul ciclo degli step e solo dopo su `classify_pages`**, e P0
+apre una domanda che il piano non aveva — **Q-P0**, §7.
+
 ### Il vincolo che decide tutto: il GIL
 
 Il crate tocca Python in due punti (`PLAN.md` storico §3), ed entrambi sono rilevanti qui:
@@ -528,22 +548,50 @@ Conseguenze dirette:
 ### P1. Livello job / documento — **processi**, il guadagno maggiore
 
 In modalita' batch, `cli::batch::load_jobs` produce N `PartialConfig` indipendenti e
-`cli::run::execute` li esegue in un `for` sequenziale. Ogni job carica il proprio PDF, esegue il
-proprio algoritmo, scrive i propri CSV: **nessuna memoria condivisa**.
+`cli::run::execute` li esegue in un `for` sequenziale. Ogni job carica il proprio PDF ed esegue il
+proprio algoritmo.
+
+**Correzione del 2026-08-30 (verificata sul codice, non assunta).** La frase originale di questa
+sezione — "scrive i propri CSV: **nessuna memoria condivisa**" — era **sbagliata**. `execute`
+concatena i `DocumentOutcome` di *tutti* i job in un solo `Vec` e chiama `output::write_results`
+**una volta sola**, con i parametri di scrittura della **prima** configurazione risolta. I job
+condividono la scrittura finale, quindi dei processi figli devono **rispedire i risultati al
+padre**, non limitarsi a scrivere per conto proprio. Piano completo del passo in
+`agent-memory/P1-implementation-plan.md`.
 
 Proposta: eseguire i job in **processi figli** (`std::process::Command` sul proprio eseguibile con
 la config del job, oppure `fork` non e' portabile — meglio il primo), con un pool di dimensione
 `jobs`. E' l'unico livello che scavalca il GIL, e in batch e' anche quello con il rapporto
 guadagno/rischio migliore.
 
-Da risolvere: raccolta dei log dei figli (ogni figlio scrive il proprio `.log.csv`? si uniscono a
-fine corsa? — l'unione va fatta **ordinata**, vedi L1), propagazione del codice d'uscita, e cosa
-succede se due job scrivono nella stessa cartella di output. **Q-P1**.
+~~Da risolvere: raccolta dei log dei figli, propagazione del codice d'uscita, e cosa succede se due
+job scrivono nella stessa cartella di output. **Q-P1**.~~
 
-Alternativa piu' semplice, da valutare in P0: thread anche qui, accettando che i tratti Python si
-serializzino. Piu' semplice da implementare e da diagnosticare, guadagno parziale.
+**Chiuso il 2026-08-30.** Q-P1 risposta: processi figli con IPC dei risultati; l'alternativa a soli
+thread e' stata scartata (il GIL riserializzerebbe proprio il 35-75% misurato da P0). I tre punti
+lasciati aperti, risolti:
+
+- **log dei figli**: ogni figlio scrive i propri tre file in una cartella privata; il padre li
+  assorbe in memoria mentre esistono ancora e li riversa nei propri **in ordine di job**, dopo cio'
+  che ha scritto lui. Raggruppati per job invece che ordinati globalmente, come Q-P2 consente;
+- **codice d'uscita**: un job fallito per un motivo di dominio non fa uscire il figlio con un codice
+  non-zero — l'errore viaggia nel referto. Il padre riporta il **primo fallimento in ordine di
+  job**, con lo stesso messaggio e lo stesso codice d'uscita del caso sequenziale;
+- **cartella di output condivisa**: non e' mai condivisa. Nessun figlio scrive nell'output; scrive
+  solo il padre, una volta sola, come prima di P1.
+
+Piano completo, checklist e scostamenti in `agent-memory/P1-implementation-plan.md`; esito e numeri
+in `STATUS.md`. Guadagno misurato: **1,88x** su un batch di 2 job.
 
 ### P2. Livello pagina — **thread (rayon)**, il guadagno strutturale
+
+**Esito P0 (2026-08-30): confermato, ma con un ordine preciso.** I due punti non pesano uguale. Il
+ciclo delle pagine di uno step contiene `TextFilterInvestmentsStandard`, cioe' l'85-96% del lavoro
+del motore, ed e' Rust puro senza GIL: **si parallelizza per primo**. `classify_pages` vale da 1:8,5
+a 1:157 di meno, e proprio dove varrebbe qualcosa (classificazione scritta in Python, EURIZON-EN23)
+il GIL la riserializza: **si fa dopo, senza aspettarsene molto**. Tetto di Amdahl da tenere presente
+su un documento singolo, con il caricamento seriale al 35-75%: 1,5x nei tre casi peggiori, 2,9x nel
+migliore, qualunque sia il numero di core.
 
 Due punti, entrambi in `core::algorithm`:
 
@@ -560,6 +608,25 @@ Due punti, entrambi in `core::algorithm`:
 Precondizioni gia' soddisfatte (verificate, non assunte): i tre trait dei pipe sono `Send + Sync`
 per scelta esplicita di M5, `Page` e' `Send + Sync`, `Algorithm` e i bundle sono dietro `Arc`.
 
+**Chiuso il 2026-08-30.** Piano, decisioni e scostamenti in `agent-memory/P2-implementation-plan.md`;
+esito e numeri in `STATUS.md`. L'ordine imposto da P0 e' stato rispettato: prima il ciclo delle
+pagine di uno step, poi `classify_pages`. Guadagno misurato sul motore (`apply_multidocument`, 20
+thread hardware): **7,0x** AMUNDI-EN24, **5,1x** UBS-EN23, **4,4x** EURIZON-EN23; end-to-end sul job
+intero **2,20x** su EURIZON-EN23 (19,81 s -> 9,02 s), in linea con il tetto di Amdahl previsto da
+P0 una volta tolto il caricamento PyMuPDF seriale.
+
+Due cose che il piano non prevedeva e che la misura ha imposto:
+
+- la degradazione dei pipe d'autore va rilevata **per bundle e non per formato**. MEDIOLANUM-ES24.B
+  ha un `deserialize` d'autore nella pipeline degli investimenti e resta giustamente sequenziale
+  (182 -> 189 ms, cioe' nessun guadagno e nessun costo); UBS-EN23 vive nella stessa cartella
+  `unstructured/` ma usa solo pipe standard e guadagna 5,1x; EURIZON-EN23 ha la classificazione in
+  Python — che resta sequenziale — e gli step in Rust, che guadagnano. Degradare per formato
+  avrebbe tolto il guadagno a due dei tre;
+- l'entry point Python `python::api::run_job` resta **sequenziale**, e non per dimenticanza: il suo
+  subscriber e' installato con `with_default`, il cui scope e' thread-local, e un `#[pyfunction]`
+  gira con il GIL gia' preso. Il guadagno di P2 e' della CLI.
+
 Attenzione a tre cose:
 1. **`Page::raw` e' un `Py<PyAny>`**: il suo `Drop` richiede il GIL. Va verificato che la
    distruzione di pagine su thread rayon non prenda il GIL a raffica (eventualmente rilasciando i
@@ -569,6 +636,15 @@ Attenzione a tre cose:
 3. **Span**: ogni closure deve riagganciare lo span del chiamante (`let span =
    tracing::Span::current(); ... span.in_scope(|| ...)`), altrimenti la colonna `Activity` si
    svuota proprio dove serve.
+
+Esito dei tre punti: (1) non si e' presentato — nel ciclo parallelo le pagine sono **prestate**
+(`&Page` dentro `ScheduledPage`) e i `Document` muoiono sul thread chiamante come prima, quindi
+nessun `Drop` di `Py<PyAny>` avviene su un thread rayon; (2) rispettato in senso forte, non solo
+semantico: la ricomposizione di `produced_in_this_step` e `per_page` e' sequenziale e in ordine di
+pagina, quindi il risultato e' **identico**, non equivalente — verificato anche a valle, con gli
+output CSV byte-identici fra corsa sequenziale e parallela su quattro formati; (3) fatto, e
+verificato da un test d'integrazione dedicato (`tests/algorithm_parallel_pages.rs`) che installa un
+subscriber globale e controlla che nessun evento perda il percorso di span del chiamante.
 
 ### P3. Livello page class / pipeline dentro uno step
 
@@ -580,11 +656,38 @@ pipeline" dentro un bundle. Tecnicamente e' possibile (stessi trait `Send + Sync
 - annidare rayon dentro rayon non e' un errore (il pool e' work-stealing e gestisce il nesting),
   ma rende il profilo illeggibile e il determinismo piu' delicato.
 
-Raccomandazione: **implementarlo, ma con default disattivato** (`pipelines = 1`), utile per il
+~~Raccomandazione: **implementarlo, ma con default disattivato** (`pipelines = 1`), utile per il
 caso patologico "un documento con pochissime pagine e molte pipeline pesanti". Attivabile da
-configurazione.
+configurazione.~~
+
+**Chiusa senza implementazione il 2026-08-31**, come P4 e per la stessa ragione: la misura non la
+giustifica. La raccomandazione qui sopra era **anteriore a P0**; P0 l'ha ridimensionata
+(`agent-memory/P0-profile.md` §5: «nei quattro documenti gli step hanno 1-2 page class e una
+pipeline dominante. Non c'e' niente da distribuire che P2 non saturi gia'») e P2 l'ha svuotata del
+tutto, prendendo tutti i thread per le pagine di ogni gruppo di class. I tre argomenti, per esteso:
+
+- **non c'e' capacita' libera.** P3 vivrebbe *sopra* il ciclo che P2 gia' distribuisce. Su un
+  documento tipico un gruppo di class ha decine o centinaia di pagine e satura da solo i venti
+  thread della macchina di misura: distribuire anche le due class dello step significherebbe
+  annidare rayon su due unita' di lavoro senza thread liberi a cui darle;
+- **il caso patologico non esiste nel corpus.** "Pochissime pagine e molte pipeline pesanti": il
+  piu' piccolo dei 21 report reali ha 29 pagine, gia' piu' dei thread disponibili, e P0 ha
+  misurato una sola pipeline dominante per step;
+- **un'opzione disattivata di default e' un costo netto.** Non gira mai in produzione, quindi non
+  viene mai esercitata, e resta da mantenere attraverso ogni cambiamento di `core::algorithm`.
+
+Conseguenza su P5, identica a quella di P4: `pipelines` **sparisce dallo schema** invece di
+restare un'opzione morta. La richiesta originale lo prevede esplicitamente («non penso abbia senso
+parallelizzare tutto ne' che debba essere fatto allo stesso modo... valuta una strategia tenendo
+in conto della mole di lavoro che ogni layer deve fare»).
 
 ### P4. Livello pipe dentro un segmento — la risposta e' "quasi mai"
+
+**Esito P0 (2026-08-30): non si fa nemmeno l'eccezione.** `deserialize` costa **22-27 ms su job da
+17-21 secondi**, sotto lo 0,2% del totale su tutti e quattro i documenti misurati: azzerarlo del
+tutto varrebbe lo 0,1%. Il resto di questa sezione resta valido come motivazione, ma la conclusione
+operativa e' che **P4 e' chiuso senza implementazione**, e con esso
+`deserialize_blocks_threshold` sparisce dallo schema di P5 invece di restare un'opzione morta.
 
 L'utente lo dice esplicitamente ("non so bene... se ci fosse un modo semplice di aiutare il
 compilatore"). Risposta netta, perche' e' la parte dove l'intuizione inganna:
@@ -608,18 +711,48 @@ solo se misurata. Tutto il resto resta sequenziale per scelta, non per dimentica
 `n_workers` esiste gia' (config, `--workers/-j`, `FREEPORTS_N_WORKERS`) e non e' usato: diventa il
 default globale. Sopra ci va una sezione dedicata, con override per livello:
 
+**Stato al 2026-08-30, dopo P1 e P2.** Due dei tre livelli hanno gia' un consumatore, entrambi
+provvisori e da sostituire qui: `jobs` legge `n_workers` (P1), e `pages` non e' configurabile —
+vale sempre `auto`, **diviso** per il numero di job concorrenti (`cli::run::page_parallelism`),
+cosi' che un batch `-j 4` su 20 thread hardware ne usi 5 per job invece di 20. P5 deve sostituire
+entrambi, non aggiungersi. *(Fatto: entrambe le funzioni provvisorie sono sparite, sostituite da
+`cli::run::resolve_parallelism`, che risolve i due livelli insieme perche' il secondo dipende dal
+primo.)*
+
 ```yaml
+n_workers: 4        # default globale: il valore che ogni livello prende se non dice altro
 parallelism:
   jobs: auto        # P1 — processi in batch.     auto = min(n_cpu, n_job)
-  pages: auto       # P2 — thread rayon.          auto = n_cpu
-  pipelines: 1      # P3 — disattivato di default
-  deserialize_blocks_threshold: 0   # P4 — 0 = disattivato
+  pages: auto       # P2 — thread rayon.          auto = n_cpu / job concorrenti
 ```
 
+Ne' `deserialize_blocks_threshold` ne' `pipelines` compaiono: i due passi che li avrebbero
+consumati (P4 e P3) sono stati chiusi senza implementazione dalla misura di P0.
+
 Regole: `auto` risolve a runtime; `1` ovunque deve produrre **esattamente** il comportamento
-sequenziale di oggi (ed e' il modo di verificare il determinismo, §6); `--workers/-j N` senza
-altro imposta `pages = N` e lascia il resto al default. Le variabili d'ambiente seguono lo schema
-gia' esistente in `cli::config_locations::env`.
+sequenziale di oggi (ed e' il modo di verificare il determinismo, §6). Le variabili d'ambiente
+seguono lo schema gia' esistente in `cli::config_locations::env`.
+
+**Chiusa il 2026-08-31.** Piano, decisioni e scostamenti in
+`agent-memory/P5-implementation-plan.md`; esito e numeri in `STATUS.md`. Tre cose vanno dette qui
+perche' correggono il testo sopra:
+
+- **`n_workers` e' il default globale, non un sinonimo di `pages`.** La frase originale di questa
+  sezione — «`--workers/-j N` senza altro imposta `pages = N` e lascia il resto al default» — e'
+  stata scritta prima che P1 esistesse, quando il livello job non era ancora configurabile. Sotto
+  la lettura letterale della frase precedente («`n_workers` ... diventa il default globale»),
+  `-j N` imposta *entrambi* i livelli, e `-j 1` torna a significare esattamente sequenziale, che
+  e' proprio l'invariante che §6 usa per verificare il determinismo. `--jobs`/`--pages` restano
+  disponibili per fissarne uno solo;
+- **il default in batch cambia**, di proposito: `jobs: auto` significa che un batch gira in
+  processi paralleli anche se nessuno lo chiede. Guadagno misurato **2,36x** su due job grandi
+  (39,4 s -> 16,7 s), al prezzo di **~1,2 GB** di picco di memoria contro 783 MB — N job grandi
+  insieme costano N volte il PDF caricato, ed e' il numero da tenere d'occhio su macchine con
+  molti core e poca RAM;
+- **P5 ha scoperto un difetto di P1**, non suo: i referti dei job worker sono JSON, e senza la
+  feature `float_roundtrip` di `serde_json` la *lettura* di un `f64` sbaglia di un ULP. Con
+  `jobs: auto` come default quel percorso diventa il percorso normale, quindi il difetto e' stato
+  corretto qui. Dettagli in `STATUS.md`.
 
 ---
 
@@ -712,9 +845,14 @@ config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiat
 1. **`tests/formats/*/out/**` non si tocca.** Sono la specifica eseguibile. Se l'output diverge, ha
    sbagliato il motore. L'unica eccezione possibile e' `out/.log.csv` in fase L, e **solo** con
    autorizzazione esplicita (Q-L1).
-2. **Determinismo**: con `parallelism` a 1 ovunque, l'output deve essere **identico byte per byte**
-   a quello di oggi; con N > 1, identico a quello con 1. Da rendere un test, non una speranza:
-   stessa corsa a 1 e a N worker, confronto dei file prodotti.
+2. **Determinismo** — **allentato il 2026-08-30 (risposta a Q-P2)**: il vincolo richiesto e'
+   l'**equivalenza semantica**, non l'identita' byte per byte; l'output parallelo deve contenere
+   gli stessi dati, non necessariamente nello stesso ordine di riga. Resta comunque vero, e
+   testato, che con `parallelism` a 1 ovunque l'output e' **identico byte per byte** a quello di
+   oggi (a 1 non c'e' nulla in parallelo). In P1 l'identita' e' mantenuta anche con N > 1, perche'
+   raccogliere i risultati dei job in slot indicizzati non costa nulla: il margine concesso si
+   spende solo sull'unione dei file di log. Da rendere un test, non una speranza: stessa corsa a 1
+   e a N worker, confronto dei file prodotti.
 3. **Nessuna regressione dei test**: 2.474 unitari + 63 d'integrazione + 259 del repo formati.
 4. **Stile dei test**: sottomoduli per argomento dentro `mod tests`, mai una lista piatta.
 5. **Cambiamenti al codice del repo formati**: si propongono, non si applicano.
@@ -733,8 +871,9 @@ config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiat
 | **Q-L1** | L | ~~Il nuovo schema di `.log.csv` **invalida i 31 `tests/formats/*/out/.log.csv`**, che sono file "che non si toccano". Autorizzi la loro rigenerazione una tantum come parte di L1 (e con quale verifica), oppure il motore deve poter scrivere anche il formato vecchio (flag di compatibilita')?~~ **Risposta 2026-08-29: rigenerazione una tantum**, verifica sul modello di F3 (checksum sul contenuto equivalente, revisione del delta). |
 | **Q-L2** | L | ~~Nome e posizione della colonna dello span (proposto: `Activity`, seconda); vocabolario e separatore degli span (proposto: `/`); e soprattutto: la presenza di `Activity` da sola basta a generare una riga in `.log.csv`?~~ **Risposta 2026-08-29: no**, come raccomandato — `Activity` arricchisce la riga, non la giustifica da sola. |
 | **Q-L3** | L | `.freeports.log.yaml`: solo `-vvv` o flag dedicato? solo errori/warning o tutti gli eventi? record strutturale (raccomandato) o `Serialize` derivato su ~25 enum d'errore? |
-| **Q-P1** | P | Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale? |
-| **Q-P2** | P | Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice. |
+| **Q-P0** | P | **Rimandata 2026-08-30** ("procedi con P1"): resta disponibile come passo a se', dopo P1/P2. **Nuova, aperta da P0 (2026-08-30).** `TextFilterInvestmentsStandard` da solo e' il 30-54% del tempo totale di un job, e' Rust mono-thread e deterministico. Si apre un passo di ottimizzazione *interna* di quel pipe (indicizzare le societa' bersaglio invece di scorrerle, ridurre le compilazioni di regex per chiamata) **prima** di P1/P2? Potrebbe valere quanto tutta la fase P, senza alcun rischio di non-determinismo. |
+| **Q-P1** | P | ~~Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale?~~ **Risposta 2026-08-30: processi figli, con IPC dei risultati verso il padre.** Scartate sia la variante "ogni figlio scrive il proprio output" (cambierebbe la semantica di output della modalita' batch) sia i soli thread (il GIL riserializzerebbe proprio il 35-75% misurato da P0). |
+| **Q-P2** | P | ~~Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice.~~ **Risposta 2026-08-30: no, basta l'equivalenza semantica.** Il vincolo §6.2 si allenta: l'output parallelo deve contenere gli stessi dati, non necessariamente nello stesso ordine. Nota d'attuazione di P1: il margine si spende **solo** sull'unione dei log: i risultati dei job restano raccolti in slot indicizzati, quindi l'output aggregato resta byte-identico e i file di riferimento del repo formati restano confrontabili per checksum. |
 | **Q-D1** | D | Il whitepaper e' rivolto anche a un pubblico non tecnico (finanziario/istituzionale) o solo a sviluppatori? Cambia registro e struttura. |
 | **Q-D2** | D | Confermi "un solo sito Sphinx + MyST + rustdoc accanto", scartando mdbook? E le quattro traduzioni (`en`/`fr`/`it`/`pt`) si mantengono, si congelano, o si riducono? |
 
@@ -792,9 +931,13 @@ conteggi).
 2. **La parallelizzazione puo' rendere i test instabili** (flaky) invece che falsi: un test che
    passa 9 volte su 10 e' peggio di uno rosso. Il vincolo di determinismo (§6.2) e il test
    "1 worker vs N worker" servono esattamente a questo.
-3. **Il GIL puo' azzerare il guadagno atteso** sui formati `unstructured`. Se P0 mostra che il
-   caricamento PyMuPDF domina, P2 dara' molto meno del previsto e il grosso del lavoro dovra'
-   spostarsi su P1 (processi).
+3. ~~**Il GIL puo' azzerare il guadagno atteso** sui formati `unstructured`.~~ **Riscritto dopo P0
+   (2026-08-30): il rischio era mal puntato.** I pipe Python d'autore sono risultati quasi
+   irrilevanti (millisecondi, tranne la classificazione di EURIZON-EN23: 1,08 s, il 6,1%). Il GIL
+   fa male in un punto solo — **PyMuPDF nel caricamento**, il 35-75% del tempo — che non e' codice
+   d'autore e non si evita scegliendo un livello di specifica diverso. Conseguenza confermata, ma
+   per un motivo diverso da quello ipotizzato: su un documento singolo P2 ha un tetto di 1,5-2,9x,
+   e il guadagno grosso su piu' documenti resta P1.
 4. **Lo sweep di logging puo' produrre rumore** invece di informazione: 116 file strumentati senza
    convenzione diventano un `.log.csv` illeggibile. La convenzione di L2 va fissata e verificata
    su un'area sola prima di applicarla alle altre sei.

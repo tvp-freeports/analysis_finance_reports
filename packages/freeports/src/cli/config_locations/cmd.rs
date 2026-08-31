@@ -20,7 +20,11 @@
 //!     #[arg(long = "batch", short = 'b')]
 //!     pub batch: Option<String>,
 //!     #[arg(long = "workers", short = 'j')]
-//!     pub workers: Option<i64>,
+//!     pub workers: Option<String>,
+//!     #[arg(long = "jobs")]
+//!     pub jobs: Option<String>,
+//!     #[arg(long = "pages")]
+//!     pub pages: Option<String>,
 //!     #[arg(long = "format", short = 'f')]
 //!     pub format: Option<String>,
 //!     #[arg(long = "no-download")]
@@ -45,6 +49,8 @@
 //!     pub db_directory: Option<String>,
 //!     #[arg(long = "formats-directory", visible_alias = "repo", short = 'F', visible_short_alias = 'r')]
 //!     pub formats_directory: Option<String>,
+//!     #[arg(long = "internal-worker", hide = true)]   // P1: canale interno, non mappato in to_partial_config
+//!     pub internal_worker: Option<String>,
 //! }
 //!
 //! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -65,7 +71,9 @@
 //! |---|---|---|
 //! | `--input`/`--report`/`-i` (multiplo) | `reports` | ciascun valore via `DocumentSpec::parse`; nessun valore -> `None`, non `Some(vec![])` |
 //! | `--batch`/`-b` | `batch_file` | |
-//! | `--workers`/`-j` | `n_workers` | positivo; `<= 0` -> `CmdConfigError::InvalidWorkers` (semplificazione: il riferimento tratta `<= 0` come "auto-rileva i cpu disponibili", non riprodotto qui -- vedi il resoconto del test-writer) |
+//! | `--workers`/`-j` | `n_workers` | P5: intero positivo **oppure** `auto` (il riferimento trattava `<= 0` come "auto-rileva i cpu disponibili"; qui `auto` e' una parola, e `<= 0` resta un `CmdConfigError::InvalidWorkers`). E' il default globale di entrambi i livelli |
+//! | `--jobs` | `parallelism_jobs` | P5: override del livello job. Stessa grammatica |
+//! | `--pages` | `parallelism_pages` | P5: override del livello pagina. Stessa grammatica |
 //! | `--format`/`-f` | `format` | |
 //! | `--no-download` | `save_pdf` | presente -> `Some(false)`; assente -> `None` (mai `Some(true)`: il default vero vive in `defaults()`) |
 //! | `--config` | `config_file` | |
@@ -80,6 +88,7 @@
 use std::path::PathBuf;
 
 use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
+use crate::cli::parallelism_config::{Workers, WorkersParseError};
 use crate::cli::partial_config::PartialConfig;
 use crate::core::tracing_setup::Verbosity;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
@@ -96,8 +105,18 @@ pub struct CliArgs {
     // sconosciuta invece che come il valore di `--workers`, impedendo persino di raggiungere
     // `CmdConfigError::InvalidWorkers` per un `<= 0` (`tests::to_partial_config_simple_fields::
     // zero_or_negative_workers_is_a_typed_error`).
-    #[arg(long = "workers", short = 'j', allow_hyphen_values = true)]
-    pub workers: Option<i64>,
+    // P5: il default globale di *entrambi* i livelli di parallelismo, non piu' il solo numero di
+    // processi. E' cio' che rida' a `-j 1` il suo significato universale -- un job alla volta *e*
+    // una pagina alla volta (`agent-memory/P5-implementation-plan.md` D-P5-1).
+    #[arg(long = "workers", short = 'j', allow_hyphen_values = true, help = "Workers to use at every parallelism level: a positive number, or 'auto'")]
+    pub workers: Option<String>,
+    // P5: override del livello job (P1, processi figli in modalita' batch). Solo lungo -- `-j` e'
+    // gia' preso da `--workers`.
+    #[arg(long = "jobs", allow_hyphen_values = true, help = "Documents processed at once, in separate processes [default: --workers]")]
+    pub jobs: Option<String>,
+    // P5: override del livello pagina (P2, thread rayon dentro un job).
+    #[arg(long = "pages", allow_hyphen_values = true, help = "Pages of one document processed at once, in threads [default: --workers]")]
+    pub pages: Option<String>,
     #[arg(long = "format", short = 'f')]
     pub format: Option<String>,
     #[arg(long = "no-download")]
@@ -122,6 +141,17 @@ pub struct CliArgs {
     pub db_directory: Option<String>,
     #[arg(long = "formats-directory", visible_alias = "repo", short = 'F', visible_short_alias = 'r')]
     pub formats_directory: Option<String>,
+    /// P1 (`agent-memory/P1-implementation-plan.md` §2): esegue **un solo** job worker, letto dal
+    /// file indicato, invece di risolvere una configurazione. Il padre se lo passa da solo quando
+    /// esegue i job di un batch in processi figli.
+    ///
+    /// `hide = true`: non e' un'interfaccia utente, e' il canale interno fra due copie dello stesso
+    /// binario. Comparire in `--help` inviterebbe a usarlo a mano, dove non ha nessun senso -- il
+    /// file di richiesta lo scrive il padre, con percorsi che vivono in una cartella temporanea che
+    /// sparisce a fine corsa. **Non** mappato in `to_partial_config`: non e' un campo di
+    /// configurazione, e' un modo di funzionamento del processo.
+    #[arg(long = "internal-worker", hide = true)]
+    pub internal_worker: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -130,8 +160,17 @@ pub enum CmdConfigError {
     InvalidReportSpecifier { value: String, source: DocumentSpecError },
     #[error("invalid output profile {value:?}, expected one of: regular, single_file, structured")]
     InvalidOutProfile { value: String },
-    #[error("--workers must be a positive number, got {value}")]
-    InvalidWorkers { value: i64 },
+    #[error("{flag} {source}")]
+    InvalidWorkers { flag: &'static str, #[source] source: WorkersParseError },
+}
+
+/// Le tre opzioni di parallelismo condividono la grammatica (`auto` o un intero positivo) e
+/// differiscono solo per il nome che compare nell'errore: chi sbaglia `--pages` deve leggere
+/// `--pages`, non un messaggio generico su un concetto.
+fn parse_workers(flag: &'static str, value: Option<&str>) -> Result<Option<Workers>, CmdConfigError> {
+    value
+        .map(|v| Workers::parse(v).map_err(|source| CmdConfigError::InvalidWorkers { flag, source }))
+        .transpose()
 }
 
 fn parse_out_profile(value: &str) -> Result<OutStructureMode, CmdConfigError> {
@@ -170,11 +209,9 @@ impl CliArgs {
             Some(specs?)
         };
 
-        let n_workers = match self.workers {
-            None => None,
-            Some(w) if w > 0 => Some(w as usize),
-            Some(w) => return Err(CmdConfigError::InvalidWorkers { value: w }),
-        };
+        let n_workers = parse_workers("--workers", self.workers.as_deref())?;
+        let parallelism_jobs = parse_workers("--jobs", self.jobs.as_deref())?;
+        let parallelism_pages = parse_workers("--pages", self.pages.as_deref())?;
 
         let verbosity = if self.verbose > 0 || self.quiet > 0 {
             Some(Verbosity::from_verbose_and_quiet_counts(self.verbose, self.quiet))
@@ -207,6 +244,8 @@ impl CliArgs {
             out_profile,
             out_flags,
             n_workers,
+            parallelism_jobs,
+            parallelism_pages,
             batch_file: self.batch.as_ref().map(PathBuf::from),
             save_pdf: if self.no_download { Some(false) } else { None },
             formats_repo_path: self.formats_directory.as_ref().map(PathBuf::from),
@@ -228,6 +267,44 @@ mod tests {
         let mut full = vec!["freeports"];
         full.extend_from_slice(args);
         CliArgs::try_parse_from(full).expect("argv must parse")
+    }
+
+    /// P1 (`agent-memory/P1-implementation-plan.md` §2): `--internal-worker` non e' un'opzione di
+    /// configurazione, e' il modo in cui una copia del binario dice a un'altra "esegui questo job".
+    /// Il suo contratto e' tutto qui: si parsa, non compare nell'aiuto, e non contribuisce nulla
+    /// alla configurazione risolta.
+    mod internal_worker_flag {
+        use super::*;
+
+        #[test]
+        fn it_parses_and_carries_the_request_path() {
+            let args = parse(&["--internal-worker", "/tmp/w3/request.json"]);
+            assert_eq!(args.internal_worker.as_deref(), Some("/tmp/w3/request.json"));
+        }
+
+        #[test]
+        fn it_is_absent_when_not_given() {
+            assert_eq!(parse(&[]).internal_worker, None);
+        }
+
+        /// `hide = true` non e' cosmetica: un utente che lo trovasse in `--help` proverebbe a
+        /// usarlo, e i percorsi che si aspetta li scrive solo il padre, in una cartella temporanea.
+        #[test]
+        fn it_does_not_appear_in_the_help_text() {
+            use clap::CommandFactory;
+            let help = CliArgs::command().render_help().to_string();
+            assert!(!help.contains("internal-worker"), "the internal channel must not be advertised in --help:\n{help}");
+        }
+
+        /// Se finisse in `PartialConfig`, il percorso della richiesta diventerebbe un valore di
+        /// configurazione che si fonde con file ed ambiente -- e un figlio potrebbe ereditare il
+        /// modo worker da un file di configurazione, ricorsivamente.
+        #[test]
+        fn it_contributes_nothing_to_the_resolved_configuration() {
+            let with = parse(&["--internal-worker", "/tmp/w3/request.json"]).to_partial_config().unwrap();
+            let without = parse(&[]).to_partial_config().unwrap();
+            assert_eq!(with, without);
+        }
     }
 
     mod clap_parsing_shape {
@@ -329,7 +406,51 @@ mod tests {
         #[test]
         fn workers_is_mapped() {
             let config = parse(&["--workers", "4"]).to_partial_config().unwrap();
-            assert_eq!(config.n_workers, Some(4));
+            assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
+        }
+
+        /// P5: `auto` e' una parola accettata da tutte e tre le opzioni, non solo un default
+        /// implicito -- serve a riportare un livello al comportamento automatico quando una
+        /// sorgente meno prioritaria (file o ambiente) lo ha fissato a un numero.
+        #[test]
+        fn auto_is_accepted_by_all_three_parallelism_options() {
+            let config = parse(&["--workers", "auto", "--jobs", "AUTO", "--pages", "auto"])
+                .to_partial_config()
+                .unwrap();
+            assert_eq!(config.n_workers, Some(Workers::Auto));
+            assert_eq!(config.parallelism_jobs, Some(Workers::Auto));
+            assert_eq!(config.parallelism_pages, Some(Workers::Auto));
+        }
+
+        #[test]
+        fn the_two_per_level_options_are_mapped_separately() {
+            let config = parse(&["--jobs", "2", "--pages", "8"]).to_partial_config().unwrap();
+            assert_eq!(config.n_workers, None);
+            assert_eq!(config.parallelism_jobs, Some(Workers::Fixed(2)));
+            assert_eq!(config.parallelism_pages, Some(Workers::Fixed(8)));
+        }
+
+        #[test]
+        fn none_of_the_three_options_is_set_when_none_is_given() {
+            let config = parse(&[]).to_partial_config().unwrap();
+            assert_eq!(config.n_workers, None);
+            assert_eq!(config.parallelism_jobs, None);
+            assert_eq!(config.parallelism_pages, None);
+        }
+
+        /// Il messaggio deve nominare **l'opzione sbagliata**: con tre opzioni della stessa
+        /// grammatica, un errore generico costringerebbe a indovinare quale delle tre.
+        #[test]
+        fn the_error_names_the_option_that_was_wrong() {
+            let error = parse(&["--pages", "nope"]).to_partial_config().unwrap_err().to_string();
+            assert!(error.contains("--pages"), "{error}");
+            assert!(error.contains("\"nope\""), "{error}");
+        }
+
+        #[test]
+        fn zero_or_negative_is_a_typed_error_on_the_per_level_options_too() {
+            assert!(parse(&["--jobs", "0"]).to_partial_config().is_err());
+            assert!(parse(&["--pages", "-2"]).to_partial_config().is_err());
         }
 
         #[test]

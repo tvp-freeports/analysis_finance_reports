@@ -8,11 +8,25 @@
 use clap::Parser;
 
 use freeports::cli::config_locations::cmd::CliArgs;
-use freeports::cli::run;
+use freeports::cli::{run, worker};
 use freeports::core::tracing_setup::{self, Verbosity};
 
 fn main() {
     let args = CliArgs::parse();
+
+    // P1 (`agent-memory/P1-implementation-plan.md` §2): prima di ogni altra cosa, perche' il modo
+    // worker non risolve alcuna configurazione e non inizializza il logging nella cwd -- entrambe le
+    // cose gliele dice il file di richiesta che il padre gli ha scritto.
+    if let Some(request_path) = args.internal_worker.as_deref() {
+        if let Err(e) = worker::execute(std::path::Path::new(request_path)) {
+            // Non `tracing::error!`: qui il logging puo' non essere mai stato inizializzato (la
+            // richiesta illeggibile e' proprio uno dei modi di fallire). Il padre legge questa riga
+            // dallo stderr ereditato, e riconosce comunque il fallimento dal referto mancante.
+            eprintln!("freeports worker: {e}");
+            std::process::exit(worker::PROTOCOL_FAILURE_EXIT_CODE);
+        }
+        return;
+    }
 
     let verbosity = Verbosity::from_verbose_and_quiet_counts(args.verbose, args.quiet);
     let log_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));

@@ -14,6 +14,7 @@ use crate::cli::config_locations::file;
 use crate::cli::partial_config::{ConfigSource, PartialConfig, defaults, overwrite};
 use crate::cli::{freeports_config, job, output};
 use crate::core::algorithm::Algorithm;
+use crate::core::parallelism::Parallelism;
 use crate::core::tracing_setup::{self, CsvLogLayer};
 use crate::core::page::FormatName;
 use crate::core::schedule::PageClass;
@@ -327,8 +328,24 @@ pub fn py_run_job(
             .with(csv_layer.clone().with_filter(tracing_setup::csv_event_filter()))
     };
 
+    // **Sequenziale, e non e' una dimenticanza di P2.** Due ragioni indipendenti, ognuna
+    // sufficiente:
+    //
+    // 1. il subscriber qui sopra e' installato con `with_default`, che ha uno scope
+    //    **thread-local**: i thread di un pool rayon non lo vedrebbero, e ogni evento prodotto
+    //    dalle pagine distribuite sparirebbe dal `.log.csv` che questo entry point esiste per
+    //    produrre;
+    // 2. un `#[pyfunction]` gira con il GIL gia' preso dal chiamante. Un pipe d'autore su un
+    //    thread rayon si metterebbe in attesa di un GIL che il thread chiamante non rilascia
+    //    finche' non ha finito di aspettare i thread: uno stallo, non un rallentamento. La
+    //    degradazione di `scales_with_threads` lo evita gia', ma non e' il genere di cosa da
+    //    lasciare appesa a una sola difesa.
+    //
+    // Il guadagno di P2 e' della CLI (`cli::run`), che installa un subscriber **globale** e non
+    // tiene il GIL.
     let result = tracing::subscriber::with_default(subscriber, || {
-        let outcomes = job::run(&config).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        let outcomes = job::run(&config, Parallelism::SEQUENTIAL)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         output::write_results(&config, &outcomes).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         Ok(())
     });
