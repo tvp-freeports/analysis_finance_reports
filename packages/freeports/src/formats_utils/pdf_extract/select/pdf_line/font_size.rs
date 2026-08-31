@@ -1,30 +1,14 @@
-//! Selezione per corpo del font (intervalli).
+//! Selecting lines by font size: intervals.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line::font_size`. Il tipo atomo
-//! (`PositiveLimits`) e' gia' definito in `commons::geometry` (M1): questo modulo vi implementa
-//! sopra `Container`/`Overlappable`/`AtomOperations`/`AtomAlgebra` (non ce li ha di suo, vedi il
-//! doc-comment di `commons::geometry` — quel modulo espone solo costruzione validata e
-//! `as_tuple`, l'algebra di selezione vive qui per lo stesso motivo di R4: i dati non dipendono
-//! dalle selezioni).
+//! The atom is `PositiveLimits`, defined in [`crate::commons::geometry`], which offers only
+//! validated construction; the selection algebra is implemented here for the same reason as
+//! elsewhere in this tree — the data must not depend on the selections.
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `impl Container for PositiveLimits { type Elem = f32; ... }`: `a <= x && x <= b`
-//!   (estremi inclusi).
-//! - `impl Overlappable<Self> for PositiveLimits`: le cinque relazioni standard, con gli
-//!   estremi che si toccano trattati come *non* disgiunti (`Subset`/`Superset`/`Overlapping` a
-//!   seconda dei casi), esattamente come nel riferimento.
-//! - `impl AtomOperations for PositiveLimits`: `subtract_subset` produce uno o due intervalli
-//!   a seconda che uno dei due estremi coincida; `subtract_overlapping`/`intersect_overlapping`
-//!   producono sempre un solo intervallo.
-//! - `impl AtomAlgebra for PositiveLimits {}`.
-//! - `type Interval = DisjointAtomsSet<PositiveLimits,f32>; pub type FontSizeSet = Interval; pub
-//!   type FontSizeInterval = FontSizeSet;` con:
-//!   - `FontSizeInterval::new(a: f32, b: f32) -> Self` (= `Self::from_atom(PositiveLimits::new(a,b))`).
-//!   - `FontSizeInterval::from_precision(c: f32, prec: f32) -> Self`: intervallo
-//!     `[max(0.0, c-prec), c+prec]` (il minimo con `0.0` evita bound negativi, dato che
-//!     `PositiveLimits` li rifiuta).
+//! Unlike fonts, sizes are a continuum, so two intervals really can overlap: the atom operations
+//! produce one or two intervals depending on whether an endpoint is shared. Endpoints are
+//! inclusive, and touching intervals count as meeting rather than as disjoint — a line of exactly
+//! 9pt belongs to both `[8,9]` and `[9,10]`, which is what a format author writing two adjacent
+//! ranges means.
 
 use ordered_float::OrderedFloat;
 use std::cmp::max;

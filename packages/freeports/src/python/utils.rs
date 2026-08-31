@@ -1,9 +1,9 @@
-//! Shim di `freeports.utils`: le utilità che un autore di formato compone nei propri pipe.
+//! The shims of the utilities a format author composes into their own pipes.
 //!
-//! Tre sottomoduli, uno per segmento della pipeline, esattamente come nel riferimento:
-//! [`pdf_extract`] (selezioni di righe, geometria, tabelle), [`text_filter`] (normalizzazione,
-//! confronto fra nomi di fondo, valute) e [`deserialize`] (i cast e i due decoratori che
-//! restringono un deserializer a certi tipi di blocco).
+//! Three submodules, one per pipeline segment: [`pdf_extract`] for line selections, geometry and
+//! tables, [`text_filter`] for normalisation, fund-name comparison and currencies, and
+//! [`deserialize`] for the casts and the two decorators that restrict a deserializer to certain
+//! block types.
 
 pub mod deserialize;
 pub mod pdf_extract;

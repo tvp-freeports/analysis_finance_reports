@@ -1,4 +1,4 @@
-//! Modello dati e motore di esecuzione: blocchi, promise, pagine, pipeline, algoritmo.
+//! Data model and execution engine: blocks, promises, pages, pipelines, algorithm.
 
 pub mod algorithm;
 pub mod classes;

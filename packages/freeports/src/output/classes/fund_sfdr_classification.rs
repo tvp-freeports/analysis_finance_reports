@@ -1,22 +1,6 @@
-//! `FundSfdrClassification`: la classificazione SFDR (art. 6/8/9) dichiarata di un fondo.
+//! [`FundSfdrClassification`]: a fund's declared SFDR classification, article 6, 8 or 9.
 //!
-//! M8, passo 3 (`agent-memory/M8-implementation-plan.md` §3). Il pipe più semplice degli otto
-//! deferiti (`DeserializeSfdrArticleStandard`, passo 8) costruisce esattamente questa entità da un
-//! blocco `SFDR_ARTICLE`. Vedi
-//! `packages/freeports_core/src/output/classes/fund_sfdr_classification.rs` per il riferimento:
-//! `fund` non è mai promettibile lì (e non lo è nemmeno qui), solo `article` lo è.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! pub struct FundSfdrClassification { pub fund: String, pub article: Promised<SfdrArticle> }
-//! impl FundSfdrClassification {
-//!     pub fn build(fund: impl Into<String>, article: &BlockValue) -> Result<Self, OutputClassError>;
-//! }
-//! impl PromisableFields for FundSfdrClassification { /* pending() -> ["article"] se pendente */ }
-//! ```
-//!
-//! Deriva `Debug, Clone, PartialEq, Eq, Serialize, Deserialize`.
+//! The fund is never promisable; only the article is.
 
 use serde::{Deserialize, Serialize};
 
@@ -27,8 +11,7 @@ use crate::core::promise::Promise;
 
 use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
 
-/// La classificazione SFDR (art. 6/8/9) dichiarata di un fondo. `fund` non è mai promettibile,
-/// solo `article` lo è.
+/// A fund's declared SFDR classification. The fund is never promisable, only the article is.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundSfdrClassification {
     pub fund: String,

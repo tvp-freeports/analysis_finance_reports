@@ -1,94 +1,37 @@
-//! Configurazione da file (YAML) e ricerca delle posizioni standard (cwd, XDG/`dirs`, sistema).
+//! Configuration from a YAML file, and finding that file in the standard locations.
 //!
-//! `M9-implementation-plan.md` §2/§3 passo 7, §0 Q2/Q3/Q5.
+//! # Where the file is looked for
 //!
-//! # Ricerca del file di configurazione (`find_config`)
+//! Three tiers, in decreasing precedence:
 //!
-//! Tre livelli, in ordine di precedenza decrescente (identico al riferimento
-//! `FreeportsFileConfig.find_config`, con la sola dipendenza `dirs` al posto di `xdg` per il
-//! tier utente, §0 Q2):
+//! 1. **the working directory** — a file whose name matches, case-insensitively, either `config-freeports.yaml` or `freeports-config.yaml`, in their several punctuation and extension variants;
+//! 2. **the user tier** — the OS's local configuration directory, holding `freeports.yaml` or `freeports.yml`. Local rather than roaming, deliberately: a configuration naming machine-local paths should not follow a user to another machine;
+//! 3. **the system tier** — on POSIX, the XDG configuration directories then `/etc`; on Windows, the program-data directory then the system root.
 //!
-//! 1. **cwd** -- un file nella directory corrente che combacia (case-insensitive) con uno dei due
-//!    pattern del riferimento: `^\.?(config|conf)[-._]?freeports\.ya?ml$` oppure
-//!    `^\.?freeports[-._]?(config|conf)\.ya?ml$`.
-//! 2. **Tier utente** -- `dirs::config_local_dir()` (non `config_dir()`, §0 Q2: su Windows
-//!    risolve a `%LOCALAPPDATA%`, la prima voce del riferimento Python, non `%APPDATA%`
-//!    roaming), cercando `freeports.yaml`/`freeports.yml`.
-//! 3. **Tier di sistema** -- resta a mano, nessuno dei crate candidati lo espone (§0 Q2):
-//!    - POSIX: `XDG_CONFIG_DIRS` (spezzata su `:`, fallback `/etc/xdg` se assente/vuota), poi
-//!      `/etc` come ultimo tier separato;
-//!    - Windows: `%PROGRAMDATA%`, poi `%SystemRoot%` come ultimo tier.
+//! Both platform branches are **always compiled**, not behind a target guard, so the tests exercise
+//! both whatever system runs them.
 //!
-//!    Entrambi i rami sono **sempre compilati** (non dietro `#[cfg(target_os)]`), così i test li
-//!    esercitano entrambi indipendentemente dal sistema operativo che esegue `cargo test`.
+//! No file in any tier yields nothing, never an error.
 //!
-//! Nessun file trovato in nessun tier -> `None`, mai un errore.
+//! # Recognised keys
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-//! pub enum FileConfigError {
-//!     Io { path: PathBuf, source: ... },
-//!     Yaml { path: PathBuf, source: ... },
-//!     UnknownKey { path: PathBuf, key: String },
-//!     InvalidReportSpecifier { path: PathBuf, value: String, source: DocumentSpecError },
-//!     ReportsConflict { path: PathBuf, source: SourceReportsConflict },
-//!     InvalidVerbosity { path: PathBuf, value: String },
-//!     InvalidValue { path: PathBuf, key: &'static str, value: String },
-//! }
-//!
-//! /// Tier 1 (cwd), fattorizzata per accettare una directory esplicita: la funzione pubblica
-//! /// `find_config()` la chiama con `std::env::current_dir()`, i test la chiamano direttamente
-//! /// con una `tempfile::TempDir` -- niente `std::env::set_current_dir` nei test (che
-//! /// muterebbe la cwd dell'intero processo, condivisa da tutti i test del crate eseguiti in
-//! /// parallelo: una fonte di flakiness inter-modulo, non solo interna a questo file).
-//! pub(crate) fn local_config_in(dir: &std::path::Path) -> Option<std::path::PathBuf>;
-//!
-//! /// Tier 2 (utente), fattorizzata sul valore già risolto di `dirs::config_local_dir()` per lo
-//! /// stesso motivo di testabilità.
-//! pub(crate) fn user_config_in(config_local_dir: Option<&std::path::Path>) -> Option<std::path::PathBuf>;
-//!
-//! /// Tier 3 (sistema): legge le variabili d'ambiente reali (`XDG_CONFIG_DIRS`, `PROGRAMDATA`,
-//! /// `SystemRoot`) e il filesystem -- testabile con lo stesso meccanismo di `EnvScope` già usato
-//! /// da `config_locations::env`.
-//! pub(crate) fn system_config() -> Option<std::path::PathBuf>;
-//!
-//! pub fn find_config() -> Option<std::path::PathBuf>;
-//!
-//! /// `path: None` -> `Ok(PartialConfig::default())` (nessun file, nessun errore). `path:
-//! /// Some` -> legge e valida lo YAML a quel percorso.
-//! pub fn load(path: Option<&std::path::Path>) -> Result<PartialConfig, FileConfigError>;
-//! ```
-//!
-//! # Chiavi YAML riconosciute
-//!
-//! | chiave | campo | note |
+//! | key | field | note |
 //! |---|---|---|
-//! | `verbosity` | `verbosity` | stringa, uno dei sei nomi di variante, case-insensitive (§0 Q5 -- **non** più l'intero `0..5` del riferimento) |
-//! | `out_path` | `out_path` | |
-//! | `n_workers` | `n_workers` | P5: intero positivo **oppure** `auto`. È il default globale di entrambi i livelli di parallelismo |
-//! | `parallelism` | `parallelism_jobs`/`parallelism_pages` | P5: mappa con le sole sottochiavi `jobs` e `pages`, ciascuna con la grammatica di `n_workers`. Una sottochiave sconosciuta è un `UnknownKey` come al livello superiore |
-//! | `batch_file` | `batch_file` | |
-//! | `save_pdf` | `save_pdf` | booleano YAML nativo |
-//! | `url` | contribuisce allo spec singolare (con `pdf`), poi risolto in `reports` | |
-//! | `pdf` | idem | il riferimento non aveva questa chiave nella propria mappa (probabile omissione: `PDF` era un campo del modello ma `_map_names` non lo citava) -- inclusa qui perché `targets/2_multireport_support.md`/§0 Q3 la richiedono esplicitamente come zucchero sintattico |
-//! | `reports` | `reports` | lista di stringhe, ciascuna nella grammatica `DocumentSpec::parse` (§0 Q3) |
-//! | `format` | `format` | |
-//! | `target_lists` | `target_lists` | lista di stringhe |
-//! | `formats_repo` | `formats_repo_path` | |
-//! | `db_path` | `input_db_path` | |
+//! | `verbosity` | verbosity | one of the variant names, case-insensitively |
+//! | `out_path` | output path | |
+//! | `n_workers` | the global parallelism default | a positive integer or `auto` |
+//! | `parallelism` | the two per-level overrides | a map with only the `jobs` and `pages` sub-keys |
+//! | `batch_file` | batch file | |
+//! | `save_pdf` | save PDF | a native YAML boolean |
+//! | `url`, `pdf` | contribute to the singular document spec | |
+//! | `reports` | the reports | a list, each in the document-spec grammar |
+//! | `format` | format | |
+//! | `target_lists` | target lists | a list |
+//! | `formats_repo` | formats repository path | |
+//! | `db_path` | input database path | |
 //!
-//! Una chiave sconosciuta è un **errore esplicito** (`FileConfigError::UnknownKey`) -- scelta del
-//! test-writer, non decisa dal piano (`M9-implementation-plan.md` §4 lo lascia esplicitamente
-//! aperto: "da scegliere e documentare in fase di implementazione, il riferimento solleva
-//! `KeyError` implicito"). Coerente con `PLAN.md` §2 principio 4 (mai un comportamento ambiguo
-//! risolto in silenzio) e con il comportamento *di fatto* del riferimento (un `KeyError` non
-//! catturato). **Segnalato esplicitamente nel resoconto del test-writer come judgment call**,
-//! non come lettura univoca del piano.
-//!
-//! `reports:` **e** (`url:` o `pdf:`) insieme sulla stessa sorgente -> errore esplicito, stesso
-//! meccanismo di `config_locations::env` (`resolve_singular_and_plural_reports`, §0 Q3).
+//! An unknown key is an **explicit error**. A misspelled key that is silently ignored configures
+//! nothing and says nothing, which is exactly the failure this refuses.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -121,9 +64,10 @@ pub enum FileConfigError {
 
 const CONFIG_FILE_NAMES: [&str; 2] = ["freeports.yaml", "freeports.yml"];
 
-/// Tier 1 (cwd): un file la cui *nome* combacia (case-insensitive) con uno dei due pattern del
-/// riferimento. Fattorizzata su una directory esplicita, non su `std::env::current_dir()`, per
-/// restare testabile senza mutare la cwd condivisa del processo -- vedi il doc-comment del modulo.
+/// The working-directory tier: a file whose name matches either pattern, case-insensitively.
+///
+/// Takes an explicit directory rather than reading the process's own, so it stays testable without
+/// mutating a working directory shared by every test running in parallel.
 pub(crate) fn local_config_in(dir: &Path) -> Option<PathBuf> {
     let patterns = [
         onig::Regex::new(r"(?i)^\.?(config|conf)[-._]?freeports\.ya?ml$")
@@ -158,8 +102,8 @@ pub(crate) fn local_config_in(dir: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Tier 2 (utente): `freeports.yaml`/`freeports.yml` dentro `config_local_dir` (già risolto dal
-/// chiamante via `dirs::config_local_dir()`, §0 Q2 -- fattorizzata sul valore per testabilità).
+/// The user tier, taking the already-resolved configuration directory for the same testability
+/// reason.
 pub(crate) fn user_config_in(config_local_dir: Option<&Path>) -> Option<PathBuf> {
     let dir = config_local_dir?;
     for name in CONFIG_FILE_NAMES {
@@ -171,10 +115,9 @@ pub(crate) fn user_config_in(config_local_dir: Option<&Path>) -> Option<PathBuf>
     None
 }
 
-/// Tier 3 (sistema): `XDG_CONFIG_DIRS` (spezzata su `:`, fallback `/etc/xdg`) poi `/etc` su POSIX;
-/// `%PROGRAMDATA%` poi `%SystemRoot%` su Windows. Entrambi i rami sono sempre compilati (nessun
-/// `#[cfg(target_os)]`), così i test li esercitano indipendentemente dal sistema operativo che
-/// esegue `cargo test` -- vedi il doc-comment del modulo.
+/// The system tier: the XDG configuration directories then `/etc` on POSIX, the program-data
+/// directory then the system root on Windows. Both branches are always compiled; see the module
+/// documentation.
 pub(crate) fn system_config() -> Option<PathBuf> {
     let xdg_dirs: Vec<PathBuf> = match std::env::var("XDG_CONFIG_DIRS") {
         Ok(value) if !value.is_empty() => value.split(':').map(PathBuf::from).collect(),
@@ -244,11 +187,11 @@ fn value_as_string(path: &Path, key: &'static str, value: &serde_yaml::Value) ->
         .ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
 }
 
-/// P5: un livello di parallelismo, scritto come intero positivo o come la parola `auto`.
+/// One parallelism level, written as a positive integer or as the word `auto`.
 ///
-/// Lo YAML distingue i due casi da se' (`4` e' un numero, `auto` una stringa), quindi non serve
-/// passare per il testo quando il valore e' gia' un intero -- e un `4` fra virgolette resta
-/// comunque accettato, perche' rifiutarlo sarebbe una sottigliezza senza guadagno.
+/// YAML tells the two apart on its own, so there is no need to go through the text when the value
+/// is already an integer — and a quoted number is still accepted, refusing it being a subtlety with
+/// no gain.
 fn value_as_workers(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<Workers, FileConfigError> {
     let invalid =
         || FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") };
@@ -261,11 +204,10 @@ fn value_as_workers(path: &Path, key: &'static str, value: &serde_yaml::Value) -
     }
 }
 
-/// La sezione `parallelism:`, con le sue due sole sottochiavi.
+/// The `parallelism` section, with its two sub-keys.
 ///
-/// Una sottochiave sconosciuta e' un errore come al livello superiore: se `pipelines:` — il terzo
-/// livello che il piano immaginava e che P3 ha chiuso senza implementazione — comparisse in un
-/// file, tacere lo farebbe sembrare attivo.
+/// An unknown sub-key is an error, as at the top level: a level that was considered and never
+/// implemented would, if silently accepted, look active.
 fn parallelism_section(
     path: &Path,
     value: &serde_yaml::Value,
@@ -303,7 +245,7 @@ fn value_as_string_list(path: &Path, key: &'static str, value: &serde_yaml::Valu
     items.iter().map(|item| value_as_string(path, key, item)).collect()
 }
 
-/// Wraps [`load_impl`] to log any failure exactly once -- this is the only place every
+/// Wraps `load_impl` to log any failure exactly once -- this is the only place every
 /// `FileConfigError` variant is actually constructed (directly or via the small `value_as_*`/
 /// `parse_verbosity` helpers below).
 pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
@@ -314,9 +256,8 @@ pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     result
 }
 
-/// `path: None` -> `Ok(PartialConfig::default())` (nessun file, nessun errore). `path: Some` ->
-/// legge e valida lo YAML a quel percorso -- chiave sconosciuta -> `UnknownKey` (scelta del
-/// test-writer, vedi il doc-comment del modulo).
+/// No path yields the empty configuration, with no error; a path is read and validated, an unknown
+/// key being an error.
 fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     let Some(path) = path else {
         return Ok(PartialConfig::default());
@@ -619,7 +560,7 @@ mod tests {
             assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
         }
 
-        /// P5: la sezione dedicata, con i due livelli che P1 e P2 consumano davvero.
+        /// The dedicated section, with the two levels that are really consumed.
         #[test]
         fn the_parallelism_section_maps_both_levels() {
             let dir = tempfile::tempdir().unwrap();
@@ -639,8 +580,8 @@ mod tests {
             assert_eq!(config.parallelism_pages, Some(Workers::Fixed(4)));
         }
 
-        /// `auto` scritto come parola YAML nuda, senza virgolette: e' la forma in cui comparira'
-        /// in ogni file di configurazione scritto a mano.
+        /// `auto` written as a bare YAML word, without quotes: the form it will take in every
+        /// hand-written configuration file.
         #[test]
         fn auto_is_accepted_unquoted() {
             let dir = tempfile::tempdir().unwrap();
@@ -649,8 +590,8 @@ mod tests {
             assert_eq!(config.n_workers, Some(Workers::Auto));
         }
 
-        /// `pipelines` e' il livello che P3 ha chiuso senza implementazione: accettarlo in
-        /// silenzio lo farebbe sembrare attivo, che e' peggio di rifiutarlo.
+        /// Accepting a level that was never implemented would make it look active, which is worse
+        /// than refusing it.
         #[test]
         fn an_unknown_sub_key_of_parallelism_is_an_error_that_names_its_path() {
             let dir = tempfile::tempdir().unwrap();

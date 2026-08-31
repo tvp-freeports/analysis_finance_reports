@@ -1,26 +1,21 @@
-//! Le entità che i pipe `deserialize` producono: ciò che finisce nei CSV di output.
+//! The entities the `deserialize` pipes produce: what ends up in the output files.
 //!
-//! **Stato: completo (M8).** `PLAN.md` §11 assegna l'intero modulo a M8; M7 ne aveva anticipato
-//! due file — [`fund`] e [`investment`] — per **decisione dell'utente D-M7-2** (2026-08-23,
-//! `agent-memory/M7-implementation-plan.md` §0): senza `Fund`/`Equity`/`Bond` i due deserializer
-//! `DeserializerFundStandard`/`DeserializerInvestmentStandard` non esistono, e senza quelli il
-//! segmento `deserialize` della pipeline structured `investments` non è costruibile — cioè la
-//! fusione dei tre livelli, che è *il* focus di test di M7, non sarebbe verificabile end-to-end
-//! su una pipeline reale. M8 aggiunge le cinque entità restanti —
-//! [`assets_manager`]/[`fund_assets`]/[`fund_change_name`]/[`fund_esg_indicator`]/
-//! [`fund_sfdr_classification`] — chiudendo il modulo.
+//! # One error type for the whole module
 //!
-//! **Un solo enum d'errore per tutto `output::classes`** ([`OutputClassError`]) invece di uno per
-//! sottomodulo: le validazioni di campo sono le stesse per tutte le entità (Pydantic le
-//! esprimeva con gli stessi `PositiveFloat`/`confloat` ovunque), e duplicare l'enum
-//! costringerebbe a convertire avanti e indietro fra file gemelli. Stesso precedente di
-//! `core::promise_resolution`, che riusa `PromiseError` di `core::promise` (M2).
+//! The field validations are the same for every entity, and duplicating the error per submodule
+//! would force conversions back and forth between twin types that say the same things.
 //!
-//! **`OrderedFloat<f64>` e non `f64` nudo** nei campi numerici: `core::pipeline::Extracted`, che
-//! trasporta queste entità attraverso il motore, deriva `Eq`/`PartialEq`, e un `f64` lo
-//! renderebbe impossibile. È la stessa scelta già fatta da `BlockValue::Float` (M2, `PLAN.md`
-//! §4.1); i costruttori accettano e gli accessori restituiscono `f64`, quindi il tipo interno non
-//! si vede da fuori.
+//! # Numeric fields are ordered floats, not bare ones
+//!
+//! The variant that carries these entities through the engine derives equality, which a bare `f64`
+//! makes impossible. The constructors take and the accessors return plain `f64`, so the internal
+//! type is not visible from outside.
+//!
+//! # Every field can arrive as a promise
+//!
+//! A value a page cannot resolve on its own becomes a [`crate::core::promise::Promise`], and
+//! deciding whether to resolve or drop it belongs to promise fulfilment, not to the constructor.
+//! That is why nearly every field is a `Promised<T>` rather than a `T`.
 
 pub mod assets_manager;
 pub mod fund;
@@ -34,25 +29,26 @@ use crate::core::classes::{BlockValue, BlockValueError};
 use crate::core::promisable::Promised;
 use crate::core::promise::Promise;
 
-/// Fallimenti nella costruzione di un'entità di output.
+/// Failures of building an output entity.
 ///
-/// Sostituisce le eccezioni di validazione di Pydantic (`PositiveFloat`, `confloat(0, 1)`), che
-/// `PLAN.md` §7 vuole diventate costruttori fallibili.
+/// Field validation is done by fallible constructors: an entity that exists is an entity whose
+/// invariants hold.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum OutputClassError {
-    /// Un campo aveva un tipo diverso da quello atteso.
+    /// A field had a type other than the expected one.
     #[error("field '{field}': {source}")]
     Field {
         field: &'static str,
         #[source]
         source: BlockValueError,
     },
-    /// Un campo numerico è fuori dal dominio ammesso.
+    /// A numeric field is outside its admissible domain.
     #[error("field '{field}': {constraint}, got {value}")]
     OutOfRange { field: &'static str, constraint: FloatConstraint, value: String },
-    /// L'equazione contabile di [`fund_assets::FundAssets`] non torna, oltre la tolleranza
-    /// `1e-4`. Non è un [`FloatConstraint`] perché non è un vincolo su un singolo campo, ma
-    /// incrociato fra tre.
+    /// The accounting equation of [`fund_assets::FundAssets`] does not balance, beyond a small
+    /// tolerance.
+    ///
+    /// Not a [`FloatConstraint`], because it is not a constraint on one field but across three.
     #[error(
         "unbalanced fund assets: liabilities ({liabilities}) + net_assets ({net_assets}) != tot_assets ({tot_assets})"
     )]
@@ -63,14 +59,14 @@ pub enum OutputClassError {
     },
 }
 
-/// I domini numerici che Pydantic esprimeva come annotazioni di tipo.
+/// The numeric domains a field can be constrained to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FloatConstraint {
-    /// `PositiveFloat`: strettamente maggiore di zero.
+    /// Strictly greater than zero.
     Positive,
-    /// `NonNegativeFloat`: maggiore o uguale a zero.
+    /// Greater than or equal to zero.
     NonNegative,
-    /// `confloat(ge=0.0, lt=1.0)`: una **frazione**, non una percentuale — `0.05` significa 5%.
+    /// A **fraction**, not a percentage: `0.05` means five per cent.
     UnitIntervalHalfOpen,
 }
 
@@ -86,7 +82,7 @@ impl std::fmt::Display for FloatConstraint {
 }
 
 impl FloatConstraint {
-    /// Verifica `value`, riportando `field` nell'errore.
+    /// Checks `value`, naming `field` in the error.
     pub fn validate(self, field: &'static str, value: f64) -> Result<f64, OutputClassError> {
         let ok = match self {
             FloatConstraint::Positive => value > 0.0,
@@ -101,12 +97,11 @@ impl FloatConstraint {
     }
 }
 
-/// Traduce un [`BlockValue`] in un campo `Promised<T>`: una promessa resta pendente, qualunque
-/// altro valore viene convertito subito da `extract`.
+/// Turns a [`BlockValue`] into a `Promised<T>` field: a promise stays pending, any other value is
+/// converted at once.
 ///
-/// È il punto in cui si concentra la regola generale delle entità di output: **ogni** campo può
-/// arrivare come promessa, e la decisione di risolverla o scartarla spetta a
-/// `core::promisable::fulfill_promises`, non al costruttore.
+/// This is where the general rule of the output entities is concentrated: **every** field may
+/// arrive as a promise, and whether to resolve or drop it is decided later.
 pub(crate) fn promised_from_value<T>(
     field: &'static str,
     value: &BlockValue,
@@ -118,7 +113,7 @@ pub(crate) fn promised_from_value<T>(
     }
 }
 
-/// Come [`promised_from_value`], ma per un campo opzionale: `Null` (o assente) diventa `None`.
+/// Like [`promised_from_value`], but for an optional field: an absent or null value becomes `None`.
 pub(crate) fn optional_promised_from_value<T>(
     field: &'static str,
     value: Option<&BlockValue>,
@@ -130,20 +125,20 @@ pub(crate) fn optional_promised_from_value<T>(
     }
 }
 
-/// La promessa pendente di un campo, se c'è: helper per le implementazioni di
-/// `PromisableFields::pending`.
+/// The pending promise of a field, if there is one: a helper for the promisable implementations.
 pub(crate) fn pending_of<T>(field: &'static str, value: &Promised<T>) -> Option<(&'static str, Promise)> {
     value.pending().map(|promise| (field, promise.clone()))
 }
 
-/// Serde per un campo `Promised<T>`.
+/// Serde for a `Promised<T>` field.
 ///
-/// `Promised<T>` serializza già da solo (M2), ma **non** deserializza: da una stringa non si può
-/// decidere in generale se sia un `T` o una promessa, e `PLAN.md` §4.3 lascia la scelta a ogni
-/// entità di output. Qui la scelta è: **in lettura una promessa non esiste**, il valore è sempre
-/// `Resolved`. È corretto per l'uso reale — `PLAN.md` §7 impone che le promesse siano risolte
-/// *prima* della scrittura, quindi nessun file prodotto dal sistema contiene un'entità pendente —
-/// e rende il round-trip totale su tutto ciò che il sistema scrive davvero.
+/// A `Promised<T>` serializes on its own but does **not** deserialize: from a string one cannot
+/// decide in general whether it is a `T` or a promise, so each entity chooses. The choice here is
+/// that **on reading, a promise does not exist** — the value is always resolved.
+///
+/// That is correct for real use: promises are resolved *before* anything is written, so no file the
+/// system produces contains a pending entity, and the round trip is total over everything it does
+/// write.
 pub(crate) mod serde_promised {
     use super::Promised;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -159,7 +154,7 @@ pub(crate) mod serde_promised {
     }
 }
 
-/// Come [`serde_promised`], per un campo opzionale.
+/// Like [`serde_promised`], for an optional field.
 pub(crate) mod serde_optional_promised {
     use super::Promised;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};

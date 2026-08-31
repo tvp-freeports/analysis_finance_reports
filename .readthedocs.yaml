@@ -1,25 +1,34 @@
 # Read the Docs configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
-# Required
 version: 2
 
-# Set the OS, Python version, and other tools you might need
 build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
+    # Serve due volte: per compilare l'estensione PyO3 che autodoc importa, e per generare
+    # rustdoc, che il sito pubblica come sotto-percorso invece di duplicarlo a mano in `.rst`.
+    rust: "latest"
+  jobs:
+    pre_build:
+      # Stesso bersaglio che si usa in locale, cosi' il sito pubblicato e quello costruito
+      # sullo schermo di chi scrive non divergono. Deposita `cargo doc` in
+      # `docs/source/_extra/rustdoc/`, da dove `html_extra_path` lo copia nel sito.
+      - make -C docs rustdoc
 
-# Build documentation in the "docs/" directory with Sphinx
 sphinx:
-   configuration: docs/source/conf.py
+  configuration: docs/source/conf.py
 
-# Optionally, but recommended,
-# declare the Python requirements required to build your documentation
-# See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
   install:
-    - requirements: contrib/requirements.minimal.txt
     - requirements: contrib/requirements.docs.txt
+    # autodoc importa davvero i pacchetti: vanno installati, non simulati. `freeports` e'
+    # costruito da maturin (dichiarato nel suo `build-system`), e per questo serve la
+    # toolchain Rust qui sopra.
     - method: pip
-      path: .
+      path: packages/freeports
+    - method: pip
+      path: packages/freeports_dev
+    - method: pip
+      path: packages/freeports_validate

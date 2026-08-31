@@ -1,2 +1,7 @@
-sphinx_rtd_theme
+# Dipendenze della sola build della documentazione. I pacchetti documentati
+# (freeports, freeports_dev, freeports_validate) sono installati a parte:
+# autodoc li importa davvero, non li simula.
 sphinx
+sphinx_rtd_theme
+# MyST: la prosa nuova si scrive in Markdown dentro Sphinx (strategia D1/Q-D2).
+myst-parser

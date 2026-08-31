@@ -1,17 +1,7 @@
-//! Conversioni fra i tipi Python e i tipi del crate.
+//! Conversions between the Python types and the crate's own.
 //!
-//! È il cuore del layer di shim (`M10-implementation-plan.md`, passo P2): ogni funzione qui
-//! **trasforma argomenti Python in argomenti Rust** e viceversa, senza contenere logica di
-//! dominio. Il crate vero e proprio non sa che questo modulo esiste — la regola di `PLAN.md` §3
-//! (PyO3 solo al confine) resta rispettata, perché tutto ciò che usa `pyo3` fuori dai due moduli
-//! di confine storici vive sotto `crate::python`.
-//!
-//! # Perché non si annota `#[pyclass]` sui tipi interni
-//!
-//! Sarebbe stato meno codice, ma avrebbe sparso attributi PyO3 su `core::classes`,
-//! `commons::consts`, `output::classes` e via dicendo — esattamente ciò che `PLAN.md` §14
-//! chiama «un errore di design, non una scorciatoia». Gli shim sono newtype che avvolgono il
-//! valore Rust: il codice esistente non cambia di una riga.
+//! The heart of the shim layer: every function here **turns Python arguments into Rust ones**, and
+//! back, with no domain logic. The crate proper does not know this module exists.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -25,16 +15,13 @@ use crate::core::promise::Promise;
 use super::consts::{PyCurrency, PyFinancialInstrument, PySfdrArticle};
 use super::core::PyPromise;
 
-/// Un `BlockValue` a partire da un qualunque oggetto Python.
+/// A block value from any Python object.
 ///
-/// L'ordine dei rami non è arbitrario:
+/// The order of the branches is not arbitrary:
 ///
-/// - `bool` **prima** di `int`, perché in Python `True` è un intero e invertirli farebbe
-///   arrivare ogni booleano come `Int(1)`;
-/// - gli shim tipizzati (`Currency`/`SfdrArticle`/`FinancialInstrument`/`Promise`/`date`)
-///   **prima** dei contenitori, perché sono `#[pyclass]` opachi che i rami generici non
-///   riconoscerebbero;
-/// - `dict` **prima** di list/set, per simmetria con `block_value_to_py`.
+/// - `bool` **before** `int`, because in Python `True` is an integer and swapping them would make every boolean arrive as an integer;
+/// - the typed shims **before** the containers, being opaque classes the generic branches would not recognise;
+/// - `dict` before list and set, for symmetry with the reverse conversion.
 pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     if object.is_none() {
         return Ok(BlockValue::Null);
@@ -93,17 +80,16 @@ pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     )))
 }
 
-/// Un `datetime.date` Python (ma non un `datetime.datetime`, che ne è sottoclasse e porta
-/// un'ora che `commons::date::Date` non sa rappresentare) come [`Date`] nativa.
+/// A Python date — but not a datetime, which subclasses it and carries a time the native type
+/// cannot represent — as a native date.
 ///
-/// `Ok(None)` significa "non è una data", non "conversione fallita": è il ramo di
-/// riconoscimento di [`block_value_from_py`], non un errore.
+/// Returning nothing means "this is not a date", not "the conversion failed": it is a recognition
+/// branch, not an error.
 ///
-/// Il ponte fra i due tipi è la stringa ISO `YYYY-MM-DD`, non i tre campi: `commons::date::Date`
-/// tiene `year`/`month`/`day` privati e non espone accessori, e aggiungerne sarebbe una modifica
-/// al codice esistente che questo layer si è imposto di non fare. `Display`/`FromStr` di `Date`
-/// sono già esattamente l'ISO che `datetime.date.isoformat()` produce e che
-/// `datetime.date.fromisoformat()` accetta, quindi il giro non perde nulla.
+/// The bridge between the two is the ISO string rather than the three fields: the native date keeps
+/// them private, and adding accessors would be a change to existing code this layer has undertaken
+/// not to make. Its display and parse forms are already exactly the ISO form Python produces and
+/// accepts, so the trip loses nothing.
 pub fn date_from_py(object: &Bound<'_, PyAny>) -> PyResult<Option<Date>> {
     // Un `datetime.datetime` ha `hour`; escluderlo qui evita di troncare silenziosamente un'ora.
     if object.hasattr("hour")? {
@@ -119,11 +105,10 @@ pub fn date_from_py(object: &Bound<'_, PyAny>) -> PyResult<Option<Date>> {
     Ok(Some(date))
 }
 
-/// L'inverso di [`block_value_from_py`]: un `BlockValue` come oggetto Python.
+/// The inverse: a block value as a Python object.
 ///
-/// Le quattro varianti tipizzate tornano come gli shim corrispondenti — **non** come stringhe:
-/// è la differenza rispetto al confine duck-typed di `formats_repo::unstructured::py_pipe`,
-/// che quegli shim non li aveva ancora a disposizione.
+/// The four typed variants come back as the corresponding shims — **not** as strings, which is the
+/// difference from the shape-based boundary that predates the shims.
 pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<Bound<'py, PyAny>> {
     let object = match value {
         BlockValue::Null => py.None().into_bound(py),
@@ -163,14 +148,13 @@ pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<B
     Ok(object)
 }
 
-/// Una [`Date`] nativa come `datetime.date` Python — stessa strada ISO di [`date_from_py`],
-/// per la stessa ragione (i campi di `Date` sono privati).
+/// A native date as a Python date, by the same ISO route and for the same reason.
 fn date_to_py<'py>(py: Python<'py>, date: &Date) -> PyResult<Bound<'py, PyAny>> {
     py.import("datetime")?.getattr("date")?.call_method1("fromisoformat", (date.to_string(),))
 }
 
-/// I metadati di un blocco: sempre una mappa da stringa a valore. `None` vale mappa vuota, così
-/// che `PdfBlock("x", content=...)` senza metadati sia scrivibile dal codice d'autore.
+/// A block's metadata: always a map from string to value. Nothing means the empty map, so that a
+/// block can be written without metadata at all.
 pub fn metadata_from_py(
     object: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<BTreeMap<String, BlockValue>> {
@@ -185,7 +169,7 @@ pub fn metadata_from_py(
     }
 }
 
-/// Una mappa di metadati come `dict` Python.
+/// A metadata map as a Python dict.
 pub fn metadata_to_py<'py>(
     py: Python<'py>,
     metadata: &BTreeMap<String, BlockValue>,
@@ -197,8 +181,8 @@ pub fn metadata_to_py<'py>(
     Ok(dict)
 }
 
-/// Una promessa costruita da Python: accetta lo shim vero, oppure la forma duck-typed
-/// (`id`/`strict`/`multiple`) che i moduli d'autore usavano prima che gli shim esistessero.
+/// A promise built from Python: accepts the real shim, or the shape-based form that author modules
+/// used before the shims existed.
 pub fn promise_from_py(object: &Bound<'_, PyAny>) -> PyResult<Promise> {
     if let Ok(promise) = object.extract::<PyRef<'_, PyPromise>>() {
         return Ok(promise.inner().clone());

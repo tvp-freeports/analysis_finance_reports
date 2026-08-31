@@ -1,89 +1,30 @@
-//! `CliArgs` (clap derive): parsing della riga di comando e conversione in `PartialConfig`.
+//! [`CliArgs`]: the command line, and its conversion into a partial configuration.
 //!
-//! `M9-implementation-plan.md` §2/§3 passo 8, §0 Q5/Q6. Porta `create_parser()`/
-//! `FreeportsCmdConfig.__init__` (`conf_parse.py`), con due divergenze deliberate dal riferimento:
+//! # Flag to field
 //!
-//! - **`-v`/`-q` sono manopole indipendenti**, mai un errore se usate insieme (§0 Q5: il
-//!   riferimento le tratta come mutuamente esclusive, `argparse.ArgumentTypeError` se entrambe
-//!   presenti -- divergenza voluta dall'utente, "independent dials").
-//! - **`--separate-out`/`--archive` confluiscono in `OutFlags`** (`output::routines::write`, §0
-//!   Q6), non in campi booleani separati come `SEPARATE_OUT_FILES` del riferimento.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, Clone, clap::Parser)]
-//! #[command(about = ...)]
-//! pub struct CliArgs {
-//!     #[arg(long = "input", visible_alias = "report", short = 'i', num_args = 1..)]
-//!     pub input: Vec<String>,
-//!     #[arg(long = "batch", short = 'b')]
-//!     pub batch: Option<String>,
-//!     #[arg(long = "workers", short = 'j')]
-//!     pub workers: Option<String>,
-//!     #[arg(long = "jobs")]
-//!     pub jobs: Option<String>,
-//!     #[arg(long = "pages")]
-//!     pub pages: Option<String>,
-//!     #[arg(long = "format", short = 'f')]
-//!     pub format: Option<String>,
-//!     #[arg(long = "no-download")]
-//!     pub no_download: bool,
-//!     #[arg(long = "separate-out")]
-//!     pub separate_out: bool,
-//!     #[arg(long = "config")]
-//!     pub config: Option<String>,
-//!     #[arg(long = "out", short = 'o')]
-//!     pub out: Option<String>,
-//!     #[arg(short = 'v', action = clap::ArgAction::Count)]
-//!     pub verbose: u8,
-//!     #[arg(short = 'q', action = clap::ArgAction::Count)]
-//!     pub quiet: u8,
-//!     #[arg(long = "target-list", short = 'T', num_args = 1..)]
-//!     pub target_list: Vec<String>,
-//!     #[arg(long = "archive", short = 'z')]
-//!     pub archive: bool,
-//!     #[arg(long = "out-profile", short = 'P')]
-//!     pub out_profile: Option<String>,
-//!     #[arg(long = "db-directory", short = 'I')]
-//!     pub db_directory: Option<String>,
-//!     #[arg(long = "formats-directory", visible_alias = "repo", short = 'F', visible_short_alias = 'r')]
-//!     pub formats_directory: Option<String>,
-//!     #[arg(long = "internal-worker", hide = true)]   // P1: canale interno, non mappato in to_partial_config
-//!     pub internal_worker: Option<String>,
-//! }
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-//! pub enum CmdConfigError {
-//!     InvalidReportSpecifier { value: String, source: DocumentSpecError },
-//!     InvalidOutProfile { value: String },
-//!     InvalidWorkers { value: i64 },  // <= 0
-//! }
-//!
-//! impl CliArgs {
-//!     pub fn to_partial_config(&self) -> Result<PartialConfig, CmdConfigError>;
-//! }
-//! ```
-//!
-//! # Mappatura flag -> campo
-//!
-//! | flag | campo | note |
+//! | flag | field | note |
 //! |---|---|---|
-//! | `--input`/`--report`/`-i` (multiplo) | `reports` | ciascun valore via `DocumentSpec::parse`; nessun valore -> `None`, non `Some(vec![])` |
-//! | `--batch`/`-b` | `batch_file` | |
-//! | `--workers`/`-j` | `n_workers` | P5: intero positivo **oppure** `auto` (il riferimento trattava `<= 0` come "auto-rileva i cpu disponibili"; qui `auto` e' una parola, e `<= 0` resta un `CmdConfigError::InvalidWorkers`). E' il default globale di entrambi i livelli |
-//! | `--jobs` | `parallelism_jobs` | P5: override del livello job. Stessa grammatica |
-//! | `--pages` | `parallelism_pages` | P5: override del livello pagina. Stessa grammatica |
-//! | `--format`/`-f` | `format` | |
-//! | `--no-download` | `save_pdf` | presente -> `Some(false)`; assente -> `None` (mai `Some(true)`: il default vero vive in `defaults()`) |
-//! | `--config` | `config_file` | |
-//! | `--out`/`-o` | `out_path` | |
-//! | `-v`/`-q` (conteggio) | `verbosity` | solo se `v > 0 \|\| q > 0`; altrimenti `None` (§0 Q5) |
-//! | `--target-list`/`-T` (multiplo) | `target_lists` | nessun valore -> `None`, non `Some(vec![])` |
-//! | `--separate-out`, `--archive` | `out_flags` | combinati in un solo `OutFlags`; nessuno dei due -> `None` |
-//! | `--out-profile`/`-P` | `out_profile` | stringa fra `regular`/`single_file`/`structured`, case-insensitive |
-//! | `--db-directory`/`-I` | `input_db_path` | |
-//! | `--formats-directory`/`-F`/`--repo`/`-r` | `formats_repo_path` | |
+//! | `--input`/`--report`/`-i` (repeatable) | reports | each value parsed as a document spec; none given leaves the field unset rather than an empty list |
+//! | `--batch`/`-b` | batch file | |
+//! | `--workers`/`-j` | the global parallelism default | a positive integer **or** `auto`; zero and negatives are a typed error |
+//! | `--jobs` | the job-level override | same grammar |
+//! | `--pages` | the page-level override | same grammar |
+//! | `--format`/`-f` | format | |
+//! | `--no-download` | save PDF | present means false; absent leaves it unset, never true — the real default lives in the defaults tier |
+//! | `--config` | configuration file | |
+//! | `--out`/`-o` | output path | |
+//! | `-v`/`-q` (counted) | verbosity | only when at least one is given; otherwise unset |
+//! | `--target-list`/`-T` (repeatable) | target lists | none given leaves the field unset |
+//! | `--separate-out`, `--archive` | output flags | combined into one value; neither given leaves it unset |
+//! | `--out-profile`/`-P` | output profile | one of the profile names, case-insensitively |
+//! | `--db-directory`/`-I` | input database path | |
+//! | `--formats-directory`/`-F`/`--repo`/`-r` | formats repository path | |
+//!
+//! Repeatedly: a flag that is absent leaves its field **unset**, never set to a default. Defaults
+//! belong to the defaults tier, and a command line that sets everything would make every other
+//! source unreachable.
+//!
+//! `-v` and `-q` are **independent dials** and using them together is never an error.
 
 use std::path::PathBuf;
 
@@ -101,20 +42,19 @@ pub struct CliArgs {
     pub input: Vec<String>,
     #[arg(long = "batch", short = 'b')]
     pub batch: Option<String>,
-    // `allow_hyphen_values`: senza, clap tratta un valore negativo (es. `-1`) come un'opzione
-    // sconosciuta invece che come il valore di `--workers`, impedendo persino di raggiungere
-    // `CmdConfigError::InvalidWorkers` per un `<= 0` (`tests::to_partial_config_simple_fields::
-    // zero_or_negative_workers_is_a_typed_error`).
-    // P5: il default globale di *entrambi* i livelli di parallelismo, non piu' il solo numero di
-    // processi. E' cio' che rida' a `-j 1` il suo significato universale -- un job alla volta *e*
-    // una pagina alla volta (`agent-memory/P5-implementation-plan.md` D-P5-1).
+    // Hyphen values must be allowed: without that, a negative value is taken for an unknown option
+    // rather than for this option's argument, and the typed error for a non-positive count could
+    // never even be reached.
+    //
+    // This is the global default of *both* parallelism levels, not merely a process count. It is
+    // what gives `-j 1` a universal meaning — one job at a time *and* one page at a time.
     #[arg(long = "workers", short = 'j', allow_hyphen_values = true, help = "Workers to use at every parallelism level: a positive number, or 'auto'")]
     pub workers: Option<String>,
-    // P5: override del livello job (P1, processi figli in modalita' batch). Solo lungo -- `-j` e'
-    // gia' preso da `--workers`.
+    // The job-level override. Long form only: the short form is already taken by the global
+    // default.
     #[arg(long = "jobs", allow_hyphen_values = true, help = "Documents processed at once, in separate processes [default: --workers]")]
     pub jobs: Option<String>,
-    // P5: override del livello pagina (P2, thread rayon dentro un job).
+    // The page-level override.
     #[arg(long = "pages", allow_hyphen_values = true, help = "Pages of one document processed at once, in threads [default: --workers]")]
     pub pages: Option<String>,
     #[arg(long = "format", short = 'f')]
@@ -141,15 +81,16 @@ pub struct CliArgs {
     pub db_directory: Option<String>,
     #[arg(long = "formats-directory", visible_alias = "repo", short = 'F', visible_short_alias = 'r')]
     pub formats_directory: Option<String>,
-    /// P1 (`agent-memory/P1-implementation-plan.md` §2): esegue **un solo** job worker, letto dal
-    /// file indicato, invece di risolvere una configurazione. Il padre se lo passa da solo quando
-    /// esegue i job di un batch in processi figli.
+    /// Runs **one** worker job, read from the file named, instead of resolving a configuration. A
+    /// parent passes it to itself when running the jobs of a batch in child processes.
     ///
-    /// `hide = true`: non e' un'interfaccia utente, e' il canale interno fra due copie dello stesso
-    /// binario. Comparire in `--help` inviterebbe a usarlo a mano, dove non ha nessun senso -- il
-    /// file di richiesta lo scrive il padre, con percorsi che vivono in una cartella temporanea che
-    /// sparisce a fine corsa. **Non** mappato in `to_partial_config`: non e' un campo di
-    /// configurazione, e' un modo di funzionamento del processo.
+    /// Hidden from the help on purpose: it is not a user interface but the internal channel between
+    /// two copies of the same binary. Appearing in `--help` would invite using it by hand, where it
+    /// makes no sense — the request file is written by the parent, with paths inside a temporary
+    /// directory that disappears when the run ends.
+    ///
+    /// It is deliberately **not** mapped into the partial configuration: it is a mode of the
+    /// process, not a configuration value.
     #[arg(long = "internal-worker", hide = true)]
     pub internal_worker: Option<String>,
 }
@@ -164,9 +105,9 @@ pub enum CmdConfigError {
     InvalidWorkers { flag: &'static str, #[source] source: WorkersParseError },
 }
 
-/// Le tre opzioni di parallelismo condividono la grammatica (`auto` o un intero positivo) e
-/// differiscono solo per il nome che compare nell'errore: chi sbaglia `--pages` deve leggere
-/// `--pages`, non un messaggio generico su un concetto.
+/// The three parallelism options share one grammar and differ only in the name appearing in the
+/// error: someone who mistyped `--pages` must read `--pages`, not a generic message about a
+/// concept.
 fn parse_workers(flag: &'static str, value: Option<&str>) -> Result<Option<Workers>, CmdConfigError> {
     value
         .map(|v| Workers::parse(v).map_err(|source| CmdConfigError::InvalidWorkers { flag, source }))
@@ -183,7 +124,7 @@ fn parse_out_profile(value: &str) -> Result<OutStructureMode, CmdConfigError> {
 }
 
 impl CliArgs {
-    /// Wraps [`Self::to_partial_config_impl`] to log any conversion failure exactly once, at the
+    /// Wraps `Self::to_partial_config_impl` to log any conversion failure exactly once, at the
     /// point where the command-line arguments are turned into a `PartialConfig` -- this is the
     /// only place all three `CmdConfigError` variants are actually constructed.
     pub fn to_partial_config(&self) -> Result<PartialConfig, CmdConfigError> {
@@ -269,10 +210,9 @@ mod tests {
         CliArgs::try_parse_from(full).expect("argv must parse")
     }
 
-    /// P1 (`agent-memory/P1-implementation-plan.md` §2): `--internal-worker` non e' un'opzione di
-    /// configurazione, e' il modo in cui una copia del binario dice a un'altra "esegui questo job".
-    /// Il suo contratto e' tutto qui: si parsa, non compare nell'aiuto, e non contribuisce nulla
-    /// alla configurazione risolta.
+    /// The hidden worker flag is not a configuration option but the way one copy of the binary
+    /// tells another to run a job. Its whole contract is here: it parses, it does not appear in the
+    /// help, and it contributes nothing to the resolved configuration.
     mod internal_worker_flag {
         use super::*;
 
@@ -287,8 +227,8 @@ mod tests {
             assert_eq!(parse(&[]).internal_worker, None);
         }
 
-        /// `hide = true` non e' cosmetica: un utente che lo trovasse in `--help` proverebbe a
-        /// usarlo, e i percorsi che si aspetta li scrive solo il padre, in una cartella temporanea.
+        /// Hiding it is not cosmetic: a user who found it in the help would try to use it, and the
+        /// paths it expects are written only by the parent, in a temporary directory.
         #[test]
         fn it_does_not_appear_in_the_help_text() {
             use clap::CommandFactory;
@@ -296,9 +236,9 @@ mod tests {
             assert!(!help.contains("internal-worker"), "the internal channel must not be advertised in --help:\n{help}");
         }
 
-        /// Se finisse in `PartialConfig`, il percorso della richiesta diventerebbe un valore di
-        /// configurazione che si fonde con file ed ambiente -- e un figlio potrebbe ereditare il
-        /// modo worker da un file di configurazione, ricorsivamente.
+        /// Were it to reach the partial configuration, the request path would become a
+        /// configuration value merging with file and environment — and a child could inherit worker
+        /// mode from a configuration file, recursively.
         #[test]
         fn it_contributes_nothing_to_the_resolved_configuration() {
             let with = parse(&["--internal-worker", "/tmp/w3/request.json"]).to_partial_config().unwrap();
@@ -357,9 +297,8 @@ mod tests {
 
         #[test]
         fn v_and_q_together_is_accepted_by_clap_itself() {
-            // §0 Q5: independent dials -- clap-level parsing must not reject the combination
-            // (any rejection, if desired at all, would be `to_partial_config`'s business, but the
-            // plan says there is none: this combination is never an error).
+            // Independent dials: parsing must not reject the combination, and nothing downstream
+            // rejects it either.
             assert!(CliArgs::try_parse_from(["freeports", "-v", "-q"]).is_ok());
         }
 
@@ -409,9 +348,8 @@ mod tests {
             assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
         }
 
-        /// P5: `auto` e' una parola accettata da tutte e tre le opzioni, non solo un default
-        /// implicito -- serve a riportare un livello al comportamento automatico quando una
-        /// sorgente meno prioritaria (file o ambiente) lo ha fissato a un numero.
+        /// `auto` is a word all three options accept, not merely an implicit default: it is what
+        /// brings a level back to automatic when a lower-priority source has pinned it to a number.
         #[test]
         fn auto_is_accepted_by_all_three_parallelism_options() {
             let config = parse(&["--workers", "auto", "--jobs", "AUTO", "--pages", "auto"])
@@ -438,8 +376,8 @@ mod tests {
             assert_eq!(config.parallelism_pages, None);
         }
 
-        /// Il messaggio deve nominare **l'opzione sbagliata**: con tre opzioni della stessa
-        /// grammatica, un errore generico costringerebbe a indovinare quale delle tre.
+        /// The message must name **the option that was wrong**: with three options sharing a
+        /// grammar, a generic error would leave the reader to guess which of the three.
         #[test]
         fn the_error_names_the_option_that_was_wrong() {
             let error = parse(&["--pages", "nope"]).to_partial_config().unwrap_err().to_string();
@@ -611,10 +549,9 @@ mod tests {
 
         #[test]
         fn cmd_has_no_singular_form_to_reconcile_multiple_input_occurrences_just_accumulate() {
-            // Unlike env/file, cmd has no `url`/`pdf` single-value sugar to conflict with --
-            // repeating `--input` (clap's `num_args = 1..` already collects a single occurrence
-            // into a list; this documents there's no separate "singular vs plural" ambiguity to
-            // detect here, per §0 Q3).
+            // Unlike the environment and the file, the command line has no singular/plural sugar to
+            // conflict with: repeating the flag already collects into a list, so there is no
+            // ambiguity to detect here.
             let config = parse(&["--input", "a.pdf", "b.pdf"]).to_partial_config().unwrap();
             assert_eq!(config.reports.unwrap().len(), 2);
         }

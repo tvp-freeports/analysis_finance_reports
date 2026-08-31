@@ -1,12 +1,8 @@
-//! Struttura tipizzata del "page dict" di PyMuPDF (`page.get_text("dict")`) e le funzioni pure
-//! che ne derivano `PdfLine`/`PageImage`. Non verbatim (D-M6-1 di
-//! `agent-memory/M6-implementation-plan.md`): stessa logica di `pdf_blks_acquire.py`, dati e
-//! stile idiomatici a Rust.
+//! A typed view of PyMuPDF's page dict, and the pure functions that derive [`PdfLine`]s and
+//! [`PageImage`]s from it.
 //!
-//! Contratto (`agent-memory/M6-implementation-plan.md` §3.1): i test sotto compilano contro le
-//! firme qui sotto, che non hanno ancora un corpo (`implementer` le riempie). Nessun test qui
-//! tocca PyMuPDF: `PageDict::from_py` è esercitata solo transitivamente dal singolo test di
-//! confine in `document.rs` (D-M6-3).
+//! The parsing from Python lives in one place (`PageDict::from_py`); everything else here is
+//! ordinary Rust over ordinary data, and therefore testable without an interpreter.
 
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -30,8 +26,8 @@ pub struct PageDictLine {
     pub spans: Vec<PageDictSpan>,
 }
 
-/// Un blocco del dict pagina. `PyMuPDFBlockType::IMAGE_VECTOR` (3) e qualunque altro tipo non
-/// gestito diventano `Other` e sono ignorati.
+/// A block of the page dict. Vector-image blocks, and any other unhandled type, become `Other` and
+/// are ignored.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PageDictBlock {
     Text { lines: Vec<PageDictLine> },
@@ -46,13 +42,12 @@ pub struct PageDict {
     pub blocks: Vec<PageDictBlock>,
 }
 
-/// Soglia di collasso degli span, verbatim (Python: `treshold: float = 0.1`, mai sovrascritto dal
-/// solo call site di `pdflines_from_pagedict`).
+/// The span-collapsing threshold.
 const SPAN_COLLAPSE_THRESHOLD: f32 = 1e-1;
 
-/// Collassa gli span di `line` in uno solo se font e corpo sono (quasi) costanti lungo la riga.
-/// **Q1** (confermata dall'utente, `agent-memory/M6-implementation-plan.md` §0): se
-/// `line.spans` è vuoto, restituisce `Vec::new()`.
+/// Collapses a line's spans into one when the font and size are (nearly) constant along it.
+///
+/// An empty span list yields an empty vector rather than a panic or a `NaN` average.
 pub(crate) fn collapse_spans_from_line(line: &PageDictLine, threshold: f32) -> Vec<PageDictSpan> {
     if line.spans.is_empty() {
         return Vec::new();
@@ -79,7 +74,7 @@ pub(crate) fn collapse_spans_from_line(line: &PageDictLine, threshold: f32) -> V
     }
 
     if collapse {
-        // `line.spans` is non-empty here (checked above), so `last_font` was set by the loop.
+        // `line.spans` is non-empty here, checked above, so the loop ran at least once.
         let font = last_font.expect("line.spans is non-empty, so the loop above ran at least once").to_string();
         vec![PageDictSpan { font, size: sum_font_size / line.spans.len() as f32, text, bbox: line.bbox }]
     } else {
@@ -87,8 +82,8 @@ pub(crate) fn collapse_spans_from_line(line: &PageDictLine, threshold: f32) -> V
     }
 }
 
-/// Ruota e trasla una bbox (`cs`=coseno, `sn`=seno dell'angolo), verbatim dalla formula del
-/// riferimento (min/max sui quattro vertici ruotati, poi traslazione).
+/// Rotates and translates a bounding box, given the cosine and sine of the angle: the minimum and
+/// maximum over the four rotated corners, then the translation.
 pub(crate) fn rotate_bbox(bbox: (f32, f32, f32, f32), cs: f32, sn: f32, new_left: f32, new_top: f32) -> (f32, f32, f32, f32) {
     let (x0, y0, x1, y1) = bbox;
     let corners = [(x0, y0), (x0, y1), (x1, y1), (x1, y0)];
@@ -101,9 +96,9 @@ pub(crate) fn rotate_bbox(bbox: (f32, f32, f32, f32), cs: f32, sn: f32, new_left
     (new_x0 - new_left, new_y0 - new_top, new_x1 - new_left, new_y1 - new_top)
 }
 
-/// Se `line.dir == (1.0, 0.0)` restituisce un clone invariato; altrimenti calcola l'origine di
-/// rotazione dai quattro angoli della pagina (`width`/`height`) e ruota bbox della riga e di ogni
-/// span, azzerando `dir` a `(1.0, 0.0)`.
+/// Leaves a line unchanged when it is already horizontal; otherwise computes the rotation origin
+/// from the page's corners and rotates the line's box and every span's, resetting the direction to
+/// horizontal.
 pub(crate) fn rotate_line(line: &PageDictLine, width: f32, height: f32) -> PageDictLine {
     let (c, s) = line.dir;
     if c == 1.0 && s == 0.0 {
@@ -124,22 +119,19 @@ pub(crate) fn rotate_line(line: &PageDictLine, width: f32, height: f32) -> PageD
     PageDictLine { dir: (1.0, 0.0), bbox, spans }
 }
 
-/// Estrae le righe di testo (blocchi `Text`), le ruota se `auto_rotate`, le collassa, scarta gli
-/// span con bbox degenere (larghezza o altezza nulla — `bbox.0 == bbox.2 || bbox.1 == bbox.3`,
-/// verbatim), e costruisce le `PdfLine` risultanti.
+/// Extracts the text lines, rotates them if asked, collapses their spans, and builds the resulting
+/// [`PdfLine`]s.
 ///
-/// **Guardia aggiunta in M6, non presente nel riferimento** (review adversariale di `critic`
-/// prima della chiusura di M6, confermata dall'utente): `PdfLine::new`/`Rectangle::new` (M3,
-/// verbatim) panicano su `font_size <= 0.0` o bbox invertita (`x0 > x1` o `y0 > y1`). Fino a M6
-/// quel costruttore era raggiungibile solo da dati costruiti a mano (test, autore di formato);
-/// `load_document` lo rende per la prima volta raggiungibile da un vero `page.get_text("dict")`
-/// PyMuPDF, cioè da input non fidato. Uno span con size non positiva o bbox invertita viene quindi
-/// scartato **silenziosamente** (stesso trattamento della riga senza span, Q1 di
-/// `agent-memory/M6-implementation-plan.md`) invece di far panicare l'intero processo, con un
-/// `tracing::warn!` per non perdere visibilità (stesso stile di `cast.rs`, M4). Il filtro sostituisce
-/// (non si aggiunge a) il controllo di degenerazione stretta del riferimento: `<` invece di `!=`
-/// esclude sia il caso degenere (`x0 == x1`) sia quello invertito (`x0 > x1`), che il riferimento
-/// non incontra mai perché non ha mai a che fare con dati genuinamente malformati.
+/// # Why degenerate spans are dropped rather than propagated
+///
+/// [`PdfLine::new`] and [`Rectangle::new`] panic on a non-positive font size or an inverted box,
+/// which is right for values built inside the crate. This function is the first place those
+/// constructors are reachable from a **real** PyMuPDF dict, that is, from untrusted input: a
+/// malformed PDF must not be able to abort the process.
+///
+/// So a span with a non-positive size or an inverted box is dropped, with a warning so the loss is
+/// visible. The test comparing coordinates uses `<` rather than `!=`, which excludes the degenerate
+/// case and the inverted one in a single check.
 pub fn pdflines_from_pagedict(page: &PageDict, auto_rotate: bool) -> Vec<PdfLine> {
     let source_lines: Vec<&PageDictLine> = page
         .blocks
@@ -185,8 +177,7 @@ pub fn pdflines_from_pagedict(page: &PageDict, auto_rotate: bool) -> Vec<PdfLine
         .collect()
 }
 
-/// Estrae le immagini raster (blocchi `ImageRaster`) come `PageImage`, byte grezzi non
-/// decodificati.
+/// Extracts the raster images as [`PageImage`]s: raw, undecoded bytes.
 pub fn pdfimages_from_pagedict(page: &PageDict) -> Vec<PageImage> {
     page.blocks
         .iter()
@@ -208,8 +199,8 @@ fn line_parse_fail(message: String) -> PageError {
     PageError::LineParseFail { message }
 }
 
-/// Legge `key` da `dict`, mappando sia una chiave assente sia un errore Python di lookup (raro,
-/// tipicamente dovuto a chiavi non hashable) sullo stesso costruttore di errore.
+/// Reads `key` from `dict`, mapping both a missing key and a lookup error onto the same error
+/// constructor.
 fn dict_get<'py>(dict: &Bound<'py, PyDict>, key: &str, err: fn(String) -> PageError) -> Result<Bound<'py, PyAny>, PageError> {
     dict.get_item(key)
         .map_err(|e| err(format!("could not look up '{key}': {e}")))?
@@ -270,8 +261,7 @@ fn parse_block(block: &Bound<'_, PyDict>) -> Result<PageDictBlock, PageError> {
     let block_type: i64 = type_val.extract().map_err(|_| parse_fail("'type' is not an integer".to_string()))?;
     match block_type {
         0 => {
-            // Un blocco di testo senza chiave "lines" non e' un errore (verbatim dal riferimento,
-            // che filtra con `if "lines" in blk`): diventa un blocco di testo vuoto.
+            // A text block with no lines key is not an error: it becomes an empty text block.
             let lines = match block.get_item("lines").map_err(|e| parse_fail(format!("could not look up 'lines': {e}")))? {
                 None => Vec::new(),
                 Some(lines_obj) => {
@@ -288,9 +278,8 @@ fn parse_block(block: &Bound<'_, PyDict>) -> Result<PageDictBlock, PageError> {
             Ok(PageDictBlock::ImageRaster { bbox, ext, data })
         }
         _ => {
-            // Not an error, and not necessarily lost work either (`PyMuPDFBlockType::IMAGE_VECTOR`
-            // and any other block type are ignored by design, see the doc-comment above) -- too
-            // common in real pdfs (vector graphics, logos) to warrant `warn!`.
+            // Not an error, and not necessarily lost work either — vector graphics and logos are
+            // ignored by design and are far too common in real PDFs to warrant a warning.
             tracing::trace!(block_type, "unhandled block type, treated as Other");
             Ok(PageDictBlock::Other)
         }
@@ -298,11 +287,13 @@ fn parse_block(block: &Bound<'_, PyDict>) -> Result<PageDictBlock, PageError> {
 }
 
 impl PageDict {
-    /// Confine PyO3: estrae `PageDict` da un `Bound<PyDict>` che ha la forma di
-    /// `page.get_text("dict")`. **Nessun test dedicato** (D-M6-3): esercitata solo dal test
-    /// unico di `document.rs`. `PageError::ParseFail` per forma inattesa (chiave mancante, tipo
-    /// sbagliato) a livello di pagina/blocco; `PageError::LineParseFail` per forma inattesa
-    /// dentro una riga/span.
+    /// The PyO3 boundary: extracts a [`PageDict`] from a dict shaped like PyMuPDF's page text
+    /// output.
+    ///
+    /// # Errors
+    ///
+    /// [`PageError::ParseFail`] for an unexpected shape at page or block level,
+    /// [`PageError::LineParseFail`] for one inside a line or span.
     pub(crate) fn from_py(dict: &Bound<'_, PyDict>) -> Result<Self, PageError> {
         let width = extract_f32(&dict_get(dict, "width", parse_fail)?, "width", parse_fail)?;
         let height = extract_f32(&dict_get(dict, "height", parse_fail)?, "height", parse_fail)?;
@@ -331,9 +322,8 @@ mod tests {
         PageDictLine { dir, bbox, spans }
     }
 
-    /// `rotate_bbox` è testata isolatamente dalle sue chiamate reali (`rotate_line`): i valori
-    /// attesi sono stati calcolati riproducendo la formula del riferimento Python
-    /// (`pdf_blks_acquire.rotate_bbox`) al di fuori di questo crate, non indovinati.
+    /// Rotation is tested in isolation from its real callers. The expected values were computed by
+    /// reproducing the rotation formula outside this crate, not guessed.
     mod rotate_bbox_behavior {
         use super::*;
         use pretty_assertions::assert_eq;
@@ -383,9 +373,8 @@ mod tests {
             assert_eq!(rotate_line(&l, 100.0, 200.0), l);
         }
 
-        /// Valori attesi calcolati riproducendo `rotate_lines_inplace`/`rotate_bbox` del
-        /// riferimento fuori da questo crate: pagina 100x200, `dir=(0,1)` (rotazione di 90°), una
-        /// riga con due span che coprono meta' bbox ciascuno.
+        /// Expected values computed outside this crate: a 100x200 page, a quarter turn, and one
+        /// line with two spans covering half the box each.
         #[test]
         fn rotates_the_line_bbox_and_every_span_bbox_with_the_same_origin_and_zeroes_dir() {
             let l = line(
@@ -403,7 +392,7 @@ mod tests {
             assert_eq!(rotated.spans.len(), 2);
             assert_eq!(rotated.spans[0].bbox, (10.0, 85.0, 30.0, 90.0));
             assert_eq!(rotated.spans[1].bbox, (10.0, 80.0, 30.0, 85.0));
-            // Font/size/text non sono toccati dalla rotazione.
+            // Font, size and text are untouched by rotation.
             assert_eq!(rotated.spans[0].font, "Arial");
             assert_eq!(rotated.spans[0].text, "a");
             assert_eq!(rotated.spans[1].text, "b");
@@ -423,8 +412,8 @@ mod tests {
 
         #[test]
         fn collapses_same_font_spans_within_threshold_concatenating_text_averaging_size_and_using_the_lines_own_bbox() {
-            // Bbox della riga deliberatamente diversa da quella di ogni singolo span, per
-            // dimostrare che il risultato usa `line.bbox`, non l'ultimo span (o il primo).
+            // The line's box is deliberately different from every individual span's, to show the
+            // result uses the line's box rather than the first or last span's.
             let sizes = [10.0_f32, 10.02, 10.05];
             let l = line(
                 (1.0, 0.0),
@@ -437,8 +426,8 @@ mod tests {
             );
             let out = collapse_spans_from_line(&l, 0.1);
 
-            // Stessa somma-poi-dividi del riferimento (accumulo nell'ordine degli span), per
-            // evitare fragilita' da arrotondamento f32 fra test e implementazione.
+            // The same sum-then-divide as the implementation, accumulating in span order, to avoid
+            // rounding fragility between test and code.
             let mut sum = 0.0_f32;
             for s in sizes {
                 sum += s;
@@ -464,9 +453,9 @@ mod tests {
 
         #[test]
         fn collapses_when_the_size_difference_exactly_equals_the_threshold() {
-            // 0.5 e i due corpi (10.0, 10.5) sono esattamente rappresentabili in f32: la
-            // differenza e' *esattamente* la soglia, bit per bit, non solo "circa" — pin
-            // deliberato del confine (`Python: >`, stretto: uguale alla soglia collassa ancora).
+            // 0.5 and the two sizes are exactly representable, so the difference is *exactly* the
+            // threshold, bit for bit, and not merely close to it — a deliberate pin of the
+            // boundary, where equal to the threshold still collapses.
             let threshold = 0.5_f32;
             let l = line(
                 (1.0, 0.0),
@@ -485,7 +474,7 @@ mod tests {
             assert_eq!(collapse_spans_from_line(&l, threshold), spans);
         }
 
-        /// **Q1** (confermata dall'utente): nessun panic, nessun `NaN`, `Vec::new()`.
+        /// No panic, no `NaN`: an empty vector.
         #[test]
         fn a_line_with_no_spans_returns_an_empty_vec() {
             let l = line((1.0, 0.0), (0.0, 0.0, 10.0, 10.0), vec![]);
@@ -541,8 +530,8 @@ mod tests {
             };
             let lines = pdflines_from_pagedict(&page, true);
             assert_eq!(lines.len(), 1);
-            // Stessa formula usata in `rotate_line_behavior` per bbox=(10,10,20,30), dir=(0,1),
-            // pagina 100x200: origine (0, -100).
+            // The same formula as in the rotation tests, for a box of (10,10,20,30), a quarter turn
+            // and a 100x200 page, giving an origin of (0, -100).
             assert_eq!(accessors(&lines[0]), ("arial".to_string(), 10.0, "rotated".to_string(), (10.0, 80.0, 30.0, 90.0)));
         }
 
@@ -584,10 +573,9 @@ mod tests {
             assert!(pdflines_from_pagedict(&page, false).is_empty());
         }
 
-        /// Guardia aggiunta in M6 (critic, confermata dall'utente): senza, questo caso panicherebbe
-        /// dentro `PdfLine::new` invece di scartare silenziosamente lo span, come un vero
-        /// `page.get_text("dict")` malformato non deve mai poter fare (raggiungibile da
-        /// `load_document` su input non fidato).
+        /// Without the guard this case would panic inside [`PdfLine::new`] instead of dropping the
+        /// span — which a malformed page dict, reachable from untrusted input, must never be able
+        /// to do.
         #[test]
         fn discards_a_span_with_a_non_positive_font_size_instead_of_panicking() {
             let page = PageDict {
@@ -609,8 +597,8 @@ mod tests {
             assert!(pdflines_from_pagedict(&negative, false).is_empty());
         }
 
-        /// Guardia aggiunta in M6 (critic, confermata dall'utente): senza, questo caso panicherebbe
-        /// dentro `Rectangle::new` (bbox invertita, `x0 > x1`) invece di scartare lo span.
+        /// Without the guard this case would panic inside [`Rectangle::new`] on the inverted box
+        /// instead of dropping the span.
         #[test]
         fn discards_a_span_with_an_inverted_bbox_instead_of_panicking() {
             let page = PageDict {
@@ -632,11 +620,9 @@ mod tests {
             assert!(pdflines_from_pagedict(&inverted_y, false).is_empty());
         }
 
-        /// La riga di partenza NON e' degenere (x0=y0=10.0 != x1=30.0 nell'asse x, y1=10 sull'asse
-        /// y): e' degenere solo lungo l'asse x (x0==x1==10.0), un asse che una rotazione di 90°
-        /// scambia con l'asse y. Il test dimostra che lo scarto guarda la bbox **dopo** la
-        /// rotazione (qui ancora degenere, solo lungo l'asse scambiato), non quella originale
-        /// riletta a caso.
+        /// The starting line is **not** degenerate along both axes: it is degenerate only along x,
+        /// an axis a quarter turn swaps with y. The test shows the discard looks at the box
+        /// **after** rotation, not at the original one.
         #[test]
         fn discards_a_line_whose_rotated_bbox_is_degenerate_even_if_the_pre_rotation_bbox_was_degenerate_on_the_other_axis() {
             let page = PageDict {

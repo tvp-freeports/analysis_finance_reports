@@ -1,9 +1,8 @@
-//! AST di insiemi non normalizzato (`AstSet`/`AstNode`).
+//! An unsimplified set expression tree: [`AstSet`] and [`AstNode`].
 //!
-//! Rappresentazione più semplice dell'algebra condivisa in `commons::sets`: ogni `|`/`&`/`/`
-//! costruisce un nuovo nodo `Branch`, senza mai semplificare l'albero (a differenza di
-//! `ast_smart`). `AstSet` implementa `UncomparableSet`: due `AstSet` non normalizzati non sono
-//! confrontabili in generale (serve `ast_smart` o `indipendent_atoms` per quello).
+//! The simplest of the three representations: every operator builds a new branch and nothing is
+//! ever simplified. It implements [`UncomparableSet`], because two unsimplified trees cannot be
+//! compared in general — the other two representations exist for when comparison is needed.
 
 use super::{Container, SetAlgebra, SetOps, UncomparableSet};
 use std::ops::{BitAnd, BitOr, Div};
@@ -312,8 +311,8 @@ mod tests {
         }
     }
 
-    /// PLAN.md §10 asks for algebraic invariants to be checked over a small,
-    /// exhaustively-enumerated universe rather than by randomization.
+    /// Algebraic invariants are checked over a small, exhaustively enumerated universe rather than
+    /// by randomisation, so a failure is reproducible and names the exact case.
     mod algebra_invariants {
         use super::*;
         use pretty_assertions::assert_eq;

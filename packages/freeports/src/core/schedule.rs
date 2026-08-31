@@ -1,29 +1,28 @@
-//! Schedule: gruppi ordinati di [`PageClass`] e assegnazione pagine → step.
+//! The schedule: ordered groups of [`PageClass`], and the assignment of pages to steps.
 //!
-//! `PLAN.md` §5.5. Lo schedule è la sequenza di "passate" che l'algoritmo fa sulle pagine di uno
-//! o più documenti: ogni step nomina un insieme di page class, e le pagine che portano quelle
-//! class vengono elaborate in quello step. I risultati di uno step alimentano il `filter_data`
-//! degli step successivi (`PLAN.md` §5.4).
+//! A schedule is the sequence of passes the algorithm makes over the pages of one or more
+//! documents. Each step names a set of page classes, and the pages carrying those classes are
+//! processed in that step. The results of one step feed the `filter_data` of the steps after it,
+//! which is what lets a later pass use something an earlier one discovered.
 //!
-//! **Ordine, differenza voluta dal riferimento** (`PLAN.md` §5.2, D5). In `freeports_core` uno
-//! step è un `set` Python, quindi l'ordine di iterazione delle page class è quello di hash. Qui
-//! [`ScheduleStep`] conserva l'ordine di inserimento e deduplica: l'ordine in cui le pagine
-//! vengono elaborate dentro uno step è deterministico e i test sono riproducibili.
+//! **Steps preserve insertion order** and deduplicate. Iterating a step in hash order would make
+//! the order in which pages are processed unpredictable, and with it the order of the output; here
+//! both are deterministic and the tests are reproducible.
 //!
-//! **Pagina non classificata.** Una pagina la cui class è `None` è legittima e semplicemente non
-//! entra in nessuno step — nel riferimento questo è espresso aggiungendo `None` all'insieme
-//! `page_classes` usato per la validazione. Una pagina classificata con una class **non** nominata
-//! da nessuno step è invece un errore ([`ScheduleError::UnknownPageClass`]), come nel riferimento.
+//! **An unclassified page is legitimate**: a page whose class is `None` simply enters no step. A
+//! page classified with a class that **no** step names is a different matter and is an error
+//! ([`ScheduleError::UnknownPageClass`]) — it means the format's schedule and its classifier
+//! disagree, which is a mistake worth reporting rather than silently dropping pages over.
 
 use std::collections::BTreeSet;
 
 use super::page::{Document, Page};
 
-/// La classe di una pagina (es. `"investments"`, `"fund_info"`).
+/// The class of a page, for example `"investments"` or `"fund_info"`.
 ///
-/// Newtype su `String` e non enum chiuso, per la stessa ragione di
-/// [`BlockType`](crate::core::classes::BlockType): le page class le definiscono i repo formati,
-/// quindi un enum in libreria non può elencarle.
+/// A newtype over `String` rather than a closed enum, for the same reason as
+/// [`BlockType`](crate::core::classes::BlockType): page classes are defined by formats
+/// repositories, so no enum in the library could list them.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct PageClass(String);
@@ -56,10 +55,10 @@ impl From<String> for PageClass {
     }
 }
 
-/// Un gruppo di page class elaborate nella stessa passata.
+/// A group of page classes processed in the same pass.
 ///
-/// Deduplicato, con ordine di inserimento. Uno step **vuoto** è legale: il riferimento lo produce
-/// quando l'ultima riga di `algorithms_schedule.csv` ha `Filter next iteration` vero.
+/// Deduplicated, in insertion order. An **empty** step is legal: it is what a format writes when it
+/// wants a pass that only filters what the previous one produced.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScheduleStep(Vec<PageClass>);
 
@@ -68,8 +67,7 @@ impl ScheduleStep {
         ScheduleStep::default()
     }
 
-    /// Aggiunge una page class in coda, se non già presente. Restituisce `true` se è stata
-    /// davvero aggiunta.
+    /// Appends a page class unless it is already present. Returns whether it was actually added.
     pub fn push(&mut self, class: impl Into<PageClass>) -> bool {
         let class = class.into();
         if self.0.contains(&class) {
@@ -106,7 +104,7 @@ impl<C: Into<PageClass>> FromIterator<C> for ScheduleStep {
     }
 }
 
-/// La sequenza ordinata degli step.
+/// The ordered sequence of steps.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Schedule(Vec<ScheduleStep>);
 
@@ -127,29 +125,29 @@ impl Schedule {
         self.0.is_empty()
     }
 
-    /// Tutte le page class nominate da almeno uno step, in ordine deterministico.
+    /// Every page class named by at least one step, in deterministic order.
     ///
-    /// Un `BTreeSet` e non un `Vec`: il solo consumatore è la validazione di
-    /// [`Algorithm::new`](crate::core::algorithm::Algorithm::new), che lo confronta con le chiavi
-    /// del mapping page class → pipeline.
+    /// A `BTreeSet` rather than a `Vec` because its only consumer is the validation inside
+    /// [`Algorithm::new`](crate::core::algorithm::Algorithm::new), which compares it against the
+    /// keys of the page-class-to-pipeline mapping.
     pub fn page_classes(&self) -> BTreeSet<PageClass> {
         self.0.iter().flat_map(|s| s.iter().cloned()).collect()
     }
 
-    /// Vero se almeno uno step nomina questa page class.
+    /// Whether at least one step names this page class.
     pub fn contains(&self, class: &PageClass) -> bool {
         self.0.iter().any(|s| s.contains(class))
     }
 
-    /// Distribuisce le pagine dei documenti fra gli step.
+    /// Distributes the pages of the given documents across the steps.
     ///
-    /// `classifications[d][p]` è la class assegnata alla pagina in posizione `p` del documento
-    /// `docs[d]`; `None` significa "non classificata", che non è un errore ma esclude la pagina
-    /// da ogni step.
+    /// `classifications[d][p]` is the class assigned to the page at position `p` of `docs[d]`;
+    /// `None` means unclassified, which is not an error but keeps the page out of every step.
     ///
-    /// **Ordine del risultato**, identico al riferimento: per ogni step, le page class nell'ordine
-    /// dello step; per ciascuna, i documenti nell'ordine dato; per ciascuno, le pagine nell'ordine
-    /// del documento.
+    /// # Order of the result
+    ///
+    /// For each step, the page classes in the step's own order; for each of those, the documents in
+    /// the order given; for each document, its pages in document order.
     pub fn assign<'a>(
         &self,
         docs: &'a [Document],
@@ -207,14 +205,14 @@ impl Schedule {
     }
 }
 
-/// Una pagina assegnata a uno step, con il documento da cui viene e la class che l'ha assegnata.
-///
-/// Rimpiazza la tupla non tipizzata `(doc_name, page_n, page)` del riferimento (`PLAN.md` §5.5).
+/// A page assigned to a step, together with the document it comes from and the class that put it
+/// there.
 #[derive(Debug)]
 pub struct ScheduledPage<'a> {
-    /// Posizione del documento nella slice passata a [`Schedule::assign`]. Serve a
-    /// [`Algorithm`](crate::core::algorithm::Algorithm) per ricomporre i risultati per documento
-    /// senza dover confrontare gli id — che non sono garantiti unici.
+    /// The document's position in the slice handed to [`Schedule::assign`].
+    ///
+    /// [`Algorithm`](crate::core::algorithm::Algorithm) uses it to regroup results per document
+    /// without comparing ids, which are not guaranteed to be unique.
     pub doc_index: usize,
     pub doc: &'a Document,
     pub page: &'a Page,
@@ -249,7 +247,7 @@ mod tests {
         classes.iter().copied().collect()
     }
 
-    /// `[a] -> [b]`: due step, una class ciascuno.
+    /// `[a] -> [b]`: two steps, one class each.
     fn two_step_schedule() -> Schedule {
         Schedule::new(vec![step(&["a"]), step(&["b"])])
     }
@@ -303,8 +301,8 @@ mod tests {
 
         #[test]
         fn an_empty_step_is_legal() {
-            // Il riferimento lo produce quando l'ultima riga dello schedule CSV chiede
-            // `Filter next iteration`.
+            // This is what a format writes when it wants a pass that only filters the previous
+            // one's output.
             let s = ScheduleStep::new();
             assert!(s.is_empty());
             assert_eq!(s.len(), 0);
@@ -355,8 +353,8 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// `(id documento, numero pagina)` per ogni pagina schedulata, step per step — la forma
-        /// compatta su cui sono scritte le asserzioni d'ordine.
+        /// `(document id, page number)` for every scheduled page, step by step — the compact shape
+        /// the ordering assertions are written against.
         fn shape(scheduled: &[Vec<ScheduledPage<'_>>]) -> Vec<Vec<(String, u32)>> {
             scheduled
                 .iter()
@@ -407,7 +405,7 @@ mod tests {
 
         #[test]
         fn page_classes_are_visited_in_step_order_not_alphabetically() {
-            // Uno step `[zulu, alpha]`: le pagine `zulu` devono precedere quelle `alpha`.
+            // A step of `[zulu, alpha]`: the `zulu` pages must come before the `alpha` ones.
             let docs = vec![doc("d", 2)];
             let classes = vec![vec![Some(PageClass::new("alpha")), Some(PageClass::new("zulu"))]];
             let schedule = Schedule::new(vec![step(&["zulu", "alpha"])]);
@@ -443,7 +441,7 @@ mod tests {
 
         #[test]
         fn the_scheduled_page_carries_the_position_of_its_document() {
-            // Due documenti con lo *stesso* id: solo la posizione li distingue.
+            // Two documents with the *same* id: only position tells them apart.
             let docs = vec![doc("same", 1), doc("same", 1)];
             let classes =
                 vec![vec![Some(PageClass::new("a"))], vec![Some(PageClass::new("a"))]];

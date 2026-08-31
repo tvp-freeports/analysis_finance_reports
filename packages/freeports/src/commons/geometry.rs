@@ -1,64 +1,21 @@
-//! Rectangle, Limits, PositiveLimits e algebra geometrica di base.
+//! [`Rectangle`], [`Limits`], [`PositiveLimits`]: the basic geometric primitives.
 //!
-//! Porting quasi invariato di `freeports_core::commons::geometry` (`PLAN.md` §0: "da
-//! preservare quasi invariato", stessa logica, libera riorganizzazione del file). L'unica
-//! differenza di sostanza è che qui non c'è PyO3 (`commons` non è uno dei due moduli di
-//! confine, `PLAN.md` §3): il riferimento aveva `impl From<XxxBuildError> for PyErr` e
-//! `impl FromPyObject for Limits`, che qui semplicemente non esistono più — non c'è nulla da
-//! testare al loro posto, dato che non erano logica ma solo adattamento al confine Python.
+//! Validated construction, `as_tuple`, and `Display` — nothing else. The set algebra over these
+//! types ([`Container`](crate::commons::sets::Container) and friends) deliberately lives with the
+//! selections that use it, in [`crate::formats_utils::pdf_extract`], so that the data does not
+//! depend on the selections.
 //!
-//! Nota di perimetro: le implementazioni di `Container`/`Overlappable`/`AtomOperations`
-//! (`contains`, `set_relation`, `subtract_overlapping`, `intersect_overlapping`, ...) per
-//! `Rectangle`/`PositiveLimits` **non vivono qui** nel riferimento — vivono in
-//! `formats_utils::pdf_extract::select::pdf_line::{area, font_size}` (M3, porting verbatim
-//! secondo `PLAN.md` §0/§12 D14) e dipendono da `commons::sets` (altro modulo M1, di un altro
-//! agente, ancora uno stub al momento in cui questi test sono scritti). Questo modulo
-//! (`commons::geometry`) espone solo costruzione validata, `as_tuple`, `Display` — esattamente
-//! il perimetro del file di riferimento, che infatti non importa `commons::sets`.
+//! # Two constructors, on purpose
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
+//! `build` returns a `Result` and `new` panics. These are internal geometric invariants, not user
+//! input: a rectangle whose left edge is right of its right edge is a bug in the caller, and a
+//! panic is the honest report. Where the values *do* come from outside — a page dict, a format's
+//! configuration — the caller uses `build` and handles the error, which is exactly what
+//! [`crate::input::document::page_dict`] does.
 //!
-//! - `pub struct Limits(OrderedFloat<f32>, OrderedFloat<f32>)`, campi di tupla privati fuori da
-//!   questo modulo ma leggibili dai test annidati per pattern-matching (`Limits(a, b)`), come
-//!   nel riferimento.
-//!   - `Limits::build(a: f32, b: f32) -> Result<Limits, LimitsBuildError>`: valida `a < b`
-//!     (stretto: `a == b` è un intervallo degenere e **non** è valido, stesso comportamento del
-//!     riferimento che rifiuta `a >= b`).
-//!   - `Limits::new(a: f32, b: f32) -> Limits`: come `build`, ma va in panico
-//!     (`panic!("{err}")`) sull'errore — comportamento preservato dal riferimento
-//!     nonostante `PLAN.md` §2 principio 4 raccomandi di non usare panic sul percorso utente in
-//!     generale: qui è la logica esistente che va portata invariata, non ridisegnata.
-//!   - `Limits::as_tuple(&self) -> (f32, f32)`.
-//!   - `impl std::fmt::Display for Limits`: `"[{a}:{b}]"`.
-//!   - `LimitsBuildError`: `thiserror::Error`, `Debug + Clone + Copy + PartialEq + Eq`, variante
-//!     `NegativeInterval(f32, f32)` — messaggio: `"left limit bound can't be bigger than right
-//!     one, found left '{0}' and right '{1}'"`.
-//! - `pub struct PositiveLimits(Limits)`, stesso trattamento dei campi.
-//!   - `PositiveLimits::build(a: f32, b: f32) -> Result<PositiveLimits, PositiveLimitsBuildError>`:
-//!     valida `a >= 0.0`, poi `b >= 0.0`, poi delega a `Limits::build(a, b)`.
-//!   - `PositiveLimits::new(a: f32, b: f32) -> PositiveLimits`: pannico come `Limits::new`.
-//!   - `PositiveLimits::as_tuple(&self) -> (f32, f32)`.
-//!   - `impl std::fmt::Display for PositiveLimits`: uguale a quello di `Limits`.
-//!   - `PositiveLimitsBuildError`: `thiserror::Error`, `Debug + Clone + Copy + PartialEq + Eq`,
-//!     tre varianti: `LeftNegative(f32)` (`"left bound of positive limit can't be negative,
-//!     found '{0}'"`), `RightNegative(f32)` (`"right bound of positive limit can't be
-//!     negative, found '{0}'"`), `InvalidLimit(LimitsBuildError)` (delega al `Display` interno,
-//!     cioè si comporta come `"{0}"`).
-//! - `pub struct Rectangle{ x0, y0, x1, y1: OrderedFloat<f32> }`, campi privati leggibili dai
-//!   test annidati.
-//!   - `Rectangle::build(x0, y0, x1, y1: f32) -> Result<Rectangle, RectangleBuildError>`: valida
-//!     `Limits::build(x0, x1)` (orizzontale) e `Limits::build(y0, y1)` (verticale).
-//!   - `Rectangle::new(x0, y0, x1, y1: f32) -> Rectangle`: panico come sopra.
-//!   - `Rectangle::as_tuple(&self) -> (f32, f32, f32, f32)`.
-//!   - `RectangleBuildError`: `thiserror::Error`, `Debug + Clone + Copy + PartialEq + Eq`, due
-//!     varianti: `Horizontal(LimitsBuildError)` (`"left side of a rectangle can't be bigger
-//!     than right one, found left '{a}' and right '{b}'"` dove `{a}`/`{b}` sono gli argomenti
-//!     del `NegativeInterval` interno) e `Vertical(LimitsBuildError)` (stesso messaggio con
-//!     `"top side"` / `"bottom one"`).
-//! - `Limits`, `PositiveLimits`, `Rectangle` derivano tutti `Debug, Clone, Copy, Hash, Eq,
-//!   PartialEq` (nel riferimento sono già `Eq + Hash`, usati come elementi di `HashSet` da
-//!   `select::pdf_line::area::Area`, M3): senza `Eq + Hash` qui, quel porting successivo si
-//!   romperebbe.
+//! A degenerate interval (`a == b`) is **not** valid: bounds are strict.
+//!
+//! All three types are `Eq + Hash`, which is what lets rectangles be deduplicated in a set.
 
 use ordered_float::OrderedFloat;
 use std::fmt;
@@ -466,8 +423,8 @@ mod tests {
 
         #[test]
         fn equal_rectangles_built_separately_collapse_in_a_hashset() {
-            // required by `select::pdf_line::area::Area` (M3), which deduplicates rectangles
-            // through a `HashSet`; this is the load-bearing invariant that porting step relies on.
+            // Required by the area selections, which deduplicate rectangles through a set; this is
+            // the load-bearing invariant that relies on.
             use std::collections::HashSet;
             let mut set = HashSet::new();
             set.insert(Rectangle::new(3.4, 4.5, 4.5, 56.0));

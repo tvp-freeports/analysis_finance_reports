@@ -1,46 +1,11 @@
-//! `FundAssets`: il patrimonio di un fondo a una certa data (totale attivo, passivo, netto).
+//! [`FundAssets`]: a fund's assets at a given date — total assets, liabilities, net assets.
 //!
-//! M8, passo 4 (`agent-memory/M8-implementation-plan.md` §3/§1). Vedi
-//! `packages/freeports_core/src/output/classes/fund_assets.rs` per il riferimento: i tre campi
-//! numerici (`tot_assets`, `liabilities`, `net_assets`) **non sono mai promettibili** — il
-//! riferimento può quindi verificare l'equazione contabile una volta sola, a costruzione, e così
-//! fa anche questo porting. Solo `date` (opzionale) e `currency` sono `Promised`.
+//! The three amounts are **never promisable**, which is what allows the accounting equation
+//! `liabilities + net_assets == tot_assets` to be checked once, at construction. Only the date and
+//! the currency can arrive as promises.
 //!
-//! **Il vincolo contabile** (`liabilities + net_assets == tot_assets`, tolleranza `1e-4`) non è un
-//! `FloatConstraint` (non è un vincolo su un singolo campo): è una variante nuova di
-//! `OutputClassError`, `UnbalancedFundAssets { tot_assets, liabilities, net_assets }`
-//! (`agent-memory/M8-implementation-plan.md` §1) — l'implementer deve aggiungerla a
-//! `output::classes::OutputClassError` (`src/output/classes.rs`), che il test-writer non tocca.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! pub struct FundAssets {
-//!     pub fund: String,
-//!     pub date: Option<Promised<Date>>,
-//!     pub tot_assets: OrderedFloat<f64>,
-//!     pub liabilities: OrderedFloat<f64>,
-//!     pub net_assets: OrderedFloat<f64>,
-//!     pub currency: Promised<Currency>,
-//! }
-//! impl FundAssets {
-//!     pub fn build(
-//!         fund: impl Into<String>,
-//!         tot_assets: f64,
-//!         liabilities: f64,
-//!         net_assets: f64,
-//!         currency: &BlockValue,
-//!         date: Option<&BlockValue>,
-//!     ) -> Result<Self, OutputClassError>;
-//! }
-//! impl PromisableFields for FundAssets { /* pending() -> ["date"?, "currency"?] in quest'ordine */ }
-//! ```
-//!
-//! Deriva `Debug, Clone, PartialEq, Serialize, Deserialize` (niente `Eq`: nessuno dei chiamanti
-//! attuali ne ha bisogno per `FundAssets` in particolare, ma non è nemmeno vietato — a differenza
-//! di `Equity`/`Bond` non è imposto da `Extracted::eq`, che qui usa comunque `PartialEq` derivato
-//! su tutta l'enum: se `Extracted` richiede `Eq` anche per questa variante, l'implementer lo
-//! deriva, i test qui sotto non dipendono dalla presenza di `Eq`).
+//! That constraint is not a per-field domain but a relation across three fields, so it has an error
+//! of its own rather than being expressed as a numeric constraint.
 
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
@@ -53,13 +18,11 @@ use crate::core::promise::Promise;
 
 use super::{FloatConstraint, OutputClassError, optional_promised_from_value, pending_of, promised_from_value};
 
-/// La tolleranza dell'equazione contabile `liabilities + net_assets == tot_assets`, come nel
-/// riferimento.
+/// The tolerance of the accounting equation.
 const BALANCE_TOLERANCE: f64 = 1e-4;
 
-/// Il patrimonio di un fondo a una certa data. I tre importi non sono mai promettibili — il
-/// vincolo contabile va verificato una volta sola, a costruzione — solo `date` e `currency` lo
-/// sono.
+/// A fund's assets at a given date. The three amounts are never promisable — the accounting
+/// constraint has to be checkable once, at construction — only the date and the currency are.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundAssets {
     pub fund: String,
@@ -314,8 +277,8 @@ mod tests {
             assert_eq!(serde_json::from_str::<FundAssets>(&json).unwrap(), assets);
         }
 
-        /// Un campo opzionale promettibile assente deve sopravvivere come `None`, non come
-        /// `Some(Promised::Resolved(_))` di un valore fittizio.
+        /// An absent optional promisable field must survive as absent, not as a resolved fictitious
+        /// value.
         #[test]
         fn an_absent_optional_date_survives_as_none_not_as_a_fake_resolved_value() {
             let assets = FundAssets::build("X", 100.0, 40.0, 60.0, &eur(), None).unwrap();

@@ -1,43 +1,16 @@
-//! Tipo Date minimale (anno/mese/giorno validati), parsing/format, serde. Sostituisce core::py_date.
+//! A minimal validated date: year, month, day, with parsing, formatting and serde.
 //!
-//! Nessuna aritmetica di calendario (`PLAN.md` §12 decisione D11): solo costruzione validata,
-//! parsing/formattazione da/verso la forma canonica ISO-8601 `YYYY-MM-DD`, confronto, hash,
-//! serde. Contratto atteso dai test qui sotto (da implementare esattamente così, il test-writer
-//! non scrive codice di produzione):
+//! No calendar arithmetic at all — only validated construction, conversion to and from the
+//! canonical ISO-8601 `YYYY-MM-DD` form, comparison, hashing and serde. Nothing in this crate needs
+//! to add days to a date, and a date type that cannot do arithmetic cannot do it wrongly.
 //!
-//! - `pub struct Date` con campi privati `year: i32`, `month: u8`, `day: u8` — stesso
-//!   precedente di tipo usato in `core::py_date::SimpleDate` di `freeports_core` (bridge PyO3
-//!   ormai superato, riferimento solo per i tipi dei campi). I test di questo modulo, essendo
-//!   annidati (`mod tests`), possono leggere/costruire i campi privati per pattern-matching,
-//!   come già fa `commons::geometry` con `Rectangle{x0,y0,x1,y1}` — non servono quindi accessori
-//!   pubblici `year()`/`month()`/`day()`.
-//! - `Date::new(year: i32, month: u8, day: u8) -> Result<Date, DateError>`: unico costruttore.
-//!   Valida, in quest'ordine: `year` in `0..=9999` (limite dettato dal formato canonico a 4
-//!   cifre — vedi nota sotto), poi `month` in `1..=12`, poi `day` nel range valido per quel
-//!   mese/anno (bisestili inclusi, con la regola secolare: 1900 non bisestile, 2000 bisestile
-//!   perché multiplo di 400).
-//! - `impl std::str::FromStr for Date` (`type Err = DateError`): parsing dalla forma canonica
-//!   `YYYY-MM-DD` (esattamente 4 cifre ASCII, `-`, 2 cifre, `-`, 2 cifre — nessun altro
-//!   formato, nessuno spazio, nessun suffisso). Una stringa che non rispetta questa forma dà
-//!   `DateError::InvalidFormat`; una stringa che la rispetta ma i cui valori numerici non sono
-//!   un calendario valido dà lo stesso errore di `Date::new` (`InvalidMonth`/`InvalidDay`).
-//! - `impl std::fmt::Display for Date`: riformatta nella stessa forma canonica
-//!   (`{year:04}-{month:02}-{day:02}`), cosicché per ogni `Date` valida
-//!   `format!("{d}").parse::<Date>() == Ok(d)`.
-//! - `DateError`: enum `thiserror::Error` (`Debug + Clone + PartialEq + Eq`), quattro varianti:
-//!   - `YearOutOfRange(i32)` — `"year must be between 0 and 9999, found {0}"`
-//!   - `InvalidMonth(u8)` — `"month must be between 1 and 12, found {0}"`
-//!   - `InvalidDay{ year: i32, month: u8, day: u8, max: u8 }` —
-//!     `"day must be between 1 and {max} for {year:04}-{month:02}, found {day}"`
-//!   - `InvalidFormat(String)` — `"invalid date '{0}', expected format YYYY-MM-DD"`
-//! - `Date` deriva `Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash`: l'ordine dei
-//!   campi nella struct (`year`, `month`, `day`) è quello di dichiarazione, da cui discende
-//!   l'ordinamento cronologico via `#[derive(PartialOrd, Ord)]`.
-//! - **Decisione presa qui, non esplicita in `PLAN.md`** (da segnalare/confermare, vedi report
-//!   del test-writer): `Serialize`/`Deserialize` rappresentano `Date` come **stringa canonica**
-//!   (`"2024-01-01"`), non come struct `{"year":2024,"month":1,"day":1}` — impl manuale (non
-//!   derivata), che delega a `Display`/`FromStr`. Se questa scelta viene rovesciata, i test in
-//!   `tests::serde_roundtrip` vanno aggiornati insieme all'implementazione.
+//! Validation is real: month in range, and day in range **for that month and year**, leap years
+//! included with the century rule, so 1900 has no 29 February and 2000 does. Years are limited to
+//! four digits, which is what the canonical form can represent.
+//!
+//! Ordering is chronological, following the declaration order of the fields. Serde represents a
+//! date as the canonical **string**, not as a three-field object, so a serialized date is readable
+//! and round-trips through its `Display` and `FromStr` implementations.
 
 use serde::{Deserialize, Serialize, de};
 use std::fmt;

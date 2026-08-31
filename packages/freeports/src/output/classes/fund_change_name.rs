@@ -1,31 +1,11 @@
-//! `FundRename`/`FundMerge`: un evento di cambio nome di un fondo (rinomina o fusione).
+//! [`FundRename`] and [`FundMerge`]: a fund's change-of-name event.
 //!
-//! M8, passo 1 (`agent-memory/M8-implementation-plan.md` §3/§1). Stesso precedente di
-//! `Equity`/`Bond` (`output::classes::investment`, M7): una struct dati condivisa
-//! ([`FundChangeNameData`]) con tutta la logica di promessa, e due wrapper (`FundRename`,
-//! `FundMerge`) che non sono varianti di un enum perché il codice a valle li distingue sempre per
-//! **tipo** (finiscono in due percorsi diversi in `output::routines`), mai per `match` su un
-//! campo — vedi `packages/freeports_core/src/output/classes/fund_change_name.rs` per il
-//! riferimento (macro `fund_change_name_variant!`, qui non serve: un secondo caso identico non
-//! giustifica introdurre un `macro_rules!` come nuovo idioma).
+//! A shared data struct carrying all the promise handling, and two wrappers that are not variants
+//! of one enum because everything downstream tells them apart by **type** — they end up on two
+//! different paths — never by matching on a field.
 //!
-//! Nessun vincolo numerico su questi campi (a differenza di `FundAssets`): `old_name`/
-//! `current_name` sono stringhe libere, `date` è l'unico campo promettibile.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! pub struct FundChangeNameData { pub old_name: String, pub current_name: String, pub date: Promised<Date> }
-//! impl FundChangeNameData {
-//!     pub fn build(old_name: impl Into<String>, current_name: impl Into<String>, date: &BlockValue)
-//!         -> Result<Self, OutputClassError>;
-//! }
-//!
-//! pub struct FundRename { pub data: FundChangeNameData }
-//! pub struct FundMerge { pub data: FundChangeNameData }
-//! // entrambi con lo stesso `build(old_name, current_name, date: &BlockValue) -> Result<Self, OutputClassError>`
-//! // e `impl PromisableFields` che delega a `data`.
-//! ```
+//! No numeric constraints here: the two names are free strings and the date is the only promisable
+//! field.
 
 use serde::{Deserialize, Serialize};
 
@@ -36,8 +16,8 @@ use crate::core::promise::Promise;
 
 use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
 
-/// I campi che `FundRename` e `FundMerge` hanno in comune: il nome prima e dopo l'evento, e la
-/// data in cui è avvenuto.
+/// The fields a rename and a merge have in common: the name before and after the event, and the
+/// date it happened.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundChangeNameData {
     pub old_name: String,
@@ -71,7 +51,7 @@ impl FundChangeNameData {
     }
 }
 
-/// La rinomina di un fondo.
+/// The renaming of a fund.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundRename {
     #[serde(flatten)]
@@ -98,7 +78,7 @@ impl PromisableFields for FundRename {
     }
 }
 
-/// La fusione di un fondo in un altro.
+/// The merger of one fund into another.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundMerge {
     #[serde(flatten)]
@@ -255,10 +235,9 @@ mod tests {
     mod fund_change_name_specific {
         use super::*;
 
-        /// `FundRename` e `FundMerge` non sono comparabili fra loro: non esiste `impl
-        /// PartialEq<FundMerge> for FundRename`, quindi un confronto diretto non compila nemmeno —
-        /// il compilatore impone l'invariante. Qui lo si documenta esplicitamente verificando che
-        /// siano davvero due tipi distinti (`TypeId`), anche quando costruiti dagli stessi campi.
+        /// The two are not comparable to each other — a direct comparison does not even compile —
+        /// so the invariant is the compiler's. This documents it by checking they really are two
+        /// distinct types, even when built from the same fields.
         #[test]
         fn fund_rename_and_fund_merge_are_distinct_types_even_with_identical_fields() {
             use std::any::TypeId;

@@ -1,25 +1,13 @@
-//! Ricostruzione di tabelle da righe PDF.
+//! Rebuilding tables out of the lines of a PDF page.
 //!
-//! I due sottomoduli sono il porting verbatim (`PLAN.md` §0/§12 D14) dell'algoritmo di
-//! posizionamento (`coordinates`) e di quello di collasso (`collapse`). Questo modulo radice
-//! aggiunge l'unico pezzo che nel riferimento **non** è Rust: il wrapper di alto livello
-//! `get_table_coordinates` di `formats/utils/pdf_extract/position.py`, che parte dalle righe di
-//! una pagina invece che da celle già costruite.
+//! A PDF does not say it has a table; it has text at coordinates. [`coordinates`] works out which
+//! cell each piece of text belongs to from its geometry, [`collapse`] merges the cells of a row
+//! that the layout broke across several lines, and this root module holds the high-level entry
+//! point that starts from a page's lines rather than from cells already built.
 //!
-//! **Perché vive qui e non in `position`** (dove sta il suo originale Python): `position` è il
-//! livello *sotto* `tabularizer` — `tabularizer::{coordinates,collapse}` importano
-//! `TableConfig`/`ColumnConfig` da `position`, e in M3 si è deliberatamente spezzata la
-//! dipendenza circolare fra i due moduli spostando le definizioni condivise in `position`.
-//! Rimettere qui una funzione di `position` che chiama `coordinates` e `collapse` ricreerebbe
-//! quel ciclo; il modulo radice di `tabularizer`, che vede entrambi i figli, è il posto naturale.
-//!
-//! **Risolve `PLAN.md` §13 punto 4 (`TablePosMeasureUnit`)**, aperto da M3. Il tipo *esiste* nel
-//! riferimento — non in Rust, ma in `position.py` — ed è esattamente l'unità di misura della
-//! `tolerance` di questo wrapper: senza il wrapper non aveva un consumatore, il che spiega
-//! perché M3 non ne avesse trovato traccia. `api::utils::pdf_extract` esporta questa funzione
-//! (quella che `PLAN.md` §9 elenca accanto a `TablePosMeasureUnit`, e quella che gli autori di
-//! formato chiamano davvero) sotto il nome `get_table_coordinates`, e quella per celle di
-//! `coordinates` sotto `get_table_coordinates_from_cells`.
+//! It lives here rather than in [`super::position`] because `coordinates` and `collapse` both
+//! import their configuration from `position`: a function calling both would recreate a cycle. The
+//! root module, which sees both children, is the natural place for it.
 
 pub mod collapse;
 pub mod coordinates;
@@ -29,24 +17,24 @@ use super::position::{ColumnConfig, SplittingState, TableConfig};
 use collapse::CollapseAlgorithm;
 use coordinates::{CellGeometry, CoordinateExtractionError, TablePosAlgorithm};
 
-/// Unità di misura della `tolerance` di [`get_table_coordinates_from_lines`].
+/// The unit in which the `tolerance` of [`get_table_coordinates_from_lines`] is expressed.
 ///
-/// Porting di `TablePosMeasureUnit` (`formats/utils/pdf_extract/position.py`): decide come la
-/// tolleranza scalare configurata dal repo formati diventa la tolleranza in punti di ogni cella.
+/// Decides how one scalar tolerance, written once in a format's configuration, becomes the
+/// tolerance in points of each individual cell — which is what makes a single number work across a
+/// document whose type sizes vary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TablePosMeasureUnit {
-    /// Multiplo del corpo del carattere della riga (`tolerance * font_size`). Default, come nel
-    /// riferimento.
+    /// A multiple of the line's font size (`tolerance * font_size`). The default.
     #[default]
     Em,
-    /// Frazione della larghezza della riga (`tolerance * (x1 - x0)`).
+    /// A fraction of the line's width (`tolerance * (x1 - x0)`).
     Perc,
-    /// Punti tipografici, usata così com'è.
+    /// Typographic points, used as they are.
     Pt,
 }
 
 impl TablePosMeasureUnit {
-    /// La tolleranza in punti per una specifica riga.
+    /// The tolerance in points for one specific line.
     fn resolve(self, tolerance: f32, line: &PdfLine) -> f32 {
         let (x0, _, x1, _) = line.bbox().as_tuple();
         match self {
@@ -57,9 +45,10 @@ impl TablePosMeasureUnit {
     }
 }
 
-/// Parametri di [`get_table_coordinates_from_lines`], raggruppati perché nel riferimento sono
-/// otto argomenti con default (Python li passa per nome; in Rust una struct con `Default` è
-/// l'equivalente leggibile, e evita il `clippy::too_many_arguments` che il riferimento silenzia).
+/// The parameters of [`get_table_coordinates_from_lines`], grouped into a struct.
+///
+/// There are eight of them, all with defaults, and a struct with a `Default` impl keeps the call
+/// sites readable where eight positional arguments would not be.
 #[derive(Debug, Clone)]
 pub struct TableCoordinatesConfig {
     pub table_config: Option<TableConfig>,
@@ -67,18 +56,16 @@ pub struct TableCoordinatesConfig {
     pub collapse_algorithm: CollapseAlgorithm,
     pub tolerance: f32,
     pub tolerance_unit: TablePosMeasureUnit,
-    /// Indice della colonna che contiene il nome della società: è l'unica a cui è concesso di
-    /// spezzarsi su più righe (i nomi lunghi vanno a capo). Vedi il doc di
-    /// [`get_table_coordinates_from_lines`] per il caveat sul suo effetto reale.
+    /// Index of the column holding the company name: the only one allowed to break across several
+    /// lines, since long names wrap. See [`get_table_coordinates_from_lines`] for the caveat about
+    /// when this actually takes effect.
     pub company_col: Option<usize>,
     pub collapse: bool,
 }
 
-// `Default` scritto a mano e non derivato: `TablePosAlgorithm` (bitflags, M3 verbatim) e
-// `CollapseAlgorithm` non implementano `Default`, e aggiungerlo la' significherebbe toccare due
-// moduli che `PLAN.md` §0 vuole portati invariati. I valori sono quelli dei parametri con default
-// del riferimento (`TablePosAlgorithm(0)`, `CollapseAlgorithm.GEOMETRY`, `tolerance=0`,
-// `tolerance_mu=EM`, `company_col=None`, `collapse=False`).
+// `Default` is written out rather than derived, because `TablePosAlgorithm` and `CollapseAlgorithm`
+// do not implement it and adding it there would mean touching two modules that are deliberately
+// kept as they are.
 impl Default for TableCoordinatesConfig {
     fn default() -> Self {
         Self {
@@ -93,25 +80,23 @@ impl Default for TableCoordinatesConfig {
     }
 }
 
-/// Coordinate `(riga, colonna)` di ogni riga PDF di una tabella.
+/// The `(row, column)` coordinates of every PDF line of a table.
 ///
-/// Porting di `position.get_table_coordinates`. Costruisce una [`CellGeometry`] per riga con la
-/// tolleranza risolta secondo [`TablePosMeasureUnit`], delega a
-/// [`coordinates::get_table_coordinates`] e, se richiesto, collassa le righe multi-linea.
+/// Builds one [`CellGeometry`] per line with the tolerance resolved according to
+/// [`TablePosMeasureUnit`], delegates to [`coordinates::get_table_coordinates`], and collapses
+/// multi-line rows if asked to.
 ///
-/// **Caveat ereditato dal riferimento, conservato di proposito.** Il ramo `company_col` costruisce
-/// una configurazione di colonne (tutte `Disallow` tranne quella della società) *dopo* aver già
-/// calcolato le coordinate, quindi ha effetto solo se `collapse` è `true`: con `collapse: false`
-/// — l'unico caso che i pipe standard usano davvero — è una configurazione costruita e mai letta.
-/// È così anche nell'originale Python e non viene "corretto" qui.
+/// # A caveat worth knowing
 ///
-/// **Una divergenza voluta**, sempre in quel ramo: il riferimento fa `n_cols = max(*cols)`, che
-/// solleva `TypeError` quando la tabella ha una sola cella e produce comunque un vettore di
-/// colonne lungo `max` invece di `max + 1`. Qui il massimo è calcolato su un iteratore (nessun
-/// caso limite) e il vettore ha una colonna per ogni indice realmente osservato, perché
-/// `PLAN.md` §2 principio 4 vieta i panici sul percorso utente e un vettore corto farebbe
-/// panicare `collapse_table_rows` a valle. Non osservabile dai chiamanti attuali (`collapse:
-/// false`).
+/// The `company_col` branch builds its column configuration *after* the coordinates have already
+/// been computed, so it takes effect only when `collapse` is `true`. With `collapse: false` — the
+/// only case the standard pipes actually use — it is a configuration that is built and never read.
+/// This is long-standing behaviour and is left as it is rather than quietly changed.
+///
+/// The same branch does size its column vector by the highest index actually observed, plus one,
+/// computed over an iterator so that a single-cell table is not a special case. A vector one
+/// column short would make the collapse step panic downstream, and a panic on the user's path is
+/// not an acceptable way to report a malformed table.
 pub fn get_table_coordinates_from_lines(
     lines: &[PdfLine],
     config: &TableCoordinatesConfig,
@@ -129,17 +114,15 @@ pub fn get_table_coordinates_from_lines(
         && let Some(company_col) = config.company_col
         && let Some(max_col) = coords.iter().map(|(_, col)| *col).max()
     {
-        // Ogni colonna ha la propria `ColumnConfig`: nel riferimento `[ColumnConfig()] * n` creava
-        // n alias dello stesso oggetto, e impostare `splitting` su una sola colonna le mutava
-        // tutte — bug già corretto lì, qui strutturalmente impossibile (i valori sono copiati).
+        // Every column gets its own [`ColumnConfig`]. Sharing one value between columns would make
+        // setting `splitting` on a single column change them all; here the values are copies, so
+        // that cannot happen.
         let mut cols = vec![
             ColumnConfig { limits: None, splitting: Some(SplittingState::Disallow), nullable: None };
             max_col + 1
         ];
         if let Some(col) = cols.get_mut(company_col) {
-            // `None` = "nessun vincolo", che `collapse` interpreta come `Allow(Down)`: è la
-            // traduzione fedele del `cols[company_col].splitting = None` del riferimento, dove il
-            // default costruito era invece `SplittingState.DISALLOW`.
+            // `None` means "no constraint", which `collapse` reads as allowing a downward split.
             col.splitting = None;
         } else {
             tracing::warn!(
@@ -167,13 +150,13 @@ mod tests {
     use super::*;
     use crate::formats_utils::pdf_extract::position::{RowConfig, SplittingDirection};
 
-    /// Riga con bbox e corpo espliciti: geometria e `font_size` sono i soli attributi che il
-    /// wrapper legge.
+    /// A line with explicit bounding box and size: geometry and `font_size` are the only attributes
+    /// the wrapper reads.
     fn line(text: &str, bbox: (f32, f32, f32, f32), font_size: f32) -> PdfLine {
         PdfLine::new("Arial", font_size, text, bbox)
     }
 
-    /// Tabella 2x2 regolare: due righe, due colonne, celle ben separate.
+    /// A regular 2x2 table: two rows, two columns, cells well apart.
     fn two_by_two() -> Vec<PdfLine> {
         vec![
             line("r0c0", (0.0, 0.0, 20.0, 10.0), 10.0),
@@ -258,7 +241,7 @@ mod tests {
 
         #[test]
         fn accepts_a_single_line_where_the_reference_would_raise() {
-            // `max(*cols)` del riferimento solleva `TypeError` con una sola colonna; qui no.
+            // A single column must not be a failure case.
             let cfg = TableCoordinatesConfig { company_col: Some(0), ..Default::default() };
             let coords = get_table_coordinates_from_lines(&[line("only", (0.0, 0.0, 10.0, 10.0), 10.0)], &cfg).unwrap();
             assert_eq!(coords, vec![(0, 0)]);
@@ -273,7 +256,8 @@ mod tests {
                 }),
                 ..Default::default()
             };
-            // 3 colonne dichiarate contro 2 realmente presenti: l'errore arriva da `coordinates`.
+            // Three columns declared against two actually present: the error comes from
+            // `coordinates`.
             let err = get_table_coordinates_from_lines(&two_by_two(), &cfg).unwrap_err();
             assert!(matches!(err, CoordinateExtractionError::MismatchColumnNumber(3, 2)));
         }
@@ -290,8 +274,8 @@ mod tests {
 
         #[test]
         fn the_algorithm_flags_reach_the_positioning_algorithm() {
-            // `BigCellRule` cambia quale cella fa da righello: su una tabella regolare il
-            // risultato resta lo stesso, ma la chiamata non deve fallire.
+            // `BigCellRule` changes which cell acts as the ruler: on a regular table the result is
+            // unchanged, but the call must not fail.
             let cfg = TableCoordinatesConfig { algorithm_flags: TablePosAlgorithm::BigCellRule, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&two_by_two(), &cfg).unwrap();
             assert_eq!(coords.len(), 4);
@@ -301,8 +285,8 @@ mod tests {
     mod tolerance_effect {
         use super::*;
 
-        /// Due celle quasi allineate: senza tolleranza sono due colonne, con una tolleranza
-        /// abbastanza grande diventano la stessa.
+        /// Two nearly aligned cells: without tolerance they are two columns, with a large enough
+        /// tolerance they become one.
         fn nearly_aligned() -> Vec<PdfLine> {
             vec![line("a", (0.0, 0.0, 10.0, 10.0), 10.0), line("b", (11.0, 20.0, 21.0, 30.0), 10.0)]
         }
@@ -322,7 +306,7 @@ mod tests {
 
         #[test]
         fn the_same_tolerance_expressed_in_em_depends_on_the_font_size() {
-            // 2 em con corpo 10 = 20 pt: stesso effetto del test in punti qui sopra.
+            // 2 em at size 10 is 20 pt: the same effect as the test in points above.
             let cfg = TableCoordinatesConfig { tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Em, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
@@ -330,7 +314,7 @@ mod tests {
 
         #[test]
         fn the_same_tolerance_expressed_in_perc_depends_on_the_line_width() {
-            // 2 volte la larghezza (10 pt) = 20 pt.
+            // Twice the width (10 pt) is 20 pt.
             let cfg = TableCoordinatesConfig { tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Perc, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
@@ -340,8 +324,8 @@ mod tests {
     mod company_col_branch {
         use super::*;
 
-        /// Tabella con una cella mancante nella prima colonna: la riga incompleta è
-        /// "collassabile" per l'algoritmo geometrico.
+        /// A table with a cell missing in the first column: the incomplete row is collapsible for
+        /// the geometric algorithm.
         fn ragged() -> Vec<PdfLine> {
             vec![
                 line("r0c0", (0.0, 0.0, 20.0, 10.0), 10.0),
@@ -363,8 +347,8 @@ mod tests {
             assert!(get_table_coordinates_from_lines(&ragged(), &cfg).is_ok());
         }
 
-        /// Tabella con la cella mancante nella colonna 0: è la colonna 1 a portare la riga in
-        /// più, quindi è lei a dover collassare (o no, a seconda del suo `splitting`).
+        /// A table with the missing cell in column 0: it is column 1 that carries the extra line,
+        /// so it is the one that has to collapse — or not, depending on its `splitting`.
         fn ragged_on_the_second_column() -> Vec<PdfLine> {
             vec![
                 line("r0c0", (0.0, 0.0, 20.0, 10.0), 10.0),
@@ -375,8 +359,8 @@ mod tests {
 
         #[test]
         fn company_col_makes_that_column_the_only_splittable_one_when_collapsing() {
-            // Senza `company_col` ogni colonna è splittabile e la riga in più collassa; con
-            // `company_col: Some(0)` la colonna 1 diventa `Disallow` e resta dov'è.
+            // Without `company_col` every column may split and the extra line collapses; with
+            // `company_col: Some(0)` column 1 becomes `Disallow` and stays where it is.
             let lines = ragged_on_the_second_column();
             let without = TableCoordinatesConfig { collapse: true, ..Default::default() };
             let with_company = TableCoordinatesConfig { company_col: Some(0), collapse: true, ..Default::default() };
@@ -388,7 +372,7 @@ mod tests {
 
         #[test]
         fn an_explicit_cols_config_disables_the_company_col_branch() {
-            // `table_config.cols` già impostato: il riferimento non lo sovrascrive, e nemmeno noi.
+            // `table_config.cols` already set: it is not overwritten.
             let explicit = TableConfig {
                 cols: Some(vec![ColumnConfig { limits: None, splitting: Some(SplittingState::Disallow), nullable: None }; 2]),
                 rows: None,

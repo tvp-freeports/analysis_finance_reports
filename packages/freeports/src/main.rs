@@ -1,9 +1,9 @@
-//! Entry point del binario `freeports`.
+//! Entry point of the `freeports` binary.
 //!
-//! `M9-implementation-plan.md` §2/§3 passo 15: parsa `CliArgs` (clap), inizializza `tracing_setup`
-//! "presto" (prima di ogni logica di dominio), chiama `cli::run::execute` e mappa un eventuale
-//! errore su un exit code non-zero -- niente logica di dominio qui, tutta l'orchestrazione vive in
-//! `cli::run`.
+//! Four steps and no domain logic: parse the arguments, bring logging up *before* anything else
+//! can want to log, hand over to `cli::run::execute`, map a failure onto a non-zero exit code.
+//! Everything else — resolving the configuration, running the jobs, writing the results — lives
+//! in `cli::run`, so that an embedding program can do the same work without going through `main`.
 
 use clap::Parser;
 
@@ -14,14 +14,14 @@ use freeports::core::tracing_setup::{self, Verbosity};
 fn main() {
     let args = CliArgs::parse();
 
-    // P1 (`agent-memory/P1-implementation-plan.md` §2): prima di ogni altra cosa, perche' il modo
-    // worker non risolve alcuna configurazione e non inizializza il logging nella cwd -- entrambe le
-    // cose gliele dice il file di richiesta che il padre gli ha scritto.
+    // Checked before anything else: a worker process resolves no configuration and starts no
+    // logging of its own in the current directory. Both were already decided by the parent, and
+    // reach the child through the request file named on the command line.
     if let Some(request_path) = args.internal_worker.as_deref() {
         if let Err(e) = worker::execute(std::path::Path::new(request_path)) {
-            // Non `tracing::error!`: qui il logging puo' non essere mai stato inizializzato (la
-            // richiesta illeggibile e' proprio uno dei modi di fallire). Il padre legge questa riga
-            // dallo stderr ereditato, e riconosce comunque il fallimento dal referto mancante.
+            // Not `tracing::error!`: logging may never have started here, since an unreadable
+            // request is one of the ways this can fail. The parent sees this line on the stderr it
+            // shares, and recognises the failure anyway from the missing report file.
             eprintln!("freeports worker: {e}");
             std::process::exit(worker::PROTOCOL_FAILURE_EXIT_CODE);
         }
@@ -39,23 +39,19 @@ fn main() {
     };
 
     let run_result = run::execute(args, &log_handle);
-    // Always attempted, regardless of `run_result`: the diagnostic rows of a failed job are the
-    // most useful ones to have on disk (`L1-implementation-plan.md` §2.4).
+    // Always attempted, whatever `run_result` says: the diagnostic rows of a job that failed are
+    // exactly the ones worth having on disk.
     let close_result = log_handle.close();
 
     if let Err(e) = run_result {
-        // NOTE (critic 2026-08-29, `L1-implementation-plan.md` §2.4 point 2): `close()` already
-        // ran on the line above, so this `tracing::error!` fires *after* the CSV buffer has been
-        // flushed -- if this event ever gains a tagged field (page/coord_ref_*/coord_*), it will
-        // NEVER reach `.log.csv`, only stderr/freeports.log. Harmless today (this event carries
-        // no tagged field), but do not add one here without first moving this log before the
-        // `close()` call above.
+        // WARNING: `close()` already ran on the line above, so this event fires *after* the CSV
+        // buffer has been flushed. If it ever gains a tagged field (`page`, `coord_ref_*`,
+        // `coord_*`) that field will never reach `.log.csv`, only stderr and the structured log.
+        // Harmless as written; adding one means first moving this call above `close()`.
         //
-        // Deliberately does not repeat `{e}` here (critic finding, `L2-implementation-plan.md`
-        // "cli" sweep): the failing area (`cmd.rs`/`env.rs`/`file.rs`/`batch.rs`/
-        // `freeports_config.rs`/`job.rs`/`output.rs`) already logged the same error with full
-        // context, so this line only records the audit-trail fact that the process is exiting
-        // because of it -- the `eprintln!` right below still shows `{e}` to the user on stderr.
+        // It also deliberately omits `{e}`: whichever area failed has already logged the same
+        // error with far more context, so this line only records the audit-trail fact that the
+        // process is exiting because of it. The `eprintln!` below still shows it to the user.
         tracing::error!("freeports is exiting due to the error above");
         eprintln!("freeports: {e}");
         std::process::exit(1);

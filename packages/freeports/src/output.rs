@@ -1,4 +1,4 @@
-//! Entita' estratte, schema dei file di output e loro scrittura.
+//! The extracted entities, the schema of the output files, and writing them.
 
 pub mod classes;
 pub mod files_schema;

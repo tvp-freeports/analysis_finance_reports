@@ -1,13 +1,17 @@
-//! Pipeline: i tre segmenti `pdf_extract` → `text_filter` → `deserialize`.
+//! A pipeline: the three segments `pdf_extract` → `text_filter` → `deserialize`.
 //!
-//! `PLAN.md` §5.3. Rispetto al riferimento la [`Pipeline`] ha un **nome**: là il nome vive solo
-//! come chiave della mappa che la contiene, e questo rende i messaggi d'errore inutilizzabili
-//! (`PLAN.md` D6).
+//! The three answer three separable questions about a page — *what is on it*, *does any of it
+//! concern the funds we are looking for*, *what do the survivors mean* — and keeping them apart is
+//! what lets a format author replace one without understanding the other two.
 //!
-//! Il modulo è anche il punto d'ingresso del vocabolario del motore: ri-esporta
-//! [`FilterData`]/[`Extracted`]/[`PipeError`] da [`data`] e i tre trait dei pipe con i loro
-//! segmenti da [`segment`], così chi usa il motore importa da `core::pipeline` e non deve
-//! conoscere la suddivisione interna in file.
+//! A [`Pipeline`] carries its own **name**. Holding the name only as the key of the map that
+//! contains it would make every error message from inside a pipeline anonymous, which is precisely
+//! when the name is wanted.
+//!
+//! This module is also the engine's vocabulary entry point: it re-exports
+//! [`FilterData`]/[`Extracted`]/[`PipeError`] from [`data`] and the three pipe traits with their
+//! segments from [`segment`], so that a consumer imports from `core::pipeline` and never has to
+//! know how the code is split across files.
 
 pub mod bundle;
 pub mod data;
@@ -22,10 +26,11 @@ pub use segment::{
 use crate::core::classes::{PdfBlock, TextBlock};
 use crate::core::page::Page;
 
-/// Nome di una pipeline all'interno di un formato (la parte fra parentesi di
-/// `<formato>(<pipeline>)/<indice>`).
+/// The name of a pipeline within a format — the parenthesised part of
+/// `<format>(<pipeline>)/<index>`.
 ///
-/// La stringa vuota è un nome legittimo: nel repo formati identifica la pipeline "senza gruppo".
+/// The empty string is a legitimate name: in a formats repository it identifies the "no group"
+/// pipeline.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct PipelineName(String);
 
@@ -57,7 +62,7 @@ impl From<String> for PipelineName {
     }
 }
 
-/// I tre segmenti applicati in catena a una pagina.
+/// The three segments, applied to a page in order.
 #[derive(Debug, Clone)]
 pub struct Pipeline {
     pub name: PipelineName,
@@ -67,7 +72,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    /// Una pipeline con il nome dato e i tre segmenti vuoti.
+    /// A pipeline with the given name and three empty segments.
     pub fn new(name: impl Into<PipelineName>) -> Self {
         Pipeline {
             name: name.into(),
@@ -77,20 +82,23 @@ impl Pipeline {
         }
     }
 
-    /// Una pipeline è completa quando **tutti e tre** i segmenti hanno almeno un pipe: solo
-    /// allora può produrre risultati. `Algorithm::load` (M7) rifiuta quelle incomplete.
+    /// Whether **all three** segments hold at least one pipe.
+    ///
+    /// Only a complete pipeline can produce anything, so `Algorithm::load` rejects incomplete ones.
+    /// It is not an error for a pipeline to be incomplete mid-construction: a format is assembled
+    /// by summing partial pipelines from several sources, and only the sum has to be whole.
     pub fn is_complete(&self) -> bool {
         !self.pdf_extract.is_empty() && !self.text_filter.is_empty() && !self.deserialize.is_empty()
     }
 
-    /// Estrae, filtra, deserializza: l'intera catena su una pagina.
+    /// Extract, filter, deserialize: the whole chain over one page.
     pub fn apply(
         &self,
         page: &Page,
         data: &FilterData<'_>,
     ) -> Result<Vec<Extracted>, PipeError> {
-        // Punto di orchestrazione del vocabolario `Activity` (`PLAN.md` §3 L1/L2): i tre segmenti
-        // (aperti dentro `Segment::apply`) e i `pipe[<nome>]` di ciascuno si annidano qui sotto.
+        // Where the `Activity` vocabulary is orchestrated: the three segments — opened inside
+        // `Segment::apply` — and the `pipe[<name>]` of each nest below this span.
         let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
         let _pipeline_guard = pipeline_span.enter();
 
@@ -99,25 +107,24 @@ impl Pipeline {
         self.deserialize.apply(&text_blocks)
     }
 
-    /// `true` se tutti i pipe dei tre segmenti scalano con i thread.
+    /// Whether every pipe in all three segments scales with threads.
     ///
-    /// Basta **un** pipe d'autore per rispondere `false`: dentro una pipeline i tre segmenti sono
-    /// in catena, quindi il GIL preso da uno solo serializza comunque l'intera catena della
-    /// pagina.
+    /// A single author-written pipe is enough to answer `false`: the segments run in a chain, so
+    /// the GIL taken by one of them serialises the page's whole chain anyway.
     pub fn scales_with_threads(&self) -> bool {
         self.pdf_extract.iter().all(|pipe| pipe.scales_with_threads())
             && self.text_filter.iter().all(|pipe| pipe.scales_with_threads())
             && self.deserialize.iter().all(|pipe| pipe.scales_with_threads())
     }
 
-    /// Solo il primo segmento — API di test per segmento (`freeports-dev`, `PLAN.md` §5.3).
+    /// The first segment alone — the per-segment API the format development tooling drives.
     pub fn apply_pdf_extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         let pipeline_span = tracing::info_span!("pipeline", pipeline = %self.name);
         let _pipeline_guard = pipeline_span.enter();
         self.pdf_extract.apply(page)
     }
 
-    /// I primi due segmenti — API di test per segmento.
+    /// The first two segments — the per-segment API the format development tooling drives.
     pub fn apply_text_filter(
         &self,
         page: &Page,
@@ -133,13 +140,13 @@ impl Pipeline {
 impl std::ops::Add for Pipeline {
     type Output = Pipeline;
 
-    /// Fonde i tre segmenti, uno per uno — è così che structured + semistructured + unstructured
-    /// si combinano (`PLAN.md` §6.4).
+    /// Merges the three segments one by one; this is how a format's structured, semistructured and
+    /// unstructured layers combine into one pipeline.
     ///
-    /// Il nome conservato è quello dell'operando **sinistro**: `Algorithm::load` (M7) somma solo
-    /// pipeline che ha già raggruppato per nome, quindi i due nomi coincidono sempre nell'uso
-    /// reale. Sommare pipeline di nome diverso non è un errore rilevabile qui (`Add` non può
-    /// restituire un `Result`) ed è un errore del chiamante.
+    /// The name kept is the **left** operand's. `Algorithm::load` only ever sums pipelines it has
+    /// already grouped by name, so in real use the two names are equal; summing differently named
+    /// pipelines is a caller error that `Add` has no way to report, since it cannot return a
+    /// `Result`.
     fn add(self, rhs: Self) -> Self::Output {
         Pipeline {
             name: self.name,
@@ -171,7 +178,7 @@ mod tests {
         Page::new(1, (100.0, 100.0), lines, vec![])
     }
 
-    /// Una pipeline completa che classifica ogni pagina con `class`.
+    /// A complete pipeline that classifies every page as `class`.
     fn classifying_pipeline(name: &str, class: Option<&str>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
@@ -192,7 +199,7 @@ mod tests {
 
         #[test]
         fn the_empty_name_is_legal_and_is_the_default() {
-            // Nel repo formati identifica la pipeline "senza gruppo".
+            // In a formats repository this identifies the "no group" pipeline.
             assert_eq!(PipelineName::default(), PipelineName::new(""));
             assert_eq!(PipelineName::new("").to_string(), "");
         }
@@ -238,7 +245,7 @@ mod tests {
         fn the_three_segments_run_in_order_and_feed_each_other() {
             let pipeline = classifying_pipeline("p", Some("investments"));
             let out = pipeline.apply(&page_with(&["a", "b"]), &FilterData::EMPTY).unwrap();
-            // Due righe -> due blocchi pdf -> due blocchi di testo -> due classificazioni.
+            // Two lines -> two pdf blocks -> two text blocks -> two classifications.
             assert_eq!(
                 out,
                 vec![
@@ -250,8 +257,8 @@ mod tests {
 
         #[test]
         fn an_incomplete_pipeline_simply_yields_nothing() {
-            // Nessun pipe di deserializzazione: la catena arriva in fondo e produce zero
-            // risultati, non un errore. E' `Algorithm::load` (M7) a rifiutare le incomplete.
+            // No deserialize pipe: the chain runs to the end and produces zero results rather than
+            // an error. Rejecting incomplete pipelines is `Algorithm::load`'s job, not the chain's.
             let mut pipeline = Pipeline::new("p");
             pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
             pipeline
@@ -341,8 +348,8 @@ mod tests {
 
         #[test]
         fn merging_an_incomplete_pipeline_can_complete_it() {
-            // E' esattamente il caso di `PLAN.md` §6.4: structured porta un segmento,
-            // semistructured un altro, e solo la somma e' completa.
+            // The real merging case: one layer of the format contributes one segment, another layer
+            // the next, and only the sum is complete.
             let mut structured = Pipeline::new("p");
             structured.pdf_extract.push(LinesToBlocks::pipe("extract"));
             let mut semistructured = Pipeline::new("p");

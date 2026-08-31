@@ -1,27 +1,19 @@
-//! I CSV di orchestrazione: in che ordine si elaborano le pagine e chi si occupa di quale.
+//! The orchestration tables: in what order pages are processed, and who handles which.
 //!
-//! Tre file in `content/orchestration/`:
+//! Three files:
 //!
-//! - `algorithms_schedule.csv` — l'ordine di elaborazione delle page class di un formato, diviso
-//!   in *step*: le page class si accumulano nello step corrente finché una riga non alza
-//!   `Filter next iteration`, che chiude lo step e ne apre uno nuovo. È lo `Schedule` del motore
-//!   (`core::schedule`, M5), e la ragione per cui esiste è che i risultati di uno step sono il
-//!   `FilterData` del successivo.
-//! - `mapping.csv` — quali pipeline si occupano di quale page class.
-//! - `pageclassify_overwrite.csv` — quali pipeline, per un dato formato, sostituiscono la
-//!   classificazione di pagina standard.
+//! - the **schedule** — the order in which a format's page classes are processed, divided into *steps*. Classes accumulate in the current step until a row raises the "filter next iteration" flag, which closes that step and opens a new one. Steps exist because the results of one are the `FilterData` of the next;
+//! - the **mapping** — which pipelines handle which page class;
+//! - the **page-classify overwrite** — which pipelines replace the standard page classification for a given format.
 //!
-//! Porting di `repo/orchestration.py` (e del suo porting Rust in `freeports_core`), senza
-//! pandas/pandera. **Una differenza strutturale**: nel riferimento il ramo di fallback di
-//! [`get_mapping`] richiama `pipelines_acquisition.get_pipelines`, cioè risale all'intero
-//! caricamento del repo formati; qui i nomi delle pipeline già costruite arrivano come
-//! *parametro*. Il motivo è che la dipendenza inversa (orchestrazione → caricamento pipeline →
-//! orchestrazione) è un ciclo, che nel riferimento è tollerabile solo perché passa da Python; qui
-//! il chiamante — `Algorithm::load`, che le pipeline le ha già in mano — le passa e basta.
+//! # Pipelines arrive as a parameter
 //!
-//! **Log**: ogni funzione pubblica gira dentro lo span `format[<nome>]` che `Algorithm::load`
-//! apre (`PLAN.md` §3 L2), quindi i suoi eventi non ripetono `format_name` come campo — lo
-//! ereditano dallo span, come vuole la regola 4 della convenzione.
+//! The fallback branch of [`get_mapping`] needs to know which pipelines a format defines. Asking
+//! the loader for them would make orchestration depend on loading and loading depend on
+//! orchestration — a cycle. Instead the caller, which already holds the pipelines, passes them in.
+//!
+//! Every public function here runs inside the span `Algorithm::load` opens for the format, so its
+//! events do not repeat the format name as a field: they inherit it.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -36,7 +28,7 @@ use super::id_format::{IdFormat, derive_format_name, derive_pipeline_name, id_ma
 pub const CONTENT_DIR: &str = "content";
 pub const ORCHESTRATION_DIR: &str = "orchestration";
 
-/// Fallimenti nella lettura dei CSV di orchestrazione.
+/// Failures of reading the orchestration tables.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum OrchestrationError {
     #[error("missing formats-repository CSV file: {0}")]
@@ -49,29 +41,28 @@ pub enum OrchestrationError {
     UnknownFormatName { path: PathBuf, line: usize, name: String },
     #[error("{path}, line {line}: ID '{id}' does not match the expected ID pattern")]
     InvalidId { path: PathBuf, line: usize, id: String },
-    /// `pageclassify_overwrite.csv` **pretende** un gruppo `(pipeline)` nell'ID, a differenza di
-    /// `mapping.csv`, che invece lo lascia vuoto quando manca. L'asimmetria è del riferimento
-    /// (`nullable=False` contro `fillna("")`) ed è conservata.
+    /// The page-classify overwrite table **requires** a `(pipeline)` group in the id, unlike the
+    /// mapping table, which treats an absent one as the unnamed pipeline. The asymmetry is
+    /// deliberate and preserved.
     #[error("{path}, line {line}: ID '{id}' declares no pipeline name")]
     MissingPipelineName { path: PathBuf, line: usize, id: String },
     #[error("{path}, line {line}: invalid 'Filter next iteration' value '{value}'")]
     InvalidFlag { path: PathBuf, line: usize, value: String },
 }
 
-/// Una riga di `algorithms_schedule.csv`.
+/// A row of the schedule table.
 ///
-/// **Non** una struct `Deserialize` come le altre due: `Filter next iteration` è una colonna in
-/// coda genuinamente opzionale — una riga che la omette *del tutto* è legale, e il vero
-/// `algorithms_schedule.csv` del repo italiano ne contiene — mentre serde pretende un campo per
-/// ogni colonna dichiarata e considera la riga corta un errore. Questo file si legge quindi per
-/// indice di colonna, come fa il riferimento.
+/// **Not** a `Deserialize` struct like the other two: the trailing flag column is genuinely
+/// optional, and a row omitting it entirely is legal and does occur in real repositories, while
+/// serde requires a field per declared column and would call the short row an error. This file is
+/// therefore read by column index.
 struct ScheduleRow {
     format_name: String,
     page_type: String,
     filter_next_iteration: String,
 }
 
-/// Una riga di `mapping.csv`.
+/// A row of the mapping table.
 #[derive(Debug, Clone, Deserialize)]
 struct MappingRow {
     #[serde(rename = "ID")]
@@ -80,7 +71,7 @@ struct MappingRow {
     page_type: String,
 }
 
-/// Una riga di `pageclassify_overwrite.csv`.
+/// A row of the page-classify overwrite table.
 #[derive(Debug, Clone, Deserialize)]
 struct OverwriteRow {
     #[serde(rename = "ID")]
@@ -91,7 +82,7 @@ fn csv_path(formats_repo_dir: &Path, file_name: &str) -> PathBuf {
     formats_repo_dir.join(CONTENT_DIR).join(ORCHESTRATION_DIR).join(file_name)
 }
 
-/// Traduce un errore del crate `csv`, ripescando il nome della colonna assente quando c'è.
+/// Translates a CSV error, recovering the name of the missing column where there is one.
 fn row_error(path: &Path, line: usize, error: &csv::Error) -> OrchestrationError {
     let message = error.to_string();
     if let Some(rest) = message.split("missing field `").nth(1)
@@ -102,11 +93,11 @@ fn row_error(path: &Path, line: usize, error: &csv::Error) -> OrchestrationError
     OrchestrationError::MalformedRow { path: path.to_path_buf(), line, reason: message }
 }
 
-/// Legge un CSV di orchestrazione in righe tipizzate.
+/// Reads an orchestration table into typed rows.
 ///
-/// `flexible` va acceso **solo** per i file la cui ultima colonna è davvero facoltativa da capo a
-/// fondo: altrimenti una riga corta smetterebbe di essere un errore anche dove manca un campo
-/// obbligatorio.
+/// Flexible row lengths are enabled **only** for the file whose last column really is optional
+/// throughout: otherwise a short row would stop being an error even where a required field is
+/// missing.
 fn read_rows<T: serde::de::DeserializeOwned>(
     formats_repo_dir: &Path,
     file_name: &str,
@@ -127,8 +118,8 @@ fn read_rows<T: serde::de::DeserializeOwned>(
     Ok((path, rows))
 }
 
-/// Legge `algorithms_schedule.csv` per indice di colonna, tollerando le righe corte sulla sola
-/// colonna in coda. Vedi [`ScheduleRow`] per il perché.
+/// Reads the schedule table by column index, tolerating short rows on the trailing column alone.
+/// See [`ScheduleRow`] for why.
 fn read_schedule_rows(formats_repo_dir: &Path) -> Result<(PathBuf, Vec<ScheduleRow>), OrchestrationError> {
     let path = csv_path(formats_repo_dir, "algorithms_schedule.csv");
     if !path.is_file() {
@@ -181,7 +172,7 @@ fn check_known_format_name(
     }
 }
 
-/// `TRUE`/`FALSE` come li scrive un foglio di calcolo, con la cella vuota che vale `FALSE`.
+/// `TRUE`/`FALSE` as a spreadsheet writes them, with an empty cell meaning false.
 fn parse_flag(path: &Path, line: usize, raw: &str) -> Result<bool, OrchestrationError> {
     match raw.trim().to_ascii_lowercase().as_str() {
         "" | "false" => Ok(false),
@@ -192,12 +183,11 @@ fn parse_flag(path: &Path, line: usize, raw: &str) -> Result<bool, Orchestration
     }
 }
 
-/// L'ordine in cui elaborare le page class di `format_name`.
+/// The order in which to process the page classes of `format_name`.
 ///
-/// Le page class si accumulano nello step corrente; `Filter next iteration` su una riga chiude lo
-/// step **dopo** averla inclusa. Se il formato non compare affatto nel file, lo schedule è un solo
-/// step con tutte le page class che `mapping.csv` gli attribuisce — cioè "elabora tutto insieme,
-/// senza passaggi successivi".
+/// Classes accumulate in the current step, and the flag on a row closes the step **after**
+/// including it. A format absent from the file gets a single step with every page class the mapping
+/// attributes to it — that is, "process everything at once, with no later passes".
 pub fn get_schedule(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -216,8 +206,8 @@ pub fn get_schedule(
         tracing::debug!("format absent from algorithms_schedule.csv, scheduling every mapped page class in one step");
         let mapping = get_mapping(formats_repo_dir, format_name, format_names, defined_pipelines)?;
         let mut step = ScheduleStep::new();
-        // Ordinato: `mapping` è una `HashMap`, e uno schedule che cambia ordine a ogni esecuzione
-        // renderebbe irriproducibili sia i test sia i log.
+        // Sorted: a schedule whose order changed from run to run would make both the tests and the
+        // logs irreproducible.
         let mut classes: Vec<PageClass> = mapping.into_keys().collect();
         classes.sort();
         for class in classes {
@@ -240,11 +230,11 @@ pub fn get_schedule(
     Ok(schedule)
 }
 
-/// Le pipeline che, per `format_name`, sostituiscono la classificazione di pagina standard.
+/// The pipelines that, for `format_name`, replace the standard page classification.
 ///
-/// Se il formato non compare nel file, il risultato è l'insieme che contiene la **sola pipeline
-/// senza nome** — non l'insieme vuoto. È il `set([""])` del riferimento, ed è ciò che rende la
-/// pipeline di default il classificatore di pagina di ogni formato che non dica altro.
+/// A format absent from the file yields the set containing the **unnamed pipeline alone**, not the
+/// empty set. That is what makes the default pipeline the page classifier of every format that does
+/// not say otherwise.
 pub fn get_pageclassify_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -280,12 +270,12 @@ pub fn get_pageclassify_pipelines(
     Ok(pipelines)
 }
 
-/// Quali pipeline si occupano di quale page class, per `format_name`.
+/// Which pipelines handle which page class, for `format_name`.
 ///
-/// Se il formato non compare in `mapping.csv`, ogni pipeline che il formato definisce diventa la
-/// page class omonima — tranne quelle che classificano le pagine, che non hanno una page class
-/// propria. È la convenzione implicita del riferimento per i formati che non dichiarano un
-/// mapping: "una pipeline per page class, con lo stesso nome".
+/// A format absent from the mapping gets every pipeline it defines mapped to the same-named page
+/// class — except the ones that classify pages, which have no page class of their own. It is the
+/// implicit convention for formats that declare no mapping: one pipeline per page class, sharing a
+/// name.
 pub fn get_mapping(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -302,8 +292,8 @@ pub fn get_mapping(
             return Err(OrchestrationError::InvalidId { path, line, id: row.id.clone() });
         }
         let row_format = derive_format_name(&row.id);
-        // A differenza di `pageclassify_overwrite.csv`, qui un ID senza gruppo `(pipeline)` vale
-        // la pipeline senza nome, non un errore.
+        // Unlike the overwrite table, an id with no `(pipeline)` group here means the unnamed
+        // pipeline rather than an error.
         let pipeline = derive_pipeline_name(&row.id, Some("")).unwrap_or_default();
         check_known_format_name(&path, line, &row_format, format_names)?;
         if row_format == format_name {
@@ -313,10 +303,8 @@ pub fn get_mapping(
     }
 
     if !found {
-        // Qui il riferimento richiama `pipelines_acquisition.get_pipelines` (risalendo all'intero
-        // caricamento del repo formati); questo porting evita il ciclo prendendo le pipeline già
-        // costruite come parametro (`defined_pipelines`, vedi il doc-comment del modulo) — non c'è
-        // quindi un confine Python da loggare qui.
+        // No Python boundary to log here: the pipelines arrive as a parameter rather than being
+        // fetched by re-entering the loader.
         tracing::debug!(
             "format absent from mapping.csv, mapping each of its own pipelines onto a page class of the same name"
         );
@@ -339,7 +327,7 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
-    /// Un repo formati minimale con i soli tre CSV di orchestrazione.
+    /// A minimal formats repository with only the three orchestration tables.
     fn repo(files: &[(&str, &str)]) -> TempDir {
         let dir = TempDir::new().expect("temp dir");
         let orchestration = dir.path().join(CONTENT_DIR).join(ORCHESTRATION_DIR);
@@ -420,8 +408,7 @@ mod tests {
 
         #[test]
         fn a_trailing_filter_flag_leaves_an_empty_last_step() {
-            // Comportamento del riferimento conservato: la bandiera sull'ultima riga apre uno
-            // step che nessuna page class riempirà mai.
+            // The flag on the last row opens a step that no page class will ever fill.
             let csv = "Format name,Page type,Filter next iteration\nA-EN24,investments,TRUE\n";
             let d = repo(&[
                 ("algorithms_schedule.csv", csv),
@@ -532,8 +519,8 @@ mod tests {
 
         #[test]
         fn an_id_without_a_pipeline_group_is_rejected_here() {
-            // Asimmetria voluta rispetto a `mapping.csv`, che invece lo accetta come pipeline
-            // senza nome.
+            // The deliberate asymmetry with the mapping table, which accepts this as the unnamed
+            // pipeline.
             let d = repo(&[("pageclassify_overwrite.csv", "ID\nA-EN24\n")]);
             let err = get_pageclassify_pipelines(d.path(), "A-EN24", &names()).unwrap_err();
             assert!(matches!(err, OrchestrationError::MissingPipelineName { line: 1, .. }));
@@ -633,8 +620,7 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// Righe reali di `analysis_finance_reports_formats/content/orchestration/`, riprodotte in
-        /// una `TempDir`.
+        /// Real rows from an actual formats repository, reproduced in a temporary directory.
         #[test]
         fn reproduces_the_anima_sgr_schedule() {
             let csv = "Format name,Page type,Filter next iteration\n\

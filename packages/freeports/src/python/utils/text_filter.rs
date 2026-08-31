@@ -9,8 +9,8 @@ use crate::formats_utils::text_filter::standard_funcs::extract_currency_from_tex
 use crate::python::consts::PyCurrency;
 use crate::core::tracing_setup::log_error;
 
-/// Shim Python di [`MatchFund`]: un nome di fondo che sa confrontarsi con un altro dopo la
-/// normalizzazione profonda.
+/// The Python shim of a fund identity: a name that knows how to compare itself with another after
+/// deep normalisation.
 #[pyclass(name = "MatchFund", module = "freeports.utils.text_filter", frozen, eq, hash)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyMatchFund(MatchFund);
@@ -29,8 +29,7 @@ impl From<MatchFund> for PyMatchFund {
 
 #[pymethods]
 impl PyMatchFund {
-    /// `name` è accettato sia posizionale sia per parola chiave: il repo formati usa entrambe le
-    /// forme (`MatchFund(x.name)` e `MatchFund(name=s)`).
+    /// The name is accepted both positionally and by keyword: formats repositories use both forms.
     #[new]
     #[pyo3(signature = (name))]
     fn new(name: &str) -> PyMatchFund {
@@ -56,28 +55,28 @@ impl PyMatchFund {
     }
 }
 
-/// La normalizzazione "leggera" di una stringa (spazi collassati, opzionalmente minuscola).
+/// Light normalisation of a string: whitespace runs collapsed, optionally lower-cased.
 #[pyfunction]
 #[pyo3(name = "normalize_string", signature = (input, lower=false))]
 pub fn py_normalize_string(input: &str, lower: bool) -> String {
     normalization::normalize_string(input, lower)
 }
 
-/// La normalizzazione profonda, quella su cui si confrontano i nomi di fondo.
+/// Deep normalisation, the form fund names are compared on.
 #[pyfunction]
 #[pyo3(name = "deep_normalize_string", signature = (input))]
 pub fn py_deep_normalize_string(input: &str) -> String {
     normalization::deep_normalize_string(input)
 }
 
-/// La normalizzazione di una singola parola.
+/// Normalisation of a single word.
 #[pyfunction]
 #[pyo3(name = "normalize_word", signature = (input, lower=false))]
 pub fn py_normalize_word(input: &str, lower: bool) -> String {
     normalization::normalize_word(input, lower)
 }
 
-/// La prima valuta nominata da un testo.
+/// The first currency named in a text.
 #[pyfunction]
 #[pyo3(name = "extract_currency_from_text", signature = (text))]
 pub fn py_extract_currency_from_text(text: &str) -> PyResult<PyCurrency> {
@@ -88,16 +87,13 @@ pub fn py_extract_currency_from_text(text: &str) -> PyResult<PyCurrency> {
     })
 }
 
-/// I due decoratori che sostituiscono l'argomento `filter_data` di un pipe `text_filter` con
-/// l'insieme dei `MatchFund` dei fondi già noti, prima di chiamare la funzione decorata.
+/// The two decorators that replace a filtering pipe's filter-data argument with the set of
+/// already-known fund identities, before calling the decorated function.
 ///
-/// Sono classi usate come decoratori (`@investment_fund_filter_data`), non funzioni: è la forma
-/// che il riferimento aveva, e per questo il nome Python è minuscolo come quello di una funzione.
-/// La logica vive qui nello shim e non nel crate perché opera su un callable Python arbitrario e
-/// su una lista di risultati Python — concetti che esistono solo da questo lato del confine.
-///
-/// La firma di `__call__` è `(pdf_blks, filter_data)`, esattamente quella del riferimento: i pipe
-/// `text_filter` ricevono sempre quei due argomenti in quell'ordine.
+/// They are classes used as decorators rather than functions — which is why their Python names are
+/// lower-case like a function's. The logic lives in the shim rather than in the crate because it
+/// operates on an arbitrary Python callable and a list of Python results, concepts that exist only
+/// on this side of the boundary.
 macro_rules! filter_data_decorator {
     ($shim:ident, $py_name:literal, $source:expr, $doc:literal) => {
         #[doc = $doc]
@@ -139,20 +135,19 @@ filter_data_decorator!(
     "Decoratore: `filter_data` diventa l'insieme dei `MatchFund` dei fondi citati dagli investimenti."
 );
 
-/// Da dove si prendono i nomi dei fondi con cui rimpiazzare `filter_data`.
+/// Where the fund names replacing the filter data are taken from.
 #[derive(Clone, Copy)]
 enum FundSource {
-    /// Il nome dei risultati `Fund` — il decoratore `fund_filter_data`.
+    /// The names of the fund results.
     Funds,
-    /// Il campo `fund` dei risultati `Equity`/`Bond` — `investment_fund_filter_data`.
+    /// The fund field of the investment results.
     Investments,
 }
 
-/// L'insieme dei `MatchFund` ricavati da un `filter_data`.
+/// The set of fund identities derived from a filter data.
 ///
-/// I risultati che non sono del tipo cercato — e quelli il cui nome è ancora una promessa, quindi
-/// non una stringa — vengono semplicemente saltati, come nel riferimento: un fondo non ancora
-/// risolto non ha un nome con cui confrontarsi.
+/// Results that are not of the kind sought — and those whose name is still a promise, and therefore
+/// not a string — are simply skipped: an unresolved fund has no name to compare with.
 fn match_funds_from<'py>(
     py: Python<'py>,
     filter_data: &Bound<'py, PyAny>,

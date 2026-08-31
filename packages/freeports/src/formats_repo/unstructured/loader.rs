@@ -1,27 +1,24 @@
-//! Il caricamento dinamico del modulo Python di un formato unstructured.
+//! Loading a format's author-written Python module.
 //!
-//! "Unstructured" significa che l'algoritmo di un segmento è **nel repo formati**, scritto
-//! dall'autore: un solo formato, un solo file Python. Questo modulo lo trova, lo importa e ne
-//! legge le due cose che il caricamento si aspetta — `pipelines` e, facoltativamente,
-//! `compute_page_class`.
+//! "Unstructured" means a segment's algorithm lives **in the formats repository**, written by the
+//! author: one format, one Python file. This module finds it, imports it, and reads the two things
+//! loading expects — `pipelines` and, optionally, `compute_page_class`.
 //!
-//! Porting di `unstructured/acquisition.py`, con la stessa risoluzione file-o-package e lo stesso
-//! `templates/` aggiunto a `sys.path`.
+//! # The contract is by shape, not by type
 //!
-//! **Il contratto è per forma, non per tipo** (deciso come D-M7-3 il 2026-08-23, quando l'API
-//! Python non esisteva ancora; confermato in M10, quando è arrivata). Il valore `pipelines` deve
-//! essere una mappa da nome a un oggetto con gli attributi `pdf_extract`/`text_filter`/
-//! `deserialize`, ciascuno un callable o un iterabile di callable. `freeports.core.Pipeline`
-//! ([`crate::python::core::PyPipeline`]) soddisfa esattamente quel protocollo, e infatti il
-//! caricamento di un repo formati reale non ha richiesto una seconda passata qui.
+//! `pipelines` must be a mapping from name to an object with `pdf_extract`, `text_filter` and
+//! `deserialize` attributes, each a callable or an iterable of callables. The crate's own Python
+//! `Pipeline` satisfies exactly that protocol, but nothing requires an author to use it: a plain
+//! object or a dictionary works, which is what lets a format be written without importing the
+//! engine.
 //!
-//! **Pipe nativi e pipe d'autore.** Un segmento può contenere entrambi: i moduli d'autore
-//! mescolano liberamente `PdfExtractFundStandard(...)` e le proprie `lambda`. I primi arrivano
-//! qui come involucri di [`crate::python::pipes`], e vengono **spacchettati** con
-//! `unwrap_pdf_extract` e sorelle: senza quel passaggio un pipe nativo farebbe un giro
-//! Rust -> Python -> Rust a ogni blocco, e la conversione duck-typed di [`super::py_pipe`]
-//! perderebbe per strada le varianti tipizzate di `BlockValue`. I secondi restano avvolti
-//! nell'adattatore, che è la ragione per cui esiste.
+//! # Native pipes and author pipes mix freely
+//!
+//! A segment may contain both, and author modules do mix them. A native pipe arrives here wrapped
+//! as a Python object and is **unwrapped** back to its Rust form. Without that step it would make a
+//! Rust-to-Python-and-back trip for every block, and the shape-based conversion would lose the
+//! typed variants of a value on the way. An author's own callable stays wrapped in the adapter,
+//! which is the reason the adapter exists.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -36,15 +33,15 @@ use crate::python::pipes::{unwrap_deserialize, unwrap_pdf_extract, unwrap_text_f
 
 use super::py_pipe::{PyDeserializePipe, PyPdfExtractPipe, PyTextFilterPipe};
 
-/// La cartella dei moduli d'autore dentro il repo formati.
+/// The directory of author modules inside a formats repository.
 pub const UNSTRUCTURED_DIR: &str = "content/algorithms/unstructured";
-/// La cartella dei moduli condivisi fra più formati, aggiunta a `sys.path` prima dell'import.
+/// The directory of modules shared between formats, added to the import path before importing.
 pub const TEMPLATES_DIR: &str = "content/templates";
 
-/// I tre segmenti, nell'ordine in cui una pipeline li applica.
+/// The three segments, in the order a pipeline applies them.
 const SEGMENTS: [&str; 3] = ["pdf_extract", "text_filter", "deserialize"];
 
-/// Fallimenti nel caricamento del livello unstructured.
+/// Failures of loading the unstructured level.
 #[derive(Debug, thiserror::Error)]
 pub enum UnstructuredError {
     #[error("failed to load the author module for format '{format}' at {path}: {message}")]
@@ -61,14 +58,14 @@ pub enum UnstructuredError {
     Python { format: String, message: String },
 }
 
-/// Il nome di modulo che corrisponde a un nome di formato: minuscolo, con `-`, `.` e `@`
-/// sostituiti da underscore. Verbatim dal riferimento.
+/// The module name corresponding to a format name: lowercased, with `-`, `.` and `@` replaced by
+/// underscores.
 pub fn module_name(format_name: &str) -> String {
     format_name.to_lowercase().replace(['-', '.', '@'], "_")
 }
 
-/// Il file da importare per `format_name`: `<nome>.py`, oppure `<nome>/__init__.py` se il formato
-/// è un package. `None` se il formato non ha un modulo d'autore — che è del tutto legittimo.
+/// The file to import for `format_name`, whether a plain module or a package. `None` when the
+/// format has no author module, which is entirely legitimate.
 pub fn module_path(formats_repo_dir: &Path, format_name: &str) -> Option<(PathBuf, bool)> {
     let base = formats_repo_dir.join(UNSTRUCTURED_DIR);
     let name = module_name(format_name);
@@ -83,10 +80,10 @@ pub fn module_path(formats_repo_dir: &Path, format_name: &str) -> Option<(PathBu
     None
 }
 
-/// Importa il modulo d'autore di `format_name`, se esiste.
+/// Imports the author module of `format_name`, if it exists.
 ///
-/// `templates/` è aggiunto a `sys.path` prima dell'import, come nel riferimento: è così che più
-/// formati condividono codice.
+/// The shared-templates directory is added to the import path first, which is how several formats
+/// share code.
 fn import_module<'py>(
     py: Python<'py>,
     formats_repo_dir: &Path,
@@ -97,10 +94,10 @@ fn import_module<'py>(
     };
 
     let load = || -> PyResult<Bound<'py, PyAny>> {
-        // Prima di ogni altra cosa: il modulo d'autore fara' `from freeports.core import PdfBlock`,
-        // e quel `freeports` deve essere **questo** artefatto compilato, non un altro. Vedi
-        // `crate::python::install`, che spiega perche' e che non fa nulla quando siamo gia' dentro
-        // il `.so`.
+        // Before anything else: the author module will import the engine's Python package, and that
+        // package must be **this** compiled artefact rather than another. See
+        // `crate::python::install`, which explains why, and which does nothing when we are already
+        // inside the extension module.
         crate::python::install(py)?;
 
         let sys = py.import("sys")?;
@@ -143,8 +140,8 @@ fn import_module<'py>(
     }
 }
 
-/// Legge un attributo o una chiave, come fa il confine dei pipe: il modulo d'autore può esporre
-/// `pipelines` come oggetto o come dizionario.
+/// Reads an attribute or a key, as the pipe boundary does: an author module may expose `pipelines`
+/// as an object or as a dictionary.
 fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny>> {
     if let Ok(value) = object.getattr(name) {
         return Some(value);
@@ -152,7 +149,7 @@ fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny
     object.get_item(name).ok()
 }
 
-/// I callable di un segmento: uno solo, oppure un iterabile.
+/// The callables of one segment: either a single one, or an iterable.
 fn segment_callables<'py>(
     value: Bound<'py, PyAny>,
     format: &str,
@@ -183,10 +180,10 @@ fn segment_callables<'py>(
     Ok(out)
 }
 
-/// Le pipeline che il modulo d'autore di `format_name` definisce.
+/// The pipelines the author module of `format_name` defines.
 ///
-/// Un formato senza modulo d'autore, o con un modulo che non espone `pipelines`, semplicemente non
-/// ne definisce nessuna: non è un errore.
+/// A format with no author module, or with one that exposes no pipelines, simply defines none: that
+/// is not an error.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -255,10 +252,9 @@ pub fn get_pipelines(
     })
 }
 
-/// Il finalizzatore di page class dell'autore, se ne definisce uno.
+/// The author's page-class finalizer, if they define one.
 ///
-/// `standard_compute_page_class` del riferimento è l'identità, che qui non ha bisogno di esistere:
-/// l'assenza è rappresentata da `None`, e il motore ha già
+/// Absence is represented by `None` rather than by an identity function, the engine already having
 /// [`PageClassFinalizer::Identity`](crate::core::algorithm::PageClassFinalizer).
 pub fn get_compute_page_class(
     formats_repo_dir: &Path,
@@ -278,10 +274,9 @@ pub fn get_compute_page_class(
     })
 }
 
-/// Il `compute_page_class` dell'autore, adattato al trait del motore.
+/// The author's page-class function, adapted to the engine's trait.
 ///
-/// Le page class attraversano il confine come lista di stringhe (o `None` per "non classificata"),
-/// che è ciò che il riferimento passa già oggi.
+/// Page classes cross the boundary as a list of strings, with `None` for an unclassified page.
 pub struct PyPageClassFinalizer {
     format: String,
     func: Py<PyAny>,
@@ -334,7 +329,7 @@ impl crate::core::algorithm::PageClassFinalize for PyPageClassFinalizer {
     }
 }
 
-/// Il finalizzatore di page class del formato, pronto per il motore.
+/// The format's page-class finalizer, ready for the engine.
 pub fn get_page_class_finalizer(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -416,10 +411,9 @@ mod tests {
         }
     }
 
-    /// I soli test di questo file che attaccano davvero l'interprete Python (`PLAN.md` §10/§13
-    /// D13). I moduli sintetici che scrivono **non importano `freeports`**: è la ragione per cui
-    /// funzionano in questa fase, ed è la stessa scelta che rende il livello unstructured testabile
-    /// prima che i binding esistano (D-M7-3).
+    /// The only tests in this file that really attach the Python interpreter. The synthetic modules
+    /// they write **do not import the engine's package**, which is what makes the unstructured
+    /// level testable in isolation.
     mod python_boundary {
         use super::*;
         use crate::core::classes::{BlockType, BlockValue, PdfBlock, TextBlock};
@@ -429,7 +423,7 @@ mod tests {
         use pretty_assertions::assert_eq;
         use std::collections::BTreeMap;
 
-        /// Un repo formati con un solo modulo d'autore, scritto dal test.
+        /// A formats repository with a single author module, written by the test.
         fn repo_with_module(format: &str, source: &str) -> TempDir {
             let dir = TempDir::new().expect("temp dir");
             fs::create_dir_all(dir.path().join(UNSTRUCTURED_DIR)).expect("unstructured dir");
@@ -439,7 +433,7 @@ mod tests {
             dir
         }
 
-        /// Il modulo d'autore minimo che definisce una pipeline completa.
+        /// The minimal author module defining one complete pipeline.
         const COMPLETE_MODULE: &str = r#"
 class _Pipeline:
     def __init__(self, pdf_extract, text_filter, deserialize):
@@ -568,11 +562,10 @@ pipelines = {"authored": _Pipeline(extract, filter_blocks, deserialize_block)}
             });
         }
 
-        /// Regressione: il binario `freeports` linka il crate come `rlib` e ha quindi le **sue**
-        /// classi Python, diverse da quelle del `.so` installato. Se il modulo d'autore importa
-        /// `freeports` prima che il caricamento semini `sys.modules`, i due lati non si
-        /// riconoscono piu' e il primo pipe che riceve un blocco muore con
-        /// `'PdfBlock' object cannot be cast as 'PdfBlock'`. Vedi `crate::python::install`.
+        /// Regression: the binary links the crate as a library and therefore has **its own** Python
+        /// classes, distinct from those of an installed extension module. If an author module
+        /// imports the package before loading has seeded it, the two sides stop recognising each
+        /// other and the first pipe to receive a block dies on a cast that should be a no-op.
         #[test]
         fn loading_a_format_seeds_the_in_process_freeports_module() {
             let source = "
@@ -592,8 +585,8 @@ pipelines = {'authored': _P()}
                 let module = py.import("sys").unwrap().getattr("modules").unwrap();
                 let seeded = module.get_item("freeports").unwrap();
                 let seeded_type = seeded.getattr("core").unwrap().getattr("PdfBlock").unwrap();
-                // L'identita' che conta: la classe raggiungibile da Python e quella che questo
-                // artefatto registra devono essere **lo stesso oggetto**.
+                // The identity that matters: the class reachable from Python and the one this
+                // artefact registers must be **the same object**.
                 let ours = py.get_type::<crate::python::core::PyPdfBlock>();
                 assert!(seeded_type.is(&ours), "the seeded PdfBlock is not this artifact's");
             });

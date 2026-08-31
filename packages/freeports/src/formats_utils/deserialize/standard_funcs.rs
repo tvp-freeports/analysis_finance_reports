@@ -1,88 +1,29 @@
-//! Pipe `deserialize` standard — sottoinsieme autosufficiente di
-//! `freeports_core/src/formats_utils/deserialize/standard_funcs.rs`.
+//! The standard `deserialize` pipes: turning surviving text blocks into typed entities.
 //!
-//! Scope deciso dall'utente (`agent-memory/M4-implementation-plan.md` §0, opzione A): solo
-//! `DeserializerPageClassifyStandard` e' costruibile senza `output::classes` (M8) — le altre
-//! (`DeserializeSfdrArticleStandard`, `DeserializerFundStandard`,
-//! `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
-//! `DeserializerInvestmentsManagerStandard`) costruiscono entita' che non esistono ancora.
-//! Dopo la chiusura di M5 questa e' l'**unica** dipendenza che tiene aperta M4: nessuna di queste
-//! aspetta piu' il motore.
+//! Each pipe reads one kind of block and builds one kind of entity from [`crate::output::classes`].
+//! A block of the wrong type is not an error: the pipe has nothing to say and returns nothing,
+//! which is how several deserializers coexist in one segment.
 //!
-//! Da M5 `DeserializerPageClassifyStandard` implementa anche
-//! [`DeserializePipe`](crate::core::pipeline::DeserializePipe): `call` resta l'API diretta che
-//! restituisce il `BlockValue` grezzo, `call_page_class` lo traduce nella
-//! [`PageClass`](crate::core::schedule::PageClass) tipizzata, e il trait e' la forma che il
-//! motore usa.
+//! # Two error policies, deliberately different
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! A **required** field that will not convert loses the whole row: an investment position without a
+//! market value is not a position. An **optional** field that will not convert leaves the field
+//! empty, logs a warning, and the row survives. One unreadable cell should not cost the holding it
+//! belongs to.
 //!
-//! ```text
-//! pub struct DeserializerPageClassifyStandard;
-//! impl DeserializerPageClassifyStandard {
-//!     pub fn call(&self, txt_blk: &TextBlock) -> Result<BlockValue, DeserializeStandardFuncsError>;
-//! }
+//! # Values may arrive already typed
 //!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum DeserializeStandardFuncsError { /* un enum locale, stesso trattamento provvisorio di
-//!     CommonsError (M3, pdf_extract::commons) — verra' assorbito da PipeError in M5 */ }
-//! ```
+//! Currencies and amounts are accepted either as an already-typed [`BlockValue`] or as a string to
+//! be converted. The typed path is the one the real pipeline exercises, since the filtering segment
+//! already produces a typed currency; the string path serves hand-built fixtures and formats that
+//! do not.
 //!
-//! `call` legge `txt_blk.metadata["page_type"]` e lo restituisce cosi' com'e' — anche
-//! `BlockValue::Null`, che e' un `Ok`, non un errore (un `TextBlock` di
-//! `TextFilterPageClassifyStandard` porta sempre quella chiave, valorizzata a `Null` quando
-//! nessun blocco pdf era classificato). Il riferimento Python legge il campo con un subscript
-//! (`metadata["page_type"]`), che solleva se la chiave manca del tutto — qui l'equivalente e'
-//! `metadata_or_fail("page_type")`: una chiave **assente** (non semplicemente valorizzata a
-//! `Null`) e' quindi un `Err`, non un `Ok(BlockValue::Null)`.
+//! # A quirk worth knowing
 //!
-//! ---
-//!
-//! **M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 8): le cinque funzioni restanti.**
-//! `output::classes` esiste ora, quindi queste sono costruibili — chiude anche M4.
-//!
-//! ```text
-//! pub struct DeserializeSfdrArticleStandard;
-//! impl DeserializeSfdrArticleStandard {
-//!     // Non filtra per `type_block` (come il riferimento): costruisce sempre.
-//!     pub fn call(&self, txt_blk: &TextBlock) -> Result<FundSfdrClassification, DeserializeStandardFuncsError>;
-//! }
-//!
-//! pub struct DeserializerManagmentCompanyStandard;      // legge MANAGEMENT_COMPANY -> ManagementCompany
-//! pub struct DeserializerInvestmentsManagerFromManco;   // legge MANAGEMENT_COMPANY -> InvestmentsManager
-//! pub struct DeserializerInvestmentsManagerStandard;    // legge INVESTMENTS_MANAGER -> InvestmentsManager
-//! // Le tre condividono un helper privato (`fn build_manager<T>(txt_blk, expected_type, ctor)`):
-//! // se `txt_blk.type_block != expected_type`, `Ok(None)`; altrimenti il `content` viene
-//! // collassato (`split_whitespace().collect::<Vec<_>>().join(" ")`, non un `.trim()`) e passato
-//! // insieme a `metadata["managed_funds"]` al costruttore dell'entità.
-//!
-//! pub struct DeserializerAssetsStandard { /* interpret_int: bool, date_converter: fn(&str) -> Result<Date, CastError> */ }
-//! impl Default for DeserializerAssetsStandard { /* interpret_int = true, date_converter = cast::to_date */ }
-//! impl DeserializerAssetsStandard {
-//!     pub fn new(interpret_int: bool, date_converter: fn(&str) -> Result<Date, CastError>) -> Self;
-//!     pub fn call(&self, txt_blk: &TextBlock) -> Result<FundAssets, DeserializeStandardFuncsError>;
-//! }
-//! ```
-//!
-//! **`DeserializerAssetsStandard` — dettagli del contratto:**
-//! - `fund`/`currency`/`tot_assets`/`net_assets`/`liabilities` sono obbligatori: chiave assente
-//!   (o `Null`) -> `MissingField`.
-//! - `currency`/`tot_assets`/`net_assets`/`liabilities` accettano **sia** un `BlockValue` già
-//!   tipizzato (`Currency`/`Int`/`Float`) **sia** una stringa da convertire (`cast::to_currency`,
-//!   `cast::to_int`/`cast::to_float` a seconda di `interpret_int`) — stesso pattern duale già
-//!   usato da `DeserializerInvestmentStandard::required` in questo file, non un'invenzione nuova:
-//!   `TextFilterAssetsStandard` (M8, `text_filter::standard_funcs`) produce già `currency` come
-//!   `BlockValue::Currency`, quindi il percorso "già tipizzato" è quello davvero esercitato dalla
-//!   pipeline reale, il percorso stringa resta per fixture costruite a mano/altri formati.
-//! - **Quirk verbatim da preservare**: le parentesi vengono tolte dal testo di `liabilities`
-//!   *prima* della conversione — `"(200)"` diventa `200.0`, non `-200.0`.
-//! - `date` è opzionale: assente o `Null` -> `None`; una stringa viene passata a
-//!   `date_converter`; un fallimento di conversione (quando la chiave c'è) fa perdere l'intera
-//!   riga (`LineParseFail`), non è un campo "provato" come in `DeserializerInvestmentStandard`.
-//! - **Giudizio non pienamente verificato, segnalato nel report**: il default proposto da
-//!   `agent-memory/M8-implementation-plan.md` §2 per `Default` (`interpret_int = true`) non è
-//!   mai stato verificato contro un formato reale in `analysis_finance_reports_formats` — è
-//!   un'estrapolazione dal default di `DeserializerInvestmentStandard`, non un fatto accertato.
+//! Parentheses are stripped from the `liabilities` text *before* conversion, so `"(200)"` becomes
+//! `200.0` and not `-200.0`, despite the accounting convention that parentheses mean a negative.
+//! This is long-standing behaviour that the reference outputs depend on, and it is preserved rather
+//! than quietly corrected.
 
 use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::classes::{BlockType, TextBlock};
@@ -103,24 +44,24 @@ pub enum DeserializeStandardFuncsError {
     Value(#[from] BlockValueError),
     #[error("page_type is a {found}, not a string naming a page class")]
     PageTypeNotAString { found: &'static str },
-    /// Un campo obbligatorio dei metadati manca o ha un tipo inutilizzabile.
+    /// A required metadata field is missing or has an unusable type.
     #[error("required field '{field}' is missing")]
     MissingField { field: &'static str },
-    /// Un campo obbligatorio non si converte: la riga è persa (`LineParseFail` del riferimento).
+    /// A required field will not convert: the row is lost.
     #[error("field '{field}': {source}")]
     LineParseFail {
         field: &'static str,
         #[source]
         source: CastError,
     },
-    /// Una validazione di dominio di un'entità di output ha rifiutato il valore.
+    /// A domain validation of an output entity rejected the value.
     #[error(transparent)]
     OutputClass(#[from] OutputClassError),
 }
 
 impl DeserializeStandardFuncsError {
-    /// Traduzione nell'errore del motore. Il nome del pipe non è ricavabile dall'errore, quindi
-    /// lo passa il chiamante — stessa forma di [`PipeError::from_commons`].
+    /// Translates into the engine's error type. The pipe's name cannot be recovered from the error,
+    /// so the caller supplies it.
     pub fn into_pipe_error(self, pipe: &str) -> PipeError {
         match self {
             DeserializeStandardFuncsError::Value(source) => PipeError::value(pipe, source),
@@ -136,13 +77,12 @@ impl DeserializerPageClassifyStandard {
         Ok(txt_blk.metadata_or_fail("page_type")?.clone())
     }
 
-    /// Il `page_type` letto da [`DeserializerPageClassifyStandard::call`], tradotto nella page
-    /// class tipizzata che il motore si aspetta.
+    /// The `page_type` read by [`DeserializerPageClassifyStandard::call`], translated into the
+    /// typed page class the engine expects.
     ///
-    /// `BlockValue::Null` è la classificazione "nessuna class" — un `Ok(None)`, non un errore:
-    /// `TextFilterPageClassifyStandard` mette sempre quella chiave, valorizzata a `Null` quando
-    /// nessun blocco della pagina era classificato. Qualunque altro tipo è invece un errore di
-    /// configurazione del repo formati.
+    /// A null value is the "no class" classification — an `Ok(None)`, not an error: the filtering
+    /// pipe always writes that key, null when no block of the page was classified. Any other type
+    /// is a configuration error in the formats repository.
     pub fn call_page_class(
         &self,
         txt_blk: &TextBlock,
@@ -168,15 +108,13 @@ impl DeserializePipe for DeserializerPageClassifyStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// DeserializerFundStandard / DeserializerInvestmentStandard (M7, decisione D-M7-2)
-// ---------------------------------------------------------------------------------------------
 
-/// Costruisce un [`Fund`] dal contenuto di un blocco di tipo `FUND`.
+// ----------------------------------------------------------------------------------------------
+// DeserializerFundStandard / DeserializerInvestmentStandard
+// ----------------------------------------------------------------------------------------------
+/// Builds a [`Fund`] from the content of a `FUND` block.
 ///
-/// Un blocco di tipo diverso non è un errore: il pipe non ha nulla da dire e restituisce una
-/// lista vuota. Nel riferimento è il `return None` che i decoratori
-/// `deserialize_block_type*` filtrano via.
+/// A block of another type is not an error: the pipe has nothing to say and returns an empty list.
 pub struct DeserializerFundStandard;
 
 impl DeserializerFundStandard {
@@ -199,22 +137,20 @@ impl DeserializePipe for DeserializerFundStandard {
     }
 }
 
-/// Costruisce un [`Equity`] o un [`Bond`] dai metadati di un blocco `EQUITY_TARGET`/`BOND_TARGET`.
+/// Builds an [`Equity`] or a [`Bond`] from the metadata of an `EQUITY_TARGET` or `BOND_TARGET`
+/// block.
 ///
-/// **Due politiche di errore diverse, come nel riferimento.** I campi obbligatori (`company`,
-/// `company match`, `fund`, `market value`, `currency`) fanno fallire l'intera riga se non si
-/// convertono — è il `LineParseFail` del riferimento. I campi opzionali (`quantity`,
-/// `% net assets`, `acquisition cost`, `acquisition currency`) sono invece "provati": se non ci
-/// sono, sono `Null`, o non si convertono, il campo resta vuoto e la riga sopravvive, con un
-/// `tracing::warn!` che lo segnala. È il comportamento del `try_cast` del riferimento, e la
-/// ragione per cui una singola cella illeggibile non fa perdere l'intera posizione.
+/// The two error policies described in the module documentation meet here. Required — company,
+/// company match, fund, market value, currency — fails the row. Optional — quantity, percentage of
+/// net assets, acquisition cost and currency — leaves the field empty with a warning, so a single
+/// unreadable cell does not cost the whole position.
 pub struct DeserializerInvestmentStandard {
     cost_and_value_interpret_int: bool,
     quantity_interpret_float: bool,
 }
 
 impl Default for DeserializerInvestmentStandard {
-    /// Gli stessi default del riferimento: importi interi, quantità intera.
+    /// The usual defaults: integer amounts, integer quantities.
     fn default() -> Self {
         Self { cost_and_value_interpret_int: true, quantity_interpret_float: false }
     }
@@ -225,18 +161,18 @@ impl DeserializerInvestmentStandard {
         Self { cost_and_value_interpret_int, quantity_interpret_float }
     }
 
-    /// Importi e costi: interi o float a seconda della configurazione del formato.
+    /// Amounts and costs: integers or floats, depending on the format's configuration.
     fn cast_amount(&self, data: &str) -> Result<f64, CastError> {
         if self.cost_and_value_interpret_int { cast::to_int(data, false).map(|v| v as f64) } else { cast::to_float(data, false) }
     }
 
-    /// Quantità nominale: float o intero a seconda della configurazione del formato.
+    /// Nominal quantity: float or integer, depending on the format's configuration.
     fn cast_quantity(&self, data: &str) -> Result<f64, CastError> {
         if self.quantity_interpret_float { cast::to_float(data, false) } else { cast::to_int(data, false).map(|v| v as f64) }
     }
 
-    /// Applica `cast` a un valore obbligatorio, lasciando passare intatta una promessa e
-    /// accettando un valore già tipizzato.
+    /// Applies `cast` to a required value, letting a promise through untouched and accepting an
+    /// already-typed value.
     fn required<T>(
         field: &'static str,
         value: Option<&BlockValue>,
@@ -258,8 +194,7 @@ impl DeserializerInvestmentStandard {
         }
     }
 
-    /// Come [`Self::required`], ma un fallimento lascia il campo vuoto invece di far fallire la
-    /// riga: è il `try_cast` del riferimento.
+    /// Like [`Self::required`], but a failure leaves the field empty instead of failing the row.
     fn optional<T>(
         field: &'static str,
         value: Option<&BlockValue>,
@@ -273,22 +208,18 @@ impl DeserializerInvestmentStandard {
             None | Some(BlockValue::Null) => None,
             Some(promise @ BlockValue::Promise(_)) => Some(promise.clone()),
             Some(BlockValue::Str(text)) => {
-                // Lo span porta il nome del campo nella colonna `Second coord ref` del `.log.csv`
-                // anche sugli eventi che nascono **dentro** `cast` (per esempio il `forcing cast`
-                // di `deserialize::cast`), che il nome del campo non lo conoscono. Il nome dello
-                // span resta `"field"` (la sua eventuale rinomina secondo il vocabolario di
-                // `Activity` e' lavoro di L2, non di L1); cambia solo il nome del campo.
+                // The span carries the field name into the `Second coord ref` column of the
+                // `.log.csv` even for events born **inside** the conversion, which do not know
+                // which field they are converting.
                 let field_span = tracing::info_span!("field", coord_ref_2 = field);
                 let _field_guard = field_span.enter();
                 match cast(text) {
                     Ok(v) => Some(BlockValue::from(v)),
                     Err(err) => {
-                        // Una riga sola che dice le tre cose che il riferimento spalmava su tre:
-                        // il dato che non si converte, perché, e che il campo viene perso. `warn!`,
-                        // non `error!` (L2 review, 2026-08-29): il record sopravvive senza questo
-                        // campo, come dice il doc-comment di `optional` qui sopra — è esattamente
-                        // il "cast fallito e campo scartato" della convenzione, non un caso in cui
-                        // il lavoro richiesto non è stato prodotto.
+                        // One line saying all three things: the value that will not convert, why,
+                        // and that the field is lost. `warn!` rather than `error!`, because the
+                        // record survives without this field — it is the "cast failed, field
+                        // dropped" case, not one where the requested work was not produced.
                         let data = text.replace('\n', "\\n");
                         tracing::warn!(error = log_error(&err), "could not cast {data:?}: {err} - field skipped");
                         None
@@ -310,12 +241,10 @@ impl DeserializerInvestmentStandard {
         let company = cast::to_str(md.get("company").and_then(BlockValue::as_str).unwrap_or_default());
         let company_match = cast::to_str(md.get("company match").and_then(BlockValue::as_str).unwrap_or_default());
 
-        // La colonna "First coord ref" del `.log.csv` viene da qui. E' messa su uno span e non
-        // sui singoli eventi perche' deve valere per *tutto* cio' che la deserializzazione di
-        // questa riga produce, compresi gli eventi che nascono dentro `deserialize::cast` e che
-        // non hanno modo di conoscerla. `company_match` (il testo grezzo della riga) non e' piu'
-        // un campo di tracing (la colonna `Company` che alimentava e' stata eliminata, L1): resta
-        // solo come campo di dominio di `InvestmentFields.company_match`, sotto.
+        // The `First coord ref` column of the `.log.csv` comes from here. It is set on a span
+        // rather than on individual events because it has to hold for *everything* this row's
+        // deserialization produces, including events born inside the conversion functions, which
+        // have no way of knowing it.
         let row_span = tracing::info_span!("investment", coord_ref_1 = %company);
         let _row_guard = row_span.enter();
 
@@ -323,10 +252,8 @@ impl DeserializerInvestmentStandard {
             company,
             company_match,
             fund: md.get("fund").cloned().ok_or(DeserializeStandardFuncsError::MissingField { field: "fund" })?,
-            // `nominal_quantity` è l'unico campo non promissibile dell'entità (`Option<f64>`,
-            // non `Option<Promised<f64>>`, come nel riferimento): una promessa qui non ha dove
-            // essere conservata e il campo resta vuoto, invece di far fallire la riga come
-            // farebbe il `float(to_int(promise))` del riferimento.
+            // The nominal quantity is the entity's only non-promisable field: a promise here has
+            // nowhere to be kept, so the field is left empty rather than failing the row.
             nominal_quantity: Self::optional("quantity", md.get("quantity"), BlockValue::as_float, |t| {
                 self.cast_quantity(t)
             })
@@ -352,8 +279,8 @@ impl DeserializerInvestmentStandard {
         if is_equity {
             return Ok(Some(Extracted::Equity(Equity::build(fields)?)));
         }
-        // Maturity e interest rate seguono la regola del riferimento: si convertono **solo** se la
-        // chiave c'è, e un fallimento di conversione fa fallire la riga (non sono `try_cast`).
+        // Maturity and interest rate convert **only** if the key is present, and a conversion
+        // failure fails the row: they are not tried-and-dropped like the optional fields.
         let maturity = match md.get("maturity") {
             None | Some(BlockValue::Null) => None,
             Some(BlockValue::Date(date)) => Some(*date),
@@ -384,13 +311,12 @@ impl DeserializePipe for DeserializerInvestmentStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 8): le cinque funzioni restanti.
-// ---------------------------------------------------------------------------------------------
 
-/// Costruisce una [`FundSfdrClassification`] da un blocco `SFDR_ARTICLE`. Non filtra per
-/// `type_block` (come il riferimento): costruisce sempre, da `content` (nome del fondo) e
-/// `metadata["article"]` (obbligatorio).
+// ----------------------------------------------------------------------------------------------
+// The SFDR, manager and assets deserializers
+// ----------------------------------------------------------------------------------------------
+/// Builds a [`FundSfdrClassification`] from an `SFDR_ARTICLE` block. Does not filter by block type:
+/// it always builds, from the content (the fund name) and a required `article` metadata field.
 pub struct DeserializeSfdrArticleStandard;
 
 impl DeserializeSfdrArticleStandard {
@@ -415,11 +341,9 @@ impl DeserializePipe for DeserializeSfdrArticleStandard {
     }
 }
 
-/// Il corpo condiviso dai tre deserializzatori "manager" (`agent-memory/
-/// M8-implementation-plan.md` §2): se `txt_blk.type_block != expected_type`, `Ok(None)` — il pipe
-/// non ha nulla da dire; altrimenti il `content` viene collassato (`split_whitespace().join(" ")`,
-/// non un `.trim()` semplice) e passato insieme a `metadata["managed_funds"]` al costruttore
-/// dell'entità.
+/// The body shared by the three manager deserializers: if the block type is not the expected one,
+/// nothing is produced; otherwise the content is collapsed — whitespace runs joined into single
+/// spaces, not merely trimmed — and passed with the managed funds to the entity's constructor.
 fn build_manager<T>(
     txt_blk: &TextBlock,
     expected_type: &crate::core::classes::BlockType,
@@ -434,7 +358,7 @@ fn build_manager<T>(
     Ok(Some(ctor(&BlockValue::from(normalized_name), managed_funds)?))
 }
 
-/// Legge un blocco `MANAGEMENT_COMPANY` e costruisce una [`ManagementCompany`].
+/// Reads a `MANAGEMENT_COMPANY` block and builds a [`ManagementCompany`].
 pub struct DeserializerManagmentCompanyStandard;
 
 impl DeserializerManagmentCompanyStandard {
@@ -457,9 +381,8 @@ impl DeserializePipe for DeserializerManagmentCompanyStandard {
     }
 }
 
-/// Legge lo **stesso** blocco `MANAGEMENT_COMPANY`, ma costruisce un [`InvestmentsManager`]: due
-/// formati diversi usano l'uno o l'altro deserializzatore sullo stesso tipo di blocco, mai
-/// insieme sulla stessa pipeline.
+/// Reads the **same** `MANAGEMENT_COMPANY` block but builds an [`InvestmentsManager`]: different
+/// formats use one or the other over the same block type, never both in one pipeline.
 pub struct DeserializerInvestmentsManagerFromManco;
 
 impl DeserializerInvestmentsManagerFromManco {
@@ -482,8 +405,7 @@ impl DeserializePipe for DeserializerInvestmentsManagerFromManco {
     }
 }
 
-/// Come [`DeserializerInvestmentsManagerFromManco`], ma legge da un blocco `INVESTMENTS_MANAGER`
-/// (non `MANAGEMENT_COMPANY`).
+/// Like [`DeserializerInvestmentsManagerFromManco`], but reads an `INVESTMENTS_MANAGER` block.
 pub struct DeserializerInvestmentsManagerStandard;
 
 impl DeserializerInvestmentsManagerStandard {
@@ -506,32 +428,28 @@ impl DeserializePipe for DeserializerInvestmentsManagerStandard {
     }
 }
 
-/// Il convertitore d'importo di [`DeserializerAssetsStandard`]: una funzione condivisibile, non un
-/// flag, perché nel riferimento è un callable Python qualunque.
+/// The amount converter of [`DeserializerAssetsStandard`]: a shareable function rather than a flag,
+/// because a format author may supply an arbitrary one.
 pub type NumConverter = std::sync::Arc<dyn Fn(&str) -> Result<f64, CastError> + Send + Sync>;
 
-/// Il convertitore di date di [`DeserializerAssetsStandard`], nella stessa forma condivisibile di
+/// The date converter of [`DeserializerAssetsStandard`], in the same shareable form as
 /// [`NumConverter`].
 pub type DateConverter =
     std::sync::Arc<dyn Fn(&str) -> Result<crate::commons::date::Date, CastError> + Send + Sync>;
 
-/// Costruisce un [`FundAssets`] da un blocco `RELEVANT_BLOCK` prodotto da
-/// `TextFilterAssetsStandard`.
+/// Builds a [`FundAssets`] from the relevant block the assets filter produced.
 ///
-/// `num_converter` è configurabile ([`DeserializerAssetsStandard::new`] sceglie con
-/// `interpret_int` fra `cast::to_int`/`cast::to_float`, stesso pattern di
-/// `DeserializerInvestmentStandard`); `date_converter` è di default [`cast::to_date`] ma
-/// sostituibile. Entrambi sono convertitori arbitrari, non un flag: vedi
-/// [`DeserializerAssetsStandard::with_converters`].
+/// Both converters are configurable. [`DeserializerAssetsStandard::new`] picks between the built-in
+/// integer and float converters, while [`DeserializerAssetsStandard::with_converters`] takes
+/// arbitrary ones.
 pub struct DeserializerAssetsStandard {
     num_converter: NumConverter,
     date_converter: DateConverter,
 }
 
 impl Default for DeserializerAssetsStandard {
-    /// **Giudizio non pienamente verificato** (vedi il doc-comment di modulo): `interpret_int =
-    /// true` è un'estrapolazione dal default di `DeserializerInvestmentStandard`, non un fatto
-    /// verificato contro un formato reale.
+    /// **Not fully verified**: interpreting amounts as integers by default is extrapolated from the
+    /// investment deserializer's default, not checked against a real format.
     fn default() -> Self {
         Self::new(true, cast::to_date)
     }
@@ -545,7 +463,7 @@ impl DeserializerAssetsStandard {
         Self::with_converters(Self::builtin_num_converter(interpret_int), std::sync::Arc::new(date_converter))
     }
 
-    /// Il convertitore d'importo che `interpret_int` seleziona: `cast::to_int` o `cast::to_float`.
+    /// The built-in amount converter that `interpret_int` selects.
     pub fn builtin_num_converter(interpret_int: bool) -> NumConverter {
         if interpret_int {
             std::sync::Arc::new(|text: &str| cast::to_int(text, false).map(|v| v as f64))
@@ -554,19 +472,17 @@ impl DeserializerAssetsStandard {
         }
     }
 
-    /// Costruisce il pipe con convertitori arbitrari, non solo con quelli predefiniti.
+    /// Builds the pipe with arbitrary converters rather than only the built-in ones.
     ///
-    /// Esiste perché nel riferimento `num_converter` e `date_converter` sono *callable* Python
-    /// qualunque, e i moduli d'autore ne approfittano davvero (per esempio
-    /// `num_converter=lambda txt: 0 if txt == "-" else to_int(txt)`): un `bool` non basta a
-    /// rappresentarli. [`Self::new`] resta la firma comoda per i due casi predefiniti.
+    /// It exists because a format author's module really does supply its own — something along the
+    /// lines of "treat a dash as zero, otherwise parse an integer" — and a boolean cannot represent
+    /// that. [`Self::new`] stays the convenient signature for the two built-in cases.
     pub fn with_converters(num_converter: NumConverter, date_converter: DateConverter) -> Self {
         Self { num_converter, date_converter }
     }
 
-    /// Converte importi con `num_converter`: già tipizzato è accettato direttamente, una stringa
-    /// passa per il convertitore configurato — stesso pattern duale di
-    /// `DeserializerInvestmentStandard::required`.
+    /// Converts amounts with the configured converter: an already-typed value is accepted directly,
+    /// a string goes through the converter.
     fn cast_amount(&self, field: &'static str, value: &BlockValue) -> Result<f64, DeserializeStandardFuncsError> {
         match value {
             BlockValue::Str(text) => (self.num_converter)(text)
@@ -578,7 +494,7 @@ impl DeserializerAssetsStandard {
         }
     }
 
-    /// Legge un campo obbligatorio dei metadati, riportando `MissingField` se assente o `Null`.
+    /// Reads a required metadata field, reporting `MissingField` if it is absent or null.
     fn required_field<'a>(
         md: &'a std::collections::BTreeMap<String, BlockValue>,
         field: &'static str,
@@ -605,9 +521,8 @@ impl DeserializerAssetsStandard {
         let tot_assets = self.cast_amount("tot_assets", Self::required_field(md, "tot_assets")?)?;
         let net_assets = self.cast_amount("net_assets", Self::required_field(md, "net_assets")?)?;
 
-        // Stranezza da preservare verbatim: le parentesi vengono tolte dal testo *prima* della
-        // conversione, quindi "(200)" (convenzione contabile per negativo) diventa 200.0, non
-        // -200.0 — non è un bug da correggere, è il comportamento del riferimento.
+        // The parentheses quirk: they are stripped *before* conversion, so `"(200)"` becomes
+        // `200.0` rather than `-200.0`. See the module documentation.
         let liabilities_raw = Self::required_field(md, "liabilities")?;
         let liabilities = match liabilities_raw {
             BlockValue::Str(text) => {
@@ -879,9 +794,8 @@ mod tests {
 
             #[test]
             fn a_fractional_quantity_is_skipped_when_the_format_declares_it_integer() {
-                // `to_int` rifiuta una mantissa non nulla; essendo un campo opzionale, la riga
-                // sopravvive e la quantità resta vuota — esattamente come il `try_cast` del
-                // riferimento, che cattura il `ValueError` di `float(to_int(...))`.
+                // An integer conversion rejects a non-zero fractional part; being an optional
+                // field, the row survives and the quantity is left empty.
                 let mut md = base_metadata();
                 md.insert("quantity".to_string(), BlockValue::from("42,7"));
                 let extracted = DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap().unwrap();
@@ -980,12 +894,6 @@ mod tests {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // M8: le cinque funzioni deferite (`agent-memory/M8-implementation-plan.md` §2, passo 8),
-    // costruibili ora che `output::classes` esiste. `DeserializeSfdrArticleStandard` non filtra
-    // per `type_block` (come nel riferimento); le tre funzioni "manager" lo fanno, e condividono
-    // un helper privato comune (`build_manager`, vedi §2).
-    // -----------------------------------------------------------------------------------------
 
     mod deserialize_sfdr_article {
         use super::*;
@@ -1047,8 +955,8 @@ mod tests {
         }
     }
 
-    /// I tre deserializzatori "manager" condividono lo stesso corpo (helper `build_manager`), a
-    /// meno del tipo di blocco atteso e dell'entità costruita — vedi il doc-comment di modulo.
+    /// The three manager deserializers share one body, differing only in the block type expected
+    /// and the entity built.
     mod manager_deserializers {
         use super::*;
         use std::collections::BTreeSet;
@@ -1110,8 +1018,8 @@ mod tests {
             }
         }
 
-        /// Stesso tipo di blocco di `DeserializerManagmentCompanyStandard` (`MANAGEMENT_COMPANY`),
-        /// ma costruisce un `InvestmentsManager`.
+        /// The same block type as the management-company deserializer, but building an
+        /// [`InvestmentsManager`].
         mod investments_manager_from_manco {
             use super::*;
 
@@ -1145,7 +1053,7 @@ mod tests {
             }
         }
 
-        /// Come sopra, ma legge da un blocco `INVESTMENTS_MANAGER` (non `MANAGEMENT_COMPANY`).
+        /// As above, but reading an `INVESTMENTS_MANAGER` block.
         mod investments_manager_standard {
             use super::*;
 
@@ -1304,9 +1212,8 @@ mod tests {
             }
         }
 
-        /// La stranezza da preservare verbatim (`agent-memory/M8-implementation-plan.md` §2): le
-        /// parentesi vengono tolte da `liabilities` **prima** della conversione, quindi
-        /// `"(200)"` diventa `200.0`, non `-200.0`.
+        /// The quirk preserved on purpose: parentheses are stripped from `liabilities` **before**
+        /// conversion, so `"(200)"` becomes `200.0`, not `-200.0`.
         mod liabilities_parentheses_quirk {
             use super::*;
 
@@ -1418,7 +1325,7 @@ mod tests {
         }
     }
 
-    /// M5: lo stesso pipe visto come [`DeserializePipe`], cioè come il motore lo usa.
+    /// The same pipe seen as a [`DeserializePipe`], which is how the engine uses it.
     mod as_a_deserialize_pipe {
         use super::*;
         use crate::core::pipeline::{DeserializePipe, Extracted, PipeError};

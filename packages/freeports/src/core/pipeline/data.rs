@@ -1,29 +1,19 @@
-//! Il vocabolario condiviso dai pipe: cosa entra in un pipe ([`FilterData`]), cosa ne esce
-//! ([`Extracted`]), come fallisce ([`PipeError`]).
+//! The vocabulary the pipes share: what goes into a pipe ([`FilterData`]), what comes out
+//! ([`Extracted`]), how it fails ([`PipeError`]).
 //!
-//! `PLAN.md` §5.4 e §8. Sta in un modulo suo, e non accanto a
-//! [`Pipeline`](crate::core::pipeline::Pipeline), perché lo usano tutti e cinque i pezzi del
-//! motore (i tre trait dei pipe, `Pipeline`, `PipelinesBundle`, `Algorithm`): `core::pipeline` lo
-//! ri-esporta, quindi il percorso pubblico resta `core::pipeline::{FilterData, Extracted,
-//! PipeError}`.
+//! It lives in a module of its own rather than next to
+//! [`Pipeline`](crate::core::pipeline::Pipeline) because all five pieces of the engine use it — the
+//! three pipe traits, `Pipeline`, `PipelinesBundle` and `Algorithm`. `core::pipeline` re-exports
+//! it, so the public path stays `core::pipeline::{FilterData, Extracted, PipeError}`.
 //!
-//! **[`FilterData`] — decisione dell'utente (2026-08-23, `agent-memory/M5-implementation-plan.md`
-//! D-M5-1)**, che era l'unica domanda a bloccare M5 (`PLAN.md` §13 punto 1). La semantica è quella
-//! del riferimento, **non** una versione che mostra sempre tutto: al primo step dello schedule un
-//! pipe vede **solo** le target companies, dagli step successivi vede **solo** l'accumulo dei
-//! risultati di tutti gli step precedenti. Le due cose non sono mai visibili insieme — da qui
-//! l'enum invece di una struct a due campi. Conseguenza accettata: un pipe che ha bisogno delle
-//! target companies (oggi `TextFilterInvestmentsStandard`) funziona solo se schedulato al primo
-//! step, esattamente come nel riferimento.
+//! # Why [`FilterData`] is an enum
 //!
-//! **[`Extracted`] nasce parziale.** `PLAN.md` §5.4 elenca dieci varianti d'entità (`Equity`,
-//! `Bond`, `Fund`, `FundAssets`, `FundSfdrClassification`, `FundEsgIndicator`, `FundRename`,
-//! `FundMerge`, `ManagementCompany`, `InvestmentsManager`) che vivono in `output::classes`, cioè
-//! in M8. Anticiparle qui significherebbe fare due volte il lavoro di M8 (validazioni,
-//! `PromisableFields`, campi che il motore non ha motivo di conoscere), e l'utente ha chiesto
-//! esplicitamente che sia `output::classes` — non altro — a restare l'ultima dipendenza aperta.
-//! M5 definisce quindi le due varianti costruibili oggi; **M8 aggiunge le altre dieci**, e solo
-//! allora il `match` esaustivo di `output::routines` diventa scrivibile.
+//! At the first step of a schedule a pipe sees **only** the target companies; from the following
+//! steps it sees **only** the accumulated results of every preceding step. The two are never
+//! available together, and an enum says so, where a two-field struct would suggest they might be.
+//!
+//! The accepted consequence: a pipe that needs the target companies works only when scheduled in
+//! the first step.
 
 use crate::core::classes::value::{BlockValue, BlockValueError};
 use crate::core::page::PageError;
@@ -39,31 +29,32 @@ use crate::output::classes::investment::{Bond, Equity};
 use crate::formats_utils::pdf_extract::commons::CommonsError;
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 
-/// Fallimento di un singolo pipe (`PLAN.md` §8).
+/// The failure of a single pipe.
 ///
-/// Ogni variante nomina il pipe che l'ha prodotta: nel riferimento un pipe che fallisce non è
-/// identificabile, ed è la ragione per cui i tre trait hanno un `name()` (`PLAN.md` §5.1).
+/// Every variant names the pipe that produced it. That is also why the three pipe traits carry a
+/// `name()`: an anonymous failure in the middle of a chain of pipes is close to undiagnosable.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum PipeError {
-    /// La pagina non è interpretabile. **Non fatale**: [`Algorithm`](crate::core::algorithm::Algorithm)
-    /// logga e salta la pagina, come il `PageParseFail` del riferimento.
+    /// The page cannot be interpreted. **Non-fatal**:
+    /// [`Algorithm`](crate::core::algorithm::Algorithm) logs it and skips the page.
     #[error("pipe `{pipe}` could not parse the page: {source}")]
     PageParse {
         pipe: String,
         #[source]
         source: PageError,
     },
-    /// Il pipe non ha trovato ciò che si aspettava di trovare.
+    /// The pipe did not find what it expected to find.
     #[error("pipe `{pipe}` failed to extract: {message}")]
     Extraction { pipe: String, message: String },
-    /// Una conversione di campo è fallita (le funzioni di `deserialize::cast`).
+    /// A field conversion failed.
     #[error("pipe `{pipe}` could not cast field `{field}`: {message}")]
     Cast { pipe: String, field: String, message: String },
-    /// Un pipe **definito dall'autore del formato** (Python) ha sollevato. È il confine di
-    /// `PLAN.md` §3: nessun `PyErr` risale oltre `formats_repo`, diventa questa variante.
+    /// A pipe **written by the format author**, in Python, raised.
+    ///
+    /// This is the boundary: no `PyErr` travels beyond `formats_repo`, it becomes this variant.
     #[error("author pipe `{pipe}` of pipeline `{pipeline}` failed: {message}")]
     Author { pipeline: String, pipe: String, message: String },
-    /// Un campo di `metadata`/`content` non aveva il tipo atteso.
+    /// A `metadata` or `content` field did not have the expected type.
     #[error("pipe `{pipe}`: {source}")]
     Value {
         pipe: String,
@@ -105,13 +96,13 @@ impl PipeError {
         PipeError::Value { pipe: pipe.into(), source }
     }
 
-    /// Vero solo per [`PipeError::PageParse`]: è il fallimento che l'algoritmo assorbe saltando
-    /// la pagina invece di interrompere l'elaborazione.
+    /// True only for [`PipeError::PageParse`]: the one failure the algorithm absorbs by skipping
+    /// the page instead of stopping.
     pub fn is_page_failure(&self) -> bool {
         matches!(self, PipeError::PageParse { .. })
     }
 
-    /// Il nome del pipe che ha prodotto l'errore.
+    /// The name of the pipe that produced the error.
     pub fn pipe(&self) -> &str {
         match self {
             PipeError::PageParse { pipe, .. }
@@ -122,16 +113,13 @@ impl PipeError {
         }
     }
 
-    /// Converte l'errore locale di `pdf_extract::commons` (M3) nell'errore definitivo del motore.
+    /// Converts the local error of `pdf_extract::commons` into the engine's own.
     ///
-    /// Mantiene la promessa scritta nel doc-comment di quel modulo ("quando M5/M8 introdurranno i
-    /// tipi definitivi, questo enum si convertirà in quello"). Non è un `impl From` perché il
-    /// nome del pipe non è ricavabile dall'errore: inventare una stringa vuota renderebbe i
-    /// messaggi peggiori di quelli che sostituisce.
+    /// Not an `impl From` because the pipe's name cannot be recovered from the error, and inventing
+    /// an empty string would make the messages worse than the ones it replaces.
     ///
-    /// [`CommonsError::PageParseFail`] diventa il fallimento **non fatale** di pagina;
-    /// [`CommonsError::ExpectedTextNotFound`], che il riferimento lascia risalire come errore
-    /// vero, diventa [`PipeError::Extraction`].
+    /// [`CommonsError::PageParseFail`] becomes the **non-fatal** page failure;
+    /// [`CommonsError::ExpectedTextNotFound`] becomes [`PipeError::Extraction`].
     pub fn from_commons(pipe: impl Into<String>, error: CommonsError) -> Self {
         let pipe = pipe.into();
         match error {
@@ -145,12 +133,11 @@ impl PipeError {
     }
 }
 
-/// Le promesse che un pipe di deserializzazione deposita: coppie `id → contributo`, nell'ordine
-/// in cui il pipe le ha prodotte.
+/// The promises a deserialize pipe deposits: `id → contribution` pairs, in the order the pipe
+/// produced them.
 ///
-/// È la forma tipizzata del dict che nel riferimento i deserializer restituiscono e che
-/// `merge_into_multimap` versa nella multimappa. L'ordine conta: chi arriva dopo vince quando la
-/// promessa non è *multiple* (vedi [`FlatPromiseMap::fulfill`](crate::core::promise_resolution::FlatPromiseMap::fulfill)).
+/// The order matters: the later one wins when the promise is not *multiple* (see
+/// [`FlatPromiseMap::fulfill`](crate::core::promise_resolution::FlatPromiseMap::fulfill)).
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct PromiseEntries(Vec<(String, BlockValue)>);
@@ -176,10 +163,10 @@ impl PromiseEntries {
         self.0.is_empty()
     }
 
-    /// Versa i contributi nella multimappa, in ordine.
+    /// Pours the contributions into the multimap, in order.
     pub fn merge_into(&self, map: &mut PromiseMap) {
-        // Gli id, non il conteggio: sono la chiave con cui una promessa si ritrova poi nel
-        // registro delle promesse non risolte.
+        // The ids, not the count: they are the key by which a promise is found again in the
+        // register of unresolved ones.
         tracing::debug!(
             ids = %self.0.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "),
             "promises deposited"
@@ -198,51 +185,46 @@ impl<K: Into<String>, V: Into<BlockValue>> FromIterator<(K, V)> for PromiseEntri
     }
 }
 
-/// Il risultato di un pipe di deserializzazione.
+/// The result of a deserialize pipe.
 ///
-/// Rimpiazza il dispatch per `isinstance` su liste Python eterogenee del riferimento: con un enum
-/// il "ricomponi i risultati per tipo" di `run_documents` diventa un `match` che il compilatore
-/// verifica (`PLAN.md` §5.4).
-///
-/// **Ora completo.** M5 l'aveva aperto con le sole `Promises`/`PageClass`; M7 ha aggiunto le tre
-/// entità che la decisione D-M7-2 dell'utente ha anticipato da M8 (`Fund`, `Equity`, `Bond`, le
-/// uniche che i pipe `deserialize` standard sapessero già costruire). M8 aggiunge le sette
-/// varianti restanti di `PLAN.md` §5.4, chiudendo il modulo.
+/// An enum rather than a heterogeneous list means that regrouping results by type is a `match` the
+/// compiler checks, instead of a chain of runtime type tests that goes quietly wrong when a
+/// thirteenth kind of result appears.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum Extracted {
-    /// Una partecipazione azionaria su una società bersaglio.
+    /// An equity holding in a target company.
     Equity(Equity),
-    /// Un'obbligazione di una società bersaglio.
+    /// A bond issued by a target company.
     Bond(Bond),
-    /// Un fondo, con il solo nome.
+    /// A fund, by name alone.
     Fund(Fund),
-    /// Il patrimonio di un fondo a una certa data.
+    /// A fund's assets at a given date.
     FundAssets(FundAssets),
-    /// La classificazione SFDR (art. 6/8/9) dichiarata di un fondo.
+    /// A fund's declared SFDR classification (article 6, 8 or 9).
     FundSfdrClassification(FundSfdrClassification),
-    /// Un indicatore ESG di un fondo.
+    /// An ESG indicator of a fund.
     FundEsgIndicator(FundEsgIndicator),
-    /// La rinomina di un fondo.
+    /// The renaming of a fund.
     FundRename(FundRename),
-    /// La fusione di un fondo in un altro.
+    /// The merger of one fund into another.
     FundMerge(FundMerge),
-    /// La società di gestione di un fondo.
+    /// A fund's management company.
     ManagementCompany(ManagementCompany),
-    /// Il gestore degli investimenti di un fondo.
+    /// A fund's investments manager.
     InvestmentsManager(InvestmentsManager),
-    /// Le promesse depositate dal pipe, da versare nella multimappa di risoluzione.
+    /// The promises the pipe deposited, to be poured into the resolution multimap.
     Promises(PromiseEntries),
-    /// L'esito della pipeline di classificazione: la class della pagina, o `None` se il pipe non
-    /// ha saputo classificarla.
+    /// The outcome of the classification pipeline: the page's class, or `None` if the pipe could
+    /// not classify it.
     PageClass(Option<PageClass>),
 }
 
 impl Extracted {
-    /// La page class, se questo risultato viene dalla pipeline di classificazione.
+    /// The page class, if this result comes from the classification pipeline.
     ///
-    /// `Some(None)` e `None` sono cose diverse: il primo è "una classificazione c'è stata, ed è
-    /// 'nessuna class'", il secondo è "questo risultato non è una classificazione".
+    /// `Some(None)` and `None` are different things: the first is "a classification happened, and
+    /// it is 'no class'", the second is "this result is not a classification".
     #[allow(clippy::option_option)]
     pub fn as_page_class(&self) -> Option<&Option<PageClass>> {
         match self {
@@ -251,7 +233,7 @@ impl Extracted {
         }
     }
 
-    /// Le promesse, se questo risultato ne porta.
+    /// The promises, if this result carries any.
     pub fn as_promises(&self) -> Option<&PromiseEntries> {
         match self {
             Extracted::Promises(entries) => Some(entries),
@@ -259,7 +241,7 @@ impl Extracted {
         }
     }
 
-    /// Il fondo, se questo risultato ne è uno.
+    /// The fund, if this result is one.
     pub fn as_fund(&self) -> Option<&Fund> {
         match self {
             Extracted::Fund(fund) => Some(fund),
@@ -267,7 +249,7 @@ impl Extracted {
         }
     }
 
-    /// La partecipazione azionaria, se questo risultato ne è una.
+    /// The equity holding, if this result is one.
     pub fn as_equity(&self) -> Option<&Equity> {
         match self {
             Extracted::Equity(equity) => Some(equity),
@@ -275,7 +257,7 @@ impl Extracted {
         }
     }
 
-    /// L'obbligazione, se questo risultato ne è una.
+    /// The bond, if this result is one.
     pub fn as_bond(&self) -> Option<&Bond> {
         match self {
             Extracted::Bond(bond) => Some(bond),
@@ -283,7 +265,7 @@ impl Extracted {
         }
     }
 
-    /// Il patrimonio del fondo, se questo risultato ne è uno.
+    /// The fund assets, if this result is one.
     pub fn as_fund_assets(&self) -> Option<&FundAssets> {
         match self {
             Extracted::FundAssets(assets) => Some(assets),
@@ -291,7 +273,7 @@ impl Extracted {
         }
     }
 
-    /// La classificazione SFDR, se questo risultato ne è una.
+    /// The SFDR classification, if this result is one.
     pub fn as_fund_sfdr_classification(&self) -> Option<&FundSfdrClassification> {
         match self {
             Extracted::FundSfdrClassification(classification) => Some(classification),
@@ -299,7 +281,7 @@ impl Extracted {
         }
     }
 
-    /// L'indicatore ESG, se questo risultato ne è uno.
+    /// The ESG indicator, if this result is one.
     pub fn as_fund_esg_indicator(&self) -> Option<&FundEsgIndicator> {
         match self {
             Extracted::FundEsgIndicator(indicator) => Some(indicator),
@@ -307,7 +289,7 @@ impl Extracted {
         }
     }
 
-    /// La rinomina, se questo risultato ne è una.
+    /// The renaming, if this result is one.
     pub fn as_fund_rename(&self) -> Option<&FundRename> {
         match self {
             Extracted::FundRename(rename) => Some(rename),
@@ -315,7 +297,7 @@ impl Extracted {
         }
     }
 
-    /// La fusione, se questo risultato ne è una.
+    /// The merger, if this result is one.
     pub fn as_fund_merge(&self) -> Option<&FundMerge> {
         match self {
             Extracted::FundMerge(merge) => Some(merge),
@@ -323,7 +305,7 @@ impl Extracted {
         }
     }
 
-    /// La società di gestione, se questo risultato ne è una.
+    /// The management company, if this result is one.
     pub fn as_management_company(&self) -> Option<&ManagementCompany> {
         match self {
             Extracted::ManagementCompany(company) => Some(company),
@@ -331,7 +313,7 @@ impl Extracted {
         }
     }
 
-    /// Il gestore degli investimenti, se questo risultato ne è uno.
+    /// The investments manager, if this result is one.
     pub fn as_investments_manager(&self) -> Option<&InvestmentsManager> {
         match self {
             Extracted::InvestmentsManager(manager) => Some(manager),
@@ -340,20 +322,19 @@ impl Extracted {
     }
 }
 
-/// Cosa un pipe `text_filter` sa del contesto in cui gira (`PLAN.md` §5.4).
+/// What a `text_filter` pipe knows about the context it runs in.
 ///
-/// Enum e non struct: le due cose non sono mai disponibili insieme — vedi la nota su D-M5-1 nel
-/// doc-comment del modulo.
+/// An enum, not a struct: the two are never available together — see the module documentation.
 #[derive(Debug, Clone, Copy)]
 pub enum FilterData<'a> {
-    /// Primo step dello schedule: le società bersaglio con cui il pipe deve fare match.
+    /// First step of the schedule: the target companies the pipe has to match against.
     TargetCompanies(&'a [CompanyMatchInfos]),
-    /// Step successivi: l'accumulo dei risultati di **tutti** gli step precedenti.
+    /// Later steps: the accumulated results of **all** preceding steps.
     Previous(&'a [Extracted]),
 }
 
 impl<'a> FilterData<'a> {
-    /// Le target companies, se è il primo step; una slice vuota altrimenti.
+    /// The target companies if this is the first step; an empty slice otherwise.
     pub fn target_companies(&self) -> &'a [CompanyMatchInfos] {
         match self {
             FilterData::TargetCompanies(companies) => companies,
@@ -361,7 +342,7 @@ impl<'a> FilterData<'a> {
         }
     }
 
-    /// I risultati degli step precedenti, se non è il primo step; una slice vuota altrimenti.
+    /// The results of the preceding steps if this is not the first one; an empty slice otherwise.
     pub fn previous(&self) -> &'a [Extracted] {
         match self {
             FilterData::Previous(results) => results,
@@ -369,8 +350,8 @@ impl<'a> FilterData<'a> {
         }
     }
 
-    /// `FilterData` con cui girano le pipeline di classificazione, dove non c'è né uno step
-    /// precedente né una lista di target companies (nel riferimento è `None`).
+    /// The [`FilterData`] the classification pipelines run with, where there is neither a preceding
+    /// step nor a list of target companies.
     pub const EMPTY: FilterData<'static> = FilterData::Previous(&[]);
 }
 
@@ -561,8 +542,8 @@ mod tests {
 
         #[test]
         fn an_unclassified_page_is_still_a_page_class_result() {
-            // `Some(None)` (una classificazione che dice "nessuna class") non va confuso con
-            // `None` (questo risultato non e' una classificazione).
+            // `Some(None)` — a classification saying "no class" — is not to be confused with
+            // `None`, which says this result is not a classification at all.
             let e = Extracted::PageClass(None);
             assert_eq!(e.as_page_class(), Some(&None));
             assert!(e.as_promises().is_none());
@@ -604,9 +585,8 @@ mod tests {
         }
     }
 
-    /// M8: le sette varianti d'entità che `output::classes` aggiunge (`agent-memory/
-    /// M8-implementation-plan.md` §3 passo 7), più i loro accessori `as_*` e un `match`
-    /// esaustivo che ne previene la regressione silenziosa.
+    /// The entity variants that `output::classes` contributes, with their `as_*` accessors and an
+    /// exhaustive `match` that prevents a silent regression.
     mod new_entity_variants {
         use super::*;
         use crate::commons::consts::{Currency, SfdrArticle};
@@ -680,9 +660,9 @@ mod tests {
                 .expect("fixed, valid fixture")
         }
 
-        /// Un esemplare per ciascuna delle dodici varianti di `Extracted`, nell'ordine di
-        /// dichiarazione di `PLAN.md` §5.4. Le prove di esaustività sotto iterano su questa lista,
-        /// stesso schema di `BlockValue::tests::one_of_each` (M2).
+        /// One specimen of each of the twelve [`Extracted`] variants, in declaration order. The
+        /// exhaustiveness checks below iterate over this list, the same way `BlockValue`'s tests
+        /// do.
         fn one_of_each() -> Vec<Extracted> {
             vec![
                 Extracted::Equity(equity()),
@@ -760,7 +740,7 @@ mod tests {
                 }
             }
 
-            /// Le sette varianti nuove non devono mai soddisfare gli accessori di M5
+            /// The entity variants must never satisfy the accessors of the others
             /// (`as_fund`/`as_equity`/`as_bond`/`as_promises`/`as_page_class`).
             #[test]
             fn the_five_pre_existing_accessors_reject_every_new_variant_too() {
@@ -774,9 +754,9 @@ mod tests {
             }
         }
 
-        /// P1 (`agent-memory/P1-implementation-plan.md` §3): un `Extracted` torna dal processo
-        /// figlio al padre serializzato in JSON. Riusa `one_of_each`, cosi' una tredicesima variante
-        /// entra automaticamente nel round-trip invece di restare scoperta in silenzio.
+        /// An [`Extracted`] travels back from a worker process to the parent serialised as JSON.
+        /// Reuses `one_of_each`, so a thirteenth variant enters the round trip automatically
+        /// instead of staying silently uncovered.
         mod serde_round_trip {
             use super::*;
             use pretty_assertions::assert_eq;
@@ -795,9 +775,9 @@ mod tests {
                 }
             }
 
-            /// Le promesse sono l'unica variante che porta una struttura annidata arbitraria
-            /// (`BlockValue`, ricorsivo). Un `PromiseEntries` vuoto, che `one_of_each` usa, non
-            /// direbbe nulla sull'annidamento.
+            /// Promises are the only variant carrying an arbitrary nested structure (`BlockValue`,
+            /// which is recursive). The empty `PromiseEntries` that `one_of_each` uses would say
+            /// nothing about nesting.
             #[test]
             fn promise_entries_survive_with_nested_block_values() {
                 let entries: PromiseEntries = [
@@ -820,9 +800,9 @@ mod tests {
                 assert_eq!(round_trip(&e), e);
             }
 
-            /// L'ordine delle promesse decide chi vince quando la promessa non e' *multiple*
-            /// (vedi `FlatPromiseMap::fulfill`): se il round-trip lo perdesse, un job in parallelo
-            /// produrrebbe un risultato diverso dallo stesso job in sequenziale.
+            /// The order of the promises decides who wins when a promise is not *multiple* (see
+            /// `FlatPromiseMap::fulfill`): were the round trip to lose it, a parallel job would
+            /// produce a different result from the same job run sequentially.
             #[test]
             fn the_order_of_promise_entries_is_preserved() {
                 let entries: PromiseEntries =
@@ -840,8 +820,8 @@ mod tests {
             }
         }
 
-        /// Il `match` esaustivo — senza `_ =>` — su tutte e dodici le varianti: se una tredicesima
-        /// venisse aggiunta senza toccare questo test, il compilatore lo segnalerebbe qui.
+        /// The exhaustive `match` — with no `_ =>` arm — over all twelve variants: a thirteenth
+        /// added without touching this test is reported by the compiler right here.
         mod exhaustive_match {
             use super::*;
             use pretty_assertions::assert_eq;

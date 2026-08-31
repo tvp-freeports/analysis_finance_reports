@@ -1,8 +1,8 @@
-//! Shim di `freeports.input`: il caricamento delle società bersaglio da un input database.
+//! The shim for loading the target companies from an input database.
 //!
-//! È la parte di API che serve a `freeports_dev` (`input_db.py`), non agli autori di formato: il
-//! `filter_data` che i pipe `text_filter` ricevono al primo step dello schedule è esattamente la
-//! lista di [`CompanyMatchInfos`] che [`py_get_target_companies`] restituisce.
+//! The part of the API the development tooling needs rather than format authors: the filter data a
+//! filtering pipe receives at the first step of a schedule is exactly the list
+//! [`py_get_target_companies`] returns.
 
 use std::path::PathBuf;
 
@@ -12,10 +12,10 @@ use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 use crate::input::companies_db;
 use crate::core::tracing_setup::log_error;
 
-/// Shim Python di [`CompanyMatchInfos`], la forma compilata di una società bersaglio.
+/// The Python shim of a compiled target company.
 ///
-/// È opaco di proposito: contiene regex già compilate, e il codice d'autore non ha nulla da
-/// leggerci dentro se non il nome — che è l'unica cosa che il riferimento esponeva.
+/// Opaque on purpose: it holds already-compiled patterns, and author code has nothing to read
+/// inside it but the name — which is the only thing ever exposed.
 #[pyclass(name = "CompanyMatchInfos", module = "freeports.input", frozen)]
 #[derive(Clone)]
 pub struct PyCompanyMatchInfos(CompanyMatchInfos);
@@ -49,11 +49,10 @@ impl PyCompanyMatchInfos {
     }
 }
 
-/// Le società delle liste indicate, già compilate e pronte da passare come `filter_data`.
+/// The companies of the named lists, already compiled and ready to pass as filter data.
 ///
-/// Nel riferimento questa funzione restituiva un `pd.DataFrame` che il chiamante doveva ancora
-/// compilare; qui — come già nella versione Rust precedente — la compilazione è inclusa, perché
-/// è l'unica cosa che i chiamanti ne facessero.
+/// The compilation is included, rather than left to the caller, because it is the only thing
+/// callers ever did with the result.
 #[pyfunction]
 #[pyo3(name = "get_target_companies", signature = (input_db_directory, target_lists))]
 pub fn py_get_target_companies(
@@ -75,7 +74,7 @@ pub fn py_get_target_companies(
         })
 }
 
-/// Gli input grezzi, non compilati — l'altra metà di `PLAN.md` §9 per `input`.
+/// The raw, uncompiled inputs.
 #[pyfunction]
 #[pyo3(name = "load_target_companies", signature = (input_db_directory, target_lists))]
 pub fn py_load_target_companies(

@@ -1,53 +1,24 @@
-//! PdfLine: riga di testo estratta (font, corpo, bbox, testo).
+//! [`PdfLine`]: one line of text extracted from a page — font, size, text, bounding box.
 //!
-//! Porting verbatim del riferimento (`PLAN.md` §0/§12 D14): stessa logica di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line` (la parte *dati*, non le
-//! selezioni), solo spostata in un modulo a se' (`pdf_extract::pdf_line`, sibling di
-//! `pdf_extract::select`) e senza PyO3.
+//! The *data* half of a line. The algebra for selecting lines by font, size, text or area lives in
+//! [`super::select`], which imports [`Font`] from here and implements its set traits there. The
+//! dependency runs one way on purpose: selections depend on the data, never the other way round.
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub struct Font(String)` — solo la parte *dati*: normalizzazione (accenti/spazi/parentesi/
-//!   virgole/trattini, vedi il riferimento `select/pdf_line/font.rs`), non l'algebra di
-//!   selezione. `Font::new(input: &str) -> Font` normalizza eagerly (stessa logica del
-//!   riferimento); `Font::inner(&self) -> &str` espone la stringa normalizzata. Deriva almeno
-//!   `Debug, Clone, PartialEq, Eq, Hash` (serve a `select::pdf_line::font::FontSet =
-//!   DisjointAtomsSet<Font,Font>`, che richiede quei bound).
-//!   - **Decisione R4 (`PLAN.md`)**: `Container`/`Overlappable`/`AtomOperations`/`AtomAlgebra`
-//!     per `Font`, e il tipo `FontSet` stesso, **non** stanno qui — stanno in
-//!     `select::pdf_line::font` (che importa `Font` da qui e vi implementa quei trait: lecito in
-//!     Rust, l'`impl` non deve stare nel file di definizione del tipo purche' nello stesso
-//!     crate). Questo modulo (`pdf_line`) non deve dipendere da `select` (le selezioni dipendono
-//!     dai dati, non il contrario).
-//! - `pub struct PdfLine { font: Font, font_size: f32, text: String, bbox: Rectangle }` — **niente
-//!   campo `area`** a differenza del riferimento: costruire un `Area` da un `Rectangle` e' solo
-//!   un wrapping (`Area::from_atom`, nessuna normalizzazione reale, a differenza di
-//!   `Font::new`), quindi cache-arlo qui sarebbe un campo ridondante derivabile a costo zero.
-//!   `select::pdf_line::area` aggiunge invece un metodo `PdfLine::area(&self) -> Area` che lo
-//!   deriva on demand (vedi il doc-comment di quel modulo per i test che lo riguardano) — non e'
-//!   testato qui, dato che dipende dal tipo `Area` (selezione), non dai dati puri.
-//!   - `PdfLine::new(font: &str, font_size: f32, text: &str, area: (f32,f32,f32,f32)) -> Self`:
-//!     normalizza il font con `Font::new`, costruisce `bbox` con `Rectangle::new` (verbatim:
-//!     puo' quindi andare in panico se `area` non e' un rettangolo valido, esattamente come
-//!     `Rectangle::new`). **Va in panico** con il messaggio esatto
-//!     `"Font size of a PdfLine cannot be negative"` se `font_size <= 0.0` (verbatim dal
-//!     riferimento, incluso lo zero: la guardia e' `<= 0.0`, non `< 0.0`).
-//!   - Accessori: `font(&self) -> &Font`, `font_size(&self) -> &f32`, `bbox(&self) -> &Rectangle`,
-//!     `text(&self) -> &String` (stessa forma del riferimento).
-//!   - Deriva almeno `Debug, Clone` (il riferimento non richiede `PartialEq`/`Eq`/`Hash` qui, e
-//!     `f32`/`Rectangle` a bordo rendono `Eq` scomodo senza `OrderedFloat`; non e' richiesto da
-//!     nessun contratto pubblico di questa milestone).
+//! A line deliberately carries no cached `area`: deriving an area from its bounding box is a
+//! wrapping with no real work in it, so caching one would be a redundant field that can go stale.
+//! [`super::select::pdf_line::area`] adds the accessor that derives it on demand.
 
 use crate::commons::geometry::Rectangle;
 
-/// Font normalizzato (dati + normalizzazione soltanto: l'algebra di selezione vive in
-/// `select::pdf_line::font`, R4 del `PLAN.md`).
+/// A normalised font name.
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Font(String);
 
 impl Font {
-    /// Normalizza eagerly: accenti latini, spazi/parentesi/punteggiatura, minuscolo. Verbatim dal
-    /// riferimento (`freeports_core::...::select::pdf_line::font::Font::new`).
+    /// Normalises eagerly: Latin accents, spaces, brackets and punctuation, lowercase.
+    ///
+    /// Eagerly rather than on comparison, because a font name is compared far more often than it is
+    /// built, and because it makes two lines with the same font compare equal by construction.
     pub fn new(input: &str) -> Self {
         let trimmed_input = input.trim();
         let mut out = String::with_capacity(trimmed_input.len());
@@ -83,13 +54,13 @@ impl Font {
         Self(out)
     }
 
-    /// La stringa normalizzata.
+    /// The normalised string.
     pub fn inner(&self) -> &str {
         &self.0
     }
 }
 
-/// Riga di testo estratta da una pagina PDF: font (normalizzato), corpo, testo, bbox.
+/// A line of text extracted from a PDF page: normalised font, size, text, bounding box.
 #[derive(Debug, Clone)]
 pub struct PdfLine {
     font: Font,
@@ -99,9 +70,13 @@ pub struct PdfLine {
 }
 
 impl PdfLine {
-    /// Normalizza `font` con [`Font::new`] e costruisce `bbox` con [`Rectangle::new`] (puo'
-    /// quindi andare in panico se `area` non e' un rettangolo valido). Va in panico anche se
-    /// `font_size <= 0.0`, verbatim dal riferimento.
+    /// Normalises `font` with [`Font::new`] and builds the bounding box with [`Rectangle::new`].
+    ///
+    /// # Panics
+    ///
+    /// If `area` is not a valid rectangle, through [`Rectangle::new`], and if `font_size` is zero
+    /// or negative — a line without a positive size is a malformed input, not a line worth carrying
+    /// further.
     pub fn new(font: &str, font_size: f32, text: &str, area: (f32, f32, f32, f32)) -> Self {
         if font_size <= 0.0 {
             panic!("Font size of a PdfLine cannot be negative")

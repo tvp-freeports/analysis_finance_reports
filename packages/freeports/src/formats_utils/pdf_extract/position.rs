@@ -1,74 +1,28 @@
-//! InputArea, RowConfig, ColumnConfig, TableConfig, get_groups.
+//! Table configuration and line grouping: [`InputArea`], [`RowConfig`], [`ColumnConfig`],
+//! [`TableConfig`], [`get_groups`].
 //!
-//! Il vecchio riferimento (`freeports_core`) tiene `RowConfig`/`ColumnConfig`/`TableConfig` in
-//! `tabularizer.rs` come semplici `#[derive(FromPyObject)]` senza logica propria, e tiene
-//! `InputArea`/`get_groups` in un modulo `position.rs` che nel frattempo era gia' quasi tutto
-//! confine PyO3 (validazione via Pydantic-equivalente lato Rust, ma pensata per essere costruita
-//! da Python). Questa milestone riassegna deliberatamente `RowConfig`/`ColumnConfig`/
-//! `TableConfig` a questo modulo (`position`, non `tabularizer`) e ne rimuove ogni traccia di
-//! PyO3: sono dati di configurazione puri, letti in futuro da `formats_repo` (M7) e usati da
-//! `tabularizer::{collapse,coordinates}` (M3, stesso livello).
+//! These are the pure configuration data a format writes about a table — which limits a row or
+//! column has, how a column collapses, whether it may be null — plus the primitive that recovers
+//! rows and columns out of a page's geometry by grouping lines that sit close together along one
+//! axis.
 //!
-//! **Decisione R2 (`PLAN.md`)**: `CellGeometry` **non** e' ridefinito qui. Il tipo canonico e
-//! validato vive in `tabularizer::coordinates` (quello usato realmente dall'algoritmo); questo
-//! modulo non lo tocca perche' `RowConfig`/`ColumnConfig`/`TableConfig` non contengono
-//! `CellGeometry` — descrivono solo limiti/comportamento di collasso per riga/colonna, non le
-//! celle stesse.
+//! The configuration types live here rather than in [`super::tabularizer`] to keep the dependency
+//! between the two modules one-way: `tabularizer` needs the configuration, the configuration does
+//! not need `tabularizer`.
 //!
-//! Un solo `thiserror::Error` per il modulo (`PLAN.md` §8): `PositionError` copre sia la
-//! validazione di `InputArea` sia il caso limite di `get_groups` con lista vuota.
-//!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub struct RowConfig { pub limits: Option<Limits> }` — nessuna validazione propria oltre
-//!   quella gia' fatta da `Limits::build` a monte; deriva almeno `Debug, Clone, Copy, PartialEq`.
-//! - `pub struct ColumnConfig { pub limits: Option<Limits>, pub splitting:
-//!   Option<tabularizer::collapse::SplittingState>, pub nullable:
-//!   Option<tabularizer::collapse::NullableState> }` — stessi campi del riferimento (spostato
-//!   di modulo), stesse derive di `RowConfig`.
-//! - `pub struct TableConfig { pub cols: Option<Vec<ColumnConfig>>, pub rows:
-//!   Option<Vec<RowConfig>> }` — deriva almeno `Debug, Clone`.
-//! - `pub struct InputArea { x_min: Option<f32>, x_max: Option<f32>, y_min: Option<f32>, y_max:
-//!   Option<f32> }` (campi privati fuori dal modulo, leggibili dai test annidati). A differenza
-//!   del riferimento (Pydantic `PositiveFloat` via `#[new]` PyO3 che solleva `PyErr`), qui **non
-//!   c'e' costruttore panicante**: `InputArea` arriva da configurazione esterna (YAML di formato,
-//!   M7), quindi la validazione e' sempre un `Result`, mai un panic (coerente con `PLAN.md` §2
-//!   principio 4 — a differenza di `Limits`/`Rectangle`, che sono invarianti geometriche interne
-//!   al crate e percio' restano panicanti per decisione pregressa).
-//!   - Usa `f32`, non `f64` come il vecchio riferimento Pydantic-facing: coerente con il resto di
-//!     `pdf_extract` (`PdfLine`/`Rectangle`/`Limits`/`CellGeometry` sono tutti `f32`).
-//!   - `InputArea::build(x_min: Option<f32>, x_max: Option<f32>, y_min: Option<f32>, y_max:
-//!     Option<f32>) -> Result<Self, PositionError>`: ciascun limite presente deve essere
-//!     strettamente positivo (`> 0.0`, come `PositiveFloat`: **non** `>= 0.0`); se sia il minimo
-//!     sia il massimo di un asse sono presenti, il massimo deve essere strettamente maggiore del
-//!     minimo. Ordine di validazione (per determinismo dei test sugli errori):
-//!     `x_min, x_max, y_min, y_max` prima dei controlli incrociati `x_max > x_min`,
-//!     `y_max > y_min`.
-//!   - Accessori: `x_min(&self) -> Option<f32>`, `x_max`, `y_min`, `y_max` (stessa forma).
-//! - `pub enum PositionError { XMinNotPositive(f32), XMaxNotPositive(f32), YMinNotPositive(f32),
-//!   YMaxNotPositive(f32), XBoundsInverted{x_min: f32, x_max: f32}, YBoundsInverted{y_min: f32,
-//!   y_max: f32}, EmptyLines }`, `thiserror::Error`, derives at least `Debug` (i test qui sotto
-//!   fanno `{err:?}` per i messaggi di panico e pattern-match sui campi, non su un valore
-//!   letterale in virgola mobile — vietato dal compilatore).
-//! - `pub fn get_groups(lines: &[PdfLine], threshold: f32, vertical: bool) -> Result<Vec<i64>,
-//!   PositionError>`: prende la coordinata `bbox.1` (`y0`, se `vertical`) o `bbox.0` (`x0`, se
-//!   non `vertical`) di ciascuna riga, le ordina, e assegna un id di gruppo crescente ogni volta
-//!   che due valori consecutivi (nell'ordine *ordinato*) distano almeno `threshold` fra loro.
-//!   **Il vettore risultato e' nell'ordine delle chiavi ordinate, non nell'ordine di `lines` in
-//!   ingresso** — comportamento del riferimento preservato deliberatamente (non e' un
-//!   miglioramento da applicare, vedi `PLAN.md` §0). `Err(PositionError::EmptyLines)` se `lines`
-//!   e' vuoto (il riferimento sollevava `IndexError` allo stesso punto; qui diventa un errore
-//!   tipizzato invece di un panic, coerente con `PLAN.md` §2 principio 4).
+//! [`InputArea`] validates through a `Result` and never panics, unlike the geometric primitives of
+//! [`crate::commons::geometry`]. The difference is where the value comes from: a rectangle is an
+//! internal invariant, while an input area is written by a format author in a configuration file,
+//! and bad configuration deserves a message rather than a crash.
 
 use crate::commons::geometry::Limits;
 
 use super::pdf_line::PdfLine;
 
-// `SplittingDirection`/`SplittingState`/`NullableState` sono definiti qui (non in
-// `tabularizer::collapse`) per evitare una dipendenza circolare fra moduli: `ColumnConfig` ha
-// bisogno di questi tipi per i propri campi, e `tabularizer::collapse` ha bisogno di
-// `ColumnConfig`/`TableConfig`. Una sola direzione (`tabularizer` -> `position`) e' sufficiente;
-// `tabularizer::collapse` li re-esporta dal proprio percorso originale per compatibilita'.
+// `SplittingDirection`, `SplittingState` and `NullableState` are defined here rather than in
+// `tabularizer::collapse` to avoid a cycle: [`ColumnConfig`] needs them for its fields, and
+// `collapse` needs [`ColumnConfig`]. One direction suffices, and `collapse` re-exports them from
+// their original path.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SplittingDirection {
     Up,
@@ -119,8 +73,7 @@ pub enum PositionError {
     EmptyLines,
 }
 
-/// Area rettangolare di input opzionale, validata a partire da configurazione esterna
-/// (mai un panic: cfr. `PLAN.md` §2 principio 4).
+/// An optional rectangular input area, validated from external configuration.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InputArea {
     x_min: Option<f32>,
@@ -169,9 +122,18 @@ impl InputArea {
     }
 }
 
-/// Raggruppa `lines` per prossimita' lungo un asse. L'ordine del risultato segue l'ordine
-/// *ordinato* delle chiavi, non l'ordine di `lines` in ingresso: comportamento del riferimento
-/// preservato deliberatamente (`PLAN.md` §0).
+/// Groups `lines` by proximity along one axis.
+///
+/// Takes each line's coordinate along the chosen axis, sorts them, and starts a new group id every
+/// time two consecutive values are at least `threshold` apart. This is how the rows and columns of
+/// a table are recovered from a page that never declared it had a table.
+///
+/// The result follows the order of the **sorted** keys, not the order of `lines` as given.
+///
+/// # Errors
+///
+/// [`PositionError::EmptyLines`] if `lines` is empty: there is no grouping of nothing, and
+/// returning an empty vector would let the caller mistake it for one group.
 pub fn get_groups(lines: &[PdfLine], threshold: f32, vertical: bool) -> Result<Vec<i64>, PositionError> {
     if lines.is_empty() {
         return Err(PositionError::EmptyLines);
@@ -262,9 +224,8 @@ mod tests {
             assert_eq!(area.x_min(), Some(5.0));
         }
 
-        // Nota: i confronti sotto usano `if let` + `assert_eq!` sui campi invece di
-        // `matches!(.., Variant(0.0))`: un pattern letterale in virgola mobile e' rifiutato dal
-        // compilatore (`illegal_floating_point_literal_pattern`), quindi non e' disponibile qui.
+        // The comparisons below use `if let` plus `assert_eq!` on the fields rather than `matches!`
+        // against a literal: a floating-point literal pattern is rejected by the compiler.
 
         #[test]
         fn rejects_non_positive_x_min() {
@@ -344,10 +305,8 @@ mod tests {
 
         #[test]
         fn returns_group_ids_in_sorted_key_order_not_in_input_order() {
-            // Ordine di input: y = 10, 0, 5 (differenze successive nell'ordine ordinato:
-            // 0->5 = 5, 5->10 = 5, entrambe >= soglia): il riferimento restituisce gli id nel
-            // *stesso ordine delle chiavi ordinate* (0,1,2), non nell'ordine delle righe in
-            // ingresso — comportamento preservato deliberatamente, non e' un bug da correggere.
+            // Input order is y = 10, 0, 5, and the ids come back in the order of the *sorted* keys
+            // (0, 1, 2), not in the order of the input lines.
             let lines = vec![line_at(0.0, 10.0), line_at(0.0, 0.0), line_at(0.0, 5.0)];
             assert_eq!(get_groups(&lines, 3.0, true).unwrap(), vec![0, 1, 2]);
         }

@@ -1,51 +1,22 @@
-//! Bitwise flag-expression parser/evaluator: turns strings like `"A | B & ~C"` into a combined
-//! bitmask, given a `{name: bit}` lookup table.
+//! A bitwise flag-expression parser and evaluator: turns strings like `"A | B & ~C"` into a
+//! combined bitmask, given a name-to-bit lookup table.
 //!
-//! Ported from `packages/freeports_core/src/commons/flag_expr.rs` (see that file's own module
-//! doc for the historical Python origin — `enum_utils.py::flag_from_string`'s `_from_ast` AST
-//! walker). Only the pure-Rust parsing/evaluation kernel is ported; the reference's
-//! `py_evaluate_flag_expression` PyO3 wrapper is dropped entirely — this crate has no
-//! Python-facing shim layer yet (see `PLAN.md` §0 non-obiettivi).
+//! It exists so that a formats repository can write an algorithm's flags as a readable expression
+//! in a configuration cell, instead of a magic integer.
 //!
-//! Preserved verbatim from the reference (this module is listed in `PLAN.md` §0 as "da
-//! preservare quasi invariato" — same logic, free reorganization only):
+//! # Semantics
 //!
-//! - precedence, lowest to highest: `|` then `^` then `&` then unary `~`, left-to-right within a
-//!   precedence level;
-//! - parentheses group and override precedence, and may nest arbitrarily;
-//! - names are matched case-insensitively (uppercased *before* lookup — the lookup table's own
-//!   keys are **not** normalized, so a table keyed by lowercase names will not match; this is
-//!   the reference's actual behaviour, not a bug introduced here);
-//! - unary `~` masks its complement to the "universe" (the OR of every bit value present in the
-//!   lookup table), not an open-ended/fixed-width bit complement: `~A` on `{A, B, C}` is `B | C`,
-//!   matching Python's `Flag.__invert__`, never some huge out-of-range value.
+//! - precedence, lowest to highest: `|`, then `^`, then `&`, then unary `~`, left to right within
+//!   a level;
+//! - parentheses group and override precedence, and nest arbitrarily;
+//! - names are matched case-insensitively, uppercased **before** lookup. The lookup table's own
+//!   keys are not normalised, so a table keyed by lowercase names will not match;
+//! - unary `~` complements against the *universe* — the OR of every bit present in the lookup
+//!   table — not against a fixed width. `~A` over `{A, B, C}` is `B | C`, never some huge
+//!   out-of-range value.
 //!
-//! What changes from the reference: the flat `Result<u64, String>` becomes a typed
-//! `FlagExprError` (`thiserror`, per `PLAN.md` §2 principle 4), with one variant per failure
-//! path the reference's own error messages already distinguish — see the doc comment on
-//! `FlagExprError` below for the exact list.
-//!
-//! # API contract
-//!
-//! Pinned down by the test suite below (`PLAN.md` §10/§14):
-//!
-//! - `pub fn evaluate(expression: &str, names: &HashMap<String, u64>) -> Result<u64, FlagExprError>`
-//! - `pub enum FlagExprError` (needs `#[derive(Debug)]` at least — tests use `.unwrap()` and
-//!   `{other:?}` on it, but deliberately never `assert_eq!`/`PartialEq` on the error itself, so
-//!   no other derive is mandated by the tests) with exactly these variants:
-//!   - `UnknownFlag { name: String }` — a name not present in the lookup table (after
-//!     uppercasing); `name` carries the offending, already-uppercased name.
-//!   - `UnexpectedCharacter { character: char }` — a character the tokenizer doesn't recognise
-//!     (not whitespace, not `|^&~()`, not alphanumeric/`_`).
-//!   - `EmptyExpression` — the expression contains no tokens at all (empty string, or
-//!     whitespace-only).
-//!   - `UnexpectedToken` — parsing needed a name/`(`/`~` (i.e. it's at `primary` or right after a
-//!     binary/unary operator) and either ran out of tokens or found a token that can't start
-//!     one there (e.g. a bare operator, an empty `()`).
-//!   - `UnclosedParenthesis` — after a `(...)` group's inner expression, the next token is not a
-//!     `)` (either there is no next token, or there's a different one).
-//!   - `TrailingTokens` — the expression parsed to a complete, valid value but left-over tokens
-//!     remain afterwards (e.g. `"A B"`, `"A)"`).
+//! Every failure has its own error variant rather than a single message string, so a caller can
+//! tell an unknown flag name from a syntax error and report accordingly.
 
 use std::collections::HashMap;
 
@@ -605,12 +576,13 @@ mod tests {
         }
     }
 
-    /// Stress tests: the interaction of precedence, parentheses and `~`'s universe-masking is
-    /// combinatorial (`PLAN.md` §10 calls for exactly this — generated input, invariants
-    /// checked, explicitly naming De Morgan). No `rand` dependency is added for this (it isn't
-    /// one of this crate's dependencies, see `Cargo.toml`, and this module doesn't need one):
-    /// `Xorshift64` below is a tiny, deterministic, fixed-seed PRNG good enough to generate a
-    /// variety of expression shapes reproducibly.
+    /// Stress tests: the interaction of precedence, parentheses and the universe-masking of `~`
+    /// is combinatorial, so it is checked over generated input against invariants — De Morgan's
+    /// laws among them — rather than case by case.
+    ///
+    /// No random-number dependency is taken for this. `Xorshift64` below is a tiny,
+    /// deterministic, fixed-seed generator, which is enough to produce a variety of expression
+    /// shapes and keeps every failure reproducible.
     mod stress {
         use super::*;
 

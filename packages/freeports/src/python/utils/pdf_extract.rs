@@ -1,10 +1,8 @@
-//! Shim di `freeports.utils.pdf_extract`: righe di pagina, selezioni, geometria, tabelle.
+//! The shims of the page-geometry utilities: lines, selections, geometry, tables.
 //!
-//! È il modulo che il codice d'autore di un repo formati usa di più: `PdfLineSelection` da sola
-//! compare centinaia di volte. Il contratto Python è quello del riferimento — stessi nomi, stessi
-//! metodi statici, stessi operatori — verificato contro i `#[pyclass]` che il vecchio
-//! `freeports_core` esponeva, così che l'aggiornamento del repo formati resti limitato agli
-//! import.
+//! The module author code uses most: line selections alone appear hundreds of times in a formats
+//! repository. The Python contract is the established one — same names, same static methods, same
+//! operators — so that updating a repository stays limited to its imports.
 
 use pyo3::PyClass;
 use pyo3::prelude::*;
@@ -30,28 +28,22 @@ use crate::input::document::page_dict::{self, PageDict};
 use crate::input::document::selection;
 use crate::core::tracing_setup::log_error;
 
-/// Un errore nativo come `ValueError` Python.
+/// A native error as a Python `ValueError`.
 ///
-/// Loggato prima della conversione (rule 1 di L2, stesso motivo di
-/// `python::input::py_get_target_companies`): oltre questo punto l'errore vive solo come eccezione
-/// Python, invisibile alla pipeline di tracing/`.log.csv` di questo crate. `error!`, non `warn!`:
-/// a differenza dei cast per valore (`python::utils::deserialize::cast_error`), qui il fallimento
-/// e' su un'intera pagina/configurazione/selezione, non su un singolo valore che il codice
-/// d'autore prova e scarta.
-/// Aggancia anche il campo `error` strutturato, cosi' che `freeports.log.jsonl` (e, a `-vvv`,
-/// `.freeports.log.yaml`) ne portino forma `Debug`, forma `Display` e catena di `source()` e non
-/// la sola stringa del messaggio — L5, richiesta dell'utente. Il limite che lo impediva prima era
-/// il vincolo `Display` di questa firma, tenuto per l'unico chiamante che passa una `String`:
-/// quel caso ha ora la sua funzione, [`value_error_msg`], e questa puo' chiedere un vero
-/// `std::error::Error`.
+/// Logged before the conversion: past this point the error lives only as a Python exception,
+/// invisible to this crate's own logging. An error rather than a warning: unlike a per-value cast,
+/// the failure here is over a whole page, configuration or selection, not over one value author
+/// code tries and discards.
+///
+/// It also attaches the structured error, so that the file logs carry its debug form, display form
+/// and chain of causes rather than the message alone.
 fn value_error<E: std::error::Error + 'static>(error: E) -> PyErr {
     tracing::error!(error = log_error(&error), "pdf_extract call failed: {error}");
     pyo3::exceptions::PyValueError::new_err(error.to_string())
 }
 
-/// La variante per il solo chiamante che non ha un errore da passare ma un messaggio gia'
-/// composto (`pdfline_selection_from_dict`, che descrive una mappatura Python malformata). Stesso
-/// evento, senza la parte strutturata: non c'e' nessun `Err` da serializzare.
+/// The variant for the one caller that has no error to pass but an already-composed message. The
+/// same event, without the structured part: there is no failure to serialize.
 fn value_error_msg(message: String) -> PyErr {
     tracing::error!("pdf_extract call failed: {message}");
     pyo3::exceptions::PyValueError::new_err(message)
@@ -61,7 +53,7 @@ fn value_error_msg(message: String) -> PyErr {
 // PdfLine
 // =================================================================================================
 
-/// Shim Python di [`PdfLine`]: una riga di testo con font, corpo e riquadro.
+/// The Python shim of a page line: text with its font, size and bounding box.
 #[pyclass(name = "PdfLine", module = "freeports.utils.pdf_extract", frozen)]
 #[derive(Debug, Clone)]
 pub struct PyPdfLine(PdfLine);
@@ -77,7 +69,7 @@ impl PyPdfLine {
         &self.0
     }
 
-    /// I campi che definiscono una riga, in una forma confrontabile e hashabile.
+    /// The fields defining a line, in a comparable and hashable form.
     fn identity(&self) -> (&str, u32, &str, [u32; 4]) {
         let (x0, y0, x1, y1) = self.0.bbox().as_tuple();
         (
@@ -126,10 +118,10 @@ impl PyPdfLine {
         )
     }
 
-    /// `PdfLine` non deriva `PartialEq`/`Hash` nel crate, e aggiungerli sarebbe una modifica al
-    /// codice esistente che questo layer si è imposto di non fare: uguaglianza e hash dello shim
-    /// passano quindi dai quattro campi osservabili, che sono esattamente ciò che definisce una
-    /// riga. Il corpo del carattere entra nell'hash per i suoi bit, perché `f32` non è `Hash`.
+    /// The native line derives neither equality nor hashing, and adding them would be a change to
+    /// existing code this layer has undertaken not to make: the shim's equality and hashing go
+    /// through the four observable fields, which are exactly what defines a line. The font size
+    /// enters the hash by its bits, floating-point values not being hashable.
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
         match other.extract::<PyRef<'_, PyPdfLine>>() {
             Ok(other) => self.identity() == other.identity(),
@@ -145,8 +137,8 @@ impl PyPdfLine {
     }
 }
 
-/// Una lista Python di `PdfLine` come slice nativo. È la conversione più frequente di tutto lo
-/// shim: ogni selezione la fa almeno una volta.
+/// A Python list of lines as a native slice. The most frequent conversion in the whole shim: every
+/// selection does it at least once.
 fn lines_from_py(lines: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLine>> {
     lines
         .try_iter()?
@@ -158,38 +150,35 @@ fn lines_from_py(lines: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLine>> {
 // PdfLineSelection
 // =================================================================================================
 
-/// Shim Python di [`PdfLineSelection`].
+/// The Python shim of a line selection.
 ///
-/// Avvolge un [`RelativePdfLineSet`] e non un `PdfLineSelection` (che è
-/// `OptionallyRelative<PdfLineSet, RelativePdfLineSet>`) per la stessa ragione del riferimento: il
-/// ramo relativo è un superinsieme di quello assoluto — una selezione assoluta è una foglia
-/// `Absolute` dentro un albero relativo — e tenerne uno solo rende gli operatori (`|`, `&`, `/`)
-/// definibili una volta invece che su quattro combinazioni.
+/// It wraps the *relative* form rather than the either-or one, because the relative branch is a
+/// superset of the absolute one — an absolute selection is an absolute leaf inside a relative tree
+/// — and keeping only one makes the operators definable once instead of over four combinations.
 #[pyclass(name = "PdfLineSelection", module = "freeports.utils.pdf_extract", frozen)]
 #[derive(Clone)]
 pub struct PyPdfLineSelection(RelativePdfLineSet);
 
 impl PyPdfLineSelection {
-    /// La selezione nella forma che le funzioni native pretendono.
+    /// The selection in the form the native functions require.
     pub fn selection(&self) -> PdfLineSelection {
         OptionallyRelative::Relative(self.0.clone())
     }
 }
 
-/// Una selezione relativa da una foglia assoluta.
+/// A relative selection from an absolute leaf.
 fn absolute(leaf: crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet) -> PyPdfLineSelection {
     PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Absolute(leaf)))
 }
 
-/// Una selezione relativa da una foglia relativa.
+/// A relative selection from a relative leaf.
 fn relative(leaf: RelativeSelectPdfLineSet) -> PyPdfLineSelection {
     PyPdfLineSelection(RelativePdfLineSet::from_leaf(OptionallyRelative::Relative(leaf)))
 }
 
 #[pymethods]
 impl PyPdfLineSelection {
-    /// Le quattro componenti in intersezione; nessuna componente equivale a "qualunque corpo
-    /// carattere", verbatim dal riferimento.
+    /// The four criteria, intersected; none of them given means any font size at all.
     #[new]
     #[pyo3(signature = (font=None, font_size=None, text=None, area=None))]
     fn new(
@@ -279,8 +268,8 @@ impl PyPdfLineSelection {
         ))
     }
 
-    /// Ogni bordo è un numero (coordinata assoluta) **oppure** un'altra selezione, di cui si
-    /// prende il bordo corrispondente. È la forma che il repo formati usa di più dopo `text`.
+    /// Each edge is either a number, an absolute coordinate, **or** another selection, whose
+    /// corresponding edge is taken. The form a formats repository uses most after matching by text.
     #[staticmethod]
     fn area_from_bounds(
         x0: &Bound<'_, PyAny>,
@@ -310,22 +299,22 @@ impl PyPdfLineSelection {
         PyPdfLineSelection(self.0.clone() / other.0)
     }
 
-    /// Alias di `|`, come nel riferimento.
+    /// An alias of the union operator.
     fn __add__(&self, other: PyPdfLineSelection) -> PyPdfLineSelection {
         self.__or__(other)
     }
 
-    /// Alias di `/`, come nel riferimento.
+    /// An alias of the difference operator.
     fn __sub__(&self, other: PyPdfLineSelection) -> PyPdfLineSelection {
         self.__truediv__(other)
     }
 
     // --- applicazione ---------------------------------------------------------------------
 
-    /// Le righe che soddisfano la selezione, nell'ordine in cui compaiono in `lines`.
+    /// The lines satisfying the selection, in the order they appear.
     ///
-    /// La selezione va prima *contestualizzata*: le sue parti relative (`text_of`, `area_of`,
-    /// ...) hanno bisogno delle righe della pagina per sapere a cosa si riferiscono.
+    /// The selection is *contextualised* first: its relative parts need the page's lines to know
+    /// what they refer to.
     fn select<'py>(&self, py: Python<'py>, lines: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyList>> {
         let lines = lines_from_py(lines)?;
         let set = self.0.clone().contextualize(&lines);
@@ -334,13 +323,13 @@ impl PyPdfLineSelection {
         PyList::new(py, selected)
     }
 
-    /// La selezione risolta contro un insieme di righe, senza applicarla.
+    /// The selection resolved against a set of lines, without applying it.
     fn contextualize(&self, lines: &Bound<'_, PyAny>) -> PyResult<PyPdfLineSet> {
         Ok(PyPdfLineSet(self.0.clone().contextualize(&lines_from_py(lines)?)))
     }
 }
 
-/// Un bordo di `area_from_bounds`: un numero, oppure una selezione da cui ricavarlo.
+/// One edge of a bounds-built area: a number, or a selection to derive it from.
 fn bound_from_py(value: &Bound<'_, PyAny>) -> PyResult<OptionallyRelative<f32, PdfLineSelection>> {
     if let Ok(absolute) = value.extract::<f32>() {
         return Ok(OptionallyRelative::Absolute(absolute));
@@ -354,7 +343,7 @@ fn bound_from_py(value: &Bound<'_, PyAny>) -> PyResult<OptionallyRelative<f32, P
     Ok(OptionallyRelative::Relative(selection.selection()))
 }
 
-/// Shim Python di [`PdfLineSet`]: una selezione già risolta contro una pagina.
+/// The Python shim of a line set: a selection already resolved against a page.
 #[pyclass(name = "PdfLineSet", module = "freeports.utils.pdf_extract", frozen)]
 pub struct PyPdfLineSet(PdfLineSet);
 
@@ -369,7 +358,7 @@ impl PyPdfLineSet {
 // Dal dict di PyMuPDF
 // =================================================================================================
 
-/// Le righe di testo di una pagina, dal dict che PyMuPDF restituisce (`page.get_text("dict")`).
+/// The text lines of a page, from the dict PyMuPDF returns.
 #[pyfunction]
 #[pyo3(name = "pdflines_from_pagedict", signature = (page, auto_rotate=true))]
 pub fn py_pdflines_from_pagedict(page: &Bound<'_, PyDict>, auto_rotate: bool) -> PyResult<Vec<PyPdfLine>> {
@@ -378,7 +367,7 @@ pub fn py_pdflines_from_pagedict(page: &Bound<'_, PyDict>, auto_rotate: bool) ->
     Ok(lines.into_iter().map(PyPdfLine).collect())
 }
 
-/// Le immagini raster di una pagina, dallo stesso dict.
+/// The raster images of a page, from the same dict.
 #[pyfunction]
 #[pyo3(name = "pdfimages_from_pagedict", signature = (page))]
 pub fn py_pdfimages_from_pagedict(page: &Bound<'_, PyDict>) -> PyResult<Vec<PyPageImage>> {
@@ -409,14 +398,15 @@ impl PyPageImage {
     }
 }
 
-/// Una selezione scritta nella sintassi testuale che i repo formati usano nei loro CSV.
+/// A selection written in the compact textual syntax formats repositories use in their
+/// configuration files.
 #[pyfunction]
 #[pyo3(name = "pdfline_selection_from_str", signature = (input))]
 pub fn py_pdfline_selection_from_str(input: &str) -> PyResult<PyPdfLineSelection> {
     selection::pdfline_selection_from_str(input).map(into_shim).map_err(value_error)
 }
 
-/// Una selezione scritta come dizionario (la forma "estesa" della stessa configurazione).
+/// A selection written as a mapping — the extended form of the same configuration.
 #[pyfunction]
 #[pyo3(name = "pdfline_selection_from_dict", signature = (data))]
 pub fn py_pdfline_selection_from_dict(data: &Bound<'_, PyAny>) -> PyResult<PyPdfLineSelection> {
@@ -425,11 +415,10 @@ pub fn py_pdfline_selection_from_dict(data: &Bound<'_, PyAny>) -> PyResult<PyPdf
     selection::pdfline_selection_from_dict(&spec).map(into_shim).map_err(value_error)
 }
 
-/// Una `PdfLineSelection` nativa come shim.
+/// A native selection as a shim.
 ///
-/// Il ramo `Absolute` viene riavvolto in un albero relativo di una sola foglia: lo shim tiene
-/// sempre la forma relativa (vedi il doc di [`PyPdfLineSelection`]), e un insieme assoluto è
-/// esattamente una foglia `Absolute`.
+/// An absolute selection is re-wrapped into a relative tree of a single leaf: the shim always keeps
+/// the relative form, and an absolute set is exactly an absolute leaf.
 fn into_shim(selection: PdfLineSelection) -> PyPdfLineSelection {
     match selection {
         OptionallyRelative::Relative(relative) => PyPdfLineSelection(relative),
@@ -437,14 +426,11 @@ fn into_shim(selection: PdfLineSelection) -> PyPdfLineSelection {
     }
 }
 
-/// Solleva un albero di selezione **assoluto** nel corrispondente albero relativo, foglia per
-/// foglia.
+/// Lifts an **absolute** selection tree into the corresponding relative one, leaf by leaf.
 ///
-/// Non è una conversione con perdita né una scorciatoia: `RelativePdfLineSet` è un albero le cui
-/// foglie sono `OptionallyRelative`, quindi ogni foglia assoluta ha già il suo posto esatto lì
-/// dentro. Serve perché lo shim tiene una sola delle due forme (vedi il doc di
-/// [`PyPdfLineSelection`]) mentre le funzioni native di configurazione possono restituire l'una o
-/// l'altra.
+/// Neither a lossy conversion nor a shortcut: the relative tree's leaves are exactly "absolute or
+/// relative", so every absolute leaf already has its precise place inside it. It is needed because
+/// the shim keeps only one of the two forms.
 fn lift_absolute(
     node: &crate::commons::sets::ast_simple::AstNode<
         crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet,
@@ -468,8 +454,8 @@ fn lift_absolute(
     }
 }
 
-/// Un oggetto Python come JSON, per riusare i `Deserialize` già scritti invece di reimplementare
-/// a mano la lettura di ogni campo di configurazione.
+/// A Python object as JSON, to reuse the deserializers already written instead of reimplementing
+/// the reading of every configuration field by hand.
 fn py_to_json(value: &Bound<'_, PyAny>) -> PyResult<String> {
     let json = value.py().import("json")?;
     json.call_method1("dumps", (value,))?.extract()
@@ -479,17 +465,17 @@ fn py_to_json(value: &Bound<'_, PyAny>) -> PyResult<String> {
 // Geometria e tabelle
 // =================================================================================================
 
-/// Raggruppa le righe per vicinanza lungo un asse.
+/// Groups lines by proximity along one axis.
 #[pyfunction]
 #[pyo3(name = "get_groups", signature = (lines, treshold, vertical=true))]
 pub fn py_get_groups(lines: &Bound<'_, PyAny>, treshold: f32, vertical: bool) -> PyResult<Vec<i64>> {
     position::get_groups(&lines_from_py(lines)?, treshold, vertical).map_err(value_error)
 }
 
-/// Le coordinate `(riga, colonna)` di ogni riga PDF di una tabella.
+/// The `(row, column)` coordinates of every PDF line of a table.
 ///
-/// Firma identica a quella del riferimento (`position.get_table_coordinates`), argomenti per nome
-/// compresi: è così che il repo formati la chiama.
+/// The signature is the established one, keyword arguments included: that is how a formats
+/// repository calls it.
 #[pyfunction]
 #[pyo3(name = "get_table_coordinates", signature = (
     lines, table_cfg=None, algorithm_flags=None, collapse_alg=None,
@@ -538,7 +524,7 @@ impl PyLimits {
     }
 }
 
-/// Gli estremi di una riga o colonna, come tupla o come `Limits` già costruiti.
+/// The bounds of a row or column, as a tuple or as an already-built value.
 fn limits_from_py(value: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Limits>> {
     let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
     if let Ok(limits) = value.extract::<PyRef<'_, PyLimits>>() {
@@ -567,11 +553,10 @@ impl PyRowConfig {
     }
 }
 
-/// Shim Python di [`ColumnConfig`].
+/// The Python shim of a column configuration.
 ///
-/// A differenza di `RowConfig` non è congelato: il repo formati imposta `splitting` **dopo** la
-/// costruzione (`table_cfg.cols[i].splitting = None`), e senza un setter quella riga smetterebbe
-/// di funzionare.
+/// Unlike the row one it is not frozen: a formats repository sets the splitting **after**
+/// construction, and without a setter that line would stop working.
 #[pyclass(name = "ColumnConfig", module = "freeports.utils.pdf_extract")]
 #[derive(Clone, Copy)]
 pub struct PyColumnConfig(ColumnConfig);
@@ -624,18 +609,18 @@ impl PyColumnConfig {
     }
 }
 
-/// Shim Python di [`TableConfig`].
+/// The Python shim of a table configuration.
 ///
-/// `cols`/`rows` accettano una configurazione singola o un iterabile: `TableConfig(ColumnConfig(...))`
-/// è la forma che il repo formati usa più spesso, ed è quella del riferimento.
+/// The rows and columns accept a single configuration or an iterable: passing one directly is the
+/// form a formats repository uses most often.
 #[pyclass(name = "TableConfig", module = "freeports.utils.pdf_extract")]
 #[derive(Clone)]
 pub struct PyTableConfig(TableConfig);
 
-/// Una configurazione singola o un iterabile di configurazioni, come vettore.
+/// A single configuration or an iterable of them, as a vector.
 ///
-/// Accettare anche il caso singolo non è una comodità gratuita: `TableConfig(ColumnConfig(...))`
-/// è la forma che il repo formati scrive più spesso, ed è quella del riferimento.
+/// Accepting the single case is not a free convenience: it is the form a formats repository writes
+/// most often.
 fn coerce_configs<T, N>(value: Option<&Bound<'_, PyAny>>, native: fn(&T) -> N) -> PyResult<Option<Vec<N>>>
 where
     T: PyClass,
@@ -689,16 +674,16 @@ impl PyTableConfig {
     }
 }
 
-/// Shim Python di [`TablePosAlgorithm`], i flag che governano il riconoscimento delle tabelle.
+/// The Python shim of the table-recognition flags.
 ///
-/// Non è un catalogo di nomi come quelli di `interfaces`: i flag si **combinano** con `|`, ed è
-/// così che il repo formati li scrive (`USE_RULER_AREA | BIG_CELL_RULE`).
+/// Not a catalogue of names like the block-type ones: these flags **combine** with `|`, and that is
+/// how a formats repository writes them.
 #[pyclass(name = "TablePosAlgorithm", module = "freeports.utils.pdf_extract", frozen)]
 #[derive(Debug, Clone, Copy)]
 pub struct PyTablePosAlgorithm(TablePosAlgorithm);
 
 impl PyTablePosAlgorithm {
-    /// I flag nativi avvolti — come li pretendono i costruttori dei pipe standard.
+    /// The wrapped native flags, as the standard pipe constructors require them.
     pub fn native(&self) -> TablePosAlgorithm {
         self.0
     }
@@ -724,8 +709,8 @@ impl PyTablePosAlgorithm {
         self.0.contains(other.0)
     }
 
-    /// `bitflags` non deriva `PartialEq`/`Hash` su `TablePosAlgorithm`, quindi uguaglianza e hash
-    /// dello shim passano dai bit — che è comunque l'identità vera di un insieme di flag.
+    /// The native flag type derives neither equality nor hashing, so the shim's go through the bits
+    /// — which is the true identity of a set of flags anyway.
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
         match other.extract::<PyRef<'_, PyTablePosAlgorithm>>() {
             Ok(other) => self.0.bits() == other.0.bits(),
@@ -746,20 +731,19 @@ impl PyTablePosAlgorithm {
         format!("TablePosAlgorithm({:#06b})", self.0.bits())
     }
 
-    /// L'espressione testuale che i repo formati scrivono nei loro file di configurazione.
+    /// The textual expression formats repositories write in their configuration files.
     #[classmethod]
     fn from_expression(_cls: &Bound<'_, PyType>, expression: &str) -> PyResult<PyTablePosAlgorithm> {
         TablePosAlgorithm::from_expression(expression).map(PyTablePosAlgorithm).map_err(value_error)
     }
 }
 
-/// Genera lo shim di un enum nativo senza campi, con i membri attaccati a runtime.
+/// Generates the shim of a field-less native enum, with its members attached at runtime.
 ///
-/// Lo shim tiene l'**indice** del membro in [`MEMBERS`](Self::MEMBERS), non il valore nativo:
-/// `SplittingState` e `CollapseAlgorithm` non derivano `PartialEq`/`Eq`/`Hash` nel crate, e
-/// aggiungerli sarebbe una modifica al codice esistente che questo layer si è imposto di non
-/// fare. Un enum senza campi è comunque identificato esattamente dal suo membro, quindi
-/// confrontare gli indici è confrontare i valori.
+/// The shim holds the member's **index** rather than the native value: the native enums derive
+/// neither equality nor hashing, and adding them would be a change to existing code this layer has
+/// undertaken not to make. A field-less enum is identified exactly by its member, so comparing
+/// indices is comparing values.
 macro_rules! plain_enum_shim {
     ($shim:ident, $native:ty, $py_name:literal, [$(($member:ident, $value:expr)),+ $(,)?]) => {
         #[doc = concat!("Shim Python di [`", stringify!($native), "`].")]
@@ -771,7 +755,7 @@ macro_rules! plain_enum_shim {
             /// I membri, nell'ordine di dichiarazione del riferimento.
             pub const MEMBERS: &'static [(&'static str, $native)] = &[$((stringify!($member), $value)),+];
 
-            /// Il valore nativo del membro.
+            /// The member's native value.
             pub fn native(&self) -> $native {
                 Self::MEMBERS[self.0].1
             }
@@ -833,7 +817,7 @@ plain_enum_shim!(
     ]
 );
 
-/// Attacca al modulo i membri degli enum e i flag di `TablePosAlgorithm`.
+/// Attaches the enumeration members and the table flags to the module.
 pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let attach = |py_name: &str, members: Vec<(&str, Py<PyAny>)>| -> PyResult<()> {
         let class = module.getattr(py_name)?;
@@ -882,17 +866,17 @@ pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
         .collect::<PyResult<_>>()?,
     )?;
 
-    // `NullableState` è un alias di `bool` nel crate: in Python resta `bool`, così
-    // `NullableState(True)` continua a funzionare come nel riferimento.
+    // The nullable state is an alias of `bool` in the crate, and stays `bool` in Python, so
+    // that calling it like a constructor keeps working.
     module.setattr("NullableState", py.get_type::<pyo3::types::PyBool>())?;
     Ok(())
 }
 
 impl PySplittingState {
-    /// Lo shim del membro corrispondente a un valore nativo.
+    /// The shim member corresponding to a native value.
     ///
-    /// `SplittingState` non deriva `PartialEq`, quindi il confronto passa dal discriminante e
-    /// dalla direzione — le uniche due cose che distinguono le sue tre forme.
+    /// The native type derives no equality, so the comparison goes through the discriminant and
+    /// the direction — the only two things distinguishing its three forms.
     fn of(state: SplittingState) -> Option<PySplittingState> {
         use crate::formats_utils::pdf_extract::position::SplittingDirection;
         let index = match state {

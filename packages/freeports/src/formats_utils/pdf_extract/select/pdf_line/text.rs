@@ -1,29 +1,13 @@
-//! Selezione per contenuto testuale.
+//! Selecting lines by their text.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line::text`.
+//! Plain string matching with `^` and `$` anchors, not regular expressions: `^abc` is a prefix,
+//! `abc$` a suffix, `^abc$` an exact match, and a bare `abc` a substring. A literal anchor is
+//! escaped with a backslash.
 //!
-//! **Decisione R1 (`PLAN.md`)**: nonostante la formulazione del doc-comment originario dello
-//! stub potesse far pensare a `onig`/regex, la selezione testuale e' — ed e' confermato che resta
-//! — puro matching di stringhe con ancore `^`/`$` in stile prefisso/suffisso/sottostringa/esatto,
-//! esattamente come `TextAstLeaf` nel riferimento. Nessuna dipendenza da `onig` in questo modulo.
-//!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub struct TextAstLeaf { start: bool, content: String, end: bool }` (campi privati fuori dal
-//!   modulo, leggibili dai test annidati). Deriva almeno `Debug, PartialEq, Clone`.
-//!   - `TextAstLeaf::new(input_txt: &str) -> Self`: `^` iniziale (non preceduto da `\`) marca
-//!     `start = true` e viene rimosso; `\^` iniziale rimuove solo il backslash (`^` resta parte
-//!     del contenuto, `start` resta `false`); stessa logica simmetrica per `$` finale/`\$` finale
-//!     e `end`.
-//! - `impl Container for TextAstLeaf { type Elem = str; fn contains(&self, text: &str) -> bool }`:
-//!   `start && end` ⇒ uguaglianza esatta; solo `start` ⇒ prefisso; solo `end` ⇒ suffisso;
-//!   nessuno dei due ⇒ sottostringa.
-//! - `impl Overlappable<Self> for TextAstLeaf`: le cinque relazioni standard, con la matrice
-//!   completa dei 16 casi `(self.start, self.end, other.start, other.end)` del riferimento
-//!   (prefisso/suffisso/esatto/sottostringa incrociati in tutte le combinazioni).
-//! - `pub type TextSet = SmartAstSet<TextAstLeaf,str>;` con `TextSet::new(input_txt: &str) -> Self`
-//!   (= `Self::from_leaf(TextAstLeaf::new(input_txt))`).
+//! Anchors rather than regexes because the algebra needs more than a yes/no answer: to combine
+//! selections it must decide whether one is a subset of, overlaps, or is disjoint from another, and
+//! that question is answerable for these four shapes and undecidable in general for regular
+//! expressions.
 
 use crate::commons::sets::ast_smart::SmartAstSet;
 use crate::commons::sets::{Container, Overlappable, SetRelation};

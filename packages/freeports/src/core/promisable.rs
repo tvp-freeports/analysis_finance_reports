@@ -1,25 +1,25 @@
-//! Come un'entita' con campi promessi viene risolta contro una mappa appiattita.
+//! How an entity with promised fields is resolved against a flattened promise map.
 //!
-//! [`Promised<T>`] e' il singolo campo — o gia' un `T`, o ancora una
-//! [`Promise`]. [`PromisableFields`] e' cio' che un'entita' deve saper fare perche'
-//! [`fulfill_promises`] possa risolverla: elencare i campi ancora pendenti e assegnarne uno per
-//! nome. Le entita' vere sono quelle di `output::classes` (M8): qui c'e' solo il meccanismo.
+//! [`Promised<T>`] is a single field — either already a `T`, or still a
+//! [`Promise`]. [`PromisableFields`] is what an entity must be able to do for
+//! [`fulfill_promises`] to resolve it: list the fields still pending, and assign one by name. The
+//! real entities live in `output::classes`; what is here is only the mechanism.
 //!
-//! **Il contratto di ritorno e' un enum, non un `Option<Vec<_>>`** (`PLAN.md` §4.3). Nel
-//! riferimento `fulfill_promises` restituiva `None` per "risolto sul posto", `Some([])` per
-//! "l'entita' sparisce" e `Some([...])` per "l'entita' si moltiplica": tre significati diversi
-//! nello stesso tipo, distinguibili solo leggendo il chiamante. [`Fulfilled`] li rende tre
-//! varianti con un nome.
+//! # Why the outcome is an enum
 //!
-//! **Due fasi, in quest'ordine** (semantica del riferimento, conservata):
+//! Resolution has three outcomes — resolved in place, the entity disappears, the entity multiplies
+//! — and encoding them as `None` / `Some([])` / `Some([…])` would give three meanings to one type,
+//! distinguishable only by reading the caller. [`Fulfilled`] gives each of them a name.
 //!
-//! 1. i campi con promessa normale si risolvono **sul posto**, mutando l'entita';
-//! 2. solo dopo, i campi con promessa *multiple* espandono l'entita' in una copia per valore —
-//!    prodotto cartesiano se i campi multiple sono piu' d'uno, nell'ordine in cui compaiono in
+//! # Two phases, in this order
+//!
+//! 1. fields with an ordinary promise resolve **in place**, mutating the entity;
+//! 2. only then do fields with a *multiple* promise expand the entity into one copy per value —
+//!    a cartesian product if more than one field is multiple, in the order the fields appear in
 //!    [`PromisableFields::pending`].
 //!
-//! L'ordine conta: le copie prodotte dalla fase 2 portano gia' i valori risolti dalla fase 1,
-//! invece di doverli risolvere una volta per copia.
+//! The order matters for work, not just for semantics: the copies produced by phase 2 already
+//! carry the values resolved in phase 1, instead of resolving them once per copy.
 
 use serde::{Serialize, Serializer};
 
@@ -28,7 +28,7 @@ use super::promise::{Promise, PromiseError};
 use super::promise_resolution::FlatPromiseMap;
 use crate::core::tracing_setup::log_error;
 
-/// Un campo che o e' gia' risolto, o e' ancora una promessa.
+/// A field that is either already resolved, or still a promise.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Promised<T> {
     Resolved(T),
@@ -36,7 +36,7 @@ pub enum Promised<T> {
 }
 
 impl<T> Promised<T> {
-    /// Il valore, se il campo e' gia' risolto.
+    /// The value, if the field is already resolved.
     pub fn resolved(&self) -> Option<&T> {
         match self {
             Promised::Resolved(v) => Some(v),
@@ -44,7 +44,7 @@ impl<T> Promised<T> {
         }
     }
 
-    /// La promessa, se il campo e' ancora pendente.
+    /// The promise, if the field is still pending.
     pub fn pending(&self) -> Option<&Promise> {
         match self {
             Promised::Pending(p) => Some(p),
@@ -60,7 +60,7 @@ impl<T> Promised<T> {
         matches!(self, Promised::Resolved(_))
     }
 
-    /// Consuma il campo e restituisce il valore risolto, se c'e'.
+    /// Consumes the field and yields the resolved value, if there is one.
     pub fn into_resolved(self) -> Option<T> {
         match self {
             Promised::Resolved(v) => Some(v),
@@ -68,7 +68,7 @@ impl<T> Promised<T> {
         }
     }
 
-    /// Trasforma il valore risolto lasciando intatta la promessa pendente.
+    /// Maps the resolved value, leaving a pending promise untouched.
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Promised<U> {
         match self {
             Promised::Resolved(v) => Promised::Resolved(f(v)),
@@ -83,13 +83,12 @@ impl<T> From<Promise> for Promised<T> {
     }
 }
 
-/// Serializza come il valore risolto, o come la forma canonica della promessa — la stessa forma
-/// che un repo formati scrive nei CSV.
+/// Serialises as the resolved value, or as the promise's canonical form — the same form a formats
+/// repository writes in its CSV files.
 ///
-/// La direzione opposta non e' implementata di proposito: da una stringa non si puo' decidere in
-/// generale se sia un `T` o una promessa (per `T = String` sono la stessa cosa), quindi la scelta
-/// spetta all'entita' che dichiara il campo — sara' `output::classes` (M8) a fissarla, tipo per
-/// tipo.
+/// The opposite direction is deliberately not implemented: from a string one cannot decide in
+/// general whether it is a `T` or a promise (for `T = String` they are the same thing), so the
+/// choice belongs to the entity that declares the field, type by type.
 impl<T: Serialize> Serialize for Promised<T> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
@@ -99,60 +98,63 @@ impl<T: Serialize> Serialize for Promised<T> {
     }
 }
 
-/// Cos'e' successo a un'entita' passata a [`fulfill_promises`].
+/// What happened to an entity passed to [`fulfill_promises`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fulfilled<T> {
-    /// Ogni promessa si e' risolta sul posto: l'entita' passata e' quella buona.
+    /// Every promise resolved in place: the entity handed in is the good one.
     InPlace,
-    /// Una promessa non-strict non si e' potuta risolvere: l'entita' va scartata.
+    /// A non-strict promise could not be resolved: the entity is to be dropped.
     Dropped,
-    /// Almeno un campo era *multiple*: l'entita' e' sostituita da queste copie.
+    /// At least one field was *multiple*: the entity is replaced by these copies.
     ///
-    /// La lista puo' contenere un solo elemento (promessa *multiple* con un valore solo): resta
-    /// comunque `Expanded`, perche' il chiamante deve sostituire l'entita' con il contenuto della
-    /// lista, non tenersi quella che aveva.
+    /// The list may hold a single element — a *multiple* promise with one value — and it is still
+    /// `Expanded`, because the caller must replace the entity with the list's contents rather than
+    /// keep the one it had.
     Expanded(Vec<T>),
 }
 
-/// Fallimenti della risoluzione di un'entita'.
+/// Failures of resolving an entity.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum PromisableError {
-    /// Il valore risolto non era del tipo che il campo si aspetta.
+    /// The resolved value was not of the type the field expects.
     #[error("field '{field}': {source}")]
     Field {
         field: &'static str,
         #[source]
         source: BlockValueError,
     },
-    /// Una promessa *strict* non si e' potuta risolvere.
+    /// A *strict* promise could not be resolved.
     #[error(transparent)]
     Promise(#[from] PromiseError),
 }
 
-/// Cio' che un'entita' deve saper fare per essere risolvibile.
+/// What an entity must be able to do to be resolvable.
 ///
-/// I nomi dei campi sono `&'static str` e non `String`: sono i nomi dei campi della struct, noti
-/// a tempo di compilazione, e questo evita un'allocazione per campo pendente a ogni entita'.
+/// Field names are `&'static str` rather than `String`: they are the struct's own field names,
+/// known at compile time, which saves one allocation per pending field per entity.
 pub trait PromisableFields: Clone {
-    /// I campi ancora pendenti, con la loro promessa, in ordine stabile — l'ordine di
-    /// dichiarazione dei campi. Da esso dipende l'ordine del prodotto cartesiano della fase 2.
+    /// The fields still pending, with their promise, in a stable order — the order the fields are
+    /// declared in. The order of phase 2's cartesian product follows from it.
     fn pending(&self) -> Vec<(&'static str, Promise)>;
 
-    /// Assegna a `field` il valore risolto. `field` e' sempre uno dei nomi restituiti da
-    /// [`PromisableFields::pending`]; l'implementazione converte il [`BlockValue`] nel tipo del
-    /// campo e riporta un [`BlockValueError`] se non e' convertibile.
+    /// Assigns the resolved value to `field`.
+    ///
+    /// `field` is always one of the names returned by [`PromisableFields::pending`]. The
+    /// implementation converts the [`BlockValue`] into the field's type and reports a
+    /// [`BlockValueError`] if it does not convert.
     fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError>;
 }
 
-/// Risolve tutte le promesse di `entity` contro `map`. Vedi [`Fulfilled`] per l'esito e la nota
-/// in testa al modulo per l'ordine delle due fasi.
+/// Resolves every promise of `entity` against `map`.
+///
+/// See [`Fulfilled`] for the outcome, and the module documentation for the order of the two phases.
 pub fn fulfill_promises<T: PromisableFields>(
     entity: &mut T,
     map: &FlatPromiseMap,
 ) -> Result<Fulfilled<T>, PromisableError> {
     let mut multiples = Vec::new();
 
-    // Fase 1: promesse normali, risolte sul posto.
+    // Phase 1: ordinary promises, resolved in place.
     for (field, promise) in entity.pending() {
         if promise.multiple() {
             multiples.push((field, promise));
@@ -162,9 +164,8 @@ pub fn fulfill_promises<T: PromisableFields>(
             Ok(value) => assign(entity, field, value)?,
             Err(err) if promise.strict() => return Err(err.into()),
             Err(err) => {
-                // Non-strict: l'entita' sparisce invece di risalire come errore (`Fulfilled::
-                // Dropped`) — e' il caso "promessa non risolta" della convenzione di livello, va
-                // loggato prima di scartare l'entita'.
+                // Non-strict, so the entity disappears rather than travelling up as an error.
+                // Logged before it is dropped, because a dropped entity is otherwise invisible.
                 tracing::warn!(
                     coord_ref_2 = field,
                     promise = %promise,
@@ -180,7 +181,7 @@ pub fn fulfill_promises<T: PromisableFields>(
         return Ok(Fulfilled::InPlace);
     }
 
-    // Fase 2: promesse multiple, una copia per valore.
+    // Phase 2: multiple promises, one copy per value.
     let mut expansions = vec![entity.clone()];
     for (field, promise) in multiples {
         let values = match map.fulfill(&promise) {
@@ -196,11 +197,10 @@ pub fn fulfill_promises<T: PromisableFields>(
                 return Ok(Fulfilled::Dropped);
             }
         };
-        // `FlatPromiseMap::fulfill` su una promessa `multiple` restituisce sempre una `List` non
-        // vuota; il ramo `other` copre solo il caso in cui quel contratto cambiasse. I suoi
-        // elementi sono i contributi uno per uno, e un contributo puo' essere esso stesso una
-        // `List`: in quel caso la copia riceve quella lista come valore del campo, e sta a
-        // `resolve_field` accettarla o rifiutarla.
+        // `FlatPromiseMap::fulfill` on a *multiple* promise always returns a non-empty `List`; the
+        // `other` branch only covers that contract changing. Its elements are the contributions one
+        // by one, and a contribution may itself be a `List`: the copy then receives that list as
+        // the field's value, and it is up to `resolve_field` to accept or refuse it.
         let values = match values {
             BlockValue::List(items) => items,
             other => vec![other],
@@ -219,8 +219,8 @@ pub fn fulfill_promises<T: PromisableFields>(
     Ok(Fulfilled::Expanded(expansions))
 }
 
-/// Assegna un campo riportando il nome del campo nell'errore: senza questo, un
-/// [`BlockValueError`] risalirebbe senza dire *quale* entita' e quale campo lo ha prodotto.
+/// Assigns a field, naming it in the error: without this, a [`BlockValueError`] would travel up
+/// without saying *which* entity and which field produced it.
 fn assign<T: PromisableFields>(
     entity: &mut T,
     field: &'static str,
@@ -235,8 +235,8 @@ fn assign<T: PromisableFields>(
 mod tests {
     use super::*;
 
-    /// Entita' di prova con due campi promettibili e uno mai promesso, il minimo per esercitare
-    /// entrambe le fasi e il prodotto cartesiano.
+    /// A test entity with two promisable fields and one that is never promised — the minimum needed
+    /// to exercise both phases and the cartesian product.
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct Investment {
         fund: Promised<String>,
@@ -280,9 +280,10 @@ mod tests {
         }
     }
 
-    /// Chiavi ripetute = contributi multipli per lo stesso id: `from_pairs` accumula, non
-    /// sovrascrive. E' cosi' che si esprime "due candidati per lo stesso id" — un unico valore
-    /// [`BlockValue::List`] sarebbe invece **un** contributo che e' una lista, cosa diversa.
+    /// Repeated keys mean several contributions for the same id: `from_pairs` accumulates rather
+    /// than overwriting. That is how "two candidates for one id" is expressed — a single
+    /// [`BlockValue::List`] would instead be *one* contribution that happens to be a list, which is
+    /// a different thing.
     fn flat_map(pairs: Vec<(&str, BlockValue)>) -> FlatPromiseMap {
         FlatPromiseMap::from_pairs(pairs)
     }
@@ -381,8 +382,8 @@ mod tests {
             assert_eq!(entity.quantity, Promised::Resolved(10));
         }
 
-        /// Due contributi per lo stesso id (due pagine che promettono lo stesso campo): vince
-        /// l'ultimo, cioe' la pagina piu' recente.
+        /// Two contributions for the same id — two pages promising the same field — and the last
+        /// one wins, that is, the later page.
         #[test]
         fn on_several_contributions_takes_the_last_value() {
             let mut entity = Investment::new(pending("fund"), Promised::Resolved(1));
@@ -417,9 +418,8 @@ mod tests {
             );
         }
 
-        /// La politica sui riferimenti pendenti chiude il cerchio qui: una promessa sopravvissuta
-        /// all'appiattimento (`promise_resolution`) diventa un drop o un errore a seconda di
-        /// `strict`, non un errore di appiattimento.
+        /// A promise that survived flattening becomes a drop or an error depending on `strict`, not
+        /// a flattening error: that is where the policy on pending references closes.
         #[test]
         fn a_promise_surviving_flattening_behaves_like_a_missing_id() {
             let map = flat_map(vec![("fund", BlockValue::Promise(Promise::new("nowhere")))]);
@@ -431,10 +431,9 @@ mod tests {
             assert!(fulfill_promises(&mut strict, &map).is_err());
         }
 
-        /// Un contributo `Null` conta come valore assente. La mappa si costruisce qui passando
-        /// per `flatten`, che e' l'unico modo in cui un `Null` puo' presentarsi nella realta':
-        /// dalla decisione dell'utente su C3 (2026-08-29) il `Null` viene scartato gia'
-        /// dall'appiattimento, quindi l'id non arriva nemmeno a `fulfill`.
+        /// A `Null` contribution counts as an absent value. The map is built here by going through
+        /// `flatten`, which is the only way a `Null` can really turn up — flattening already
+        /// discards it, so the id never reaches `fulfill` at all.
         #[test]
         fn a_null_value_counts_as_missing() {
             let promises: crate::core::promise_resolution::PromiseMap =
@@ -459,8 +458,7 @@ mod tests {
             assert!(fulfill_promises(&mut entity, &FlatPromiseMap::new()).is_err());
         }
 
-        /// Il drop vince sull'espansione: se un campo normale non si risolve, la fase 2 non parte
-        /// nemmeno.
+        /// Dropping beats expanding: if an ordinary field fails to resolve, phase 2 never starts.
         #[test]
         fn an_unresolvable_normal_field_prevents_the_expansion() {
             let mut entity = Investment::new(pending("assente"), pending_i64("qty[]"));
@@ -493,8 +491,8 @@ mod tests {
             assert_eq!(names, vec!["A", "B", "C"]);
         }
 
-        /// Un solo valore resta comunque un'espansione, non un `InPlace`: il chiamante deve
-        /// sostituire l'entita' con il contenuto della lista in entrambi i casi.
+        /// A single value is still an expansion rather than an `InPlace`: in both cases the caller
+        /// must replace the entity with the list's contents.
         #[test]
         fn a_single_value_still_produces_an_expansion() {
             let mut entity = Investment::new(pending("fund[]"), Promised::Resolved(1));
@@ -519,15 +517,15 @@ mod tests {
                 .iter()
                 .filter_map(|c| Some((c.fund.resolved()?.as_str(), *c.quantity.resolved()?)))
                 .collect();
-            // Il campo che compare per primo in `pending` varia piu' lentamente.
+            // The field appearing first in `pending` varies most slowly.
             assert_eq!(
                 pairs,
                 vec![("A", 1), ("A", 2), ("A", 3), ("B", 1), ("B", 2), ("B", 3)]
             );
         }
 
-        /// L'ordine delle due fasi, reso osservabile: il campo normale e' gia' risolto in *ogni*
-        /// copia, quindi e' stato risolto una volta sola, prima dell'espansione.
+        /// The order of the two phases, made observable: the ordinary field is already resolved in
+        /// *every* copy, so it was resolved once, before the expansion.
         #[test]
         fn the_copies_already_carry_the_fields_resolved_in_the_first_phase() {
             let mut entity = Investment::new(pending("fund"), pending_i64("qty[]"));
@@ -586,13 +584,13 @@ mod tests {
             assert_eq!(err.to_string(), "field 'fund': field 'fund' expected str, found int");
         }
 
-        /// Tre contributi per lo stesso id, di cui il secondo del tipo sbagliato: l'espansione
-        /// parte davvero (il primo valore si assegna), poi il valore malformato la interrompe e
-        /// l'errore risale invece di produrre copie parziali.
+        /// Three contributions for one id, the second of the wrong type: the expansion really
+        /// starts (the first value is assigned), then the malformed value stops it and the error
+        /// travels up instead of producing partial copies.
         ///
-        /// L'errore atteso e' verificato per intero, non con un `matches!` sul solo nome del
-        /// campo: senza `found: "str"` il test resterebbe verde anche se l'espansione non
-        /// avvenisse affatto e a fallire fosse l'assegnazione di un contenitore intero.
+        /// The expected error is checked in full rather than with a `matches!` on the field name
+        /// alone: without `found: "str"` the test would stay green even if no expansion happened
+        /// and the failure were the assignment of a whole container.
         #[test]
         fn a_type_error_during_expansion_stops_everything() {
             let mut entity = Investment::new(Promised::Resolved("Acme".into()), pending_i64("qty[]"));

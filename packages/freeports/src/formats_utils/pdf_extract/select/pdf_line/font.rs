@@ -1,26 +1,13 @@
-//! Selezione per font.
+//! Selecting lines by font.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line::font`.
+//! The [`Font`] type itself — the data and its normalisation — lives in [`super::super::pdf_line`];
+//! this module imports it and implements the selection algebra on top. Rust allows the impl to sit
+//! outside the file defining the type, and the split is deliberate: the data must not depend on the
+//! selections.
 //!
-//! **Decisione R4 (`PLAN.md`)**: il tipo `Font` (dati + normalizzazione, `Font::new`/`inner`)
-//! vive in `pdf_extract::pdf_line`, non qui. Questo modulo importa quel `Font` e vi implementa
-//! sopra l'algebra di selezione — lecito in Rust (l'`impl` non deve stare nel file che definisce
-//! il tipo, solo nello stesso crate) e voluto: i dati non devono dipendere dalle selezioni.
-//!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `impl Container for Font { type Elem = Font; fn contains(&self, other: &Font) -> bool }`:
-//!   uguaglianza dei due `Font` gia' normalizzati.
-//! - `impl Overlappable<Self> for Font`: `Equal` se uguali, `Disjoint` altrimenti (un `Font` non
-//!   e' mai `Subset`/`Superset`/`Overlapping` di un altro).
-//! - `impl AtomOperations for Font`: le tre operazioni sul caso "overlapping"/"subset" vanno in
-//!   `unreachable!` con i messaggi esatti del riferimento (`"Font cannot be overlapping
-//!   another"`, `"Font cannot be a subset of another"`) — coerente con `Overlappable` che non
-//!   restituisce mai quelle relazioni per `Font`.
-//! - `impl AtomAlgebra for Font {}` (nessun metodo proprio).
-//! - `pub type FontSet = DisjointAtomsSet<Font,Font>;` con `FontSet::new(font: &str) -> Self`
-//!   (= `Self::from_atom(Font::new(font))`).
+//! Fonts are *atoms* in that algebra: two normalised fonts are either equal or disjoint, never
+//! partially overlapping. That is what makes a set of fonts a plain disjoint set, with no interval
+//! arithmetic behind it.
 
 use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
 use crate::commons::sets::{Container, Overlappable, SetRelation};

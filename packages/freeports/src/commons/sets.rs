@@ -1,11 +1,14 @@
-//! Algebra di insiemi generica: `Container`, `Overlappable`, `Set`, `SetOps`, `SetRelation`.
+//! A generic set algebra: [`Container`], [`Overlappable`], [`Set`], [`SetOps`], [`SetRelation`].
 //!
-//! Vocabolario condiviso dai tre sottomoduli (`ast_simple`, `ast_smart`, `indipendent_atoms`):
-//! ciascuno rappresenta la stessa algebra (unione/intersezione/differenza su un `Container`) con
-//! un modello interno diverso. `Set<S,E>` aggiunge i casi degeneri `Empty`/`Universe` sopra
-//! qualunque `S` che implementi l'algebra. I test qui sotto validano il vocabolario stesso — via
-//! un `Container`/`SetAlgebra` di test minimale — e la coerenza incrociata fra le tre
-//! rappresentazioni concrete a parità di espressione costruita.
+//! The vocabulary shared by the three submodules — [`ast_simple`], [`ast_smart`],
+//! [`indipendent_atoms`] — each of which represents the same algebra of union, intersection and
+//! difference over a [`Container`] with a different internal model. [`Set`] adds the degenerate
+//! `Empty` and `Universe` cases on top of any of them.
+//!
+//! Three representations rather than one because they trade differently: an unsimplified tree is
+//! cheapest to build, a simplifying tree keeps expressions small, and a set of disjoint atoms is
+//! the only one where two sets can always be compared. The tests here check the vocabulary itself
+//! and the agreement of all three on the same expression.
 
 pub mod ast_simple;
 pub mod ast_smart;
@@ -404,9 +407,8 @@ mod tests {
         }
         impl AtomAlgebra for DomainLeaf {}
 
-        /// Every 4-element subset of `0..UNIVERSE_SIZE` is enumerated below, so
-        /// "random-ish" `DomainLeaf`s are really an exhaustive sweep over a small
-        /// universe, per the stress-test guidance in `PLAN.md` §10.
+        /// Every four-element subset of a small universe is enumerated below, so the seemingly
+        /// random leaves are really an exhaustive sweep.
         const UNIVERSE_SIZE: u32 = 4;
 
         fn all_subsets() -> Vec<DomainLeaf> {

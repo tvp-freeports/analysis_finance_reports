@@ -9,8 +9,16 @@ Lo stato della riscrittura precedente (M0..M10, tutte chiuse) e' recuperabile da
 ## Stato per passo
 
 **Fase P chiusa al 2026-08-31**: P0/P1/P2/P5 implementate, P3/P4 chiuse senza implementazione
-perche' la misura non le giustifica. Restano aperte solo la fase D (documentazione) e le
-segnalazioni Q-P0/Q-P2b/Q-P5, che non bloccano nulla.
+perche' la misura non le giustifica.
+
+**D1 e D2 chiuse al 2026-08-31**: la strategia documentale e' decisa (Sphinx unico + MyST +
+rustdoc accanto), l'impalcatura e' in piedi e **verde** — prima di quel giorno la build Sphinx non
+partiva affatto — e i doc-comment del sorgente sono stati riscritti tutti, in inglese e senza piu'
+alcun residuo del porting. Restano aperte **D3** (whitepaper) e **D4** (riconciliazione della
+prosa Sphinx esistente); nessuna delle due e' bloccata da una domanda, salvo Q-D1 sul registro del
+whitepaper. Restano inoltre le segnalazioni Q-P0/Q-P2b/Q-P5, che non bloccano nulla, la scelta
+delle lingue da mantenere (rimandata dall'utente), e una nuova segnalazione aperta da D2 su
+`JobError::MissingInputDbPath` — vedi la riga D2.
 
 | # | Passo | Stato | Note |
 |---|---|---|---|
@@ -28,8 +36,8 @@ segnalazioni Q-P0/Q-P2b/Q-P5, che non bloccano nulla.
 | **P3** | Page class / pipeline dentro uno step | ❌ chiusa senza implementazione | **P0 e P2 insieme non la giustificano.** P0 aveva gia' misurato «1-2 page class per step e una pipeline dominante»; P2 ha poi preso *tutti* i thread per le pagine di ogni gruppo di class, quindi P3 vivrebbe sopra un ciclo che satura gia' la macchina — due unita' di lavoro annidate in rayon senza thread liberi a cui darle. Il caso patologico che il piano citava a sua difesa ("pochissime pagine e molte pipeline pesanti") **non esiste nel corpus**: il piu' piccolo dei 21 report reali ha 29 pagine, gia' piu' dei 20 thread hardware. E un'opzione disattivata di default non gira mai in produzione, quindi non viene mai esercitata, e resta da mantenere a ogni cambiamento di `core::algorithm`. Conseguenza su P5, identica a quella di P4: `pipelines` sparisce dallo schema invece di restare un'opzione morta. Ragionamento per esteso in `PLAN.md` §4 P3 e in `agent-memory/P5-implementation-plan.md` §0 |
 | **P4** | Blocchi di `deserialize` sopra soglia | ❌ chiusa senza implementazione | **P0 non lo giustifica**: `deserialize` costa 22-27 ms su job da 17-21 s, sotto lo 0,2% del totale su tutti e quattro i documenti — azzerarlo varrebbe lo 0,1%. Sui *pipe* non si parallelizzava comunque (`PLAN.md` §4 P4). Conseguenza su P5: `deserialize_blocks_threshold` tolto dallo schema invece di restare un'opzione morta |
 | **P5** | Configurazione `parallelism` | ✅ chiusa | Piano, decisioni e scostamenti in `agent-memory/P5-implementation-plan.md`. Nuovo modulo `cli::parallelism_config` (`Workers` = `Auto`/`Fixed`, `ParallelismConfig`), che **sostituisce** i due provvisori: `cli::run::{job_parallelism,page_parallelism}` sono spariti, al loro posto `resolve_parallelism`, che risolve i due livelli insieme perche' il secondo dipende dal primo. Superficie: `--workers`/`-j` (default globale di **entrambi** i livelli), `--jobs`/`--pages` (override per livello), `FREEPORTS_N_WORKERS`/`FREEPORTS_PARALLELISM_JOBS`/`FREEPORTS_PARALLELISM_PAGES`, chiavi YAML `n_workers` e `parallelism: {jobs, pages}`; tutte accettano un intero positivo **o** `auto`. **Guadagno misurato con il default** (due job grandi, EURIZON-EN23 + AMUNDI-EN24, binario `release`, due ripetizioni: 39,37/39,73 s contro 16,68/16,70 s): **39,4 s -> 16,7 s, 2,36x**, con l'output **byte-identico** a quello della corsa sequenziale. Prezzo: picco di memoria **783 MB -> ~1,2 GB**. `cargo test --lib` -> **2.681 passati, 0 falliti** (+48); `cargo test --test '*'` -> **83 passati, 0 falliti** (12+1+34+**12** di cui 5 nuovi+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). **Un difetto di P1 scoperto e corretto qui**, vedi "Decisioni prese" |
-| **D1** | Strategia documentale (Sphinx+MyST+rustdoc vs mdbook) | ⬜ da fare | Bloccato su **Q-D2**. `docs/source/_generated/` documenta un pacchetto morto (`freeports_analysis`) e va cancellato in ogni caso |
-| **D2** | Doc-comment riscritti, area per area | ⬜ da fare | 6.103 righe di doc-comment, ~2.961 in italiano. Per convenzione del workspace e' lavoro di `implementer`, non di `docs-writer` |
+| **D1** | Strategia documentale (Sphinx+MyST+rustdoc vs mdbook) | ✅ chiusa | **Q-D2 risposta il 2026-08-31**, passo sbloccato e chiuso lo stesso giorno: *un solo sito Sphinx + MyST + rustdoc accanto* (mdbook scartato), *impalcatura gettext mantenuta* con la sorte delle singole lingue rimandata. Piano, decisioni e verifiche in `agent-memory/D1-docs-strategy-plan.md`. La build **prima** non partiva nemmeno: `conf.py` faceva `from freeports_analysis import *`, un pacchetto morto da due riscritture, e `sphinx-build` moriva in *Configuration error*. Ora `sphinx-build -b html` -> **exit 0**, 15 warning **tutti in prosa preesistente** e nessuno nei file scritti qui (sono di D4: `.rst` malformato e riferimenti morti a `freeports_analysis.conf_parse`/`batch_mode`). Rimossi da git **254 file di output generato** — i 47 `.rst` di `docs/source/_generated/` previsti dal piano piu' **207 file di `docs/build/`**, il sito HTML costruito del pacchetto morto, che era tracciato — e tutti e tre i percorsi generati ora gitignorati. **Il difetto vero, non previsto dal piano**: autosummary documentava **10 moduli su 18** di `freeports`, perche' il pacchetto *e'* l'estensione compilata (un solo `.so` sul disco) e le due euristiche di autosummary — `pkgutil.iter_modules(__path__)` per elencare i figli, `hasattr(obj, '__path__')` per decidere se esplorarli — falliscono entrambe sui sottomoduli PyO3. Verificato che la superficie del crate e' **sana** (`__all__` corretto a ogni livello, tutti e 8 i nidificati importabili per nome), quindi **il crate non e' stato toccato**: due correzioni confinate in `conf.py` (`autosummary_ignore_module_all = False` e `_mark_compiled_subpackages()`, che annota `__path__ = []` sui moduli compilati con figli) portano da 12 a **28 pagine di modulo**, con autodoc che rende membri veri. rustdoc cablato con `make -C docs rustdoc` (`--target-dir` dedicata, per non pubblicare la documentazione di dipendenze rimasta in `target/doc`) e pubblicato sotto `/rustdoc/` via `html_extra_path`, link verificato contro il sito costruito. `.readthedocs.yaml` era rotto in due punti (l'ultima `python.install` puntava al file di configurazione stesso; installava `requirements.minimal.txt`, che e' attrezzatura di sviluppo): ora installa i tre pacchetti veri e dichiara `tools.rust`. **Nessun sorgente Rust toccato**; dei 308 file di `tests/formats/*/out/**` **zero** hanno mtime di oggi. Traduzioni **non toccate** per decisione esplicita. Dettagli in "Decisioni prese" |
+| **D2** | Doc-comment riscritti, area per area | ✅ chiusa | **Tutte e nove le aree**, in una sessione. Piano, checklist e resoconto in `agent-memory/D2-doccomment-plan.md`. La misura del piano (6.103 righe di doc-comment, ~2.961 italiane, baseline `13284baa`) era **superata**: F, L e P avevano nel frattempo aggiunto codice, e la misura di partenza reale era **7.470 righe di doc-comment + 1.122 di commento `//`** su 119 file, di cui ~4.800 italiane, piu' **466** righe con rimandi a `PLAN.md`/`STATUS.md`/`agent-memory`/`§`/milestone. **Perimetro**: i commenti `//` sono dentro D2, non fuori — F1 li aveva esplicitamente rimandati qui. **Risultato**: nel crate non resta *una sola* riga di commento in italiano ne' *un solo* rimando a un documento di processo (verificato con uno scanner a vocabolario sull'intero albero). I doc-comment passano da 7.470 a **5.401** righe e i `//` da 1.122 a **986**: il 28% in meno a parita' di contenuto utile, perche' sparisce il residuo operativo e non la sostanza — il caso limite e' il doc di modulo di `core/tracing_setup.rs`, da **209 righe** di contratto d'implementazione (firme in blocchi ```` ```text ````, tabelle di test, «RIAPERTO a M9») a **76** che descrivono il modulo che c'e'. **Doc-test**: il crate ne aveva **0**; ora ne ha **5**, sui tre livelli di normalizzazione, su `MatchFund` e su `Promise` — esempi che il compilatore verifica, quindi documentazione che non puo' invecchiare in silenzio. **Sette difetti veri trovati rileggendo**, sei corretti e uno segnalato: una riga di sommario finita sul metodo sbagliato (`pipeline/bundle.rs`), un parametro chiamato col vecchio nome italiano nel doc (`promise_resolution.rs`), **sei** doc di modulo impilati su due soli moduli in `tracing_setup.rs` (lasciandone quattro senza), due doc che contraddicevano il codice dieci righe sotto (`OutStructureMode` in `output/routines/write.rs`, `PyDeserializePipe` in `formats_repo/unstructured/py_pipe.rs`), e — segnalato, non corretto, perche' la correzione riguarda il codice — `JobError::MissingInputDbPath`, che e' nell'enum pubblico ma **nessun percorso costruisce piu'**. **Verifiche**: `cargo test --lib` -> **2.681 passati, 0 falliti**; `cargo test --doc` -> **5 passati, 0 falliti**; `cargo test --test '*'` -> **83 passati, 0 falliti**; `pytest tests/formats` -> **259 passati, 0 falliti**; `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti); `cargo doc --no-deps` da **31 warning a 0**; i 308 file di `tests/formats/*/out/**` **tutti intatti** (zero con mtime della sessione). Nessun sorgente non-commento toccato: D2 non cambia comportamento, e non l'ha cambiato |
 | **D3** | Whitepaper | ⬜ da fare | Materiale di partenza: `docs/source/{dev/code,usage/command,validation/**}.rst` + `PLAN.md` storico §2/§12/§13 |
 | **D4** | Riporto e riconciliazione dei contenuti Sphinx | ⬜ da fare | ~9.000 parole di prosa esistente, 4 locali gettext |
 
@@ -64,7 +72,8 @@ Testo completo in `PLAN.md` §7. In sintesi:
 | Q-P5 | nulla — segnalazione | **Nuova (2026-08-31, aperta da P5).** Il default `jobs: auto` rende paralleli i batch senza che nessuno lo chieda: **2,36x** piu' veloce, ma il picco di memoria passa da 783 MB a ~1,2 GB con due soli job grandi, e cresce con il numero di job concorrenti. Va bene cosi', o il default prudente (`jobs: 1`) e' preferibile e il parallelismo va chiesto? E' una riga in `partial_config::defaults`. |
 | Q-P2b | nulla — segnalazione | **Nuova (2026-08-30, aperta da P2).** Il binario `freeports` esce con **SIGSEGV** dopo aver scritto correttamente tutti gli output, sul formato CARNE-EN23. Preesistente e indipendente da P2 (stesso crash sul percorso sequenziale). Si sistema, e come? |
 | Q-D1 | D3 | Il whitepaper parla anche a un pubblico non tecnico? |
-| Q-D2 | D1, D4 | Sphinx unico + rustdoc accanto (scartando mdbook)? Che ne e' delle 4 traduzioni? |
+| Q-D2b | nulla — segnalazione | **Nuova (2026-08-31, aperta da D2).** `JobError::MissingInputDbPath` e' una variante dell'enum d'errore pubblico di `cli::job` che **nessun percorso costruisce piu'**: il test end-to-end `cli::run::tests::python_boundary` esercita proprio la combinazione che dovrebbe farla scattare (`--target-list` senza `--db-directory`) e si aspetta successo, e il codice la tratta come "nessuna azienda bersaglio disponibile". D2 ha reso esplicito il fatto nel doc-comment invece di descrivere un errore impossibile, ma la scelta vera e' fra togliere la variante e farla scattare davvero — e riguarda il codice, non il commento. |
+| Q-D2 | ~~D1, D4~~ | ~~Sphinx unico + rustdoc accanto (scartando mdbook)? Che ne e' delle 4 traduzioni?~~ **Risposta 2026-08-31: si', Sphinx unico + MyST + rustdoc accanto**; sulle traduzioni **si tiene l'impalcatura, la scelta delle lingue e' rimandata**. Nota emersa misurando prima di chiedere: le «quattro traduzioni» che il piano usava come primo argomento a favore di Sphinx sono in realta' **una sola parziale** — `it` al 61% della prosa viva, `fr` e `pt` **stub a zero**, `en` la lingua sorgente; e 1165 dei 1660 msgid venivano da `_generated/`, cioe' dal pacchetto morto. La scelta resta motivata dagli **altri tre** argomenti del piano (`validation/**` gia' scritto, pubblicazione RTD gia' in piedi, nessun secondo toolchain), non piu' dal primo. |
 
 ## Decisioni prese durante l'implementazione
 
@@ -723,6 +732,40 @@ Testo completo in `PLAN.md` §7. In sintesi:
   temporaneo apposta e poi rimosso. Gli altri quattro formati provati (EURIZON-EN23, AMUNDI-EN24, UBS-EN23,
   DANSKEINVEST-EN24) escono con 0. Non toccato per la politica di
   `rust-migration-bugfix-policy`: si segnala e si aspetta conferma. Q-P2b.
+
+### D1 — strategia documentale
+
+Le decisioni per esteso stanno in `agent-memory/D1-docs-strategy-plan.md`; qui le tre che
+cambiano qualcosa per chi riprende il lavoro.
+
+- **Un nome importato in `conf.py` e' un'opzione di configurazione.** La versione si legge da
+  `importlib.metadata` per non invecchiare, ma `from importlib.metadata import version` faceva
+  diventare `version` del progetto *la funzione*, e la build moriva alla scrittura di
+  `objects.inv` con `TypeError: expected string or bytes-like object, got 'function'` — un errore
+  che non nomina ne' `conf.py` ne' `version`. L'import e' aliasato a `_installed_version`.
+
+- **Autosummary non sa esplorare un'estensione compilata, e falliva in silenzio.** Documentava
+  10 moduli su 18: `pkgutil.iter_modules(__path__)` su `freeports` trova il solo `.so`, e
+  `ispackage = hasattr(obj, "__path__")` esclude i sottomoduli PyO3, che `__path__` non ce l'hanno.
+  Prima di rimediare ho verificato che la superficie del crate sia sana — `__all__` corretto a
+  ogni livello, e tutti e 8 i moduli nidificati importabili per nome — cosi' da essere sicuro che
+  il difetto fosse dello strumento e non del crate. **Il crate non e' stato toccato**: le due
+  correzioni (`autosummary_ignore_module_all = False` e `_mark_compiled_subpackages()`) vivono in
+  `conf.py` e valgono solo dentro il processo di `sphinx-build`. Da 12 a 28 pagine di modulo.
+  Conseguenza per chi tocchera' l'API Python: **se un nuovo sottomodulo non compare nel sito, la
+  causa e' quasi certamente un `__all__` non aggiornato nel crate**, non la configurazione.
+
+- **`docs/build/` era tracciato in git**, 207 file di sito costruito del pacchetto morto, oltre ai
+  47 `.rst` di `_generated/` che il piano gia' prevedeva di cancellare. Rimossi entrambi e
+  gitignorati insieme a `docs/source/_extra/` (dove finisce rustdoc). Se una vecchia copia di
+  lavoro li rimette, sono output: vanno cancellati, non committati.
+
+Due eredita' lasciate ai passi successivi, entrambe gia' misurate: **D4** ha 15 warning di
+`sphinx-build` da chiudere (tutti in prosa preesistente: `.rst` malformato e riferimenti morti a
+`freeports_analysis.conf_parse` e all'etichetta `batch_mode`), piu' la rigenerazione dei
+`.pot`/`.po` ora che `_generated/` non ha piu' sorgente; **D2** ha 29 warning di `cargo doc` sui
+doc-comment del crate, che riscrive comunque.
+
 
 ## Note aperte lasciate da F2
 

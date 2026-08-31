@@ -1,21 +1,18 @@
-//! Normalizzazione di stringhe per il confronto di nomi di fondi e societa'.
+//! String normalisation for comparing fund and company names.
 //!
-//! Tre funzioni pure, di aggressivita' crescente, che servono a riconoscere come "lo stesso
-//! nome" scritture che differiscono solo per accenti, punteggiatura, maiuscole o spaziatura.
-//! Sono la base di [`crate::core::match_fund::MatchFund`] e, piu' avanti, del matching
-//! societario di `formats_utils::text_filter`.
+//! Three pure functions of increasing aggressiveness, there to recognise as "the same name"
+//! spellings that differ only by accents, punctuation, case or spacing. They are the basis of
+//! [`crate::core::match_fund::MatchFund`] and of the company matching in
+//! `formats_utils::text_filter`.
 //!
-//! Porting da `freeports_core` (`src/core/normalization.rs`, a sua volta port di
-//! `_internals/core/normalization.py`): la logica e' identica, spariscono solo i wrapper
-//! `#[pyfunction]` — in questo crate non c'e' confine Python (`PLAN.md` §3). Il modulo e'
-//! totale: nessuna funzione puo' fallire, quindi non ha un proprio enum d'errore.
+//! The module is total — no function can fail — so it has no error type of its own.
 
-/// Aggiunge a `out` la sostituzione normalizzata di un singolo carattere gia' minuscolo.
+/// Appends to `out` the normalised replacement of one already-lowercased character.
 ///
-/// Riproduce la tabella `str.maketrans` dell'originale Python: le lettere latine accentate
-/// collassano sull'equivalente ASCII (alcune, come `ß`/`œ`/`æ`, si espandono in piu' di un
-/// carattere), la punteggiatura separatrice (`,-–+`) diventa uno spazio, la punteggiatura di
-/// rumore (`!?{}[]()"'’/.`) sparisce, tutto il resto passa invariato.
+/// Accented Latin letters collapse onto their ASCII equivalent, and a few of them expand into more
+/// than one character (`ß` → `ss`, `œ` → `oe`, `æ` → `ae`, `&` → `and`). Separating punctuation
+/// (`,-–+`) becomes a space; noise punctuation (`!?{}[]()"'’/.`) disappears; everything else
+/// passes through untouched.
 fn push_translated(out: &mut String, c: char) {
     match c {
         'é' | 'è' | 'ê' | 'ë' => out.push('e'),
@@ -37,11 +34,23 @@ fn push_translated(out: &mut String, c: char) {
     }
 }
 
-/// Normalizzazione profonda: minuscole, via accenti e punteggiatura di rumore, separatori
-/// convertiti in spazi, sequenze di spazi collassate in uno solo.
+/// Deep normalisation: lowercase, accents and noise punctuation removed, separators turned into
+/// spaces, runs of spaces collapsed into one.
 ///
-/// E' la forma usata per l'*identita'* di un fondo: due nomi che normalizzano uguale sono
-/// considerati lo stesso fondo.
+/// This is the form used for a fund's *identity*: two names that normalise to the same string are
+/// taken to be the same fund. Being the most aggressive of the three, it is also the one that can
+/// merge two genuinely different funds whose names differ only by punctuation — a trade accepted
+/// because the opposite failure, missing a fund because a dash moved, is the common one in
+/// practice.
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::normalization::deep_normalize_string;
+///
+/// assert_eq!(deep_normalize_string("Éclair  Fund (EUR)"), "eclair fund eur");
+/// assert_eq!(deep_normalize_string("Alpha-Beta"), deep_normalize_string("Alpha Beta"));
+/// ```
 pub fn deep_normalize_string(input: &str) -> String {
     let lowered = input.to_lowercase();
     let mut translated = String::with_capacity(lowered.len());
@@ -51,16 +60,38 @@ pub fn deep_normalize_string(input: &str) -> String {
     translated.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Normalizzazione leggera: trim, minuscole opzionali, sequenze di spazi collassate.
-/// A differenza di [`deep_normalize_string`] non tocca accenti ne' punteggiatura.
+/// Light normalisation: trim, optional lowercasing, runs of spaces collapsed.
+///
+/// Unlike [`deep_normalize_string`] it touches neither accents nor punctuation, so it preserves
+/// distinctions that matter when the text is meant to be shown rather than matched.
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::normalization::normalize_string;
+///
+/// assert_eq!(normalize_string("  Éclair   Fund ", false), "Éclair Fund");
+/// assert_eq!(normalize_string("  Éclair   Fund ", true), "éclair fund");
+/// ```
 pub fn normalize_string(input: &str, lower: bool) -> String {
     let trimmed = input.trim();
     let cased = if lower { trimmed.to_lowercase() } else { trimmed.to_string() };
     cased.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Normalizzazione di una singola parola: rimuove *tutti* gli spazi interni (non li collassa,
-/// come fa [`normalize_string`]) e opzionalmente porta in minuscolo.
+/// Single-word normalisation: removes *every* inner space instead of collapsing runs of them, as
+/// [`normalize_string`] does, and optionally lowercases.
+///
+/// Meant for tokens that a PDF may have broken apart mid-word — an ISIN or a ticker split across
+/// two spans comes back whole.
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::normalization::normalize_word;
+///
+/// assert_eq!(normalize_word("LU 012 3456789", false), "LU0123456789");
+/// ```
 pub fn normalize_word(input: &str, lower: bool) -> String {
     let concatenated: String = input.split_whitespace().collect();
     if lower { concatenated.to_lowercase() } else { concatenated }
@@ -165,8 +196,8 @@ mod tests {
         }
     }
 
-    /// I tre livelli non sono intercambiabili: questo modulo fissa in cosa differiscono, cosi'
-    /// che un cambio accidentale di uno dei tre rompa un test invece di passare inosservato.
+    /// The three levels are not interchangeable: this module pins down how they differ, so that
+    /// accidentally changing one of them breaks a test instead of passing unnoticed.
     mod differences_between_levels {
         use super::*;
         use pretty_assertions::assert_eq;

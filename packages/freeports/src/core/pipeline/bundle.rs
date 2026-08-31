@@ -1,14 +1,12 @@
-//! [`PipelinesBundle`]: le pipeline che vengono applicate alla stessa pagina.
+//! [`PipelinesBundle`]: the pipelines applied to one and the same page.
 //!
-//! `PLAN.md` §5.3. Un bundle è ciò che una page class "vale": l'insieme delle pipeline che
-//! elaborano le pagine di quella class. `Algorithm` ne tiene uno per page class, più quello della
-//! classificazione.
+//! A bundle is what a page class is *worth*: the set of pipelines that process the pages of that
+//! class. [`Algorithm`](crate::core::algorithm::Algorithm) holds one per page class, plus one for
+//! classification itself.
 //!
-//! **Deduplicazione per nome**, non per identità come nel riferimento. Là un bundle contiene
-//! riferimenti Python (`Py<Pipeline>`) e l'identità è l'unica nozione disponibile; qui le
-//! pipeline arrivano sempre da una mappa `nome → Pipeline` (`Algorithm::new` risolve una lista di
-//! nomi), quindi "stessa pipeline" e "stesso nome" sono la stessa cosa — e il nome è anche ciò
-//! che rende leggibili i messaggi d'errore (`PLAN.md` D6).
+//! Pipelines are **deduplicated by name**. They always arrive from a name-to-pipeline map, so
+//! "the same pipeline" and "the same name" mean the same thing here, and the name is also what
+//! makes an error raised from inside one readable.
 
 use crate::core::classes::{PdfBlock, TextBlock};
 use crate::core::page::Page;
@@ -16,7 +14,7 @@ use crate::core::page::Page;
 use super::data::{Extracted, FilterData, PipeError};
 use super::{Pipeline, PipelineName};
 
-/// Un insieme ordinato e deduplicato di [`Pipeline`] eseguite sulla stessa pagina.
+/// An ordered, name-deduplicated set of [`Pipeline`]s run over the same page.
 #[derive(Debug, Clone, Default)]
 pub struct PipelinesBundle(Vec<Pipeline>);
 
@@ -25,8 +23,8 @@ impl PipelinesBundle {
         PipelinesBundle::default()
     }
 
-    /// Aggiunge una pipeline in coda, se non ce n'è già una con lo stesso nome. Restituisce
-    /// `true` se è stata davvero aggiunta.
+    /// Appends a pipeline unless one with the same name is already present. Returns whether it was
+    /// actually added.
     pub fn push(&mut self, pipeline: Pipeline) -> bool {
         if self.0.iter().any(|existing| existing.name == pipeline.name) {
             return false;
@@ -47,34 +45,36 @@ impl PipelinesBundle {
         self.0.is_empty()
     }
 
-    /// La pipeline con questo nome, se il bundle la contiene.
+    /// The pipeline with this name, if the bundle holds it.
     pub fn get(&self, name: &PipelineName) -> Option<&Pipeline> {
         self.0.iter().find(|p| &p.name == name)
     }
 
-    /// Vero se **ogni** pipeline del bundle è completa. Un bundle vuoto è completo per vacuità:
-    /// è `Algorithm::new` a decidere se un bundle vuoto sia accettabile, non questo metodo.
+    /// Whether **every** pipeline in the bundle is complete.
+    ///
+    /// An empty bundle is vacuously complete: deciding whether an empty bundle is acceptable
+    /// belongs to `Algorithm::new`, not here.
     pub fn is_complete(&self) -> bool {
         self.0.iter().all(Pipeline::is_complete)
     }
 
-    /// I nomi delle pipeline incomplete, per i messaggi d'errore di chi carica il repo formati.
+    /// The names of the incomplete pipelines, for the error messages of whoever loads a formats
+    /// repository.
     pub fn incomplete(&self) -> Vec<&PipelineName> {
         self.0.iter().filter(|p| !p.is_complete()).map(|p| &p.name).collect()
     }
 
-    /// La catena completa di ogni pipeline, concatenata nell'ordine di inserimento.
-    /// `true` se **ogni** pipeline del bundle scala con i thread.
+    /// Whether **every** pipeline in the bundle scales with threads.
     ///
-    /// È la domanda che `Algorithm` fa prima di distribuire le pagine di uno step
-    /// (`agent-memory/P2-implementation-plan.md` D-P2-3). Si risponde per bundle e non per
-    /// formato di proposito: un formato può avere la classificazione in Python e gli step in Rust
-    /// — è il caso di EURIZON-EN23 — e degradare tutto il formato gli toglierebbe il guadagno
-    /// proprio dove P0 lo ha misurato più grande.
+    /// This is the question [`Algorithm`](crate::core::algorithm::Algorithm) asks before spreading
+    /// the pages of a step across threads. It is answered per bundle rather than per format on
+    /// purpose: a format may classify its pages in Python and run its steps in pure Rust, and
+    /// degrading the whole format would remove the gain exactly where it is largest.
     pub fn scales_with_threads(&self) -> bool {
         self.0.iter().all(|pipeline| pipeline.scales_with_threads())
     }
 
+    /// The full chain of every pipeline in the bundle, concatenated in insertion order.
     pub fn apply(&self, page: &Page, data: &FilterData<'_>) -> Result<Vec<Extracted>, PipeError> {
         let mut out = Vec::new();
         for pipeline in &self.0 {
@@ -83,7 +83,8 @@ impl PipelinesBundle {
         Ok(out)
     }
 
-    /// Solo il primo segmento di ogni pipeline — API di test per segmento (`freeports-dev`).
+    /// The first segment of every pipeline — the per-segment API the format development tooling
+    /// drives.
     pub fn apply_pdf_extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         let mut out = Vec::new();
         for pipeline in &self.0 {
@@ -92,7 +93,8 @@ impl PipelinesBundle {
         Ok(out)
     }
 
-    /// I primi due segmenti di ogni pipeline — API di test per segmento.
+    /// The first two segments of every pipeline — the per-segment API the format development
+    /// tooling drives.
     pub fn apply_text_filter(
         &self,
         page: &Page,
@@ -105,13 +107,10 @@ impl PipelinesBundle {
         Ok(out)
     }
 
-    /// La catena completa — API di test per segmento.
+    /// The full chain — the per-segment API the format development tooling drives.
     ///
-    /// Coincide con [`PipelinesBundle::apply`]. Nel riferimento le due funzioni differiscono
-    /// perché `__call__` conserva i `None` restituiti dai pipe di deserializzazione e
-    /// `apply_deserialize` li filtra; qui quei `None` non esistono (un pipe che non ha nulla da
-    /// dire restituisce un vettore vuoto), quindi non c'è niente da filtrare. Il metodo resta
-    /// perché fa parte delle tre API parziali che `freeports-dev` usa (`PLAN.md` §5.3).
+    /// Identical to [`PipelinesBundle::apply`]. It exists as a separate name only because it is one
+    /// of the three partial APIs the tooling calls by segment.
     pub fn apply_deserialize(
         &self,
         page: &Page,

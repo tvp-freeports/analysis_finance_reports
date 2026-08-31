@@ -1,49 +1,46 @@
-//! La grammatica degli ID del repo formati e la derivazione di `(formato, pipeline, indice)`.
+//! The grammar of a formats repository's ids, and how `(format, pipeline, index)` is derived from
+//! one.
 //!
-//! Ogni tabella CSV structured è indicizzata da una colonna `ID` che identifica *quale pipe di
-//! quale pipeline di quale formato* la riga configura. La forma piena è
-//! `<formato>(<pipeline>)/<indice>`, ma pipeline e indice sono quasi sempre omessi e vanno
-//! **derivati**: è ciò che in Python fanno `add_format_name`/`add_pipeline_name`/`add_pipe_index`
-//! di `repo/algorithms/pipelines_definition.py` con `str.extract` e `groupby().cumcount()`.
+//! Every structured CSV table is indexed by an `ID` column saying *which pipe of which pipeline of
+//! which format* the row configures. The full form is `<format>(<pipeline>)/<index>`, but the
+//! pipeline and the index are almost always left out and have to be **derived**.
 //!
-//! Questo modulo porta quelle funzioni e — a differenza del porting Rust parziale che ne esiste in
-//! `freeports_core` — **anche la parte di gruppo**: `cumcount()` non è esprimibile riga per riga,
-//! perché l'indice di una riga dipende da tutte le altre righe dello stesso `(formato,
-//! pipeline)`. È [`computed_ids`], la funzione che le tabelle di `structured` usano davvero.
+//! Deriving the index is not a per-row operation: within one `(format, pipeline)` group a row's
+//! index depends on all the other rows of that group. [`computed_ids`] is the function that does
+//! it, and the one the structured tables actually use.
 //!
-//! `onig` e non il crate `regex` (`PLAN.md` §2 principio 6 / §12 D9): i pattern sono scritti con
-//! la sintassi Python del riferimento e vanno interpretati con la stessa.
+//! The patterns use Oniguruma rather than the `regex` crate, so that they can be written in the
+//! same syntax the repositories already use.
 
 use once_cell::sync::Lazy;
 use onig::Regex;
 use std::collections::HashMap;
 use std::fmt;
 
-/// `FORMAT_NAME_REGEXP` di `repo/metadata.py`: un nome di formato è un prefisso qualsiasi seguito
-/// da un trattino, due lettere maiuscole e due cifre, con un `@XX` e un `.qualcosa` opzionali.
+/// A format name is any prefix, then a hyphen, two capitals and two digits, with an optional `@XX`
+/// market and an optional dotted suffix.
 const FORMAT_NAME_PATTERN: &str = r".+\-[A-Z]{2}\d{2}(@[A-Z]{2,3})?(\.[^\.\/]+)?";
 
-/// `pipeline_name_regexp`: minuscole, cifre e underscore. Nota la `*`: il nome **vuoto** è
-/// legittimo, ed è quello della pipeline di default.
+/// A pipeline name: lowercase letters, digits and underscores. Note the `*`: the **empty** name is
+/// legitimate, and it is the default pipeline's.
 const PIPELINE_NAME_PATTERN: &str = r"[0-9a-z_]*";
 
-/// `index_regexp`: uno slash seguito da cifre.
+/// An index: a slash followed by digits.
 const INDEX_PATTERN: &str = r"/([0-9]+)";
 
 fn pipeline_pattern() -> String {
     format!(r"\(({PIPELINE_NAME_PATTERN})\)")
 }
 
-/// Il gruppo `(pipeline)`, ovunque compaia nella stringa.
+/// The `(pipeline)` group, wherever it occurs in the string.
 static PIPELINE_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(&pipeline_pattern()).expect("pattern fisso e valido"));
 
-/// `({pipeline})?({index})?$` di `add_format_name`: la coda opzionale da togliere per ottenere il
-/// nome del formato. Ancorato solo a destra, come l'originale, che si affida alla ricerca non
-/// ancorata di `str.replace` per trovare la posizione più a sinistra da cui la coda combacia.
+/// The optional tail to strip in order to obtain the format name. Anchored only on the right,
+/// relying on an unanchored search to find the leftmost position the tail matches from.
 static SUFFIX_STRIP_REGEXP: Lazy<Regex> =
     Lazy::new(|| Regex::new(&format!(r"({})?({INDEX_PATTERN})?$", pipeline_pattern())).expect("pattern fisso e valido"));
 
-/// `{index}$` di `add_pipe_index` in modalità esplicita.
+/// An index at the very end of the string.
 static INDEX_AT_END_REGEXP: Lazy<Regex> =
     Lazy::new(|| Regex::new(&format!(r"{INDEX_PATTERN}$")).expect("pattern fisso e valido"));
 
@@ -61,36 +58,36 @@ static COMPLETE_REGEXP: Lazy<Regex> = Lazy::new(|| {
         .expect("pattern fisso e valido")
 });
 
-/// Quanto rigorosa deve essere la forma di un ID, a seconda della tabella che lo contiene.
+/// How strict an id's form must be, depending on which table holds it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IdFormat {
-    /// Nome del formato con `(pipeline)` facoltativa e **nessun** indice.
+    /// A format name with an optional `(pipeline)` and **no** index.
     ExpandableNoIndex,
-    /// Nome del formato con `(pipeline)` e `/indice` entrambi facoltativi.
+    /// A format name with `(pipeline)` and `/index` both optional.
     Expandable,
-    /// Nome del formato con `(pipeline)` e `/indice` entrambi **obbligatori**: è la forma di un
-    /// [`ComputedId`], cioè di un ID già derivato.
+    /// A format name with `(pipeline)` and `/index` both **required**: the form of a
+    /// [`ComputedId`], that is, of an id already derived.
     Complete,
 }
 
-/// Il tipo di relazione fra una tabella secondaria e la tabella principale del suo gruppo.
+/// The kind of relation between a secondary table and the main table of its group.
 ///
-/// Decide sia quanto rigorosa è la forma dell'ID accettata, sia come si deriva l'indice mancante
-/// — le due `PipeIndexMode`/`MissingIndexPolicy` del riferimento, che qui non sono due enum
-/// separati perché nel riferimento non esiste alcuna combinazione che non sia derivata da questo.
+/// It decides both how strict the accepted id form is and how a missing index is derived. The two
+/// questions are one enum rather than two because no combination of them occurs that this does not
+/// already determine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FkRelation {
-    /// Una riga per pipe: l'indice **non** si legge dall'ID, si conta.
+    /// One row per pipe: the index is **not** read from the id, it is counted.
     OneToOne,
-    /// Zero o una riga per pipe: l'indice si legge dall'ID; se manca, si conta fra le sole righe
-    /// che lo omettono.
+    /// Zero or one row per pipe: the index is read from the id; when absent, it is counted among
+    /// the rows that omit it.
     OneToMaybe,
-    /// Più righe per pipe: l'indice si legge dall'ID; se manca, vale zero.
+    /// Several rows per pipe: the index is read from the id; when absent, it is zero.
     OneToMany,
 }
 
 impl FkRelation {
-    /// La forma dell'ID che la colonna accetta.
+    /// The id form this column accepts.
     pub fn id_format(self) -> IdFormat {
         match self {
             FkRelation::OneToOne => IdFormat::ExpandableNoIndex,
@@ -99,10 +96,9 @@ impl FkRelation {
     }
 }
 
-/// L'identità completa di un pipe: `(formato, pipeline, indice)`.
+/// A pipe's complete identity: format, pipeline, index.
 ///
-/// È la chiave su cui le quattro tabelle di `structured` si uniscono — la `MultiIndex` di pandas
-/// del riferimento, che qui è una chiave di `HashMap` (`PLAN.md` §6.1 punto 3).
+/// It is the key the structured tables join on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ComputedId {
     pub format: String,
@@ -111,13 +107,13 @@ pub struct ComputedId {
 }
 
 impl fmt::Display for ComputedId {
-    /// La stessa stringa che il riferimento costruisce nella colonna `Computed ID`.
+    /// The canonical string form of a computed id.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}({})/{}", self.format, self.pipeline, self.index)
     }
 }
 
-/// Il nome del formato: l'ID meno la coda `(pipeline)` e/o `/indice`.
+/// The format name: the id minus its `(pipeline)` and `/index` tail.
 pub fn derive_format_name(id: &str) -> String {
     match SUFFIX_STRIP_REGEXP.find(id) {
         Some((start, _end)) => id[..start].to_string(),
@@ -125,10 +121,10 @@ pub fn derive_format_name(id: &str) -> String {
     }
 }
 
-/// Il nome della pipeline dichiarato nell'ID, oppure `default` se l'ID non ne dichiara uno.
+/// The pipeline name declared in the id, or `default` if the id declares none.
 ///
-/// Un `()` esplicito è un nome **vuoto trovato**, non un nome assente: `default` non lo sostituisce
-/// — è la differenza fra un `NaN` e una cella vuota che `fillna` di pandas rispetta.
+/// An explicit `()` is an empty name that was **found**, not an absent one, so `default` does not
+/// replace it — the difference between a missing value and a present-but-empty one.
 pub fn derive_pipeline_name(id: &str, default: Option<&str>) -> Option<String> {
     match PIPELINE_REGEXP.captures(id) {
         Some(caps) => Some(caps.at(1).unwrap_or_default().to_string()),
@@ -136,12 +132,12 @@ pub fn derive_pipeline_name(id: &str, default: Option<&str>) -> Option<String> {
     }
 }
 
-/// L'indice dichiarato in coda all'ID, se c'è.
+/// The index declared at the end of the id, if there is one.
 pub fn derive_pipe_index(id: &str) -> Option<u32> {
     INDEX_AT_END_REGEXP.captures(id).and_then(|caps| caps.at(1)).and_then(|digits| digits.parse().ok())
 }
 
-/// Verifica che `id` rispetti la forma richiesta.
+/// Whether `id` conforms to the required form.
 pub fn id_matches(id: &str, format: IdFormat) -> bool {
     let regexp = match format {
         IdFormat::ExpandableNoIndex => &EXPANDABLE_NO_INDEX_REGEXP,
@@ -151,23 +147,15 @@ pub fn id_matches(id: &str, format: IdFormat) -> bool {
     regexp.is_match(id)
 }
 
-/// Deriva l'identità completa di ogni riga di una tabella, a partire dalla sua colonna `ID`.
+/// Derives the complete identity of every row of a table from its `ID` column.
 ///
-/// È il porting di `create_index_format_name_pipe`, compresa la parte di gruppo che nessuna
-/// funzione riga-per-riga può esprimere:
+/// This includes the part no per-row function can express:
 ///
-/// - [`FkRelation::OneToOne`] — l'indice è la **posizione della riga** all'interno del suo gruppo
-///   `(formato, pipeline)`, contando dall'alto (il `cumcount()` di pandas). L'ID non deve portare
-///   un indice.
-/// - [`FkRelation::OneToMany`] — l'indice si legge dall'ID; le righe che lo omettono valgono tutte
-///   zero, quindi più righe possono condividere lo stesso [`ComputedId`] (è proprio il senso di
-///   "one to many": più righe per pipe).
-/// - [`FkRelation::OneToMaybe`] — l'indice si legge dall'ID; le righe che lo omettono sono
-///   numerate fra loro, **ignorando** quelle che un indice ce l'hanno. Quirk del riferimento
-///   (`df[mask_missing].groupby(...).cumcount()`), conservato: significa che un indice esplicito e
-///   uno derivato possono collidere.
+/// - [`FkRelation::OneToOne`] — the index is the **row's position** within its `(format, pipeline)` group, counting from the top. The id must not carry one.
+/// - [`FkRelation::OneToMany`] — the index is read from the id; rows omitting it are all zero, so several rows can share the same [`ComputedId`], which is exactly what "one to many" means.
+/// - [`FkRelation::OneToMaybe`] — the index is read from the id; rows omitting it are numbered among themselves, **ignoring** those that have one. A quirk worth knowing, because it means an explicit index and a derived one can collide.
 ///
-/// L'ordine del risultato è quello delle righe in ingresso, uno a uno.
+/// The result is in input row order, one to one.
 pub fn computed_ids(ids: &[&str], pipeline_default: Option<&str>, relation: FkRelation) -> Vec<ComputedId> {
     let bases: Vec<(String, String)> = ids
         .iter()
@@ -187,9 +175,8 @@ pub fn computed_ids(ids: &[&str], pipeline_default: Option<&str>, relation: FkRe
         let index = match (explicit, relation) {
             (Some(index), _) => index,
             (None, FkRelation::OneToMany) => 0,
-            // `OneToOne` conta tutte le righe, `OneToMaybe` solo quelle senza indice esplicito:
-            // in entrambi i casi il contatore è incrementato **solo** quando lo si usa, che è
-            // esattamente ciò che distingue le due politiche.
+            // One-to-one counts every row, one-to-maybe only those without an explicit index: in
+            // both cases the counter is incremented **only** when it is used.
             (None, _) => {
                 let counter = counters.entry(base.clone()).or_insert(0);
                 let index = *counter;
@@ -250,8 +237,8 @@ mod tests {
 
         #[test]
         fn an_explicit_empty_group_wins_over_the_default() {
-            // È la differenza fra `NaN` e cella vuota che `fillna` rispetta: `()` è un nome
-            // trovato, e vale la pipeline di default *del formato*, non quella della tabella.
+            // The difference between a missing value and an empty one: `()` is a name that was
+            // found, and it means the *format's* default pipeline, not the table's.
             assert_eq!(derive_pipeline_name("X-EN24()", Some("investments")), Some(String::new()));
         }
 
@@ -401,8 +388,8 @@ mod tests {
 
         #[test]
         fn an_index_written_in_the_id_is_ignored_in_this_mode() {
-            // La forma `ExpandableNoIndex` lo vieta a monte; qui si pinna che, se arrivasse, la
-            // derivazione conterebbe comunque, senza leggerlo.
+            // The form forbids this upstream; this pins that, were it to arrive, the derivation
+            // would still count rather than read it.
             assert_eq!(ids(&["A-EN24/9"]), vec!["A-EN24(investments)/0"]);
         }
 
@@ -441,7 +428,7 @@ mod tests {
 
         #[test]
         fn several_rows_may_legitimately_share_one_identity() {
-            // È il senso stesso di "one to many": più righe configurano lo stesso pipe.
+            // The very meaning of "one to many": several rows configure the same pipe.
             let out = ids(&["A-EN24/1", "A-EN24/1"]);
             assert_eq!(out[0], out[1]);
         }
@@ -478,9 +465,9 @@ mod tests {
 
         #[test]
         fn a_row_carrying_an_index_does_not_advance_the_counter_of_the_others() {
-            // Quirk del riferimento pinnato di proposito: `df[mask_missing].groupby().cumcount()`
-            // conta solo fra le righe mancanti, quindi un indice esplicito e uno derivato possono
-            // collidere — qui la terza riga ricade su `/1`, che la seconda ha già dichiarato.
+            // The quirk pinned on purpose: counting happens only among the rows that omit an index,
+            // so an explicit index and a derived one can collide — here the third row lands on
+            // `/1`, which the second already declared.
             assert_eq!(
                 ids(&["A-EN24", "A-EN24/1", "A-EN24"]),
                 vec!["A-EN24(investments)/0", "A-EN24(investments)/1", "A-EN24(investments)/1"]
@@ -507,7 +494,7 @@ mod tests {
 
         #[test]
         fn the_page_classify_table_numbers_its_header_rows_by_explicit_index() {
-            // Righe reali di `content/algorithms/structured/page_classify/args.csv`.
+            // Real rows from a formats repository's page-classify arguments table.
             let out = computed_ids(&["CARNE-EN23/0", "CARNE-EN23/0", "CARNE-EN23/1"], Some(""), FkRelation::OneToMany);
             assert_eq!(
                 out.iter().map(ComputedId::to_string).collect::<Vec<_>>(),

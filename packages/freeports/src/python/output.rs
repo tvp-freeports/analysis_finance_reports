@@ -1,25 +1,21 @@
-//! Shim di `output::classes`: le entità che un pipe `deserialize` produce.
+//! The shims of the output entities: what a deserialize pipe produces.
 //!
-//! Il contratto Python è quello che il repo formati usa già oggi — nomi di classe, kwargs del
-//! costruttore, getter — verificato riga per riga contro i `#[pyclass]` che il vecchio
-//! `freeports_core` esponeva, così che l'aggiornamento del repo formati resti limitato agli
-//! import (`M10-implementation-plan.md`, vincolo 3).
+//! The Python contract is the one formats repositories already use — class names, constructor
+//! keywords, getters — so that updating a repository stays limited to its imports.
 //!
-//! # `Investment`, `AssetsManager`, `FundChangeName` sono tuple, non classi base
+//! # Three names are tuples of types, not base classes
 //!
-//! Nel riferimento erano le basi Pydantic comuni delle classi concrete; nel porting Rust le
-//! classi concrete sono indipendenti e non hanno un antenato comune. Restano esposti come
-//! **tuple di tipi**, che è esattamente ciò che serve: ogni uso reale nel repo formati è un
-//! `isinstance(x, Investment)`, e `isinstance` accetta una tupla. Non è una nuova astrazione, è
-//! un rimpiazzo alla lettera — la stessa scelta che il vecchio `classes_schema.py` aveva già
-//! fatto.
+//! `Investment`, `AssetsManager` and `FundChangeName` used to be common base classes; the concrete
+//! entities are now independent and share no ancestor. They stay exposed as **tuples of types**,
+//! which is exactly what is needed: every real use in a formats repository is an `isinstance` test,
+//! and `isinstance` accepts a tuple.
 //!
-//! # Uguaglianza e hash passano da serde
+//! # Equality and hashing go through serde
 //!
-//! Le entità native derivano `PartialEq`/`Eq` ma non tutte `Hash` (i campi `f64` viaggiano in
-//! `OrderedFloat` dentro `Option`, e non tutte le struct l'hanno derivato). Invece di aggiungere
-//! derive al codice esistente, gli shim confrontano e hashano la **forma serde** del valore: è
-//! deterministica, definita per tutti, e coerente fra `__eq__` e `__hash__`.
+//! The native entities derive equality but not all of them hashing, floating-point fields being
+//! what they are. Rather than adding derives to existing code, the shims compare and hash the
+//! **serde form** of the value: deterministic, defined for all of them, and consistent between
+//! equality and hashing by construction.
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -43,37 +39,33 @@ use super::convert::block_value_from_py;
 use super::core::PyPromise;
 use crate::core::tracing_setup::log_error;
 
-/// Un errore di costruzione di un'entità come `ValueError` Python.
+/// An entity construction error as a Python `ValueError`.
 fn value_error<E: std::fmt::Display>(error: E) -> PyErr {
     pyo3::exceptions::PyValueError::new_err(error.to_string())
 }
 
-/// La forma serde di un valore, usata da `__eq__`/`__hash__`/`__repr__` degli shim.
+/// The serde form of a value, used by the shims' equality, hashing and representation.
 fn canonical<T: Serialize>(value: &T) -> String {
     serde_json::to_string(value).unwrap_or_else(|e| format!("<unserializable: {e}>"))
 }
 
-/// Hash della forma serde — coerente con l'uguaglianza, che confronta la stessa stringa.
+/// A hash of the serde form — consistent with equality, which compares the same string.
 fn canonical_hash<T: Serialize>(value: &T) -> u64 {
     let mut hasher = DefaultHasher::new();
     canonical(value).hash(&mut hasher);
     hasher.finish()
 }
 
-/// Genera le quattro `dunder` comuni a ogni shim di entità: uguaglianza, hash e repr, tutte
-/// basate sulla forma serde del valore nativo avvolto.
-/// Emette l'**intero** blocco `#[pymethods]` di uno shim di entità: le tre dunder comuni
-/// (uguaglianza, hash, repr, tutte sulla forma serde) più i metodi specifici del tipo.
+/// Emits the **whole** methods block of an entity shim: the three common special methods, all over
+/// the serde form, plus the type's own methods.
 ///
-/// Il blocco è generato tutto insieme, e non composto da più `#[pymethods]`, per due ragioni:
-/// PyO3 accetta un solo blocco per classe senza la feature `multiple-pymethods` (che
-/// aggiungerebbe una dipendenza per una comodità di scrittura), e non ammette invocazioni di
-/// macro *dentro* un blocco `#[pymethods]` — le vede come item non riconosciuti. Un macro che
-/// produce il blocco intero non ha nessuno dei due problemi: `macro_rules!` espande prima, e
-/// l'attributo vede solo item veri.
+/// It is generated all at once rather than composed from several blocks for two reasons: PyO3
+/// accepts only one block per class without an extra feature, and it does not allow macro
+/// invocations *inside* such a block, seeing them as unrecognised items. A macro producing the
+/// whole block has neither problem.
 ///
-/// L'arm `investment` aggiunge i nove getter che `Equity` e `Bond` condividono, leggendoli dalla
-/// stessa `InvestmentData` annidata.
+/// One arm adds the nine getters an equity and a bond share, reading them from the same nested
+/// data.
 macro_rules! entity_pymethods {
     ($shim:ident, $py_name:literal, investment, { $($rest:tt)* }) => {
         entity_pymethods!($shim, $py_name, {
@@ -104,10 +96,9 @@ macro_rules! entity_pymethods {
                 })
             }
 
-            /// L'unico campo scrivibile di un investimento: vedi il doc-comment di
-            /// `entity_shim!` per il caso d'uso che lo richiede. Riscrivere il valore di mercato
-            /// **risolve** la promessa se ce n'era una — assegnare un numero significa che quel
-            /// numero è il valore definitivo, non un rinvio.
+            /// The only writable field of an investment; see the shim macro for the use case that
+            /// requires it. Rewriting the market value **resolves** the promise if there was one:
+            /// assigning a number means that number is the final value, not a deferral.
             #[setter]
             fn set_market_value(&mut self, value: f64) {
                 self.0.data.market_value =
@@ -176,14 +167,13 @@ macro_rules! entity_pymethods {
                 format!("{}({})", $py_name, canonical(&self.0))
             }
 
-            /// I nomi dei campi dell'entità, ordinati.
+            /// The entity's field names, sorted.
             ///
-            /// Esistono per la serializzazione delle fixture di `freeports-dev`, che deve poter
-            /// enumerare i campi di un'entità senza conoscerne il tipo (nel riferimento lo faceva
-            /// con `BaseModel.model_fields` di Pydantic, che qui non c'è). Sono ricavati dalla
-            /// forma serde — la stessa da cui dipendono già uguaglianza, hash e repr — quindi
-            /// coincidono per costruzione con le chiavi che il costruttore accetta, senza un
-            /// elenco scritto a mano che possa divergere.
+            /// They exist for the development tooling's fixture serialization, which must enumerate
+            /// an entity's fields without knowing its type. They are derived from the serde form —
+            /// the same one equality, hashing and representation already depend on — so they
+            /// coincide by construction with the keys the constructor accepts, with no hand-written
+            /// list that could drift.
             fn __serialize_fields__(&self) -> PyResult<Vec<String>> {
                 match serde_json::from_str::<serde_json::Value>(&canonical(&self.0)) {
                     Ok(serde_json::Value::Object(map)) => Ok(map.keys().cloned().collect()),
@@ -199,13 +189,12 @@ macro_rules! entity_pymethods {
     };
 }
 
-/// Dichiara il newtype `#[pyclass]` di un'entità e i suoi accessori interni.
+/// Declares an entity's Python newtype and its internal accessors.
 ///
-/// L'arm `mutable` toglie `frozen` alla classe. Serve a `Equity` e `Bond` e a nessun'altra: un
-/// modulo d'autore corregge il valore di mercato *dopo* aver costruito l'investimento
-/// (`mediolanum_es24_b.py`: `blk = std(txt_blk); if blk is not None: blk.market_value =
-/// blk.market_value * 1000`), e non c'è modo di esprimerlo su una classe immutabile. Le altre
-/// otto entità restano `frozen`, che è la forma giusta per un risultato già validato.
+/// One arm makes the class mutable. It is needed by the two investment entities and by no others:
+/// an author module corrects the market value *after* building the investment, and there is no way
+/// to express that on an immutable class. The other eight stay immutable, which is the right shape
+/// for an already-validated result.
 macro_rules! entity_shim {
     ($shim:ident, $native:ty, $py_name:literal) => {
         #[doc = concat!("Shim Python di [`", stringify!($native), "`].")]
@@ -252,9 +241,8 @@ entity_shim!(PyFundSfdrClassification, FundSfdrClassification, "FundSfdrClassifi
 entity_shim!(PyManagementCompany, ManagementCompany, "ManagementCompany");
 entity_shim!(PyInvestmentsManager, InvestmentsManager, "InvestmentsManager");
 
-/// Un campo che può essere già risolto o ancora promesso, come oggetto Python: il valore stesso,
-/// oppure lo shim `Promise`. È la forma che il riferimento esponeva e che il codice d'autore
-/// legge (`isinstance(x.fund, Promise)` non compare da nessuna parte: si legge e basta).
+/// A field that may be already resolved or still promised, as a Python object: the value itself, or
+/// the promise shim.
 fn promised_to_py<'py, T, F>(
     py: Python<'py>,
     promised: &Promised<T>,
@@ -272,8 +260,8 @@ where
 }
 
 entity_pymethods!(PyFund, "Fund", {
-        /// `name` accetta una stringa o una `Promise`: il nome di un fondo è spesso scoperto in una
-        /// pagina diversa da quella che lo cita.
+        /// The name accepts a string or a promise: a fund's name is often discovered on a page
+        /// other than the one citing it.
         #[new]
         #[pyo3(signature = (name))]
         fn new(name: &Bound<'_, PyAny>) -> PyResult<PyFund> {
@@ -283,7 +271,7 @@ entity_pymethods!(PyFund, "Fund", {
             })?))
         }
 
-        /// Il nome maiuscolizzato, come nel riferimento — oppure la promessa, se ancora pendente.
+        /// The upper-cased name — or the promise, if still pending.
         #[getter]
         fn name<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
             match (self.0.name(), self.0.pending_name()) {
@@ -296,7 +284,7 @@ entity_pymethods!(PyFund, "Fund", {
         }
 });
 
-/// I campi comuni di `Equity` e `Bond`, letti dai kwargs con gli stessi nomi del riferimento.
+/// The fields an equity and a bond share, read from keyword arguments under their public names.
 #[allow(clippy::too_many_arguments)]
 fn investment_fields(
     company: String,
@@ -423,10 +411,10 @@ entity_pymethods!(PyBond, "Bond", investment, {
         }
 });
 
-/// Una data non promettibile passata come argomento: `datetime.date` o `None`.
+/// A non-promisable date passed as an argument.
 ///
-/// Diverso da un campo `Promised<Date>`: `Bond::maturity` è un `Option<Date>` secco, quindi una
-/// `Promise` qui è un errore d'uso, non un valore accettabile.
+/// Different from a promisable field: a bond's maturity is a plain optional date, so a promise here
+/// is a usage error rather than an acceptable value.
 fn date_argument(field: &str, value: Option<&Bound<'_, PyAny>>) -> PyResult<Option<Date>> {
     let Some(value) = value.filter(|v| !v.is_none()) else { return Ok(None) };
     match block_value_from_py(value)? {
@@ -509,8 +497,7 @@ entity_pymethods!(PyFundAssets, "FundAssets", {
         }
 });
 
-/// `FundRename` e `FundMerge` differiscono solo per il tipo: stessi tre campi, stessa
-/// costruzione. Il macro evita di scrivere due volte lo stesso blocco.
+/// The two change-of-name entities differ only in type: same three fields, same construction.
 macro_rules! change_name_shim {
     ($shim:ident, $native:ty, $py_name:literal) => {
         entity_pymethods!($shim, $py_name, {
@@ -606,11 +593,10 @@ entity_pymethods!(PyFundSfdrClassification, "FundSfdrClassification", {
         }
 });
 
-/// I due gestori patrimoniali: stessi due campi, stessa costruzione.
+/// The two asset managers: same two fields, same construction.
 ///
-/// `managed_funds` accetta un iterabile qualunque, non solo un `set`: un deserializer d'autore
-/// non è tenuto a costruire proprio un set, e il riferimento (Pydantic) coercizzava una lista
-/// senza protestare.
+/// The managed funds accept any iterable, not only a set: an author's deserializer is not obliged
+/// to build one.
 macro_rules! assets_manager_shim {
     ($shim:ident, $native:ty, $py_name:literal) => {
         entity_pymethods!($shim, $py_name, {
@@ -646,10 +632,11 @@ macro_rules! assets_manager_shim {
 assets_manager_shim!(PyManagementCompany, ManagementCompany, "ManagementCompany");
 assets_manager_shim!(PyInvestmentsManager, InvestmentsManager, "InvestmentsManager");
 
-/// Attacca al modulo le tre tuple-alias (`Investment`, `AssetsManager`, `FundChangeName`).
+/// Attaches the three tuple aliases to the module.
 ///
-/// Non sono `#[pyclass]`: sono tuple di tipi, costruibili solo dopo che i tipi esistono, cioè a
-/// modulo già costruito. Vedi il doc-comment del modulo per il perché non sono classi base.
+/// They are not classes: they are tuples of types, constructible only once the types exist, that
+/// is, with the module already built. See the module documentation for why they are not base
+/// classes.
 pub fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = module.py();
     for (alias, members) in [

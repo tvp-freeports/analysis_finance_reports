@@ -1,69 +1,25 @@
-//! `execute()`: orchestrazione completa di un'invocazione della CLI (`PLAN.md` §9
-//! `cli::{CliArgs, execute}`).
+//! [`execute`]: the whole orchestration of one command-line invocation.
 //!
-//! `M9-implementation-plan.md` §1 (sequenza di merge esatta) §3 passo 14. Compone tutti gli altri
-//! moduli di `cli` nella sequenza descritta in §1:
+//! It composes every other module of this area, in this order:
 //!
-//! 1. `cmd_partial = config_locations::cmd::load(args)`.
-//! 2. `env_partial = config_locations::env::load()`.
-//! 3. Prima passata (solo per scoprire `CONFIG_FILE`):
-//!    `overwrite(overwrite(defaults(), env_partial, Env), cmd_partial, Cmd)`.
-//! 4. `config_file_path = tmp.values.config_file.or_else(config_locations::file::find_config)`.
-//! 5. `file_partial = config_locations::file::load(config_file_path)`.
-//! 6. Merge reale: `defaults() <- File <- Env <- Cmd`.
-//! 7. Se `merged.values.batch_file` è `Some`: una riga di batch per job, ciascuna
-//!    `overwrite(merged.clone(), row_partial, Batch)`, poi validata; altrimenti valida `merged`
-//!    una sola volta.
-//! 8. `cli::job::run` per ciascun `FreeportsConfig`, risultati concatenati in ordine.
-//! 9. `cli::output::write_results` sul totale concatenato.
+//! 1. read the command line and the environment;
+//! 2. merge those two over the defaults, in a **first pass whose only purpose** is to discover which configuration file is in effect — the file's own path can itself be configured;
+//! 3. read that file;
+//! 4. do the real merge: defaults, then file, then environment, then command line;
+//! 5. in batch mode, overlay each CSV row onto the merge, one job per row; otherwise validate the merge once;
+//! 6. run each job, concatenating the results in order;
+//! 7. write the total.
 //!
-//! **Aggiunta del test-writer al contratto, non nella lettera del piano**: la sequenza 1-7 sopra
-//! (risoluzione/merge/validazione) è esposta come funzione propria, `resolve_configs`, invece di
-//! restare un dettaglio privato di `execute`. Senza un seam così, l'unico modo di osservare "cmd
-//! sovrascrive env sovrascrive file sovrascrive default su ogni campo" (`PLAN.md` §11, il focus di
-//! test esplicito di questa milestone) sarebbe dedurlo dagli effetti collaterali su disco di
-//! `execute` -- impraticabile per la maggior parte dei tredici campi di `PartialConfig` (es.
-//! `parallelism`/`out_profile` non lasciano tracce ispezionabili in un CSV). `execute` diventa un
-//! sottile `resolve_configs(args)?` seguito da `job::run` per ciascuna configurazione risolta e
-//! `output::write_results` sul totale concatenato -- **nessuna logica nuova**, solo un punto di
-//! osservazione in più. `tests/cli_config.rs` (`M9-implementation-plan.md` §3 passo 17) usa
-//! `resolve_configs` per la matrice di precedenza; questo modulo la esercita solo per la
-//! propagazione degli errori (vedi sotto).
+//! Steps 1 to 5 are exposed as [`resolve_configs`] rather than staying private to [`execute`].
+//! Without that seam, the only way to observe that the command line beats the environment beats the
+//! file, field by field, would be through the side effects on disk — impracticable for the fields
+//! that leave no trace in an output file.
 //!
-//! **Nota sull'isolamento dei test in questo modulo**: sia `resolve_configs` sia `execute`
-//! chiamano internamente `config_locations::env::load()` (variabili d'ambiente reali di processo)
-//! e, se `--config`/`config:`/`FREEPORTS_CONFIG_FILE` non risolvono un percorso esplicito,
-//! `config_locations::file::find_config()` (cerca nella cwd reale del processo di test) --
-//! entrambe fonti di stato globale condiviso con l'intero processo `cargo test`. I test qui sotto
-//! passano sempre un `--config` esplicito (un file YAML reale, anche vuoto) per non dipendere da
-//! `find_config()`, e puliscono le variabili `FREEPORTS_*` prima di girare, stesso meccanismo di
-//! `config_locations::env::tests::EnvScope`.
+//! # Where a batch's shared decisions come from
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum CliError {
-//!     Cmd(#[from] crate::cli::config_locations::cmd::CmdConfigError),
-//!     Env(#[from] crate::cli::config_locations::env::EnvConfigError),
-//!     File(#[from] crate::cli::config_locations::file::FileConfigError),
-//!     Batch(#[from] crate::cli::batch::BatchError),
-//!     Validate(#[from] crate::cli::freeports_config::FreeportsConfigError),
-//!     Job(#[from] crate::cli::job::JobError),
-//!     Output(#[from] crate::cli::output::OutputError),
-//! }
-//!
-//! /// Passi 1-7: cmd/env/prima-passata/file/merge reale/(batch -> N righe | non-batch -> 1),
-//! /// **senza** eseguire alcun job né scrivere alcun output. Un solo elemento per invocazioni
-//! /// non-batch; N elementi (uno per riga CSV, nell'ordine del file) per invocazioni batch.
-//! pub fn resolve_configs(
-//!     args: crate::cli::config_locations::cmd::CliArgs,
-//! ) -> Result<Vec<crate::cli::freeports_config::FreeportsConfig>, CliError>;
-//!
-//! /// `resolve_configs(args)?`, poi `cli::job::run` per ciascuna configurazione risolta
-//! /// (risultati concatenati in ordine), poi `cli::output::write_results` sul totale.
-//! pub fn execute(args: crate::cli::config_locations::cmd::CliArgs) -> Result<(), CliError>;
-//! ```
+//! When several configurations resolve, the parameters that belong to the **run** rather than to a
+//! job — the output path, profile and flags, and the parallelism — come from the **first** resolved
+//! configuration. A batch file's columns cannot set them in any case.
 
 use crate::cli::batch::{self, BatchError};
 use crate::cli::config_locations::cmd::{CliArgs, CmdConfigError};
@@ -95,18 +51,17 @@ pub enum CliError {
     Job(#[from] JobError),
     #[error(transparent)]
     Output(#[from] OutputError),
-    /// Il registro `.log.csv` non ha potuto prendere posto accanto agli output (cartella non
-    /// creabile, file non apribile). Non e' un errore del job, ma non va nemmeno ingoiato: senza
-    /// registro l'utente perde le diagnostiche localizzate proprio della corsa che sta lanciando.
+    /// The log could not take its place beside the outputs — a directory that cannot be created, a
+    /// file that cannot be opened. Not a job error, but not swallowed either: without the log the
+    /// user loses the localised diagnostics of the very run they are launching.
     #[error(transparent)]
     Logging(#[from] TracingSetupError),
-    /// Un job eseguito in un processo figlio non ha prodotto risultati (P1). Trasparente di
-    /// proposito: per un fallimento di dominio il messaggio deve essere **identico** a quello che
-    /// il percorso sequenziale avrebbe stampato.
+    /// A job run in a child process produced no result. Deliberately transparent: for a domain
+    /// failure the message must be **identical** to the one the sequential path would have printed.
     #[error(transparent)]
     Worker(#[from] JobFailure),
-    /// L'infrastruttura dei processi figli non e' partita: area di lavoro non creabile, eseguibile
-    /// non identificabile. Non e' un job fallito -- nessun job e' mai partito.
+    /// The child-process infrastructure did not start — a work area that cannot be created, an
+    /// executable that cannot be identified. Not a failed job: no job ever started.
     #[error("cannot set up the worker processes: {source}")]
     WorkerSetup {
         #[source]
@@ -116,13 +71,12 @@ pub enum CliError {
     WorkerRequest(#[from] WorkerError),
 }
 
-/// Config resolution entry point (`M9-implementation-plan.md` §1): passi 1-7 della sequenza di
-/// merge -- cmd/env/prima-passata (per scoprire `CONFIG_FILE`)/file/merge reale/(batch -> N righe
-/// | non-batch -> 1), **senza** eseguire alcun job né scrivere alcun output. Opens its own span:
-/// each of `to_partial_config`/`env::load`/`file::load`/`batch::load_jobs`/`freeports_config::
-/// validate` already logs its own failure at the point the specific typed error is constructed, so
-/// this function does not re-log a propagated error, only the resolution steps genuinely local to
-/// it (which config file ends up in effect, whether batch mode applies, how many jobs came out).
+/// Resolves the configurations without running any job or writing any output.
+///
+/// Opens its own span. Each step already logs its own failure where the specific error is
+/// constructed, so this function does not re-log a propagated error, only the resolution steps
+/// genuinely local to it: which configuration file ends up in effect, whether batch mode applies,
+/// how many jobs came out.
 pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> {
     let span = tracing::info_span!("resolve_config");
     let _guard = span.enter();
@@ -130,7 +84,7 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
     let cmd_partial = args.to_partial_config()?;
     let env_partial = env::load()?;
 
-    // Prima passata: solo per scoprire `CONFIG_FILE`.
+    // The first pass exists only to discover which configuration file is in effect.
     let first_pass = overwrite(overwrite(defaults(), env_partial.clone(), ConfigSource::Env), cmd_partial.clone(), ConfigSource::Cmd);
     // No log in the common (`None`) branch: `file::find_config` already logs, more specifically,
     // whether/where it found a configuration file -- logging again here would just repeat it.
@@ -169,26 +123,20 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
     Ok(configs)
 }
 
-/// `resolve_configs(args)?`, poi `cli::job::run` per ciascuna configurazione risolta (risultati
-/// concatenati in ordine), poi `cli::output::write_results` sul totale. **Judgment call**: quando
-/// più configurazioni risolvono (modalità batch), i parametri di scrittura (`out_path`/
-/// `out_profile`/`out_flags`) vengono dalla **prima** configurazione risolta -- il piano non
-/// specifica quale usare quando le righe di batch potessero, in linea di principio, differire
-/// anche su quei campi.
+/// Resolves the configurations, runs each job, concatenates the results in order, and writes the
+/// total.
 ///
-/// Opens the outermost `run` span (`PLAN.md` §3's `Activity` root) so that every nested span
-/// opened downstream (`resolve_config`, `job`, `document`, ...) -- and any error each of them logs
-/// at its own boundary -- carries `run/...` context. No error is re-logged here: each of
-/// `resolve_configs`/`job::run` already logs its own failure once, closest to where it happens.
+/// Opens the outermost span, so that every nested one — and any error each logs at its own boundary
+/// — carries the run's context. No error is re-logged here: each step already logs its own failure
+/// once, closest to where it happened.
 pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
     let span = tracing::info_span!("run");
     let _guard = span.enter();
 
     let configs = resolve_configs(args)?;
-    // Il primo momento in cui si sa dove vanno gli output, e quindi dove va `.log.csv`: prima di
-    // questa riga il registro non ha ancora una destinazione (`CsvLogLayer::deferred`), e le righe
-    // gia' prodotte dalla risoluzione della configurazione sono in memoria. Stessa scelta della
-    // prima configurazione risolta che governa gia' i parametri di scrittura in modalita' batch.
+    // The first moment at which it is known where the outputs go, and therefore where the log goes:
+    // until this line the log has no destination and the rows already produced by resolving the
+    // configuration are held in memory.
     if let Some(first) = configs.first() {
         log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
     }
@@ -199,26 +147,22 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
     Ok(())
 }
 
-/// La sezione `parallelism` che governa questa corsa (P5).
-///
-/// E' quella della **prima** configurazione risolta, la stessa che governa gia' i parametri di
-/// scrittura in modalita' batch: i due livelli sono proprieta' della corsa intera, non di un job,
-/// e le colonne di un file di batch non possono comunque impostarli.
+/// The parallelism section governing this run: the **first** resolved configuration's, the same one
+/// that governs the write parameters. Both levels are properties of the run rather than of a job,
+/// and a batch file's columns cannot set them anyway.
 fn run_parallelism(configs: &[FreeportsConfig]) -> ParallelismConfig {
     configs.first().map_or_else(ParallelismConfig::default, |first| first.parallelism)
 }
 
-/// Quanti job alla volta (P1) e quante pagine alla volta dentro ciascuno (P2), risolti insieme.
+/// How many jobs at a time, and how many pages inside each, resolved together.
 ///
-/// **Insieme e in quest'ordine** perche' il secondo dipende dal primo: in `auto` il budget di core
-/// si divide fra i job concorrenti, cosi' che un batch con quattro job su venti thread hardware ne
-/// usi cinque per job invece di venti. Con un job solo -- il caso non-batch, che e' anche quello in
-/// cui P1 non fa nulla -- restano tutti disponibili, ed e' li' che P2 conta davvero.
+/// **Together and in that order**, because the second depends on the first: automatically, the
+/// budget of cores is divided among the concurrent jobs, so four jobs on twenty hardware threads
+/// take five each rather than twenty. With a single job — the non-batch case, which is also the one
+/// where job parallelism does nothing — they all stay available, and that is where page parallelism
+/// really counts.
 ///
-/// Un `pages` **esplicito** non si divide: chi lo scrive lo ha chiesto. In quel caso il prodotto
-/// `jobs x pages` puo' superare i core della macchina, e allora si onora la richiesta e la si
-/// segnala -- `PLAN.md` §2 principio 4 vieta gli override silenziosi, non le configurazioni
-/// scomode.
+/// An **explicit** page count is not divided: whoever wrote it asked for it.
 fn resolve_parallelism(configs: &[FreeportsConfig]) -> (usize, Parallelism) {
     let requested = run_parallelism(configs);
     let jobs = requested.resolve_jobs(configs.len());
@@ -243,11 +187,11 @@ fn resolve_parallelism(configs: &[FreeportsConfig]) -> (usize, Parallelism) {
     (jobs, pages)
 }
 
-/// Esegue i job risolti e ne concatena i risultati in ordine.
+/// Runs the resolved jobs and concatenates their results in order.
 ///
-/// Un job solo, o `n_workers` a 1, restano **esattamente** sul `for` sequenziale di sempre: nessun
-/// processo, nessuna area di lavoro temporanea, nessuna differenza osservabile. E' il default, ed e'
-/// la ragione per cui chi non chiede nulla non vede cambiare niente.
+/// A single job, or one worker, stays **exactly** on the sequential loop: no processes, no
+/// temporary work area, nothing observably different. It is the default, and the reason someone who
+/// asks for nothing sees nothing change.
 fn run_jobs(configs: &[FreeportsConfig], log_handle: &LogHandle) -> Result<Vec<DocumentOutcome>, CliError> {
     let (jobs, pages) = resolve_parallelism(configs);
     if jobs <= 1 {
@@ -260,17 +204,16 @@ fn run_jobs(configs: &[FreeportsConfig], log_handle: &LogHandle) -> Result<Vec<D
     run_jobs_in_processes(configs, jobs, pages, log_handle)
 }
 
-/// I job in processi figli (P1, `agent-memory/P1-implementation-plan.md` §2).
+/// Running the jobs in child processes.
 ///
-/// E' l'unico livello di parallelismo che scavalca il GIL, ed e' l'unica ragione per cui vale la
-/// pena pagare un confine di processo: P0 ha misurato che il caricamento PyMuPDF, che nessun thread
-/// puo' accelerare, e' il 35-75% del tempo di un job.
+/// The only level of parallelism that gets past the GIL, and the only reason a process boundary is
+/// worth paying for: the PDF loading no thread can speed up is 35-75% of a job's time.
 ///
-/// **Attenzione a `current_exe` sotto `cargo test`**: li' restituisce il binario della suite, non
-/// `freeports`. Un test che innescasse questo ramo lancerebbe copie del binario di test, che non
-/// conoscono `--internal-worker` e uscirebbero con un codice non-zero -- un `WorkerError::Died`
-/// pulito, non un ciclo infinito, ma comunque un test che non prova cio' che crede. Il pool vero si
-/// esercita dai test d'integrazione, con `env!("CARGO_BIN_EXE_freeports")`.
+/// **Careful with the current executable under a test harness**: there it is the test binary, not
+/// the real one. A test triggering this branch would launch copies of the test binary, which know
+/// nothing of the worker flag and exit non-zero — a clean error rather than an infinite loop, but a
+/// test proving something other than it thinks. The real pool is exercised from the integration
+/// tests.
 fn run_jobs_in_processes(
     configs: &[FreeportsConfig],
     parallelism: usize,
@@ -278,8 +221,8 @@ fn run_jobs_in_processes(
     log_handle: &LogHandle,
 ) -> Result<Vec<DocumentOutcome>, CliError> {
     let executable = std::env::current_exe().map_err(|source| CliError::WorkerSetup { source })?;
-    // Un'area per corsa, che sparisce da sola: i file privati dei figli non sopravvivono al padre
-    // e non compaiono mai accanto ai risultati.
+    // One work area per run, which cleans itself up: the children's private files do not outlive
+    // the parent and never appear beside the results.
     let work_area = worker::WorkArea::create()?;
     let requests = configs
         .iter()
@@ -297,9 +240,8 @@ fn run_jobs_in_processes(
     );
     let reports = worker::run_in_processes(&executable, &requests, parallelism);
 
-    // Prima di leggere gli esiti, e comunque siano andati: l'area di lavoro sparisce all'uscita da
-    // questa funzione, e i log di un job **fallito** sono i piu' utili di tutti da conservare. Il
-    // padre li riversera' nei propri file alla chiusura, in ordine di job.
+    // Before reading the outcomes, and however they went: the work area disappears when this
+    // function returns, and the logs of a **failed** job are the most useful of all to keep.
     for request in &requests {
         log_handle.absorb_worker_logs(&request.log_dir)?;
     }
@@ -311,17 +253,17 @@ fn run_jobs_in_processes(
 mod tests {
     use super::*;
 
-    /// Un `LogHandle` usa e getta per i test di `execute`, con entrambe le destinazioni in una
-    /// tempdir che sparisce a fine test. `execute` chiama `set_csv_dir` sulla cartella di output
-    /// risolta: senza un handle vero non lo si potrebbe esercitare, e con uno vero non si sporca
-    /// mai la cwd della suite.
+    /// A throwaway log handle for the tests, with both destinations in a temporary directory. The
+    /// code under test settles the CSV destination on the resolved output directory: without a real
+    /// handle that could not be exercised, and with one the suite's working directory is never
+    /// dirtied.
     fn test_log_handle() -> crate::core::tracing_setup::LogHandle {
         let dir = tempfile::tempdir().expect("tempdir");
         let handle = crate::core::tracing_setup::log_handle_for_tests(dir.path())
             .expect("test log handle");
-        // La tempdir viene lasciata in vita per tutta la durata del processo di test: `execute`
-        // riapre comunque il csv nella cartella di output vera, e tenerla viva evita che la
-        // destinazione di fallback sparisca sotto i piedi di `close()`.
+        // The temporary directory is kept alive for the test process's lifetime: the code reopens
+        // the CSV in the real output directory anyway, and keeping it alive stops the fallback
+        // destination disappearing from under the close.
         std::mem::forget(dir);
         handle
     }
@@ -347,9 +289,8 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
-    /// Stesso meccanismo di `config_locations::env::tests::EnvScope`: pulisce e restaura tutte le
-    /// `FREEPORTS_*` per la durata di un test, così una variabile lasciata dalla shell reale dello
-    /// sviluppatore non influenza `execute`'s `env::load()` interno.
+    /// Clears and restores every environment variable for the duration of a test, so that one left
+    /// over from the developer's own shell cannot influence the resolution.
     struct EnvScope {
         _lock: std::sync::MutexGuard<'static, ()>,
         originals: Vec<(&'static str, Option<String>)>,
@@ -383,20 +324,17 @@ mod tests {
         CliArgs::try_parse_from(full).expect("argv must parse")
     }
 
-    /// Un file YAML vuoto reale: passato esplicitamente via `--config` in ogni test qui sotto per
-    /// evitare che `execute` cada sul tier cwd/utente/sistema di `file::find_config()` reale (non
-    /// isolato da `EnvScope`, che pulisce solo le `FREEPORTS_*` -- vedi il doc-comment del modulo).
-    /// Con `--config` esplicito, `config_file_path` è sempre `Some(questo path)`, e
-    /// `find_config()` non viene mai chiamato.
+    /// A real empty YAML file, passed explicitly in every test here so that resolution never falls
+    /// back on the real configuration-file search, which the environment scope does not isolate.
     fn empty_config_file(dir: &std::path::Path) -> std::path::PathBuf {
         let path = dir.join("empty.yaml");
         std::fs::write(&path, "").unwrap();
         path
     }
 
-    /// P1/P5: quale dei due percorsi -- il `for` sequenziale di sempre o il pool di processi figli
-    /// -- prende una corsa, e perche'. La decisione e' tutta in `resolve_parallelism`, quindi si
-    /// prova li' dove non serve avviare nulla; il pool vero gira nei test d'integrazione.
+    /// Which of the two paths a run takes — the sequential loop or the pool of child processes —
+    /// and why. The decision is entirely in the resolution, so it is checked there, where nothing
+    /// needs starting; the real pool runs in the integration tests.
     mod parallelism_decides_the_path {
         use super::*;
         use crate::cli::conf_parse::DocumentSpec;
@@ -433,8 +371,7 @@ mod tests {
             resolve_parallelism(configs).0
         }
 
-        /// `jobs: 1` -- che dopo P5 si ottiene con un `-j 1`, o con `parallelism.jobs: 1` --
-        /// continua a percorrere esattamente il codice di prima di P1.
+        /// One job worker keeps a batch on exactly the code that predates child processes.
         #[test]
         fn one_job_worker_keeps_a_batch_sequential() {
             assert_eq!(jobs_of(&batch_of(8, 1)), 1);
@@ -445,10 +382,8 @@ mod tests {
             assert_eq!(jobs_of(&batch_of(1, 16)), 1);
         }
 
-        /// P5: il default e' cambiato. Prima di P5 `n_workers` valeva `1` e un batch girava
-        /// sequenziale se nessuno chiedeva altro; ora entrambi i livelli valgono `auto`, quindi un
-        /// batch usa i core della macchina senza che l'utente debba saperlo
-        /// (`agent-memory/P5-implementation-plan.md` D-P5-4).
+        /// The default is now automatic at both levels, so a batch uses the machine's cores without
+        /// the user having to know.
         #[test]
         fn the_default_now_runs_a_batch_in_parallel() {
             let configs: Vec<FreeportsConfig> =
@@ -457,8 +392,8 @@ mod tests {
             assert_eq!(jobs_of(&configs), expected);
         }
 
-        /// L'altra meta' dello stesso default: le pagine di un job. Con un job solo il budget non
-        /// si divide con nessuno, ed e' li' che P2 conta davvero.
+        /// The other half of the same default: with a single job the budget is divided with nobody,
+        /// and that is where page parallelism really counts.
         #[test]
         fn the_default_gives_a_lone_job_every_core_for_its_pages() {
             let configs = vec![config_with(ParallelismConfig::default())];
@@ -467,8 +402,8 @@ mod tests {
             assert_eq!(pages.pages, parallelism::available_threads());
         }
 
-        /// L'invariante di `PLAN.md` §6: `1` ovunque percorre il codice sequenziale a entrambi i
-        /// livelli, ed e' il modo con cui si verifica il determinismo.
+        /// One everywhere walks the sequential code at both levels, which is how determinism is
+        /// checked.
         #[test]
         fn one_everywhere_is_sequential_at_both_levels() {
             let configs: Vec<FreeportsConfig> =
@@ -476,8 +411,8 @@ mod tests {
             assert_eq!(resolve_parallelism(&configs), (1, Parallelism::SEQUENTIAL));
         }
 
-        /// P5 D-P5-3: un `pages` esplicito non si divide fra i job concorrenti. Il prodotto puo'
-        /// superare i core -- la richiesta si onora, e `resolve_parallelism` la segnala.
+        /// An explicit page count is not divided among the jobs. The product may exceed the cores —
+        /// the request is honoured, and the resolution says so.
         #[test]
         fn an_explicit_page_count_is_not_divided_among_the_jobs() {
             let parallelism =
@@ -487,8 +422,8 @@ mod tests {
             assert_eq!(resolve_parallelism(&configs), (2, Parallelism::pages(7)));
         }
 
-        /// Non ha senso avviare piu' processi che job: sarebbero figli che nascono per non fare
-        /// nulla, ciascuno con il costo di un interprete Python da inizializzare.
+        /// Starting more processes than jobs makes no sense: they would be children born to do
+        /// nothing, each paying for a Python interpreter to initialise.
         #[test]
         fn more_workers_than_jobs_are_capped_at_the_number_of_jobs() {
             assert_eq!(jobs_of(&batch_of(3, 16)), 3);
@@ -499,18 +434,16 @@ mod tests {
             assert_eq!(jobs_of(&batch_of(16, 4)), 4);
         }
 
-        /// Un batch vuoto e' un file di batch con la sola intestazione: legittimo, e non deve
-        /// diventare uno `0` che si propaga in un `min` o in un ciclo di thread. Un solo
-        /// lavoratore per zero job non ne avvia comunque nessuno -- `run_jobs` prende il ramo
-        /// sequenziale, che itera su niente.
+        /// An empty batch — a batch file with only a header — is legitimate, and must not become a
+        /// zero that propagates into a minimum or a thread count. One worker for zero jobs starts
+        /// none anyway.
         #[test]
         fn an_empty_batch_never_asks_for_more_than_one_worker() {
             assert_eq!(jobs_of(&[]), 1);
         }
 
-        /// Le colonne di un file di batch non possono impostare il parallelismo: il valore e'
-        /// quello della prima configurazione risolta, la stessa che governa gia' i parametri di
-        /// scrittura.
+        /// A batch file's columns cannot set the parallelism: the value is the first resolved
+        /// configuration's, the same one that governs the write parameters.
         #[test]
         fn the_value_comes_from_the_first_resolved_configuration() {
             let mut configs = batch_of(4, 3);
@@ -650,11 +583,11 @@ mod tests {
                 "TEST",
                 "--config",
                 config_path.to_str().unwrap(),
-                // `--out` non e' decorativo: e' l'unico test di questo modulo che arriva *oltre*
-                // la risoluzione della configurazione, quindi l'unico in cui `execute` chiama
-                // `set_csv_dir`. Senza, `out_path` prende il suo default -- la cwd, che per un
-                // binario di test e' la radice del package -- e la suite lascia un `.log.csv`
-                // di sola intestazione dentro `packages/freeports/` a ogni `cargo test`.
+                // The output path is not decorative here: this is the only test in this module that
+                // gets *past* configuration resolution, and so the only one where the CSV
+                // destination is settled. Without it the path takes its default — the working
+                // directory, which for a test binary is the package root — and the suite would
+                // leave a header-only log there on every run.
                 "--out",
                 dir.path().join("out").to_str().unwrap(),
             ]);
@@ -663,11 +596,8 @@ mod tests {
         }
     }
 
-    /// Un solo test end-to-end reale (`execute` completo: risoluzione, job, scrittura su disco).
-    /// `M9-implementation-plan.md` §3 passo 17 marca `tests/cli_run_end_to_end.rs` come
-    /// opzionale ("se il tempo lo consente"); questo test copre lo stesso terreno senza un file a
-    /// parte, dato il tempo limitato di questa sessione -- segnalato nel resoconto del
-    /// test-writer. Tocca Python (PyMuPDF), stessa nota di `cli::job::tests::python_boundary`.
+    /// One real end-to-end test: resolution, job, and writing to disk. It touches Python, with the
+    /// same note as the job tests.
     mod python_boundary {
         use super::*;
         use pyo3::prelude::*;

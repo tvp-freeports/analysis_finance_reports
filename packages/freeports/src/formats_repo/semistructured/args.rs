@@ -1,20 +1,18 @@
-//! Gli argomenti YAML del livello semistructured e la loro risoluzione per riga.
+//! The semistructured YAML arguments, and how a row picks its own.
 //!
-//! Un file per segmento, `args/{segmento}.yaml`, con una chiave per pipe. La chiave è
-//! `"{formato}({pipeline})"`; quando la pipeline è quella **senza nome**, e solo allora, si
-//! ripiega sulla chiave nuda `"{formato}"`.
+//! One file per segment, with a key per pipe. The key is `"{format}({pipeline})"`; only when the
+//! pipeline is the **unnamed** one does it fall back to the bare `"{format}"`.
 //!
-//! Se il valore trovato è una **lista**, l'elemento da usare è scelto per posizione — ma la
-//! posizione è il numero di pipe già emessi per quella `(pipeline, segmento)`, non l'indice della
-//! riga CSV. È una distinzione che conta davvero: un algoritmo che restituisce tre pipe fa
-//! avanzare il contatore di tre, non di uno. `PLAN.md` §6.2 lo dice espressamente, ed è il
-//! comportamento del riferimento.
+//! When the value found is a **list**, the element to use is chosen by position — and the position
+//! is the number of pipes already emitted for that `(pipeline, segment)`, not the row's index in
+//! the mapping table. The distinction is real: an algorithm returning three pipes advances the
+//! counter by three, not by one.
 
 use std::path::{Path, PathBuf};
 
 use super::SegmentKind;
 
-/// Fallimenti nella lettura o risoluzione degli argomenti.
+/// Failures of reading or resolving the arguments.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ArgsError {
     #[error("missing formats-repository file: {0}")]
@@ -27,7 +25,7 @@ pub enum ArgsError {
     MalformedArgs { algorithm_id: String, message: String },
 }
 
-/// Il percorso del file argomenti di un segmento.
+/// The path of a segment's arguments file.
 pub fn args_path(formats_repo_dir: &Path, segment: SegmentKind) -> PathBuf {
     formats_repo_dir
         .join(super::formats_mapping::SEMISTRUCTURED_DIR)
@@ -35,12 +33,11 @@ pub fn args_path(formats_repo_dir: &Path, segment: SegmentKind) -> PathBuf {
         .join(format!("{}.yaml", segment.file_stem()))
 }
 
-/// Carica il file argomenti di un segmento.
+/// Loads a segment's arguments file.
 ///
-/// Tutti e tre i file sono letti da ogni caricamento, anche per un segmento che il formato
-/// richiesto non usa: è il comportamento del riferimento, e rende un file mancante un errore di
-/// configurazione del repo invece di una sorpresa a metà caricamento. Un file **vuoto** è invece
-/// legittimo (i due file `text_filter.yaml`/`deserialize.yaml` del repo italiano contengono `{}`).
+/// All three files are read on every load, even for a segment the requested format does not use,
+/// which makes a missing file a repository configuration error rather than a surprise halfway
+/// through loading. An **empty** file is legitimate.
 pub fn load(formats_repo_dir: &Path, segment: SegmentKind) -> Result<serde_yaml::Value, ArgsError> {
     let path = args_path(formats_repo_dir, segment);
     if !path.is_file() {
@@ -51,16 +48,15 @@ pub fn load(formats_repo_dir: &Path, segment: SegmentKind) -> Result<serde_yaml:
     serde_yaml::from_str(&content).map_err(|e| ArgsError::Unreadable { path, reason: e.to_string() })
 }
 
-/// La chiave con cui un pipe cerca i propri argomenti.
+/// The key a pipe looks its arguments up under.
 pub fn algorithm_id(format_name: &str, pipeline_name: &str) -> String {
     format!("{format_name}({pipeline_name})")
 }
 
-/// Gli argomenti dichiarati per un pipe, prima della scelta posizionale.
+/// The arguments declared for a pipe, before the positional choice.
 ///
-/// La ricerca è per `"{formato}({pipeline})"`; il ripiego sulla chiave nuda `"{formato}"` vale
-/// **solo** per la pipeline senza nome, perché altrimenti due pipeline diverse dello stesso
-/// formato finirebbero per condividere gli stessi argomenti.
+/// The fallback to the bare format key applies **only** to the unnamed pipeline; otherwise two
+/// different pipelines of one format would end up sharing arguments.
 pub fn lookup<'a>(
     args: &'a serde_yaml::Value,
     format_name: &str,
@@ -78,10 +74,10 @@ pub fn lookup<'a>(
     Err(ArgsError::MissingArgs { algorithm_id: id })
 }
 
-/// L'argomento di *questo* pipe fra quelli dichiarati.
+/// This pipe's argument among those declared.
 ///
-/// Se il valore è una lista, si sceglie per posizione (vedi il doc-comment del modulo per cosa
-/// conta la posizione); altrimenti il valore è l'argomento, uguale per ogni pipe che lo usi.
+/// A list value is indexed by position (see the module documentation for what the position counts);
+/// any other value is the argument itself, the same for every pipe using it.
 pub fn positional<'a>(
     selected: &'a serde_yaml::Value,
     already_emitted: usize,

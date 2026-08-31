@@ -11,7 +11,6 @@ venv/
 /out/
 src/**/*.pdf
 dist/
-docs/build/doctrees/
 src/freeports_analysis/formats/ETICA
 src/*.egg-info
 **/*.pdf
@@ -33,3 +32,9 @@ freeports.log.jsonl
 .continue
 pylint.json
 CLAUDE.md
+# Output della build della documentazione: generato, non versionato.
+docs/build/
+# Autosummary genera i .rst dell API dai pacchetti installati, a ogni build.
+docs/source/_generated/
+# rustdoc, copiato qui da `make rustdoc` e pubblicato come sotto-percorso del sito.
+docs/source/_extra/

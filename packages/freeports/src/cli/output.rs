@@ -1,26 +1,8 @@
-//! Adattatore `FreeportsConfig` -> `output::routines::write_files`: accumula i risultati di un
-//! job (o di tutti i job di un batch concatenati) e li scrive su disco.
+//! The adapter from a resolved configuration to writing the output files.
 //!
-//! `M9-implementation-plan.md` §1/§3 passo 13. Puro collante fra due moduli già completamente
-//! testati (`output::routines::{accumulate, write}`, M8/M9): `cli::output` non reimplementa
-//! nessuna delle loro regole, si limita a passare i parametri giusti nell'ordine giusto.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum OutputError {
-//!     Accumulate(#[from] crate::output::routines::accumulate::AccumulateError),
-//!     Write(#[from] crate::output::routines::write::WriteFilesError),
-//! }
-//!
-//! /// `accumulate(outcomes)` poi `write_files(&tables, &config.out_path, config.out_profile,
-//! /// config.out_flags)` -- nessun'altra logica.
-//! pub fn write_results(
-//!     config: &crate::cli::freeports_config::FreeportsConfig,
-//!     outcomes: &[crate::core::algorithm::DocumentOutcome],
-//! ) -> Result<(), OutputError>;
-//! ```
+//! Accumulates a job's results — or those of every job of a batch, concatenated — and writes them
+//! to disk. Pure glue: it reimplements none of the rules of accumulation or writing, it passes the
+//! right parameters in the right order.
 
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
@@ -36,12 +18,12 @@ pub enum OutputError {
     Write(#[from] WriteFilesError),
 }
 
-/// La cartella in cui va `.log.csv` per una configurazione risolta: **accanto agli output**.
+/// The directory `.log.csv` goes in for a resolved configuration: **beside the outputs**.
 ///
-/// In profilo `SingleFile` `out_path` e' il file, non la cartella, quindi si prende il suo padre.
-/// La stessa funzione serve i due punti d'ingresso (CLI e `python::api::py_run_job`), che prima
-/// duplicavano questa scelta: divergere qui vorrebbe dire che lo stesso job scrive il registro in
-/// due posti diversi a seconda di come e' stato lanciato.
+/// In the single-file profile the output path is the file rather than the directory, so its parent
+/// is taken. One function serves both entry points — the command line and the Python API — which
+/// previously duplicated the choice: diverging here would mean the same job writing its log in two
+/// different places depending on how it was launched.
 pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
     if config.out_profile == OutStructureMode::SingleFile {
         config.out_path.parent().unwrap_or(std::path::Path::new(".")).to_path_buf()
@@ -50,10 +32,8 @@ pub fn log_csv_dir(config: &FreeportsConfig) -> std::path::PathBuf {
     }
 }
 
-/// Opens the `output` span (`PLAN.md` §3's `Activity` vocabulary places this orchestration point
-/// right under `run`/`job`/`document`, sibling to `pipeline`) around [`write_results_impl`] and
-/// logs the outcome exactly once, same pattern as `job::run`/`batch::load_jobs`. `out_path` is the
-/// coordinate that identifies this write, so it goes on the span, not on the individual events.
+/// Opens the output span around the write and logs the outcome exactly once. The output path is the
+/// coordinate identifying this write, so it goes on the span rather than on the individual events.
 pub fn write_results(config: &FreeportsConfig, outcomes: &[DocumentOutcome]) -> Result<(), OutputError> {
     let span = tracing::info_span!("output", out_path = %config.out_path.display());
     let _guard = span.enter();

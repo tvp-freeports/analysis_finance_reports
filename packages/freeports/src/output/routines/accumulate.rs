@@ -1,62 +1,15 @@
-//! Accumulo: da `&[DocumentOutcome]` alle tabelle tipizzate di `output::files_schema`, con le
-//! promesse già risolte.
+//! Accumulation: from the engine's per-document outcomes to the typed output tables, with the
+//! promises resolved.
 //!
-//! M8, passo 12 (`agent-memory/M8-implementation-plan.md` §1/§3/§4) — il cuore del focus di test
-//! di questa milestone insieme a [`super::write`]. Porta la logica di
-//! `packages/freeports_core/src/output/routines.rs::transform_to_files_schema`/`Accumulator`, ma
-//! parte direttamente da [`crate::core::algorithm::DocumentOutcome`] (M5) invece che dai due
-//! `#[pyclass]` `PageResults`/`DocumentResults` del riferimento — quel ruolo lo svolgono già
-//! `DocumentOutcome`/`PageOutcome`, portarli di nuovo sarebbe rifare due volte lo stesso lavoro
-//! (`PLAN.md` §1).
+//! Two phases, in this order:
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! 1. **collect the promises**. Every promise deposited by every page of every document flows into one global map, which is then flattened. It has to be global: a promise chain can cross pages and even documents, so resolving per page would leave references dangling that the whole run could have answered;
+//! 2. **resolve and pour**. Each entity is resolved against that map and appended to its table. Resolution may drop an entity, keep it, or expand it into several — a value that turned out to be a list means the entity really was several.
 //!
-//! ```text
-//! pub struct TransformedTables {
-//!     pub investments: Vec<InvestmentRow>,
-//!     pub funds: Vec<FundRow>,
-//!     pub funds_change_name: Vec<FundChangeNameRow>,
-//!     pub funds_assets: Vec<FundAssetsRow>,
-//!     pub funds_sfdr_classification: Vec<FundSfdrClassificationRow>,
-//!     pub funds_esg_indicators: Vec<FundEsgIndicatorRow>,
-//!     pub assets_managers: Vec<AssetsManagerRow>,
-//!     pub investments_managers: Vec<InvestmentsManagerRow>,
-//!     pub additional_infos: BTreeMap<u32, BondAdditionalInfoRow>,
-//! }
-//!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum AccumulateError {
-//!     Promise(#[from] PromiseError),        // catena di promesse circolare
-//!     Promisable(#[from] PromisableError),   // promessa strict irrisolvibile, o campo malformato
-//!     Schema(#[from] SchemaError),           // limite numerico violato, o chiave duplicata
-//! }
-//!
-//! pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, AccumulateError>;
-//! ```
-//!
-//! **Regole di comportamento pinnate dai test** (`agent-memory/M8-implementation-plan.md` §4):
-//!
-//! 1. **Le promesse si risolvono contro un'unica mappa globale**: ogni `Extracted::Promises` di
-//!    *ogni* pagina di *ogni* documento viene versato in una sola `PromiseMap` prima di
-//!    `flatten()` — le catene di promesse possono attraversare pagine e documenti.
-//! 2. **`Report`/`Format`/`Report page`** vengono sempre da `DocumentOutcome::id`/`::format`/
-//!    `PageOutcome::page` — non esiste (e non serve) un parametro `batch_mode`.
-//! 3. **Deduplicazione fondi**: la chiave è il nome normalizzato e maiuscolizzato
-//!    (`Fund::new(name).name()`, idempotente); un fondo visto **solo indirettamente** (mai come
-//!    `Extracted::Fund` autonomo, solo come `.fund` di un `Equity`/`Bond`/`FundAssets`/...) resta
-//!    nella tabella `funds` ma **senza** `Report`/`Format`/`Report page` — quirk verbatim del
-//!    riferimento (`FundRow` è l'unica riga con quei tre campi opzionali, vedi `files_schema.rs`).
-//! 4. **Deduplicazione asset manager**: **un'unica tabella condivisa**, chiave il solo nome —
-//!    verificato leggendo `Accumulator::assets_managers`/`manager_index` del riferimento (una
-//!    singola `HashMap<String, usize>` senza distinzione di tipo): un `ManagementCompany` e un
-//!    `InvestmentsManager` con lo **stesso nome** producono la **stessa** riga/id in
-//!    `assets_managers`, e solo il tipo dell'istanza incontrata decide se contribuisce a
-//!    `funds[].management_company_id` oppure a `investments_managers`.
-//! 5. **`Extracted::Promises`** non produce righe (è la fonte della mappa di risoluzione);
-//!    **`Extracted::PageClass`** è ignorato (non produce righe, non è un errore vederlo).
-//! 6. **Esito della risoluzione per entità**: `Fulfilled::InPlace`/`Expanded` producono una riga
-//!    (o una per copia); `Fulfilled::Dropped` fa sparire l'entità da ogni tabella, senza errore;
-//!    una promessa *strict* irrisolvibile è un [`AccumulateError`] (mai un panic).
+//! Funds get a row the first time they are seen, whether directly or as another entity's fund, and
+//! every source agrees on one canonical key, so the two never produce two rows for one fund. The
+//! provenance columns stay empty until the fund is seen **directly**, since a fund only mentioned
+//! by an investment has no page of its own to point at.
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -76,9 +29,8 @@ use crate::output::files_schema::{
     UniqueTable,
 };
 
-// Usati solo dai fixture dei test qui sotto (non da questa produzione): `#[cfg(test)]` evita gli
-// `unused import` quando questo crate è compilato senza i test (es. come dipendenza di
-// `tests/output_routines.rs`).
+// Used only by the test fixtures below, hence the `cfg(test)` to avoid unused-import warnings in
+// the ordinary build.
 #[cfg(test)]
 use crate::commons::consts::{Currency, SfdrArticle};
 #[cfg(test)]
@@ -119,20 +71,19 @@ pub struct TransformedTables {
 /// Fallimenti dell'accumulo.
 #[derive(Debug, thiserror::Error)]
 pub enum AccumulateError {
-    /// Una catena di promesse circolare, scoperta durante l'appiattimento della mappa globale.
+    /// A circular promise chain, discovered while flattening the global map.
     #[error(transparent)]
     Promise(#[from] PromiseError),
-    /// Una promessa *strict* irrisolvibile, o un valore risolto del tipo sbagliato.
+    /// A *strict* promise that cannot be resolved, or a resolved value of the wrong type.
     #[error(transparent)]
     Promisable(#[from] PromisableError),
-    /// Un limite numerico violato, o una chiave duplicata.
+    /// A numeric limit violated, or a duplicate key.
     #[error(transparent)]
     Schema(#[from] SchemaError),
 }
 
-/// Una voce di `funds` in costruzione: `report_page`/`report`/`format` restano `None` finché il
-/// fondo non è visto **direttamente** (come `Extracted::Fund`, o come fonte di `management_company_id`
-/// negli asset manager) — quirk verbatim del riferimento, vedi il doc-comment del modulo.
+/// A funds entry under construction: the provenance fields stay empty until the fund is seen
+/// **directly**, not merely mentioned by another entity.
 struct FundEntryBuilder {
     id: u32,
     name: String,
@@ -158,8 +109,7 @@ struct Accumulator {
 }
 
 impl Accumulator {
-    /// `name` deve già essere la chiave canonica (il nome normalizzato+maiuscolizzato che
-    /// `Fund::name()` produce): ogni chiamante la calcola prima di arrivare qui.
+    /// `name` must already be the canonical key; every caller computes it before arriving here.
     fn get_or_create_fund(&mut self, name: &str) -> usize {
         if let Some(&idx) = self.fund_index.get(name) {
             idx
@@ -236,16 +186,17 @@ impl Accumulator {
     }
 }
 
-/// La chiave canonica di un fondo dal nome grezzo (scritto in un blocco): `Fund::new(name).name()`
-/// — normalizzato e maiuscolizzato, idempotente su un nome già normalizzato. È lo stesso valore
-/// che `Extracted::Fund(fund)` produce direttamente via `fund.name()`, quindi le due fonti
-/// convergono sempre sulla stessa riga di `funds`.
+/// The canonical key of a fund from a raw name as written in a block: normalised and upper-cased,
+/// and idempotent on an already normalised name.
+///
+/// It is the same value a fund entity produces on its own, which is what makes the two sources
+/// always converge on one row.
 fn canonical_fund_key(raw_name: &str) -> String {
     Fund::new(raw_name).name().expect("a freshly-built Fund is always resolved")
 }
 
-/// Risolve le promesse di `entity` contro `flat`, restituendo zero (`Dropped`), una (`InPlace`) o
-/// più (`Expanded`) copie già risolte.
+/// Resolves an entity's promises, yielding zero copies (dropped), one (resolved in place) or
+/// several (expanded).
 fn resolve<T: PromisableFields + Clone>(mut entity: T, flat: &FlatPromiseMap) -> Result<Vec<T>, AccumulateError> {
     match fulfill_promises(&mut entity, flat)? {
         Fulfilled::InPlace => Ok(vec![entity]),
@@ -254,12 +205,13 @@ fn resolve<T: PromisableFields + Clone>(mut entity: T, flat: &FlatPromiseMap) ->
     }
 }
 
-/// Assembla `outcomes` nelle tabelle tipizzate di `output::files_schema`, risolvendo ogni
-/// promessa prima di costruire le righe. Vedi il doc-comment del modulo per le regole di
-/// comportamento pinnate dai test.
+/// Assembles the outcomes into the typed output tables, resolving every promise before building any
+/// row.
+///
+/// See the module documentation for the two phases and why the promise map is global.
 pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, AccumulateError> {
-    // Fase 1: ogni `Extracted::Promises` di ogni pagina di ogni documento confluisce in un'unica
-    // mappa globale — le catene di promesse possono attraversare pagine e documenti.
+    // Phase 1: every promise of every page of every document flows into one global map — chains can
+    // cross pages and documents.
     let mut promise_map = PromiseMap::new();
     for doc in outcomes {
         for page in &doc.pages {
@@ -273,7 +225,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
     let flat = promise_map.flatten()?;
     tracing::debug!(documents = outcomes.len(), promise_ids = flat.len(), "promise map flattened");
 
-    // Fase 2: ogni entità viene risolta e versata nella tabella giusta.
+    // Phase 2: each entity is resolved and poured into the right table.
     let mut acc = Accumulator::default();
     for doc in outcomes {
         let report = doc.id.as_str().to_string();
@@ -422,8 +374,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
     Ok(acc.finalize()?)
 }
 
-/// I campi comuni di `Equity`/`Bond`, con le specificità di ciascuno passate a parte (`financial_instrument`,
-/// `maturity`/`interest_rate`, entrambi `None` per un'`Equity`).
+/// The fields an equity and a bond have in common, with each one's specifics passed separately.
 #[allow(clippy::too_many_arguments)]
 fn push_investment(
     acc: &mut Accumulator,
@@ -492,8 +443,8 @@ fn push_fund_change_name(
     Ok(())
 }
 
-/// Trova o crea la riga `assets_managers` per `name`, restituendone l'id — condivisa fra
-/// `ManagementCompany` e `InvestmentsManager` (§1: un'unica tabella, un unico indice per nome).
+/// Finds or creates the managers row for `name`, returning its id — shared by both manager
+/// entities, which live in one table under one index by name.
 fn get_or_create_manager(
     acc: &mut Accumulator,
     name: &str,
@@ -853,9 +804,8 @@ mod tests {
 
         #[test]
         fn two_sfdr_classifications_of_the_same_fund_are_rejected_as_duplicates() {
-            // La chiave di unicità di `funds_sfdr_classification` è il solo `Fund ID`: una
-            // seconda classificazione per lo stesso fondo, in una pagina diversa, è un duplicato
-            // anche se l'articolo dichiarato è diverso — stesso comportamento del riferimento.
+            // The uniqueness key here is the fund alone: a second classification for the same fund,
+            // on a different page, is a duplicate even when the article declared differs.
             let outcomes = vec![doc(
                 "R",
                 "FMT",

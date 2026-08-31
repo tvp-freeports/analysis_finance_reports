@@ -1,21 +1,11 @@
-//! Gettext catalog parsing and message lookup.
+//! Gettext catalogue parsing and message lookup.
 //!
-//! Port of the *lookup* half of `packages/freeports_core/src/commons/i18n.rs`'s `Translator`
-//! (see that reference file's module doc for why locale detection and `.mo` resource loading
-//! stay outside Rust — those are OS/packaging concerns, same rationale as the two genuine
-//! Python-boundary modules in `PLAN.md` §3, even though `i18n` itself is not one of them). All
-//! PyO3 (`#[pyclass]`/`#[pymethods]`, `PyResult`, `PyValueError`) is dropped: a plain struct, a
-//! plain `Result`, and a `thiserror` error type for the one genuinely fallible operation
-//! (`Translator::new`) — per `PLAN.md` §14's "un enum d'errore per modulo, con `thiserror`".
+//! Only the lookup half: locale detection and catalogue file discovery stay outside, being
+//! packaging and operating-system concerns rather than extraction ones.
 //!
-//! ## Expected API surface these tests assume
-//!
-//! - `Translator::new(mo_bytes: &[u8]) -> Result<Translator, E>` for some typed `E:
-//!   std::error::Error` (name left to the implementer's discretion — the tests only assert
-//!   `is_ok()`/`is_err()`, never a concrete error variant, so they don't couple to that choice).
-//! - `Translator::gettext(&self, msg_id: &str) -> String` — falls back to `msg_id` itself when
-//!   untranslated. This fallback is the entire point of the type: it must never panic or error
-//!   on a missing translation, and the tests below assert it explicitly.
+//! [`Translator::gettext`] falls back to the message id itself when there is no translation. That
+//! fallback is the entire point of the type — it must never panic or fail on a missing translation,
+//! since a missing translation is a cosmetic problem and an aborted run is not.
 
 /// A parsed gettext catalog, ready for message lookup.
 pub struct Translator {

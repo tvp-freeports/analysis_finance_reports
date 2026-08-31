@@ -1,36 +1,14 @@
-//! `ManagementCompany`/`InvestmentsManager`: chi gestisce un fondo (società di gestione, o
-//! gestore degli investimenti), col nome e l'insieme dei fondi gestiti.
+//! [`ManagementCompany`] and [`InvestmentsManager`]: who runs a fund, by name, with the set of
+//! funds they run.
 //!
-//! M8, passo 5 (`agent-memory/M8-implementation-plan.md` §3/§1). Stesso precedente di
-//! `Equity`/`Bond` (M7) e di `FundRename`/`FundMerge` (passo 1): una struct dati condivisa
-//! ([`AssetsManagerData`]) e due wrapper, non un `macro_rules!` come nel riferimento
-//! (`packages/freeports_core/src/output/classes/assets_manager.rs`,
-//! `assets_manager_variant!`) — un secondo caso identico non giustifica un secondo idioma.
+//! A shared data struct and two wrappers, as with the investment entities. They are two types
+//! rather than two variants because everything downstream tells them apart by type.
 //!
-//! **Nessun campo è mai promettibile** (né nel riferimento né qui): `fulfill_promises` è quindi
-//! un no-op puro, non passa dal meccanismo generico di `core::promisable` — `pending()` è sempre
-//! vuoto, `resolve_field` non ha alcun caso valido (`unreachable!()`).
+//! **No field is ever promisable** here, so promise fulfilment is a pure no-op: nothing is ever
+//! pending and no field can be resolved.
 //!
-//! **`managed_funds` è `BTreeSet<String>` dei nomi *come scritti***, non normalizzati e non
-//! `BTreeSet<MatchFund>`: è la stessa forma già prodotta da
-//! `standard_management_company_txt_blk`/`standard_investmet_manager_txt_blk` (M4, già in questo
-//! crate) — leggerla da un `BlockValue::Set` di `BlockValue::Str` è il porting naturale.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! pub struct AssetsManagerData { pub name: String, pub managed_funds: BTreeSet<String> }
-//! impl AssetsManagerData {
-//!     pub fn build(name: &BlockValue, managed_funds: &BlockValue) -> Result<Self, OutputClassError>;
-//! }
-//!
-//! pub struct ManagementCompany { pub data: AssetsManagerData }
-//! pub struct InvestmentsManager { pub data: AssetsManagerData }
-//! // entrambi con lo stesso `build(name: &BlockValue, managed_funds: &BlockValue) -> Result<Self, OutputClassError>`
-//! // e `impl PromisableFields` no-op che delega a `data`.
-//! ```
-//!
-//! Deriva `Debug, Clone, PartialEq, Eq, Serialize, Deserialize`.
+//! The managed funds are the names **as written**, unnormalised, which is the form the filtering
+//! pipes already produce and the form that belongs in an output file meant to be read.
 
 use std::collections::BTreeSet;
 
@@ -42,8 +20,8 @@ use crate::core::promise::Promise;
 
 use super::OutputClassError;
 
-/// I campi che `ManagementCompany` e `InvestmentsManager` hanno in comune: nessuno è mai
-/// promettibile.
+/// The fields a management company and an investments manager have in common: none of them is ever
+/// promisable.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AssetsManagerData {
     pub name: String,
@@ -67,7 +45,7 @@ impl AssetsManagerData {
     }
 }
 
-/// La società di gestione di un fondo.
+/// A fund's management company.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManagementCompany {
     #[serde(flatten)]
@@ -90,7 +68,7 @@ impl PromisableFields for ManagementCompany {
     }
 }
 
-/// Il gestore degli investimenti di un fondo.
+/// A fund's investments manager.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvestmentsManager {
     #[serde(flatten)]
@@ -189,10 +167,8 @@ mod tests {
     mod assets_manager_specific {
         use super::*;
 
-        /// Costruiti dallo stesso nome/insieme di fondi ma di tipo diverso: non intercambiabili —
-        /// il compilatore lo garantisce (nessun `impl PartialEq<InvestmentsManager> for
-        /// ManagementCompany`), qui lo si documenta esplicitamente come per `FundRename`/
-        /// `FundMerge`.
+        /// Built from the same name and fund set but of different types, so they are not
+        /// interchangeable. The compiler guarantees it; this documents it.
         #[test]
         fn management_company_and_investments_manager_are_distinct_types_even_with_identical_data() {
             use std::any::TypeId;

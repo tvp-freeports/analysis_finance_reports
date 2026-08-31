@@ -1,4 +1,4 @@
-//! Acquisizione degli input: documenti PDF e database delle societa' target.
+//! Acquiring the inputs: PDF documents and the target-companies database.
 
 pub mod companies_db;
 pub mod document;

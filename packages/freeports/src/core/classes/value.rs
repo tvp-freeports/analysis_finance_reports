@@ -1,26 +1,22 @@
-//! `BlockValue`: l'unico tipo di valore che puo' stare in `metadata` o in `content` di un blocco.
+//! [`BlockValue`]: the only kind of value that may sit in a block's `metadata` or `content`.
 //!
-//! In `freeports_core` questi due campi erano `dict`/`Any` Python: qualunque oggetto poteva
-//! finirci, il che rendeva impossibile serializzare senza un modulo `serialization.py` ad hoc e
-//! costringeva ogni consumatore a un `isinstance` difensivo. Qui sono un enum chiuso
-//! (`PLAN.md` §4.1, decisione D1): serde funziona per derivazione, il compilatore verifica
-//! l'esaustivita' dei `match`, e gli accessori tipizzati restituiscono `Result` invece di
-//! lasciare `unwrap` sparsi nei deserializzatori (`PLAN.md` §4.1, ultimo punto).
+//! A closed enum rather than an untyped bag. That buys three things: serde works by derivation,
+//! the compiler checks that every `match` is exhaustive, and the typed accessors return `Result`
+//! instead of leaving `unwrap` calls scattered through the deserializers.
 //!
-//! **Due conseguenze volute del passaggio a un enum ordinato**, entrambe fissate dai test qui
-//! sotto:
+//! Two consequences of the enum being **ordered**, both pinned by the tests below:
 //!
-//! - `BlockValue` e' `Ord`, quindi usabile come elemento di [`BTreeSet`]: i contenitori
-//!   `Set`/`Map` sono ordinati, e hash e serializzazione diventano deterministici a parita' di
-//!   contenuto, indipendentemente dall'ordine di inserimento.
-//! - Sparisce il `__hash__` del riferimento, che normalizzava `metadata` *mutandolo* (liste e
-//!   insiemi convertiti in `frozenset`) per riuscire a calcolare l'hash — e che, essendo `__eq__`
-//!   definito come uguaglianza di hash, faceva mutare i blocchi anche solo confrontandoli
-//!   (`PLAN.md` §4.1 e decisione D3). Qui `Hash` e' derivato e non tocca nulla.
+//! - [`BlockValue`] is `Ord`, hence usable as a [`BTreeSet`] element. The `Set` and `Map`
+//!   containers are ordered, so hashing and serialisation are deterministic for equal content,
+//!   whatever order it was inserted in;
+//! - hashing therefore needs no normalisation pass, and comparing two values never mutates them.
 //!
-//! **Limite noto**: `Float(NaN)` e' un valore legittimo in memoria (`OrderedFloat` lo rende
-//! `Eq`/`Ord`/`Hash`) ma non sopravvive a un giro in JSON, perche' JSON non ha un `NaN`. Vedi
-//! `tests::serde_roundtrip::nan_does_not_survive_json`.
+//! # Known limit
+//!
+//! `Float(NaN)` is a legitimate in-memory value — `OrderedFloat` makes it `Eq`, `Ord` and `Hash` —
+//! but it does not survive a round trip through JSON, because JSON has no `NaN`. The behaviour is
+//! pinned by `tests::serde_roundtrip::nan_does_not_survive_json`, which requires only that the trip
+//! not quietly produce a *different* value.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -31,11 +27,11 @@ use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
 use crate::commons::date::Date;
 use crate::core::promise::Promise;
 
-/// Valore eterogeneo ma tipizzato, ammesso in `metadata` e `content` di un blocco.
+/// A heterogeneous but typed value, admissible in a block's `metadata` and `content`.
 ///
-/// La rappresentazione serde e' *adiacente* (`{"kind": "...", "v": ...}`): l'alternativa
-/// non-taggata costringerebbe il deserializzatore a indovinare fra `Int` e `Float`, o fra `Str` e
-/// `Promise`, e le due ambiguita' sono reali nei dati dei repo formati.
+/// The serde representation is *adjacently tagged* (`{"kind": …, "v": …}`). An untagged one would
+/// force the deserializer to guess between `Int` and `Float`, or between `Str` and `Promise`, and
+/// both ambiguities really occur in formats repository data.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum BlockValue {
@@ -54,11 +50,11 @@ pub enum BlockValue {
     Map(BTreeMap<String, BlockValue>),
 }
 
-/// Fallimenti nella lettura tipizzata di un [`BlockValue`].
+/// Failures of reading a [`BlockValue`] as a specific type.
 ///
-/// `field` e' sempre il nome che il chiamante stava cercando di leggere, non un indice interno:
-/// serve a rendere il messaggio utile all'autore di un repo formati, che vede il nome del campo
-/// che ha scritto lui nel CSV.
+/// `field` is always the name the caller was trying to read, never an internal index: the message
+/// is meant to be useful to the author of a formats repository, who sees the field name they wrote
+/// in their own CSV.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BlockValueError {
     #[error("field '{field}' expected {expected}, found {found}")]
@@ -69,11 +65,11 @@ pub enum BlockValueError {
     NotAMap { field: String, found: &'static str },
 }
 
-/// Genera la coppia di accessori per una variante: `as_*` che restituisce `Option`, e
-/// `*_or_fail` che restituisce `Result` con il nome del campo nel messaggio d'errore.
+/// Generates the accessor pair for one variant: `as_*` returning an `Option`, and `*_or_fail`
+/// returning a `Result` carrying the field name in its error.
 ///
-/// Sono dodici varianti con la stessa identica forma: scriverle a mano significherebbe
-/// settantadue righe che differiscono per un pattern e una stringa.
+/// Twelve variants share this exact shape; writing them out by hand would be seventy-two lines
+/// differing by one pattern and one string.
 macro_rules! typed_accessor {
     ($as_fn:ident, $or_fail:ident, $ret:ty, $expected:literal, $pat:pat => $val:expr) => {
         #[doc = concat!("Il valore se questo `BlockValue` e' un `", $expected, "`, altrimenti `None`.")]
@@ -97,9 +93,10 @@ macro_rules! typed_accessor {
 }
 
 impl BlockValue {
-    /// Il nome della variante, identico al valore del tag `kind` usato da serde. E' quello che
-    /// finisce nei messaggi d'errore, quindi la coincidenza fra i due non e' casuale: e'
-    /// verificata da `tests::serde_roundtrip::kind_matches_the_serde_tag`.
+    /// The variant's name, identical to the value of the serde `kind` tag.
+    ///
+    /// It is what appears in error messages, so the two agreeing is not a coincidence — it is
+    /// checked by `tests::serde_roundtrip::kind_matches_the_serde_tag`.
     pub fn kind(&self) -> &'static str {
         match self {
             BlockValue::Null => "null",
@@ -118,13 +115,15 @@ impl BlockValue {
         }
     }
 
-    /// `true` solo per [`BlockValue::Null`]. Un `Null` in una mappa di risoluzione conta come
-    /// valore *assente*, non come valore nullo — vedi `crate::core::promise_resolution`.
+    /// `true` only for [`BlockValue::Null`].
+    ///
+    /// A `Null` in a resolution map counts as an *absent* value rather than a null one; see
+    /// [`crate::core::promise_resolution`].
     pub fn is_null(&self) -> bool {
         matches!(self, BlockValue::Null)
     }
 
-    /// `true` se il valore e' ancora una promessa da risolvere.
+    /// `true` if the value is still a promise waiting to be resolved.
     pub fn is_promise(&self) -> bool {
         matches!(self, BlockValue::Promise(_))
     }
@@ -148,15 +147,16 @@ impl BlockValue {
     typed_accessor!(as_set, set_or_fail, &BTreeSet<BlockValue>, "set", BlockValue::Set(v) => v);
     typed_accessor!(as_map, map_or_fail, &BTreeMap<String, BlockValue>, "map", BlockValue::Map(v) => v);
 
-    /// Legge `field` da un [`BlockValue::Map`]. `None` sia se il valore non e' una mappa sia se
-    /// la chiave manca: e' l'accessore "morbido", per quando le due cose sono equivalenti per il
-    /// chiamante.
+    /// Reads `field` out of a [`BlockValue::Map`].
+    ///
+    /// `None` both when the value is not a map and when the key is missing: the lenient accessor,
+    /// for callers to whom the two are the same thing.
     pub fn get(&self, field: &str) -> Option<&BlockValue> {
         self.as_map()?.get(field)
     }
 
-    /// Come [`BlockValue::get`], ma distingue i due modi di fallire: [`BlockValueError::NotAMap`]
-    /// se il valore non e' una mappa, [`BlockValueError::MissingField`] se la chiave manca.
+    /// Like [`BlockValue::get`], but tells the two failures apart: [`BlockValueError::NotAMap`] if
+    /// the value is not a map, [`BlockValueError::MissingField`] if the key is missing.
     pub fn get_or_fail(&self, field: &str) -> Result<&BlockValue, BlockValueError> {
         let map = self.as_map().ok_or_else(|| BlockValueError::NotAMap {
             field: field.to_string(),
@@ -244,8 +244,8 @@ impl From<BTreeMap<String, BlockValue>> for BlockValue {
     }
 }
 
-/// `None` diventa [`BlockValue::Null`]: e' il modo naturale di portare un campo opzionale di un
-/// deserializzatore dentro un blocco senza un `match` a ogni chiamata.
+/// `None` becomes [`BlockValue::Null`]: the natural way to carry a deserializer's optional field
+/// into a block without a `match` at every call site.
 impl<T: Into<BlockValue>> From<Option<T>> for BlockValue {
     fn from(v: Option<T>) -> Self {
         match v {
@@ -259,9 +259,9 @@ impl<T: Into<BlockValue>> From<Option<T>> for BlockValue {
 mod tests {
     use super::*;
 
-    /// Un esemplare per ogni variante, nell'ordine di dichiarazione dell'enum. Le prove di
-    /// esaustivita' (`kind`, accessori, serde) iterano su questa lista, cosi' che aggiungere una
-    /// variante senza aggiornarla faccia fallire `covers_all_variants`.
+    /// One specimen per variant, in declaration order. The exhaustiveness checks (`kind`, the
+    /// accessors, serde) all iterate over this list, so adding a variant without updating it makes
+    /// `covers_all_variants` fail.
     fn one_of_each() -> Vec<BlockValue> {
         vec![
             BlockValue::Null,
@@ -286,8 +286,8 @@ mod tests {
 
         #[test]
         fn covers_all_variants() {
-            // Il `match` esaustivo in `kind` e' la garanzia lato compilatore; questo test e' la
-            // garanzia che `one_of_each` — usato da tutti gli altri test — resti completo.
+            // The exhaustive `match` inside `kind` is the compiler-side guarantee; this test is the
+            // guarantee that `one_of_each` — which every other test relies on — stays complete.
             let kinds: Vec<&str> = one_of_each().iter().map(BlockValue::kind).collect();
             assert_eq!(
                 kinds,
@@ -340,13 +340,13 @@ mod tests {
             assert_eq!(BlockValue::from(map.clone()).as_map(), Some(&map));
         }
 
-        /// Ogni accessore deve dire `None` su *tutte* le altre dodici varianti, non solo su
-        /// quella che verrebbe in mente scrivendo il test a mano.
+        /// Every accessor must answer `None` on *all* twelve other variants, not only on the one
+        /// that would come to mind while writing the test by hand.
         #[test]
         fn each_accessor_rejects_all_other_variants() {
-            /// Nome della variante che l'accessore accetta, e l'accessore stesso ridotto a
-            /// un predicato — l'unico modo di metterli tutti nella stessa lista, visto che i
-            /// dodici hanno tipi di ritorno diversi.
+            /// The name of the variant an accessor accepts, and the accessor itself reduced to a
+            /// predicate — the only way to put all twelve in one list, given that their return
+            /// types differ.
             type Accessor = (&'static str, fn(&BlockValue) -> bool);
             let checks: Vec<Accessor> = vec![
                 ("bool", |v| v.as_bool().is_some()),
@@ -396,8 +396,8 @@ mod tests {
             }
         }
 
-        /// `Null` non e' un jolly: non soddisfa nessun accessore tipizzato. E' la ragione per cui
-        /// esiste `is_null` separato.
+        /// `Null` is not a wildcard: it satisfies no typed accessor. That is why a separate
+        /// `is_null` exists.
         #[test]
         fn null_satisfies_no_accessor() {
             let null = BlockValue::Null;
@@ -408,8 +408,8 @@ mod tests {
             assert!(null.as_list().is_none());
         }
 
-        /// `Int` e `Float` sono varianti distinte: nessuna conversione implicita fra le due, cosi'
-        /// che un CSV che dichiara un intero non passi silenziosamente per un float e viceversa.
+        /// `Int` and `Float` are distinct variants, with no implicit conversion either way, so that
+        /// a CSV declaring an integer cannot silently pass for a float or the other way round.
         #[test]
         fn int_and_float_do_not_convert_into_each_other() {
             assert!(BlockValue::Int(1).as_float().is_none());
@@ -541,9 +541,8 @@ mod tests {
             assert!(BlockValue::from(1.0) < BlockValue::from(2.0));
         }
 
-        /// L'invariante che rende `Set`/`Map` utilizzabili: l'ordine di inserimento non cambia
-        /// ne' il valore ne' l'hash. E' cio' che nel riferimento richiedeva la mutazione di
-        /// `metadata` in `__hash__` (`PLAN.md` D3) e che qui viene gratis dai contenitori ordinati.
+        /// The invariant that makes `Set` and `Map` usable: insertion order changes neither the
+        /// value nor its hash. It comes for free from the ordered containers.
         #[test]
         fn insertion_order_does_not_change_hash_or_equality() {
             let forward = BlockValue::Set(BTreeSet::from([
@@ -568,7 +567,7 @@ mod tests {
             assert_eq!(hash_of(&BlockValue::from(map_a)), hash_of(&BlockValue::from(map_b)));
         }
 
-        /// L'ordine di una `List` invece conta: e' una sequenza, non un insieme.
+        /// The order of a `List`, in contrast, does matter: it is a sequence, not a set.
         #[test]
         fn list_order_matters() {
             let a = BlockValue::List(vec![BlockValue::Int(1), BlockValue::Int(2)]);
@@ -586,8 +585,8 @@ mod tests {
             assert_eq!(nested.cmp(&nested.clone()), std::cmp::Ordering::Equal);
         }
 
-        /// Un `BlockValue` puo' essere elemento di un insieme e chiave di una mappa ordinata: e'
-        /// la ragione per cui l'enum e' `Ord` e non solo `Eq`.
+        /// A [`BlockValue`] can be a set element and an ordered-map key: this is why the enum is
+        /// `Ord` and not merely `Eq`.
         #[test]
         fn usable_as_a_set_element() {
             let set: BTreeSet<BlockValue> = one_of_each().into_iter().collect();
@@ -662,10 +661,9 @@ mod tests {
             assert!(serde_json::from_str::<BlockValue>(r#"{"kind":"currency","v":"EURO"}"#).is_err());
         }
 
-        /// Limite noto e accettato: JSON non ha un `NaN`, quindi un `Float(NaN)` — legittimo in
-        /// memoria grazie a `OrderedFloat` — non torna indietro. Il test non impone *dove* il giro
-        /// si rompe (serializzazione o rilettura), solo che non produca silenziosamente un valore
-        /// diverso.
+        /// Known and accepted limit: JSON has no `NaN`, so a `Float(NaN)` — legitimate in memory
+        /// thanks to `OrderedFloat` — does not come back. The test does not pin down *where* the
+        /// trip breaks, only that it does not silently yield a different value.
         #[test]
         fn nan_does_not_survive_json() {
             let nan = BlockValue::from(f64::NAN);

@@ -1,35 +1,28 @@
-//! Quanto parallelismo, livello per livello: la sezione `parallelism` della configurazione.
+//! How much parallelism, level by level: the `parallelism` section of the configuration.
 //!
-//! `PLAN.md` §4 P5, `agent-memory/P5-implementation-plan.md`. Due livelli hanno un consumatore
-//! vero e sono gli unici che compaiono qui: `jobs` (P1, processi figli in modalita' batch) e
-//! `pages` (P2, thread rayon dentro un job). Gli altri due che il piano immaginava non ci sono —
-//! `pipelines` (P3) e `deserialize_blocks_threshold` (P4) sono stati chiusi senza
-//! implementazione dalla misura di P0, e un'opzione che non governa niente e' peggio di
-//! un'opzione assente.
+//! Two levels have a real consumer and are the only ones here: `jobs`, the child processes of a
+//! batch run, and `pages`, the threads inside one job. Levels that would govern nothing are
+//! deliberately absent — an option that changes no behaviour is worse than no option.
 //!
-//! # Perche' in `cli` e non in `core::parallelism`
+//! # Why this lives in `cli` and not with the engine's parallelism
 //!
-//! `jobs` conta i **processi** di una corsa in batch: e' un concetto della riga di comando, non
-//! del motore. `core::parallelism` resta il livello che obbedisce — riceve una
-//! [`Parallelism`](crate::core::parallelism::Parallelism) gia' risolta e non sa da dove venga.
-//! Qui vive la parte che *decide*, che e' anche l'unica che ha bisogno di sapere quanti job
-//! stanno per girare insieme.
+//! `jobs` counts the **processes** of a batch run: a command-line concept, not an engine one.
+//! [`crate::core::parallelism`] is the level that obeys — it receives an already-resolved value and
+//! does not know where it came from. What *decides* lives here, which is also the only place that
+//! knows how many jobs are about to run together.
 //!
-//! # `n_workers` e i due override
+//! # One global default and two overrides
 //!
-//! `n_workers` esisteva da prima dei livelli, e diventa il **default globale**: il valore che ogni
-//! livello prende se `parallelism.<livello>` non dice altro (`agent-memory/P5-implementation-
-//! plan.md` D-P5-1). E' anche cio' che rida' a `-j 1` il suo significato universale — un job alla
-//! volta *e* una pagina alla volta, cioe' esattamente il comportamento sequenziale che `PLAN.md`
-//! §6 usa per verificare il determinismo.
+//! `n_workers` is the **global default**: the value each level takes when its own key says nothing.
+//! It is also what gives `-j 1` a universal meaning — one job at a time *and* one page at a time,
+//! which is exactly the sequential behaviour the determinism checks rely on.
 
 use crate::core::parallelism::{self, Parallelism};
 
-/// Quanti lavoratori a un livello: un numero deciso da chi configura, o `auto`.
+/// How many workers at one level: a number chosen by whoever configures, or automatic.
 ///
-/// `Fixed` non e' mai `0`: i parser di tutte e tre le sorgenti rifiutano lo zero con un errore
-/// tipizzato invece di normalizzarlo, perche' "zero processi" e' quasi sempre un refuso e mai una
-/// richiesta.
+/// A fixed value is never zero: every source rejects zero with a typed error rather than
+/// normalising it, because "zero processes" is nearly always a typo and never a request.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Workers {
@@ -39,7 +32,7 @@ pub enum Workers {
     Fixed(usize),
 }
 
-/// Il testo di `auto`, riconosciuto senza distinzione di maiuscole da tutte le sorgenti.
+/// The text of the automatic setting, recognised case-insensitively by every source.
 pub const AUTO: &str = "auto";
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -61,7 +54,7 @@ impl Workers {
         }
     }
 
-    /// Il numero richiesto, o quello dei thread hardware se la richiesta e' `auto`.
+    /// The number requested, or the hardware thread count when the request is automatic.
     fn requested(&self) -> usize {
         match self {
             Workers::Auto => parallelism::available_threads(),
@@ -83,35 +76,34 @@ impl std::fmt::Display for Workers {
     }
 }
 
-/// La sezione `parallelism` risolta a due valori, uno per livello.
+/// The `parallelism` section resolved to one value per level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub struct ParallelismConfig {
     /// P1: quanti job di un batch girano insieme, in processi figli.
     pub jobs: Workers,
-    /// P2: quante pagine dello stesso step un job elabora insieme, in thread.
+    /// How many pages of the same step one job processes together, in threads.
     pub pages: Workers,
 }
 
 impl ParallelismConfig {
-    /// Il comportamento di sempre: un job alla volta, una pagina alla volta.
+    /// The behaviour that has always been: one job at a time, one page at a time.
     pub const SEQUENTIAL: ParallelismConfig =
         ParallelismConfig { jobs: Workers::Fixed(1), pages: Workers::Fixed(1) };
 
-    /// Quanti job alla volta, dato quanti ce ne sono da eseguire.
+    /// How many jobs at a time, given how many there are to run.
     ///
-    /// Il numero si limita comunque ai job disponibili: un processo figlio senza job da eseguire
-    /// non ha nulla da fare, e chiederne piu' di quanti ne esistono e' un modo legittimo di dire
-    /// "tutti".
+    /// Capped at the number of jobs available: a child process with no job to run has nothing to
+    /// do, and asking for more than exist is a legitimate way of saying "all of them".
     pub fn resolve_jobs(&self, job_count: usize) -> usize {
         self.jobs.requested().min(job_count.max(1)).max(1)
     }
 
-    /// Quante pagine alla volta dentro **un** job, dato quanti job girano insieme.
+    /// How many pages at a time inside **one** job, given how many jobs run together.
     ///
-    /// In `auto` il budget di core si **divide** fra i job concorrenti, cosi' che un batch con
-    /// quattro job su venti thread hardware ne usi cinque per job invece di venti: e' l'invariante
-    /// che P2 ha introdotto e che P5 non cambia. Un valore **esplicito** non si divide — chi lo
-    /// scrive lo ha chiesto, e [`ParallelismConfig::oversubscription`] si occupa di dirlo.
+    /// Automatically, the budget of cores is **divided** among the concurrent jobs, so that a batch
+    /// of four jobs on twenty hardware threads uses five per job rather than twenty. An
+    /// **explicit** value is not divided: whoever wrote it asked for it, and
+    /// [`ParallelismConfig::oversubscription`] is what says so.
     pub fn resolve_pages(&self, resolved_jobs: usize) -> Parallelism {
         if self.pages.is_auto() {
             return Parallelism::pages(parallelism::available_threads() / resolved_jobs.max(1));
@@ -119,11 +111,12 @@ impl ParallelismConfig {
         Parallelism::pages(self.pages.requested())
     }
 
-    /// Quanti thread la configurazione risolta apre in tutto, se sono piu' dei core disponibili.
+    /// How many threads the resolved configuration opens in total, when that exceeds the cores
+    /// available.
     ///
-    /// `None` quando la richiesta ci sta: e' il caso normale, e non merita una riga di log. Serve
-    /// a `cli::run` per avvertire senza rifiutare — `PLAN.md` §2 principio 4 vieta gli override
-    /// silenziosi, non le configurazioni scomode.
+    /// `None` when the request fits, which is the normal case and does not deserve a log line. It
+    /// lets the caller warn without refusing: silently overriding what someone configured is worse
+    /// than an awkward configuration.
     pub fn oversubscription(resolved_jobs: usize, resolved_pages: Parallelism) -> Option<usize> {
         let total = resolved_jobs.max(1) * resolved_pages.pages.max(1);
         (total > parallelism::available_threads()).then_some(total)
@@ -284,9 +277,9 @@ mod tests {
     mod serialization {
         use super::*;
 
-        /// La configurazione risolta attraversa il confine di processo verso un job worker (P1):
-        /// se questi tipi non sopravvivessero al giro in JSON, un figlio girerebbe con un
-        /// parallelismo diverso da quello che il padre ha deciso.
+        /// The resolved configuration crosses a process boundary to a worker job: were these types
+        /// not to survive the round trip, a child would run with a different parallelism from the
+        /// one the parent decided.
         #[test]
         fn a_configuration_survives_a_json_round_trip() {
             let config = ParallelismConfig { jobs: Workers::Fixed(4), pages: Workers::Auto };

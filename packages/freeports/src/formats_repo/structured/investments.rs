@@ -1,17 +1,14 @@
-//! La pipeline structured `investments`: la più usata del repo.
+//! The structured `investments` pipeline: the repository's most used.
 //!
-//! Costruisce i sei pipe che estraggono le posizioni di un fondo da una tabella:
+//! It builds the six pipes that extract a fund's holdings from a table:
 //!
-//! - `pdf_extract` — [`PdfExtractInvestmentsStandard`] (il corpo della tabella),
-//!   `PdfExtractFundStandard` (il nome del fondo), `PdfExtractCurrencyStandard` (la valuta);
-//! - `text_filter` — [`TextFilterInvestmentsStandard`], che incrocia le righe con le società
-//!   bersaglio;
-//! - `deserialize` — [`DeserializerInvestmentStandard`] e [`DeserializerFundStandard`].
+//! - `pdf_extract` — the table body, the fund name, the currency;
+//! - `text_filter` — [`TextFilterInvestmentsStandard`], which crosses the rows with the target companies;
+//! - `deserialize` — the investment and fund deserializers.
 //!
-//! Porting di `structured/pipelines/investments.py::get_pipelines`. Ogni segmento può essere
-//! disattivato singolarmente da `partial_pipes.csv`: un formato può usare l'estrazione structured
-//! e poi filtrare con codice proprio, o viceversa. È il senso stesso delle "pipeline parziali",
-//! e la ragione per cui la fusione dei tre livelli (§6.4) esiste.
+//! Each segment can be switched off individually: a format may use structured extraction and then
+//! filter with its own code, or the other way round. That is what "partial pipelines" means, and
+//! the reason the merge of the three levels exists at all.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -29,7 +26,7 @@ use crate::input::document::selection::pdfline_selection_from_str;
 use super::StructuredError;
 use super::tables::{InvestmentsConfig, get_investments_configs};
 
-/// Analizza la colonna `Algorithm flags`. Una cella vuota vale "nessun flag".
+/// Parses the algorithm-flags column. An empty cell means no flags.
 fn parse_algorithm_flags(config: &InvestmentsConfig) -> Result<TablePosAlgorithm, StructuredError> {
     let Some(expression) = config.additional.as_ref().and_then(|a| a.algorithm_flags.as_deref()) else {
         return Ok(TablePosAlgorithm::Default);
@@ -38,7 +35,7 @@ fn parse_algorithm_flags(config: &InvestmentsConfig) -> Result<TablePosAlgorithm
         .map_err(|source| StructuredError::AlgorithmFlags { id: config.id.to_string(), source })
 }
 
-/// Analizza una cella di selezione già validata da `tables`, riportando la colonna nell'errore.
+/// Parses a selection cell already validated by [`super::tables`], naming the column in the error.
 fn selection(
     config: &InvestmentsConfig,
     column: &'static str,
@@ -48,16 +45,15 @@ fn selection(
         .map_err(|source| StructuredError::LineSelection { id: config.id.to_string(), column, source })
 }
 
-/// Aggiunge alla pipeline i tre pipe `pdf_extract` di un pipe investments.
+/// Adds the three extraction pipes of one investments pipe.
 fn add_pdf_extract(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Result<(), StructuredError> {
     let mut deselection_list = Vec::with_capacity(config.deselection_sets.len());
     for raw in &config.deselection_sets {
         deselection_list.push(selection(config, "Deselection set", raw)?);
     }
 
-    // Una cella vuota è la selezione vuota, esattamente come nel riferimento, dove
-    // `pdfline_selection_from_str(NaN)` riceve comunque una stringa: il pipe si costruisce, e
-    // sarà il repo formati a doverla riempire se serve davvero.
+    // An empty cell is the empty selection: the pipe is built either way, and it is the
+    // repository's business to fill it in if it really matters.
     let body_set = selection(config, "Body set", config.args.body_set.as_deref().unwrap_or(""))?;
     let args = InvestmentsStandardArgs {
         deselection_list,
@@ -75,10 +71,10 @@ fn add_pdf_extract(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     Ok(())
 }
 
-/// Aggiunge alla pipeline il pipe `text_filter` di un pipe investments.
+/// Adds the filtering pipe of one investments pipe.
 fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Result<(), StructuredError> {
-    // È l'unico parametro senza default: il riferimento fa `arg["Market value"]` senza rete e va
-    // in errore su un `NaN`; qui l'errore ha un nome e dice quale pipe lo ha causato.
+    // The only parameter without a default, so its absence is a named error saying which pipe
+    // caused it rather than a failure deeper down.
     let market_value_pos =
         config.args.market_value.ok_or_else(|| StructuredError::MissingMarketValue { id: config.id.to_string() })?;
     let additional = config.additional.as_ref();
@@ -88,12 +84,10 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
         config.args.perc_net_assets.map(i64::from),
         config.args.acquisition_currency.map(i64::from),
         config.args.acquisition_cost.map(i64::from),
-        // I default sono quelli del **costruttore** di `TextFilterInvestmentsStandard`, non `false`
-        // per entrambi: il riferimento riempie l'argomento solo quando la cella CSV non è vuota
-        // (`_set_if_not_na`), e lascia altrimenti il default della firma, che per
-        // `geometrical_indexes` è `true`. Un `false` qui fa indicizzare i campi sulla lista
-        // *piatta* dei blocchi invece che sulla griglia, e ogni riga con un nome andato a capo
-        // sposta le colonne di uno.
+        // The defaults are the **constructor's**, not `false` for both: a cell is only filled in
+        // when it is non-empty, and geometric indexing defaults to true. A `false` here would index
+        // the fields on the *flat* list of blocks instead of on the grid, and every row whose name
+        // wrapped would shift the columns by one.
         additional.and_then(|a| a.geometrical_indexing).unwrap_or(true),
         additional.and_then(|a| a.merge_previous).unwrap_or(false),
     )
@@ -102,7 +96,7 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     Ok(())
 }
 
-/// Aggiunge alla pipeline i due pipe `deserialize` di un pipe investments.
+/// Adds the two deserialization pipes of one investments pipe.
 fn add_deserialize(pipeline: &mut Pipeline, config: &InvestmentsConfig) {
     let additional = config.additional.as_ref();
     pipeline.deserialize.push(Arc::new(DeserializerInvestmentStandard::new(
@@ -112,7 +106,7 @@ fn add_deserialize(pipeline: &mut Pipeline, config: &InvestmentsConfig) {
     pipeline.deserialize.push(Arc::new(DeserializerFundStandard));
 }
 
-/// Le pipeline investments che il repo definisce per `format_name`.
+/// The investments pipelines the repository defines for `format_name`.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -155,7 +149,8 @@ mod tests {
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
 
-    /// Un repo formati con i cinque CSV structured, tutti vuoti tranne quelli che il test riempie.
+    /// A formats repository with the five structured CSV files, all empty but the ones a test fills
+    /// in.
     struct Repo {
         dir: TempDir,
     }
@@ -295,8 +290,8 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// Una pagina con un titolo (il nome del fondo), una dichiarazione di valuta e due righe
-        /// di tabella affiancate.
+        /// A page with a title (the fund name), a currency statement, and two table rows side by
+        /// side.
         fn page() -> Page {
             Page::new(
                 1,
@@ -349,8 +344,8 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,2,3,,\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").unwrap());
-            // Non c'è un accessore tipizzato sul segmento: si verifica il comportamento, cioè che
-            // la costruzione con posizioni distinte riesca e quella con posizioni uguali no.
+            // There is no typed accessor on the segment, so the behaviour is checked instead:
+            // construction with distinct positions succeeds and with equal ones does not.
             assert_eq!(pipeline.text_filter.len(), 1);
         }
 
@@ -367,7 +362,7 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,,,\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").unwrap());
-            // Nessuna società bersaglio: la pipeline gira e non estrae nulla, senza fallire.
+            // No target companies: the pipeline runs and extracts nothing, without failing.
             let result = pipeline.apply(&page(), &FilterData::TargetCompanies(&[]));
             assert!(result.is_ok(), "{:?}", result.err());
         }
@@ -428,7 +423,7 @@ mod tests {
             repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24(cls)/0,ArialBold,inv\n"));
             let pipelines = crate::formats_repo::structured::get_pipelines(repo.path(), "A-EN24").unwrap();
             let pipeline = only_pipeline(pipelines);
-            // 3 pipe da investments + 1 classificatore.
+            // Three pipes from investments plus one classifier.
             assert_eq!(pipeline.pdf_extract.len(), 4);
             assert_eq!(pipeline.text_filter.len(), 2);
             assert_eq!(pipeline.deserialize.len(), 3);

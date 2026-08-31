@@ -1,13 +1,12 @@
-//! Shim di `core::classes` e `core::promise`: `PdfBlock`, `TextBlock`, `Promise`.
+//! The Python shims of the engine's core types: [`PyPdfBlock`], [`PyTextBlock`], [`PyPromise`].
 //!
-//! Sono i tre tipi che il codice d'autore di un repo formati costruisce e riceve a ogni pipe,
-//! quindi devono avere in Python esattamente il protocollo che il riferimento aveva: attributi
-//! `type_block`/`metadata`/`content` (più `pdf_block` sul solo `TextBlock`), uguaglianza, hash —
-//! `freeports_dev` confronta i risultati con `frozenset(...) == frozenset(...)` — e un `repr`
-//! leggibile, perché `freeports-dev inspect-page` stampa i blocchi uno per uno.
+//! These are the three types a formats repository's author code builds and receives at every pipe,
+//! so in Python they must carry exactly the protocol that code expects: the block attributes,
+//! equality, hashing — the development tooling compares results as sets — and a readable
+//! representation, because inspecting a page prints blocks one by one.
 //!
-//! `metadata` e `content` sono esposti come oggetti Python nativi (dict/list/set/scalari), non
-//! come `BlockValue` opachi: è ciò che il codice d'autore già indicizza e confronta.
+//! The metadata and content are exposed as native Python objects, not as opaque wrappers: that is
+//! what author code already indexes and compares.
 
 use std::collections::BTreeMap;
 
@@ -38,9 +37,9 @@ impl PyPromise {
 
 #[pymethods]
 impl PyPromise {
-    /// `strict`/`multiple` restano opzionali perché nel riferimento la forma normale è
-    /// `Promise("id")` con i due flag dedotti dai suffissi `!`/`[]` del testo — logica che vive
-    /// in [`Promise::new`] e che questo shim non duplica.
+    /// The two flags stay optional because the usual form is a bare `Promise("id")` with them
+    /// deduced from the text's suffixes — logic that lives in the native constructor and is not
+    /// duplicated here.
     #[new]
     #[pyo3(signature = (raw, strict=None, multiple=None))]
     fn new(raw: &str, strict: Option<bool>, multiple: Option<bool>) -> PyPromise {
@@ -79,17 +78,15 @@ impl PyPromise {
     }
 }
 
-/// Shim Python di [`PdfBlock`].
+/// The Python shim of a PDF block.
 ///
-/// # Perché i metadati sono un `dict` Python e non la mappa nativa
+/// # Why the metadata is a live Python dict, not the native map
 ///
-/// Il codice d'autore **muta i metadati in place**: `txt_blk.metadata["fund"] = ...`
-/// (`anima_sicav_en24.py`, `kairos_en23.py`). Se il getter costruisse un dizionario nuovo a ogni
-/// lettura, quella riga scriverebbe su un oggetto usa-e-getta e la modifica sparirebbe senza un
-/// errore — il modo peggiore di divergere. Il dizionario è quindi **il** contenitore dei
-/// metadati, creato una volta alla costruzione e restituito sempre lo stesso, esattamente come
-/// nel riferimento (che teneva un `Py<PyDict>`). La mappa nativa si ricava da lì quando serve,
-/// con [`PyPdfBlock::native`].
+/// Author code **mutates the metadata in place**: `block.metadata["fund"] = …`. Were the getter to
+/// build a fresh dictionary on each read, that line would write into a throwaway object and the
+/// change would vanish without an error — the worst way to diverge. The dictionary is therefore
+/// **the** container of the metadata, created once at construction and always handed back the same.
+/// The native map is derived from it when needed.
 #[pyclass(name = "PdfBlock", module = "freeports.core", frozen)]
 pub struct PyPdfBlock {
     type_block: BlockType,
@@ -98,7 +95,7 @@ pub struct PyPdfBlock {
 }
 
 impl PyPdfBlock {
-    /// Lo shim di un blocco nativo. Copia i metadati in un `dict` Python vivo.
+    /// The shim of a native block. Copies the metadata into a live Python dict.
     pub fn from_native(py: Python<'_>, block: &PdfBlock) -> PyResult<Self> {
         Ok(PyPdfBlock {
             type_block: block.type_block.clone(),
@@ -107,7 +104,7 @@ impl PyPdfBlock {
         })
     }
 
-    /// Il blocco nativo corrispondente allo stato **attuale** dello shim, metadati inclusi.
+    /// The native block corresponding to the shim's **current** state, metadata included.
     pub fn native(&self, py: Python<'_>) -> PyResult<PdfBlock> {
         Ok(PdfBlock::new(
             self.type_block.clone(),
@@ -119,9 +116,8 @@ impl PyPdfBlock {
 
 #[pymethods]
 impl PyPdfBlock {
-    /// L'ordine degli argomenti è `(type_block, metadata, content)`, quello del riferimento: è
-    /// come lo scrive il codice d'autore, sempre posizionale
-    /// (`PdfBlock(OnePdfBlockType.RELEVANT_BLOCK.name, {}, text)`).
+    /// The argument order is `(type_block, metadata, content)`: the order author code actually
+    /// writes, always positionally.
     #[new]
     #[pyo3(signature = (type_block, metadata=None, content=None))]
     fn new(
@@ -171,9 +167,9 @@ impl PyPdfBlock {
             Ok(other) => match (self.native(py), other.native(py)) {
                 (Ok(a), Ok(b)) => a == b,
                 _ => {
-                    // `__eq__` non puo' restituire un `PyResult`: un metadato non convertibile in
-                    // `BlockValue` viene assorbito qui in un "non uguale" invece di risalire come
-                    // errore, quindi va loggato prima (regola 1 di L2).
+                    // Equality cannot return a failure, so a metadata value that will not convert
+                    // is absorbed here into "not equal" rather than travelling up as an error — and
+                    // is therefore logged before being absorbed.
                     tracing::warn!(
                         "PdfBlock.__eq__ could not convert metadata to native form; treating as not equal"
                     );
@@ -202,23 +198,19 @@ impl PyPdfBlock {
     }
 }
 
-/// Il `dict` vivo dei metadati di un blocco, a partire dall'argomento del costruttore.
+/// The live metadata dict of a block, from the constructor's argument.
 fn metadata_dict<'py>(py: Python<'py>, value: Option<&Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyDict>> {
     metadata_to_py(py, &metadata_from_py(value)?)
 }
 
-/// Shim Python di [`TextBlock`].
+/// The Python shim of a text block.
 ///
-/// Non è `frozen`: il codice d'autore riscrive il contenuto di un blocco già costruito
-/// (`txt_blk.content = fund_remove_regex.sub("", txt_blk.content)` in `anima_sicav_en24.py`, lo
-/// stesso in `kairos_en23.py`). Uguaglianza e hash sono perciò scritti a mano invece che derivati
-/// — PyO3 concede `hash` solo a una classe `frozen` — con l'avvertenza consueta di un oggetto
-/// mutabile e hashabile: mutarlo mentre è dentro un set lo rende irreperibile. È esattamente la
-/// situazione del riferimento, dove `TextBlock` era una classe Python normale con gli stessi
-/// setter.
+/// Not frozen: author code rewrites the content of an already-built block. Equality and hashing are
+/// therefore written by hand rather than derived — PyO3 grants hashing only to a frozen class —
+/// with the usual caveat of a mutable hashable object: mutating one while it sits in a set makes it
+/// unfindable.
 ///
-/// I metadati sono un `dict` Python vivo per la stessa ragione di [`PyPdfBlock`]: vedi il suo
-/// doc-comment.
+/// The metadata is a live Python dict for the same reason as [`PyPdfBlock`]; see its documentation.
 #[pyclass(name = "TextBlock", module = "freeports.core")]
 pub struct PyTextBlock {
     type_block: BlockType,
@@ -228,7 +220,7 @@ pub struct PyTextBlock {
 }
 
 impl PyTextBlock {
-    /// Lo shim di un blocco nativo.
+    /// The shim of a native block.
     pub fn from_native(py: Python<'_>, block: &TextBlock) -> PyResult<Self> {
         let pdf_block = match &block.pdf_block {
             Some(pdf_block) => Some(Py::new(py, PyPdfBlock::from_native(py, pdf_block)?)?),
@@ -242,15 +234,15 @@ impl PyTextBlock {
         })
     }
 
-    /// Il blocco nativo corrispondente allo stato **attuale** dello shim.
+    /// The native block corresponding to the shim's **current** state.
     pub fn native(&self, py: Python<'_>) -> PyResult<TextBlock> {
         let metadata = metadata_from_py(Some(self.metadata.bind(py).as_any()))?;
         Ok(match &self.pdf_block {
             Some(pdf_block) => {
                 let mut block =
                     TextBlock::new(self.type_block.clone(), metadata, pdf_block.bind(py).borrow().native(py)?);
-                // `TextBlock::new` eredita il contenuto dal blocco PDF; se l'autore lo ha
-                // riscritto dopo, vince la riscrittura.
+                // The native constructor inherits the content from the PDF block; if the author
+                // rewrote it afterwards, the rewrite wins.
                 block.content = self.content.clone();
                 block
             }
@@ -261,10 +253,9 @@ impl PyTextBlock {
 
 #[pymethods]
 impl PyTextBlock {
-    /// `TextBlock(type_block, metadata, pdf_block)` — la firma del riferimento: il contenuto
-    /// **si eredita** dal blocco PDF di provenienza. Per costruirne uno senza blocco PDF c'è
-    /// [`Self::from_content`], di nuovo come nel riferimento: due costruttori distinti, perché un
-    /// `content` e un `pdf_block` potrebbero contraddirsi.
+    /// `TextBlock(type_block, metadata, pdf_block)`: the content **is inherited** from the
+    /// originating PDF block. To build one without a PDF block there is [`Self::from_content`] —
+    /// two distinct constructors, because a content and a PDF block could contradict each other.
     #[new]
     #[pyo3(signature = (type_block, metadata=None, pdf_block=None))]
     fn new(
@@ -285,8 +276,7 @@ impl PyTextBlock {
         })
     }
 
-    /// `TextBlock.from_content(type_block, metadata, content)` — un blocco di testo che non viene
-    /// da nessun blocco PDF.
+    /// A text block that comes from no PDF block.
     #[staticmethod]
     #[pyo3(signature = (type_block, metadata=None, content=None))]
     fn from_content(
@@ -313,8 +303,8 @@ impl PyTextBlock {
             Ok(other) => match (self.native(py), other.native(py)) {
                 (Ok(a), Ok(b)) => a == b,
                 _ => {
-                    // Stessa ragione di `PyPdfBlock::__eq__`: `__eq__` non puo' propagare
-                    // l'errore di conversione, quindi lo si logga prima di assorbirlo.
+                    // Same reason as for a PDF block: equality cannot propagate the conversion
+                    // error, so it is logged before being absorbed.
                     tracing::warn!(
                         "TextBlock.__eq__ could not convert metadata to native form; treating as not equal"
                     );
@@ -364,10 +354,10 @@ impl PyTextBlock {
         self.pdf_block.as_ref().map(|block| block.clone_ref(py))
     }
 
-    /// Attaccare il blocco PDF **dopo** la costruzione e' l'unico modo di avere insieme un
-    /// contenuto scelto e una provenienza: il costruttore normale il contenuto lo eredita, e chi
-    /// ricostruisce un blocco gia' serializzato ha bisogno di entrambe le cose separate (il
-    /// contenuto potrebbe essere stato riscritto dopo). Il riferimento esponeva lo stesso setter.
+    /// Attaching the PDF block **after** construction is the only way to have a chosen content and
+    /// a provenance together: the ordinary constructor inherits the content, and whoever rebuilds
+    /// an already-serialized block needs the two separately, the content possibly having been
+    /// rewritten.
     #[setter]
     fn set_pdf_block(&mut self, pdf_block: Option<Py<PyPdfBlock>>) {
         self.pdf_block = pdf_block;
@@ -384,10 +374,10 @@ impl PyTextBlock {
     }
 }
 
-/// Un `BlockValue` in notazione Python, per i `__repr__` qui sopra.
+/// A block value in Python notation, for the representations above.
 ///
-/// Non passa da `block_value_to_py` + `repr()` perché un `__repr__` non deve poter fallire né
-/// aver bisogno di costruire oggetti Python solo per stamparli.
+/// It does not go through a conversion and a `repr()` because a representation must not be able to
+/// fail, nor need to build Python objects merely to print them.
 fn render_value(value: &BlockValue) -> String {
     match value {
         BlockValue::Null => "None".to_string(),
@@ -434,22 +424,18 @@ pyo3::create_exception!(
     "Sollevata da un pipe d'autore quando la pagina non è interpretabile."
 );
 
-/// Shim Python di una pipeline d'autore.
+/// The Python shim of an author's pipeline.
 ///
-/// # Perché è un contenitore e non un motore
+/// # A container, not an engine
 ///
-/// Nel riferimento `Pipeline` sapeva anche *eseguirsi* (`__call__`), perché il motore era in
-/// Python e passava di lì. Qui il motore è [`crate::core::pipeline::Pipeline`], e questo shim
-/// serve a una cosa sola: essere il valore che un modulo d'autore mette in `pipelines`, da cui
-/// `formats_repo::unstructured::loader` legge i tre segmenti. Il loader li legge **per forma** —
-/// gli attributi `pdf_extract`/`text_filter`/`deserialize`, ciascuno un callable o un iterabile di
-/// callable — quindi il contratto che questo tipo deve soddisfare è esattamente quello, ed è
-/// tutto quello che espone.
+/// This shim does one thing: be the value an author module puts in its pipelines, from which the
+/// loader reads the three segments. The loader reads them **by shape** — three attributes, each a
+/// callable or an iterable of callables — so that is exactly the contract this type must satisfy,
+/// and all it exposes.
 ///
-/// Ogni segmento è normalizzato a lista in costruzione: `None` diventa lista vuota, un callable
-/// solo diventa una lista di uno, un iterabile viene materializzato. Così il loader non deve
-/// distinguere i tre casi e l'ordine dei pipe è quello scritto dall'autore — il riferimento
-/// teneva i pipe in un `set`, e l'ordine ci si perdeva.
+/// Each segment is normalised to a list at construction: nothing becomes an empty list, a single
+/// callable a list of one, an iterable is materialised. The loader then need not tell the three
+/// cases apart, and the order of the pipes is the one the author wrote.
 #[pyclass(name = "Pipeline", module = "freeports.core", frozen)]
 pub struct PyPipeline {
     pdf_extract: Py<pyo3::types::PyList>,
@@ -457,7 +443,8 @@ pub struct PyPipeline {
     deserialize: Py<pyo3::types::PyList>,
 }
 
-/// Un segmento come lista: `None` -> vuota, un callable -> uno, un iterabile -> tutti.
+/// A segment as a list: nothing becomes empty, a callable becomes one, an iterable becomes all of
+/// them.
 fn segment_list<'py>(
     py: Python<'py>,
     name: &str,
@@ -517,7 +504,7 @@ impl PyPipeline {
         self.deserialize.clone_ref(py)
     }
 
-    /// Vero quando tutti e tre i segmenti hanno almeno un pipe — il `complete` del riferimento.
+    /// True when all three segments hold at least one pipe.
     fn complete(&self, py: Python<'_>) -> bool {
         !self.pdf_extract.bind(py).is_empty()
             && !self.text_filter.bind(py).is_empty()

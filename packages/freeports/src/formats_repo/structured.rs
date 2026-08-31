@@ -1,11 +1,11 @@
-//! Il livello structured: pipeline costruite da tabelle CSV con implementazioni native.
+//! The structured level: pipelines built from CSV tables with native implementations.
 //!
-//! "Structured" significa che l'algoritmo di un segmento è **nella libreria** e il repo formati ne
-//! fornisce solo i parametri: un formato structured non contiene codice, solo righe di CSV. È il
-//! livello più vincolato dei tre e quello che copre la maggior parte dei formati.
+//! "Structured" means a segment's algorithm is **in the library** and the repository supplies only
+//! its parameters: a structured format contains no code, only rows of CSV. It is the most
+//! constrained of the three levels and the one covering most formats.
 //!
-//! - [`tables`] legge e valida i cinque CSV e ne unisce le righe per pipe;
-//! - [`investments`] e [`page_classify`] costruiscono i pipe nativi corrispondenti.
+//! - [`tables`] reads and validates the CSV files and joins their rows per pipe;
+//! - [`investments`] and [`page_classify`] build the corresponding native pipes.
 
 pub mod investments;
 pub mod page_classify;
@@ -18,19 +18,20 @@ use crate::input::document::selection::LineSelectionError;
 
 use tables::TableError;
 
-/// Fallimenti nella costruzione delle pipeline structured.
+/// Failures of building the structured pipelines.
 ///
-/// Un enum per il livello, non per file: i due sottomoduli costruttori condividono le stesse
-/// cause di fallimento (una tabella illeggibile, una cella che non è una selezione, un parametro
-/// che il pipe rifiuta) e separarli obbligherebbe a convertire avanti e indietro. Stesso
-/// precedente di `output::classes` (M7) e `core::promise_resolution` (M2).
+/// One enum for the level rather than one per file: the two builder submodules share the same
+/// causes of failure — an unreadable table, a cell that is not a selection, a parameter the pipe
+/// rejects — and splitting them would mean converting back and forth between two enums that say the
+/// same things.
 #[derive(Debug, thiserror::Error)]
 pub enum StructuredError {
     #[error(transparent)]
     Table(#[from] TableError),
-    /// Una cella superava la validazione di forma ma non si è lasciata analizzare: è un caso che
-    /// non dovrebbe accadere (la validazione è la stessa grammatica), e per questo l'errore dice
-    /// quale pipe e quale colonna.
+    /// A cell passed the shape validation but would not parse.
+    ///
+    /// This should not happen, the validation being the same grammar, which is why the error names
+    /// both the pipe and the column: if it ever fires, the two have drifted apart.
     #[error("'{id}', column '{column}': {source}")]
     LineSelection {
         id: String,
@@ -44,8 +45,8 @@ pub enum StructuredError {
         #[source]
         source: FlagExprError,
     },
-    /// Il pipe `text_filter` ha rifiutato i parametri letti dal CSV (tipicamente due posizioni di
-    /// colonna uguali fra loro).
+    /// The `text_filter` pipe rejected the parameters read from the CSV, typically two column
+    /// positions that are equal to each other.
     #[error("'{id}': {source}")]
     TextFilter {
         id: String,
@@ -58,18 +59,17 @@ pub enum StructuredError {
         #[source]
         source: PdfExtractStandardFuncsError,
     },
-    /// `investments/args.csv` non dichiara la posizione della colonna del valore di mercato, che è
-    /// l'unico parametro senza default del pipe `text_filter`.
+    /// The arguments table does not declare the market-value column position, the pipe's only
+    /// parameter without a default.
     #[error("'{id}': column 'Market value' is required to build the text_filter segment")]
     MissingMarketValue { id: String },
 }
 
-/// Tutte le pipeline structured di `format_name`: quelle `investments` e quelle di
-/// classificazione pagina, fuse per nome.
+/// Every structured pipeline of `format_name`: the investments ones and the page-classification
+/// ones, merged by name.
 ///
-/// Porting di `structured/acquisition.py::get_pipelines`. La fusione qui è fra i due *sottolivelli*
-/// di structured; quella fra structured, semistructured e unstructured avviene un livello sopra
-/// (`PLAN.md` §6.4).
+/// The merge here is between the two *sublevels* of structured; the merge between structured,
+/// semistructured and unstructured happens one level up.
 pub fn get_pipelines(
     formats_repo_dir: &std::path::Path,
     format_name: &str,

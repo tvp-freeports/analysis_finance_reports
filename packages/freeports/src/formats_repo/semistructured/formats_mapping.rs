@@ -1,9 +1,7 @@
-//! `formats_mapping.csv`: quale algoritmo nominato serve ciascun segmento di ciascuna pipeline.
+//! The mapping table: which named algorithm serves each segment of each pipeline.
 //!
-//! Quattro colonne — `ID` e i tre segmenti — e una riga per pipe. Una cella vuota significa "questo
-//! segmento non è semistructured per questo pipe", non "algoritmo senza nome".
-//!
-//! Porting di `semistructured/formats_mapping.rs` di `freeports_core`, senza il confine PyO3.
+//! Four columns — an id and the three segments — with one row per pipe. An empty cell means "this
+//! segment is not semistructured for this pipe", not "an algorithm with no name".
 
 use std::path::{Path, PathBuf};
 
@@ -11,10 +9,10 @@ use serde::Deserialize;
 
 use super::super::id_format::{IdFormat, derive_format_name, derive_pipeline_name, id_matches};
 
-/// La cartella dei file semistructured dentro il repo formati.
+/// The directory of the semistructured files inside a formats repository.
 pub const SEMISTRUCTURED_DIR: &str = "content/algorithms/semistructured";
 
-/// Fallimenti nella lettura di `formats_mapping.csv`.
+/// Failures of reading the mapping table.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum FormatsMappingError {
     #[error("missing formats-repository CSV file: {0}")]
@@ -27,7 +25,7 @@ pub enum FormatsMappingError {
     InvalidId { path: PathBuf, line: usize, id: String },
 }
 
-/// Una riga di `formats_mapping.csv`, così come sta su disco.
+/// A row of the mapping table, as it sits on disk.
 #[derive(Debug, Clone, Deserialize)]
 struct RawRow {
     #[serde(rename = "ID")]
@@ -40,26 +38,25 @@ struct RawRow {
     deserialize: String,
 }
 
-/// Una riga con l'identità del pipe già derivata.
+/// A row with the pipe's identity already derived.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MappingRow {
     pub format_name: String,
     pub pipeline_name: String,
-    /// La posizione del pipe nel suo gruppo `(formato, pipeline)`, contata su **tutto** il file:
-    /// è il `cumcount()` del riferimento, e non cambia se fra due righe dello stesso gruppo se ne
-    /// intromettono di altri formati.
+    /// The pipe's position within its `(format, pipeline)` group, counted over the **whole** file:
+    /// it does not change when rows of other formats come between two rows of the same group.
     pub pipe_index: u32,
     pub pdf_extract: Option<String>,
     pub text_filter: Option<String>,
     pub deserialize: Option<String>,
 }
 
-/// Una cella vuota è "nessun algoritmo", non "algoritmo senza nome".
+/// An empty cell is "no algorithm", not "an algorithm with no name".
 fn cell(raw: &str) -> Option<String> {
     if raw.is_empty() { None } else { Some(raw.to_string()) }
 }
 
-/// Tutte le righe del file, nell'ordine in cui compaiono.
+/// Every row of the file, in the order they appear.
 pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, FormatsMappingError> {
     let path = formats_repo_dir.join(SEMISTRUCTURED_DIR).join("formats_mapping.csv");
     if !path.is_file() {
@@ -86,8 +83,8 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
             return Err(FormatsMappingError::InvalidId { path, line, id: raw.id });
         }
         let format_name = derive_format_name(&raw.id);
-        // Come `mapping.csv` e a differenza di `pageclassify_overwrite.csv`: un ID senza gruppo
-        // `(pipeline)` appartiene alla pipeline senza nome.
+        // As in the orchestration mapping, and unlike the page-classify overwrite: an id with no
+        // `(pipeline)` group belongs to the unnamed pipeline.
         let pipeline_name = derive_pipeline_name(&raw.id, Some("")).unwrap_or_default();
 
         let counter = counters.entry((format_name.clone(), pipeline_name.clone())).or_insert(0);
@@ -106,10 +103,10 @@ pub fn get_formats_mapping(formats_repo_dir: &Path) -> Result<Vec<MappingRow>, F
     Ok(rows)
 }
 
-/// Le righe di un solo formato, nell'ordine del file.
+/// The rows of one format alone, in file order.
 ///
-/// Un formato che non compare affatto non è un errore: semplicemente non usa il livello
-/// semistructured. Un file mancante o una riga malformata **di qualunque formato**, invece, lo è.
+/// A format that does not appear at all is not an error: it simply does not use the semistructured
+/// level. A missing file, or a malformed row **of any format**, is.
 pub fn rows_for_format(formats_repo_dir: &Path, format_name: &str) -> Result<Vec<MappingRow>, FormatsMappingError> {
     Ok(get_formats_mapping(formats_repo_dir)?.into_iter().filter(|r| r.format_name == format_name).collect())
 }

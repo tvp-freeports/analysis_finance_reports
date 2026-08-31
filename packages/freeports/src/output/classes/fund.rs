@@ -1,21 +1,13 @@
-//! L'entità `Fund`: il nome di un fondo, normalizzato.
+//! The [`Fund`] entity: a fund's name, normalised.
 //!
-//! Anticipata da M8 a M7 per decisione D-M7-2 dell'utente — vedi il doc-comment di
-//! [`crate::output::classes`].
+//! The name that goes into the output is not the constructor's argument but its **deeply
+//! normalised, upper-cased** form, while comparison and hashing use the normalised lower-case form.
+//! The struct therefore stores the normalised form and [`Fund::name`] upper-cases it on read, which
+//! gives the same observable behaviour without keeping two copies in sync.
 //!
-//! **La sorpresa del riferimento, conservata.** In Python `Fund.__init__` calcola la forma
-//! profondamente normalizzata del nome e poi *sovrascrive* `self.name` con quella forma in
-//! maiuscolo: il campo che finisce nei CSV **non** è l'argomento del costruttore ma il nome
-//! normalizzato e maiuscolizzato, mentre hash e uguaglianza usano la forma normalizzata non
-//! maiuscolizzata. Qui il campo interno è quella forma normalizzata (minuscola) e
-//! [`Fund::name`] la maiuscolizza in lettura, che è lo stesso comportamento osservabile senza
-//! doverne tenere due copie sincronizzate.
-//!
-//! **Bug del riferimento non replicato** (già corretto nel porting Rust di `freeports_core`, e
-//! qui strutturalmente impossibile): risolvere una promessa su `name` via `setattr` saltava la
-//! normalizzazione di `__init__`, lasciando un `Fund` con nome non normalizzato il cui `hash()`
-//! sollevava `AttributeError`. [`Fund::resolve_field`] normalizza sempre, quindi un `Fund`
-//! risolto da promessa si comporta esattamente come uno costruito direttamente.
+//! [`Fund::resolve_field`] normalises too. That matters: a name arriving through a resolved promise
+//! takes a different route into the struct than one passed to the constructor, and skipping
+//! normalisation there would leave a `Fund` that compares and hashes unlike every other.
 
 use serde::{Deserialize, Serialize};
 
@@ -26,49 +18,45 @@ use crate::core::promise::Promise;
 
 use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
 
-/// Un fondo, identificato dal solo nome.
+/// A fund, identified by its name alone.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Fund {
-    /// La forma profondamente normalizzata (minuscola) del nome, oppure la promessa che la
-    /// produrrà. È privata perché il nome "vero" — quello che si legge e si scrive — è
-    /// [`Fund::name`], che la maiuscolizza.
+    /// The deeply normalised, lower-case form of the name, or the promise that will produce it.
     ///
-    /// **Rinominato in serde come `name`** (`#[serde(rename)]`) invece di lasciare trapelare
-    /// `n_name`: `__serialize_fields__()` (`python/output.rs`) deriva le chiavi di una fixture di
-    /// test dalla forma serde per costruzione, sul presupposto — vero per le altre sei entità —
-    /// che coincidano con gli argomenti del costruttore Python. Senza questa rename l'unica
-    /// eccezione era proprio qui: una fixture rigenerata scriveva `n_name` e la sua rilettura
-    /// falliva con `Fund.__new__() got an unexpected keyword argument 'n_name'`. La rinormalizzazione
-    /// in [`Fund::from_value`] è idempotente, quindi ricostruire da un valore già normalizzato
-    /// (quello scritto sotto la chiave `name`) produce lo stesso `Fund`.
+    /// Private, because the name one reads and writes is [`Fund::name`], which upper-cases it.
+    ///
+    /// **Renamed to `name` for serde** rather than letting the internal name leak: test fixtures
+    /// derive their keys from the serde form, on the assumption — true of every other entity — that
+    /// those match the constructor's arguments. Without the rename this was the one exception, and
+    /// a regenerated fixture could not be read back. Re-normalising is idempotent, so rebuilding
+    /// from an already normalised value yields the same fund.
     #[serde(with = "serde_promised", rename = "name")]
     n_name: Promised<String>,
 }
 
 impl Fund {
-    /// Costruisce un fondo da un nome già noto.
+    /// Builds a fund from a name already known.
     pub fn new(name: &str) -> Self {
         Self { n_name: Promised::Resolved(deep_normalize_string(name)) }
     }
 
-    /// Costruisce un fondo da un [`BlockValue`], che può essere una stringa o una promessa.
+    /// Builds a fund from a [`BlockValue`], which may be a string or a promise.
     pub fn from_value(value: &BlockValue) -> Result<Self, OutputClassError> {
         let n_name = promised_from_value("name", value, |v| v.str_or_fail("name").map(deep_normalize_string))?;
         Ok(Self { n_name })
     }
 
-    /// Il nome del fondo: normalizzato e in maiuscolo, come nel riferimento. `None` finché il
-    /// nome è una promessa non risolta.
+    /// The fund's name: normalised and upper-cased. `None` while the name is an unresolved promise.
     pub fn name(&self) -> Option<String> {
         self.n_name.resolved().map(|n| n.to_uppercase())
     }
 
-    /// La forma normalizzata minuscola, quella su cui si fanno i confronti fra fondi.
+    /// The normalised lower-case form, the one funds are compared on.
     pub fn normalized_name(&self) -> Option<&str> {
         self.n_name.resolved().map(String::as_str)
     }
 
-    /// La promessa ancora da risolvere, se il nome è pendente.
+    /// The promise still to be resolved, if the name is pending.
     pub fn pending_name(&self) -> Option<&Promise> {
         self.n_name.pending()
     }
@@ -81,7 +69,7 @@ impl PromisableFields for Fund {
 
     fn resolve_field(&mut self, field: &'static str, value: BlockValue) -> Result<(), BlockValueError> {
         match field {
-            // Sempre normalizzato, anche qui: è la correzione descritta nel doc-comment del modulo.
+            // Always normalised, here too; see the module documentation.
             "name" => {
                 self.n_name = Promised::Resolved(deep_normalize_string(value.str_or_fail("name")?));
                 Ok(())
@@ -162,8 +150,7 @@ mod tests {
 
         #[test]
         fn resolving_a_promise_normalizes_the_name_exactly_like_construction() {
-            // È la correzione descritta nel doc-comment del modulo: nel riferimento Python la
-            // risoluzione via `setattr` saltava la normalizzazione.
+            // Resolving through a promise must normalise, exactly as the constructor does.
             let mut fund = promised_fund();
             fund.resolve_field("name", BlockValue::from("  Alpha   Fund ")).unwrap();
             assert_eq!(fund, Fund::new("Alpha Fund"));

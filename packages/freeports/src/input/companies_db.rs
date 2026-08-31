@@ -1,77 +1,38 @@
-//! Lettura del database di input (`input_db/`) e compilazione delle target companies.
+//! Reading the input database and compiling the target companies.
 //!
-//! `PLAN.md` §9 (`input::{load_target_companies, compile_target_companies}`,
-//! `input::companies_db`). `M9-implementation-plan.md` §0 Q1: porting di
-//! `packages/freeports_core/src/input/companies_db.rs`, tolto tutto ciò che è confine PyO3
-//! (`#[pyfunction]`/`PyErr`) e `polars` (letto invece con il crate `csv`, come ogni altro CSV di
-//! repo/config in questo crate — `PLAN.md` §2 principio 7), incluse le correzioni di bug già
-//! trovate e confermate in quel porting (non riprodotte qui):
+//! The input database says which companies a run is looking for, and how to recognise each of them
+//! in a report: its name, the verbatim fragments that must be present, the patterns its name takes,
+//! and its ticker symbols. [`load_target_companies`] reads and validates it;
+//! [`compile_target_companies`] goes one step further and hands back matchers ready to use.
 //!
-//! - matching `bud`/`regex` **non ancorato** (il riferimento Python usa `re.match`, ancorato in
-//!   posizione 0, mascherato da un secondo bug che rendeva quella validazione un no-op — vedi il
-//!   doc-comment di `require_regex_matches_name` nel riferimento Rust);
-//! - **ordine di `companies.csv` preservato**, non alfabetico (`match_company`/`match_fast` è un
-//!   algoritmo "primo prefisso che matcha vince": un nome più corto che è prefisso di uno più
-//!   lungo deve restare *dopo* quello più specifico nell'ordine del file).
+//! # Two properties that are easy to get wrong
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! **Pattern matching here is unanchored.** The real consumer of these same patterns searches the
+//! whole string, so validating them with an anchored match would accept patterns that then never
+//! fire, and reject ones that work — `\bmaersk` against a company whose normalised name is `"ap
+//! moller maersk"` is the clear case.
 //!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum CompaniesDbError {
-//!     ReadCsv { path: PathBuf, source: csv::Error },
-//!     MissingColumn { path: PathBuf, column: &'static str },
-//!     EmptyValue { path: PathBuf, column: &'static str, row: usize },
-//!     NotNormalized { context: String, field: &'static str, value: String },
-//!     BudNotContained { bud: String, name: String, normalized: String },
-//!     InvalidRegex { pattern: String, name: String, message: String },
-//!     RegexNotMatching { pattern: String, name: String, normalized: String },
-//!     InvalidDate { context: String, value: String },
-//!     Duplicate { path: PathBuf, kind: &'static str, value: String },
-//!     UnknownReference { path: PathBuf, kind: &'static str, value: String },
-//!     InvalidTickerSymbol { path: PathBuf, symbol: String },
-//! }
+//! **The order of `companies.csv` is preserved, not sorted.** Company matching is first-match-wins,
+//! so a shorter name that is a prefix of a longer one must stay *after* the more specific one,
+//! exactly where the file put it. Sorting alphabetically would silently attribute holdings to the
+//! wrong company.
 //!
-//! /// `get_target_companies` del riferimento, senza il confine Python: restituisce gli input
-//! /// grezzi (nome/bud/regex/symbol per azienda, già filtrati per lista bersaglio e aggregati),
-//! /// non ancora compilati in `CompanyMatchInfos`.
-//! pub fn load_target_companies(
-//!     input_db_directory: &Path,
-//!     target_lists: &[String],
-//! ) -> Result<Vec<crate::formats_utils::text_filter::matcher::TargetCompanyInput>, CompaniesDbError>;
-//!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum CompileTargetCompaniesError {
-//!     Load(#[from] CompaniesDbError),
-//!     Compile(#[from] crate::formats_utils::text_filter::matcher::PatternCompileError),
-//! }
-//!
-//! /// `PLAN.md` §9: thin wrapper su `CompanyMatchInfos::compile_from_target_companies`
-//! /// (già in questo crate da M4, `formats_utils::text_filter::matcher` — nessun porting nuovo
-//! /// lì, `M9-implementation-plan.md` §0 Q1).
-//! pub fn compile_target_companies(
-//!     input_db_directory: &Path,
-//!     target_lists: &[String],
-//! ) -> Result<Vec<crate::formats_utils::text_filter::matcher::CompanyMatchInfos>, CompileTargetCompaniesError>;
-//! ```
-//!
-//! # Struttura di `input_db/` attesa (identica al riferimento)
+//! # The expected layout of the database
 //!
 //! ```text
-//! companies/companies.csv                  Name,Bud,Regex
-//! companies/companies_additional_buds.csv  Company name,Bud
+//! companies/companies.csv                   Name,Bud,Regex
+//! companies/companies_additional_buds.csv   Company name,Bud
 //! companies/companies_additional_regexs.csv Company name,Regex
-//! companies/markets.csv                    Name
-//! companies/tickers.csv                    Market name,Company name,Symbol
-//! lists/lists.csv                          Name,Institution,Date
-//! lists/company_to_list.csv                List name,Company name
+//! companies/markets.csv                     Name
+//! companies/tickers.csv                     Market name,Company name,Symbol
+//! lists/lists.csv                           Name,Institution,Date
+//! lists/company_to_list.csv                 List name,Company name
 //! ```
 //!
-//! Validazioni portate identiche al riferimento: nome azienda univoco, `Bud` già normalizzato
-//! (`deep_normalize_string(bud) == bud`) e contenuto nel nome normalizzato dell'azienda, `Regex`
-//! che matcha (non ancorato) il nome normalizzato, `Date` in forma `YYYY-MM-DD`, simbolo ticker
-//! `[A-Z]{2,6}`, ogni riferimento incrociato (bud/regex aggiuntivi, `company_to_list`, `tickers`)
-//! deve puntare a un'entità nota.
+//! Every file is validated: company names unique, each bud already normalised and contained in the
+//! company's normalised name, each regex matching that name, dates in `YYYY-MM-DD` form, ticker
+//! symbols two to six upper-case letters, and every cross-reference pointing at an entity that
+//! exists.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -79,10 +40,9 @@ use std::path::{Path, PathBuf};
 use crate::core::normalization;
 use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, PatternCompileError, TargetCompanyInput};
 
-/// La cartella `companies_additional_*`/`markets.csv`/`tickers.csv` vive sotto questa
-/// sottodirectory di `input_db_directory` — stessa costante del riferimento.
+/// The company files live under this subdirectory of the database root.
 const COMPANIES_DIR: &str = "companies";
-/// `lists.csv`/`company_to_list.csv` vivono sotto questa sottodirectory.
+/// The list files live under this subdirectory of the database root.
 const LISTS_DIR: &str = "lists";
 
 #[derive(Debug, thiserror::Error)]
@@ -119,10 +79,8 @@ pub enum CompileTargetCompaniesError {
     Compile(#[from] PatternCompileError),
 }
 
-/// Una tabella CSV già letta interamente in memoria (nessun `DataFrame`, `PLAN.md` §2 principio
-/// 7): gli header servono a risolvere il nome di colonna a un indice una volta sola, i record
-/// grezzi restano `csv::StringRecord` fino a quando `required_str_column`/`optional_str_column`
-/// non li convalidano.
+/// A CSV table read wholly into memory: the headers resolve a column name to an index once, and the
+/// raw records stay untouched until a typed accessor validates them.
 struct Table {
     path: PathBuf,
     headers: csv::StringRecord,
@@ -197,9 +155,7 @@ fn require_bud_contained_in_name(bud: &str, name: &str) -> Result<(), CompaniesD
     Ok(())
 }
 
-/// Matching non ancorato (bugfix già confermato in `freeports_core`, non riprodotto qui): ogni
-/// consumatore reale di questo stesso pattern (`CompanyMatchInfos::compile_from_target_companies`)
-/// lo cerca ovunque nella stringa, non solo in posizione 0 — vedi il doc-comment del modulo.
+/// Unanchored matching; see the module documentation for why.
 fn require_regex_matches_name(pattern: &str, name: &str) -> Result<(), CompaniesDbError> {
     let n_name = normalization::deep_normalize_string(name);
     let re = onig::Regex::new(pattern)
@@ -255,8 +211,8 @@ fn load_companies(input_db_directory: &Path) -> Result<Vec<CompanyRow>, Companie
     Ok(rows)
 }
 
-/// Condivisa da `companies_additional_buds.csv` e `companies_additional_regexs.csv` — stessa
-/// forma (colonna indice `Company name` + una colonna valore), stesso controllo incrociato.
+/// Shared by the two additional-value files, which have the same shape — an index column naming a
+/// company plus one value column — and the same cross-reference check.
 fn load_additional(
     input_db_directory: &Path,
     subdir: &str,
@@ -356,7 +312,7 @@ fn load_tickers(
     let companies = table.required_str_column("Company name")?;
     let symbols = table.required_str_column("Symbol")?;
 
-    // `\A`/`\z` (non `^`/`$`): ancorati all'intera stringa, non a un'eventuale riga interna.
+    // Anchored to the whole string rather than to a line within it.
     let symbol_re = onig::Regex::new(r"\A[A-Z]{2,6}\z")
         .expect("pattern letterale fisso, valido per costruzione -- verificato a compile time");
     let result: Result<Vec<(String, String, String)>, CompaniesDbError> = (0..markets.len())
@@ -388,9 +344,8 @@ struct CompanyAggregate {
     symbols: Vec<String>,
 }
 
-/// `get_target_companies` del riferimento, senza il confine Python: restituisce gli input grezzi
-/// (nome/bud/regex/symbol per azienda, già filtrati per lista bersaglio e aggregati), non ancora
-/// compilati in `CompanyMatchInfos`.
+/// Reads the database and returns the raw per-company inputs — name, buds, regexes, symbols —
+/// already filtered by target list and aggregated, but not yet compiled into matchers.
 pub fn load_target_companies(
     input_db_directory: &Path,
     target_lists: &[String],
@@ -409,8 +364,8 @@ pub fn load_target_companies(
     let mut aggregates: HashMap<String, CompanyAggregate> =
         company_names.iter().map(|n| (n.clone(), CompanyAggregate::default())).collect();
     for company in &companies {
-        // Invariante: `agg` esiste sempre per `company.name`, perché `aggregates` è stato
-        // popolato da `company_names`, che è derivato dalle stesse `companies`.
+        // The aggregate always exists for this name, having been seeded from the same set of
+        // companies.
         let agg = aggregates.get_mut(&company.name).expect("company name comes from the same set that seeded `aggregates`");
         if let Some(bud) = &company.bud {
             agg.buds.push(bud.clone());
@@ -420,8 +375,8 @@ pub fn load_target_companies(
         }
     }
     for (company_name, bud) in additional_buds {
-        // Invariante: `load_additional` ha già rifiutato ogni riga il cui nome non è in
-        // `company_names` (`UnknownReference`), quindi la chiave è sempre presente qui.
+        // Every row whose company name is unknown was already rejected, so the key is always
+        // present here.
         aggregates.get_mut(&company_name).expect("checked against company_names by load_additional").buds.push(bud);
     }
     for (company_name, regex) in additional_regexs {
@@ -434,8 +389,7 @@ pub fn load_target_companies(
         aggregates.get_mut(&company_name).expect("checked against company_names by load_tickers").symbols.push(symbol);
     }
 
-    // Ordine di `companies.csv` preservato, non alfabetico -- vedi il doc-comment del modulo:
-    // `match_company`/`match_fast` e' un algoritmo "primo prefisso che matcha vince".
+    // The order of `companies.csv` is preserved, not sorted; see the module documentation.
     let target_list_count = target_lists.len();
     let target_lists: HashSet<&str> = target_lists.iter().map(String::as_str).collect();
     let result: Vec<TargetCompanyInput> = companies
@@ -452,9 +406,7 @@ pub fn load_target_companies(
     Ok(result)
 }
 
-/// `PLAN.md` §9: thin wrapper su `CompanyMatchInfos::compile_from_target_companies` (già in
-/// questo crate da M4, `formats_utils::text_filter::matcher` — nessun porting nuovo lì,
-/// `M9-implementation-plan.md` §0 Q1).
+/// Reads the database and compiles the result into ready-to-use matchers.
 pub fn compile_target_companies(
     input_db_directory: &Path,
     target_lists: &[String],
@@ -473,9 +425,8 @@ mod tests {
     use super::*;
     use crate::formats_utils::text_filter::matcher::TargetCompanyInput;
 
-    /// Stessa fixture del riferimento Rust (`freeports_core/src/input/companies_db.rs`): due
-    /// aziende, ("Coca Cola" in lista TEST, "BlackRock" in lista OTHER), ciascuna con un bud/regex
-    /// proprio più uno aggiuntivo, e un ticker ciascuna.
+    /// Two companies in different target lists, each with its own bud and regex plus an additional
+    /// one, and a ticker each.
     struct Fixture {
         dir: tempfile::TempDir,
     }
@@ -543,16 +494,14 @@ mod tests {
         fn multiple_target_lists_include_companies_from_either_without_duplicates() {
             let f = Fixture::new();
             let result = load_target_companies(&f.root(), &tl(&["TEST", "OTHER"])).unwrap();
-            // Ordine di `companies.csv`, non alfabetico -- vedi il doc-comment del modulo.
+            // The order of `companies.csv`, not alphabetical; see the module documentation.
             assert_eq!(names(&result), vec!["Coca Cola", "BlackRock"]);
         }
 
         #[test]
         fn companies_are_returned_in_companies_csv_file_order_not_alphabetical() {
-            // Un nome più corto che è prefisso di uno più lungo ("Israel Government" dentro
-            // "Israel Government International") deve restare nell'ordine del file, non essere
-            // riordinato alfabeticamente -- altrimenti `match_company` (primo prefisso che
-            // matcha vince) sceglierebbe l'azienda sbagliata.
+            // A shorter name that is a prefix of a longer one must stay in file order rather than
+            // be sorted alphabetically, or first-match-wins matching would pick the wrong company.
             let f = Fixture::new();
             f.write(COMPANIES_DIR, "companies.csv", "Name,Bud,Regex\nIsrael Government International,,\nIsrael Government,,\n");
             f.write(COMPANIES_DIR, "companies_additional_buds.csv", "Company name,Bud\n");
@@ -639,10 +588,9 @@ mod tests {
 
         #[test]
         fn regex_matching_only_a_later_word_in_the_name_is_accepted_unanchored() {
-            // Pinna il fix dell'ancoraggio: `\bmaersk` deve essere accettato per un'azienda il
-            // cui nome normalizzato e' "ap moller maersk" -- "maersk" e' l'*ultima* parola, quindi
-            // un match ancorato in posizione 0 (comportamento del riferimento Python, di fatto
-            // rotto da un secondo bug indipendente) lo rifiuterebbe.
+            // Pins the unanchored matching: `\bmaersk` must be accepted for a company whose
+            // normalised name is `"ap moller maersk"`, where `maersk` is the *last* word — an
+            // anchored match would reject it.
             let f = Fixture::new();
             f.write(COMPANIES_DIR, "companies.csv", "Name,Bud,Regex\nAP Moller Maersk,,\\bmaersk\n");
             f.write(COMPANIES_DIR, "companies_additional_buds.csv", "Company name,Bud\n");
@@ -777,10 +725,9 @@ mod tests {
 
         #[test]
         fn an_invalid_regex_that_passes_loading_but_fails_pattern_compilation_propagates() {
-            // `require_regex_matches_name` uses `onig::Regex::new` too, so a syntactically
-            // invalid pattern is normally caught at `load_target_companies` time already; this
-            // documents that whichever stage catches it, the wrapper surfaces a single error
-            // type covering both failure modes (`CompileTargetCompaniesError`).
+            // An invalid pattern is normally caught while loading, since the same compiler is used
+            // there; this documents that whichever stage catches it, the wrapper surfaces a single
+            // error type covering both failure modes.
             let f = Fixture::new();
             f.write(COMPANIES_DIR, "companies.csv", "Name,Bud,Regex\nCoca Cola,,(unclosed\n");
             assert!(compile_target_companies(&f.root(), &tl(&["TEST"])).is_err());
@@ -819,8 +766,8 @@ mod tests {
         }
     }
 
-    /// Copertura di errore "per varietà di causa": ogni file mancante del tutto (non solo
-    /// malformato) deve fallire con un errore, mai un panic (`PLAN.md` §2 principio 4).
+    /// Error coverage by *kind of cause*: every file missing entirely, not merely malformed, must
+    /// fail with an error and never a panic.
     mod missing_files {
         use super::*;
 

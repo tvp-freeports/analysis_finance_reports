@@ -1,4 +1,4 @@
-//! Utilita' trasversali che non dipendono dal dominio dell'estrazione.
+//! Cross-cutting utilities that do not depend on the extraction domain.
 
 pub mod consts;
 pub mod date;

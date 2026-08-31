@@ -1,128 +1,38 @@
-//! Scrittura di [`super::accumulate::TransformedTables`] su disco: un CSV per tabella più il file
-//! YAML delle informazioni aggiuntive sulle obbligazioni.
+//! Writing the accumulated tables to disk: one CSV per table, plus the YAML side file of bond
+//! details.
 //!
-//! M8, passo 13 (`agent-memory/M8-implementation-plan.md` §0 Q1.2/§1/§3). **Solo il profilo
-//! `Regular`** è implementato in questa milestone (una directory, un CSV per tabella, crate
-//! `csv`) — `SingleFile`/`Structured` e la compressione (`OutFlags`) restano a M9, quando esiste
-//! davvero un flag da riga di comando che li seleziona. `OutStructureMode`/`OutFlags` sono
-//! definiti **qui**, non in `cli::conf_parse` (ancora uno stub): è `output` che li possiede,
-//! `cli` li riuserà quando esisterà (`PLAN.md` §13, decisione Q1.1).
+//! # Three structure profiles
 //!
-//! # Estensione M9 (`M9-implementation-plan.md` §0 Q6, §3 passo 12) — **RIAPRE M8**
+//! **`Regular`** — the default. Creates the output directory, including intermediate ones, and
+//! writes one CSV per table plus `investments_add_infos.yaml`.
 //!
-//! Su autorizzazione esplicita dell'utente, stesso trattamento di `core::tracing_setup::Verbosity`
-//! (§0 Q5): `SingleFile`/`Structured`/`OutFlags::compressed`, tutti e tre finora rifiutati con un
-//! `WriteFilesError` tipizzato (`UnsupportedProfile`/`CompressionNotSupported`, M8 Q1.2), sono ora
-//! **implementati per davvero** — porting diretto di `packages/freeports_core/src/output/
-//! routines.rs::{write_single_file, write_structured, compress_single_file, compress_directory}`,
-//! l'unico riferimento pulito per la forma esatta (letto per intero prima di scrivere questi
-//! test, non inventato). `OutFlags` guadagna anche `separate_out: bool` (default `false`), nuovo
-//! di questa milestone (non nel riferimento, che lo modellava diversamente — vedi sotto).
-//! `WriteFilesError::UnsupportedProfile`/`CompressionNotSupported` **spariscono**: ogni
-//! combinazione di `profile`/`flags` è ora gestita, quindi quei due rami sono diventati
-//! irraggiungibili.
+//! **`SingleFile`** — the output path is treated as a **file**, not a directory: one CSV with the
+//! investments columns plus `Maturity` and `Interest rate`, read from the side table by investment
+//! id. Only `investments` is written in this profile; no other table.
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! **`Structured`** — a directory holding `investments/table.csv` and `investments/dicts.yaml`.
+//! Only `investments`, the same limitation as `SingleFile`.
 //!
-//! ```text
-//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-//! pub enum OutStructureMode { Regular, SingleFile, Structured }
+//! # Rules that hold across profiles
 //!
-//! #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-//! pub struct OutFlags { pub compressed: bool, pub separate_out: bool }
+//! - **every CSV always has its header**, even with zero rows: an empty table produces a header-only file, not an empty one. A consumer must be able to tell "no rows" from "no file";
+//! - the headers are exact, in text and in order;
+//! - an absent optional field is an **empty cell**, never the string `"None"` or `"null"`, and a floating-point number always carries at least one decimal.
 //!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum WriteFilesError {
-//!     Io { .. },   // fallimento di I/O (creare dir, aprire file, comprimere, ...)
-//!     Csv { .. },  // fallimento della serializzazione CSV
-//!     Yaml { .. }, // fallimento della serializzazione YAML
-//! }
+//! # Compression
 //!
-//! pub fn write_files(
-//!     tables: &TransformedTables,
-//!     out_dir: &std::path::Path,
-//!     profile: OutStructureMode,
-//!     flags: OutFlags,
-//! ) -> Result<(), WriteFilesError>;
-//! ```
+//! For the directory profiles the output is written and then archived into a `.tar.gz` **sibling**
+//! of the directory, not inside it; for `SingleFile` into a `.gz` sibling, there being no directory
+//! to archive. In both cases, whether the uncompressed output is removed afterwards depends on
+//! whether it existed on disk **before** the call — checked before writing anything, so a directory
+//! the user already had is never deleted.
 //!
-//! **Regole pinnate dai test** (`agent-memory/M8-implementation-plan.md` §4, "Scrittura CSV" —
-//! per il profilo `Regular` e i default, invariate a M9; nuove sotto per `SingleFile`/
-//! `Structured`/`compressed`/`separate_out`):
+//! # Splitting the output per report
 //!
-//! - Profilo `Regular`: crea `out_dir` (comprese le directory intermedie) e scrive, in
-//!   quest'ordine di nome file, un CSV per tabella — `investments.csv`, `funds_assets.csv`,
-//!   `funds.csv`, `funds_sfdr_classification.csv`, `funds_esg_indicators.csv`,
-//!   `assets_managers.csv`, `investments_managers_to_funds.csv`, `funds_change_name.csv` — più
-//!   `investments_add_infos.yaml`.
-//! - **Ogni CSV ha sempre l'intestazione**, anche con zero righe: una tabella vuota produce un
-//!   file di sola intestazione, non un file vuoto — stesso comportamento del riferimento
-//!   (DataFrame vuoto ma con colonne definite).
-//! - Intestazioni **esatte** (testo e ordine), pinnate dai test sotto — portate dal riferimento
-//!   (`packages/freeports_core/src/output/routines.rs`, le funzioni `*_df`), unica differenza
-//!   `"SFDR classification"`/`"Type of event"` che qui sono stringhe calcolate (non il
-//!   `Serialize` di `SfdrArticle`/`ChangeNameEventType`) — `"Art. 6"`/`"Art. 8"`/`"Art. 9"` e
-//!   `"RENAMING"`/`"MERGING"`.
-//! - Un campo `Option<_>` assente è una **cella vuota**, mai la stringa `"None"`/`"null"`; un
-//!   numero in virgola mobile porta sempre almeno un decimale (`100.0`, non `100`) — è il
-//!   comportamento naturale di `csv`+`serde` su `f32`/`f64`, verificato empiricamente prima di
-//!   scrivere questi test.
-//! - `investments_add_infos.yaml` usa **`serde_yaml`** direttamente su
-//!   `TransformedTables::additional_infos` (un `BTreeMap<u32, BondAdditionalInfoRow>`, che deriva
-//!   `Serialize` — vedi `files_schema.rs`), non una riproduzione a mano del formato PyYAML: non è
-//!   più un requisito di fedeltà in questa fase (`files_schema`/`routines` non sono moduli
-//!   verbatim, `PLAN.md` §0). Una mappa vuota produce `"{}\n"`.
-//!
-//! ## `SingleFile` (porting diretto di `write_single_file`)
-//!
-//! `out_dir` è trattato come **percorso di un file** (non una directory): un solo CSV con le
-//! colonne di `investments.csv` più due colonne aggiuntive, `Maturity`/`Interest rate`, lette da
-//! `TransformedTables::additional_infos` per `id` di ciascun investimento (assenti -> cella
-//! vuota). **Solo `investments` è scritto** in questo profilo -- nessun'altra tabella (`funds`,
-//! `funds_assets`, ...): comportamento verbatim del riferimento, non un'omissione di questo
-//! porting.
-//!
-//! ## `Structured` (porting diretto di `write_structured`)
-//!
-//! Crea `out_dir/investments/table.csv` (stesse colonne di `investments.csv`) e
-//! `out_dir/investments/dicts.yaml` (`additional_infos`, stesso formato di
-//! `investments_add_infos.yaml`). **Solo `investments`**, stessa limitazione di `SingleFile` --
-//! verbatim dal riferimento.
-//!
-//! ## `OutFlags::compressed` (porting diretto di `compress_single_file`/`compress_directory`)
-//!
-//! - `Regular`/`Structured` (una directory): l'output normale viene scritto, poi comprimo in un
-//!   `.tar.gz` **sibling** (`out_dir.with_file_name("{nome}.tar.gz")`, non dentro `out_dir`
-//!   stessa) con `tar`+`flate2`. Se `out_dir` **non esisteva già sul disco prima della chiamata**
-//!   (`!out_dir.exists()`, controllato **prima** di scrivere qualunque file), la directory non
-//!   compressa viene rimossa dopo la compressione; se esisteva già, viene lasciata intatta.
-//! - `SingleFile` (un file): comprimo con `flate2::write::GzEncoder` in un `.gz` sibling (non
-//!   `.tar.gz`, non c'è una directory da archiviare). Stessa regola sulla preesistenza per
-//!   decidere se rimuovere il file non compresso.
-//! - `set_compress_flag` (`cli::freeports_config`, validazione a monte) ha già strippato un
-//!   eventuale suffisso `.tar.gz` da `OUT_PATH` prima che `write_files` lo veda: qui il suffisso
-//!   viene sempre **aggiunto**, mai atteso già presente nell'`out_dir` ricevuto.
-//!
-//! ## `OutFlags::separate_out` (nuovo di M9, non nel riferimento in questa forma)
-//!
-//! `M9-implementation-plan.md` §0 Q6: "un CSV per `Report` (chiave `DocumentOutcome::id`/
-//! `format`), non più `prefix_out`". Il riferimento (`reference_legacy/_internals/cli/main.py`)
-//! separava per **formato** su un unico dataframe concatenato con `Report identifier`/`Format`
-//! come colonne aggiunte a posteriori -- non traducibile direttamente in questa architettura
-//! (`TransformedTables` è già multi-tabella tipizzata, ogni riga porta già `Report`/`Format`).
-//! **Scelta del test-writer, segnalata come judgment call nel resoconto finale** (non pinnata da
-//! nessuna sezione del piano con un formato di nome file esplicito): per il profilo `Regular` con
-//! `separate_out: true`, ciascuna tabella che porta `Report`/`Format` per riga (qui: `investments`
-//! e `funds_assets`, sottoinsieme scelto per contenere l'ambito della modifica -- non le altre sei)
-//! viene **spezzata** per coppia `(Report, Format)` distinta, un CSV per coppia, nome
-//! `{tabella}__{report}__{format}.csv` (es. `investments__Report A__FMT.csv`) al posto del singolo
-//! `investments.csv`/`funds_assets.csv` merged. Le altre tabelle (`funds`, `funds_sfdr_classification`,
-//! `funds_esg_indicators`, `assets_managers`, `investments_managers_to_funds`,
-//! `funds_change_name`) e `investments_add_infos.yaml` **non sono affette**: restano scritte come
-//! nel profilo `Regular` di default, non spezzate. `separate_out` con `SingleFile`/`Structured`
-//! **non è testato qui** (interazione non specificata dal piano) -- vedi il resoconto.
-//! `OutFlags::default()` (`separate_out: false`) **non cambia comportamento**: i test M8 esistenti
-//! (tutti con `OutFlags::default()`) restano verdi senza modifiche.
+//! With `separate_out`, the tables carrying a report and a format per row — `investments` and
+//! `funds_assets` — are split by distinct `(report, format)` pair, one CSV per pair, named
+//! `{table}__{report}__{format}.csv`. The other tables are unaffected and stay merged. The default
+//! is off, so the ordinary behaviour is one file per table.
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
@@ -140,9 +50,7 @@ use crate::output::files_schema::{
 
 use super::accumulate::TransformedTables;
 
-/// Il profilo di struttura dei file di output. **Solo `Regular` è implementato** in questa
-/// milestone (`PLAN.md` §13, decisione Q1.2): `SingleFile`/`Structured` restano a M9, quando
-/// esiste davvero un flag da riga di comando che li seleziona.
+/// The structure profile of the output files. See the module documentation for what each writes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum OutStructureMode {
     Regular,
@@ -154,12 +62,12 @@ pub enum OutStructureMode {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OutFlags {
     pub compressed: bool,
-    /// M9 (`M9-implementation-plan.md` §0 Q6, riapre M8): un CSV per `Report`/`Format` invece di
-    /// uno unico, limitato a `investments`/`funds_assets` -- vedi il doc-comment del modulo.
+    /// One CSV per report and format instead of one merged file, for the tables that carry them.
+    /// See the module documentation.
     pub separate_out: bool,
 }
 
-/// Fallimenti della scrittura dei file di output.
+/// Failures of writing the output files.
 #[derive(Debug, thiserror::Error)]
 pub enum WriteFilesError {
     #[error("cannot {action} {path}: {source}")]
@@ -191,13 +99,12 @@ fn csv_err(path: &Path, source: csv::Error) -> WriteFilesError {
     WriteFilesError::Csv { path: path.display().to_string(), source }
 }
 
-/// Scrive `rows` come CSV in `path`, con l'intestazione `header` **sempre presente** — anche a
-/// zero righe, a differenza del comportamento di default del crate `csv` (che scrive
-/// l'intestazione solo alla prima `serialize`, quindi mai se non c'e' nessuna riga).
+/// Writes `rows` as CSV, with the header **always present** — even for zero rows, unlike the
+/// default behaviour, which writes the header on the first row and therefore never for an empty
+/// table.
 ///
-/// Apre lo span `write[<file>]` (`PLAN.md` §3 L1/L2's `Activity` vocabulary): questa e' la
-/// primitiva comune per ogni singolo CSV di output, quindi il punto giusto in cui annidarlo sotto
-/// lo span `output` gia' aperto da `cli::output::write_results`.
+/// Opens the write span: this is the common primitive for every output CSV, and so the right place
+/// to nest it under the span the caller already opened.
 fn write_csv_table<T: Serialize>(path: &Path, header: &[&str], rows: &[T]) -> Result<(), WriteFilesError> {
     let span = tracing::info_span!("write", file = %path.display());
     let _guard = span.enter();
@@ -496,9 +403,7 @@ fn write_funds_assets_csv(path: &Path, rows: &[FundAssetsRow]) -> Result<(), Wri
     write_csv_table(path, &FUNDS_ASSETS_HEADER, &rows)
 }
 
-/// Raggruppa `rows` per `(Report, Format)`, preservando l'ordine del primo incontro di ciascuna
-/// coppia -- usato da `OutFlags::separate_out` (`M9-implementation-plan.md` §0 Q6) per scrivere un
-/// CSV per coppia invece di una tabella unica.
+/// Groups rows by `(report, format)`, preserving the order in which each pair is first met.
 fn split_by_report_and_format<'a, T>(
     rows: &'a [T],
     report: impl Fn(&T) -> &str,
@@ -580,19 +485,16 @@ fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Resul
     write_csv_table(path, &header, &rows)
 }
 
-/// Scrive `investments_add_infos.yaml`.
+/// Writes the bond details YAML.
 ///
-/// Il YAML e' costruito a mano, e non con `serde_yaml::to_string`, per una ragione sola: la data
-/// di scadenza deve uscire **fra apici** (`maturity: '2025-09-22'`). `serde_yaml` la emette come
-/// scalare nudo, e uno scalare della forma `AAAA-MM-GG` e' un *timestamp* per la YAML 1.1 che
-/// `yaml.safe_load` di PyYAML implementa: rileggendo il file, quel campo tornerebbe come
-/// `datetime.date` invece che come stringa. Il riferimento (PyYAML in scrittura) lo quotava, e i
-/// consumatori del file si aspettano una stringa -- una differenza invisibile a occhio ma non a
-/// chi rilegge.
+/// The YAML is built by hand rather than serialized, for one reason: a maturity date must come out
+/// **quoted**. An unquoted `YYYY-MM-DD` scalar is a *timestamp* under the YAML version most readers
+/// implement, so on re-reading, that field would come back as a date object instead of a string.
+/// Consumers of this file expect a string — a difference invisible to the eye but not to whoever
+/// reads it back.
 ///
-/// Il resto del documento e' banale (una mappa di mappe di due scalari), quindi la scrittura
-/// manuale non rinuncia a niente: nessun campo puo' contenere caratteri da quotare o strutture
-/// annidate.
+/// The rest of the document is a map of maps of two scalars, so writing it by hand gives up
+/// nothing: no field can contain a character needing quoting or a nested structure.
 fn write_additional_infos_yaml(path: &Path, infos: &BTreeMap<u32, BondAdditionalInfoRow>) -> Result<(), WriteFilesError> {
     let span = tracing::info_span!("write", file = %path.display());
     let _guard = span.enter();
@@ -682,9 +584,8 @@ struct InvestmentSingleFileCsvRow {
     interest_rate: Option<f64>,
 }
 
-/// Porting diretto di `write_single_file` (`freeports_core/src/output/routines.rs`): investments
-/// arricchito con `Maturity`/`Interest rate` da `additional_infos` per `id`, un solo CSV. **Solo
-/// `investments` è scritto**, verbatim dal riferimento -- vedi il doc-comment del modulo.
+/// The single-file profile: the investments table enriched with the bond columns from the side
+/// table, in one CSV. Only `investments` is written.
 fn write_single_file(tables: &TransformedTables, out_path: &Path) -> Result<(), WriteFilesError> {
     let header = [
         "ID", "Format", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
@@ -719,9 +620,9 @@ fn write_single_file(tables: &TransformedTables, out_path: &Path) -> Result<(), 
     write_csv_table(out_path, &header, &rows)
 }
 
-/// Porting diretto di `write_structured`: `out_dir/investments/table.csv` (stesse colonne del
-/// profilo `Regular`) + `out_dir/investments/dicts.yaml`. **Solo `investments`**, stessa
-/// limitazione di `SingleFile` -- verbatim dal riferimento.
+/// The structured profile: an `investments` directory holding a table and its side file, with
+/// the same columns as the regular profile. **Only `investments`**, the same limitation as the
+/// single-file profile.
 fn write_structured(tables: &TransformedTables, out_dir: &Path) -> Result<(), WriteFilesError> {
     std::fs::create_dir_all(out_dir).map_err(|e| io_err("create directory", out_dir, e))?;
     let sub = out_dir.join("investments");
@@ -730,9 +631,8 @@ fn write_structured(tables: &TransformedTables, out_dir: &Path) -> Result<(), Wr
     write_additional_infos_yaml(&sub.join("dicts.yaml"), &tables.additional_infos)
 }
 
-/// Il nome file di `path`, o una stringa vuota se `path` non ne ha uno o non e' UTF-8 valido —
-/// caso limite assorbito silenziosamente dal riferimento (`unwrap_or_default`), quindi loggato qui
-/// prima di procedere con un nome d'archivio degradato (regola 1 di L2).
+/// The file name of `path`, or an empty string when it has none or is not valid UTF-8 — an edge
+/// case absorbed silently, so it is logged here before proceeding with a degraded archive name.
 fn file_name_or_warn(path: &Path) -> &str {
     match path.file_name().and_then(|n| n.to_str()) {
         Some(name) => name,
@@ -743,8 +643,8 @@ fn file_name_or_warn(path: &Path) -> &str {
     }
 }
 
-/// Porting diretto di `compress_single_file`: `.gz` sibling di `path` (non `.tar.gz`, non c'è una
-/// directory da archiviare).
+/// Compresses a single file into a `.gz` sibling — not a `.tar.gz`, there being no directory to
+/// archive.
 fn compress_single_file(path: &Path) -> Result<(), WriteFilesError> {
     let archive_name = format!("{}.gz", file_name_or_warn(path));
     let archive_path = path.with_file_name(archive_name);
@@ -761,8 +661,7 @@ fn compress_single_file(path: &Path) -> Result<(), WriteFilesError> {
     Ok(())
 }
 
-/// Porting diretto di `compress_directory`: `.tar.gz` **sibling** di `dir` (non dentro `dir`
-/// stessa).
+/// Compresses a directory into a `.tar.gz` **sibling** of it, not inside it.
 fn compress_directory(dir: &Path) -> Result<(), WriteFilesError> {
     let dir_name = file_name_or_warn(dir);
     let archive_path = dir.with_file_name(format!("{dir_name}.tar.gz"));
@@ -782,9 +681,8 @@ fn compress_directory(dir: &Path) -> Result<(), WriteFilesError> {
     Ok(())
 }
 
-/// Scrive `tables` su disco secondo `profile`/`flags`. Estensione M9 (`M9-implementation-plan.md`
-/// §0 Q6): tutte e tre le combinazioni di `profile`, più `OutFlags::compressed`/`separate_out`,
-/// sono ora implementate -- vedi il doc-comment del modulo.
+/// Writes `tables` to disk according to the profile and flags. See the module documentation for
+/// what each combination produces.
 pub fn write_files(
     tables: &TransformedTables,
     out_dir: &Path,
@@ -878,9 +776,8 @@ mod tests {
 
         #[test]
         fn out_flags_default_has_separate_out_false() {
-            // M9 additive field (`M9-implementation-plan.md` §0 Q6): must default to `false` so
-            // every pre-existing M8 test built with `OutFlags::default()` keeps its Regular-
-            // profile, single-merged-CSV-per-table behavior unchanged.
+            // An additive field, defaulting to off so that existing behaviour — one merged CSV per
+            // table — is unchanged.
             assert!(!OutFlags::default().separate_out);
         }
     }
@@ -1112,9 +1009,8 @@ mod tests {
         }
     }
 
-    /// Costruisce un `InvestmentRow` minimo, con `report`/`format` parametrizzabili -- usato dai
-    /// nuovi test M9 (`single_file_profile`, `structured_profile`, `separate_out_flag`) per
-    /// evitare di ripetere i 14 argomenti posizionali di `InvestmentRow::new` ad ogni riga.
+    /// A minimal investments row with a parameterisable report and format, so the tests do not
+    /// repeat fourteen positional arguments per row.
     fn investment(id: i64, report: &str, format: &str) -> InvestmentRow {
         InvestmentRow::new(
             id, 1, report.to_string(), format.to_string(), "Trigger".into(), "Investee".into(),
@@ -1123,8 +1019,7 @@ mod tests {
         .unwrap()
     }
 
-    /// M9 (`M9-implementation-plan.md` §0 Q6, riapre M8): `OutStructureMode::SingleFile`, porting
-    /// diretto di `write_single_file` (`freeports_core/src/output/routines.rs`).
+    /// The single-file profile.
     mod single_file_profile {
         use super::*;
 
@@ -1194,7 +1089,7 @@ mod tests {
         }
     }
 
-    /// M9: `OutStructureMode::Structured`, porting diretto di `write_structured`.
+    /// The structured profile.
     mod structured_profile {
         use super::*;
 
@@ -1249,7 +1144,7 @@ mod tests {
         }
     }
 
-    /// M9: `OutFlags::compressed`, porting diretto di `compress_single_file`/`compress_directory`.
+    /// Compression, of a single file and of a directory.
     mod compression {
         use super::*;
         use std::io::Read;
@@ -1351,11 +1246,11 @@ mod tests {
         }
     }
 
-    /// M9 (`M9-implementation-plan.md` §0 Q6): `OutFlags::separate_out`. **Judgment call
-    /// segnalato nel resoconto del test-writer**: il piano descrive solo "un CSV per Report" senza
-    /// pinnare un formato di nome file o l'elenco esatto di tabelle coinvolte -- questi test
-    /// fissano una proposta concreta (`investments`/`funds_assets`, nome
-    /// `{tabella}__{report}__{format}.csv`), non una lettura univoca del piano.
+    /// The per-report split.
+    ///
+    /// The file-name format and the subset of tables involved are a decision made here rather than
+    /// a requirement read off elsewhere: the tables split are `investments` and `funds_assets`, and
+    /// the name is `{table}__{report}__{format}.csv`.
     mod separate_out_flag {
         use super::*;
 

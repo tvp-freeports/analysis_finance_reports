@@ -1,22 +1,19 @@
-//! I tre involucri che portano un pipe nativo in Python, e le conversioni che li alimentano.
+//! The three wrappers that carry a native pipe into Python, and the conversions feeding them.
 //!
-//! # Perché tre involucri e non ventuno classi
+//! # Why three wrappers and not twenty-one classes
 //!
-//! I ventuno pipe standard del riferimento sono classi il cui unico scopo è essere costruite e
-//! poi chiamate. In Rust sono `Arc<dyn PdfExtractPipe>` (o `TextFilterPipe`/`DeserializePipe`),
-//! cioè un solo tipo per segmento: qui basta quindi **un** `#[pyclass]` per segmento, e i ventuno
-//! nomi pubblici diventano funzioni che lo costruiscono (`super::standard_funcs`). Da Python la
-//! differenza non si vede — `PdfExtractCurrencyStandard(sel)` costruisce un oggetto chiamabile in
-//! entrambi i casi — e in cambio il layer non duplica ventuno volte lo stesso involucro.
+//! The twenty-one standard pipes are classes whose only purpose is to be built and then called. In
+//! Rust they are one trait object per segment, so one Python class per segment suffices, and the
+//! twenty-one public names become functions that build it. From Python the difference is invisible,
+//! and in exchange the layer does not duplicate the same wrapper twenty-one times.
 //!
-//! # Perché contano per il caricamento di un repo formati
+//! # Why they matter to loading a formats repository
 //!
-//! `formats_repo::unstructured::loader` legge il valore `pipelines` di un modulo d'autore e
-//! avvolge ogni callable Python in un adattatore (`unstructured::py_pipe`). Se un pipe **nativo**
-//! passasse di lì, farebbe un giro Rust → Python → Rust a ogni blocco, con una conversione
-//! duck-typed in mezzo che perde le varianti tipizzate di `BlockValue`. Questi involucri esistono
-//! perché il loader possa riconoscerli e **spacchettarli**, recuperando l'`Arc` originale invece
-//! di riavvolgerlo: vedi [`unwrap_pdf_extract`] e le due sorelle.
+//! The loader reads an author module's pipelines and wraps every Python callable in an adapter.
+//! Were a **native** pipe to go through that, it would make a Rust-to-Python-and-back trip for
+//! every block, with a shape-based conversion in between that loses the typed variants of a value.
+//! These wrappers exist so the loader can recognise them and **unwrap** them, recovering the
+//! original pipe instead of re-wrapping it.
 
 use std::sync::Arc;
 
@@ -34,7 +31,7 @@ use crate::input::document::page_dict::{self, PageDict};
 use super::core::{PyPdfBlock, PyTextBlock};
 use crate::core::tracing_setup::log_error;
 
-/// Un errore di pipe come `RuntimeError` Python.
+/// A pipe error as a Python `RuntimeError`.
 fn pipe_error<E: std::fmt::Display>(error: E) -> PyErr {
     pyo3::exceptions::PyRuntimeError::new_err(error.to_string())
 }
@@ -60,7 +57,7 @@ impl PyPdfExtractPipe {
 
 #[pymethods]
 impl PyPdfExtractPipe {
-    /// L'argomento è il dict che PyMuPDF restituisce per una pagina, come nel riferimento.
+    /// The argument is the dict PyMuPDF returns for a page.
     fn __call__(&self, page: &Bound<'_, PyAny>) -> PyResult<Vec<PyPdfBlock>> {
         let py = page.py();
         let page = page_from_py(page)?;
@@ -150,10 +147,9 @@ impl PyDeserializePipe {
 
 #[pymethods]
 impl PyDeserializePipe {
-    /// Restituisce **un** risultato o `None`, non una lista: è la forma del riferimento, e il
-    /// codice d'autore ci conta (`blk = std(txt_blk); if blk is not None: ...`). Un pipe che
-    /// producesse più risultati da un solo blocco non esiste fra quelli standard; se mai
-    /// esistesse, qui tornerebbe il primo, che è ciò che faceva anche il riferimento.
+    /// Returns **one** result or nothing, not a list: it is the form author code counts on. No
+    /// standard pipe produces several results from one block; were one to, this would return the
+    /// first.
     fn __call__<'py>(
         &self,
         py: Python<'py>,
@@ -185,20 +181,20 @@ impl PyDeserializePipe {
 // Spacchettamento, per `unstructured::loader`
 // =================================================================================================
 
-/// L'`Arc` originale, se l'oggetto Python è uno degli involucri qui sopra.
+/// The original pipe, if the Python object is one of the wrappers above.
 ///
-/// `None` non è un errore: significa "questo è un callable d'autore", e il chiamante lo avvolgerà
-/// nell'adattatore duck-typed come ha sempre fatto.
+/// Returning nothing is not an error: it means "this is an author's callable", and the caller will
+/// wrap it in the shape-based adapter as always.
 pub fn unwrap_pdf_extract(object: &Bound<'_, PyAny>) -> Option<Arc<dyn PdfExtractPipe>> {
     object.extract::<PyRef<'_, PyPdfExtractPipe>>().ok().map(|pipe| pipe.inner())
 }
 
-/// Come [`unwrap_pdf_extract`], per il segmento `text_filter`.
+/// As [`unwrap_pdf_extract`], for the filtering segment.
 pub fn unwrap_text_filter(object: &Bound<'_, PyAny>) -> Option<Arc<dyn TextFilterPipe>> {
     object.extract::<PyRef<'_, PyTextFilterPipe>>().ok().map(|pipe| pipe.inner())
 }
 
-/// Come [`unwrap_pdf_extract`], per il segmento `deserialize`.
+/// As [`unwrap_pdf_extract`], for the deserialization segment.
 pub fn unwrap_deserialize(object: &Bound<'_, PyAny>) -> Option<Arc<dyn DeserializePipe>> {
     object.extract::<PyRef<'_, PyDeserializePipe>>().ok().map(|pipe| pipe.inner())
 }
@@ -207,10 +203,9 @@ pub fn unwrap_deserialize(object: &Bound<'_, PyAny>) -> Option<Arc<dyn Deseriali
 // Conversioni
 // =================================================================================================
 
-/// Una [`Page`] dal dict che PyMuPDF restituisce.
+/// A page from the dict PyMuPDF returns.
 ///
-/// Il dict originale resta allegato (`with_raw`): i pipe d'autore possono leggerlo, ed è la
-/// ragione per cui `Page` lo conserva.
+/// The original dict stays attached: author pipes can read it, which is why a page keeps it.
 pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
     let dict = page.cast::<PyDict>().map_err(|_| {
         pyo3::exceptions::PyTypeError::new_err("a page must be the dict returned by page.get_text(\"dict\")")
@@ -222,7 +217,7 @@ pub fn page_from_py(page: &Bound<'_, PyAny>) -> PyResult<Page> {
     Ok(Page::new(1, (parsed.width, parsed.height), lines, images).with_raw(page.clone().unbind()))
 }
 
-/// Una lista Python di `PdfBlock` come vettore nativo.
+/// A Python list of PDF blocks as a native vector.
 pub fn pdf_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<PdfBlock>> {
     blocks
         .try_iter()?
@@ -233,7 +228,7 @@ pub fn pdf_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<PdfBlock>> 
         .collect()
 }
 
-/// Una lista Python di `TextBlock` come vettore nativo.
+/// A Python list of text blocks as a native vector.
 pub fn text_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<TextBlock>> {
     blocks
         .try_iter()?
@@ -244,7 +239,7 @@ pub fn text_blocks_from_py(blocks: &Bound<'_, PyAny>) -> PyResult<Vec<TextBlock>
         .collect()
 }
 
-/// Le target companies contenute in un `filter_data`, se ce ne sono.
+/// The target companies contained in a filter data, if there are any.
 pub fn target_companies_from_py(filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<CompanyMatchInfos>> {
     let mut out = Vec::new();
     for item in filter_data.try_iter()? {
@@ -255,7 +250,7 @@ pub fn target_companies_from_py(filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<
     Ok(out)
 }
 
-/// I risultati di step precedenti contenuti in un `filter_data`, se ce ne sono.
+/// The results of preceding steps contained in a filter data, if there are any.
 pub fn previous_results_from_py(filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<Extracted>> {
     let mut out = Vec::new();
     for item in filter_data.try_iter()? {
@@ -266,12 +261,12 @@ pub fn previous_results_from_py(filter_data: &Bound<'_, PyAny>) -> PyResult<Vec<
     Ok(out)
 }
 
-/// Il `FilterData` che corrisponde a ciò che il `filter_data` conteneva.
+/// The filter data matching what was passed in.
 ///
-/// Le due varianti sono mutuamente esclusive per costruzione (`PLAN.md` §13): un `filter_data`
-/// porta le target companies **oppure** l'accumulo degli step precedenti. Se contiene entrambe le
-/// cose — cosa che il motore non produce mai, ma un test scritto a mano potrebbe — vincono i
-/// risultati precedenti, che sono l'informazione più specifica.
+/// The two forms are mutually exclusive by construction: a filter data carries the target companies
+/// **or** the accumulated previous results. Should it hold both — something the engine never
+/// produces, but a hand-written test might — the previous results win, being the more specific
+/// information.
 pub fn filter_data_of<'a>(
     companies: &'a [CompanyMatchInfos],
     previous: &'a [Extracted],
@@ -283,7 +278,7 @@ pub fn filter_data_of<'a>(
     }
 }
 
-/// Un risultato di pipeline come oggetto Python.
+/// A pipeline result as a Python object.
 pub fn extracted_to_py<'py>(py: Python<'py>, extracted: &Extracted) -> PyResult<Bound<'py, PyAny>> {
     use super::output::*;
     let object = match extracted {
@@ -314,7 +309,7 @@ pub fn extracted_to_py<'py>(py: Python<'py>, extracted: &Extracted) -> PyResult<
     Ok(object)
 }
 
-/// Le promesse mantenute da un pipe, come `dict` — la forma che il riferimento usava.
+/// The promises a pipe kept, as a dict.
 fn promises_to_py<'py>(py: Python<'py>, entries: &PromiseEntries) -> PyResult<Bound<'py, PyAny>> {
     let dict = PyDict::new(py);
     for (id, value) in entries.iter() {
@@ -323,11 +318,11 @@ fn promises_to_py<'py>(py: Python<'py>, entries: &PromiseEntries) -> PyResult<Bo
     Ok(dict.into_any())
 }
 
-/// Un oggetto Python come risultato di pipeline, se lo è.
+/// A Python object as a pipeline result, if it is one.
 ///
-/// `Ok(None)` significa "non è un risultato" (una page class, un blocco, un `MatchFund`...), non
-/// "conversione fallita": è un ramo di riconoscimento, e i chiamanti saltano ciò che non
-/// riconoscono.
+/// Returning nothing means "this is not a result" — a page class, a block, a fund identity — not
+/// "the conversion failed": it is a recognition branch, and callers skip what they do not
+/// recognise.
 pub fn extracted_from_py(object: &Bound<'_, PyAny>) -> PyResult<Option<Extracted>> {
     use super::output::*;
     macro_rules! try_variant {
@@ -348,7 +343,7 @@ pub fn extracted_from_py(object: &Bound<'_, PyAny>) -> PyResult<Option<Extracted
     try_variant!(PyManagementCompany, ManagementCompany);
     try_variant!(PyInvestmentsManager, InvestmentsManager);
 
-    // Le promesse arrivano come dict `{id: valore}`.
+    // Promises arrive as a dict of id to value.
     if let Ok(dict) = object.cast::<PyDict>() {
         let mut entries = PromiseEntries::new();
         for (key, value) in dict.iter() {

@@ -1,27 +1,28 @@
-//! I tre trait dei pipe e [`Segment<P>`], la collezione ordinata e deduplicata che li contiene.
+//! The three pipe traits, and [`Segment<P>`], the ordered deduplicated collection holding them.
 //!
-//! `PLAN.md` §5.1 e §5.2. Due differenze sostanziali dal riferimento, entrambe volute:
+//! # A pipe is a trait, not a callable
 //!
-//! 1. **Un pipe è un trait, non un callable.** Nel riferimento un segmento è un `Vec<Py<PyAny>>`
-//!    di oggetti chiamabili e il resto del sistema non ha modo di sapere che cosa siano. Qui i
-//!    pipe nativi e quelli definiti dall'autore del formato (M7) implementano lo *stesso* trait:
-//!    il motore non sa se un pipe è Rust o Python, e un pipe che fallisce è identificabile perché
-//!    ha un `name()`.
-//! 2. **Un solo `Segment<P>` generico** invece di tre struct con i metodi copiaincollati (nel
-//!    riferimento la triplicazione è imposta da PyO3, che ammette un solo blocco `#[pymethods]`
-//!    per pyclass). Deduplicazione, unione e iterazione sono scritte una volta sola; aggiungere un
-//!    quarto segmento (`targets/3_add_segments.md`) costa un trait, un alias e un campo.
+//! Native pipes and pipes written by a format author implement the *same* trait, so the engine does
+//! not know whether a given pipe is Rust or Python — and a pipe that fails is identifiable, because
+//! it has a `name()`. A segment made of opaque callables can report neither.
 //!
-//! **Ordine** (`PLAN.md` §5.2, D5): i pipe girano nell'ordine di inserimento, non nell'ordine di
-//! hash di un `set` Python. È deterministico e rende i test riproducibili.
+//! # One generic [`Segment<P>`], not three copies
 //!
-//! **Deduplicazione per identità** ([`Arc::ptr_eq`]), come il `set` di oggetti senza `__hash__`
-//! del riferimento: due pipe *configurati allo stesso modo* ma costruiti separatamente sono due
-//! pipe distinti e girano entrambi.
+//! Deduplication, union and iteration are written once. Adding a fourth segment costs a trait, an
+//! alias and a field.
 //!
-//! `Send + Sync` è richiesto sui tre trait fin da ora, non dopo: rende possibile parallelizzare
-//! per pagina/documento senza riprogettare (i pipe Python resteranno serializzati dal GIL, il
-//! resto scala).
+//! # Order and deduplication
+//!
+//! Pipes run in **insertion order**, which is deterministic and makes tests reproducible.
+//!
+//! They are deduplicated **by identity** ([`Arc::ptr_eq`]), not by value: two pipes configured
+//! identically but built separately are two distinct pipes and both run. Configuration equality
+//! would be the wrong test, since a pipe's configuration is not always comparable and running the
+//! same recipe twice is sometimes exactly what a format wants.
+//!
+//! `Send + Sync` is required on all three traits, which is what makes per-page and per-document
+//! parallelism possible without a redesign: Python pipes stay serialised by the GIL, everything
+//! else scales.
 
 use std::sync::Arc;
 
@@ -30,27 +31,26 @@ use crate::core::page::Page;
 
 use super::data::{Extracted, FilterData, PipeError};
 
-/// Primo segmento: dalla pagina ai blocchi PDF grezzi.
+/// First segment: from the page to raw PDF blocks.
 pub trait PdfExtractPipe: Send + Sync {
-    /// Nome del pipe, per il logging e i messaggi d'errore.
+    /// The pipe's name, for logging and error messages.
     fn name(&self) -> &str;
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError>;
 
-    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    /// `false` when spreading this pipe across threads cannot pay off.
     ///
-    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
-    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
-    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
-    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
-    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    /// The only real case is a pipe written by a format author: every call takes the GIL back, so N
+    /// threads re-serialise against each other and all that is left is the cost of distributing
+    /// them. A pipe answering `false` is not *forbidden* on a thread — what is avoided is
+    /// parallelism for the bundle containing it.
     ///
-    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    /// The default is `true`: a pure Rust pipe has nothing to declare.
     fn scales_with_threads(&self) -> bool {
         true
     }
 }
 
-/// Secondo segmento: dai blocchi PDF ai blocchi di testo selezionati.
+/// Second segment: from PDF blocks to the selected text blocks.
 pub trait TextFilterPipe: Send + Sync {
     fn name(&self) -> &str;
     fn filter(
@@ -59,43 +59,40 @@ pub trait TextFilterPipe: Send + Sync {
         data: &FilterData<'_>,
     ) -> Result<Vec<TextBlock>, PipeError>;
 
-    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    /// `false` when spreading this pipe across threads cannot pay off.
     ///
-    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
-    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
-    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
-    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
-    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    /// The only real case is a pipe written by a format author: every call takes the GIL back, so N
+    /// threads re-serialise against each other and all that is left is the cost of distributing
+    /// them. A pipe answering `false` is not *forbidden* on a thread — what is avoided is
+    /// parallelism for the bundle containing it.
     ///
-    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    /// The default is `true`: a pure Rust pipe has nothing to declare.
     fn scales_with_threads(&self) -> bool {
         true
     }
 }
 
-/// Terzo segmento: da un blocco di testo alle entità estratte.
+/// Third segment: from a text block to extracted entities.
 ///
-/// Prende **un** blocco per volta, non la lista: è la forma del riferimento, dove un
-/// deserializer viene invocato una volta per blocco.
+/// Takes **one** block at a time rather than the list: a deserializer is invoked once per block.
 pub trait DeserializePipe: Send + Sync {
     fn name(&self) -> &str;
     fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError>;
 
-    /// `false` quando distribuire questo pipe su più thread non può pagare.
+    /// `false` when spreading this pipe across threads cannot pay off.
     ///
-    /// L'unico caso reale è il pipe definito dall'autore di un formato: ogni chiamata riprende il
-    /// GIL, quindi N thread si riserializzano fra loro e restano solo con l'overhead di
-    /// distribuzione (`PLAN.md` §4, "il vincolo che decide tutto"). Un pipe che risponde `false`
-    /// non viene *vietato* su un thread — viene evitato il parallelismo per il bundle che lo
-    /// contiene, che è la cosa che `PLAN.md` chiede di rilevare invece di pagare per niente.
+    /// The only real case is a pipe written by a format author: every call takes the GIL back, so N
+    /// threads re-serialise against each other and all that is left is the cost of distributing
+    /// them. A pipe answering `false` is not *forbidden* on a thread — what is avoided is
+    /// parallelism for the bundle containing it.
     ///
-    /// Il default è `true`: un pipe Rust puro non deve dichiarare nulla.
+    /// The default is `true`: a pure Rust pipe has nothing to declare.
     fn scales_with_threads(&self) -> bool {
         true
     }
 }
 
-/// Collezione ordinata e deduplicata di pipe dello stesso segmento.
+/// An ordered, identity-deduplicated collection of pipes of the same segment.
 pub struct Segment<P: ?Sized>(Vec<Arc<P>>);
 
 impl<P: ?Sized> Segment<P> {
@@ -103,8 +100,8 @@ impl<P: ?Sized> Segment<P> {
         Segment(Vec::new())
     }
 
-    /// Aggiunge un pipe in coda, se non è già presente **per identità**. Restituisce `true` se è
-    /// stato davvero aggiunto.
+    /// Appends a pipe unless it is already present **by identity**. Returns whether it was actually
+    /// added.
     pub fn push(&mut self, pipe: Arc<P>) -> bool {
         if self.0.iter().any(|existing| Arc::ptr_eq(existing, &pipe)) {
             return false;
@@ -125,8 +122,8 @@ impl<P: ?Sized> Segment<P> {
         self.0.is_empty()
     }
 
-    /// Unione preservando l'ordine: prima i pipe di `self`, poi quelli di `other` non già
-    /// presenti per identità.
+    /// Union preserving order: `self`'s pipes first, then `other`'s that are not already present by
+    /// identity.
     pub fn union(&self, other: &Self) -> Self {
         let mut merged = self.clone();
         for pipe in &other.0 {
@@ -136,8 +133,8 @@ impl<P: ?Sized> Segment<P> {
     }
 }
 
-// `#[derive(Default)]`/`#[derive(Clone)]` aggiungerebbero un bound `P: Default`/`P: Clone`, che
-// per un `dyn Trait` non è soddisfabile: entrambi vanno scritti a mano.
+// `#[derive(Default)]` and `#[derive(Clone)]` would add a `P: Default` / `P: Clone` bound, which a
+// `dyn Trait` cannot satisfy: both have to be written by hand.
 impl<P: ?Sized> Default for Segment<P> {
     fn default() -> Self {
         Segment::new()
@@ -159,8 +156,7 @@ impl<P: ?Sized> std::fmt::Debug for Segment<P> {
 impl<P: ?Sized> std::ops::Add for Segment<P> {
     type Output = Segment<P>;
 
-    /// È così che i tre livelli del repo formati (structured + semistructured + unstructured) si
-    /// combinano — `PLAN.md` §6.4.
+    /// This is how a format's structured, semistructured and unstructured layers combine.
     fn add(self, rhs: Self) -> Self::Output {
         self.union(&rhs)
     }
@@ -176,18 +172,18 @@ impl<P: ?Sized> FromIterator<Arc<P>> for Segment<P> {
     }
 }
 
-/// Un estratto breve del contenuto di un blocco, pensato per una riga di log: il **testo** che un
-/// autore di formati puo' incollare in Ctrl-F dentro il PDF per ritrovare il punto.
+/// A short excerpt of a block's content, meant for one line of a log: the **text** a format author
+/// can paste into a PDF viewer's search box to find the spot again.
 ///
-/// E' la ragione per cui i log dei tre segmenti non si limitano piu' a contare i blocchi
-/// prodotti: un `blocks=12` non e' ancorabile a niente, mentre la prima riga di testo estratta
-/// dice subito *dove* e' successo. Il conteggio resta, come campo secondario.
+/// It is why the three segments no longer merely count the blocks they produced. A `blocks=12` is
+/// anchored to nothing, while the first line of extracted text says at once *where* it happened.
+/// The count stays, as a secondary field.
 ///
-/// Un contenitore (`List`/`Set`/`Map`) si riduce al primo elemento, ricorsivamente: un pipe che
-/// produce una tabella deve mostrare la prima cella, non `List([...])`.
+/// A container (`List`, `Set`, `Map`) reduces to its first element, recursively: a pipe producing a
+/// table should show the first cell, not `List([…])`.
 fn searchable_excerpt(value: &BlockValue) -> String {
-    /// Oltre questa soglia il testo viene troncato con un'ellissi: una riga di log deve restare
-    /// una riga.
+    /// Past this threshold the text is truncated with an ellipsis: a line of log has to stay one
+    /// line.
     const MAX_CHARS: usize = 60;
 
     let raw = match value {
@@ -207,13 +203,13 @@ fn searchable_excerpt(value: &BlockValue) -> String {
     }
 }
 
-/// La riga di log di un segmento, emessa **solo se c'e' davvero qualcosa da dire**: almeno un
-/// risultato *e* un estratto non vuoto con cui ancorarlo alla pagina.
+/// A segment's log line, emitted **only when there is really something to say**: at least one
+/// result *and* a non-empty excerpt to anchor it to the page.
 ///
-/// La condizione "estratto non vuoto" non e' pignoleria. `PdfExtractPageClassifyStandard`
-/// restituisce sempre esattamente un blocco, anche quando la pagina non appartiene alla sua page
-/// class, e quel blocco ha contenuto vuoto: contare i blocchi produceva 11.259 righe identiche e
-/// prive di contenuto su un solo documento, meta' dell'intero `.log.csv` a `-vv`.
+/// The non-empty requirement is not fussiness. `PdfExtractPageClassifyStandard` always returns
+/// exactly one block, even when the page does not belong to its page class, and that block has
+/// empty content — counting blocks produced 11,259 identical, contentless rows on a single
+/// document, half of the whole `.log.csv` at `-vv`.
 fn log_segment_output(message: &'static str, produced: usize, sample: Option<&BlockValue>) {
     if produced == 0 {
         return;
@@ -229,21 +225,21 @@ pub type TextFilterSegment = Segment<dyn TextFilterPipe>;
 pub type DeserializeSegment = Segment<dyn DeserializePipe>;
 
 impl PdfExtractSegment {
-    /// Concatena i blocchi prodotti da ogni pipe, nell'ordine di inserimento.
+    /// Concatenates the blocks produced by each pipe, in insertion order.
     pub fn apply(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
         let segment_span = tracing::info_span!("pdf_extract");
         let _segment_guard = segment_span.enter();
 
         let mut out = Vec::new();
         for pipe in self.iter() {
-            // Span innermost del vocabolario `Activity` (`PLAN.md` §3 L1/L2): incapsula la
-            // singola chiamata a un pipe, non l'intero segmento.
+            // The innermost `Activity` span: it wraps a single call to a pipe, not the whole
+            // segment.
             let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
             let _pipe_guard = pipe_span.enter();
             let blocks = pipe.extract(page)?;
-            // Solo se il pipe ha davvero prodotto qualcosa. Un pipe che non si applica a questa
-            // pagina e' il caso normale — ogni page class viene provata su ogni pagina — e la sua
-            // riga vuota era da sola meta' del `.log.csv` a `-vv`.
+            // Only if the pipe really produced something. A pipe that does not apply to this page
+            // is the normal case — every page class is tried against every page — and its empty row
+            // was on its own half of the `.log.csv` at `-vv`.
             log_segment_output("pdf blocks extracted", blocks.len(), blocks.first().map(|b| &b.content));
             out.extend(blocks);
         }
@@ -252,7 +248,7 @@ impl PdfExtractSegment {
 }
 
 impl TextFilterSegment {
-    /// Concatena i blocchi di testo prodotti da ogni pipe, nell'ordine di inserimento.
+    /// Concatenates the text blocks produced by each pipe, in insertion order.
     pub fn apply(
         &self,
         blocks: &[PdfBlock],
@@ -274,24 +270,22 @@ impl TextFilterSegment {
 }
 
 impl DeserializeSegment {
-    /// Itera **pipe × blocchi** (per ogni pipe, tutti i blocchi), come il riferimento.
+    /// Iterates **pipe × blocks**: for each pipe, all the blocks.
     ///
-    /// Il riferimento conserva nel risultato anche i `None` restituiti dai pipe, per filtrarli
-    /// più avanti; qui non serve, perché un pipe che non ha nulla da dire restituisce un vettore
-    /// vuoto. La distinzione che quel `None` doveva rappresentare nella classificazione — "una
-    /// classificazione c'è stata, ed è *nessuna class*" — non si perde: è
-    /// [`Extracted::PageClass(None)`](crate::core::pipeline::Extracted::PageClass), una variante
-    /// esplicita.
+    /// A pipe with nothing to say returns an empty vector, so there is no sentinel to filter out
+    /// afterwards. The one distinction such a sentinel would have had to carry in classification —
+    /// "a classification happened, and it is *no class*" — is not lost: it is
+    /// [`Extracted::PageClass(None)`](crate::core::pipeline::Extracted::PageClass), an explicit
+    /// variant.
     pub fn apply(&self, blocks: &[TextBlock]) -> Result<Vec<Extracted>, PipeError> {
         let segment_span = tracing::info_span!("deserialize");
         let _segment_guard = segment_span.enter();
 
         let mut out = Vec::new();
         for pipe in self.iter() {
-            // Il conteggio si logga una volta per pipe, non per blocco: un pipe di
-            // deserializzazione gira su tutti i blocchi della pagina (rule L2 "nessun log sopra
-            // trace in un ciclo caldo"), mentre lo span `pipe` avvolge comunque ogni singola
-            // chiamata, come richiesto dal vocabolario `Activity`.
+            // The count is logged once per pipe, not per block: a deserialize pipe runs over every
+            // block of the page, and nothing above `trace` belongs in a hot loop. The `pipe` span
+            // still wraps each individual call, as the `Activity` vocabulary requires.
             let mut produced = 0usize;
             for block in blocks {
                 let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
@@ -308,12 +302,10 @@ impl DeserializeSegment {
 
 #[cfg(test)]
 pub(crate) mod test_pipes {
-    //! Pipe finti condivisi dai test di `segment`, `pipeline`, `bundle` e `algorithm`.
+    //! Fake pipes shared by the tests of `segment`, `pipeline`, `bundle` and `algorithm`.
     //!
-    //! Nessun pipe reale esiste ancora: `formats_utils::pdf_extract::standard_funcs` non è
-    //! assegnato a nessuna milestone (vedi `STATUS.md`) e i pipe `text_filter`/`deserialize`
-    //! reali arrivano con `output::classes` (M8). I test del motore verificano l'orchestrazione,
-    //! non i pipe: questi doppi rendono esplicito *cosa* il motore garantisce.
+    //! The engine's tests check orchestration, not the pipes themselves, so these doubles make
+    //! explicit *what* the engine guarantees regardless of what any real pipe does.
 
     use super::*;
     use crate::core::classes::{BlockType, TextBlock};
@@ -321,7 +313,7 @@ pub(crate) mod test_pipes {
     use crate::core::schedule::PageClass;
     use std::sync::Mutex;
 
-    /// Estrae un blocco per ogni riga della pagina, con il testo della riga come contenuto.
+    /// Extracts one block per line of the page, with the line's text as content.
     pub(crate) struct LinesToBlocks {
         pub(crate) name: String,
         pub(crate) type_block: BlockType,
@@ -350,8 +342,8 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Fallisce sempre, con l'errore che gli è stato dato — serve a distinguere il fallimento
-    /// assorbibile (pagina saltata) da quello fatale.
+    /// Always fails, with the error it was given — used to tell an absorbable failure (page
+    /// skipped) from a fatal one.
     pub(crate) struct FailingExtract {
         pub(crate) name: String,
         pub(crate) error: PipeError,
@@ -385,8 +377,8 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Fallisce **solo** sulle pagine elencate — serve a distinguere quale fallimento viene
-    /// riportato quando più pagine falliscono nello stesso step (P2, D-P2-4).
+    /// Fails **only** on the pages listed — used to pin down which failure is reported when several
+    /// pages fail within the same step.
     pub(crate) struct FailingOnPages {
         pub(crate) name: String,
         pub(crate) pages: Vec<u32>,
@@ -415,9 +407,9 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Un pipe che dichiara di **non** scalare con i thread, come gli adattatori dei pipe
-    /// d'autore Python (`formats_repo::unstructured::py_pipe`), che riprendono il GIL a ogni
-    /// chiamata. Serve a provare la degradazione a sequenziale senza tirare in ballo Python.
+    /// A pipe declaring that it does **not** scale with threads, like the adapters for
+    /// author-written Python pipes, which take the GIL back on every call. It exercises the
+    /// degradation to sequential without involving Python at all.
     pub(crate) struct GilBoundExtract {
         pub(crate) name: String,
     }
@@ -446,12 +438,12 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Registra su quale thread è stato eseguito, e — se `wanted` è maggiore di uno — non torna
-    /// finché non sono arrivate `wanted` chiamate o non è scaduta l'attesa.
+    /// Records which thread it ran on and, if `wanted` is greater than one, does not return until
+    /// `wanted` calls have arrived or the wait times out.
     ///
-    /// L'attesa a tempo è deliberata: un `Barrier` vero bloccherebbe per sempre se il motore
-    /// eseguisse le pagine in sequenza, e un test che si pianta non dice cosa è andato storto. Con
-    /// la scadenza, il caso sequenziale **fallisce** invece di appendersi.
+    /// The timeout is deliberate: a real `Barrier` would block forever if the engine ran the pages
+    /// sequentially, and a test that hangs says nothing about what went wrong. With a deadline, the
+    /// sequential case **fails** instead of wedging.
     pub(crate) struct ThreadWitness {
         pub(crate) name: String,
         pub(crate) wanted: usize,
@@ -469,9 +461,9 @@ pub(crate) mod test_pipes {
             })
         }
 
-        /// Quanti thread distinti hanno eseguito questo pipe.
+        /// How many distinct threads ran this pipe.
         pub(crate) fn distinct_threads(&self) -> usize {
-            // `ThreadId` è `Hash` ma non `Ord`: si deduplica con un set, non ordinando.
+            // `ThreadId` is `Hash` but not `Ord`: deduplicate with a set, not by sorting.
             let threads = self.threads.lock().expect("test-only mutex is never poisoned");
             threads.iter().copied().collect::<std::collections::HashSet<_>>().len()
         }
@@ -505,7 +497,7 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Converte ogni blocco PDF in un blocco di testo, e registra quale `FilterData` ha visto.
+    /// Turns every PDF block into a text block, and records which `FilterData` it saw.
     pub(crate) struct RecordingFilter {
         pub(crate) name: String,
         pub(crate) seen: Mutex<Vec<(usize, usize)>>,
@@ -516,7 +508,7 @@ pub(crate) mod test_pipes {
             Arc::new(RecordingFilter { name: name.to_string(), seen: Mutex::new(Vec::new()) })
         }
 
-        /// `(numero di target companies, numero di risultati precedenti)` visti a ogni chiamata.
+        /// `(number of target companies, number of previous results)` seen at each call.
         pub(crate) fn seen(&self) -> Vec<(usize, usize)> {
             self.seen.lock().expect("test-only mutex is never poisoned").clone()
         }
@@ -543,7 +535,7 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Classifica ogni blocco con la class fissa che gli è stata data.
+    /// Classifies every block with the fixed class it was given.
     pub(crate) struct ConstantClassifier {
         pub(crate) name: String,
         pub(crate) class: Option<PageClass>,
@@ -568,7 +560,7 @@ pub(crate) mod test_pipes {
         }
     }
 
-    /// Deposita una promessa per ogni blocco ricevuto.
+    /// Deposits one promise per block received.
     pub(crate) struct PromiseDepositor {
         pub(crate) name: String,
         pub(crate) id: String,
@@ -637,8 +629,7 @@ mod tests {
 
         #[test]
         fn two_identically_configured_pipes_are_distinct() {
-            // Deduplicazione per identita', non per valore: e' la semantica del `set` di oggetti
-            // senza `__hash__` del riferimento.
+            // Deduplication is by identity, not by value.
             let mut segment = PdfExtractSegment::new();
             segment.push(LinesToBlocks::pipe("same"));
             segment.push(LinesToBlocks::pipe("same"));
@@ -730,7 +721,7 @@ mod tests {
             let mut segment = PdfExtractSegment::new();
             segment.push(LinesToBlocks::pipe("a"));
             let copy = segment.clone();
-            // Stessi `Arc`: l'unione delle due deduplica a uno solo.
+            // The same `Arc`s: the union of the two deduplicates down to one.
             assert_eq!((segment + copy).len(), 1);
         }
     }
@@ -839,7 +830,7 @@ mod tests {
 
         #[test]
         fn pipes_are_the_outer_loop_and_blocks_the_inner_one() {
-            // Ordine del riferimento: tutti i blocchi del primo pipe, poi quelli del secondo.
+            // All the blocks of the first pipe, then those of the second.
             let mut segment = DeserializeSegment::new();
             segment.push(ConstantClassifier::pipe("a", Some("x")));
             segment.push(ConstantClassifier::pipe("b", Some("y")));

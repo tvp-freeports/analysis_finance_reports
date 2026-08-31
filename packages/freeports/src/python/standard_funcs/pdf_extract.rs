@@ -1,4 +1,4 @@
-//! Shim di `freeports.standard_funcs.pdf_extract`: gli otto pipe standard del primo segmento.
+//! The shims of the eight standard pipes of the extraction segment.
 
 use std::sync::Arc;
 
@@ -19,7 +19,7 @@ use crate::python::pipes::PyPdfExtractPipe;
 use crate::python::utils::pdf_extract::{PyPdfLineSelection, PyTablePosAlgorithm};
 use crate::core::tracing_setup::log_error;
 
-/// Una selezione nativa da un oggetto Python, con un messaggio che nomina l'argomento.
+/// A native selection from a Python object, with a message naming the argument.
 fn selection_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<PdfLineSelection> {
     object.extract::<PyRef<'_, PyPdfLineSelection>>().map(|selection| selection.selection()).map_err(|_| {
         // A format wiring mistake, not a per-value failure: logged before the error only lives
@@ -29,7 +29,7 @@ fn selection_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<PdfLineSelect
     })
 }
 
-/// Come [`selection_of`], per un argomento opzionale.
+/// As [`selection_of`], for an optional argument.
 fn optional_selection_of(name: &str, object: Option<&Bound<'_, PyAny>>) -> PyResult<Option<PdfLineSelection>> {
     match object {
         None => Ok(None),
@@ -38,8 +38,8 @@ fn optional_selection_of(name: &str, object: Option<&Bound<'_, PyAny>>) -> PyRes
     }
 }
 
-/// Una o più selezioni: il riferimento accetta indifferentemente una selezione sola o un iterabile
-/// di selezioni, e i moduli d'autore usano davvero entrambe le forme.
+/// One or several selections: a single selection and an iterable of them are both accepted, and
+/// author modules really do use both forms.
 fn selections_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLineSelection>> {
     if let Ok(one) = object.extract::<PyRef<'_, PyPdfLineSelection>>() {
         return Ok(vec![one.selection()]);
@@ -54,8 +54,7 @@ fn selections_of(name: &str, object: &Bound<'_, PyAny>) -> PyResult<Vec<PdfLineS
         .collect()
 }
 
-/// I flag di tabularizzazione, con lo stesso default del riferimento: `None` significa "nessun
-/// flag", cioè `TablePosAlgorithm::Default`, che vale zero.
+/// The tabularisation flags, where nothing given means no flags at all.
 fn flags_of(
     object: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm> {
@@ -73,11 +72,10 @@ fn flags_of(
     }
 }
 
-/// Costruisce il pipe che estrae un testo atteso e fa fallire la pagina se non lo trova.
+/// Builds the pipe that extracts an expected text and fails the page if it is not there.
 ///
-/// È l'unico dei pipe di questo modulo che il riferimento espone anche direttamente (da
-/// `freeports.utils.pdf_extract`, non da `standard_funcs`), perché i moduli d'autore lo usano per
-/// blocchi che non sono nessuno dei tre casi standard qui sotto.
+/// The only pipe of this module also exposed directly among the utilities, because author modules
+/// use it for blocks that are none of the three standard cases below.
 #[pyfunction]
 #[pyo3(name = "ExtractTextPdfBlockOrFailPage")]
 pub fn py_extract_text_pdf_block_or_fail_page(
@@ -93,14 +91,14 @@ pub fn py_extract_text_pdf_block_or_fail_page(
     ))))
 }
 
-/// `PdfExtractFundStandard(selection)` — il nome del fondo.
+/// The pipe extracting the fund name.
 #[pyfunction]
 #[pyo3(name = "PdfExtractFundStandard")]
 pub fn py_pdf_extract_fund_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
     Ok(PyPdfExtractPipe::new(Arc::new(pdf_extract_fund_standard(selection_of("selection", selection)?))))
 }
 
-/// `PdfExtractCurrencyStandard(selection)` — la riga che dichiara la valuta.
+/// The pipe extracting the currency statement.
 #[pyfunction]
 #[pyo3(name = "PdfExtractCurrencyStandard")]
 pub fn py_pdf_extract_currency_standard(selection: &Bound<'_, PyAny>) -> PyResult<PyPdfExtractPipe> {
@@ -116,8 +114,7 @@ pub fn py_pdf_extract_managment_company_standard(selection: &Bound<'_, PyAny>) -
     )?))))
 }
 
-/// `PdfExtractPageClassifyStandard(header_sets, page_type)` — classifica la pagina se **tutte** le
-/// selezioni d'intestazione trovano qualcosa.
+/// The page classifier: classifies the page if **every** header selection finds something.
 #[pyfunction]
 #[pyo3(name = "PdfExtractPageClassifyStandard")]
 #[pyo3(signature = (header_sets, page_type))]
@@ -129,7 +126,7 @@ pub fn py_pdf_extract_page_classify_standard(
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractPageClassifyStandard::new(header_sets, page_type))))
 }
 
-/// `PdfExtractCurrencyConstant(currency)` — una valuta nota a priori, senza guardare la pagina.
+/// A currency known in advance, without looking at the page at all.
 #[pyfunction]
 #[pyo3(name = "PdfExtractCurrencyConstant")]
 pub fn py_pdf_extract_currency_constant(currency: PyRef<'_, PyCurrency>) -> PyPdfExtractPipe {
@@ -151,13 +148,12 @@ pub fn py_pdf_extract_sfdr_article_standard(
     ))))
 }
 
-/// `PdfExtractInvestmentsStandard(...)` — la tabella degli investimenti.
+/// The pipe for the investments table.
 ///
-/// **Divergenza assorbita qui:** `manco_set` e `currency_set` sono accettati e ignorati. Non è una
-/// svista: il riferimento fa esattamente lo stesso (li prende come parametri e non li assegna mai
-/// a `self`; la valuta e la società di gestione arrivano da pipe fratelli come
-/// `PdfExtractCurrencyStandard`). Il tipo nativo, che non ha vincoli di compatibilità, non li ha
-/// proprio — ma i moduli d'autore li passano ancora, quindi la firma Python li deve accettare.
+/// **A divergence absorbed here:** two of the selections are accepted and ignored. That is not an
+/// oversight — they were never used on this side either, the currency and the management company
+/// arriving from sibling pipes. The native type, having no compatibility constraint, does not have
+/// them at all, but author modules still pass them, so the Python signature must still accept them.
 #[pyfunction]
 #[pyo3(name = "PdfExtractInvestmentsStandard")]
 #[pyo3(signature = (
@@ -203,7 +199,7 @@ pub fn py_pdf_extract_investments_standard(
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractInvestmentsStandard::new(args))))
 }
 
-/// Una colonna di [`PdfExtractAssetsStandard`] dalle due keyword piatte del riferimento.
+/// One column of the assets pipe, from the flat keyword arguments.
 fn assets_column(anchor: PdfLineSelection, vector: (f64, f64), mult: (f64, f64)) -> AssetsColumn {
     AssetsColumn {
         anchor,
@@ -213,12 +209,11 @@ fn assets_column(anchor: PdfLineSelection, vector: (f64, f64), mult: (f64, f64))
     }
 }
 
-/// `PdfExtractAssetsStandard(...)` — i blocchi "patrimonio del fondo".
+/// The pipe for the fund-assets blocks.
 ///
-/// **Divergenza assorbita qui:** il riferimento prende quattordici keyword piatte, tre per ogni
-/// colonna numerica (`*_set`, `*_vec`, `*_mult`); il tipo nativo raggruppa ogni terzina in un
-/// [`AssetsColumn`]. La firma Python resta quella piatta, e il raggruppamento lo fa
-/// [`assets_column`].
+/// **A divergence absorbed here:** the Python signature takes fourteen flat keywords, three per
+/// numeric column, while the native type groups each triple into one column. The flat signature is
+/// kept, and the grouping happens in `assets_column`.
 #[pyfunction]
 #[pyo3(name = "PdfExtractAssetsStandard")]
 #[pyo3(signature = (

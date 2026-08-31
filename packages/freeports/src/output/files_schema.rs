@@ -1,68 +1,12 @@
-//! Le righe dei CSV di output, con i loro limiti numerici e le chiavi di unicità.
+//! The rows of the output files, with their numeric limits and their uniqueness keys.
 //!
-//! M8, passo 11 (`agent-memory/M8-implementation-plan.md` §3). Non è uno dei moduli "verbatim"
-//! di `PLAN.md` §0 — è già codice `freeports_core` pensato da zero per Rust (non un porting 1:1
-//! di Pydantic/pandera) — ma la *logica* si porta quasi meccanicamente da
-//! `packages/freeports_core/src/output/files_schema.rs`: stessi campi, stessi nomi di colonna,
-//! stessi limiti (`positive_u32`/`positive_u16`/`positive_f32`/`non_negative_f32`/
-//! `in_range_inclusive_f32`/`in_range_half_open_f64`), stessa unicità via [`UniqueTable`].
+//! Each struct here is one output table's row: the columns as they are written, the domain each
+//! numeric field must fall in, and — through [`UniqueTable`] — the key on which two rows count as
+//! the same.
 //!
-//! Differenze dal riferimento, tutte dettate dai tipi già presenti in questo crate:
-//! - `SimpleDate` → [`crate::commons::date::Date`];
-//! - `Currency`/`FinancialInstrument`/`SfdrArticle` → `crate::commons::consts` (M1);
-//! - `SchemaError` diventa un enum `thiserror` invece di un `impl fmt::Display` scritto a mano —
-//!   stessa forma di ogni altro errore di modulo in questo crate (`PLAN.md` D10) — con gli stessi
-//!   quattro messaggi del riferimento (verificati dai test qui sotto).
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-//! pub enum SchemaError {
-//!     NotGreaterThan { field: &'static str, value: String, bound: String },
-//!     NotGreaterOrEqual { field: &'static str, value: String, bound: String },
-//!     OutOfRange { field: &'static str, value: String, min: String, max: String },
-//!     Duplicate { table: &'static str, field: &'static str, value: String },
-//! }
-//! // Messaggi (identici al riferimento, a parte l'interpolazione numerica):
-//! //   "{field} must be greater than {bound}, got {value}"
-//! //   "{field} must be greater than or equal to {bound}, got {value}"
-//! //   "{field} must be in range [{min}, {max}], got {value}"
-//! //   "{table}: duplicate {field} value `{value}`"
-//!
-//! pub struct UniqueTable<Row> { /* new(table, field), push(key, row) -> Result<(), SchemaError>,
-//!     rows(), into_rows(), len(), is_empty() */ }
-//!
-//! // Le righe (stessi campi/nomi del riferimento, `Date` al posto di `SimpleDate`):
-//! pub struct InvestmentRow { id, report_page, report, format, triggering_text, investee,
-//!     financial_instrument, nominal_quantity: Option<f32>, market_value: f32, currency,
-//!     perc_net_assets: Option<f32>, fund_id, acquisition_cost: Option<f32>, acquisition_currency: Option<Currency> }
-//! pub struct BondAdditionalInfoRow { maturity: Option<Date>, interest_rate: Option<f64> }
-//! pub struct FundRow { id, name, management_company_id: Option<u32>, report_page: Option<u16>,
-//!     report: Option<String>, format: Option<String> }  // l'unica riga con debug info opzionale
-//! pub enum ChangeNameEventType { Renaming, Merging }
-//! pub struct FundChangeNameRow { id, report_page, report, format, fund_id, from_date: Date,
-//!     event_type: ChangeNameEventType, old_name }
-//! pub struct FundAssetsRow { id, report_page, report, format, fund_id, date: Option<Date>,
-//!     total_assets: f32, total_liabilities: f32, total_net_assets: f32, currency }
-//! pub struct FundSfdrClassificationRow { fund_id, sfdr_classification: SfdrArticle, report_page, report, format }
-//! pub struct FundEsgIndicatorRow { fund_id, indicator: String, value: String, report_page, report, format }
-//! pub struct AssetsManagerRow { id, report_page, report, format, name }
-//! pub struct InvestmentsManagerRow { investment_manager_id, fund_id }
-//! ```
-//!
-//! Ogni riga ha un costruttore `new(...) -> Result<Self, SchemaError>` che accetta gli id/pagine
-//! come interi "larghi" (`i64`/`i32`, come nel riferimento) e li restringe validando: permette di
-//! passare `0`/negativi ai test senza dover prima costruire un `u32` che li rifiuterebbe da solo.
-//!
-//! **`BondAdditionalInfoRow` deriva anche `Serialize`** (nomi di campo già quelli desiderati nel
-//! file YAML — `maturity`/`interest_rate` — nessun `#[serde(rename = "...")]` necessario): è
-//! l'unica riga che `output::routines::write` (M8, passo 13) scrive in YAML invece che in CSV, e
-//! usa `serde_yaml` direttamente (niente formattazione a mano stile PyYAML — non è più un
-//! requisito di fedeltà in questa fase, vedi `output/routines/write.rs`). Le altre righe **non**
-//! derivano `Serialize`: la mappatura verso l'intestazione CSV esatta del riferimento vive in
-//! piccole struct di supporto dentro `output::routines::write`, non qui (`agent-memory/
-//! M8-implementation-plan.md` §1).
+//! The validation lives here rather than at the point of writing because these are the invariants
+//! of the *product*, not of the run: an output file that violates them is wrong even if every step
+//! that built it was right.
 
 use std::collections::HashSet;
 
@@ -71,8 +15,7 @@ use serde::Serialize;
 use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
 use crate::commons::date::Date;
 
-/// Rimpiazza `pandera` che solleva `SchemaError` su un `Check` fallito — una variante per ogni
-/// tipo di vincolo che le tabelle di questo modulo usano davvero.
+/// A validation failure: one variant per kind of constraint the tables here actually use.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SchemaError {
     #[error("{field} must be greater than {bound}, got {value}")]
@@ -144,9 +87,8 @@ fn in_range_half_open_f64(field: &'static str, value: f64, min: f64, max: f64) -
     }
 }
 
-/// Una tabella che rifiuta una riga la cui chiave di unicità (formattata dal chiamante — il
-/// valore di una singola colonna, o più colonne unite per una unicità combinata) è già stata
-/// vista. Rimpiazza `unique=[...]` di ogni schema `pandera` del riferimento.
+/// A table refusing any row whose uniqueness key — formatted by the caller, from one column or
+/// several joined for a composite key — has already been seen.
 pub struct UniqueTable<Row> {
     table: &'static str,
     field: &'static str,
@@ -185,7 +127,7 @@ impl<Row> UniqueTable<Row> {
     }
 }
 
-/// `investments_schema`, meno i campi solo-bond (in [`BondAdditionalInfoRow`]).
+/// An investments row, minus the bond-only fields, which live in [`BondAdditionalInfoRow`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct InvestmentRow {
     pub id: u32,
@@ -243,8 +185,9 @@ impl InvestmentRow {
     }
 }
 
-/// `BondAdditionalInfos`: la tabella laterale indicizzata per id dell'investimento, scritta in
-/// `investments_add_infos.yaml` invece che come colonna CSV.
+/// The bond-only fields, held in a side table indexed by investment id and written as YAML rather
+/// than as CSV columns: they apply to a minority of rows, and adding them as always-empty columns
+/// would widen every row for nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct BondAdditionalInfoRow {
     pub maturity: Option<Date>,
@@ -262,9 +205,10 @@ impl BondAdditionalInfoRow {
     }
 }
 
-/// `funds_schema`. A differenza di ogni altra riga qui, `report_page`/`report`/`format` sono
-/// genuinamente opzionali: un fondo visto solo indirettamente (es. solo come `.fund` di un
-/// `Equity`, mai come `Extracted::Fund` autonomo) non li porta mai.
+/// A funds row.
+///
+/// Unlike every other row here, the three provenance fields are genuinely optional: a fund seen
+/// only indirectly — as another entity's fund, never as an entity of its own — never carries them.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FundRow {
     pub id: u32,
@@ -385,8 +329,8 @@ impl FundAssetsRow {
     }
 }
 
-/// `funds_sfdr_classification_schema` — niente colonna `ID`: `Fund ID` stesso è la chiave
-/// (unica), una classificazione per fondo.
+/// A fund SFDR classification row. There is no separate id column: the fund is the key, one
+/// classification per fund.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FundSfdrClassificationRow {
     pub fund_id: u32,
@@ -414,8 +358,7 @@ impl FundSfdrClassificationRow {
     }
 }
 
-/// `funds_esg_indicators_schema` — `Fund ID` qui **non** è unico (un fondo può avere più
-/// indicatori).
+/// A fund ESG indicator row. The fund is **not** unique here, a fund having several indicators.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FundEsgIndicatorRow {
     pub fund_id: u32,
@@ -468,7 +411,7 @@ impl AssetsManagerRow {
     }
 }
 
-/// `investments_managers_schema` — niente `common_columns`, solo le due chiavi esterne.
+/// An investments manager row: no common columns, only the two foreign keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvestmentsManagerRow {
     pub investment_manager_id: u32,
@@ -492,7 +435,7 @@ mod tests {
         Date::new(year, month, day).unwrap()
     }
 
-    // --- InvestmentRow: ogni limite, entrambi i lati di ogni intervallo ---
+    // Every limit, on both sides of every interval.
 
     struct InvestmentRowArgs {
         id: i64,
@@ -692,7 +635,7 @@ mod tests {
         }
     }
 
-    // --- FundRow: l'unica riga con debug info genuinamente opzionale ---
+    // The only row with genuinely optional provenance fields.
 
     mod fund_row {
         use super::*;
@@ -706,8 +649,8 @@ mod tests {
 
         #[test]
         fn accepts_no_debug_info_at_all() {
-            // Un fondo visto solo indirettamente (es. solo come `.fund` di un `Equity`, mai come
-            // `Extracted::Fund` autonomo) non ha mai un `report_page`/`report`/`format`.
+            // A fund seen only indirectly — as another entity's fund, never as an entity of its own
+            // — carries no provenance.
             let row = FundRow::new(1, "Fund A".into(), None, None, None, None).unwrap();
             assert_eq!(row.report_page, None);
             assert_eq!(row.report, None);
@@ -977,8 +920,8 @@ mod tests {
 
         #[test]
         fn combo_key_treats_differing_components_as_distinct() {
-            // Mirrors funds_assets_schema's unique=["Fund ID", "Date"]: stesso fondo, data
-            // diversa, non e' un duplicato; la stessa coppia (fondo, data) lo e'.
+            // The same fund on a different date is not a duplicate; the same fund on the same date
+            // is.
             let mut t: UniqueTable<(u32, &str)> = UniqueTable::new("funds_assets", "Fund ID|Date");
             t.push("1|2024-01-01", (1, "2024-01-01")).unwrap();
             t.push("1|2024-02-01", (1, "2024-02-01")).unwrap();

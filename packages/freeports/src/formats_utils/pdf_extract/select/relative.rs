@@ -1,48 +1,22 @@
-//! Selezioni relative ad altre selezioni (RelativePdfLineSet).
+//! Selections defined relative to *other* selections.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) della meta' "bottom half" del vecchio
-//! `freeports_core::formats_utils::pdf_extract::select::relative` — tutto cio' che menziona
-//! `SelectPdfLineSet`/`PdfLineSet` (la parte generica `OptionallyRelative`/`RelativeInfo` e'
-//! rilocata in `pdf_extract::relative`, R3 di `PLAN.md`, e importata qui).
+//! This is what lets a format say something a fixed rectangle cannot: *the area to the right of
+//! whatever line reads "Total"*, *the same font as the section heading*, *between the ISIN column
+//! and the page edge*. A relative selection names a target selection and a way of deriving from it;
+//! [`crate::formats_utils::pdf_extract::relative::RelativeInfo::contextualize`] resolves it against
+//! the page's lines into an ordinary absolute selection, after which nothing downstream can tell
+//! the two apart.
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
+//! Every one of the four criteria has a relative counterpart, and areas have three ways of being
+//! relative:
 //!
-//! - `pub enum RelativeSelectPdfLineSet { Font(RelativeFontSet), FontSize(RelativeFontSizeInterval),
-//!   Text(RelativeTextSet), Area(RelativeArea) }`, con costruttori
-//!   `select_font_of/select_fontsize_of/select_text_of/select_area_of(target: PdfLineSelection)`,
-//!   `area_from_movewindow(...)`, `area_from_bounds(...)`, e
-//!   `impl RelativeInfo<SelectPdfLineSet> for RelativeSelectPdfLineSet` che dispaccia ogni
-//!   variante alla `contextualize` della sua componente.
-//! - `type LeafType = OptionallyRelative<SelectPdfLineSet, RelativeSelectPdfLineSet>;`
-//! - `pub enum NodeRelativePdfLineSet { Leaf(LeafType), Branch(Box<Self>, SetOps, Box<Self>) }`
-//!   con `impl RelativeInfo<PdfLineSet> for NodeRelativePdfLineSet`: `Leaf` si contestualizza in
-//!   un `PdfLineSet::from_leaf`; `Branch` contestualizza entrambi i lati e applica `|`/`&`/`/` a
-//!   seconda di `SetOps`.
-//! - `pub struct RelativePdfLineSet(NodeRelativePdfLineSet)` con `BitOr`/`BitAnd`/`Div` che
-//!   costruiscono un `Branch`, `from_leaf`, `ast()`, e costruttori
-//!   `from_font/from_fontsize/from_text/from_area` che avvolgono un
-//!   `OptionallyRelative<Set,RelativeSet>` nel `SelectPdfLineSet`/`RelativeSelectPdfLineSet`
-//!   corrispondente.
-//! - `pub type PdfLineSelection = OptionallyRelative<PdfLineSet, RelativePdfLineSet>;` con
-//!   `from_font/from_fontsize/from_text/from_area` analoghi (producono `Absolute(PdfLineSet::..)`
-//!   o `Relative(RelativePdfLineSet::from_..)` a seconda della variante in ingresso).
-//! - `RelativeArea`: tre varianti, `Select(Box<PdfLineSelection>)`, `MoveWindow{ target, vec,
-//!   width_mult, height_mult }`, `Bounds{ x0,y0,x1,y1: OptionallyRelative<f32,Box<PdfLineSelection>> }`.
-//!   `contextualize`:
-//!   - `Select`: unione delle aree (bbox) di tutte le righe selezionate, `Area::empty()` se
-//!     nessuna riga corrisponde.
-//!   - `MoveWindow`: prende la bbox della *prima* riga selezionata (l'ordine e' quello di
-//!     `lines`, non ordinato), trasla/scala secondo `vec`/`width_mult`/`height_mult`;
-//!     `Area::empty()` se nessuna riga corrisponde.
-//!   - `Bounds`: ciascun lato assoluto e' preso cosi' com'e'; ciascun lato relativo prende un
-//!     lato della bbox della *prima* riga selezionata dalla sua sotto-selezione (`x0`/`x1` la
-//!     coordinata opposta lungo l'asse orizzontale, `y0`/`y1` lungo il verticale — vedi il
-//!     riferimento per il dettaglio esatto), con fallback `0.0`/`10e6` se nessuna riga corrisponde.
-//! - `RelativeFontSet`/`RelativeFontSizeInterval`/`RelativeTextSet`: un'unica variante
-//!   `Select(Box<PdfLineSelection>)`; `contextualize` filtra le righe che soddisfano la
-//!   selezione contestualizzata e unisce (`|`) il `FontSet`/`FontSizeInterval`(con
-//!   `from_precision(fs, 1e-4)`)/`TextSet` (`^{testo}$`) derivato da ciascuna, con
-//!   `empty()` se nessuna riga corrisponde.
+//! - `Select` takes the union of the bounding boxes of every line the target selects;
+//! - `MoveWindow` takes the **first** selected line's box and translates and scales it;
+//! - `Bounds` builds a rectangle side by side, each side either an absolute coordinate or one taken from the first line of its own sub-selection.
+//!
+//! "First" throughout means first in the page's line order, not first after sorting. When a target
+//! selects nothing, the result is an empty selection rather than an error: a page that simply does
+//! not contain the anchor is a normal occurrence, not a malformed one.
 
 use std::cmp::max;
 use std::ops::{BitAnd, BitOr, Div};
@@ -474,9 +448,9 @@ mod tests {
     use crate::formats_utils::pdf_extract::select::pdf_line::text::TextSet;
     use std::sync::LazyLock;
 
-    /// Stessa pagina di prova del riferimento: un titolo, cinque righe "simili" a font/corpo
-    /// diversi, un'intestazione di sezione, e un'altra manciata di righe "simili" sotto — usata
-    /// per esercitare selezioni relative combinatorie (`PLAN.md` §10).
+    /// The same test page throughout: a title, five similar lines in differing fonts and sizes, a
+    /// section heading, and another handful of similar lines below it — enough for relative
+    /// selections to have something to be relative *to*.
     static LINES: LazyLock<Vec<PdfLine>> = LazyLock::new(|| {
         vec![
             PdfLine::new("Arial", 45.0, "TITLE OF THE PAGE", (35.0, 1.0, 65.0, 5.0)),
@@ -587,11 +561,9 @@ mod tests {
         )]
         #[test_case(
             RelativeTextSet::from_selection(PdfLineSelection::from_text(Absolute(TextSet::new("i")))),
-            // Nota: "size" compare come testo esatto di *due* righe distinte (indice 5 e 11 in
-            // `LINES`), non e' un refuso: la struttura del risultato (fold via `|` sulle righe
-            // filtrate, nell'ordine di `LINES`) dipende da quante volte compare, non solo da
-            // quali fonts/testi compaiono — vedi il commento sul riferimento originale, che
-            // scrive lo stesso duplicato in questo identico test.
+            // `"size"` is the exact text of *two* distinct lines here, and the duplicate is not a
+            // typo: the result is folded with `|` over the filtered lines in page order, so its
+            // structure depends on how many times a text occurs, not only on which texts occur.
             TextSet::new("^with$") | TextSet::new("^similar$") | TextSet::new("^size$") | TextSet::new("^size$");
             "selecting by text gathers the exact text of the matching lines"
         )]

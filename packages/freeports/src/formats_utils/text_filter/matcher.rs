@@ -1,107 +1,39 @@
-//! `CompanyMatchInfos` e `match_company` (matching societario, fuzzy/regex su nomi di aziende).
+//! [`CompanyMatchInfos`] and [`match_company`]: deciding whether a piece of text names one of the
+//! companies being looked for.
 //!
-//! Port pressoche' diretto di `freeports_core/src/formats_utils/text_filter/matcher.rs`, tolto
-//! tutto cio' che e' confine PyO3 (`#[pyclass]`/`#[pymethods]`, `compile_from_rows`/
-//! `compile_from_pandas_df`, `py_match_company`/`match_company_or_pyerr`) — vedi
-//! `agent-memory/M4-implementation-plan.md` §1.
+//! A holding is written differently in every report — the full legal name, an abbreviation, a
+//! ticker, a name split across two table cells — so a company is described by four things at once:
 //!
-//! **`normalize_string` non e' reimplementata qui**: e' carattere per carattere identica a
-//! [`crate::core::normalization::deep_normalize_string`] (gia' portata in M2), quindi `matcher`
-//! la riusa direttamente invece di duplicarla — `mod normalize_string_equivalence` sotto verifica
-//! esplicitamente l'equivalenza sulla stessa tabella di casi che il vecchio `matcher.rs` usava per
-//! la propria `normalize_string`, invece di limitarsi a fidarsi dell'affermazione.
+//! - its **name**, matched on the deeply normalised form, so accents, case and punctuation do not matter;
+//! - **buds**, verbatim fragments that must occur in the text before its regexes are even tried;
+//! - **regexs**, patterns for the shapes its name takes;
+//! - **symbols**, tickers, matched as whole words.
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! # Two passes, cheap first
 //!
-//! ```text
-//! pub struct TargetCompanyInput {
-//!     pub name: String,
-//!     pub regexs: Vec<String>,
-//!     pub symbols: Vec<String>,
-//!     pub buds: Vec<String>,
-//! }
+//! [`match_company`] runs `match_fast`, and only if that finds nothing — finding nothing, not
+//! failing — falls back to `match_long`.
 //!
-//! // Struct privata di supporto (stesso nome del riferimento): un pattern compilato piu' la sua
-//! // stringa wrappata. Quest'ultima serve sia ai messaggi di errore di ambiguita' sia ai test
-//! // sotto, che (come gia' fa commons::date::Date con i propri campi) leggono i campi privati
-//! // direttamente invece di passare per accessori pubblici.
-//! #[derive(Debug, Clone)]
-//! struct Regex { pattern: String, reference: std::sync::Arc<onig::Regex> }
+//! `match_fast` tries the normalised name, then, for each bud actually present in the text, that
+//! company's regexes in order. It never looks at symbols. `match_long` drops the bud requirement:
+//! it tries every symbol, then every regex of every company. The split matters because the second
+//! pass is the expensive one, and on a table of hundreds of rows against hundreds of companies it
+//! is the difference between a fast run and an unusable one.
 //!
-//! #[derive(Debug, Clone)]
-//! pub struct CompanyMatchInfos {
-//!     name: String,        // nome originale, non normalizzato
-//!     n_name: String,      // deep_normalize_string(name)
-//!     buds: Vec<String>,   // verbatim, nessun wrapping
-//!     regexs: Vec<Regex>,  // wrapping anchor-aware, vedi sotto
-//!     symbols: Vec<Regex>, // wrapping word-boundary, vedi sotto
-//! }
+//! If two different companies both match by regex, that is [`MatcherError::AmbiguousRegex`] rather
+//! than an arbitrary winner: silently picking one would attribute a holding to the wrong company,
+//! which is worse than refusing to guess.
 //!
-//! impl CompanyMatchInfos {
-//!     pub fn compile_from_target_companies(companies: Vec<TargetCompanyInput>)
-//!         -> Result<Vec<Self>, PatternCompileError>;
-//! }
+//! # Anchors
 //!
-//! #[derive(Debug, thiserror::Error)]
-//! #[error("invalid pattern `{pattern}`: {message}")]
-//! pub struct PatternCompileError { pattern: String, message: String }
+//! A `^` or `$` in a pattern is **removed** from the pattern string and never put back; only the
+//! opposite side receives a `.*`. The anchoring still holds, because every match here goes through
+//! whole-string matching, which starts at position 0 and must cover the entire string. `mod
+//! match_companies` pins that end to end.
 //!
-//! // Wrapping delle Regexs (anchor-aware, condiviso da ogni pattern in `regexs`) — la stringa
-//! // wrappata risultante e' quella pinnata dai test sotto tramite il campo privato `pattern`:
-//! //   "bubu"    -> ".*bubu.*"   (non ancorato: wrappato su entrambi i lati)
-//! //   "^bubu"   -> "bubu.*"     (l'ancora iniziale viene tolta, non ri-aggiunta: vedi nota sotto)
-//! //   "bubu$"   -> ".*bubu"     (l'ancora finale viene tolta, non ri-aggiunta: vedi nota sotto)
-//! //   "^bubu$"  -> "bubu"       (entrambe le ancore tolte)
-//! //
-//! // **Nota verificata sul riferimento** (comportamento da riprodurre, non da "correggere"): il
-//! // carattere `^`/`$` viene rimosso dalla stringa del pattern e MAI reinserito nella forma
-//! // compilata. Questo e' solo un dettaglio cosmetico della stringa di pattern, non un difetto
-//! // funzionale di matching: ogni chiamata a `.is_match()` in questo modulo (mai `.find()`) usa
-//! // la semantica *whole-string* di `onig::Regex::is_match` (tenta il match a partire
-//! // esclusivamente dalla posizione 0 e richiede che copra l'intera stringa), che da sola
-//! // riproduce l'effetto di ancoraggio iniziale/finale — vedi `mod match_companies` sotto per un
-//! // test end-to-end che lo pinna tramite `match_company`.
-//! //
-//! // Wrapping dei Symbols (word-boundary, condiviso da ogni pattern in `symbols`):
-//! //   "COC" -> ".*\bCOC\b.*"
-//! // I `buds` restano verbatim (nessun wrapping, nessuna compilazione a regex).
-//!
-//! // match_fast/match_long restano privati, come nel riferimento, ma sono nello stesso modulo dei
-//! // test, quindi testabili direttamente (mod fast/mod long sotto).
-//! fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos])
-//!     -> Result<Option<&'a str>, MatcherError<'a>>;
-//! fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos])
-//!     -> Result<Option<&'a str>, MatcherError<'a>>;
-//!
-//! pub fn match_company<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos])
-//!     -> Result<Option<&'a str>, MatcherError<'a>>;
-//!
-//! #[derive(Debug, Clone, PartialEq, thiserror::Error)]
-//! pub enum MatcherError<'a> {
-//!     #[error("ambiguous match for {text:?}: both {origin_company:?} ({origin_match:?}) and {other_company:?} ({other_match:?})")]
-//!     AmbiguousRegex {
-//!         text: &'a str,
-//!         origin_company: &'a str,
-//!         other_company: &'a str,
-//!         origin_match: &'a str,
-//!         other_match: &'a str,
-//!     },
-//! }
-//! ```
-//!
-//! `match_fast`: se il testo normalizzato contiene il nome normalizzato di un'azienda, matcha
-//! subito su quel nome; altrimenti, per ogni `bud` di ogni azienda presente nel testo, prova i
-//! `regexs` di quell'azienda **nell'ordine dato**, fermandosi al primo che matcha. Se due aziende
-//! diverse producono entrambe un match via regex, e' `MatcherError::AmbiguousRegex`. `match_fast`
-//! non guarda mai `symbols`.
-//!
-//! `match_long`: se uno dei `symbols` di un'azienda matcha il testo (non normalizzato), matcha
-//! subito su quell'azienda; altrimenti prova **tutti** i `regexs` di **tutte** le aziende (senza
-//! richiedere un bud presente), stesso criterio di ambiguita' di `match_fast`.
-//!
-//! `match_company`: prova `match_fast`; se restituisce `Ok(None)` (nessun match, non errore),
-//! prova `match_long`; altrimenti (match o errore) restituisce direttamente il risultato di
-//! `match_fast`.
+//! Normalisation is not reimplemented here: it is
+//! [`crate::core::normalization::deep_normalize_string`], and `mod normalize_string_equivalence`
+//! checks that rather than assuming it.
 
 use onig::{Regex as OnigRegex, RegexOptions, Syntax};
 use std::sync::Arc;
@@ -121,10 +53,8 @@ pub struct PatternCompileError {
     message: String,
 }
 
-/// Wrapping anchor-aware di una pattern "Regexs", condiviso da ogni compilazione: `^foo`/`foo$`
-/// perdono il carattere di ancora (rimosso, mai reinserito — vedi la nota nel doc-comment del
-/// modulo) e ricevono un prefisso/suffisso `.*` solo sul lato *opposto*; una pattern non ancorata
-/// viene wrappata su entrambi i lati.
+/// Anchor-aware wrapping of a regex pattern: `^foo` and `foo$` lose the anchor character and gain
+/// `.*` on the opposite side only; an unanchored pattern is wrapped on both.
 fn compile_regex_pattern(p: &str) -> Result<Regex, PatternCompileError> {
     let mut modified_pattern: String;
     let start = p.starts_with('^');
@@ -153,7 +83,7 @@ fn compile_regex_pattern(p: &str) -> Result<Regex, PatternCompileError> {
     Ok(Regex { pattern: modified_pattern, reference: Arc::new(reference) })
 }
 
-/// Wrapping word-boundary di una pattern "Symbols" (un ticker, matchato come parola intera).
+/// Word-boundary wrapping of a symbol pattern — a ticker, matched as a whole word.
 fn compile_symbol_pattern(p: &str) -> Result<Regex, PatternCompileError> {
     let modified_pattern = format!(r".*\b{p}\b.*");
     let reference = OnigRegex::with_options(
@@ -182,16 +112,15 @@ pub struct CompanyMatchInfos {
 }
 
 impl CompanyMatchInfos {
-    /// Il nome originale della società, non normalizzato.
+    /// The company's original name, unnormalised.
     ///
-    /// Accessore aggiunto in M7 (modifica puramente additiva a codice M4): il confine Python di
-    /// `formats_repo::unstructured` deve poter passare le società bersaglio a un pipe `text_filter`
-    /// d'autore, e senza questo non c'è modo di leggerle da fuori del modulo.
+    /// Needed at the Python boundary, which has to hand the target companies to an author-written
+    /// `text_filter` pipe.
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// La forma profondamente normalizzata del nome, quella su cui si fanno i confronti.
+    /// The deeply normalised form of the name, the one comparisons are made against.
     pub fn normalized_name(&self) -> &str {
         &self.n_name
     }
@@ -243,19 +172,18 @@ pub enum MatcherError<'a> {
 
 type MatchResult<'a> = Result<Option<&'a str>, MatcherError<'a>>;
 
-/// Se il testo normalizzato contiene il nome normalizzato di un'azienda, matcha subito su quel
-/// nome; altrimenti, per ogni `bud` di ogni azienda presente nel testo, prova i `regexs` di
-/// quell'azienda nell'ordine dato, fermandosi al primo che matcha. Non guarda mai `symbols`.
+/// Tries the normalised name, then, for each bud present in the text, that company's regexes in the
+/// order given, stopping at the first that matches. Never looks at symbols.
 fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> MatchResult<'a> {
     let txt = deep_normalize_string(text);
     let mut last_matching_regex: Option<(&str, &str)> = None;
     let mut res: MatchResult<'a> = Ok(None);
 
     for c in target_companies {
-        // Si logga solo l'esito **positivo**, e col testo che lo ha prodotto. La versione
-        // precedente tracciava ogni confronto, riuscito o no: 300 aziende per ogni frammento di
-        // testo di ogni pagina, quasi tutte righe `matched=false` che non dicono nulla. Il testo
-        // in chiaro e' la cosa utile — si ritrova con Ctrl-F dentro il PDF.
+        // Only the **positive** outcome is logged, with the text that produced it. Tracing every
+        // comparison meant hundreds of companies against every fragment of text on every page,
+        // nearly all of them saying "no", which is not information. The text in the clear is the
+        // useful part: it can be found again with a search inside the PDF.
         if txt.contains(&c.n_name) {
             tracing::trace!(coord_ref_1 = %c.name, found = %text, "company matched by its name");
             return Ok(Some(&c.name));
@@ -295,9 +223,8 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
     res
 }
 
-/// Se uno dei `symbols` di un'azienda matcha il testo (non normalizzato), matcha subito su
-/// quell'azienda; altrimenti prova tutti i `regexs` di tutte le aziende (senza richiedere un bud
-/// presente), stesso criterio di ambiguita' di [`match_fast`].
+/// Tries every symbol against the unnormalised text, then every regex of every company without
+/// requiring a bud to be present. Same ambiguity rule as `match_fast`.
 fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> MatchResult<'a> {
     let txt = deep_normalize_string(text);
     let mut last_matching_regex: Option<(&str, &str)> = None;
@@ -338,9 +265,8 @@ fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
     res
 }
 
-/// Prova [`match_fast`]; se restituisce `Ok(None)` (nessun match, non errore), prova
-/// [`match_long`]; altrimenti (match o errore) restituisce direttamente il risultato di
-/// `match_fast`.
+/// Tries `match_fast`; if it returns `Ok(None)` — no match, not an error — tries `match_long`.
+/// A match or an error from the first pass is returned directly.
 pub fn match_company<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> MatchResult<'a> {
     match match_fast(text, target_companies) {
         Ok(None) => match_long(text, target_companies),
@@ -467,10 +393,9 @@ mod tests {
             assert!(match_company(provided, &COMPANY_LIST).unwrap().is_none());
         }
 
-        /// Pinna il comportamento discusso nel doc-comment del modulo: anche se il carattere `^`
-        /// viene tolto dalla stringa del pattern (`"^bubu"` -> `"bubu.*"`, mai `"^bubu.*"`), il
-        /// match resta effettivamente ancorato all'inizio perche' ogni chiamata a `.is_match()`
-        /// tenta il match solo a partire dalla posizione 0 -- non e' un limite del matcher.
+        /// Even though the `^` is removed from the pattern string, the match stays anchored to the
+        /// start, because matching only ever begins at position 0. It is a property of how the
+        /// patterns are used, not a limitation.
         static ANCHORED_COMPANY_LIST: LazyLock<Vec<CompanyMatchInfos>> = LazyLock::new(|| {
             CompanyMatchInfos::compile_from_target_companies(vec![target(
                 "Bubu Inc.",
@@ -520,8 +445,8 @@ mod tests {
 
             #[test]
             fn does_not_check_symbols_at_all() {
-                // "Coca Cola" only has a symbol ("COC"), no bud/regex/name overlap with this
-                // text -- match_fast must not find it (match_long does, see below).
+                // "Coca Cola" has only a symbol here, with no bud, regex or name overlapping this
+                // text: `match_fast` must not find it, while `match_long` does.
                 assert!(match_fast("302840128 ifl COC UUU]]]", &COMPANY_LIST).unwrap().is_none());
             }
 
@@ -575,9 +500,8 @@ mod tests {
         }
     }
 
-    /// Verifica che `deep_normalize_string` (M2) si comporti esattamente come la vecchia
-    /// `normalize_string` di `matcher.rs` sulla stessa tabella di casi — vedi il doc-comment del
-    /// modulo per il perche' `matcher.rs` non ha una propria `normalize_string`.
+    /// Checks that `deep_normalize_string` behaves exactly like the normalisation this module used
+    /// to carry, over the same table of cases — rather than taking the claim on trust.
     mod normalize_string_equivalence {
         use super::*;
         use pretty_assertions::assert_eq;

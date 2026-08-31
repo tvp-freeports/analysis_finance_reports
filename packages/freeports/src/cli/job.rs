@@ -1,55 +1,21 @@
-//! Esecuzione di un singolo job: risoluzione dei documenti (download se serve), risoluzione delle
-//! target companies, `Algorithm::load` + `apply_multidocument`.
+//! Running one job: resolving the documents (downloading if needed), compiling the target
+//! companies, loading the algorithm and applying it.
 //!
-//! `M9-implementation-plan.md` §1/§3 passo 11. **Non è 1:1 con `_main_job` del riferimento**: qui
-//! prende un singolo `FreeportsConfig` già completamente risolto/validato e produce
-//! `Result<Vec<DocumentOutcome>, JobError>`. La suddivisione "batch = N job indipendenti, i cui
-//! risultati si concatenano" resta quella del riferimento, ma vive in `cli::run`, non qui.
+//! A job is a single, already-validated configuration, and it produces the outcomes of every
+//! document it covers. Splitting a batch into independent jobs and concatenating their results
+//! belongs to [`super::run`], not here.
 //!
-//! **Nota sul confine Python**: `input::document::load_document` (M6) è uno dei due moduli di
-//! confine PyO3 del crate (`PLAN.md` §2 principio 1, §10 D13: "i test unitari non toccano Python,
-//! salvo i due moduli di confine"). `cli::job` non è uno di quei due moduli, ma **dipende**
-//! direttamente da uno di essi per ogni percorso realistico ("apre un documento e ci applica
-//! l'algoritmo") -- non esiste un seam iniettabile (nessun trait/mock per il caricamento
-//! documento in questo crate). I test che esercitano l'intera catena sono perciò isolati in un
-//! `mod python_boundary` qui sotto, stesso trattamento di `input/document.rs::tests::
-//! python_boundary` -- una deviazione necessaria dalla lettera di D13, non una scorciatoia,
-//! segnalata esplicitamente nel resoconto del test-writer.
+//! # How a document is resolved
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! - a path that exists on disk is used directly, with **no** download;
+//! - otherwise a URL must be present, guaranteed by validation. The document is downloaded and saved to the given path; with no path given, the bytes are written to a temporary file, PyMuPDF needing a real file rather than a buffer.
 //!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum JobError {
-//!     AlgorithmLoad(#[from] crate::formats_repo::LoadError),
-//!     Download(#[from] crate::input::download::DownloadError),
-//!     Document(#[from] crate::input::document::DocumentError),
-//!     Apply(#[from] crate::core::algorithm::AlgorithmError),
-//!     CompileTargetCompanies(#[from] crate::input::companies_db::CompileTargetCompaniesError),
-//!     /// `target_lists` non è vuota ma `input_db_path` non è impostato -- non c'è dove leggere
-//!     /// le aziende bersaglio.
-//!     MissingInputDbPath,
-//!     /// `formats_repo_path` non è impostato -- non c'è repo da cui caricare l'algoritmo.
-//!     MissingFormatsRepoPath,
-//! }
+//! # A note on the Python boundary
 //!
-//! /// Un solo `Algorithm::load` per l'intero job (anche con più documenti): risolve ogni
-//! /// `DocumentSpec` in `config.reports` (scaricando via `input::download` solo se manca un path
-//! /// su disco), carica ciascun `Document` con `input::document::load_document` (id = `name` dello
-//! /// spec, già garantito `Some` dopo `freeports_config::validate`), compila le target companies
-//! /// (skip se `target_lists` è vuota: nessuna azienda bersaglio, nessuna lettura di
-//! /// `input_db_path`), poi `Algorithm::apply_multidocument`.
-//! pub fn run(config: &crate::cli::freeports_config::FreeportsConfig, parallelism: crate::core::parallelism::Parallelism) -> Result<Vec<crate::core::algorithm::DocumentOutcome>, JobError>;
-//! ```
-//!
-//! # Regola di risoluzione di un documento
-//!
-//! - `path` presente e il file esiste su disco -> usato direttamente, **nessuna** chiamata a
-//!   `input::download`.
-//! - `path` assente, oppure presente ma il file non esiste ancora -> `url` deve essere presente
-//!   (garantito da `freeports_config::validate`); scarica con `input::download::download_pdf`,
-//!   salva a `path` se presente (altrimenti tiene solo i byte in memoria e li scrive in un file
-//!   temporaneo prima di aprirlo con PyMuPDF, che richiede un path reale).
+//! Loading a document is one of the crate's two PyO3 boundaries. This module is not one of them but
+//! **depends** on one for every realistic path, and there is no injectable seam for document
+//! loading. The tests exercising the whole chain are therefore isolated in a submodule of their
+//! own, as at the boundary itself.
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -77,27 +43,26 @@ pub enum JobError {
     Apply(#[from] AlgorithmError),
     #[error(transparent)]
     CompileTargetCompanies(#[from] CompileTargetCompaniesError),
-    /// `target_lists` non è vuota ma `input_db_path` non è impostato -- non c'è dove leggere le
-    /// aziende bersaglio.
+    /// Target lists were given but there is no input database to read the companies from.
     #[error("target_lists is not empty, but no input_db_path was configured")]
     MissingInputDbPath,
-    /// `formats_repo_path` non è impostato -- non c'è repo da cui caricare l'algoritmo.
+    /// No formats repository path: there is nothing to load the algorithm from.
     #[error("no formats_repo_path was configured")]
     MissingFormatsRepoPath,
 }
 
-/// Genera un path univoco sotto la directory temporanea di sistema per un documento scaricato di
-/// cui lo spec non indicava un path -- serve solo perché PyMuPDF richiede un file reale su disco,
-/// non un buffer in memoria.
+/// A unique path under the system's temporary directory for a downloaded document whose spec named
+/// no path — needed only because PyMuPDF requires a real file on disk.
 fn temp_download_path() -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     std::env::temp_dir().join(format!("freeports-download-{}-{n}.pdf", std::process::id()))
 }
 
-/// Risolve un `DocumentSpec` a un path locale pronto per `input::document::load_document`,
-/// scaricando solo se serve. Ritorna anche se il path è stato creato qui (per essere ripulito
-/// dopo l'uso) invece di venire dallo spec originale.
+/// Resolves a document spec to a local path ready to be loaded, downloading only if needed.
+///
+/// Also reports whether the path was created here, and so is to be cleaned up afterwards, rather
+/// than coming from the spec.
 fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobError> {
     if let Some(path) = &spec.path
         && path.is_file()
@@ -106,8 +71,7 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
         return Ok((path.clone(), false));
     }
 
-    // Garantito da `freeports_config::validate` (`input_should_be_specified` + `pdf_path_validation`):
-    // se il path è assente o non ancora su disco, l'url è presente.
+    // Guaranteed by validation: when the path is absent or not yet on disk, the URL is present.
     let url = spec.url.as_deref().expect("freeports_config::validate guarantees a url here");
     match &spec.path {
         Some(path) => {
@@ -124,13 +88,11 @@ fn resolve_document_path(spec: &DocumentSpec) -> Result<(PathBuf, bool), JobErro
     }
 }
 
-/// Job dispatch: opens the `job` span (`format` is the closest thing to a job identity this
-/// module has -- a job is a single, already-validated `FreeportsConfig`) around
-/// [`run_impl`] and logs the outcome exactly once.
+/// Opens the job span and logs the outcome exactly once.
 ///
-/// `parallelism` e' quante pagine alla volta il motore puo' elaborare (P2). Il job non lo decide:
-/// glielo passa `cli::run`, che e' l'unico posto che sa quanti job stanno girando insieme e quindi
-/// come dividere i core fra loro.
+/// `parallelism` is how many pages at a time the engine may process. The job does not decide it: it
+/// is handed down by [`super::run`], the only place that knows how many jobs are running together
+/// and therefore how to divide the cores between them.
 pub fn run(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
     let span = tracing::info_span!("job", format = %config.format);
     let _guard = span.enter();
@@ -143,12 +105,9 @@ pub fn run(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Doc
     result
 }
 
-/// Un solo `Algorithm::load` per l'intero job (anche con più documenti): risolve ogni
-/// `DocumentSpec` in `config.reports` (scaricando via `input::download` solo se manca un path su
-/// disco), carica ciascun `Document` con `input::document::load_document` (id = `name` dello
-/// spec, già garantito `Some` dopo `freeports_config::validate`), compila le target companies
-/// (skip se `target_lists` è vuota: nessuna azienda bersaglio, nessuna lettura di
-/// `input_db_path`), poi `Algorithm::apply_multidocument`.
+/// One algorithm load for the whole job, however many documents it covers: resolve each document
+/// spec, load each document, compile the target companies — skipped when no target lists were given
+/// — and apply the algorithm across them all.
 fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
     // Not logged here: `JobError::MissingFormatsRepoPath` relies solely on `run`'s outer wrapper
     // for its one log line, same as every other `JobError` variant.
@@ -174,16 +133,12 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
         documents.push(document);
     }
 
-    // Nota di implementazione: il doc-comment del contratto descriveva `MissingInputDbPath` come
-    // scattante ogni volta che `target_lists` non è vuota ma `input_db_path` è assente. Il test
-    // end-to-end `cli::run::tests::python_boundary::
-    // a_full_non_batch_invocation_writes_the_regular_profile_csvs_to_disk` esercita esattamente
-    // questa combinazione (`--target-list TEST` senza `--db-directory`) e si aspetta successo, non
-    // un errore -- i test vincono sul commento del contratto (vedi il doc-comment del modulo). Un
-    // `input_db_path` assente è quindi trattato come "nessuna azienda bersaglio disponibile"
-    // (lista vuota), mai un errore; `JobError::MissingInputDbPath` resta nell'enum per la forma
-    // pubblica del contratto ma non è più costruito da nessun percorso -- segnalato nel resoconto
-    // finale come contraddizione fra il commento e il test eseguibile.
+    // An absent input database path is treated as "no target companies available", never an error.
+    //
+    // **Known inconsistency**: [`JobError::MissingInputDbPath`] is still part of the public error
+    // type but no path constructs it any more. The end-to-end test exercising exactly this
+    // combination — target lists given, no database directory — expects success, and that behaviour
+    // is the one kept.
     let companies = match (config.target_lists.is_empty(), config.input_db_path.as_deref()) {
         (true, _) | (false, None) => Vec::new(),
         (false, Some(input_db_path)) => compile_target_companies(input_db_path, &config.target_lists)?,
@@ -209,10 +164,10 @@ mod tests {
     use crate::core::tracing_setup::Verbosity;
     use crate::output::routines::write::{OutFlags, OutStructureMode};
 
-    /// Una `FreeportsConfig` valida di base: nessun documento, formato inesistente (usato solo
-    /// dai test che verificano la propagazione dell'errore di `Algorithm::load`, che non arrivano
-    /// mai a toccare un documento). I test che eseguono davvero il job (`mod python_boundary`)
-    /// costruiscono la propria configurazione con un repo formati/documenti reali.
+    /// A valid baseline configuration: no documents, and a format that does not exist. Used only by
+    /// the tests checking that a load failure propagates, which never reach a document. The tests
+    /// that really run a job build their own configuration with a real repository and real
+    /// documents.
     fn base_config(dir: &std::path::Path) -> FreeportsConfig {
         FreeportsConfig {
             verbosity: Verbosity::Warn,
@@ -234,9 +189,8 @@ mod tests {
     mod algorithm_load_failure {
         use super::*;
 
-        /// Non tocca Python: `Algorithm::load` fallisce prima che qualunque documento venga
-        /// anche solo considerato (repo formati inesistente), quindi questo percorso non richiede
-        /// affatto `input::document`.
+        /// Touches no Python: the algorithm load fails before any document is even considered, so
+        /// this path does not need document loading at all.
         #[test]
         fn an_unknown_formats_repo_is_a_typed_job_error_not_a_panic() {
             let dir = tempfile::tempdir().unwrap();
@@ -256,17 +210,15 @@ mod tests {
         }
     }
 
-    /// I test qui sotto costruiscono un vero PDF (via `fitz`, stessa tecnica di
-    /// `input/document.rs::tests::python_boundary`) e un vero repo formati minimale, ed
-    /// eseguono `job::run` end-to-end -- vedi il doc-comment del modulo sul perché questa
-    /// dipendenza da Python è necessaria qui, non evitabile.
+    /// These tests build a real PDF and a real minimal formats repository and run a job end to end.
+    /// See the module documentation for why this dependency on Python is unavoidable here.
     mod python_boundary {
         use super::*;
         use pyo3::prelude::*;
 
-        /// Un repo formati minimo con una sola pipeline (page-classify), che classifica ogni
-        /// pagina come `"any"` e non estrae nulla -- sufficiente a far girare
-        /// `Algorithm::apply_multidocument` end-to-end senza dipendere dal contenuto del PDF.
+        /// A minimal formats repository with a single page-classify pipeline that classifies every
+        /// page alike and extracts nothing — enough to run the whole algorithm end to end without
+        /// depending on the PDF's content.
         struct MinimalRepo {
             dir: tempfile::TempDir,
         }
@@ -317,8 +269,7 @@ mod tests {
             }
         }
 
-        /// Costruisce un PDF minimo con `fitz` a `path`, con del testo che il classificatore
-        /// della fixture riconosce (font `Arial`, qualunque contenuto: il pattern è `^.*$`).
+        /// Builds a minimal PDF with text the fixture's classifier recognises.
         fn build_pdf(path: &std::path::Path) {
             Python::attach(|py| {
                 let fitz = PyModule::import(py, "fitz")

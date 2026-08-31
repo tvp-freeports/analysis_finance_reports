@@ -1,40 +1,34 @@
-//! Il protocollo fra il processo padre e un processo figlio che esegue **un** job (P1).
+//! The protocol between a parent process and a child running **one** job.
 //!
-//! `agent-memory/P1-implementation-plan.md` §2. In modalita' batch `cli::run::execute` puo'
-//! eseguire i job in processi figli invece che in un `for` sequenziale. Questo modulo definisce
-//! *cosa* si scambiano, e nient'altro: non avvia processi (lo fa `cli::run`) e non esegue job (lo
-//! fa `cli::job`).
+//! In batch mode the jobs may run in child processes instead of a sequential loop. This module
+//! defines *what they exchange*, and nothing else: it starts no processes and runs no jobs.
 //!
-//! # Perche' due file e non una pipe
+//! # Why two files and not a pipe
 //!
-//! Lo stdout di un figlio non e' un canale pulito: PyMuPDF e i pipe Python d'autore possono
-//! scriverci quando vogliono. Un file dedicato per direzione non ha questo problema, non ha il
-//! limite di dimensione di una pipe, e sopravvive al figlio abbastanza da poter essere letto anche
-//! quando il figlio e' gia' uscito.
+//! A child's standard output is not a clean channel: the PDF library and author-written pipes may
+//! write to it whenever they like. A dedicated file per direction has no such problem, no size
+//! limit, and survives the child long enough to be read after it has exited.
 //!
-//! # Le due direzioni
+//! # The two directions
 //!
-//! - **andata** ([`WorkerRequest`]): la configurazione **gia' risolta e validata** del job, piu' i
-//!   due percorsi che il figlio deve usare. Il figlio non rifa' la risoluzione: se la rifacesse,
-//!   leggerebbe di nuovo l'ambiente e i file di configurazione, e potrebbe risolvere qualcosa di
-//!   diverso da cio' che il padre ha deciso.
-//! - **ritorno** ([`WorkerReport`]): i risultati del job, oppure la sua diagnosi d'errore.
+//! - **outbound** ([`WorkerRequest`]): the job's **already resolved and validated** configuration, plus the paths the child is to use. The child does not redo the resolution: doing so would read the environment and the configuration files again, and could resolve something other than what the parent decided;
+//! - **inbound** ([`WorkerReport`]): the job's results, or its error.
 //!
-//! # Un job fallito non e' un figlio fallito
+//! # A failed job is not a failed child
 //!
-//! Sono due piani distinti, e confonderli renderebbe indistinguibile "il PDF non esiste" da "il
-//! processo figlio e' morto di segnale". Un job che fallisce per un motivo di dominio produce un
-//! [`WorkerReport::Failed`] e il figlio esce **con codice 0**: l'errore e' *nel payload*. Il codice
-//! d'uscita non-zero resta riservato ai fallimenti di protocollo, che il padre riconosce
-//! dall'assenza o dall'illeggibilita' del file di ritorno.
+//! Two distinct planes, and confusing them would make "the PDF does not exist" indistinguishable
+//! from "the child died of a signal". A job failing for a domain reason produces a failed
+//! **report** and the child exits with **code 0**: the error is *in the payload*. A non-zero exit
+//! stays reserved for protocol failures, which the parent recognises by the report file being
+//! absent or unreadable.
 //!
-//! # Cosa si perde attraversando il confine
+//! # What is lost crossing the boundary
 //!
-//! L'errore di dominio arriva al padre come [`ErrorRecord`] — forma `Debug`, forma `Display` e
-//! catena di `source()` — non come `JobError` tipizzato: un enum d'errore non si ricostruisce da
-//! una stringa. E' abbastanza perche' il messaggio su stderr sia **identico** a quello del caso
-//! sequenziale, che usa la sola forma `Display`. La diagnosi completa non e' comunque perduta: il
-//! figlio l'ha gia' registrata nei propri file di log, che il padre unisce ai suoi.
+//! A domain error reaches the parent as a record — its debug form, its display form, and its chain
+//! of causes — not as a typed error: an error enum cannot be rebuilt from a string. It is enough
+//! for the message on stderr to be **identical** to the sequential case's, which uses the display
+//! form alone. The full diagnosis is not lost either: the child has already recorded it in its own
+//! log files, which the parent merges into its own.
 
 use std::path::{Path, PathBuf};
 
@@ -42,23 +36,23 @@ use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
 use crate::core::tracing_setup::ErrorRecord;
 
-/// Cosa il padre chiede a un figlio: un job, e i due posti dove metterne gli esiti.
+/// What the parent asks of a child: one job, and the two places to put its outcome.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WorkerRequest {
-    /// La configurazione gia' risolta e validata dal padre.
+    /// The configuration the parent has already resolved and validated.
     pub config: FreeportsConfig,
-    /// Dove il figlio scrive il proprio [`WorkerReport`].
+    /// Where the child writes its report.
     pub report_path: PathBuf,
-    /// La cartella **privata** in cui il figlio scrive i propri log. Mai la cartella di output del
-    /// padre: i file di un figlio non devono comparire accanto ai risultati della corsa.
+    /// The **private** directory the child writes its logs in. Never the parent's output directory:
+    /// a child's files must not appear beside the run's results.
     pub log_dir: PathBuf,
-    /// Quante pagine alla volta il figlio puo' elaborare (P2).
+    /// How many pages at a time the child may process.
     ///
-    /// Lo decide il padre e non il figlio: e' l'unico dei due che sa quanti job stanno girando
-    /// insieme, e quindi l'unico che puo' evitare che N figli aprano N x n_cpu thread. Viaggia
-    /// nella richiesta e non in una variabile d'ambiente per la stessa ragione per cui ci viaggia
-    /// la configurazione risolta -- il figlio non deve ri-derivare nulla di cio' che il padre ha
-    /// gia' deciso.
+    /// Decided by the parent, not the child: it is the only one of the two that knows how many jobs
+    /// are running together, and so the only one that can stop N children from each opening as many
+    /// threads as there are cores. It travels in the request rather than in an environment variable
+    /// for the same reason the configuration does — the child re-derives nothing the parent has
+    /// already decided.
     pub page_workers: usize,
 }
 
@@ -66,10 +60,10 @@ pub struct WorkerRequest {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum WorkerReport {
-    /// Il job e' andato a buon fine. Il `Vec` puo' essere vuoto: un job che non estrae nulla e'
-    /// un esito legittimo, non un errore.
+    /// The job succeeded. The list may be empty: a job that extracts nothing is a legitimate
+    /// outcome, not an error.
     Succeeded { documents: Vec<DocumentOutcome> },
-    /// Il job e' fallito per un motivo di dominio.
+    /// The job failed for a domain reason.
     Failed { error: ErrorRecord },
 }
 
@@ -123,20 +117,19 @@ pub enum WorkerError {
         #[source]
         source: std::io::Error,
     },
-    /// Il figlio e' uscito con un codice non-zero, o e' morto di segnale. Un job fallito per un
-    /// motivo di dominio **non** passa di qui: esce con 0 e mette l'errore nel referto.
+    /// The child exited non-zero or died of a signal. A job that failed for a domain reason does
+    /// **not** come through here: it exits with 0 and puts the error in its report.
     #[error("the worker process for job {index} {status} without leaving a report")]
     Died { index: usize, status: String },
-    /// Il figlio non e' riuscito ad aprire i propri file di log nella cartella privata che il padre
-    /// gli ha assegnato. E' un fallimento di protocollo, non di dominio: senza log il figlio
-    /// eseguirebbe il job in silenzio, e le sue diagnostiche non arriverebbero mai al registro
-    /// unito della corsa.
+    /// The child could not open its log files in the private directory assigned to it. A protocol
+    /// failure, not a domain one: without logs the child would run the job in silence and its
+    /// diagnostics would never reach the run's merged log.
     #[error(transparent)]
     Logging(#[from] crate::core::tracing_setup::TracingSetupError),
 }
 
-/// Serializza `request` in `path`. Il JSON e' compatto: nessuno lo legge a mano, e su un batch
-/// grande sono N file in piu' da scrivere.
+/// Serialises a request. The JSON is compact: nobody reads it by hand, and on a large batch it is
+/// one more file per job to write.
 pub fn write_request(path: &Path, request: &WorkerRequest) -> Result<(), WorkerError> {
     let json = serde_json::to_vec(request).map_err(|e| WorkerError::WriteRequest {
         path: path.to_path_buf(),
@@ -145,10 +138,10 @@ pub fn write_request(path: &Path, request: &WorkerRequest) -> Result<(), WorkerE
     std::fs::write(path, json).map_err(|e| WorkerError::WriteRequest { path: path.to_path_buf(), source: e })
 }
 
-/// Rilegge una [`WorkerRequest`]. I due modi di fallire sono tenuti distinti — file assente contro
-/// file illeggibile come JSON — perche' indicano bug diversi: il primo un problema di percorsi o di
-/// pulizia anticipata della cartella temporanea, il secondo una versione del binario diversa fra
-/// padre e figlio.
+/// Reads a request back. The two ways of failing are kept apart — file missing against file
+/// unreadable as JSON — because they point at different bugs: the first a path problem or a
+/// temporary directory cleaned too early, the second a parent and child built from different
+/// versions of the binary.
 pub fn read_request(path: &Path) -> Result<WorkerRequest, WorkerError> {
     let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadRequest { path: path.to_path_buf(), source: e })?;
     serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseRequest { path: path.to_path_buf(), source: e })
@@ -163,28 +156,29 @@ pub fn write_report(path: &Path, report: &WorkerReport) -> Result<(), WorkerErro
     std::fs::write(path, json).map_err(|e| WorkerError::WriteReport { path: path.to_path_buf(), source: e })
 }
 
-/// Rilegge un [`WorkerReport`]. Un file assente qui significa che il figlio non e' arrivato a
-/// scriverlo — morto di segnale, o uscito prima: e' il fallimento di protocollo che il padre
-/// distingue da un job fallito.
+/// Reads a report back. A missing file here means the child never got as far as writing it — died
+/// of a signal, or exited early: the protocol failure the parent tells apart from a failed job.
 pub fn read_report(path: &Path) -> Result<WorkerReport, WorkerError> {
     let bytes = std::fs::read(path).map_err(|e| WorkerError::ReadReport { path: path.to_path_buf(), source: e })?;
     serde_json::from_slice(&bytes).map_err(|e| WorkerError::ParseReport { path: path.to_path_buf(), source: e })
 }
 
-/// Come un job puo' non produrre risultati. Le due forme sono tenute distinte fino in fondo perche'
-/// hanno cause diverse e lettori diversi: la prima e' un problema dei dati o della configurazione,
-/// e il suo messaggio e' **identico** a quello che il caso sequenziale avrebbe stampato; la seconda
-/// e' un guasto dell'infrastruttura di P1, e riguarda chi sviluppa il motore.
+/// How a job can produce no results.
+///
+/// The two forms are kept apart to the very end because they have different causes and different
+/// readers: the first is a problem with the data or the configuration, and its message is
+/// **identical** to the one the sequential case would have printed; the second is a failure of the
+/// process machinery, and concerns whoever develops the engine.
 #[derive(Debug, thiserror::Error)]
 pub enum JobFailure {
-    /// Il job e' fallito dentro il figlio, per un motivo di dominio. Il messaggio e' la forma
-    /// `Display` dell'errore originale, verbatim: chi legge stderr non deve accorgersi che il job
-    /// e' passato per un altro processo.
+    /// The job failed inside the child, for a domain reason. The message is the original error's
+    /// display form, verbatim: whoever reads stderr must not be able to tell the job went through
+    /// another process.
     #[error("{}", error.display)]
     Job { index: usize, error: ErrorRecord },
-    /// Il protocollo padre-figlio si e' rotto: nessun referto leggibile e' tornato indietro. Il
-    /// messaggio nomina il job, perche' a differenza di un errore di dominio qui l'utente non ha
-    /// altro contesto da cui capire quale riga del batch e' andata storta.
+    /// The parent-child protocol broke: no readable report came back. The message names the job,
+    /// because unlike a domain error the user has no other context from which to tell which batch
+    /// row went wrong.
     #[error("job {index} could not be run in a worker process: {source}")]
     Protocol {
         index: usize,
@@ -194,8 +188,8 @@ pub enum JobFailure {
 }
 
 impl JobFailure {
-    /// La posizione del job nel batch, in entrambe le forme: e' cio' su cui si ordina per scegliere
-    /// quale fallimento riportare.
+    /// The job's position in the batch, in both forms: what the ordering is done on when choosing
+    /// which failure to report.
     pub fn index(&self) -> usize {
         match self {
             JobFailure::Job { index, .. } | JobFailure::Protocol { index, .. } => *index,
@@ -203,15 +197,13 @@ impl JobFailure {
     }
 }
 
-/// L'area di lavoro privata di una corsa in processi figli: richieste, referti e log dei figli.
+/// The private work area of a run in child processes: requests, reports, and the children's logs.
 ///
-/// Sotto la temp di sistema, non nella cwd e non nella cartella di output — vale la stessa regola di
-/// L5, e a maggior ragione con N figli. Lo schema del nome (`freeports-jobs-<pid>`) e' quello gia'
-/// usato dai PDF temporanei di `cli::job`, cosi' un file rimasto indietro si riconduce comunque a
-/// una corsa di questo programma.
+/// Under the system temporary directory, never in the working directory and never in the output
+/// directory — the same rule as for any other run artefact, and all the more so with N children.
 ///
-/// La cancellazione e' in `Drop` e non a fine funzione: l'area deve sparire anche quando la corsa
-/// esce per un errore, che e' esattamente il caso in cui e' piu' facile dimenticarsene.
+/// The deletion is in `Drop` rather than at the end of a function: the area must disappear even
+/// when the run exits with an error, which is exactly the case where it is easiest to forget.
 #[derive(Debug)]
 pub struct WorkArea {
     path: PathBuf,
@@ -231,18 +223,18 @@ impl WorkArea {
 
 impl Drop for WorkArea {
     fn drop(&mut self) {
-        // Best-effort: se la cancellazione fallisce restano dei file nella temp di sistema, che e'
-        // spiacevole ma non e' un motivo per far fallire una corsa che ha gia' prodotto i risultati.
+        // Best-effort: a failed deletion leaves files in the system temporary directory, which is
+        // unpleasant but not a reason to fail a run that has already produced its results.
         if let Err(e) = std::fs::remove_dir_all(&self.path) {
             tracing::debug!(path = %self.path.display(), "could not remove the worker work area: {e}");
         }
     }
 }
 
-/// Prepara la cartella privata del job `index` e la richiesta che la descrive.
+/// Prepares one job's private directory and the request describing it.
 ///
-/// Un livello per job (`job-0`, `job-1`, ...) invece di file mescolati in una sola cartella: cosi'
-/// i `.log.csv` dei figli, che hanno tutti lo stesso nome fisso, non si sovrascrivono a vicenda.
+/// One level per job rather than files mixed in a single directory: the children's logs all have
+/// the same fixed names and would otherwise overwrite each other.
 pub fn prepare_request(
     work_dir: &Path,
     index: usize,
@@ -260,19 +252,19 @@ pub fn prepare_request(
     })
 }
 
-/// Dove vive il file di richiesta di un job: accanto al suo referto, nella cartella privata del
-/// job. Non e' un campo di [`WorkerRequest`] perche' sarebbe l'unico campo che descrive il
-/// contenitore invece del contenuto -- il figlio riceve gia' il percorso come argomento.
+/// Where a job's request file lives: beside its report, in the job's private directory. Not a field
+/// of the request, because it would be the only field describing the container rather than the
+/// content — and the child already receives the path as an argument.
 fn request_path_for(request: &WorkerRequest) -> PathBuf {
     request.report_path.with_file_name("request.json")
 }
 
-/// Esegue un job in un processo figlio e ne riporta il referto.
+/// Runs one job in a child process and reports its outcome.
 ///
-/// stderr e' **ereditato**: le righe dei job in corso arrivano all'utente mentre succedono, invece
-/// che tutte insieme alla fine. Si interlacciano fra job diversi, ma ogni riga resta intera e porta
-/// gia' il proprio percorso di span -- e' il margine che la risposta a Q-P2 concede. stdout invece
-/// non e' un canale del protocollo: nulla di cio' che il figlio ci scrive viene letto.
+/// Standard error is **inherited**: the lines of running jobs reach the user as they happen rather
+/// than all at once at the end. They interleave between jobs, but each line stays whole and already
+/// carries its own span path. Standard output is not a channel of the protocol: nothing the child
+/// writes there is read.
 fn run_one(executable: &Path, index: usize, request: &WorkerRequest) -> Result<WorkerReport, WorkerError> {
     let request_path = request_path_for(request);
     write_request(&request_path, request)?;
@@ -289,16 +281,16 @@ fn run_one(executable: &Path, index: usize, request: &WorkerRequest) -> Result<W
     read_report(&request.report_path)
 }
 
-/// Esegue `requests` in processi figli, al piu' `parallelism` contemporaneamente, e restituisce i
-/// referti **in ordine di job**.
+/// Runs the requests in child processes, at most `parallelism` at a time, returning the reports
+/// **in job order**.
 ///
-/// Il pool e' a scorrimento, non a ondate: `parallelism` thread pescano il prossimo indice da un
-/// contatore condiviso e depositano il proprio referto nello slot corrispondente. Ogni thread non
-/// fa che avviare un processo e aspettarlo — nessun lavoro di dominio gira qui, quindi il GIL non
-/// c'entra e i thread non si contendono nulla.
+/// The pool is a sliding one rather than waves: the threads take the next index from a shared
+/// counter and deposit their report in the matching slot. Each thread does nothing but start a
+/// process and wait for it — no domain work runs here, so the GIL is not involved and the threads
+/// contend for nothing.
 ///
-/// Gli slot indicizzati sono la ragione per cui l'output aggregato resta identico a quello
-/// sequenziale anche con N figli: chi finisce prima non scavalca nessuno.
+/// The indexed slots are why the aggregated output stays identical to the sequential one however
+/// many children there are: finishing early overtakes nobody.
 pub fn run_in_processes(
     executable: &Path,
     requests: &[WorkerRequest],
@@ -335,11 +327,10 @@ pub fn run_in_processes(
         .collect()
 }
 
-/// Concatena i risultati dei job riusciti, o riporta il **primo** fallimento in ordine di job.
+/// Concatenates the results of the successful jobs, or reports the **first** failure in job order.
 ///
-/// "Il primo in ordine di job", non "il primo arrivato": e' cio' che rende l'errore riportato lo
-/// stesso che il `for` sequenziale avrebbe propagato, indipendentemente da quale figlio e' morto
-/// per primo nel tempo.
+/// "First in job order", not "first to arrive": that is what makes the reported error the same one
+/// the sequential loop would have propagated, whichever child happened to die first.
 pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> Result<Vec<DocumentOutcome>, JobFailure> {
     let mut documents = Vec::new();
     for (index, report) in reports.into_iter().enumerate() {
@@ -352,39 +343,38 @@ pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> Result<Vec<Do
     Ok(documents)
 }
 
-/// Il codice d'uscita di un figlio il cui **protocollo** si e' rotto: richiesta illeggibile, log non
-/// apribili, referto non scrivibile. Un job fallito per un motivo di dominio non passa di qui —
-/// esce con 0 e mette l'errore nel referto (vedi il doc-comment del modulo).
+/// The exit code of a child whose **protocol** broke: an unreadable request, logs that will not
+/// open, a report that cannot be written. A job that failed for a domain reason does not come
+/// through here.
 pub const PROTOCOL_FAILURE_EXIT_CODE: i32 = 2;
 
-/// Il corpo del modo worker: esegue il job descritto da `request_path` e ne deposita il referto.
+/// The body of worker mode: runs the job described by the request and deposits its report.
 ///
-/// L'ordine dei passi non e' negoziabile. La richiesta si legge **prima** di inizializzare il
-/// logging, perche' e' la richiesta a dire dove i log vanno; e i log si inizializzano **prima** di
-/// eseguire il job, perche' altrimenti la strumentazione del job scriverebbe nel vuoto.
+/// The order of the steps is not negotiable. The request is read **before** logging starts, because
+/// it is the request that says where the logs go; and logging starts **before** the job runs,
+/// because otherwise the job's instrumentation would write into nothing.
 ///
-/// `Ok(())` significa "il protocollo ha funzionato", non "il job e' riuscito": un job fallito e' un
-/// [`WorkerReport::Failed`] depositato con successo, ed e' esattamente cio' che il padre si aspetta
-/// di trovare.
+/// Returning successfully means "the protocol worked", not "the job succeeded": a failed job is a
+/// failure report deposited successfully, which is exactly what the parent expects to find.
 pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
     let request = read_request(request_path)?;
 
-    // Nella cartella privata del figlio, mai in quella di output del padre: `.log.csv` compreso.
-    // Il padre li unira' ai propri a fine corsa.
+    // In the child's private directory, never in the parent's output directory. The parent merges
+    // them into its own at the end of the run.
     let log_handle = crate::core::tracing_setup::init(request.config.verbosity, &request.log_dir)?;
     log_handle.set_csv_dir(&request.log_dir)?;
 
     let parallelism = crate::core::parallelism::Parallelism::pages(request.page_workers);
     let report = match crate::cli::job::run(&request.config, parallelism) {
         Ok(documents) => WorkerReport::Succeeded { documents },
-        // Gia' registrato da `job::run` con la sua catena completa: qui l'errore viene solo
-        // impacchettato per il viaggio di ritorno, non ri-registrato.
+        // Already recorded with its full chain where it happened: here the error is only packed for
+        // the journey back, not recorded again.
         Err(e) => WorkerReport::Failed { error: ErrorRecord::from_error(&e) },
     };
 
     let write_result = write_report(&request.report_path, &report);
-    // Tentata comunque, come in `main`: le righe diagnostiche di un job fallito sono le piu' utili
-    // da avere su disco, e senza questa chiusura il padre unirebbe file mai svuotati.
+    // Attempted regardless: the diagnostic rows of a failed job are the most useful to have on
+    // disk, and without this close the parent would merge files that were never flushed.
     let close_result = log_handle.close();
     write_result?;
     close_result.map_err(WorkerError::from)
@@ -446,8 +436,8 @@ mod tests {
         }]
     }
 
-    /// Un errore vero con una `source()`, non una stringa inventata: e' l'unico modo di provare che
-    /// la catena delle cause attraversa il confine.
+    /// A real error with a cause, not an invented string: the only way to prove the chain of causes
+    /// crosses the boundary.
     fn an_error_with_a_source() -> WorkerError {
         WorkerError::ReadReport {
             path: PathBuf::from("/tmp/missing.json"),
@@ -468,8 +458,8 @@ mod tests {
             assert_eq!(read_request(&path).expect("the request just written must read back"), original);
         }
 
-        /// Il figlio esegue esattamente il job che il padre ha risolto: se un solo campo si
-        /// perdesse, farebbe un lavoro diverso senza che nulla fallisca.
+        /// The child runs exactly the job the parent resolved: were a single field lost, it would
+        /// do different work without anything failing.
         #[test]
         fn every_field_of_the_configuration_crosses_the_boundary() {
             let dir = tempfile::tempdir().unwrap();
@@ -497,25 +487,25 @@ mod tests {
             assert_eq!(round_trip(&report), report);
         }
 
-        /// Un job che non estrae nulla non e' un errore, ed e' il caso che una serializzazione
-        /// distratta confonderebbe con `Failed`.
+        /// A job that extracts nothing is not an error, and it is the case a careless serialization
+        /// would confuse with a failure.
         #[test]
         fn a_successful_report_with_no_documents_stays_successful() {
             let report = WorkerReport::Succeeded { documents: vec![] };
             assert_eq!(round_trip(&report), report);
         }
 
-        /// **Bit per bit, non "abbastanza vicino".** Il referto e' JSON, e la lettura dei numeri
-        /// in virgola mobile di `serde_json` e' esatta solo con la feature `float_roundtrip`:
-        /// senza, un `f64` la cui rappresentazione decimale piu' corta non e' quella scritta torna
-        /// indietro spostato di un ULP. E' un errore che non fa fallire nulla -- il figlio riesce,
-        /// il padre scrive -- e si vede solo confrontando l'output di una corsa in processi con
-        /// quello di una sequenziale, dove un `interest_rate` diventa `0.029249999999999998`
-        /// invece di `0.02925`. Da P5 in poi il percorso in processi e' il **default**, quindi la
-        /// differenza non sarebbe piu' un caso limite di chi passa `-j`.
+        /// **Bit for bit, not "close enough".**
         ///
-        /// I valori qui sotto sono scelti perche' falliscono davvero senza la feature: ciascuno
-        /// dista un ULP dal decimale piu' corto che lo rappresenta.
+        /// The report is JSON, and reading floating-point numbers back is exact only with the
+        /// round-trip feature enabled: without it, a number whose shortest decimal representation
+        /// is not the one written comes back shifted by one unit in the last place. It is an error
+        /// that makes nothing fail — the child succeeds, the parent writes — and shows up only by
+        /// comparing a run in processes against a sequential one. Since the process path is the
+        /// default, it would not even be an edge case.
+        ///
+        /// The values below are chosen because they really do fail without the feature: each is one
+        /// unit in the last place away from the shortest decimal representing it.
         #[test]
         fn a_float_survives_the_report_bit_for_bit() {
             use crate::commons::consts::Currency;
@@ -562,9 +552,9 @@ mod tests {
             assert_eq!(round_trip(&report), report);
         }
 
-        /// La forma `Display` e' cio' che il padre stampa su stderr: deve essere **la stessa** che
-        /// il caso sequenziale avrebbe stampato, altrimenti lo stesso errore si presenta all'utente
-        /// in due modi a seconda di quanti worker ha chiesto.
+        /// The display form is what the parent prints: it must be **the same** the sequential case
+        /// would have printed, or the same error reaches the user in two ways depending on how many
+        /// workers were asked for.
         #[test]
         fn the_display_form_of_the_error_is_preserved_verbatim() {
             let error = an_error_with_a_source();
@@ -585,8 +575,8 @@ mod tests {
         }
     }
 
-    /// I due modi di non ricevere nulla di leggibile sono tenuti distinti perche' indicano bug
-    /// diversi, e in nessuno dei due casi si va in panico: e' il padre che deve poterli riferire.
+    /// The two ways of receiving nothing readable are kept apart because they point at different
+    /// bugs, and neither panics: the parent has to be able to report them.
     mod protocol_failures {
         use super::*;
 
@@ -611,9 +601,9 @@ mod tests {
             }
         }
 
-        /// Il caso insidioso: JSON valido, forma sbagliata. Succede quando padre e figlio sono due
-        /// versioni diverse del binario, ed e' l'errore che un `unwrap()` trasformerebbe in un
-        /// panico dentro un processo figlio, cioe' in un messaggio che nessuno vede.
+        /// The insidious case: valid JSON of the wrong shape. It happens when parent and child are
+        /// two different builds of the binary, and it is the error an unchecked unwrap would turn
+        /// into a panic inside a child process — that is, into a message nobody sees.
         #[test]
         fn well_formed_json_of_the_wrong_shape_is_a_parse_error_not_a_panic() {
             let dir = tempfile::tempdir().unwrap();
@@ -651,9 +641,9 @@ mod tests {
         }
     }
 
-    /// Quale fallimento arriva all'utente quando piu' job vanno storti. La regola e' "il primo in
-    /// ordine di job", non "il primo arrivato": e' l'unica che rende l'errore riportato lo stesso
-    /// che il `for` sequenziale avrebbe propagato, comunque siano andate le corse dei figli.
+    /// Which failure reaches the user when several jobs go wrong. The rule is "first in job order",
+    /// not "first to arrive": the only one making the reported error the same the sequential loop
+    /// would have propagated.
     mod collecting_reports {
         use super::*;
         use pretty_assertions::assert_eq;
@@ -686,7 +676,7 @@ mod tests {
             assert_eq!(collect(vec![]).expect("no job failed"), vec![]);
         }
 
-        /// Un job che non estrae nulla non interrompe la concatenazione e non lascia buchi.
+        /// A job that extracts nothing neither interrupts the concatenation nor leaves a hole.
         #[test]
         fn a_job_with_no_documents_does_not_break_the_concatenation() {
             let empty = Ok(WorkerReport::Succeeded { documents: vec![] });
@@ -703,8 +693,8 @@ mod tests {
             assert_eq!(failure.to_string(), "second broke");
         }
 
-        /// Il caso che distingue "primo in ordine" da "primo arrivato": il job 2 e' morto di
-        /// segnale, il job 1 e' fallito per un motivo di dominio. Deve vincere il job 1.
+        /// The case that separates "first in order" from "first to arrive": a later job died of a
+        /// signal, an earlier one failed for a domain reason. The earlier one must win.
         #[test]
         fn an_earlier_domain_failure_wins_over_a_later_protocol_failure() {
             let failure = collect(vec![succeeded("a"), failed("second broke"), broken(2)])
@@ -718,8 +708,8 @@ mod tests {
             assert!(matches!(failure, JobFailure::Protocol { index: 0, .. }), "got {failure:?}");
         }
 
-        /// Il messaggio di un errore di dominio deve arrivare all'utente **verbatim**: lo stesso
-        /// job, eseguito in sequenziale, stampa esattamente questa riga.
+        /// A domain error's message must reach the user **verbatim**: the same job, run
+        /// sequentially, prints exactly this line.
         #[test]
         fn a_domain_failure_is_reported_with_the_original_message_and_nothing_else() {
             let original = "the specified path /tmp/nope.pdf does not exist";
@@ -727,8 +717,8 @@ mod tests {
             assert_eq!(failure.to_string(), original);
         }
 
-        /// Un fallimento di protocollo invece **deve** nominare il job: non essendo un errore di
-        /// dominio, l'utente non ha altro modo di sapere quale riga del batch e' andata storta.
+        /// A protocol failure, by contrast, **must** name its job: not being a domain error, the
+        /// user has no other way of knowing which batch row went wrong.
         #[test]
         fn a_protocol_failure_names_the_job_it_belongs_to() {
             let failure = collect(vec![broken(0)]).expect_err("a broken worker must be reported");
@@ -736,9 +726,9 @@ mod tests {
         }
     }
 
-    /// Il pool vero gira contro il binario reale nei test d'integrazione. Qui si prova cio' che non
-    /// ha bisogno di un processo: la preparazione delle cartelle private, e il fatto che ogni job
-    /// ne abbia una sua.
+    /// The real pool runs against the real binary in the integration tests. What is checked here is
+    /// what needs no process: preparing the private directories, and that each job gets one of its
+    /// own.
     mod preparing_requests {
         use super::*;
         use pretty_assertions::assert_eq;
@@ -750,9 +740,8 @@ mod tests {
             assert!(request.log_dir.is_dir(), "the log directory was not created: {}", request.log_dir.display());
         }
 
-        /// I `.log.csv` dei figli hanno tutti lo stesso nome fisso: senza una cartella per job si
-        /// sovrascriverebbero a vicenda, e il registro unito perderebbe tutte le righe tranne le
-        /// ultime.
+        /// The children's logs all have the same fixed names: without a directory per job they
+        /// would overwrite each other, and the merged log would lose every row but the last.
         #[test]
         fn two_jobs_never_share_a_directory() {
             let dir = tempfile::tempdir().unwrap();
@@ -762,8 +751,7 @@ mod tests {
             assert_ne!(first.report_path, second.report_path);
         }
 
-        /// Nessun file del figlio finisce accanto ai risultati della corsa: e' la regola gia'
-        /// fissata in L5, e vale a maggior ragione per N figli.
+        /// No file of a child ends up beside the run's results.
         #[test]
         fn nothing_is_prepared_inside_the_configured_output_directory() {
             let dir = tempfile::tempdir().unwrap();

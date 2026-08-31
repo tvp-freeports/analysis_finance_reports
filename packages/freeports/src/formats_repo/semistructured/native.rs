@@ -1,13 +1,8 @@
-//! Il registro degli algoritmi semistructured implementati nativamente.
+//! The registry of natively implemented semistructured algorithms.
 //!
-//! "Semistructured" sta a metà fra structured e unstructured: l'algoritmo è nella libreria, come
-//! nel primo, ma è **nominato** e riceve una configurazione ricca (YAML, non colonne di CSV), come
-//! nel secondo. Il repo formati lo richiama per nome da `formats_mapping.csv`.
-//!
-//! Oggi esiste un solo algoritmo nativo, [`standard_cost_curr`], ed è nel segmento `pdf_extract`.
-//! Il registro è quindi una tabella minuscola e un `match` scritto a mano: non c'è una firma
-//! comune che possa unificare algoritmi con argomenti e risultati diversi, e inventarne una per un
-//! solo elemento sarebbe astrazione a vuoto — è la stessa scelta del riferimento.
+//! There is one today, in the extraction segment. The registry is therefore a tiny table and a
+//! hand-written match: no common signature can unify algorithms with different arguments and
+//! different results, and inventing one for a single element would be abstraction for its own sake.
 
 use serde::Deserialize;
 
@@ -21,28 +16,27 @@ use crate::input::document::selection::{InputPdfLineSet, LineSelectionError, pdf
 
 use super::SegmentKind;
 
-/// I nomi nativi di ciascun segmento.
+/// The native names of each segment.
 const NATIVE_NAMES: [(SegmentKind, &[&str]); 3] = [
     (SegmentKind::PdfExtract, &["standard_cost_curr"]),
     (SegmentKind::TextFilter, &[]),
     (SegmentKind::Deserialize, &[]),
 ];
 
-/// I nomi nativi registrati per un segmento.
+/// The native names registered for a segment.
 pub fn names(segment: SegmentKind) -> &'static [&'static str] {
     NATIVE_NAMES.iter().find(|(kind, _)| *kind == segment).map(|(_, names)| *names).unwrap_or(&[])
 }
 
-/// `true` se `name` è un algoritmo nativo di `segment`.
+/// Whether `name` is a native algorithm of `segment`.
 pub fn contains(segment: SegmentKind, name: &str) -> bool {
     names(segment).contains(&name)
 }
 
-/// La configurazione YAML di [`standard_cost_curr`].
+/// The YAML configuration of [`standard_cost_curr`].
 ///
-/// Traduzione diretta di `InputStandardCostCurr` (Pydantic, riferimento), con i due flag
-/// espressi come **stringhe** invece che come oggetti `TablePosAlgorithm`: in YAML un flag è
-/// scritto per nome, e [`TablePosAlgorithm::from_expression`] è ciò che lo risolve.
+/// The two flag fields are **strings** rather than parsed flag values: in YAML a flag is written by
+/// name, and resolving that name is [`TablePosAlgorithm::from_expression`]'s job.
 #[derive(Debug, Clone, Deserialize)]
 pub struct InputStandardCostCurr {
     #[serde(default)]
@@ -60,7 +54,7 @@ pub struct InputStandardCostCurr {
     pub row_tolerance: f32,
 }
 
-/// Fallimenti nella costruzione di un algoritmo nativo.
+/// Failures of building a native algorithm.
 #[derive(Debug, thiserror::Error)]
 pub enum NativeError {
     #[error("field '{field}': {source}")]
@@ -79,10 +73,10 @@ pub enum NativeError {
     Pipe(#[from] PdfExtractStandardFuncsError),
 }
 
-/// I tre pipe `pdf_extract` che un formato "costo e valuta standard" richiede.
+/// The three extraction pipes a "standard cost and currency" format needs.
 ///
-/// La valuta non è scritta nel documento ma dichiarata nella configurazione: da qui il
-/// [`PdfExtractCurrencyConstant`] al posto del solito pipe che la legge dalla pagina.
+/// The currency is not written in the document but declared in the configuration, hence a
+/// constant-currency pipe in place of the usual one that reads it off the page.
 pub fn standard_cost_curr(
     input: &InputStandardCostCurr,
 ) -> Result<(PdfExtractInvestmentsStandard, ExtractTextPdfBlockOrFailPage, PdfExtractCurrencyConstant), NativeError> {

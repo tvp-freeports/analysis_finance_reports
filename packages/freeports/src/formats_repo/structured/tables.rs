@@ -1,24 +1,21 @@
-//! Le tabelle CSV del livello structured: lettura, validazione e unione.
+//! The CSV tables of the structured level: reading, validating and joining.
 //!
-//! Cinque file sotto `content/algorithms/structured/`, due gruppi:
+//! Five files in two groups:
 //!
-//! - **`investments/`** — `args.csv` (la tabella principale, una riga per pipe),
-//!   `additional_args.csv` e `partial_pipes.csv` (zero o una riga per pipe),
-//!   `deselection_lists.csv` (quante righe si vuole per pipe).
-//! - **`page_classify/`** — `args.csv`, con più righe per pipe (una per `Header set`).
+//! - **investments** — a main arguments table with one row per pipe, two tables with at most one row per pipe, and a deselection table with as many rows per pipe as wanted;
+//! - **page_classify** — one arguments table with several rows per pipe, one per header set.
 //!
-//! Nel riferimento tutto questo è pandas: `read_csv`, `set_index` su una `MultiIndex`,
-//! `join(validate="one_to_one")`, `groupby().agg()`, e uno schema pandera per tabella.
-//! `PLAN.md` §2 principio 7 e §12 D8 vietano quelle dipendenze: qui ogni tabella è una struct
-//! `Deserialize` letta col crate `csv`, la `MultiIndex` è un [`ComputedId`], la join è un
-//! `HashMap`, e ogni `pa.Check` è una funzione che riporta **il numero di riga** — che è ciò che
-//! il piano chiede espressamente come focus dei test di M7.
+//! Every table is a `Deserialize` struct read with the `csv` crate, the composite key is a
+//! [`ComputedId`], the join is a hash map, and every validation is a function reporting **the row
+//! number** — because a formats repository is edited by hand in a spreadsheet, and an error that
+//! cannot say which row is nearly useless.
 //!
-//! **Le celle vuote.** Pandas legge una cella vuota come `NaN` e pandera la accetta dove la
-//! colonna è `nullable`. Qui ogni colonna facoltativa è un `Option<T>` e la cella vuota è `None`:
-//! serve una famiglia di deserializzatori dedicati, perché serde su `Option<i16>` fallirebbe sulla
-//! stringa vuota invece di leggerla come "assente", e su `bool` non accetterebbe il `TRUE`
-//! maiuscolo che qualunque foglio di calcolo scrive.
+//! # Empty cells
+//!
+//! Every optional column is an `Option<T>` and an empty cell is `None`. This needs a small family
+//! of dedicated deserializers: serde on an `Option<i16>` would fail on the empty string rather than
+//! read it as absent, and on a `bool` it would not accept the upper-case `TRUE` that every
+//! spreadsheet writes.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -30,16 +27,15 @@ use crate::input::document::selection::is_pdfline_selection;
 
 use super::super::id_format::{ComputedId, FkRelation, computed_ids, id_matches};
 
-/// La cartella dei CSV structured dentro il repo formati.
+/// The directory of the structured CSV files inside a formats repository.
 pub const STRUCTURED_DIR: &str = "content/algorithms/structured";
 
-/// Il nome della pipeline a cui appartengono le righe di `investments/` che non ne dichiarano uno.
+/// The pipeline that investments rows belong to when they declare none.
 pub const INVESTMENTS_PIPELINE: &str = "investments";
 
-/// Fallimenti nella lettura o validazione di una tabella structured.
+/// Failures of reading or validating a structured table.
 ///
-/// Ogni variante riporta il file e, dove ha senso, la riga: è il requisito esplicito di `PLAN.md`
-/// §11 per M7 ("ogni CSV malformato dà l'errore giusto con la riga giusta").
+/// Every variant names the file and, where it makes sense, the row.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum TableError {
     #[error("missing formats-repository CSV file: {0}")]
@@ -52,34 +48,31 @@ pub enum TableError {
     InvalidId { path: PathBuf, line: usize, id: String },
     #[error("{path}, line {line}: column '{column}' is not a valid line selection: '{value}'")]
     InvalidLineSelection { path: PathBuf, line: usize, column: String, value: String },
-    /// Una riga di una tabella secondaria non ha corrispondenza nella tabella principale: nel
-    /// riferimento è il `pa.Check.isin(valid_algorithm_ids)` sull'indice.
+    /// A row of a secondary table has no counterpart in the main table.
     #[error("{path}, line {line}: '{id}' has no matching row in the principal table")]
     UnmatchedRow { path: PathBuf, line: usize, id: String },
-    /// Due righe di una tabella "al più una per pipe" configurano lo stesso pipe: nel riferimento
-    /// è il `validate="one_to_one"` della join.
+    /// Two rows of an at-most-one-per-pipe table configure the same pipe.
     #[error("{path}, line {line}: '{id}' is configured twice, but this table allows at most one row per pipe")]
     DuplicateRow { path: PathBuf, line: usize, id: String },
-    /// Un segmento disabilitato porta comunque la sua configurazione: nel riferimento è il
-    /// `validate_partial_pipes` di `structured_formats_schema`.
+    /// A disabled segment carries configuration anyway.
     #[error("{path}, line {line}: segment '{segment}' is disabled for '{id}' but column '{column}' is not empty")]
     DisabledSegmentConfigured { path: PathBuf, line: usize, id: String, segment: &'static str, column: &'static str },
-    /// Due righe di `page_classify/args.csv` con lo stesso pipe dichiarano classi diverse.
+    /// Two rows configuring the same classification pipe declare different classes.
     #[error("{path}, line {line}: '{id}' is declared as class '{found}' but also as '{first}'")]
     ConflictingClass { path: PathBuf, line: usize, id: String, first: String, found: String },
 }
 
-// ---------------------------------------------------------------------------------------------
-// Deserializzatori per le celle facoltative
-// ---------------------------------------------------------------------------------------------
 
-/// Una cella di testo: vuota significa assente.
+// ----------------------------------------------------------------------------------------------
+// Deserializers for the optional cells
+// ----------------------------------------------------------------------------------------------
+/// A text cell: empty means absent.
 fn optional_text<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<String>, D::Error> {
     let raw = String::deserialize(deserializer)?;
     Ok(if raw.trim().is_empty() { None } else { Some(raw) })
 }
 
-/// Una cella numerica: vuota significa assente, il resto deve essere un numero.
+/// A numeric cell: empty means absent, anything else must be a number.
 fn optional_number<'de, D: Deserializer<'de>, T: FromStr>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     T::Err: std::fmt::Display,
@@ -92,8 +85,8 @@ where
     raw.parse::<T>().map(Some).map_err(serde::de::Error::custom)
 }
 
-/// Una cella booleana: vuota significa assente, `TRUE`/`FALSE` in qualunque combinazione di
-/// maiuscole e minuscole (è così che i fogli di calcolo scrivono i booleani).
+/// A boolean cell: empty means absent, and `TRUE`/`FALSE` in any mixture of cases — which is how
+/// spreadsheets write booleans.
 fn optional_bool<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
     let raw = String::deserialize(deserializer)?;
     match raw.trim().to_ascii_lowercase().as_str() {
@@ -104,14 +97,14 @@ fn optional_bool<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<bo
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Le cinque tabelle, così come stanno su disco
-// ---------------------------------------------------------------------------------------------
 
-/// Una riga di `investments/args.csv`: la configurazione principale di un pipe investments.
+// ----------------------------------------------------------------------------------------------
+// The five tables, as they sit on disk
+// ----------------------------------------------------------------------------------------------
+/// A row of the investments arguments table: a pipe's main configuration.
 ///
-/// Le cinque colonne numeriche sono **posizioni di colonna** nella tabella del documento, non
-/// valori: possono essere negative (`-1` = l'ultima colonna), da cui `i16` e non un unsigned.
+/// The five numeric columns are **column positions** in the document's table, not values, and they
+/// may be negative — `-1` meaning the last column — hence a signed integer.
 #[derive(Debug, Clone, Deserialize)]
 pub struct InvestmentsArgsRow {
     #[serde(rename = "ID")]
@@ -134,7 +127,7 @@ pub struct InvestmentsArgsRow {
     pub acquisition_currency: Option<i16>,
 }
 
-/// Una riga di `investments/additional_args.csv`.
+/// A row of the additional arguments table.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AdditionalArgsRow {
     #[serde(rename = "ID")]
@@ -153,7 +146,7 @@ pub struct AdditionalArgsRow {
     pub merge_previous: Option<bool>,
 }
 
-/// Una riga di `investments/deselection_lists.csv`.
+/// A row of the deselection table.
 #[derive(Debug, Clone, Deserialize)]
 pub struct DeselectionRow {
     #[serde(rename = "ID")]
@@ -162,9 +155,9 @@ pub struct DeselectionRow {
     pub deselection_set: Option<String>,
 }
 
-/// Una riga di `investments/partial_pipes.csv`: quali segmenti della pipeline sono attivi.
+/// A row of the partial-pipes table: which segments of the pipeline are active.
 ///
-/// Una colonna vuota significa "attivo": è la `fillna(True)` del riferimento.
+/// An empty column means active.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PartialPipesRow {
     #[serde(rename = "ID")]
@@ -177,7 +170,7 @@ pub struct PartialPipesRow {
     pub deserialize: Option<bool>,
 }
 
-/// Una riga di `page_classify/args.csv`.
+/// A row of the page-classify arguments table.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PageClassifyArgsRow {
     #[serde(rename = "ID")]
@@ -188,9 +181,6 @@ pub struct PageClassifyArgsRow {
     pub class: String,
 }
 
-// ---------------------------------------------------------------------------------------------
-// Lettura
-// ---------------------------------------------------------------------------------------------
 
 fn row_error(path: &Path, line: usize, error: &csv::Error) -> TableError {
     let message = error.to_string();
@@ -202,8 +192,11 @@ fn row_error(path: &Path, line: usize, error: &csv::Error) -> TableError {
     TableError::MalformedRow { path: path.to_path_buf(), line, reason: message }
 }
 
-/// Legge una tabella structured in righe tipizzate, insieme al proprio percorso (che finisce in
-/// ogni messaggio d'errore).
+// ----------------------------------------------------------------------------------------------
+// Reading
+// ----------------------------------------------------------------------------------------------
+/// Reads a structured table into typed rows, together with its own path, which appears in every
+/// error message.
 fn read_table<T: serde::de::DeserializeOwned>(
     formats_repo_dir: &Path,
     relative_path: &str,
@@ -221,7 +214,7 @@ fn read_table<T: serde::de::DeserializeOwned>(
     Ok((path, rows))
 }
 
-/// Verifica la forma di ogni `ID` e ne deriva l'identità completa.
+/// Checks the form of every id and derives the complete identity from it.
 fn identify(
     path: &Path,
     ids: &[&str],
@@ -236,7 +229,7 @@ fn identify(
     Ok(computed_ids(ids, Some(pipeline_default), relation))
 }
 
-/// Verifica che una cella, se valorizzata, sia una selezione di righe ben formata.
+/// Checks that a cell, when non-empty, is a well-formed line selection.
 fn check_line_selection(
     path: &Path,
     line: usize,
@@ -254,8 +247,8 @@ fn check_line_selection(
     }
 }
 
-/// Indicizza una tabella secondaria "al più una riga per pipe", rifiutando i duplicati e le righe
-/// che non corrispondono a nulla nella tabella principale.
+/// Indexes an at-most-one-row-per-pipe table, rejecting duplicates and rows matching nothing in the
+/// main table.
 fn index_unique<T>(
     path: &Path,
     ids: Vec<ComputedId>,
@@ -275,53 +268,53 @@ fn index_unique<T>(
     Ok(map)
 }
 
-// ---------------------------------------------------------------------------------------------
-// Le configurazioni unite, una per pipe
-// ---------------------------------------------------------------------------------------------
 
-/// Tutto ciò che il repo dichiara su un pipe investments, con le quattro tabelle già unite.
+// ----------------------------------------------------------------------------------------------
+// The joined configurations, one per pipe
+// ----------------------------------------------------------------------------------------------
+/// Everything the repository declares about one investments pipe, with the four tables already
+/// joined.
 #[derive(Debug, Clone)]
 pub struct InvestmentsConfig {
     pub id: ComputedId,
     pub args: InvestmentsArgsRow,
     pub additional: Option<AdditionalArgsRow>,
-    /// Le selezioni da sottrarre al `Body set`, nell'ordine del file.
+    /// The selections to subtract from the body set, in file order.
     pub deselection_sets: Vec<String>,
     pub partial_pipes: Option<PartialPipesRow>,
 }
 
 impl InvestmentsConfig {
-    /// Se il segmento `pdf_extract` va costruito. Una configurazione assente significa "sì": è la
-    /// `fillna(True)` del riferimento.
+    /// Whether the extraction segment is to be built. An absent configuration means yes.
     pub fn wants_pdf_extract(&self) -> bool {
         self.partial_pipes.as_ref().and_then(|p| p.pdf_extract).unwrap_or(true)
     }
 
-    /// Se il segmento `text_filter` va costruito. Vedi [`Self::wants_pdf_extract`].
+    /// Whether the filtering segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_text_filter(&self) -> bool {
         self.partial_pipes.as_ref().and_then(|p| p.text_filter).unwrap_or(true)
     }
 
-    /// Se il segmento `deserialize` va costruito. Vedi [`Self::wants_pdf_extract`].
+    /// Whether the deserialization segment is to be built. See [`Self::wants_pdf_extract`].
     pub fn wants_deserialize(&self) -> bool {
         self.partial_pipes.as_ref().and_then(|p| p.deserialize).unwrap_or(true)
     }
 }
 
-/// Tutto ciò che il repo dichiara su un pipe di classificazione pagina.
+/// Everything the repository declares about one page-classification pipe.
 #[derive(Debug, Clone)]
 pub struct PageClassifyConfig {
     pub id: ComputedId,
-    /// La page class che il pipe assegna alla pagina quando **tutti** gli header combaciano.
+    /// The page class the pipe assigns when **every** header matches.
     pub class: String,
-    /// Gli header da cercare, uno per riga del CSV, nell'ordine del file.
+    /// The headers to look for, one per CSV row, in file order.
     pub header_sets: Vec<String>,
 }
 
-/// Le colonne che un segmento disattivato non può portare, per ciascuno dei tre segmenti.
+/// The columns a disabled segment may not carry, for each of the three segments.
 ///
-/// Porting di `validate_partial_pipes`: dichiarare `pdf_extract = FALSE` e poi configurare un
-/// `Body set` è una contraddizione, non una configurazione che il caricamento debba indovinare.
+/// Declaring a segment off and then configuring it is a contradiction, not something loading should
+/// have to guess its way through.
 const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
     ("pdf_extract", &["Subfund set", "Currency set", "Body set", "Deselection set", "Algorithm flags", "Tolerance"]),
     (
@@ -332,7 +325,7 @@ const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
 ];
 
 impl InvestmentsConfig {
-    /// Il valore "è configurata" di ogni colonna citata da [`DISABLED_SEGMENT_COLUMNS`].
+    /// Whether each column named by [`DISABLED_SEGMENT_COLUMNS`] is configured.
     fn column_is_set(&self, column: &str) -> bool {
         let additional = self.additional.as_ref();
         match column {
@@ -355,7 +348,7 @@ impl InvestmentsConfig {
         }
     }
 
-    /// Nessun segmento disattivato porta configurazione.
+    /// Checks that no disabled segment carries configuration.
     fn check_disabled_segments(&self, path: &Path, line: usize) -> Result<(), TableError> {
         let enabled = [self.wants_pdf_extract(), self.wants_text_filter(), self.wants_deserialize()];
         for ((segment, columns), enabled) in DISABLED_SEGMENT_COLUMNS.iter().zip(enabled) {
@@ -378,10 +371,11 @@ impl InvestmentsConfig {
     }
 }
 
-/// Le configurazioni dei pipe investments dichiarate dal repo, nell'ordine di `args.csv`.
+/// The investments pipe configurations the repository declares, in the order of the arguments
+/// table.
 ///
-/// È il porting di `structured/pipelines/investments.py::get_structured_formats`: legge le quattro
-/// tabelle, verifica ogni riga, e le unisce sulla chiave `(formato, pipeline, indice)`.
+/// Reads the four tables, validates every row, and joins them on the `(format, pipeline, index)`
+/// key.
 pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<InvestmentsConfig>, TableError> {
     let (args_path, args): (_, Vec<InvestmentsArgsRow>) = read_table(formats_repo_dir, "investments/args.csv")?;
     let args_ids = identify(
@@ -454,16 +448,14 @@ pub fn get_investments_configs(formats_repo_dir: &Path) -> Result<Vec<Investment
     Ok(configs)
 }
 
-/// Le configurazioni dei pipe di classificazione pagina, nell'ordine di prima comparsa in
-/// `page_classify/args.csv`.
+/// The page-classification pipe configurations, in order of first appearance.
 ///
-/// Più righe con lo stesso `ID` descrivono lo **stesso** pipe con più header da cercare, e devono
-/// quindi dichiarare la stessa `Class`: è l'`aggregate_classes` del riferimento, che solleva se il
-/// gruppo non è omogeneo.
+/// Several rows sharing an id describe the **same** pipe with several headers to look for, and must
+/// therefore declare the same class; a group that disagrees is an error.
 pub fn get_page_classify_configs(formats_repo_dir: &Path) -> Result<Vec<PageClassifyConfig>, TableError> {
     let (path, rows): (_, Vec<PageClassifyArgsRow>) = read_table(formats_repo_dir, "page_classify/args.csv")?;
-    // La pipeline di default è quella **senza nome**, non `investments`: un classificatore di
-    // pagina appartiene alla pipeline di default del formato.
+    // The default pipeline here is the **unnamed** one, not `investments`: a page classifier
+    // belongs to the format's default pipeline.
     let ids = identify(&path, &rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), "", FkRelation::OneToMany)?;
 
     let mut order: Vec<ComputedId> = Vec::new();
@@ -518,8 +510,8 @@ mod tests {
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
 
-    /// Un repo formati con i cinque CSV structured. Ogni tabella parte dalla sola intestazione e
-    /// i test aggiungono le righe che servono loro.
+    /// A formats repository with the five structured CSV files. Each table starts as a header row
+    /// alone, and the tests add the rows they need.
     struct Repo {
         dir: TempDir,
     }
@@ -728,7 +720,7 @@ mod tests {
 
         #[test]
         fn several_deselection_rows_for_one_pipe_are_not_a_duplicate() {
-            // La relazione è "one to many": più righe per pipe sono la norma, non un errore.
+            // The relation is one-to-many: several rows per pipe are the norm, not an error.
             let repo = with_one_pipe();
             repo.write("investments/deselection_lists.csv", &format!("{DESEL_HEADER}A-EN24,\nA-EN24,\n"));
             assert!(get_investments_configs(repo.path()).is_ok());
@@ -905,7 +897,8 @@ mod tests {
 
         #[test]
         fn a_pipe_with_no_header_set_at_all_is_kept_with_an_empty_list() {
-            // Un classificatore senza header combacia sempre: è raro ma legale, e va costruito.
+            // A classifier with no headers matches every page: rare but legal, and it must be
+            // built.
             let repo = Repo::new();
             repo.write("page_classify/args.csv", &format!("{PAGE_CLASSIFY_HEADER}A-EN24/0,,inv\n"));
             let configs = get_page_classify_configs(repo.path()).unwrap();

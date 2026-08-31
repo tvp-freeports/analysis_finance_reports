@@ -1,34 +1,36 @@
-//! Modello Rust di `Page` e `Document` (righe, immagini, geometria, provenienza).
+//! The native model of a [`Page`] and a [`Document`]: lines, images, geometry, provenance.
 //!
-//! `PLAN.md` §4.4. Il modulo definisce **solo i dati**: la costruzione a partire dal dict PyMuPDF
-//! (rotazione delle bbox, collasso degli span, estrazione immagini) è `input::document` (M6).
-//! Nasce qui, in M5, perché è il tipo su cui sono scritte le firme dei tre trait dei pipe
-//! (`&Page`, `PLAN.md` §5.1): senza, il motore non è esprimibile.
+//! This module defines **data only**. Building a page out of a PyMuPDF dict — rotating bounding
+//! boxes, collapsing spans, pulling out images — is `input::document`'s job. The separation matters
+//! because [`Page`] is the type the three pipe traits are written against: every pipe in the engine
+//! receives a `&Page`, and none of them needs to know a PDF reader exists.
 //!
-//! **`Page::raw` — decisione dell'utente (2026-08-23, `agent-memory/M5-implementation-plan.md`
-//! D-M5-2).** `PLAN.md` §4.4 mette il dict PyMuPDF originale accanto alla `Page` nativa, mentre
-//! §2 principio 1 vuole `Py<PyAny>` solo nei moduli di confine. L'utente ha scelto di aggiungere
-//! il campo **subito**, benché il primo consumatore arrivi con M7 (i pipe definiti dall'autore del
-//! formato, che si aspettano il dict e non la `Page` nativa): saperlo da ora impedisce di
-//! costruire codice che dipende da `Clone`/`PartialEq` su `Page`, derive che quel campo rende
-//! comunque impossibili (`Py<T>` è `Clone` solo con la feature `py-clone`, non abilitata). Il
-//! resto del crate continua a trattare `Page` come una struct Rust pura: `raw` è privato e
-//! nessun modulo fuori dal confine Python lo legge.
+//! # The one place PyO3 leaks in: [`Page::raw`]
 //!
-//! `Page` resta `Send + Sync` (lo è `Py<PyAny>`), requisito di `PLAN.md` §5.1 per poter
-//! parallelizzare per pagina/documento senza riprogettare.
+//! A page keeps the original PyMuPDF dict alongside its native form, because pipes written by a
+//! format author expect that dict rather than the native [`Page`]. It is deliberately a private
+//! field with a single accessor, read only by the adapters at the Python boundary; everywhere else
+//! in the crate a [`Page`] is an ordinary Rust struct.
+//!
+//! It is also why [`Page`] derives neither `Clone` nor `PartialEq`: `Py<T>` is `Clone` only under
+//! PyO3's `py-clone` feature, which this crate does not enable. Nothing in the engine may therefore
+//! be built on cloning a page — an outcome worth knowing about up front rather than discovering
+//! halfway through.
+//!
+//! [`Page`] is nonetheless `Send + Sync`, which is what allows pages and documents to be processed
+//! in parallel without redesigning anything.
 
 use pyo3::prelude::*;
 
 use crate::commons::geometry::Rectangle;
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 
-/// Identificatore di un documento: nome corto, path o url.
+/// A document's identifier: a short name, a path, or a URL.
 ///
-/// Newtype e non `String` nudo per la stessa ragione di [`BlockType`](crate::core::classes::BlockType):
-/// dà un posto dove mettere il comportamento e impedisce di scambiarlo con un
-/// [`FormatName`] in una firma. `targets/2_multireport_support.md` lo usa come chiave con cui i
-/// risultati vengono raggruppati per documento.
+/// A newtype rather than a bare `String`, for the same reason as
+/// [`BlockType`](crate::core::classes::BlockType): it gives the behaviour somewhere to live, and it
+/// stops a document id and a [`FormatName`] from being swapped in a signature. It is also the key
+/// results are grouped by when a run covers several documents.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct DocumentId(String);
@@ -61,7 +63,7 @@ impl From<String> for DocumentId {
     }
 }
 
-/// Nome di un formato del repo formati (es. `EURIZON-EN23`).
+/// The name of a format in a formats repository, for example `EURIZON-EN23`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct FormatName(String);
@@ -94,61 +96,63 @@ impl From<String> for FormatName {
     }
 }
 
-/// Un'immagine raster di una pagina, **non decodificata**.
+/// A raster image of a page, **left undecoded**.
 ///
-/// Il riferimento (`pdf_blks_acquire.pdfimages_from_pagedict`) restituisce array NumPy RGB,
-/// decodificando con PIL. Qui i byte restano grezzi, con l'estensione dichiarata dal dict
-/// PyMuPDF: decodificarli richiederebbe una dipendenza nuova (`image`) che **nessun pipe in
-/// nessuna milestone pianificata consuma** — nessun `standard_funcs` legge le immagini. Se un
-/// consumatore reale comparirà, decodificherà da qui; nel frattempo il dato non si perde.
+/// The bytes are kept exactly as PyMuPDF returns them, with the extension it declares. Decoding
+/// them would mean taking on an image-processing dependency for a payload no standard pipe reads;
+/// keeping them raw costs nothing and loses nothing, and a consumer that eventually needs pixels
+/// can decode from here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PageImage {
-    /// Riquadro occupato dall'immagine nella pagina.
+    /// The rectangle the image occupies on the page.
     pub bbox: Rectangle,
-    /// Estensione del formato immagine dichiarata da PyMuPDF (`"png"`, `"jpeg"`, ...).
+    /// The image format extension as declared by PyMuPDF (`"png"`, `"jpeg"`, …).
     pub ext: String,
-    /// Byte grezzi dell'immagine, così come PyMuPDF li restituisce.
+    /// The image's raw bytes, exactly as PyMuPDF returns them.
     pub data: Vec<u8>,
 }
 
-/// Una pagina di un documento PDF, già convertita in dati nativi.
+/// One page of a PDF document, already converted to native data.
 ///
-/// Non deriva `Clone`/`PartialEq`: vedi la nota su [`Page::raw`] nel doc-comment del modulo.
+/// Derives neither `Clone` nor `PartialEq`; see the note on [`Page::raw`] in the module
+/// documentation for why.
 #[derive(Debug)]
 pub struct Page {
-    /// Numero di pagina **1-based**, come nel riferimento.
+    /// Page number, **1-based**.
     pub number: u32,
-    /// `(larghezza, altezza)` in punti PDF.
+    /// `(width, height)` in PDF points.
     pub size: (f32, f32),
-    /// Righe di testo, nell'ordine in cui `input::document` le ha estratte.
+    /// Text lines, in the order `input::document` extracted them.
     pub lines: Vec<PdfLine>,
-    /// Immagini raster della pagina.
+    /// The page's raster images.
     pub images: Vec<PageImage>,
-    /// Il dict PyMuPDF originale, conservato per i pipe definiti dall'autore (M7).
+    /// The original PyMuPDF dict, kept for pipes written by a format author.
     raw: Option<Py<PyAny>>,
 }
 
 impl Page {
-    /// Costruisce una pagina nativa senza dict PyMuPDF allegato — la forma usata da tutto ciò
-    /// che non è il confine Python (test compresi).
+    /// Builds a native page with no PyMuPDF dict attached — the form used by everything that is not
+    /// the Python boundary, tests included.
     pub fn new(number: u32, size: (f32, f32), lines: Vec<PdfLine>, images: Vec<PageImage>) -> Self {
         Page { number, size, lines, images, raw: None }
     }
 
-    /// Allega il dict PyMuPDF originale. Chiamata solo da `input::document` (M6).
+    /// Attaches the original PyMuPDF dict. Called only from `input::document`.
     pub fn with_raw(mut self, raw: Py<PyAny>) -> Self {
         self.raw = Some(raw);
         self
     }
 
-    /// Il dict PyMuPDF originale, se presente. Unico accessore che nomina PyO3 in `core`; lo
-    /// leggono solo gli adattatori dei pipe Python (`formats_repo::unstructured`, M7).
+    /// The original PyMuPDF dict, if there is one.
+    ///
+    /// The only accessor in `core` that names PyO3, and it is read only by the adapters for
+    /// author-written pipes.
     pub fn raw(&self) -> Option<&Py<PyAny>> {
         self.raw.as_ref()
     }
 }
 
-/// Un documento: la sua identità, il formato con cui va interpretato, le sue pagine.
+/// A document: its identity, the format it should be read with, and its pages.
 #[derive(Debug)]
 pub struct Document {
     pub id: DocumentId,
@@ -161,20 +165,20 @@ impl Document {
         Document { id: id.into(), format: format.into(), pages }
     }
 
-    /// La pagina con il numero **1-based** dato, cercata per `Page::number` e non per posizione:
-    /// un documento può legittimamente contenere un sottoinsieme non contiguo delle sue pagine.
+    /// The page with the given **1-based** number, looked up by [`Page::number`] rather than by
+    /// position: a document may legitimately hold a non-contiguous subset of its pages.
     pub fn page(&self, number: u32) -> Option<&Page> {
         self.pages.iter().find(|p| p.number == number)
     }
 }
 
-/// Fallimenti che riguardano una pagina, non un singolo pipe.
+/// Failures that concern a page as a whole rather than a single pipe.
 ///
-/// `PLAN.md` §8: `PageParseFail`/`LineParseFail`, oggi eccezioni Python, diventano varianti
-/// tipizzate. Un [`PageError`] che risale attraverso un pipe diventa
-/// [`PipeError::PageParse`](crate::core::pipeline::PipeError::PageParse), che
-/// [`Algorithm`](crate::core::algorithm::Algorithm) tratta come **non fatale**: la pagina si
-/// salta e l'elaborazione prosegue.
+/// A [`PageError`] travelling up through a pipe becomes
+/// [`PipeError::PageParse`](crate::core::pipeline::PipeError::PageParse), which
+/// [`Algorithm`](crate::core::algorithm::Algorithm) treats as **non-fatal**: the page is skipped
+/// and the run carries on. A malformed page in a thousand-page report should cost that page, not
+/// the report.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum PageError {
     #[error("{message}")]
@@ -302,8 +306,8 @@ mod tests {
 
         #[test]
         fn a_page_is_looked_up_by_its_number_not_by_position() {
-            // Pagine 1 e 3: la 3 sta in posizione 1, quindi cercare per indice darebbe la
-            // risposta sbagliata.
+            // Pages 1 and 3: page 3 sits at index 1, so looking up by position would give the wrong
+            // answer.
             let d = doc();
             assert_eq!(d.page(3).map(|p| p.number), Some(3));
         }
@@ -346,9 +350,8 @@ mod tests {
         }
     }
 
-    /// Unico sottomodulo che si attacca all'interprete (`PLAN.md` §10, D13): verifica che il
-    /// dict PyMuPDF allegato sia davvero conservato e restituito. Tutto il resto di `core` non
-    /// tocca Python.
+    /// The only submodule that attaches to the interpreter: it checks that an attached PyMuPDF dict
+    /// is really kept and handed back. Nothing else in `core` touches Python.
     mod python_boundary {
         use super::*;
 

@@ -1,14 +1,13 @@
-//! Shim di `freeports.interfaces`: i nomi dei tipi di blocco che collegano i pipe d'autore a
-//! quelli standard, e i tre costruttori di `TextBlock` standard.
+//! The shims of the block-type catalogues that connect author pipes to the standard ones, and the
+//! three standard text-block builders.
 //!
-//! # Perché sono enum di stringhe
+//! # Why they are catalogues of names
 //!
-//! Nel crate nuovo il tipo di un blocco è una **stringa** in un newtype (`core::classes::
-//! BlockType`, decisione D2 di `PLAN.md`): i repo formati estendono liberamente l'insieme dei
-//! tipi, quindi un enum chiuso sarebbe sbagliato. I quattro "enum" che il codice d'autore importa
-//! sono perciò cataloghi di nomi: ogni membro porta la stessa stringa che `BlockType` usa già, ed
-//! è quella che `.name` restituisce — che è l'unico modo in cui il repo formati li usa
-//! (`ResultStandardExtraction.FUND_NAME.name`).
+//! A block's type is a **string** in a newtype, because formats repositories extend the set of
+//! types freely and a closed enumeration would be wrong. The four "enumerations" author code
+//! imports are therefore catalogues of names: each member carries the same string the native type
+//! uses, and that string is what the name attribute returns — the only way a formats repository
+//! uses them.
 
 use pyo3::prelude::*;
 use pyo3::types::PyType;
@@ -20,11 +19,11 @@ use crate::formats_utils::text_filter::standard_txt_blk_builders as builders;
 use super::core::{PyPdfBlock, PyTextBlock};
 use super::utils::text_filter::PyMatchFund;
 
-/// Genera un catalogo di nomi di tipo blocco con il protocollo `enum.Enum` che il codice
-/// d'autore usa: `Tipo.MEMBRO`, `.name`, `.value`, uguaglianza, hash, `Tipo['MEMBRO']`.
+/// Generates a block-type catalogue with the enumeration protocol author code uses: member access,
+/// name and value, equality, hashing, and indexing by name.
 ///
-/// I membri sono attaccati a runtime da [`init`], non come `#[classattr]`: un `#[classattr]` non
-/// può essere generato in numero variabile a partire da una lista.
+/// The members are attached at runtime rather than declared, because a declared attribute cannot be
+/// generated in variable number from a list.
 macro_rules! block_type_catalog {
     ($shim:ident, $py_name:literal, [$($member:ident),+ $(,)?]) => {
         #[doc = concat!("Shim Python dell'enum `", $py_name, "` del riferimento.")]
@@ -33,7 +32,7 @@ macro_rules! block_type_catalog {
         pub struct $shim(&'static str);
 
         impl $shim {
-            /// I nomi dei membri, nell'ordine di dichiarazione del riferimento.
+            /// The member names, in declaration order.
             pub const MEMBERS: &'static [&'static str] = &[$(stringify!($member)),+];
         }
 
@@ -44,8 +43,8 @@ macro_rules! block_type_catalog {
                 self.0
             }
 
-            /// `value` è il nome stesso: è la stringa che finisce in `type_block`, ed è ciò che
-            /// il codice d'autore confronta.
+            /// The value is the name itself: it is the string that ends up as a block's type, and
+            /// what author code compares against.
             #[getter]
             fn value(&self) -> &'static str {
                 self.0
@@ -94,7 +93,7 @@ block_type_catalog!(
     [BOND_TARGET, EQUITY_TARGET, FUND, MANAGEMENT_COMPANY, INVESTMENTS_MANAGER, SFDR_ARTICLE, PAGE_CLASS]
 );
 
-/// I fondi passati a un costruttore di blocco standard: un iterabile di `MatchFund`.
+/// The funds passed to a standard block builder: an iterable of fund identities.
 fn match_funds(funds: &Bound<'_, PyAny>) -> PyResult<std::collections::BTreeSet<MatchFund>> {
     funds
         .try_iter()?
@@ -102,27 +101,24 @@ fn match_funds(funds: &Bound<'_, PyAny>) -> PyResult<std::collections::BTreeSet<
         .collect()
 }
 
-/// I tre costruttori di `TextBlock` standard.
+/// The three standard text-block builders.
 ///
-/// # Perché sono *istanze* di una classe e non classi
+/// # Why they are *instances* of a class rather than classes
 ///
-/// Nel riferimento erano classi il cui `__new__` restituiva un `TextBlock` invece di un'istanza
-/// della classe stessa — una forma che esiste solo per essere chiamata. PyO3 non sa esprimerlo:
-/// un `#[new]` deve costruire il proprio tipo. Ognuno di questi è quindi un oggetto **callable**
-/// registrato nel modulo sotto il nome pubblico: `StandardFundTextBlock(pdf_blk)` passa da
-/// `__call__` e `StandardFundTextBlock.from_content(...)` da un metodo, che è esattamente ciò che
-/// il repo formati scrive. La stessa limitazione era già annotata nel riferimento, che per
-/// aggirarla teneva tre classi Python vere.
+/// They used to be classes whose constructor returned a block instead of an instance of themselves
+/// — a shape that exists only to be called. PyO3 cannot express that: a constructor must build its
+/// own type. Each of these is therefore a **callable object** registered in the module under the
+/// public name, so that calling it goes through the call protocol and its named constructor through
+/// a method — exactly what a formats repository writes.
 macro_rules! standard_txt_blk {
     ($shim:ident, $py_name:literal, $from_block:path, $from_content:path) => {
         #[doc = concat!("Shim Python di `", $py_name, "`.")]
         #[pyclass(name = $py_name, module = "freeports.interfaces", frozen)]
         pub struct $shim;
 
-        // `from_content`/`from_name` prendono `&self` benche' clippy si aspetti il contrario da un
-        // `from_*`: qui non sono costruttori del proprio tipo ma metodi di un oggetto *callable*
-        // registrato nel modulo (vedi il doc-comment del macro), e un metodo di un'istanza deve
-        // prendere `self`. Il nome e' quello del riferimento e non e' negoziabile.
+        // These take a reference to self despite their `from_` names: they are not constructors of
+        // their own type but methods of a callable object registered in the module, and a method of
+        // an instance must take self. The names are the public ones and are not negotiable.
         #[allow(clippy::wrong_self_convention)]
         #[pymethods]
         impl $shim {
@@ -143,7 +139,7 @@ macro_rules! standard_txt_blk {
                 PyTextBlock::from_native(py, &block)
             }
 
-            /// Alias storico di `from_content`, mantenuto perché il riferimento lo esponeva.
+            /// A historical alias of the content constructor, kept because it was exposed.
             fn from_name(&self, py: Python<'_>, name: &str, funds: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
                 self.from_content(py, name, funds)
             }
@@ -164,12 +160,12 @@ standard_txt_blk!(
     builders::standard_investmet_manager_txt_blk_from_content
 );
 
-/// Il blocco di un fondo: a differenza degli altri due non porta un insieme di fondi gestiti,
-/// quindi non passa dal macro sopra.
+/// The fund block: unlike the other two it carries no set of managed funds, so it does not go
+/// through the macro above.
 #[pyclass(name = "StandardFundTextBlock", module = "freeports.interfaces", frozen)]
 pub struct PyStandardFundTextBlock;
 
-// Vedi la nota su `clippy::wrong_self_convention` nel macro `standard_txt_blk!`.
+// See the note on the self convention in the macro above.
 #[allow(clippy::wrong_self_convention)]
 #[pymethods]
 impl PyStandardFundTextBlock {
@@ -186,8 +182,8 @@ impl PyStandardFundTextBlock {
         self.from_content(py, fund)
     }
 
-    /// Da un `MatchFund`, di cui prende il nome: e' la forma che i moduli d'autore usano quando
-    /// il fondo arriva dal confronto con le societa' bersaglio invece che da un blocco PDF.
+    /// From a fund identity, taking its name: the form author modules use when the fund comes from
+    /// matching against the target companies rather than from a PDF block.
     fn from_matched_fund(&self, py: Python<'_>, fund: &Bound<'_, PyAny>) -> PyResult<PyTextBlock> {
         let name: String = match fund.extract::<PyRef<'_, crate::python::utils::text_filter::PyMatchFund>>() {
             Ok(matched) => matched.inner().name().to_string(),
@@ -197,10 +193,10 @@ impl PyStandardFundTextBlock {
     }
 }
 
-/// Attacca ai due moduli i membri dei quattro cataloghi.
+/// Attaches the members of the four catalogues to the two modules.
 ///
-/// Il controllo che ogni nome sia anche un `BlockType` standard non è decorativo: è ciò che
-/// impedisce ai due elenchi di divergere in silenzio, dato che vivono in due posti.
+/// Checking that every name is also a standard block type is not decorative: it is what stops the
+/// two lists from drifting apart, living as they do in two places.
 pub fn init(pdf_blks: &Bound<'_, PyModule>, text_blks: &Bound<'_, PyModule>) -> PyResult<()> {
     debug_assert!(
         [
@@ -220,7 +216,7 @@ pub fn init(pdf_blks: &Bound<'_, PyModule>, text_blks: &Bound<'_, PyModule>) -> 
     attach(text_blks, "OneTextBlockType", PyOneTextBlockType::MEMBERS, PyOneTextBlockType)?;
     attach(text_blks, "ResultStandardFiltering", PyResultStandardFiltering::MEMBERS, PyResultStandardFiltering)?;
 
-    // I tre costruttori sono oggetti callable, non classi: vedi il doc di `standard_txt_blk!`.
+    // The three builders are callable objects, not classes; see the macro above.
     let py = text_blks.py();
     text_blks.setattr("StandardManagmentCompanyTextBlock", Bound::new(py, PyStandardManagmentCompanyTextBlock)?)?;
     text_blks.setattr("StandardInvestmentsMangerTextBlock", Bound::new(py, PyStandardInvestmentsMangerTextBlock)?)?;
@@ -228,7 +224,7 @@ pub fn init(pdf_blks: &Bound<'_, PyModule>, text_blks: &Bound<'_, PyModule>) -> 
     Ok(())
 }
 
-/// Attacca i membri di un catalogo al proprio oggetto-tipo.
+/// Attaches a catalogue's members to its own type object.
 fn attach<T, F>(module: &Bound<'_, PyModule>, py_name: &str, members: &[&'static str], make: F) -> PyResult<()>
 where
     T: for<'py> IntoPyObject<'py>,
@@ -241,7 +237,7 @@ where
     Ok(())
 }
 
-/// Il `PdfBlock` è il solo tipo che questo modulo importa da `core` per costruire i blocchi
-/// standard; l'`use` è qui per tenere il compilatore onesto sul fatto che il builder lo pretende.
+/// The PDF block is the only type this module imports from the engine to build the standard blocks;
+/// the import is here to keep the compiler honest about the builder requiring it.
 const _: fn(PdfBlock, &std::collections::BTreeSet<MatchFund>) -> crate::core::classes::TextBlock =
     builders::standard_management_company_txt_blk;

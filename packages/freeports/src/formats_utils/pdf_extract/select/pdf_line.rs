@@ -1,35 +1,12 @@
-//! Selezioni di PdfLine: PdfLineSet e PdfLineSelection.
+//! Selecting lines: [`SelectPdfLineSet`] and [`PdfLineSet`].
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line` — **solo** la parte
-//! *selezione* (`SelectPdfLineSet`, `PdfLineSet`): il tipo dati `PdfLine` stesso e' ora in
-//! `pdf_extract::pdf_line` (modulo sibling), importato qui.
+//! A selection says which lines of a page a pipe is interested in, and it is built as a set
+//! expression over four primitive criteria — font, font size, text, area. Because they compose with
+//! the usual set operators, a format states what it is after (`the bold lines inside this rectangle
+//! whose text matches …`) instead of writing a loop.
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub enum SelectPdfLineSet { Font(FontSet), FontSize(FontSizeInterval), Text(TextSet),
-//!   Area(Area) }` con `impl Container for SelectPdfLineSet { type Elem = PdfLine; ... }`:
-//!   - `Font(a) => a.contains(ele.font())`
-//!   - `FontSize(a) => a.contains(ele.font_size())`
-//!   - `Text(a) => a.contains(ele.text())`
-//!   - `Area(a) => a.set_relation(&ele.area()) == Equal || Superset` — nota: `ele.area()` e' il
-//!     metodo derivato aggiunto in `select::pdf_line::area` (R4, `PLAN.md`), non un campo.
-//! - Costruttori di comodo `SelectPdfLineSet::{select_font, select_fontsize, select_text,
-//!   select_area}`.
-//! - `pub type PdfLineSet = AstSet<SelectPdfLineSet, PdfLine>;` con:
-//!   - `PdfLineSet::{select_font, select_fontsize, select_text, select_area}` (= `from_leaf` del
-//!     costruttore corrispondente di `SelectPdfLineSet`);
-//!   - `PdfLineSet::{font, fontsize, text, area}` (= `from_leaf(SelectPdfLineSet::Font(..))` e
-//!     simili, a partire da un `FontSet`/`FontSizeInterval`/`TextSet`/`Area` gia' costruito,
-//!     invece che dalla stringa/tupla grezza come `select_font` e affini);
-//!   - `PdfLineSet::new(font: Option<&str>, font_size: Option<(f32,f32)>, text: Option<&str>,
-//!     area: Option<(f32,f32,f32,f32)>) -> Self`: intersezione (`&`) di tutte le componenti
-//!     presenti; se tutte `None`, equivale a `select_fontsize(0.0, 1e6)` (praticamente "qualunque
-//!     corpo carattere", visto che nessun font reale supera 1e6pt) — verbatim dal riferimento,
-//!     16 rami espliciti (uno per combinazione di presenza/assenza).
-//!   - `PdfLineSet::from_sets(font: Option<FontSet>, font_size: Option<FontSizeInterval>, text:
-//!     Option<TextSet>, area: Option<Area>) -> Self`: stessa struttura di `new`, ma con i
-//!     sotto-insiemi gia' costruiti invece delle primitive.
+//! [`PdfLineSet::new`] intersects whichever of the four are given; with none given it degenerates
+//! to "any font size at all", which is the identity for this algebra.
 
 pub mod area;
 pub mod font;
@@ -55,10 +32,11 @@ pub enum SelectPdfLineSet {
 
 impl Container for SelectPdfLineSet {
     type Elem = PdfLine;
-    /// Nessun log qui, a nessun livello. E' la foglia di ogni selezione: gira una volta per
-    /// riga per foglia per pipe per pagina, e l'esito del singolo confronto non e' una
-    /// informazione — quella utile e' *quale riga* una selezione ha infine scelto, che e' cio'
-    /// che `select_expected_text` logga una volta sola, col testo trovato.
+    /// No logging here, at any level.
+    ///
+    /// This is the leaf of every selection: it runs once per line per leaf per pipe per page, and
+    /// the outcome of a single comparison is not information. What is worth knowing is *which line*
+    /// a selection finally chose, and that is logged once, with its text, where the choice is made.
     fn contains(&self, ele: &PdfLine) -> bool {
         match self {
             Self::Font(a) => a.contains(ele.font()),
@@ -205,12 +183,10 @@ mod tests {
         }
     }
 
-    /// Stress test combinatorio (`PLAN.md` §10: "selezioni combinatorie"): per tutte le 16
-    /// combinazioni di presenza/assenza dei quattro criteri, `PdfLineSet::new` deve comportarsi
-    /// esattamente come l'intersezione manuale delle sole componenti presenti (o
-    /// `select_fontsize(0.0, 1e6)` se nessuna e' presente) — e' letteralmente cosi' che il
-    /// riferimento la definisce, quindi questo test individua sia rami mancanti sia argomenti
-    /// scambiati nel match a 16 vie.
+    /// A combinatorial stress test: for all sixteen combinations of the four criteria being present
+    /// or absent, [`PdfLineSet::new`] must behave exactly like the hand-written intersection of the
+    /// ones present. That catches both a missing branch and two swapped arguments in the
+    /// sixteen-way match, which reading it cannot.
     mod pdf_line_set_new_combines_criteria_with_intersection {
         use super::*;
 

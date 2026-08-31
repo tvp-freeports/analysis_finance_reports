@@ -1,53 +1,36 @@
-//! Cast da testo a tipi: `to_int`, `to_float`, `to_date`, `to_currency`, `perc_to_float`, ...
+//! Casting text to typed values: numbers, dates, currencies, percentages.
 //!
-//! Port pressoche' diretto di `freeports_core/src/formats_utils/deserialize/cast.rs` (a sua
-//! volta port di `_internals/formats/utils/deserialize/cast.py`), critico per i dati finanziari
-//! (disambiguazione separatore migliaia/decimali) — vedi `PLAN.md` §2 di
-//! `agent-memory/M4-implementation-plan.md` per la motivazione di ogni scelta qui sotto.
+//! This is where a financial report's ambiguity is resolved. `1.234` is one thousand two hundred
+//! and thirty-four in one country and one-point-two-three-four in another; a report may write both
+//! conventions on the same page, and neither says which it means.
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione,
-//! stesso trattamento di `commons::date`/`formats_utils::pdf_extract::commons`):
+//! # How the ambiguity is settled
 //!
-//! ```text
-//! pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError>;
-//! pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError>;
-//! pub fn perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> Result<f64, CastError>;
-//! pub fn to_str(data: &str) -> String;                          // infallibile
-//! pub fn to_currency(data: &str) -> Result<Currency, CastError>;
-//! pub fn to_date(data: &str) -> Result<Date, CastError>;
-//! pub fn to_int_en_month(text: &str) -> Result<u8, CastError>;
-//! pub fn to_int_it_month(text: &str) -> Result<u8, CastError>;
-//! pub fn to_date_with_en_month(text: &str) -> Result<Date, CastError>;
-//! pub fn to_date_with_it_month(text: &str) -> Result<Date, CastError>;
-//! pub fn is_numeric_shape(data: &str) -> bool;                  // infallibile
-//! ```
+//! When both `.` and `,` occur, the one appearing **first** is the thousands separator and every
+//! occurrence of it is dropped; whichever remains becomes the decimal point. When only one occurs,
+//! [`to_float`] and [`to_int`] deliberately disagree: a lone `.234` group could be a genuine
+//! decimal, so `to_float` keeps it as one, while an integer cannot have a fractional part and
+//! `to_int` reads it as a thousands separator. The asymmetry is intentional and pinned by tests.
 //!
-//! - `to_date`/`to_date_with_en_month`/`to_date_with_it_month` restituiscono
-//!   [`crate::commons::date::Date`] (M1), **non** una tupla `(i32, u8, u8)` come il riferimento
-//!   Rust: `Date::new` valida gia' anno/mese/giorno (bisestili inclusi), quindi una data ben
-//!   formata ma calendarialmente impossibile (es. `"31.02.2025"`) e' un `Err`, cosa che il
-//!   riferimento (tupla grezza) non garantiva.
-//! - `to_int_en_month`/`to_int_it_month` restituiscono `u8`, non `u32` (si compongono
-//!   direttamente col `month: u8` di `Date::new`).
-//! - `CastError` e' un solo enum `thiserror` per il modulo (D10); la forma esatta delle sue
-//!   varianti e' un dettaglio implementativo lasciato all'implementer/`critic` — i test qui sotto
-//!   verificano solo `is_ok()`/`is_err()` e i valori `Ok`, mai una variante specifica.
-//! - **Warning di forced-cast via `tracing`**: `to_float`/`to_int`/`perc_to_float` emettono
-//!   `tracing::warn!(...)` quando il dato non e' gia' in forma numerica pulita (rispettivamente,
-//!   per `perc_to_float`, quando un `%` letterale forza la normalizzazione nonostante
-//!   `norm=false`) — senza impostare `page`/`coord_ref_1`/`coord_ref_2` (arriveranno da uno span aperto in
-//!   M5+, `agent-memory/M4-implementation-plan.md` §2). `mod forced_cast_warnings` verifica solo
-//!   che l'evento venga emesso (via un `tracing_subscriber::Layer` di test, non tramite
-//!   `.log.csv`/`CsvLogLayer`: quel layer scrive una riga solo se l'evento porta almeno uno dei
-//!   campi taggati, che qui non ci sono ancora — vedi `core::tracing_setup`).
-//! - **`keep_sign`**: un `-` conta come segno genuino solo se e' il primo carattere non-whitespace
-//!   dell'input (trimmato), immediatamente prima del contenuto numerico (es. `"-3.5"`, `"- 3.5"`);
-//!   un `-` altrove (finale, incollato ad altro rumore, es. `"3.0 -"`, `"$100-"`) e' rumore,
-//!   rimosso esattamente come oggi, e non contribuisce mai al segno. Con `keep_sign=true` un segno
-//!   genuino nega il risultato; con `keep_sign=false` (comportamento di oggi) ogni `-` viene
-//!   ignorato/rimosso, il risultato e' sempre non negativo quando il parsing riesce. `"-"` da solo
-//!   (nessuna cifra) resta un errore in entrambi i casi. `perc_to_float` inoltra `keep_sign` alla
-//!   chiamata interna a `to_float` dopo l'eventuale normalizzazione forzata dal `%` letterale.
+//! # Forced casts are logged
+//!
+//! When the input is not already a clean numeric shape and has to be stripped of noise, a warning
+//! is emitted. A value that needed forcing is one worth being able to find again in the report,
+//! because that is where a silently wrong number would come from.
+//!
+//! # Signs
+//!
+//! A `-` counts as a genuine sign only when it is the first non-whitespace character of the trimmed
+//! input, immediately before the numeric content. Anywhere else — trailing, glued to other noise —
+//! it is noise and is stripped. With `keep_sign` false, every `-` is ignored and a successful parse
+//! is never negative; a lone `"-"` with no digits is an error either way.
+//!
+//! # Dates
+//!
+//! A fixed set of formats is tried in order. Two-digit years use the same pivot as `strptime`:
+//! 69-99 map to 1969-1999, 00-68 to 2000-2068. The result is a validated [`Date`], so a well-formed
+//! but impossible date such as `"31.02.2025"` is an error rather than a value that goes wrong
+//! later.
 
 use once_cell::sync::Lazy;
 use onig::Regex;
@@ -56,14 +39,12 @@ use crate::commons::consts::Currency;
 use crate::commons::date::{Date, DateError};
 use crate::core::normalization;
 
-// Oniguruma (via il crate `onig`), non il crate `regex` — stessa scelta gia' fatta in
-// `text_filter::matcher` (`PLAN.md`/§1 di `agent-memory/M4-implementation-plan.md`). Un solo
-// dettaglio comportamentale: la sintassi di default di `onig::Regex::new` tratta `^`/`$` come
-// ancore di riga, non di stringa — irrilevante qui perche' ogni pattern sotto matcha solo
-// stringhe gia' normalizzate a parola singola (mai `\n` incorporato).
-// Ognuna delle quattro pattern qui sotto e' fissa e scritta a mano: nessuna e' costruita da
-// input esterno, quindi un errore di compilazione sarebbe un bug di questo file, non una
-// condizione runtime da gestire.
+// Oniguruma rather than the `regex` crate, as elsewhere in this crate. Its default syntax treats
+// `^` and `$` as line anchors rather than string anchors, which is irrelevant here: every pattern
+// below matches strings already normalised to a single word, never one with an embedded newline.
+//
+// All four patterns are fixed and hand-written, never built from external input, so a compilation
+// failure would be a bug in this file rather than a runtime condition to handle.
 static NUMERIC_SHAPE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^\d+([.,]\d+)*$").expect("fixed, hand-written pattern, valid onig regex"));
 static NON_NUMERIC_CHARS: Lazy<Regex> =
@@ -93,15 +74,15 @@ pub enum CastError {
     InvalidDate(#[from] DateError),
 }
 
-/// True quando `data` (gia' word-normalizzato) ha gia' la forma di un numero semplice
-/// (`123`, `1.234`, `1,234.567`, ...) — cioe' `to_float`/`to_int` lo useranno cosi' com'e' invece
-/// di ripulirlo da rumore. E' anche il predicato su cui scatta il warning di forced-cast.
+/// Whether `data` already has the shape of a plain number (`123`, `1.234`, `1,234.567`, …), meaning
+/// the cast functions will use it as it is instead of stripping noise from it. It is also the
+/// predicate the forced-cast warning fires on.
 pub fn is_numeric_shape(data: &str) -> bool {
     NUMERIC_SHAPE.is_match(data)
 }
 
-/// Ripulisce il rumore non numerico da una stringa gia' word-normalizzata, a meno che non abbia
-/// gia' la forma di un numero semplice. Logga un warning quando e' costretta a farlo.
+/// Strips non-numeric noise from an already word-normalised string, unless it already has the shape
+/// of a plain number. Logs a warning when it has to.
 fn force_numeric(data: &str) -> String {
     if is_numeric_shape(data) {
         data.to_string()
@@ -111,9 +92,9 @@ fn force_numeric(data: &str) -> String {
     }
 }
 
-/// Disambigua separatore migliaia/decimali quando sono presenti sia `.` sia `,`: il carattere
-/// che compare per primo e' trattato come separatore delle migliaia e ogni sua occorrenza viene
-/// rimossa; il separatore restante (se presente) diventa il punto decimale.
+/// Disambiguates the thousands and decimal separators when both `.` and `,` are present: the
+/// character occurring first is the thousands separator and every occurrence of it is removed;
+/// whichever remains becomes the decimal point.
 fn resolve_separators(data: &str) -> String {
     let mut data = data.to_string();
     let pos_dot = data.find('.');
@@ -125,10 +106,10 @@ fn resolve_separators(data: &str) -> String {
     data.replace(',', ".")
 }
 
-/// Cast a `f64`, gestendo separatori delle migliaia e convenzioni miste `.`/`,`. Quando
-/// `keep_sign` e' vero, un `-` genuino (il primo carattere non-whitespace, subito prima del
-/// contenuto numerico) nega il risultato — vedi il doc-comment del modulo per il contratto
-/// completo.
+/// Casts to `f64`, handling thousands separators and mixed `.`/`,` conventions.
+///
+/// See the module documentation for how the separators are disambiguated and what counts as a
+/// genuine sign.
 pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
     let data = normalization::normalize_word(data, false);
     let negate = keep_sign && data.starts_with('-');
@@ -141,8 +122,10 @@ pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
     Ok(if negate { -value } else { value })
 }
 
-/// Cast a `i64`, gestendo separatori delle migliaia e rifiutando una mantissa non nulla. Vedi
-/// [`to_float`] per il contratto di `keep_sign`.
+/// Casts to `i64`, handling thousands separators and rejecting a non-zero fractional part.
+///
+/// Note that a lone `.234` group is read as a thousands separator here, where [`to_float`] would
+/// read it as a decimal point.
 pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError> {
     let data = normalization::normalize_word(data, false);
     let negate = keep_sign && data.starts_with('-');
@@ -164,10 +147,10 @@ pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError> {
     Ok(if negate { -value } else { value })
 }
 
-/// Cast di una stringa percentuale (opzionalmente con `%` finale) a float. Quando `norm` e'
-/// vero il risultato viene diviso per 100 — la divisione per 100 e' forzata a prescindere da
-/// `norm` ogni volta che era presente un `%` letterale. `keep_sign` e' inoltrato cosi' com'e'
-/// alla chiamata interna a [`to_float`], dopo l'eventuale rimozione del `%` letterale.
+/// Casts a percentage string, with or without a trailing `%`, to a float.
+///
+/// The result is divided by 100 when `norm` is set — and **always** when a literal `%` was present,
+/// whatever `norm` says: the sign is in the data, and honouring it beats honouring the argument.
 pub fn perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> Result<f64, CastError> {
     let mut perc = normalization::normalize_word(perc, false);
     let mut norm = norm;
@@ -185,13 +168,13 @@ pub fn perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> Result<f64, Cas
     Ok(if norm { f / 100.0 } else { f })
 }
 
-/// Normalizza una stringa rimuovendo whitespace iniziale/finale (case preservato).
+/// Trims leading and trailing whitespace, preserving case.
 pub fn to_str(data: &str) -> String {
     normalization::normalize_string(data, false)
 }
 
-/// Converte una stringa in [`Currency`] (accetta anche l'alias `EURO`) dopo normalizzazione e
-/// maiuscolizzazione.
+/// Converts a string to a [`Currency`], accepting the `EURO` alias, after normalising and
+/// upper-casing.
 pub fn to_currency(data: &str) -> Result<Currency, CastError> {
     let normalized = normalization::normalize_word(data, false).to_uppercase();
     Currency::from_name(&normalized).ok_or(CastError::UnknownCurrency { data: normalized })
@@ -209,9 +192,7 @@ const DATE_FORMATS: &[&[&str]] = &[
     &["m", "/", "y"],           // %m/%y (giorno di default 1, come strptime)
 ];
 
-/// Prova un insieme fisso di formati data (ISO, europeo, US, anno corto) in ordine. `%y` (anno
-/// a due cifre) si espande con lo stesso pivot usato da Python `strptime`: 69-99 -> 1969-1999,
-/// 00-68 -> 2000-2068.
+/// Tries a fixed set of date formats in order: ISO, European, US, and short-year variants.
 pub fn to_date(data: &str) -> Result<Date, CastError> {
     let normalized = normalization::normalize_word(data, false);
     for fmt in DATE_FORMATS {
@@ -227,8 +208,8 @@ fn expand_2digit_year(y: i32) -> i32 {
 }
 
 fn try_parse_date(data: &str, fmt: &[&str]) -> Option<(i32, u8, u8)> {
-    // Divide `data` sugli stessi separatori letterali usati dal formato, in ordine, e legge
-    // ogni campo numerico secondo la sequenza di nomi di campo del formato (Y/y/m/d).
+    // Splits `data` on the format's own literal separators, in order, reading each numeric field
+    // according to the format's sequence of field names.
     let mut rest = data;
     let mut year: Option<i32> = None;
     let mut month: Option<u8> = None;
@@ -245,9 +226,9 @@ fn try_parse_date(data: &str, fmt: &[&str]) -> Option<(i32, u8, u8)> {
         if value_str.is_empty() || !value_str.chars().all(|c| c.is_ascii_digit()) {
             return None;
         }
-        // Rispecchia le larghezze di campo di CPython `_strptime`: `%Y` sono sempre 4 cifre,
-        // `%y` sempre 2, `%m`/`%d` sono flessibili (1-2 cifre) — senza questo controllo formati
-        // che condividono lo stesso separatore (`%Y/%m/%d` vs `%d/%m/%y`) non si distinguono.
+        // Field widths are enforced: a four-digit year is always four digits, a two-digit year
+        // always two, while month and day accept one or two. Without this, formats sharing a
+        // separator — `%Y/%m/%d` against `%d/%m/%y` — could not be told apart.
         let width_ok = match field {
             "Y" => value_str.len() == 4,
             "y" => value_str.len() == 2,
@@ -271,7 +252,7 @@ fn try_parse_date(data: &str, fmt: &[&str]) -> Option<(i32, u8, u8)> {
     if !rest.is_empty() {
         return None;
     }
-    // `%m/%y` non ha un campo giorno; strptime di Python di default lo imposta a 1.
+    // A month-and-year format has no day field; it defaults to the first of the month.
     let day = day.unwrap_or(1);
     let year = year?;
     let month = month?;
@@ -300,12 +281,12 @@ fn month_index(text: &str, months: &[&str], locale: &'static str) -> Result<u8, 
         .ok_or_else(|| CastError::UnknownMonthName { text: text.to_string(), locale })
 }
 
-/// Converte un nome di mese inglese (case-insensitive) nel suo indice 1-12.
+/// Converts an English month name, case-insensitively, to its index from 1 to 12.
 pub fn to_int_en_month(text: &str) -> Result<u8, CastError> {
     month_index(text, EN_MONTHS, "en")
 }
 
-/// Converte un nome di mese italiano (case-insensitive) nel suo indice 1-12.
+/// Converts an Italian month name, case-insensitively, to its index from 1 to 12.
 pub fn to_int_it_month(text: &str) -> Result<u8, CastError> {
     month_index(text, IT_MONTHS, "it")
 }
@@ -325,12 +306,12 @@ fn parse_day_month_name_year(text: &str, months: &[&str], locale: &'static str) 
     Ok(Date::new(year, month, day)?)
 }
 
-/// Analizza una stringa data `"DD MONTH YYYY"` con un nome di mese inglese.
+/// Parses a `"DD MONTH YYYY"` date with an English month name.
 pub fn to_date_with_en_month(text: &str) -> Result<Date, CastError> {
     parse_day_month_name_year(text, EN_MONTHS, "en")
 }
 
-/// Analizza una stringa data `"DD MONTH YYYY"` con un nome di mese italiano.
+/// Parses a `"DD MONTH YYYY"` date with an Italian month name.
 pub fn to_date_with_it_month(text: &str) -> Result<Date, CastError> {
     parse_day_month_name_year(text, IT_MONTHS, "it")
 }
@@ -356,8 +337,8 @@ mod tests {
 
         #[test]
         fn single_grouped_triple_is_treated_as_decimal_not_thousands() {
-            // Only one ".XXX" group is ambiguous for floats specifically (could be a genuine
-            // decimal) -- left as a decimal point rather than stripped.
+            // Only one `.XXX` group is ambiguous for floats specifically, since it could be a
+            // genuine decimal, so it is left as a decimal point rather than stripped.
             assert_eq!(to_float("1.234", false).unwrap(), 1.234);
         }
 
@@ -369,8 +350,7 @@ mod tests {
         #[test]
         fn strips_non_numeric_noise_but_keeps_letters() {
             assert_eq!(to_float("€1.234", false).unwrap(), 1.234);
-            // Letters survive stripping (only [^a-zA-Z.,0-9]+ is dropped), so a unit suffix
-            // still breaks the subsequent float parse.
+            // Letters survive stripping, so a unit suffix still breaks the subsequent parse.
             assert!(to_float("EUR 1.234 approx", false).is_err());
         }
 
@@ -405,9 +385,9 @@ mod tests {
 
         #[test]
         fn single_grouped_triple_is_treated_as_thousands() {
-            // Unlike to_float, to_int treats even a single ".XXX" group as a thousands
-            // separator: this is the intentional asymmetry pinned by `4,500` above (4.5 for
-            // to_float, 4500 for to_int).
+            // Unlike `to_float`, `to_int` treats even a single `.XXX` group as a thousands
+            // separator: the intentional asymmetry pinned by `4,500` above, which is 4.5 for
+            // `to_float` and 4500 for `to_int`.
             assert_eq!(to_int("1.234", false).unwrap(), 1234);
         }
 
@@ -513,7 +493,7 @@ mod tests {
 
         #[test]
         fn two_digit_year_pivots_at_sixty_nine() {
-            // 69-99 -> 19xx, 00-68 -> 20xx (same pivot as Python's strptime %y).
+            // 69-99 map to 19xx, 00-68 to 20xx — the same pivot as `strptime`'s two-digit year.
             assert_eq!(to_date("01.01.69").unwrap(), date(1969, 1, 1));
             assert_eq!(to_date("01.01.68").unwrap(), date(2068, 1, 1));
         }
@@ -525,14 +505,14 @@ mod tests {
 
         #[test]
         fn the_first_matching_format_in_the_table_wins() {
-            // "2025-07-02" only matches the ISO format in the table, in order.
+            // `"2025-07-02"` matches only the ISO format in the table, in order.
             assert_eq!(to_date("2025-07-02").unwrap(), date(2025, 7, 2));
         }
 
         #[test]
         fn rejects_a_well_formed_but_calendarially_impossible_date() {
-            // New case vs. the freeports_core reference (which returned a raw, unvalidated
-            // tuple): here `Date::new` validates, so "31 February" must be rejected.
+            // `Date::new` validates, so a 31st of February must be rejected rather than carried
+            // forward as a value that goes wrong later.
             assert!(to_date("31.02.2025").is_err());
         }
     }
@@ -630,11 +610,9 @@ mod tests {
         }
     }
 
-    /// Cattura gli eventi `tracing` emessi durante `f`, a prescindere da `page`/`company`/
-    /// `field`: a differenza di `CsvLogLayer` (`core::tracing_setup`), che scrive una riga solo
-    /// se l'evento porta uno di quei campi (assenti qui per costruzione, vedi il doc-comment del
-    /// modulo), questo layer di test registra il messaggio di ogni evento di livello WARN senza
-    /// alcun filtro sui campi.
+    /// Captures the `tracing` events emitted during `f`, whatever fields they carry: unlike the CSV
+    /// layer, which writes a row only for events carrying one of its tagged fields, this test layer
+    /// records the message of every warning without filtering.
     mod forced_cast_warnings {
         use super::*;
         use std::sync::{Arc, Mutex};
@@ -669,8 +647,8 @@ mod tests {
             }
         }
 
-        /// Esegue `f` sotto un subscriber dedicato e restituisce i messaggi di ogni evento WARN
-        /// emesso durante l'esecuzione.
+        /// Runs `f` under a dedicated subscriber and returns the messages of every warning emitted
+        /// while it ran.
         fn warnings_emitted_by(f: impl FnOnce()) -> Vec<String> {
             let layer = CapturingLayer::default();
             let subscriber = Registry::default().with(layer.clone());
@@ -728,13 +706,10 @@ mod tests {
         }
     }
 
-    /// `keep_sign` (new trailing parameter on `to_float`/`to_int`/`perc_to_float`, see
-    /// `agent-memory/M4-implementation-plan.md`): a `-` counts as a genuine sign only when it is
-    /// the first non-whitespace character of the (trimmed) input, directly preceding the numeric
-    /// content — anywhere else (trailing, standalone, glued to other noise) it is noise, stripped
-    /// exactly like today regardless of `keep_sign`. When `keep_sign` is `false` the sign (genuine
-    /// or stray) is always ignored — this is the back-compat default asserted throughout the
-    /// `to_float`/`to_int`/`perc_to_float` submodules above.
+    /// A `-` counts as a genuine sign only when it is the first non-whitespace character of the
+    /// trimmed input, directly preceding the numeric content. Anywhere else — trailing, standalone,
+    /// glued to other noise — it is stripped as noise, whatever `keep_sign` says. With `keep_sign`
+    /// false the sign is always ignored, genuine or not.
     mod sign_handling {
         use super::*;
 
@@ -839,17 +814,15 @@ mod tests {
 
             #[test]
             fn genuine_leading_minus_with_norm_true_negates_and_normalizes() {
-                // "-5%" -> sign kept (genuine leading '-'), '%' forces norm regardless of the
-                // `norm` argument's own value -- so this must hold with norm:true...
+                // `"-5%"`: the leading `-` is genuine and kept, and the `%` forces normalisation
+                // whatever `norm` says — so this must hold with `norm: true`…
                 assert!((to_float_eq(perc_to_float("-5%", true, true).unwrap(), -0.05)));
             }
 
             #[test]
             fn genuine_leading_minus_with_norm_false_still_normalizes_because_of_percent_sign() {
-                // ...and with norm:false too, since a literal '%' always forces normalization
-                // (see `perc_to_float_warns_when_a_percent_sign_forces_normalization_despite_norm_false`
-                // above) -- the new sign handling composes with that pre-existing rule rather than
-                // overriding it.
+                // …and with `norm: false` too, since a literal `%` always forces normalisation. The
+                // sign handling composes with that rule rather than overriding it.
                 assert!((to_float_eq(perc_to_float("-5%", false, true).unwrap(), -0.05)));
             }
 

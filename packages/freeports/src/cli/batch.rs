@@ -1,62 +1,29 @@
-//! Modalità batch: un `PartialConfig` per riga di CSV.
+//! Batch mode: one partial configuration per CSV row.
 //!
-//! `M9-implementation-plan.md` §1/§2/§3 passo 10, §0 Q3. Porta `FreeportsJobConfig.__init__`
-//! (`conf_parse.py`), meno `PREFIX_OUT` (eliminato, `PLAN.md` §7/target 2: colonna `Report`
-//! sempre presente, nessun prefisso separato) e con supporto multi-spec via
-//! `cli::conf_parse::DOC_SPEC_SEPARATOR`, esteso alla colonna `pdf` (era già così nel
-//! riferimento: `if DOC_SPEC_SEPARATOR in str(config_dict["PDF"])`, generalizzato qui a
-//! *qualunque* valore di quella colonna, non solo quando contiene il separatore).
+//! # Recognised columns
 //!
-//! **Scelta del test-writer sul nome/forma della colonna multi-spec** (§0 Q3 non fissa un nome
-//! di colonna CSV esplicito, solo "colonna `pdf`/`report` con supporto multi-spec"): questa
-//! colonna è **`pdf`**, non una nuova colonna `report` separata -- stesso nome del riferimento,
-//! generalizzato. Ogni valore della cella `pdf` è spezzato su `DOC_SPEC_SEPARATOR` (anche se
-//! contiene un solo elemento, senza alcun separatore) e ciascun elemento passato a
-//! `DocumentSpec::parse` (grammatica completa `<url>:<path>:<name>`) -- **non** più il semplice
-//! path grezzo che `pdf`/`url` rappresentano in `config_locations::file`/`env`. Combinata con la
-//! colonna singolare `url` tramite lo stesso `resolve_singular_and_plural_reports` di
-//! `cli::partial_config` -- **segnalato come judgment call nel resoconto del test-writer**, non
-//! una lettura univoca del piano.
+//! Case-insensitively, with spaces and underscores equivalent:
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum BatchError {
-//!     Io { path: std::path::PathBuf, source: std::io::Error },
-//!     Csv { path: std::path::PathBuf, source: csv::Error },
-//!     UnknownColumn { path: std::path::PathBuf, column: String },
-//!     InvalidReportSpecifier { row: usize, value: String, source: crate::cli::conf_parse::DocumentSpecError },
-//!     ReportsConflict { row: usize, source: crate::cli::partial_config::SourceReportsConflict },
-//!     InvalidValue { row: usize, column: &'static str, value: String },
-//! }
-//!
-//! /// Righe numerate a partire da 1 (l'intestazione non conta), stesso ordine del file.
-//! /// Un CSV con la sola intestazione (zero righe dati) -> `Ok(Vec::new())`, non un errore.
-//! pub fn load_jobs(path: &std::path::Path) -> Result<Vec<crate::cli::partial_config::PartialConfig>, BatchError>;
-//! ```
-//!
-//! # Colonne riconosciute (case-insensitive, spazi/underscore equivalenti, come il riferimento)
-//!
-//! | colonna | campo | note |
+//! | column | field | note |
 //! |---|---|---|
-//! | `url` | contribuisce (con `pdf`) allo spec singolare | |
-//! | `pdf` | `reports` | multi-spec via `DOC_SPEC_SEPARATOR`, ciascun elemento con la grammatica completa |
-//! | `format` | `format` | |
-//! | `save pdf` | `save_pdf` | booleano |
-//! | `target list` | `target_lists` | un solo elemento, il valore grezzo intero -- stessa convenzione di `FREEPORTS_TARGET_LIST` |
+//! | `url` | contributes, with `pdf`, to the singular document spec | |
+//! | `pdf` | the reports | several specs separated by the document separator, each with the full grammar |
+//! | `format` | the format | |
+//! | `save pdf` | whether to keep the downloaded PDF | boolean |
+//! | `target list` | the target lists | a single element, the whole raw value |
 //!
-//! Una colonna sconosciuta è un errore esplicito (`BatchError::UnknownColumn`) -- stessa scelta
-//! di `config_locations::file` per coerenza nel crate, non decisa esplicitamente dal piano.
+//! An unknown column is an explicit error rather than something ignored: a misspelled column that
+//! is silently dropped configures nothing and says nothing.
 //!
-//! # Combinazione `url`/`pdf` (judgment call, vedi sopra)
+//! # How `url` and `pdf` combine
 //!
-//! La colonna `pdf` è sempre spezzata su `DOC_SPEC_SEPARATOR`, anche con un solo elemento. Se ne
-//! risulta **un solo** elemento, quello è trattato come lo spec "singolare" (con `url`, se
-//! presente, sovrascritto sul suo campo `url`) — non un vero elenco plurale, quindi mai in
-//! conflitto con `url`. Se ne risultano **più** elementi, è un vero plurale: `url` presente
-//! insieme diventa un conflitto (`resolve_singular_and_plural_reports`, §0 Q3), esattamente come
-//! `config_locations::env`/`file`.
+//! The `pdf` cell is always split on the document separator, even when it holds a single element.
+//! One element is treated as the *singular* spec — with `url`, if present, overriding its URL field
+//! — and so can never conflict with `url`. Several elements are a genuine plural, and an `url`
+//! alongside them is a conflict, exactly as in the other configuration sources.
+//!
+//! Rows are numbered from one, the header not counting, and a CSV with a header and no data rows
+//! yields no jobs rather than an error.
 
 use std::path::{Path, PathBuf};
 
@@ -140,11 +107,11 @@ fn row_to_partial_config(row: usize, fields: &std::collections::HashMap<&str, St
     Ok(PartialConfig { reports, format, save_pdf, target_lists, ..PartialConfig::default() })
 }
 
-/// Batch job dispatch: wraps [`load_jobs_impl`] in its own span (`path` is the coordinate that
+/// Batch job dispatch: wraps `load_jobs_impl` in its own span (`path` is the coordinate that
 /// identifies this batch operation, the closest thing to a "config source path" this module has)
 /// and logs the outcome exactly once -- this is the only place every `BatchError` variant is
-/// actually constructed (directly, via [`batch_csv_err`], or via [`row_to_partial_config`]/
-/// [`parse_bool`]).
+/// actually constructed (directly, via `batch_csv_err`, or via `row_to_partial_config`/
+/// `parse_bool`).
 pub fn load_jobs(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
     let span = tracing::info_span!("batch", path = %path.display());
     let _guard = span.enter();
@@ -157,8 +124,8 @@ pub fn load_jobs(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
     result
 }
 
-/// Righe numerate a partire da 1 (l'intestazione non conta), stesso ordine del file. Un CSV con
-/// la sola intestazione (zero righe dati) -> `Ok(Vec::new())`, non un errore.
+/// Rows numbered from one, the header not counting, in file order. A CSV with only a header yields
+/// an empty list rather than an error.
 fn load_jobs_impl(path: &Path) -> Result<Vec<PartialConfig>, BatchError> {
     let mut reader =
         csv::ReaderBuilder::new().has_headers(true).from_path(path).map_err(|e| batch_csv_err(path, e))?;

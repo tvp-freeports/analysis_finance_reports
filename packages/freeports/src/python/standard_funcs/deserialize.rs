@@ -1,4 +1,4 @@
-//! Shim di `freeports.standard_funcs.deserialize`: gli otto pipe standard del terzo segmento.
+//! The shims of the eight standard pipes of the deserialization segment.
 
 use std::sync::Arc;
 
@@ -60,7 +60,8 @@ pub fn py_deserialize_sfdr_article_standard() -> PyDeserializePipe {
     PyDeserializePipe::new(Arc::new(DeserializeSfdrArticleStandard))
 }
 
-/// `DeserializerInvestmentStandard(cost_and_value_interpret_int=True, quantity_interpret_float=False)`.
+/// `DeserializerInvestmentStandard(cost_and_value_interpret_int=True,
+/// quantity_interpret_float=False)`.
 #[pyfunction]
 #[pyo3(name = "DeserializerInvestmentStandard")]
 #[pyo3(signature = (cost_and_value_interpret_int=true, quantity_interpret_float=false))]
@@ -74,17 +75,18 @@ pub fn py_deserializer_investment_standard(
     )))
 }
 
-/// Un callable Python come convertitore d'importo nativo.
+/// A Python callable as a native amount converter.
 ///
-/// Un'eccezione sollevata dal callable diventa [`CastError::NotANumber`]: dal punto di vista del
-/// deserializer è esattamente ciò che significa (questa stringa non si converte in un numero), ed
-/// è l'errore che il ramo predefinito produrrebbe nello stesso caso.
+/// An exception raised by the callable becomes a not-a-number error: from the deserializer's point
+/// of view that is exactly what it means, and it is the error the built-in branch would produce in
+/// the same case.
 fn num_converter_of(callable: Py<PyAny>) -> NumConverter {
     Arc::new(move |text: &str| {
         Python::attach(|py| {
             callable.bind(py).call1((text,)).and_then(|value| value.extract::<f64>()).map_err(|err| {
                 // The Python exception's own detail is discarded past this point (rule 1 of L2):
-                // logged here, same "cast failed" severity as `python::utils::deserialize::cast_error`.
+                // logged here, same "cast failed" severity as
+                // `python::utils::deserialize::cast_error`.
                 tracing::warn!(error = log_error(&err), data = text, "custom num_converter callable failed: {err}");
                 CastError::NotANumber { data: text.to_string() }
             })
@@ -92,11 +94,10 @@ fn num_converter_of(callable: Py<PyAny>) -> NumConverter {
     })
 }
 
-/// Un callable Python come convertitore di date nativo.
+/// A Python callable as a native date converter.
 ///
-/// Accetta ciò che i `to_date*` di `freeports.utils.deserialize` restituiscono (un
-/// `datetime.date`) e, per tolleranza, anche una stringa ISO — la stessa coppia di forme che
-/// [`crate::python::convert`] riconosce ovunque.
+/// Accepts what the utility date functions return, and, for tolerance, an ISO string too — the same
+/// pair of forms recognised everywhere else at this boundary.
 fn date_converter_of(callable: Py<PyAny>) -> DateConverter {
     Arc::new(move |text: &str| {
         Python::attach(|py| {
@@ -124,13 +125,11 @@ fn date_converter_of(callable: Py<PyAny>) -> DateConverter {
 
 /// `DeserializerAssetsStandard(num_converter, date_converter=to_date)`.
 ///
-/// **Divergenza assorbita qui:** il tipo nativo sceglie fra `to_int` e `to_float` con un `bool`,
-/// mentre il riferimento accetta due *callable* qualunque — e i moduli d'autore ne approfittano
-/// davvero (`num_converter=lambda txt: 0 if txt == "-" else to_int(txt)`). Il ponte non prova a
-/// indovinare quale funzione predefinita corrisponda al callable: lo chiama, tramite
-/// [`num_converter_of`] e [`date_converter_of`], che è l'unica traduzione che non perde
-/// comportamento. Il costruttore nativo che accetta convertitori arbitrari è
-/// [`DeserializerAssetsStandard::with_converters`].
+/// **A divergence absorbed here:** the Python signature accepts two arbitrary *callables*, and
+/// author modules really do use that — something along the lines of "treat a dash as zero,
+/// otherwise parse an integer". The bridge does not try to guess which built-in function a
+/// callable corresponds to: it calls it, through `num_converter_of` and `date_converter_of`,
+/// which is the only translation that loses no behaviour.
 #[pyfunction]
 #[pyo3(name = "DeserializerAssetsStandard")]
 #[pyo3(signature = (num_converter, date_converter=None))]

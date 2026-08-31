@@ -1,31 +1,47 @@
-//! `Promise`: riferimento a un valore che non e' ancora noto quando il blocco viene costruito.
+//! [`Promise`]: a reference to a value not yet known when the block carrying it is built.
 //!
-//! Una pagina puo' produrre un valore che dipende da qualcosa scritto su un'altra pagina dello
-//! stesso documento (il nome del fondo su una pagina di intestazione, la valuta dichiarata una
-//! volta sola, ...). Invece di ordinare le pagine o fare due passate, il deserializzatore
-//! deposita una `Promise` al posto del valore; a documento finito la mappa delle promesse viene
-//! appiattita ([`crate::core::promise_resolution`]) e le entita' vengono risolte
-//! ([`crate::core::promisable`]).
+//! A page often produces a value that depends on something written on a *different* page of the
+//! same document — the fund name printed once on a cover page, the currency declared in a header,
+//! a management company named in a footnote. Rather than ordering the pages or making two passes,
+//! the deserializer leaves a [`Promise`] where the value should go; once the document is finished
+//! the collected promises are flattened ([`crate::core::promise_resolution`]) and the entities are
+//! resolved against them ([`crate::core::promisable`]).
 //!
-//! Questo modulo contiene solo il *vocabolario*: l'identificativo, i due flag e la sintassi dei
-//! suffissi. La risoluzione vera vive in `promise_resolution`, cosi' che la dipendenza fra i due
-//! moduli resti a senso unico.
+//! This module holds only the *vocabulary*: the identifier, the two flags, and the suffix syntax.
+//! Resolution itself lives in `promise_resolution`, which keeps the dependency between the two
+//! one-way.
 //!
-//! **Sintassi dei suffissi, portata invariata dal riferimento** (`PLAN.md` §4.3, "semantica
-//! invariata ... con l'ordine di strip che va verificato con test dedicati"): un `!` finale
-//! significa *strict*, un `[]` finale significa *multiple*. L'ordine in cui vengono tolti non e'
-//! simmetrico — prima `!`, poi `[]` — e questo rende `"x![]"` e `"x[]!"` due promesse diverse.
-//! Vedi `tests::suffissi::ordine_di_strip_non_e_simmetrico`, che fissa il comportamento.
+//! # Suffix syntax
+//!
+//! A trailing `!` means *strict*, a trailing `[]` means *multiple*. The order in which they are
+//! stripped is **not** symmetric — `!` first, then `[]` — which makes `"x![]"` and `"x[]!"` two
+//! different promises. `tests::suffixes::strip_order_is_not_symmetric` pins that down, and
+//! [`Promise`]'s [`fmt::Display`] is written to be the inverse of it.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
-/// Riferimento differito a un valore, risolto piu' tardi contro una
+/// A deferred reference to a value, resolved later against a
 /// [`crate::core::promise_resolution::FlatPromiseMap`].
 ///
-/// Immutabile per costruzione: i campi sono privati e non esistono setter, cosi' l'invariante
-/// "l'id non contiene piu' i suffissi che hanno acceso i flag" non puo' essere violata dopo la
-/// costruzione.
+/// Immutable by construction: the fields are private and there are no setters, so the invariant
+/// "the id no longer carries the suffixes that turned the flags on" cannot be broken after the
+/// fact.
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::promise::Promise;
+///
+/// let plain = Promise::new("fund");
+/// assert_eq!((plain.id(), plain.strict(), plain.multiple()), ("fund", false, false));
+///
+/// let both = Promise::new("isin[]!");
+/// assert_eq!((both.id(), both.strict(), both.multiple()), ("isin", true, true));
+///
+/// // the canonical form always re-parses to the same promise
+/// assert_eq!(Promise::new(&both.to_string()), both);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Promise {
     id: String,
@@ -33,34 +49,35 @@ pub struct Promise {
     multiple: bool,
 }
 
-/// Fallimenti della risoluzione di una promessa. Vive qui, e non in `promise_resolution`, perche'
-/// e' vocabolario delle promesse: lo condividono `promise_resolution` (che produce
-/// [`PromiseError::Circular`]) e `promisable` (che incontra [`PromiseError::Unresolved`]).
+/// Failures of resolving a promise.
+///
+/// Lives here rather than in `promise_resolution` because it is promise vocabulary, shared by both
+/// sides: `promise_resolution` produces [`PromiseError::Circular`], `promisable` runs into
+/// [`PromiseError::Unresolved`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum PromiseError {
-    /// L'id non ha un valore utilizzabile nella mappa appiattita: assente, `Null`, oppure ancora
-    /// una `Promise` a sua volta irrisolvibile.
+    /// The id has no usable value in the flattened map: missing, `Null`, or itself a promise that
+    /// cannot be resolved either.
     #[error("promise '{id}' has no value in the resolution map")]
     Unresolved { id: String },
-    /// Catena di riferimenti che torna su se stessa. `chain` e' il percorso completo, dal primo
-    /// id visitato fino alla ripetizione inclusa, cosi' che il messaggio mostri il ciclo intero.
+    /// A chain of references that comes back to itself. `chain` is the whole path, from the first
+    /// id visited up to and including the repetition, so the message can show the entire cycle.
     #[error("circular promise chain: {}", .chain.join(" -> "))]
     Circular { chain: Vec<String> },
 }
 
 impl Promise {
-    /// Costruisce una promessa interpretando i suffissi di `raw`: `"fund"`, `"fund!"`,
-    /// `"fund[]"`, `"fund[]!"`.
+    /// Builds a promise by reading the suffixes of `raw`: `"fund"`, `"fund!"`, `"fund[]"`,
+    /// `"fund[]!"`.
     pub fn new(raw: &str) -> Self {
         Self::with_flags(raw, false, false)
     }
 
-    /// Come [`Promise::new`], ma con i due flag gia' decisi dal chiamante.
+    /// Like [`Promise::new`], but with the two flags already decided by the caller.
     ///
-    /// Un flag gia' `true` **disattiva** lo strip del suffisso corrispondente: `with_flags("x!",
-    /// true, false)` tiene l'id `"x!"` letterale. E' il comportamento del riferimento
-    /// (`if not strict: ...`), non un incidente: e' l'unico modo di costruire un id che contenga
-    /// davvero un `!` o un `[]` finale.
+    /// A flag that is already `true` **disables** stripping of the matching suffix:
+    /// `with_flags("x!", true, false)` keeps the literal id `"x!"`. That is not an accident — it is
+    /// the only way to build an id that genuinely ends in `!` or `[]`.
     pub fn with_flags(raw: &str, mut strict: bool, mut multiple: bool) -> Self {
         let mut id = raw.to_string();
         if !strict && id.ends_with('!') {
@@ -74,35 +91,35 @@ impl Promise {
         Promise { id, strict, multiple }
     }
 
-    /// L'identificativo, senza i suffissi che hanno acceso i flag.
+    /// The identifier, without the suffixes that turned the flags on.
     pub fn id(&self) -> &str {
         &self.id
     }
 
-    /// Se la promessa e' *strict*, un riferimento irrisolvibile e' un errore invece di far
-    /// sparire l'entita' che la contiene (vedi [`crate::core::promisable::Fulfilled`]).
+    /// Whether the promise is *strict*: an unresolvable reference is then an error, instead of
+    /// quietly dropping the entity that contains it (see [`crate::core::promisable::Fulfilled`]).
     pub fn strict(&self) -> bool {
         self.strict
     }
 
-    /// Se la promessa e' *multiple*, si risolve sempre in una lista, e l'entita' che la contiene
-    /// viene duplicata una volta per valore.
+    /// Whether the promise is *multiple*: it then always resolves to a list, and the entity
+    /// containing it is duplicated once per value.
     pub fn multiple(&self) -> bool {
         self.multiple
     }
 
-    /// Errore [`PromiseError::Unresolved`] per questa promessa, costruito qui per non ripetere
-    /// il clone dell'id in ogni punto di risoluzione.
+    /// An [`PromiseError::Unresolved`] for this promise, built here so the id clone is not repeated
+    /// at every resolution site.
     pub(crate) fn unresolved(&self) -> PromiseError {
         PromiseError::Unresolved { id: self.id.clone() }
     }
 }
 
-/// Forma canonica: `id` seguito da `[]` se *multiple* e da `!` se *strict*, in quest'ordine.
+/// The canonical form: the id, then `[]` if *multiple*, then `!` if *strict*.
 ///
-/// L'ordine `[]` prima di `!` non e' arbitrario: e' l'unico che rende la forma canonica
-/// ri-parsabile da [`Promise::new`] per **ogni** promessa costruibile, proprio perche' lo strip
-/// toglie `!` prima di `[]` (vedi `tests::suffissi`).
+/// `[]` before `!` is not arbitrary. Because stripping removes `!` before `[]`, this is the only
+/// order for which the canonical form re-parses through [`Promise::new`] into the same promise for
+/// **every** promise that can be built.
 impl fmt::Display for Promise {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.id)?;
@@ -116,9 +133,8 @@ impl fmt::Display for Promise {
     }
 }
 
-/// Serializzata come la sua forma canonica (`"fund[]!"`), non come struct a tre campi: e' la
-/// stessa stringa che gli autori dei repo formati scrivono nei CSV, e ci si ri-deserializza
-/// senza perdita.
+/// Serialised as its canonical form (`"fund[]!"`) rather than as a three-field struct: that is the
+/// same string format authors write in their CSV configuration, and it round-trips without loss.
 impl Serialize for Promise {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.collect_str(self)
@@ -162,9 +178,9 @@ mod tests {
             assert_eq!(p.multiple(), multiple, "multiple per {raw:?}");
         }
 
-        /// Il punto delicato dell'intera sintassi, fissato esplicitamente: lo strip guarda `!`
-        /// **prima** di `[]`, quindi `"ref![]"` non finisce con `!` e resta non-strict, mentre
-        /// `"ref[]!"` accende entrambi i flag.
+        /// The delicate point of the whole syntax, pinned down on purpose: stripping looks at `!`
+        /// **before** `[]`, so `"ref![]"` does not end in `!` and stays non-strict, while
+        /// `"ref[]!"` turns both flags on.
         #[test]
         fn strip_order_is_not_symmetric() {
             let bang_then_brackets = Promise::new("ref![]");
@@ -218,10 +234,10 @@ mod tests {
             assert_eq!(Promise::new(raw).to_string(), expected);
         }
 
-        /// Invariante che giustifica l'ordine `[]` prima di `!` in [`fmt::Display`]: per ogni
-        /// promessa costruibile, riparsare la forma canonica restituisce la stessa promessa.
-        /// Verificata in modo esaustivo su tutte le combinazioni di id "difficili" (che
-        /// contengono essi stessi i suffissi) e di flag iniziali.
+        /// The invariant that justifies `[]` before `!` in [`fmt::Display`]: for every promise that
+        /// can be built, re-parsing the canonical form gives the same promise back. Checked
+        /// exhaustively over all combinations of "hard" ids — ones that contain the suffixes
+        /// themselves — and initial flags.
         #[test]
         fn canonical_form_reparses_identically() {
             let ids = ["", "a", "a!", "a[]", "a![]", "a[]!", "!", "[]", "][", "a!!", "a[][]"];

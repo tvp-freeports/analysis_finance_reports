@@ -1,11 +1,9 @@
-//! Le pipeline structured di classificazione pagina.
+//! The structured page-classification pipelines.
 //!
-//! Un pipe di classificazione dichiara una page class e un elenco di header da cercare: se la
-//! pagina li contiene tutti, è di quella class. Ogni riga di `page_classify/args.csv` porta un
-//! header, e le righe con lo stesso ID descrivono lo stesso pipe — l'unione l'ha già fatta
-//! [`super::tables::get_page_classify_configs`].
-//!
-//! Porting di `structured/pipelines/page_classify.py::get_pipelines`.
+//! A classification pipe declares a page class and a list of headers to look for: if the page
+//! contains all of them, it is of that class. Each row of the arguments table carries one header,
+//! and rows sharing an id describe the same pipe — the join has already been done by
+//! [`super::tables`].
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -20,11 +18,11 @@ use crate::input::document::selection::pdfline_selection_from_str;
 use super::StructuredError;
 use super::tables::get_page_classify_configs;
 
-/// Le pipeline di classificazione pagina che il repo definisce per `format_name`.
+/// The page-classification pipelines the repository defines for `format_name`.
 ///
-/// Ogni pipeline riceve **un solo** pipe per ciascuno dei segmenti `text_filter` e `deserialize`
-/// (sono senza parametri e sempre gli stessi), e un pipe `pdf_extract` per ogni classificatore
-/// dichiarato: è così che una pipeline può riconoscere più page class.
+/// Each pipeline gets **one** pipe for each of the filtering and deserialization segments, those
+/// being parameterless and always the same, and one extraction pipe per declared classifier — which
+/// is how one pipeline can recognise several page classes.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,

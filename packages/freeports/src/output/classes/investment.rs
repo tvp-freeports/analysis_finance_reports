@@ -1,16 +1,10 @@
-//! Le entità `Equity` e `Bond`: una posizione di un fondo su una società bersaglio.
+//! The [`Equity`] and [`Bond`] entities: a fund's position in a target company.
 //!
-//! Anticipate da M8 a M7 per decisione D-M7-2 dell'utente — vedi il doc-comment di
-//! [`crate::output::classes`].
+//! The two structs share [`InvestmentData`] — nine common fields and all the promise handling — and
+//! a bond adds its own two, a maturity and an interest rate.
 //!
-//! `Investment` è astratta nel riferimento e non è mai istanziata; `Equity` e `Bond` sono gli
-//! unici tipi concreti e non sono mai sottoclassati. Qui le due struct condividono
-//! [`InvestmentData`] — i nove campi comuni e tutta la logica di promessa — e `Bond` aggiunge i
-//! propri due (`maturity`, `interest_rate`). Non sono due varianti di un enum perché il codice a
-//! valle le distingue sempre per tipo (finiscono in due CSV diversi), mai per `match`.
-//!
-//! **Non portato**: `Investment.__str__`/`Bond.__str__`, un dump multi-riga tradotto. Nel
-//! riferimento è già verificato che nessuno lo chiami; `Debug` copre la stessa esigenza.
+//! They are two structs rather than two variants of one enum because everything downstream tells
+//! them apart by type, never by matching: they end up in two different output files.
 
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
@@ -26,11 +20,10 @@ use super::{
     serde_optional_promised, serde_promised,
 };
 
-/// I campi che `Equity` e `Bond` hanno in comune.
+/// The fields an equity and a bond have in common.
 ///
-/// Ogni campo tranne `company`/`company_match`/`nominal_quantity` può arrivare come promessa: è
-/// il meccanismo con cui un valore scoperto in una pagina diversa (tipicamente il nome del fondo
-/// o la valuta) viene riempito a posteriori.
+/// Nearly every field can arrive as a promise: it is the mechanism by which a value discovered on a
+/// different page — typically the fund name or the currency — is filled in afterwards.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvestmentData {
     pub company: String,
@@ -50,8 +43,8 @@ pub struct InvestmentData {
     pub acquisition_currency: Option<Promised<Currency>>,
 }
 
-/// I valori grezzi da cui si costruisce un investimento, così come arrivano dai metadati di un
-/// `TextBlock`. Ogni campo è un [`BlockValue`], quindi ognuno può essere una promessa.
+/// The raw values an investment is built from, as they arrive in a text block's metadata. Every
+/// field is a [`BlockValue`], so every one of them may be a promise.
 #[derive(Debug, Clone)]
 pub struct InvestmentFields {
     pub company: String,
@@ -66,9 +59,7 @@ pub struct InvestmentFields {
 }
 
 impl InvestmentFields {
-    /// I quattro campi che il riferimento pretende sempre presenti (`md["company"]`,
-    /// `md["company match"]`, `md["fund"]`, `md["market value"]`, `md["currency"]`); gli altri
-    /// sono opzionali e partono assenti.
+    /// The fields that must always be present; the rest are optional and start out absent.
     pub fn new(
         company: impl Into<String>,
         company_match: impl Into<String>,
@@ -90,12 +81,12 @@ impl InvestmentFields {
     }
 }
 
-/// Estrae un numero da un [`BlockValue`], accettando indifferentemente `Int` e `Float` (i cast di
-/// `deserialize::cast` producono l'uno o l'altro a seconda del formato del documento).
+/// Extracts a number from a [`BlockValue`], accepting an integer or a float indifferently, since
+/// the casts produce one or the other depending on how the document writes it.
 ///
-/// Qui si controlla solo il **tipo**: il dominio (`> 0`, `[0, 1)`) lo verifica
-/// [`InvestmentData::validate_ranges`], perché un valore fuori dominio non è un errore di tipo e
-/// perché un campo ancora promesso non è validabile finché la promessa non si risolve.
+/// Only the **type** is checked here. The domain is checked by [`InvestmentData::validate_ranges`],
+/// because a value outside its domain is not a type error, and because a field still promised
+/// cannot be validated until the promise resolves.
 fn resolved_float(field: &'static str, value: &BlockValue) -> Result<OrderedFloat<f64>, BlockValueError> {
     match value {
         BlockValue::Int(i) => Ok(OrderedFloat(*i as f64)),
@@ -104,8 +95,7 @@ fn resolved_float(field: &'static str, value: &BlockValue) -> Result<OrderedFloa
 }
 
 impl InvestmentData {
-    /// Costruisce i campi comuni, validando i domini numerici dei valori già risolti (una
-    /// promessa non è validabile ora: lo sarà quando `fulfill_promises` la risolverà).
+    /// Builds the common fields, validating the numeric domains of the values already resolved.
     pub fn build(fields: InvestmentFields) -> Result<Self, OutputClassError> {
         let InvestmentFields {
             company,
@@ -150,7 +140,7 @@ impl InvestmentData {
         Ok(data)
     }
 
-    /// Verifica i domini numerici dei soli campi già risolti.
+    /// Checks the numeric domains of the already-resolved fields only.
     fn validate_ranges(&self) -> Result<(), OutputClassError> {
         if let Some(v) = self.market_value.resolved() {
             FloatConstraint::Positive.validate("market_value", v.into_inner())?;
@@ -203,7 +193,7 @@ impl InvestmentData {
     }
 }
 
-/// Una partecipazione azionaria.
+/// An equity holding.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Equity {
     #[serde(flatten)]
@@ -226,13 +216,13 @@ impl PromisableFields for Equity {
     }
 }
 
-/// Un'obbligazione: come [`Equity`], più scadenza e tasso d'interesse.
+/// A bond: like an [`Equity`], plus a maturity and an interest rate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Bond {
     #[serde(flatten)]
     pub data: InvestmentData,
     pub maturity: Option<Date>,
-    /// Frazione, non percentuale: `0.05` è il 5%.
+    /// A fraction, not a percentage: `0.05` is five per cent.
     pub interest_rate: Option<OrderedFloat<f64>>,
 }
 
@@ -378,8 +368,8 @@ mod tests {
 
         #[test]
         fn a_pending_field_is_not_validated_at_construction_time() {
-            // Non si può validare un valore che non c'è ancora: la promessa passa, e il dominio
-            // sarà verificato solo se e quando il campo verrà risolto e ricostruito.
+            // A value that is not there yet cannot be validated: the promise passes, and its domain
+            // will be checked if and when the field is resolved and rebuilt.
             let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
             assert!(Equity::build(f).is_ok());
         }

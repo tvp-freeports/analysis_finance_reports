@@ -1,37 +1,17 @@
-//! Selezione per area geometrica.
+//! Selecting lines by geometric area.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::select::pdf_line::area`. `Rectangle` e' gia'
-//! definito in `commons::geometry` (M1): questo modulo vi implementa sopra
-//! `Container`/`Overlappable`/`AtomOperations`/`AtomAlgebra`, per lo stesso motivo di R4 spiegato
-//! in `font_size.rs`.
+//! `Rectangle` is defined in [`crate::commons::geometry`]; the selection algebra is implemented
+//! here, as elsewhere in this tree.
 //!
-//! **Decisione R4 (`PLAN.md`) sul campo `area` di `PdfLine`**: nel riferimento, `PdfLine` cache-a
-//! un campo `area: Area` costruito con `Area::from_atom(bbox)` — puro wrapping di `bbox` in un
-//! `DisjointAtomsSet` a un solo atomo, nessuna normalizzazione reale (a differenza di
-//! `Font::new`, che *fa* lavoro: accenti, spazi, punteggiatura). Il nuovo `PdfLine`
-//! (`pdf_extract::pdf_line`) non ha quindi un campo `area`: questo modulo aggiunge invece un
-//! metodo `PdfLine::area(&self) -> Area` che lo deriva on demand da `bbox`. E' un `impl PdfLine`
-//! scritto qui (non in `pdf_line.rs`) apposta: il tipo `Area` e' un tipo di selezione, e
-//! `pdf_line.rs` (dati puri) non deve dipendere da `select` — l'`impl` puo' comunque stare qui
-//! perche' in Rust un blocco `impl` non deve stare nel file che definisce il tipo, solo nello
-//! stesso crate.
+//! Rectangles are the richest atom of the four. Subtracting one from another can leave anywhere
+//! between one and four pieces, depending on how many sides they share, which is why the
+//! classification below enumerates every relative position rather than reasoning case by case.
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `impl Container for Rectangle { type Elem = (f32,f32); ... }`: un punto e' contenuto se
-//!   cade dentro i quattro lati, estremi inclusi.
-//! - `impl Overlappable<Self> for Rectangle`: le cinque relazioni standard su rettangoli
-//!   assi-allineati.
-//! - `impl AtomOperations for Rectangle`: `subtract_overlapping`/`subtract_subset` possono
-//!   produrre da uno a quattro rettangoli a seconda di quanti lati coincidono/quanto i due
-//!   rettangoli si overlappano (vedi `RectOverlapping` nel riferimento, tipo privato di
-//!   classificazione); `intersect_overlapping` produce sempre un solo rettangolo.
-//! - `impl AtomAlgebra for Rectangle {}`.
-//! - `pub type Area = DisjointAtomsSet<Rectangle,(f32,f32)>;` con `Area::new(x0,y0,x1,y1) -> Self`
-//!   (= `Self::from_atom(Rectangle::new(x0,y0,x1,y1))`).
-//! - `impl PdfLine { pub(crate) fn area(&self) -> Area }` (vedi sopra): equivalente a
-//!   `Area::from_atom(*self.bbox())`.
+//! A line's area is **derived on demand** from its bounding box rather than cached in a field: the
+//! derivation is a wrapping with no real work in it, so a cached copy would only be a second source
+//! of truth. The `impl PdfLine` giving that accessor is written here on purpose — `Area` is a
+//! selection type, and the module holding the data must not depend on the one holding the
+//! selections.
 
 use crate::commons::geometry::Rectangle;
 use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
@@ -259,7 +239,7 @@ impl Area {
 }
 
 impl PdfLine {
-    /// Deriva l'`Area` dalla `bbox` on demand (nessun campo cache, R4 del `PLAN.md`).
+    /// Derives the [`Area`] from the bounding box on demand; there is no cached field.
     pub fn area(&self) -> Area {
         Area::from_atom(*self.bbox())
     }
@@ -378,12 +358,10 @@ mod tests {
         }
     }
 
-    /// `type_overlap` è la classificazione (privata) da cui dipendono sia `subtract_as_overlap_type`
-    /// sia, indirettamente, `subtract_subset`/`subtract_overlapping`: usa `<` su alcuni confini e
-    /// `<=` su altri, quindi un caso "di lato" per variante non basta — ogni variante è coperta sia
-    /// dal caso generico sia da ogni combinazione di lati/angoli condivisi ("touch"), portando
-    /// verbatim l'esaustività del riferimento (`PLAN.md` §10: stress test dove la logica è
-    /// combinatoria).
+    /// `type_overlap` is the classification both subtraction paths rest on, and it uses `<` on some
+    /// boundaries and `<=` on others. One representative case per variant would therefore not be
+    /// enough: each variant is covered both generically and for every combination of shared sides
+    /// and corners.
     mod type_overlap_classification {
         use super::*;
         use RectOverlapping::*;
@@ -443,9 +421,9 @@ mod tests {
         }
     }
 
-    /// `subtract_subset`/`subtract_overlapping` possono produrre da uno a quattro rettangoli
-    /// (mai piu' di quattro): questi test coprono tutte le combinazioni di lati/angoli condivisi
-    /// che determinano quanti pezzi risultano, non solo il caso generico "quattro pezzi".
+    /// Subtraction can leave anywhere between one and four rectangles, never more. These tests
+    /// cover all the combinations of shared sides and corners that decide how many pieces result,
+    /// not only the general four-piece case.
     mod atom_operations {
         use super::*;
         use CompoundAtomOperationRes::*;

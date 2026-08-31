@@ -15,6 +15,7 @@ freeports_analysis documentation
    usage/quickstart
    usage/command
    API
+   rustdoc
    contribute
    validation/index
    dev/index

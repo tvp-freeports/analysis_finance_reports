@@ -14,21 +14,20 @@ use crate::formats_utils::text_filter::standard_funcs::{
 use crate::python::pipes::PyTextFilterPipe;
 use crate::core::tracing_setup::log_error;
 
-/// Il tipo `re.Pattern`, per distinguere una regex compilata da una stringa letterale.
+/// The compiled-pattern type, for telling a compiled regex from a literal string.
 fn re_pattern_type(py: Python<'_>) -> PyResult<Bound<'_, PyAny>> {
     py.import("re")?.getattr("Pattern")
 }
 
-/// Il sorgente di una regex compilata da Python (`pattern.pattern`).
+/// The source of a regex compiled by Python.
 fn pattern_source(object: &Bound<'_, PyAny>) -> PyResult<String> {
     object.getattr("pattern")?.extract()
 }
 
-/// Gli elementi di un argomento che il riferimento accetta come scalare o come iterabile.
+/// The elements of an argument accepted either as a scalar or as an iterable.
 ///
-/// Una stringa **è** iterabile in Python, quindi il caso scalare va riconosciuto prima: senza
-/// questo, `TextFilterSfdrArticleStandard("Nome del prodotto: ")` diventerebbe una lista di
-/// diciannove prefissi di un carattere.
+/// A string **is** iterable in Python, so the scalar case must be recognised first: without that, a
+/// single prefix would become a list of one-character prefixes.
 fn scalar_or_iterable<'py>(object: &Bound<'py, PyAny>) -> PyResult<Vec<Bound<'py, PyAny>>> {
     let py = object.py();
     if object.is_instance_of::<PyString>() || object.is_instance(&re_pattern_type(py)?)? {
@@ -51,7 +50,7 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     PyTextFilterPipe::new(Arc::new(TextFilterManagmentCompanyStandard))
 }
 
-/// `TextFilterInvestmentsStandard(...)` — le righe della tabella degli investimenti.
+/// The pipe for the rows of an investments table.
 #[pyfunction]
 #[pyo3(name = "TextFilterInvestmentsStandard")]
 #[pyo3(signature = (
@@ -89,12 +88,12 @@ pub fn py_text_filter_investments_standard(
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
-/// `TextFilterSfdrArticleStandard(fund_prefix=None, demand_investment_funds_match=True)`.
+/// The pipe for a fund's SFDR classification.
 ///
-/// **Divergenza assorbita qui:** il riferimento ha un solo argomento `fund_prefix` che mescola
-/// stringhe letterali e `re.Pattern` già compilati; il tipo nativo li vuole separati, perché i
-/// primi passano da `str::replace` e i secondi da Oniguruma. Lo smistamento avviene qui, e
-/// l'ordine relativo all'interno di ciascuno dei due gruppi è conservato.
+/// **A divergence absorbed here:** a single argument mixes literal strings and already-compiled
+/// patterns, while the native type wants them separated, the first going through a plain substring
+/// replacement and the second through the regex engine. The sorting happens here, and the relative
+/// order within each of the two groups is preserved.
 #[pyfunction]
 #[pyo3(name = "TextFilterSfdrArticleStandard")]
 #[pyo3(signature = (fund_prefix=None, demand_investment_funds_match=true))]
@@ -127,11 +126,10 @@ pub fn py_text_filter_sfdr_article_standard(
     Ok(PyTextFilterPipe::new(Arc::new(pipe)))
 }
 
-/// `TextFilterAssetsStandard(date_regex=None, remove_from_fund_regexes=None)`.
+/// The pipe for a fund's assets.
 ///
-/// Entrambi gli argomenti accettano tanto una regex già compilata quanto il suo sorgente come
-/// stringa: la compilazione vera la fa Oniguruma dentro il tipo nativo, quindi da un `re.Pattern`
-/// si prende solo `.pattern`.
+/// Both arguments accept either an already-compiled regex or its source as a string: the real
+/// compilation happens inside the native type, so from a compiled pattern only its source is taken.
 #[pyfunction]
 #[pyo3(name = "TextFilterAssetsStandard")]
 #[pyo3(signature = (date_regex=None, remove_from_fund_regexes=None))]

@@ -1,52 +1,25 @@
-//! Configurazione da variabili d'ambiente `FREEPORTS_*`.
+//! Configuration from the `FREEPORTS_*` environment variables.
 //!
-//! `M9-implementation-plan.md` §2/§3 passo 6, §0 Q3/Q5. Estende il riferimento
-//! (`FreeportsEnvConfig`, `conf_parse.py`) con `FREEPORTS_REPORTS` (multi-valore, stesso
-//! separatore `|` del CSV di batch, `cli::conf_parse::DOC_SPEC_SEPARATOR`) e
-//! `FREEPORTS_VERBOSITY` (stringa, uno dei sei nomi di variante `Verbosity`, case-insensitive).
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-//! pub enum EnvConfigError {
-//!     InvalidReportSpecifier { variable: &'static str, value: String, source: DocumentSpecError },
-//!     ReportsConflict { source: SourceReportsConflict },      // FREEPORTS_REPORTS + (URL|PDF)
-//!     InvalidVerbosity { value: String },
-//!     InvalidValue { variable: &'static str, value: String }, // n_workers/parallelism/save_pdf/... malformati
-//! }
-//!
-//! pub fn load() -> Result<PartialConfig, EnvConfigError>;
-//! ```
-//!
-//! # Mappatura variabile -> campo
-//!
-//! | variabile | campo `PartialConfig` |
+//! | variable | field |
 //! |---|---|
-//! | `FREEPORTS_URL` | contribuisce (insieme a `FREEPORTS_PDF`) allo spec singolare, poi risolto in `reports` |
-//! | `FREEPORTS_PDF` | idem |
-//! | `FREEPORTS_REPORTS` | `reports` (multi-valore, `DOC_SPEC_SEPARATOR`) |
-//! | `FREEPORTS_VERBOSITY` | `verbosity` |
-//! | `FREEPORTS_N_WORKERS` | `n_workers` -- P5: intero positivo **oppure** `auto`, `0` resta invalido. È il default globale di entrambi i livelli di parallelismo |
-//! | `FREEPORTS_PARALLELISM_JOBS` | `parallelism_jobs` (override del livello job, stessa grammatica) |
-//! | `FREEPORTS_PARALLELISM_PAGES` | `parallelism_pages` (override del livello pagina, stessa grammatica) |
-//! | `FREEPORTS_BATCH_FILE` | `batch_file` |
-//! | `FREEPORTS_OUT_PATH` | `out_path` |
-//! | `FREEPORTS_SAVE_PDF` | `save_pdf` (`"true"`/`"false"`, case-insensitive) |
-//! | `FREEPORTS_FORMAT` | `format` (passthrough) |
-//! | `FREEPORTS_CONFIG_FILE` | `config_file` |
-//! | freeports_env!(`TARGET_LIST`) | `target_lists` -- **un solo elemento**, il valore grezzo intero, mai spezzato: stesso comportamento del riferimento (`Lists`'s `BeforeValidator` avvolge una stringa singola in una lista a un elemento, non la spezza su un separatore) |
-//! | `FREEPORTS_FORMATS_REPO_PATH` | `formats_repo_path` |
-//! | `FREEPORTS_INPUT_DB_PATH` | `input_db_path` |
+//! | `FREEPORTS_URL`, `FREEPORTS_PDF` | contribute to the singular document spec, later resolved into the reports |
+//! | `FREEPORTS_REPORTS` | the reports, several separated by the document separator |
+//! | `FREEPORTS_VERBOSITY` | verbosity, by variant name, case-insensitively |
+//! | `FREEPORTS_N_WORKERS` | the global parallelism default: a positive integer or `auto` |
+//! | `FREEPORTS_PARALLELISM_JOBS` | the job-level override, same grammar |
+//! | `FREEPORTS_PARALLELISM_PAGES` | the page-level override, same grammar |
+//! | `FREEPORTS_BATCH_FILE` | batch file |
+//! | `FREEPORTS_OUT_PATH` | output path |
+//! | `FREEPORTS_SAVE_PDF` | save PDF, `true` or `false` case-insensitively |
+//! | `FREEPORTS_FORMAT` | format |
+//! | `FREEPORTS_CONFIG_FILE` | configuration file |
+//! | `FREEPORTS_TARGET_LIST` | the target lists — **one element**, the whole raw value, never split |
+//! | `FREEPORTS_FORMATS_REPO_PATH` | formats repository path |
+//! | `FREEPORTS_INPUT_DB_PATH` | input database path |
 //!
-//! `FREEPORTS_OUT_PROFILE`/`FREEPORTS_OUT_FLAGS` esistono nel riferimento ma **non hanno una
-//! grammatica testuale definita da questo piano** (`M9-implementation-plan.md` §4 elenca solo
-//! `FREEPORTS_REPORTS`/`FREEPORTS_VERBOSITY` come variabili nuove di questa milestone per `env`):
-//! deliberatamente **non testate qui** -- vedi il resoconto del test-writer, è un'ambiguità
-//! segnalata, non un'omissione.
-//!
-//! Ogni variabile **assente** lascia il campo corrispondente a `None` (mai un errore). Nessuna
-//! variabile presente ma vuota è testata esplicitamente come caso limite in più punti sotto.
+//! An **absent** variable leaves its field unset, never an error. Giving both `FREEPORTS_REPORTS`
+//! and one of the singular variables is a conflict, as in the file source: an override nobody can
+//! see is worse than a refusal.
 
 use std::path::PathBuf;
 
@@ -105,13 +78,13 @@ fn parse_bool(variable: &'static str, value: &str) -> Result<bool, EnvConfigErro
     }
 }
 
-/// Le tre variabili di parallelismo (P5) condividono la grammatica di `Workers` -- `auto` o un
-/// intero positivo -- e differiscono solo per il nome che compare nell'errore.
+/// The three parallelism variables share the same grammar — `auto` or a positive integer — and
+/// differ only in the name appearing in the error.
 fn parse_workers(variable: &'static str, value: &str) -> Result<Workers, EnvConfigError> {
     Workers::parse(value).map_err(|_| EnvConfigError::InvalidValue { variable, value: value.to_string() })
 }
 
-/// Wraps [`load_impl`] to log any failure exactly once -- this is the only place all four
+/// Wraps `load_impl` to log any failure exactly once -- this is the only place all four
 /// `EnvConfigError` variants are actually constructed (directly or via the small `parse_*`
 /// helpers below).
 pub fn load() -> Result<PartialConfig, EnvConfigError> {
@@ -183,9 +156,8 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
 
-    /// Ogni variabile `FREEPORTS_*` che questo modulo legge -- usata sia per ripulire l'ambiente
-    /// prima di ogni test (evita che l'ambiente reale della shell di sviluppo influenzi un test)
-    /// sia per restaurarlo esattamente al termine.
+    /// Every variable this module reads, used both to clear the environment before each test — so
+    /// the developer's own shell cannot influence a result — and to restore it exactly afterwards.
     const ALL_VARS: &[&str] = &[
         freeports_env!("URL"),
         freeports_env!("PDF"),
@@ -206,9 +178,9 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
-    /// Serializza tutti i test di questo modulo (le variabili d'ambiente sono globali al
-    /// processo, e `cargo test` esegue i test in parallelo su thread dello stesso processo) e
-    /// restaura l'ambiente esattamente com'era, campo per campo, alla fine dello scope.
+    /// Serialises the tests of this module, environment variables being global to the process while
+    /// tests run in parallel threads of one process, and restores the environment exactly as it
+    /// was, variable by variable, at the end of the scope.
     struct EnvScope {
         _lock: std::sync::MutexGuard<'static, ()>,
         originals: Vec<(&'static str, Option<String>)>,
@@ -313,8 +285,8 @@ mod tests {
             assert_eq!(config.n_workers, Some(Workers::Fixed(4)));
         }
 
-        /// P5: le tre variabili accettano anche la parola `auto`, che e' il modo di riportare un
-        /// livello al comportamento automatico dopo che un file di configurazione lo ha fissato.
+        /// The three variables accept the word `auto`, which is how a level is brought back to
+        /// automatic after a configuration file has pinned it.
         #[test]
         fn the_three_parallelism_variables_accept_auto() {
             let scope = EnvScope::new();

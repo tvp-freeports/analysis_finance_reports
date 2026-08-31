@@ -1,35 +1,33 @@
-//! Il caricamento del repository dei formati e la costruzione dell'algoritmo di un formato.
+//! Loading a formats repository and building a format's algorithm.
 //!
-//! Un repo formati è una cartella con dei CSV, degli YAML e (per i formati più irregolari) del
-//! codice Python. Questo modulo la legge e ne ricava un [`Algorithm`] pronto da applicare a un
-//! documento.
+//! A formats repository is a directory of CSV files, YAML files and — for the most irregular
+//! formats — Python code. This module reads it and produces an [`Algorithm`] ready to apply to a
+//! document.
 //!
-//! # I tre livelli
+//! # The three levels
 //!
-//! Le pipeline di un formato si compongono da tre livelli di specificità crescente, che
-//! **si sommano** invece di escludersi (`PLAN.md` §6.4):
+//! A format's pipelines are composed from three levels of increasing specificity, which **add up**
+//! rather than exclude one another:
 //!
-//! | Livello | Dove vive l'algoritmo | Dove vivono i parametri |
+//! | Level | Where the algorithm lives | Where the parameters live |
 //! |---|---|---|
-//! | [`structured`] | nella libreria, fisso | colonne di CSV |
-//! | [`semistructured`] | nella libreria (per nome) o nel repo | YAML |
-//! | [`unstructured`] | nel repo, in Python | nel codice stesso |
+//! | [`structured`] | in the library, fixed | CSV columns |
+//! | [`semistructured`] | in the library (by name) or in the repository | YAML |
+//! | [`unstructured`] | in the repository, in Python | in the code itself |
 //!
-//! Un formato può usarne uno, due o tutti e tre: è normale che l'estrazione sia structured e il
-//! filtraggio unstructured, perché ciò che è irregolare in un documento raramente lo è in ogni
-//! segmento. La fusione avviene in [`load_pipelines`], sommando le pipeline **omonime** dei tre
-//! livelli, ed è l'unico punto in cui i tre si incontrano: nessun altro modulo sa che esistono.
+//! A format may use one, two or all three, and mixing them is the normal case: extraction
+//! structured and filtering unstructured, because what is irregular about a document is rarely
+//! irregular in every segment. The merge happens in [`load_pipelines`], summing the **same-named**
+//! pipelines of the three levels, and it is the only place the three meet — no other module knows
+//! they exist.
 //!
-//! # I file letti
+//! # The files read
 //!
-//! - [`metadata`] — `metadata/formats.csv`, `metadata/url_mapping.csv`;
-//! - [`orchestration`] — `content/orchestration/*.csv`;
-//! - [`structured`] — `content/algorithms/structured/**`;
-//! - [`semistructured`] — `content/algorithms/semistructured/**`;
-//! - [`unstructured`] — `content/algorithms/unstructured/**`.
+//! - [`metadata`] — the format list and the URL mapping;
+//! - [`orchestration`] — the schedule and page-class tables;
+//! - [`structured`], [`semistructured`], [`unstructured`] — one subtree each.
 //!
-//! [`id_format`] non legge nulla: è la grammatica degli identificatori che tutti gli altri
-//! condividono.
+//! [`id_format`] reads nothing: it is the grammar of identifiers the others share.
 
 pub mod id_format;
 pub mod metadata;
@@ -45,17 +43,17 @@ use crate::core::algorithm::{Algorithm, AlgorithmError};
 use crate::core::page::FormatName;
 use crate::core::pipeline::{Pipeline, PipelineName};
 
-/// Fallimenti nel caricamento di un repo formati.
+/// Failures of loading a formats repository.
 ///
-/// Un enum per il modulo radice, che raccoglie quelli dei sottomoduli: chi chiama
-/// [`Algorithm::load`] non ha modo di reagire diversamente a un CSV malformato e a uno YAML
-/// malformato, e distinguerli nel *tipo* invece che nel *messaggio* non lo aiuterebbe.
+/// One enum for the whole area, collecting the submodules': a caller of [`Algorithm::load`] has no
+/// way to react differently to a malformed CSV and a malformed YAML, so distinguishing them in the
+/// *type* rather than in the message would not help it.
 #[derive(Debug, thiserror::Error)]
 pub enum LoadError {
-    /// Il formato richiesto non è fra quelli che `metadata/formats.csv` dichiara.
+    /// The requested format is not among those the repository declares.
     #[error("unknown format '{format}'; the repository declares {known} format(s)")]
     UnknownFormat { format: String, known: usize },
-    /// Una pipeline non ha tutti e tre i segmenti: nessuno dei tre livelli glieli ha dati.
+    /// A pipeline lacks one of the three segments: none of the three levels supplied it.
     #[error("pipeline '{pipeline}' is incomplete: missing the {missing} segment(s)")]
     IncompletePipeline { pipeline: String, missing: String },
     #[error(transparent)]
@@ -72,7 +70,7 @@ pub enum LoadError {
     Algorithm(#[from] AlgorithmError),
 }
 
-/// Somma la pipeline `incoming` a quella eventualmente già presente sotto lo stesso nome.
+/// Adds `incoming` to the pipeline already present under the same name, if any.
 fn merge_into(pipelines: &mut HashMap<PipelineName, Pipeline>, name: PipelineName, incoming: Pipeline) {
     match pipelines.remove(&name) {
         Some(existing) => pipelines.insert(name, existing + incoming),
@@ -80,7 +78,7 @@ fn merge_into(pipelines: &mut HashMap<PipelineName, Pipeline>, name: PipelineNam
     };
 }
 
-/// I nomi dei segmenti vuoti di una pipeline, per il messaggio d'errore.
+/// The names of a pipeline's empty segments, for the error message.
 fn missing_segments(pipeline: &Pipeline) -> String {
     let mut missing = Vec::new();
     if pipeline.pdf_extract.is_empty() {
@@ -95,11 +93,11 @@ fn missing_segments(pipeline: &Pipeline) -> String {
     missing.join(", ")
 }
 
-/// Tutte le pipeline di `format_name`, con i tre livelli già fusi.
+/// Every pipeline of `format_name`, with the three levels already merged.
 ///
-/// `allow_partial` esiste per gli strumenti di sviluppo (`freeports-dev` prova un segmento alla
-/// volta): in produzione una pipeline incompleta non può produrre nulla, e lasciarla passare
-/// significherebbe scoprire il problema a documento aperto invece che a caricamento.
+/// `allow_partial` exists for the development tooling, which tries one segment at a time. In
+/// production an incomplete pipeline can produce nothing, and letting one through would mean
+/// discovering the problem with a document already open rather than at load time.
 pub fn load_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -114,8 +112,8 @@ pub fn load_pipelines(
     }
 
     if !allow_partial {
-        // Ordinato: con una `HashMap` il primo incompleto trovato dipenderebbe dall'ordine di
-        // hash, e il messaggio d'errore cambierebbe da un'esecuzione all'altra.
+        // Sorted: with a hash map the first incomplete pipeline found would depend on hash order,
+        // and the error message would change from one run to the next.
         let mut names: Vec<&PipelineName> = pipelines.keys().collect();
         names.sort();
         for name in names {
@@ -132,20 +130,18 @@ pub fn load_pipelines(
 }
 
 impl Algorithm {
-    /// Carica l'algoritmo di `format_name` da un repo formati.
+    /// Loads the algorithm of `format_name` from a formats repository.
     ///
-    /// **Perché questo `impl` sta qui e non in `core::algorithm`**: il costruttore ha bisogno di
-    /// tutto `formats_repo`, mentre `formats_repo` è costruito sopra `core`. Metterlo là
-    /// significherebbe una dipendenza circolare fra i due moduli — che Rust tollererebbe, ma che
-    /// contraddice la disciplina di layering seguita ovunque altrove (stessa ragione per cui in M3
-    /// si è spezzato il ciclo `position`/`tabularizer`). Un `impl` inerente può stare in qualunque
-    /// modulo del crate che definisce il tipo, quindi la API pubblica resta quella che
-    /// `PLAN.md` §5.5 chiede, `Algorithm::load`, senza invertire le dipendenze.
+    /// # Why this impl lives here and not with [`Algorithm`]
+    ///
+    /// The constructor needs the whole of `formats_repo`, while `formats_repo` is built on top of
+    /// `core`. Putting it there would invert the layering. An inherent impl may live in any module
+    /// of the crate that defines the type, so the public API stays `Algorithm::load` without the
+    /// dependency running both ways.
     pub fn load(formats_repo_dir: &Path, format_name: &FormatName) -> Result<Algorithm, LoadError> {
-        // I due span nidificati del vocabolario `Activity` per il ramo di caricamento
-        // (`PLAN.md` §3 L1/L2): nessun altro punto del crate ne apre uno per `formats_repo`/
-        // `format`, quindi le coordinate di ogni evento emesso durante il caricamento — dal CSV
-        // dei metadati fino all'ultima pipeline unstructured — arrivano da qui.
+        // The two nested spans for the loading branch: no other point in the crate opens one for a
+        // repository or a format, so the coordinates of every event emitted while loading — from
+        // the metadata CSV to the last unstructured pipeline — come from here.
         let repo_span = tracing::info_span!("formats_repo", path = %formats_repo_dir.display());
         let _repo_guard = repo_span.enter();
         let name = format_name.as_str();
@@ -165,8 +161,8 @@ impl Algorithm {
         let schedule = orchestration::get_schedule(formats_repo_dir, name, &known_formats, &defined)?;
         let finalizer = unstructured::loader::get_page_class_finalizer(formats_repo_dir, name)?;
 
-        // Ordinati ovunque: `Algorithm` conserva l'ordine che riceve, e da quell'ordine dipende
-        // l'ordine in cui i pipe girano — che `PLAN.md` §12 D5 vuole deterministico.
+        // Sorted everywhere: an [`Algorithm`] keeps the order it is given, and the order in which
+        // the pipes run follows from it.
         let mut classify_names: Vec<PipelineName> = classifiers.into_iter().collect();
         classify_names.sort();
         let sorted_pipelines: BTreeMap<PipelineName, Pipeline> = pipelines.into_iter().collect();

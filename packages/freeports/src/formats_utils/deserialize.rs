@@ -1,16 +1,8 @@
-//! Utility per il segmento deserialize.
+//! Building blocks for the `deserialize` segment: turning text blocks into entities.
 //!
-//! `cast` e' completo (M4). `standard_funcs` copre solo `DeserializerPageClassifyStandard` —
-//! l'unica pipe di deserializzazione che non costruisce un'entità di `output::classes`, e che da
-//! M5 implementa anche il trait `DeserializePipe` del motore.
-//!
-//! Tutte le altre (`DeserializeSfdrArticleStandard`, `DeserializerFundStandard`,
-//! `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
-//! `DeserializerInvestmentsManagerStandard`, `DeserializerInvestmentStandard`,
-//! `DeserializerAssetsStandard`) costruiscono `Fund`/`Equity`/`Bond`/`ManagementCompany`/
-//! `InvestmentsManager`/`FundAssets`/`FundSfdrClassification`: sono **tutte e sole** bloccate da
-//! `output::classes` (M8), che dopo la chiusura di M5 è l'unica dipendenza rimasta di M4 — vedi
-//! `agent-memory/M4-implementation-plan.md` §0 e `agent-memory/M5-implementation-plan.md` §4.
+//! `cast` holds the conversions from raw text to typed values — numbers written in six locales,
+//! dates in as many formats, percentages that may or may not carry their sign — and
+//! `standard_funcs` the pipes that use them to build the entities of `crate::output::classes`.
 
 pub mod cast;
 pub mod standard_funcs;

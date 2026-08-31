@@ -1,23 +1,19 @@
-//! `pdfline_selection_from_dict`/`_from_str`: costruiscono una `PdfLineSelection` (M3) da
-//! configurazione esterna (repo formati) — non hanno nulla a che fare con PyMuPDF, ma
-//! `PLAN.md` §9/l'`api.rs` esistente le colloca comunque in `input::document` (stesso modulo
-//! Python di origine, `pdf_blks_acquire.py`).
+//! Building a [`PdfLineSelection`] from external configuration: [`pdfline_selection_from_dict`] and
+//! [`pdfline_selection_from_str`].
 //!
-//! Contratto: `agent-memory/M6-implementation-plan.md` §3.2. **Deviazione dal contratto letterale
-//! del piano**, necessaria per compilare: `LineSelectionError` qui sotto deriva solo `Debug` (non
-//! anche `Clone, PartialEq` come scritto nel piano) perché la sua variante `Area` avvolge
-//! [`PositionError`] (`formats_utils::pdf_extract::position`, M3, chiuso), che deriva solo
-//! `Debug` — `#[derive(PartialEq)]` su questo enum non compilerebbe altrimenti. I test sotto usano
-//! pattern-matching (`let LineSelectionError::Area(PositionError::XMinNotPositive(v)) = err else
-//! { panic!(...) }`) invece di `assert_eq!` diretto sull'errore, stesso stile già usato dai test
-//! di `position.rs` per `PositionError` stesso.
+//! A format author writes a selection either as a structured mapping — font, size, area, text — or
+//! in a compact one-line grammar. Both end up as the same absolute selection, the string form
+//! parsing into the structured one and delegating, so there is a single place where a selection is
+//! built.
+//!
+//! Neither has anything to do with PyMuPDF; they live under `input::document` because that is where
+//! the public API places them.
 
 use once_cell::sync::Lazy;
 use onig::Regex;
 
-// Non usato dal codice di produzione di questo modulo (nessuna chiamata a `.contains()` qui): solo
-// dai test annidati sotto (`mod tests { use super::*; ... }`), che chiamano `PdfLineSet::contains`
-// nell'helper `selects`. `#[cfg(test)]` evita un "unused import" sulla build non-test.
+// Used only by the tests below, which call `contains` in a helper; the `cfg(test)` avoids an
+// unused-import warning in the normal build.
 #[cfg(test)]
 use crate::commons::sets::Container;
 use crate::formats_utils::pdf_extract::position::{InputArea, PositionError};
@@ -29,9 +25,8 @@ use crate::formats_utils::pdf_extract::select::pdf_line::font_size::FontSizeInte
 use crate::formats_utils::pdf_extract::select::pdf_line::text::TextSet;
 use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 
-/// `str` singolo o lista: la forma `font: Optional[str | List[str]]` di `InputPdfLineSet`
-/// (Python). `#[serde(untagged)]`: un valore YAML/JSON scalare diventa `Single`, una sequenza
-/// diventa `Multiple`.
+/// A single font or a list of them. Untagged for serde, so a scalar becomes `Single` and a sequence
+/// `Multiple`.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(untagged)]
 pub enum FontCriterion {
@@ -39,8 +34,8 @@ pub enum FontCriterion {
     Multiple(Vec<String>),
 }
 
-/// Specchio di `InputArea` (M3) lato deserializzazione: 4 bound opzionali, non ancora validati.
-/// `InputArea::build` resta l'unico punto di validazione.
+/// The deserialization-side mirror of `InputArea`: four optional bounds, not yet validated.
+/// `InputArea::build` stays the single point of validation.
 #[derive(Debug, Clone, Copy, PartialEq, Default, serde::Deserialize)]
 pub struct InputAreaSpec {
     #[serde(default)]
@@ -53,8 +48,7 @@ pub struct InputAreaSpec {
     pub y_max: Option<f32>,
 }
 
-/// Traduzione diretta di `InputPdfLineSet` (Pydantic, riferimento) — stessi quattro campi, tutti
-/// opzionali.
+/// The structured form of a line selection: four optional criteria, intersected.
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 pub struct InputPdfLineSet {
     #[serde(default)]
@@ -71,23 +65,21 @@ pub struct InputPdfLineSet {
 pub enum LineSelectionError {
     #[error("font_size must be positive, found {0}")]
     FontSizeNotPositive(f32),
-    /// `font` presente ma vuoto (`[]`): nel riferimento Python `functools.reduce(or_, [])` va in
-    /// `TypeError` non gestito — qui diventa un errore tipizzato invece di un panic.
+    /// `font` is present but empty. Reducing an empty list of alternatives has no meaningful
+    /// answer, so it is a typed error rather than a panic.
     #[error("font list must not be empty when provided")]
     EmptyFontList,
     #[error(transparent)]
     Area(#[from] PositionError),
 }
 
-/// Precisione dell'intervallo di corpo font costruito attorno a un `font_size` esatto, verbatim
-/// dal riferimento (`max(fs - 1e-3, 0.0)`, `fs + 1e-3`).
+/// The precision of the font-size interval built around an exact size.
 const FONT_SIZE_PRECISION: f32 = 1e-3;
 
-/// Costruisce una `PdfLineSelection` (sempre `Absolute`, mai `Relative`) intersecando i criteri
-/// presenti.
+/// Builds an always-absolute [`PdfLineSelection`] by intersecting the criteria that are present.
 pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSelection, LineSelectionError> {
-    // Called once per selection spec while a formats repo loads, potentially thousands of times
-    // across a whole repo (rule 2): never above `trace!`.
+    // Called once per selection spec while a formats repository loads, potentially thousands of
+    // times across a whole repository: never above `trace!`.
     tracing::trace!(?data, "building a pdf line selection from a dict spec");
 
     let font_size_set = match data.font_size {
@@ -128,15 +120,12 @@ pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSele
     Ok(OptionallyRelative::Absolute(selection))
 }
 
-// Porting di `LINE_SET_REGEXP` (`pdf_blks_acquire.py`): concatenazione di font / `[font_size]` /
-// area (`y_range` da sola o l'intera `area` avvolta da una coppia di parentesi in piu') / testo
-// fra virgolette, ciascuno separato da uno spazio opzionale, tutti i gruppi opzionali. A
-// differenza del riferimento (named groups + post-processing via `_to_floats`), qui i cinque
-// gruppi utili sono catturati per posizione (`Captures::at`, D-M6-7: `onig` non espone un
-// accessorio per nome comodo quanto `re.Match.groupdict()`), nell'ordine: 1 font, 2 font_size,
-// 3 y_range (intero, comprese le parentesi), 4 area (intera, senza le parentesi esterne),
-// 5 text. Ancorato con `\A`: `onig::Regex::captures` cerca ovunque, mentre `re.match` di Python
-// tenta solo dalla posizione 0.
+// The compact selection grammar: font, then `[font_size]`, then an area — either a bare vertical
+// range or a full area wrapped in an extra pair of brackets — then quoted text, each separated by
+// an optional space and every group optional.
+//
+// The five useful groups are captured by position rather than by name. Anchored at the start,
+// because the matcher searches anywhere by default.
 static LINE_SET_REGEXP: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r#"\A([\w\-, ]+)? ?(?:\[([0-9]+(?:\.[0-9]+)?)\])? ?(?:(\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))|\((\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\)\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))\))? ?(?:"(.*)")?"#,
@@ -144,14 +133,13 @@ static LINE_SET_REGEXP: Lazy<Regex> = Lazy::new(|| {
     .expect("fixed, hand-written pattern, valid onig regex")
 });
 
-/// Il pattern di [`LINE_SET_REGEXP`], ma ancorato **anche in fondo**.
+/// The same pattern as [`LINE_SET_REGEXP`], anchored **at the end too**.
 ///
-/// Serve a `formats_repo::structured`, non a chi analizza una selezione: ogni gruppo del pattern è
-/// opzionale, quindi la versione non ancorata a destra combacia con *qualunque* stringa e
-/// [`pdfline_selection_from_str`] non rifiuta mai nulla — una cella scritta male produrrebbe in
-/// silenzio una selezione vuota. La validazione delle tabelle CSV del repo formati ha invece
-/// bisogno di dire "questa cella non è una selezione", ed è esattamente ciò che il riferimento fa
-/// con il suo `x.str.match(f"^{LINE_SET_REGEXP_PATTERN}$")` di pandera.
+/// It exists for validating a formats repository's tables, not for parsing. Every group of the
+/// pattern is optional, so the un-anchored version matches *any* string and
+/// [`pdfline_selection_from_str`] never rejects anything — a mistyped cell would silently produce
+/// an empty selection. Validation needs to be able to say "this cell is not a selection", which is
+/// what this pattern answers.
 static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r#"\A([\w\-, ]+)? ?(?:\[([0-9]+(?:\.[0-9]+)?)\])? ?(?:(\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))|\((\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\)\((?:[0-9]+(?:\.[0-9]+)?)?:(?:[0-9]+(?:\.[0-9]+)?)?\))\))? ?(?:"(.*)")?\z"#,
@@ -159,16 +147,16 @@ static LINE_SET_ANCHORED_REGEXP: Lazy<Regex> = Lazy::new(|| {
     .expect("fixed, hand-written pattern, valid onig regex")
 });
 
-/// `true` se `input` è per intero una selezione di righe scritta nella grammatica compatta.
+/// Whether `input` is, in its entirety, a line selection written in the compact grammar.
 ///
-/// Vedi [`LINE_SET_ANCHORED_REGEXP`] per perché questo controllo non coincide con "
-/// [`pdfline_selection_from_str`] ha restituito `Ok`".
+/// See `LINE_SET_ANCHORED_REGEXP` for why this is not the same question as whether
+/// [`pdfline_selection_from_str`] returned `Ok`.
 pub fn is_pdfline_selection(input: &str) -> bool {
     LINE_SET_ANCHORED_REGEXP.find(input).is_some()
 }
 
-/// Divide una coppia `"a:b"` (senza parentesi) in due bound opzionali, come `_to_floats` nel
-/// riferimento: un lato assente (stringa vuota) resta `None`.
+/// Splits an `"a:b"` pair, without its brackets, into two optional bounds; an absent side stays
+/// `None`.
 fn parse_bound_pair(text: &str) -> (Option<f32>, Option<f32>) {
     let mut parts = text.splitn(2, ':');
     let a = parts.next().unwrap_or("");
@@ -177,11 +165,10 @@ fn parse_bound_pair(text: &str) -> (Option<f32>, Option<f32>) {
     (parse(a), parse(b))
 }
 
-/// Analizza la grammatica compatta (font / `[font_size]` / area `(x0:x1)(y0:y1)` o `(y0:y1)` /
-/// `"text"`) in un `InputPdfLineSet`, poi **delega** a [`pdfline_selection_from_dict`]
-/// (D-M6-6 di `agent-memory/M6-implementation-plan.md`).
+/// Parses the compact grammar into the structured form, then **delegates** to
+/// [`pdfline_selection_from_dict`].
 pub fn pdfline_selection_from_str(input: &str) -> Result<PdfLineSelection, LineSelectionError> {
-    // Same volume caveat as `pdfline_selection_from_dict` (rule 2): `trace!` only.
+    // Same volume caveat as [`pdfline_selection_from_dict`]: `trace!` only.
     tracing::trace!(input, "parsing a compact pdf line selection expression");
 
     let captures = LINE_SET_REGEXP
@@ -193,12 +180,12 @@ pub fn pdfline_selection_from_str(input: &str) -> Result<PdfLineSelection, LineS
         captures.at(2).map(|s| s.parse::<f32>().expect("digits matched by LINE_SET_REGEXP always parse as f32"));
 
     let area = if let Some(y_range) = captures.at(3) {
-        // `y_range` e' l'intera stringa "(a:b)", comprese le parentesi.
+        // The vertical range is the whole `"(a:b)"` string, brackets included.
         let (y_min, y_max) = parse_bound_pair(&y_range[1..y_range.len() - 1]);
         Some(InputAreaSpec { x_min: None, x_max: None, y_min, y_max })
     } else if let Some(area_text) = captures.at(4) {
-        // `area_text` e' "(a:b)(c:d)" (senza le parentesi esterne di avvolgimento): lo stesso
-        // `tmp_area.split(")(")` del riferimento separa le due coppie.
+        // The area text is `"(a:b)(c:d)"` without the outer wrapping brackets; splitting on `")("`
+        // separates the two pairs.
         let (x_part, y_part) = area_text
             .split_once(")(")
             .expect("area_text is always shaped \"(a:b)(c:d)\" by construction of LINE_SET_REGEXP");
@@ -224,10 +211,8 @@ mod tests {
         PdfLine::new(font, size, text, bbox)
     }
 
-    /// `PdfLineSelection` (= `OptionallyRelative<PdfLineSet, RelativePdfLineSet>`) non deriva
-    /// `Debug`: `Result::unwrap_err` lo richiederebbe comunque (per il messaggio di panico sul
-    /// ramo `Ok` che qui non prendiamo mai), quindi va evitato con un match esplicito invece che
-    /// con `.unwrap_err()`.
+    /// A [`PdfLineSelection`] does not derive `Debug`, which `unwrap_err` would require for its
+    /// panic message on the `Ok` branch, so the error is taken with an explicit match instead.
     fn expect_err(result: Result<PdfLineSelection, LineSelectionError>) -> LineSelectionError {
         match result {
             Ok(_) => panic!("expected a LineSelectionError, got Ok(..)"),
@@ -235,10 +220,8 @@ mod tests {
         }
     }
 
-    /// `pdfline_selection_from_dict`/`_from_str` producono sempre una selezione `Absolute`
-    /// (mai `Relative`, D-M6-6 del piano): questo helper lo assume e fallisce rumorosamente se
-    /// non e' cosi', invece di confrontare direttamente `PdfLineSelection` (che non deriva
-    /// `PartialEq` in un modo utilizzabile qui).
+    /// Both constructors always produce an absolute selection; this helper assumes so and fails
+    /// loudly if that ever stops being true, rather than comparing selections directly.
     fn selects(selection: &PdfLineSelection, probe: &PdfLine) -> bool {
         match selection {
             OptionallyRelative::Absolute(set) => set.contains(probe),
@@ -289,17 +272,17 @@ mod tests {
 
         #[test]
         fn area_with_partial_bounds_defaults_missing_bounds_to_zero_and_one_million() {
-            // x_max/y_min assenti: sostituiti da 1e6/0.0 come da riferimento.
+            // The absent bounds are replaced by the defaults.
             let data = InputPdfLineSet {
                 area: Some(InputAreaSpec { x_min: Some(5.0), x_max: None, y_min: None, y_max: Some(50.0) }),
                 ..Default::default()
             };
             let selection = pdfline_selection_from_dict(&data).unwrap();
-            // Dentro (5.0, 0.0, 1e6, 50.0).
+            // Inside (5.0, 0.0, 1e6, 50.0).
             assert!(selects(&selection, &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 20.0))));
-            // Fuori: x0 < 5.0.
+            // Outside: x0 below 5.0.
             assert!(!selects(&selection, &line("Arial", 10.0, "x", (1.0, 10.0, 4.0, 20.0))));
-            // Fuori: y1 > 50.0.
+            // Outside: y1 above 50.0.
             assert!(!selects(&selection, &line("Arial", 10.0, "x", (10.0, 10.0, 20.0, 60.0))));
         }
 
@@ -368,11 +351,9 @@ mod tests {
             assert!(!selects(&selection, &line("Arial", 12.005, "x", (0.0, 0.0, 1.0, 1.0))));
         }
 
-        /// Grammatica dell'area piena: il gruppo "area" del riferimento richiede una coppia di
-        /// intervalli avvolta da una *ulteriore* coppia di parentesi (`\((x0:x1)(y0:y1)\)`), non
-        /// solo `(x0:x1)(y0:y1)` nudo — verificato riproducendo il regex del riferimento fuori da
-        /// questo crate: `(x0:x1)(y0:y1)` senza le parentesi esterne matcha invece il solo
-        /// `y_range` (il primo gruppo, ignorando silenziosamente il resto), non l'area completa.
+        /// The full-area grammar needs a pair of ranges wrapped in an *extra* pair of brackets, not
+        /// a bare `(x0:x1)(y0:y1)`. Without the outer brackets the pattern matches only the first
+        /// range, silently ignoring the rest — which is why this is pinned rather than assumed.
         #[test]
         fn a_double_parenthesized_range_pair_selects_the_full_area() {
             let selection = pdfline_selection_from_str("((1:10)(2:20))").unwrap();
@@ -383,7 +364,7 @@ mod tests {
         #[test]
         fn a_single_parenthesized_range_selects_a_vertical_band() {
             let selection = pdfline_selection_from_str("(2:20)").unwrap();
-            // x e' illimitato (default 0.0..1e6), solo y e' vincolato a [2, 20].
+            // The horizontal axis is unbounded and only the vertical one is constrained.
             assert!(selects(&selection, &line("Arial", 10.0, "x", (100.0, 5.0, 200.0, 10.0))));
             assert!(!selects(&selection, &line("Arial", 10.0, "x", (100.0, 30.0, 200.0, 40.0))));
         }
@@ -409,10 +390,9 @@ mod tests {
             assert!(!selects(&selection, &line("Arial", 12.0, "bar", (3.0, 5.0, 6.0, 8.0))), "text alone fails");
         }
 
-        /// La classe di caratteri del font (`[\w\-, ]+`) include la virgola: una virgola
-        /// letterale nel font non spezza la cattura in due criteri distinti, resta un unico
-        /// `FontCriterion::Single`. Se venisse (a torto) trattata come unione di due font
-        /// separati ("Arial" O "Bold"), una riga con font "Bold" da solo passerebbe: non deve.
+        /// The font character class includes the comma, so a literal comma in a font name does not
+        /// split the capture into two criteria; it stays one. Were it wrongly treated as a union of
+        /// two fonts, a line in only the second one would pass, and it must not.
         #[test]
         fn a_font_containing_a_literal_comma_is_a_single_criterion_not_split_on_the_comma() {
             let selection = pdfline_selection_from_str("Arial,Bold").unwrap();

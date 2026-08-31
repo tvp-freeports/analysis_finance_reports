@@ -1,31 +1,27 @@
-//! Gli adattatori che fanno di un callable Python un pipe come tutti gli altri.
+//! The adapters that turn a Python callable into a pipe like any other.
 //!
-//! È uno dei due soli punti di contatto con Python del crate (`PLAN.md` §3): i pipe definiti
-//! dall'autore di un formato implementano gli stessi trait dei pipe nativi, quindi il motore non
-//! sa — e non deve sapere — se un pipe è Rust o Python.
+//! One of the crate's two points of contact with Python. A pipe written by a format's author
+//! implements the same traits as a native one, so the engine does not know — and must not need to
+//! know — whether a pipe is Rust or Python.
 //!
-//! # Il contratto verso Python
+//! # What crosses the boundary
 //!
-//! Un pipe d'autore riceve e restituisce le **classi vere** di [`crate::python`]: `PdfBlock`,
-//! `TextBlock`, `Promise`, le entità di `freeports.output`, gli enum di `freeports.consts`. È ciò
-//! che i moduli d'autore importano e costruiscono (`from freeports.core import PdfBlock`), quindi
-//! è ciò che devono ricevere.
+//! An author's pipe receives and returns the **real classes** of [`crate::python`]: blocks,
+//! promises, the output entities, the domain enums. That is what author modules import and build,
+//! so that is what they must be handed.
 //!
-//! Fino a M9 non era possibile: il crate non esponeva alcuna API Python, e il confine era definito
-//! per *forma* invece che per tipo (decisione **D-M7-3**, 2026-08-23) — un `dict` con le chiavi
-//! `type_block`/`metadata`/`content` al posto di un `PdfBlock`. Quella forma resta accettata **in
-//! entrata**, come rete di sicurezza per un pipe che costruisca i propri risultati a mano, ma non
-//! è più ciò che viene passato in uscita: un modulo d'autore che scrive `pdf_blks[0].content` —
-//! e sono la maggioranza — su un `dict` andrebbe in `AttributeError`.
+//! A looser, shape-based form — a mapping with the right keys instead of a block — is still
+//! accepted **on the way in**, as a safety net for a pipe that constructs its results by hand. It
+//! is no longer what goes out: an author module writing `pdf_blks[0].content`, and most of them do,
+//! would fail on a mapping.
 //!
-//! Con le classi vere sparisce anche il limite che D-M7-3 si portava dietro: le varianti tipizzate
-//! di `BlockValue` (`Date`, `Currency`, `SfdrArticle`, `FinancialInstrument`) arrivano ora come i
-//! rispettivi shim e non degradate a stringa.
+//! Because the real classes cross, the typed variants of a value — dates, currencies, SFDR
+//! articles, instrument kinds — arrive as themselves rather than degraded to strings.
 //!
-//! # Errori
+//! # Errors
 //!
-//! Un `PyErr` che esce da un pipe d'autore viene loggato con il traceback e convertito in
-//! [`PipeError::author`] al confine: nessun `PyErr` risale oltre questo modulo (`PLAN.md` §3).
+//! A Python exception escaping an author's pipe is logged with its traceback and converted at the
+//! boundary: no `PyErr` travels beyond this module.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -39,13 +35,13 @@ use crate::core::pipeline::{
 };
 use crate::core::promise::Promise;
 
-/// I tre attributi che identificano una promessa, in Python.
+/// The three attributes identifying a promise, on the Python side.
 const PROMISE_FIELDS: [&str; 3] = ["id", "strict", "multiple"];
 
-/// Legge un attributo, accettando indifferentemente un attributo d'istanza o una chiave di mappa.
+/// Reads an attribute, accepting an instance attribute or a mapping key indifferently.
 ///
-/// È il cuore del duck-typing: un `#[pyclass]` futuro esporrà attributi, un dizionario scritto a
-/// mano in un modulo d'autore espone chiavi, e per questo modulo le due cose sono la stessa.
+/// This is the heart of the shape-based reading: a class exposes attributes, a hand-written
+/// dictionary in an author module exposes keys, and for this module the two are the same thing.
 fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny>> {
     if let Ok(value) = object.getattr(name) {
         return Some(value);
@@ -53,19 +49,18 @@ fn field<'py>(object: &Bound<'py, PyAny>, name: &str) -> Option<Bound<'py, PyAny
     object.get_item(name).ok()
 }
 
-/// `true` se l'oggetto ha tutti e tre gli attributi di una promessa.
+/// Whether the object has all three attributes of a promise.
 fn looks_like_promise(object: &Bound<'_, PyAny>) -> bool {
     PROMISE_FIELDS.iter().all(|name| field(object, name).is_some())
 }
 
-/// Un `BlockValue` a partire da un qualunque oggetto Python. Vedi il doc-comment del modulo per
-/// il contratto.
+/// A [`BlockValue`] from any Python object. See the module documentation for the contract.
 pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     if object.is_none() {
         return Ok(BlockValue::Null);
     }
-    // `bool` prima di `int`: in Python `True` **è** un intero, e invertire i due rami farebbe
-    // arrivare ogni booleano come `Int(1)`.
+    // `bool` before `int`: in Python `True` **is** an integer, and swapping the two branches would
+    // make every boolean arrive as an integer.
     if let Ok(value) = object.extract::<bool>() {
         return Ok(BlockValue::Bool(value));
     }
@@ -78,15 +73,15 @@ pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     if let Ok(value) = object.extract::<String>() {
         return Ok(BlockValue::Str(value));
     }
-    // La promessa va riconosciuta **prima** della mappa: la sua forma dizionario è un dizionario a
-    // tutti gli effetti, e il ramo generico se la mangerebbe.
+    // A promise must be recognised **before** a mapping: its dictionary form is a dictionary in
+    // every respect, and the generic branch would swallow it.
     if looks_like_promise(object) {
         return Ok(BlockValue::Promise(promise_from_py(object)?));
     }
-    // Le classi vere (`Currency`, `SfdrArticle`, `FinancialInstrument`, `datetime.date`, ...):
-    // dopo il ramo promessa, perché quello riconosce anche la *forma* dizionario che il
-    // convertitore degli shim vedrebbe come una mappa qualunque; prima dei rami generici, perché
-    // uno shim di enum non è né una stringa né una mappa e cadrebbe nell'errore finale.
+    // The real classes: after the promise branch, because that one also recognises the dictionary
+    // *shape* which the class converter would see as an ordinary mapping; before the generic
+    // branches, because an enum instance is neither a string nor a mapping and would fall through
+    // to the final error.
     if let Ok(value) = crate::python::convert::block_value_from_py(object) {
         return Ok(value);
     }
@@ -117,7 +112,7 @@ pub fn block_value_from_py(object: &Bound<'_, PyAny>) -> PyResult<BlockValue> {
     )))
 }
 
-/// Una promessa da un oggetto che ne ha la forma.
+/// A promise from an object shaped like one.
 fn promise_from_py(object: &Bound<'_, PyAny>) -> PyResult<Promise> {
     let id: String = field(object, "id")
         .ok_or_else(|| pyo3::exceptions::PyAttributeError::new_err("promise has no 'id'"))?
@@ -131,7 +126,7 @@ fn promise_from_py(object: &Bound<'_, PyAny>) -> PyResult<Promise> {
     Ok(Promise::with_flags(&id, strict, multiple))
 }
 
-/// I metadati di un blocco: sempre una mappa da stringa a valore.
+/// A block's metadata: always a mapping from string to value.
 fn metadata_from_py(object: &Bound<'_, PyAny>) -> PyResult<BTreeMap<String, BlockValue>> {
     match block_value_from_py(object)? {
         BlockValue::Map(map) => Ok(map),
@@ -143,7 +138,7 @@ fn metadata_from_py(object: &Bound<'_, PyAny>) -> PyResult<BTreeMap<String, Bloc
     }
 }
 
-/// I tre campi comuni a `PdfBlock` e `TextBlock`.
+/// The three fields common to a PDF block and a text block.
 fn block_parts(object: &Bound<'_, PyAny>) -> PyResult<(BlockType, BTreeMap<String, BlockValue>, BlockValue)> {
     let missing = |name: &str| pyo3::exceptions::PyAttributeError::new_err(format!("block has no '{name}'"));
     let type_block: String = field(object, "type_block").ok_or_else(|| missing("type_block"))?.extract()?;
@@ -158,7 +153,7 @@ fn block_parts(object: &Bound<'_, PyAny>) -> PyResult<(BlockType, BTreeMap<Strin
     Ok((BlockType::new(type_block), metadata, content))
 }
 
-/// Un `PdfBlock` da un oggetto che ne ha la forma.
+/// A [`PdfBlock`] from an object shaped like one.
 pub fn pdf_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<PdfBlock> {
     if let Ok(block) = object.extract::<PyRef<'_, crate::python::core::PyPdfBlock>>() {
         return block.native(object.py());
@@ -167,7 +162,7 @@ pub fn pdf_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<PdfBlock> {
     Ok(PdfBlock::new(type_block, metadata, content))
 }
 
-/// Un `TextBlock` da un oggetto che ne ha la forma. Il `pdf_block` è facoltativo.
+/// A [`TextBlock`] from an object shaped like one. The originating PDF block is optional.
 pub fn text_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<TextBlock> {
     if let Ok(block) = object.extract::<PyRef<'_, crate::python::core::PyTextBlock>>() {
         return block.native(object.py());
@@ -183,7 +178,7 @@ pub fn text_block_from_py(object: &Bound<'_, PyAny>) -> PyResult<TextBlock> {
     })
 }
 
-/// Un valore Python a partire da un [`BlockValue`], per passare dati *verso* un pipe d'autore.
+/// A Python value from a [`BlockValue`], for passing data *to* an author's pipe.
 pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<Bound<'py, PyAny>> {
     Ok(match value {
         BlockValue::Null => py.None().into_bound(py),
@@ -191,8 +186,7 @@ pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<B
         BlockValue::Int(v) => v.into_pyobject(py)?.into_any(),
         BlockValue::Float(v) => v.into_inner().into_pyobject(py)?.into_any(),
         BlockValue::Str(v) => v.into_pyobject(py)?.into_any(),
-        // Le varianti tipizzate diventano la loro forma testuale: vedi il limite noto documentato
-        // in testa al modulo.
+        // The typed variants become their textual form.
         BlockValue::Date(v) => v.to_string().into_pyobject(py)?.into_any(),
         BlockValue::Currency(v) => v.code().into_pyobject(py)?.into_any(),
         BlockValue::SfdrArticle(v) => format!("{v:?}").into_pyobject(py)?.into_any(),
@@ -228,23 +222,21 @@ pub fn block_value_to_py<'py>(py: Python<'py>, value: &BlockValue) -> PyResult<B
     })
 }
 
-/// Un `PdfBlock` come dizionario Python.
+/// A [`PdfBlock`] as a Python object.
 pub fn pdf_block_to_py<'py>(py: Python<'py>, block: &PdfBlock) -> PyResult<Bound<'py, PyAny>> {
     Ok(Bound::new(py, crate::python::core::PyPdfBlock::from_native(py, block)?)?.into_any())
 }
 
-/// Un `TextBlock` come oggetto Python, per passarlo a un pipe d'autore.
+/// A [`TextBlock`] as a Python object, for passing to an author's pipe.
 pub fn text_block_to_py<'py>(py: Python<'py>, block: &TextBlock) -> PyResult<Bound<'py, PyAny>> {
     Ok(Bound::new(py, crate::python::core::PyTextBlock::from_native(py, block)?)?.into_any())
 }
 
-/// Il risultato di un pipe `deserialize` d'autore come lista di oggetti Python, senza convertirli.
+/// The result of an author's deserialize pipe as a list of Python objects, without converting them.
 ///
-/// Sono spacchettate **solo** liste e tuple, non un iterabile qualunque: un pipe `deserialize` può
-/// legittimamente restituire un `dict` — è la forma con cui un autore dichiara una mappa di
-/// promesse — e un `dict` in Python è iterabile *sulle sue chiavi*. Trattarlo come sequenza lo
-/// smonterebbe in stringhe. È la stessa regola del riferimento, che distingue esplicitamente
-/// `list`/`tuple` da tutto il resto.
+/// **Only** lists and tuples are unpacked, not any iterable. A deserialize pipe may legitimately
+/// return a `dict` — that is how an author declares a map of promises — and a `dict` in Python is
+/// iterable *over its keys*. Treating it as a sequence would take it apart into strings.
 fn flatten<'py>(result: &Bound<'py, PyAny>) -> PyResult<Vec<Bound<'py, PyAny>>> {
     if result.is_none() {
         return Ok(Vec::new());
@@ -255,10 +247,9 @@ fn flatten<'py>(result: &Bound<'py, PyAny>) -> PyResult<Vec<Bound<'py, PyAny>>> 
     Ok(vec![result.clone()])
 }
 
-/// Il risultato di un callable d'autore, appiattito in una lista.
+/// The result of an author's callable, flattened into a list.
 ///
-/// Un pipe può restituire `None` (niente da dire), un singolo elemento, o un iterabile: sono le
-/// tre forme che il riferimento accetta, e la conversione le tratta tutte allo stesso modo.
+/// A pipe may return nothing, a single element, or an iterable; all three are treated alike.
 fn each<'py, T>(
     result: &Bound<'py, PyAny>,
     convert: impl Fn(&Bound<'py, PyAny>) -> PyResult<T>,
@@ -274,23 +265,17 @@ fn each<'py, T>(
             }
             Ok(out)
         }
-        // Non iterabile: è un blocco solo.
+        // Not iterable: it is a single block.
         Err(_) => Ok(vec![convert(result)?]),
     }
 }
 
-/// Logga il traceback e converte l'errore d'autore. Nessun `PyErr` esce da questo modulo.
-///
-/// `PageParseFail` è l'unica eccezione con un significato concordato: l'autore la solleva per dire
-/// "questa pagina non è interpretabile", e nel riferimento l'algoritmo la assorbe saltando la
-/// pagina invece di interrompersi. Diventa perciò [`PipeError::PageParse`], che è l'unica variante
-/// non fatale; ogni altra eccezione resta un fallimento d'autore.
+/// Logs the traceback and converts the author's error. No `PyErr` leaves this module.
 fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> PipeError {
     let message = error.to_string();
     if error.is_instance_of::<crate::python::core::PageParseFail>(py) {
-        // Non fatale: chi assorbe questo errore (`core::algorithm`, `error.is_page_failure()`)
-        // salta la pagina e prosegue, cioè perde un risultato — è esattamente il caso `warn!`
-        // della convenzione ("pagina saltata"), non un evento puramente informativo.
+        // Non-fatal: whoever absorbs this error skips the page and carries on, which loses a result
+        // — a warning, not merely informational.
         tracing::warn!(pipeline, pipe, "author pipe could not parse the page: {message}");
         return PipeError::page_parse(pipe, crate::core::page::PageError::ParseFail { message });
     }
@@ -299,7 +284,7 @@ fn author_error(py: Python<'_>, pipeline: &str, pipe: &str, error: PyErr) -> Pip
     PipeError::author(pipeline, pipe, message)
 }
 
-/// Un pipe `pdf_extract` definito dall'autore del formato.
+/// An extraction pipe written by the format's author.
 pub struct PyPdfExtractPipe {
     pipeline: String,
     name: String,
@@ -317,15 +302,15 @@ impl PdfExtractPipe for PyPdfExtractPipe {
         &self.name
     }
 
-    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
-    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    /// Every call takes the GIL back: across N threads these pipes re-serialise against each other
+    /// and only the cost of distributing them would remain.
     fn scales_with_threads(&self) -> bool {
         false
     }
 
     fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
-        // Il pipe d'autore si aspetta il dizionario PyMuPDF originale, non la `Page` nativa: è la
-        // ragione per cui `Page` lo conserva (`PLAN.md` §3).
+        // An author's pipe expects the original PyMuPDF dict rather than the native page: that is
+        // why a page keeps it.
         let raw = page.raw().ok_or_else(|| {
             PipeError::author(&self.pipeline, &self.name, "the page carries no PyMuPDF dictionary")
         })?;
@@ -337,8 +322,7 @@ impl PdfExtractPipe for PyPdfExtractPipe {
                 .map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
             let blocks =
                 each(&result, pdf_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            // `trace!`, non `debug!`: questo pipe gira una volta per pagina (regola 2, ciclo
-            // caldo del dispatch per-pagina d'autore).
+            // `trace!`, not `debug!`: this pipe runs once per page, in a hot loop.
             tracing::trace!(
                 pipeline = %self.pipeline,
                 pipe = %self.name,
@@ -350,7 +334,7 @@ impl PdfExtractPipe for PyPdfExtractPipe {
     }
 }
 
-/// Un pipe `text_filter` definito dall'autore del formato.
+/// A filtering pipe written by the format's author.
 pub struct PyTextFilterPipe {
     pipeline: String,
     name: String,
@@ -368,8 +352,8 @@ impl TextFilterPipe for PyTextFilterPipe {
         &self.name
     }
 
-    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
-    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    /// Every call takes the GIL back: across N threads these pipes re-serialise against each other
+    /// and only the cost of distributing them would remain.
     fn scales_with_threads(&self) -> bool {
         false
     }
@@ -381,12 +365,11 @@ impl TextFilterPipe for PyTextFilterPipe {
                 for block in blocks {
                     py_blocks.append(pdf_block_to_py(py, block)?)?;
                 }
-                // Il `filter_data` è ciò che il codice d'autore riceve come secondo argomento:
-                // al primo step dello schedule le società bersaglio, dopo l'accumulo dei
-                // risultati degli step precedenti. Entrambi come oggetti veri — le società come
-                // `CompanyMatchInfos`, i risultati come le entità di `freeports.output` — perché
-                // è ciò che i moduli d'autore ci fanno sopra (`c.name`, `isinstance`, gli
-                // attributi delle entità).
+                // The filter data is what the author's code receives as its second argument: at the
+                // first step of the schedule the target companies, afterwards the accumulated
+                // results of the preceding steps. Both as real objects, because that is what author
+                // modules do things with — reading a company's name, testing an entity's type,
+                // reaching its attributes.
                 let py_data = PyList::empty(py);
                 match data {
                     FilterData::TargetCompanies(companies) => {
@@ -408,7 +391,7 @@ impl TextFilterPipe for PyTextFilterPipe {
             let result = convert().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
             let blocks =
                 each(&result, text_block_from_py).map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            // `trace!`: gira una volta per pagina, come `PyPdfExtractPipe::extract`.
+            // `trace!`: runs once per page, like the extraction pipe.
             tracing::trace!(
                 pipeline = %self.pipeline,
                 pipe = %self.name,
@@ -420,12 +403,12 @@ impl TextFilterPipe for PyTextFilterPipe {
     }
 }
 
-/// Un pipe `deserialize` definito dall'autore del formato.
+/// A deserialization pipe written by the format's author.
 ///
-/// In questa fase un pipe d'autore può restituire soltanto **promesse** (una mappa da id a
-/// valore): le dieci entità di `output::classes` non hanno una forma Python finché i binding non
-/// esistono, e M7 ne ha portate solo tre (D-M7-2). Un risultato di forma diversa è un errore
-/// esplicito, non un risultato silenziosamente scartato.
+/// It may return the real output entities, or a **map of promises** — an id-to-value mapping —
+/// which is how an author declares a value to be resolved later in the schedule. A result of any
+/// other shape is an explicit error rather than something silently dropped: a pipe that produced
+/// *something* and had it discarded without a word is the hardest kind of bug to find in a format.
 pub struct PyDeserializePipe {
     pipeline: String,
     name: String,
@@ -443,8 +426,8 @@ impl DeserializePipe for PyDeserializePipe {
         &self.name
     }
 
-    /// Ogni chiamata riprende il GIL: su N thread questi pipe si riserializzano fra loro e
-    /// resterebbe solo l'overhead di distribuzione (`PLAN.md` §4 P2, D-P2-3).
+    /// Every call takes the GIL back: across N threads these pipes re-serialise against each other
+    /// and only the cost of distributing them would remain.
     fn scales_with_threads(&self) -> bool {
         false
     }
@@ -459,14 +442,13 @@ impl DeserializePipe for PyDeserializePipe {
                     if item.is_none() {
                         continue;
                     }
-                    // Un'entità vera (`Fund`, `Equity`, `FundAssets`, ...) è ciò che un pipe
-                    // d'autore restituisce quasi sempre.
+                    // A real entity is what an author's pipe returns nearly always.
                     if let Some(extracted) = crate::python::pipes::extracted_from_py(&item)? {
                         out.push(extracted);
                         continue;
                     }
-                    // Altrimenti resta la forma "mappa di promesse", che è come un autore
-                    // dichiara un valore da risolvere più avanti nello schedule.
+                    // Otherwise the map-of-promises shape, which is how an author declares a value
+                    // to be resolved later in the schedule.
                     let BlockValue::Map(map) = block_value_from_py(&item)? else {
                         return Err(pyo3::exceptions::PyTypeError::new_err(
                             "an author deserialize pipe must return an output entity, a promise mapping, or None",
@@ -481,8 +463,8 @@ impl DeserializePipe for PyDeserializePipe {
                 Ok(out)
             };
             let extracted = call().map_err(|e| author_error(py, &self.pipeline, &self.name, e))?;
-            // `trace!`: gira una volta per blocco, ancora più frequente del dispatch per pagina
-            // degli altri due segmenti (regola 2).
+            // `trace!`: runs once per block, more often still than the per-page dispatch of the
+            // other two segments.
             tracing::trace!(
                 pipeline = %self.pipeline,
                 pipe = %self.name,

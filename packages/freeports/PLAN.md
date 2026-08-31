@@ -792,6 +792,23 @@ Da fare comunque, indipendentemente dalla scelta: **cancellare `docs/source/_gen
 riparare `conf.py` (che oggi importa un pacchetto morto). **Q-D2** per la conferma della
 strategia e per la sorte delle traduzioni.
 
+> **Attuata il 2026-08-31** (Q-D2 risposta: strategia raccomandata confermata, impalcatura
+> gettext mantenuta, scelta delle lingue rimandata). Resoconto in
+> `agent-memory/D1-docs-strategy-plan.md`, sintesi nella riga D1 di `STATUS.md`. Tre scostamenti
+> da quanto previsto sopra, tutti in piu', nessuno in meno:
+>
+> 1. il motivo n.1 a favore di Sphinx (**le traduzioni gia' esistono in quattro lingue**) e'
+>    risultato **sbagliato alla misura**: esiste una sola traduzione parziale, l'italiana al 61%
+>    della prosa viva, mentre `fr` e `pt` sono stub a zero e `en` e' la lingua sorgente. La
+>    raccomandazione resta valida, ma per i motivi 2, 3 e 4;
+> 2. oltre a `docs/source/_generated/`, era tracciato in git anche **`docs/build/`** — 207 file
+>    di sito costruito del pacchetto morto. Rimosso e gitignorato;
+> 3. il lavoro vero non era riparare `conf.py` ma un difetto che questo piano non prevedeva:
+>    **autosummary documentava 10 moduli su 18** di `freeports`, perche' il pacchetto *e'*
+>    l'estensione compilata e le euristiche `pkgutil.iter_modules(__path__)` /
+>    `hasattr(obj, "__path__")` non funzionano sui sottomoduli PyO3. Risolto senza toccare il
+>    crate, la cui superficie e' stata verificata sana. Da 12 a 28 pagine di modulo.
+
 ### D2. Doc-comment del sorgente
 
 I doc-comment attuali sono, per ammissione della richiesta, "traccie operative" scritte durante il
@@ -875,7 +892,7 @@ config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiat
 | **Q-P1** | P | ~~Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale?~~ **Risposta 2026-08-30: processi figli, con IPC dei risultati verso il padre.** Scartate sia la variante "ogni figlio scrive il proprio output" (cambierebbe la semantica di output della modalita' batch) sia i soli thread (il GIL riserializzerebbe proprio il 35-75% misurato da P0). |
 | **Q-P2** | P | ~~Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice.~~ **Risposta 2026-08-30: no, basta l'equivalenza semantica.** Il vincolo §6.2 si allenta: l'output parallelo deve contenere gli stessi dati, non necessariamente nello stesso ordine. Nota d'attuazione di P1: il margine si spende **solo** sull'unione dei log: i risultati dei job restano raccolti in slot indicizzati, quindi l'output aggregato resta byte-identico e i file di riferimento del repo formati restano confrontabili per checksum. |
 | **Q-D1** | D | Il whitepaper e' rivolto anche a un pubblico non tecnico (finanziario/istituzionale) o solo a sviluppatori? Cambia registro e struttura. |
-| **Q-D2** | D | Confermi "un solo sito Sphinx + MyST + rustdoc accanto", scartando mdbook? E le quattro traduzioni (`en`/`fr`/`it`/`pt`) si mantengono, si congelano, o si riducono? |
+| **Q-D2** | D | ~~Confermi "un solo sito Sphinx + MyST + rustdoc accanto", scartando mdbook? E le quattro traduzioni (`en`/`fr`/`it`/`pt`) si mantengono, si congelano, o si riducono?~~ **Risposta 2026-08-31: si' alla strategia raccomandata**; sulle traduzioni, **si tiene l'impalcatura e la scelta delle lingue e' rimandata**. Correzione al motivo n.1 di §5 D1, misurata prima di porre la domanda: le quattro traduzioni sono in realta' **una sola parziale** (`it` al 61% della prosa viva; `fr` e `pt` stub a zero; `en` e' la lingua sorgente), e 1165 dei 1660 msgid venivano da `_generated/`. La scelta regge sugli altri tre motivi, non sul primo. |
 
 ---
 

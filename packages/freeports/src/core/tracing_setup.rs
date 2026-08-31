@@ -1,212 +1,80 @@
-//! Installazione dell'unico sottosistema di logging del crate: solo `tracing`, mai `logging`
-//! Python (`PLAN.md` §2 principio 5, §8). Tre destinazioni, ciascuna un `tracing_subscriber`
-//! layer indipendente componibile su un `tracing_subscriber::Registry`:
+//! The crate's one logging subsystem: `tracing`, and nothing else.
 //!
-//! 1. stderr, verbosità pilotata da un parametro `Verbosity` (il parsing di `-v`/`-vv`/`-vvv`
-//!    è compito di `cli`, milestone M9 — qui si accetta il conteggio già calcolato);
-//! 2. `freeports.log.jsonl`, il log diagnostico **strutturato** (L5): un oggetto JSON per riga,
-//!    allo stesso livello di stderr (L4 -- non piu' il `debug` fisso di M0);
-//! 3. `.log.csv`, un `Layer` custom che intercetta gli eventi che portano (direttamente o per
-//!    eredità da uno `span` attivo) almeno uno dei campi `page`/`coord_ref_1`/`coord_ref_2`/
-//!    `coord_1`/`coord_2` e li accumula per scriverli come righe CSV, ordinate, alla chiusura
-//!    esplicita del layer (`CsvLogLayer::close`, L1 -- vedi più sotto).
+//! A run has four independent destinations, each a `tracing_subscriber` layer composed onto one
+//! `Registry`. They are independent on purpose: what a person reads while watching a run and what a
+//! tool reads afterwards are not the same thing, and trying to serve both from one stream makes
+//! each worse.
 //!
-//! # Contratto per l'implementazione (i test sotto sono il contratto vincolante; questo modulo
-//! # doc è solo una mappa di lettura, in caso di conflitto vincono i test)
+//! | Destination | What it is for | Level |
+//! |---|---|---|
+//! | stderr | watching a run happen | [`Verbosity`] |
+//! | `freeports.log.jsonl` | one JSON object per line, for tools | [`Verbosity`] |
+//! | `.log.csv` | the extraction's own audit trail, anchored to pages and coordinates | `warn` and above |
+//! | `.freeports.log.yaml` | full error structure, for a person diagnosing a failure | `warn` and above, at `-vvv` |
 //!
-//! ## `Verbosity` — **RIAPERTO a M9** (`M9-implementation-plan.md` §0 Q5, su autorizzazione
-//! ## esplicita dell'utente: M0 era chiusa, questa è un'estensione di comportamento su codice
-//! ## chiuso, non un'iniziativa autonoma — vedi la nota di chiusura M9 in `STATUS.md`).
+//! # Verbosity
 //!
-//! L'enum a 4 varianti (`Warn, Info, Debug, Trace`) e la coppia `from_flag_count`/`level` di M0
-//! **spariscono** (non restano deprecate: `Silent` non ha un `tracing::Level` corrispondente,
-//! quindi `level()` non può restare com'era), sostituiti da una scala a 6 livelli con `-v`/`-q`
-//! come manopole indipendenti:
+//! [`Verbosity`] is a six-level scale, and `-v` and `-q` are **independent dials** rather than
+//! mutually exclusive flags: the net offset `verbose - quiet` is added to the default and clamped,
+//! so no combination of counts can produce an error or an out-of-range level.
 //!
-//! ```text
-//! #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-//! pub enum Verbosity { Silent, ErrorOnly, Warn, Info, Debug, Trace }
-//!
-//! impl Verbosity {
-//!     /// Ordine crescente di verbosità.
-//!     pub const ORDER: [Verbosity; 6] =
-//!         [Verbosity::Silent, Verbosity::ErrorOnly, Verbosity::Warn,
-//!          Verbosity::Info, Verbosity::Debug, Verbosity::Trace];
-//!     /// Indice di `ORDER` quando né `-v` né `-q` compaiono (0 e 0) -- `Warn`.
-//!     pub const DEFAULT_INDEX: usize = 2;
-//!
-//!     /// Sostituisce `from_flag_count`. `-v` e `-q` sono manopole indipendenti sommate con
-//!     /// segno rispetto a `DEFAULT_INDEX`, **non** mutuamente esclusive (divergenza deliberata
-//!     /// dal riferimento Python, che le tratta come tali -- voluta dall'utente, "independent
-//!     /// dials"). L'offset netto è clampato a `[0, ORDER.len()-1]`, mai un panic/indice fuori
-//!     /// bound qualunque siano `verbose`/`quiet` (anche ai limiti di `u8`).
-//!     pub fn from_verbose_and_quiet_counts(verbose: u8, quiet: u8) -> Verbosity;
-//!
-//!     /// Sostituisce `level(self) -> tracing::Level`. Usato da `stderr_layer` al posto di
-//!     /// `LevelFilter::from_level(verbosity.level())`.
-//!     pub fn level_filter(self) -> tracing_subscriber::filter::LevelFilter;
-//! }
-//! ```
-//!
-//! Semantica esatta (`M9-implementation-plan.md` §0 Q5, tabella completa):
-//!
-//! | flag | risultato |
+//! | flags | level |
 //! |---|---|
-//! | nessuno (`0,0`) | `Warn` (mostra `Warn` **e** `Error`, verificato sulla semantica reale di `tracing_subscriber::filter::LevelFilter`, non solo dedotto dal nome) |
-//! | `-q` (`0,1`) | `ErrorOnly` |
-//! | `-qq` o più (`0,2+`) | `Silent`, clampato |
-//! | `-v` (`1,0`) | `Info` |
-//! | `-vv` (`2,0`) | `Debug` |
-//! | `-vvv` o più (`3+,0`) | `Trace`, clampato |
-//! | combinazioni (es. `2,1`) | offset netto `verbose - quiet` sommato a `DEFAULT_INDEX`, clampato -- mai un errore |
+//! | none | `Warn` |
+//! | `-q` | `ErrorOnly` |
+//! | `-qq` or more | `Silent` |
+//! | `-v` | `Info` |
+//! | `-vv` | `Debug` |
+//! | `-vvv` or more | `Trace` |
 //!
-//! **Equivalenza con la vecchia `from_flag_count` quando `quiet == 0`** (nessuna perdita di
-//! comportamento sul solo `-v`): `(0,0)->Warn`, `(1,0)->Info`, `(2,0)->Debug`, `(3+,0)->Trace`
-//! saturato -- identico al vecchio `from_flag_count`.
+//! # What puts a row in `.log.csv`
 //!
-//! `level_filter()` mappa esattamente:
-//! `Silent -> OFF`, `ErrorOnly -> ERROR`, `Warn -> WARN`, `Info -> INFO`, `Debug -> DEBUG`,
-//! `Trace -> TRACE`.
+//! For each event the layer merges the event's own fields with those of **every** active span, from
+//! the outermost inwards; on a name clash the innermost span wins, and the event's own fields win
+//! over any span. A row is written only if the merged set carries at least one of the five tagged
+//! fields — `page`, `coord_ref_1`, `coord_ref_2`, `coord_1`, `coord_2`. Columns whose field is
+//! absent stay empty cells.
 //!
-//! `stderr_layer(verbosity)` cambia una riga rispetto a M0:
-//! `.with_filter(verbosity.level_filter())` al posto di
-//! `.with_filter(LevelFilter::from_level(verbosity.level()))` -- unico cambiamento di
-//! `stderr_layer` stesso, il resto del modulo (`file_layer`/`CsvLogLayer`/`init`) è indipendente
-//! dalla verbosità e non cambia.
-//!
-//! ## `TracingSetupError`
-//!
-//! Un solo enum d'errore per il modulo (`PLAN.md` §2 principio 4), con `thiserror`:
-//!
-//! ```text
-//! pub enum TracingSetupError {
-//!     OpenLogFile { path: PathBuf, source: std::io::Error },   // il log su file non apribile
-//!     OpenCsvFile { path: PathBuf, source: std::io::Error },   // .log.csv non apribile
-//!     CsvWrite { source: csv::Error },                          // scrittura riga CSV fallita
-//!     AlreadyInitialized { source: tracing::subscriber::SetGlobalDefaultError },
-//! }
-//! ```
-//!
-//! Messaggi (`Display`) esatti, verificati dai test in `tests::errors::display`:
-//! - `OpenLogFile`: `"cannot open log file at {path}: {source}"`
-//! - `OpenCsvFile`: `"cannot open csv log file at {path}: {source}"`
-//! - `CsvWrite`: `"failed to write a row to the .log.csv file: {source}"`
-//! - `AlreadyInitialized`: `"cannot install the global tracing subscriber: {source}"`
-//!
-//! ## Layer builder e funzione di init
-//!
-//! ```text
-//! pub fn stderr_layer<S>(verbosity: Verbosity) -> impl tracing_subscriber::Layer<S>
-//! where S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>;
-//!
-//! pub fn file_layer<S>(path: &Path) -> Result<impl tracing_subscriber::Layer<S>, TracingSetupError>
-//! where S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>;
-//! // Filtra sempre a `debug` (include debug/info/warn/error, esclude trace), indipendentemente
-//! // dalla `Verbosity` passata a `stderr_layer` — sono due destinazioni indipendenti.
-//! // Apre/crea (troncando) il file al percorso dato; errore -> OpenLogFile.
-//!
-//! pub struct CsvLogLayer { /* privato, Clone (Arc interno) */ }
-//! impl CsvLogLayer {
-//!     pub fn create(path: &Path) -> Result<Self, TracingSetupError>;
-//!     // Apre/crea (troncando) il file, scrive **subito** (flush incluso, prima del ritorno) la
-//!     // riga di intestazione `CSV_HEADER`. Errore d'apertura -> OpenCsvFile. Le righe dati non
-//!     // scrivono più in streaming: si accumulano, vedi `close` sotto e "Ciclo di vita".
-//!
-//!     pub fn close(&self) -> Result<(), TracingSetupError>;
-//!     // Ordina tutte le righe accumulate finora per `RowOrderKey` e le scrive, poi fa flush.
-//!     // Idempotente (una seconda chiamata, o un `Drop` successivo, non duplica nulla).
-//! }
-//! impl<S> tracing_subscriber::Layer<S> for CsvLogLayer
-//! where S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>;
-//!
-//! pub const CSV_HEADER: &str =
-//!     "Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n";
-//!
-//! pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<CsvLogLayer, TracingSetupError>;
-//! // Compone i tre layer (stderr_layer(verbosity), file_layer(log_dir/LOG_FILE_NAME),
-//! // CsvLogLayer::create(log_dir/".log.csv")) su un tracing_subscriber::registry() e lo installa
-//! // con tracing::subscriber::set_global_default. NON usa `Once`: a differenza del vecchio ponte
-//! // PyO3 (che doveva tollerare re-inizializzazioni innescate dall'import Python), il binario
-//! // Rust chiama `init` esattamente una volta da `main`; una seconda chiamata nello stesso
-//! // processo è un errore di programmazione del chiamante, riportato come
-//! // `AlreadyInitialized` invece che ignorato in silenzio (mai panico sul percorso utente).
-//! // Ordine vincolante: entrambi i file (`freeports.log.jsonl`, `.log.csv`) devono essere aperti con
-//! // successo *prima* di tentare `set_global_default` — un `log_dir` invalido deve fallire con
-//! // `OpenLogFile`/`OpenCsvFile` senza mai installare un subscriber globale, altrimenti una
-//! // singola chiamata fallita per un percorso sbagliato brucerebbe comunque l'unica
-//! // inizializzazione possibile del processo. **Firma cambiata da L1**: ritorna l'handle del
-//! // layer CSV, che il chiamante deve chiudere esplicitamente con `.close()` prima che il
-//! // processo termini -- il subscriber globale installato qui non viene mai droppato a fine
-//! // processo, vedi "Ciclo di vita" sotto.
-//! ```
-//!
-//! ## Ciclo di vita di `CsvLogLayer` (L1)
-//!
-//! `close()` esplicito è l'unico meccanismo supportato per rendere visibili su disco le righe
-//! dati accumulate: il subscriber globale installato da `init` non viene mai droppato a fine
-//! processo (`tracing::subscriber::set_global_default` installa un `Dispatch` `'static`), quindi
-//! non c'è altro modo di svuotare il buffer sul percorso CLI. `Drop` (su `CsvLogLayerInner`, non
-//! su ogni singolo clone di `CsvLogLayer`) resta una rete di sicurezza best-effort per gli usi
-//! via `tracing::subscriber::with_default` (dove la subscriber viene comunque droppata a fine
-//! scope, il percorso Python), ma non è il contratto: i chiamanti devono chiamare `close()`
-//! esplicitamente.
-//!
-//! ## Regola di selezione delle righe di `.log.csv`
-//!
-//! Per ogni evento, il layer unisce i campi dell'evento con quelli di **tutti** gli span attivi
-//! nello stack (dal più esterno al più interno; a parità di nome campo vince lo span più
-//! interno; i campi dell'evento vincono su qualunque span). Se l'insieme unito non contiene
-//! **nessuno** dei cinque campi taggati (`page`, `coord_ref_1`, `coord_ref_2`, `coord_1`,
-//! `coord_2`), l'evento non produce alcuna riga in `.log.csv` (può comunque raggiungere
-//! stderr/`freeports.log.jsonl`, che non hanno questo filtro). Se contiene almeno uno di questi campi,
-//! viene scritta una riga: le colonne il cui campo non è presente restano cella vuota (non la
-//! stringa `"None"` o simili). `Activity` (vedi sotto) non è mai un campo taggato, quindi non
-//! basta da sola a far scattare una riga (Q-L2, `L1-implementation-plan.md`).
-//!
-//! Mappatura campo -> colonna:
-//!
-//! | campo tracing | colonna CSV |
+//! | tracing field | CSV column |
 //! |---|---|
 //! | `page` | `Page` |
-//! | *(nessuno: calcolata dagli span attivi)* | `Activity` |
+//! | *(computed from the active spans)* | `Activity` |
 //! | `coord_ref_1` | `First coord ref` |
 //! | `coord_ref_2` | `Second coord ref` |
 //! | `coord_1` | `First coord` |
 //! | `coord_2` | `Second coord` |
-//! | messaggio dell'evento (`message`) | `Message` |
+//! | the event's `message` | `Message` |
 //!
-//! **`Activity`** è il percorso `/`-separato dei nomi degli span attivi al momento dell'evento,
-//! dal più esterno al più interno (`activity_path`, calcolato **solo dopo** aver confermato che
-//! l'evento produce comunque una riga — vedi il commento nel corpo di `on_event`, e
-//! `L1-implementation-plan.md` §2.2/§2.3).
+//! `Activity` is derived from the span stack and is never a tagged field, so it enriches a row but
+//! never justifies one on its own. The two `coord_ref_*` fields are textual anchors to a position —
+//! a matched company, a field name — and are set on a **span** wrapping the deserialization of a
+//! row rather than on each event, which is how `tracing` is meant to give context to everything
+//! beneath it.
 //!
-//! I due campi `coord_ref_1`/`coord_ref_2` sono ancoraggi testuali alla stessa posizione (es. una
-//! società riconosciuta, il nome di un campo) e non vengono messi sugli eventi uno per uno ma su
-//! uno **span** che avvolge la deserializzazione di una riga di investimento, che è il modo
-//! idiomatico in `tracing` di dare un contesto a tutti gli eventi che ne discendono (e il layer
-//! li eredita già, vedi `on_event`).
+//! # One row per event, not three per failure
 //!
-//! # Una riga per evento, non tre per fallimento
+//! A lost field is one row saying both what went wrong and what was done about it
+//! (`"Error casting, skipping field: …"`), not an error row plus two warnings about mitigation and
+//! consequence. The level already carries the severity and the message the consequence. A
+//! **successful** mitigation does stay a row of its own, because nothing was lost and that is
+//! different information.
 //!
-//! Il riferimento scriveva **tre** righe per ogni campo perso: un `ERROR` con ciò che era andato
-//! storto, e due `WARN` con la mitigazione e la conseguenza. Qui un fallimento di cast è una riga
-//! sola, che dice entrambe le cose (`"Error casting, skipping field: ..."`) — scelta concordata
-//! con l'utente (2026-08-24): il criterio originale resta valido, ma una riga per evento è la
-//! forma idiomatica di `tracing`, dove il livello dice già la gravità e il messaggio la
-//! conseguenza. Resta invece una riga a sé la mitigazione **riuscita** (il `forcing cast` di
-//! `deserialize::cast`), che è un'informazione diversa: lì non si è perso niente.
+//! CSV escaping is delegated entirely to the `csv` crate's defaults; nothing is quoted by hand.
 //!
-//! Escaping CSV: nessuna logica scritta a mano, si delega interamente alle regole di default del
-//! crate `csv` (delimitatore `,`, quoting `Necessary`, terminatore di riga `\n`) — i test in
-//! `tests::csv_layer::csv_escaping` fissano i casi concreti (virgola, virgolette, newline nel
-//! valore).
+//! # Lifecycle
 //!
-//! La riga di intestazione viene scritta **e resa visibile su disco** prima che
-//! `CsvLogLayer::create` ritorni, come sempre. Le righe **dati** non lo sono più (L1): `on_event`
-//! le accumula soltanto, ordinate e scritte solo da una chiamata esplicita a `CsvLogLayer::close`
-//! (`Drop` resta una rete di sicurezza best-effort, non il contratto — vedi "Ciclo di vita" più
-//! sopra). I test chiamano `close()` esplicitamente prima di leggere il file, non si affidano più
-//! al solo momento in cui lo scope che ha installato il subscriber finisce.
+//! The header row of `.log.csv` is written and flushed before [`CsvLogLayer::create`] returns. Data
+//! rows are **accumulated**, then sorted and written by an explicit [`CsvLogLayer::close`].
+//!
+//! The explicit close is the only supported mechanism, because the global subscriber installed by
+//! [`init`] is never dropped: `set_global_default` installs a `'static` dispatcher, so process exit
+//! flushes nothing. `Drop` remains a best-effort safety net for uses that install a subscriber for
+//! a scope, but it is not the contract.
+//!
+//! [`init`] likewise opens **every** log file before attempting `set_global_default`. A bad log
+//! directory must fail without installing anything: a process gets one global subscriber, and
+//! burning it on a call that then fails would leave the run with no logging at all and no way to
+//! retry.
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
@@ -237,8 +105,8 @@ pub enum Verbosity {
 }
 
 impl Verbosity {
-    /// Ordine crescente, usato sia dal clamping di `from_verbose_and_quiet_counts` sia dai test
-    /// che iterano tutti i livelli.
+    /// Increasing order of verbosity, used both by the clamping in
+    /// [`Verbosity::from_verbose_and_quiet_counts`] and by the tests that iterate every level.
     pub const ORDER: [Verbosity; 6] = [
         Verbosity::Silent,
         Verbosity::ErrorOnly,
@@ -247,14 +115,14 @@ impl Verbosity {
         Verbosity::Debug,
         Verbosity::Trace,
     ];
-    /// Indice di `ORDER` usato quando `-v`/`-q` non compaiono affatto (0 e 0).
+    /// The index into [`Verbosity::ORDER`] used when neither `-v` nor `-q` appears.
     pub const DEFAULT_INDEX: usize = 2; // Warn
 
-    /// Sostituisce `from_flag_count` (rimossa, non deprecata: equivalente esatto quando
-    /// `quiet == 0`). `-v` e `-q` sono manopole indipendenti sommate con segno rispetto a
-    /// `DEFAULT_INDEX`, non mutuamente esclusive -- divergenza deliberata dal riferimento
-    /// Python (che le tratta come mutuamente esclusive), voluta dall'utente ("independent
-    /// dials", `M9-implementation-plan.md` §0 Q5).
+    /// `-v` and `-q` are **independent dials**, summed with sign against
+    /// [`Verbosity::DEFAULT_INDEX`], rather than mutually exclusive flags.
+    ///
+    /// The net offset is clamped to the range of [`Verbosity::ORDER`], so no pair of counts —
+    /// including the extremes of `u8` — can panic or produce an out-of-range level.
     pub fn from_verbose_and_quiet_counts(verbose: u8, quiet: u8) -> Verbosity {
         let offset = i16::from(verbose) - i16::from(quiet);
         let last = (Self::ORDER.len() - 1) as i16;
@@ -262,8 +130,10 @@ impl Verbosity {
         Self::ORDER[index as usize]
     }
 
-    /// Sostituisce `level(self) -> tracing::Level` (rimosso: `Silent` non ha un
-    /// `tracing::Level` corrispondente, l'assenza di un livello non è un livello).
+    /// The level filter for this verbosity.
+    ///
+    /// A `LevelFilter` rather than a `tracing::Level`, because `Silent` has no corresponding level:
+    /// the absence of a level is not a level.
     pub fn level_filter(self) -> LevelFilter {
         match self {
             Verbosity::Silent => LevelFilter::OFF,
@@ -342,13 +212,13 @@ impl<S> tracing_subscriber::layer::Filter<S> for EventLevelFilter {
 }
 
 /// Renders a span's fields as **values only**, comma-separated, with no `key=` prefix and no
-/// `Debug` quoting — the half of `SpanPathFormat` that turns `class{class=investments}` into the
-/// `class[investments]` the user asked for (`PLAN.md` §3 L4). Only ever used to build the
-/// `FormattedFields` of a *span*: `SpanPathFormat` formats an event's own fields itself, where
-/// `key=value` is still the useful form.
+/// `Debug` quoting — the half of [`SpanPathFormat`] that turns `class{class=investments}` into
+/// `class[investments]`. Only ever used to build the `FormattedFields` of a *span*:
+/// [`SpanPathFormat`] formats an event's own fields itself, where `key=value` is still the useful
+/// form.
 ///
-/// A span with no fields yields an empty string, which `SpanPathFormat` renders as the bare span
-/// name (no empty `[]`).
+/// A span with no fields yields an empty string, which [`SpanPathFormat`] renders as the bare span
+/// name, with no empty `[]`.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SpanValueFields;
 
@@ -404,22 +274,20 @@ impl<'writer> FormatFields<'writer> for SpanValueFields {
 /// DEBUG run/job[EURIZON-EN23]/page[353]: message key=value
 /// ```
 ///
-/// Three deliberate differences from `tracing_subscriber`'s default `Format<Full>`, all asked for
-/// by the user after the L2 sweep (`PLAN.md` §3 L4/L5):
+/// Three deliberate differences from `tracing_subscriber`'s default `Format<Full>`:
 ///
-/// 1. spans are joined with `/` and carry their identifying value in brackets
-///    (`page[353]`), instead of `:`-joined `name{field=value}` pairs that repeat the span name
-///    inside its own braces (`page{page=353}`);
+/// 1. spans are joined with `/` and carry their identifying value in brackets (`page[353]`),
+///    instead of `:`-joined `name{field=value}` pairs that repeat the span name inside its own
+///    braces (`page{page=353}`);
 /// 2. the resulting path is **the same string** the `.log.csv` `Activity` column carries (see
 ///    `activity_path`), so a line on stderr and a row in the CSV name the same place identically;
-/// 3. **no timestamp and no `target`** (L5). Both were dropped when `freeports.log` became
-///    structured: the module path (`freeports::core::algorithm`) is the longest token on the line
-///    and is almost never what a human reading a live run is looking for, while the wall clock is
-///    only useful afterwards. Neither is lost — `freeports.log.jsonl` carries both, on every
-///    record, in a form a machine can filter on.
+/// 3. **no timestamp and no `target`**. The module path (`freeports::core::algorithm`) is the
+///    longest token on the line and almost never what a person watching a live run is looking for,
+///    while the wall clock is only useful afterwards. Neither is lost: `freeports.log.jsonl` carries
+///    both on every record, in a form a machine can filter on.
 ///
-/// Four colors, not one, so the eye can take the path apart without reading it (L5): the
-/// structure recedes, the names carry the shape, the values stand out.
+/// Four colors, not one, so the eye can take the path apart without reading it: the structure
+/// recedes, the names carry the shape, the values stand out.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SpanPathFormat {
     ansi: bool,
@@ -608,12 +476,11 @@ where
 }
 
 /// A `BufWriter<File>` behind a shared `Mutex`, so the same buffer can be both the destination
-/// `JsonLogLayer` writes its lines into and the thing `LogHandle::close` flushes.
+/// [`JsonLogLayer`] writes its lines into and the thing [`LogHandle::close`] flushes.
 ///
-/// Buffering is not a micro-optimization here: before L4 the layer wrote straight into a bare
-/// `File`, one `write(2)` per event, and it did so at a hardcoded `DEBUG` regardless of
-/// verbosity — 33.086 unbuffered syscalls for a single 1140-page job. It is one of the five
-/// causes measured in `agent-memory/L4-logging-tuning-plan.md` §0.
+/// Buffering is not a micro-optimisation here. Writing straight into a bare `File` meant one
+/// `write(2)` per event — 33,086 unbuffered syscalls for a single 1140-page job — and it happened
+/// at a hardcoded `DEBUG` regardless of verbosity.
 #[derive(Debug, Clone)]
 pub struct SharedFileWriter(Arc<Mutex<BufWriter<File>>>);
 
@@ -660,12 +527,13 @@ where
 pub const CSV_HEADER: &str =
     "Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n";
 
-/// Tracing field names that select a `.log.csv` row when at least one of them is present
-/// (directly on the event, or inherited from an enclosing span) — see the module doc's "Regola
-/// di selezione delle righe di `.log.csv`". Kept separate from `message`, which always feeds the
-/// `Message` column but never by itself triggers a row. `Activity` deliberately never appears
-/// here: it is never a field recorded into `CapturedFields`, it is computed separately in
-/// `on_event` from the active span names themselves — see `activity_path`.
+/// Tracing field names that select a `.log.csv` row when at least one of them is present, either
+/// directly on the event or inherited from an enclosing span. See the module documentation.
+///
+/// Kept separate from `message`, which always feeds the `Message` column but never on its own
+/// triggers a row. `Activity` deliberately never appears here: it is never recorded into
+/// `CapturedFields`, it is computed separately in `on_event` from the active span names — see
+/// `activity_path`.
 const TAGGED_FIELDS: [&str; 5] = ["page", "coord_ref_1", "coord_ref_2", "coord_1", "coord_2"];
 
 /// Field values collected from a single event or span, restricted to the columns `CsvLogLayer`
@@ -707,9 +575,8 @@ impl FieldVisitor {
     }
 
     /// **Only ever called after `keeps` returned true.** Every `record_*` below tests the field
-    /// name *before* rendering the value: the pre-L4 version formatted first and discarded
-    /// after, so every field of every event in the crate paid a `format!` allocation just to be
-    /// dropped (cause 4 of `agent-memory/L4-logging-tuning-plan.md` §0).
+    /// name *before* rendering the value: formatting first and discarding after made every field of
+    /// every event in the crate pay a `format!` allocation just to be thrown away.
     fn record(&mut self, field: &Field, value: String) {
         self.0.0.insert(field.name(), value);
     }
@@ -778,12 +645,12 @@ impl Visit for SpanLabelVisitor {
 
 impl SpanLabel {
     /// `name` when the span has no fields, `name[v1,v2]` when it has some — the vocabulary of
-    /// `PLAN.md` §3 L1 (`page[353]`, `class[investments]`, `format[EURIZON-EN23]`).
+    /// `page[353]`, `class[investments]`, `format[EURIZON-EN23]`.
     fn build(name: &str, attrs: &span::Attributes<'_>) -> Self {
         let mut visitor = SpanLabelVisitor(Vec::new());
         attrs.record(&mut visitor);
-        // Un valore vuoto non produce parentesi: la pipeline senza nome del page-classify si
-        // rende `pipeline`, non `pipeline[]`.
+        // An empty value produces no brackets: the unnamed page-classify pipeline renders as
+        // `pipeline`, not `pipeline[]`.
         visitor.0.retain(|value| !value.is_empty());
         if visitor.0.is_empty() {
             Self(name.to_string())
@@ -794,18 +661,15 @@ impl SpanLabel {
 }
 
 /// `/`-separated path of the currently active spans, outermost to innermost, each rendered as
-/// `name[value]` via its `SpanLabel`. Empty string if no span is active.
+/// `name[value]` through its `SpanLabel`. The empty string if no span is active.
 ///
-/// Since L4 this is the vocabulary `PLAN.md` §3 L1 actually specified
-/// (`run/job[EURIZON-EN23]/step[0]/page[353]/pipeline[investments]/deserialize`) rather than the
-/// bare names it produced before (`run/job/step/page/pipeline/deserialize`), and it is the same
-/// string the stderr line carries (see `SpanPathFormat`) and the `activity` key of the two
-/// structured logs (see `build_record`).
+/// It is the same string the stderr line carries (see [`SpanPathFormat`]) and the `activity` key of
+/// the two structured logs (see `build_record`).
 ///
-/// **Calling this has a real cost** (it walks the whole span stack and allocates a `Vec`/
-/// `String` on every call): callers must only invoke it once a row is already known to be
-/// emitted (`CapturedFields::has_any_tagged_field()` is true), never unconditionally at the top
-/// of `on_event` — see `L1-implementation-plan.md` §2.2 (critic 2026-08-29, point 3).
+/// **Calling this has a real cost**: it walks the whole span stack and allocates a `Vec` and a
+/// `String` every time. Callers must invoke it only once a row is known to be emitted
+/// (`CapturedFields::has_any_tagged_field()` is true), never unconditionally at the top of
+/// `on_event`.
 fn activity_path<S>(ctx: &Context<'_, S>, event: &Event<'_>) -> String
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
@@ -830,16 +694,15 @@ where
 /// `page` has a real producer): `page` itself, with an arrival counter as both tie-breaker and
 /// total fallback for rows without a numbered page.
 ///
-/// **Extension point for L2/P1 — two pitfalls, not just "add more fields"**
-/// (`L1-implementation-plan.md` §2.3, critic 2026-08-29, point 4):
+/// # Extending this key: two pitfalls, not just "add more fields"
+///
 /// 1. With `#[derive(Ord)]` on a plain struct, fields compare **in declaration order**. A future
 ///    "document, page, step, sequence" key must declare `document`/`step` **before** `page`, not
 ///    append them after `sequence` — appending at the end compiles fine but sorts silently
 ///    wrong (by page first, by document second — the opposite of the intended hierarchy).
 /// 2. A future `document` field must be a job **index** (`u64`, assigned in execution order), not
 ///    a document id/name `String`: sorting by a `String` id would produce alphabetical order,
-///    while today's batch behavior is arrival order of jobs (the sequential `for` in
-///    `cli::run::execute`).
+///    while the batch behaviour is arrival order of jobs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct RowOrderKey {
     page: PageKey,
@@ -910,12 +773,13 @@ impl CsvLogLayerInner {
     }
 }
 
-/// Best-effort safety net, **not** the supported contract (`L1-implementation-plan.md` §0
-/// Q-L1d): the CLI path installs a `'static` global `Dispatch` that the process never drops, so
-/// `close()` is the only way to guarantee the buffer reaches disk there. Implemented on
-/// `CsvLogLayerInner`, not on `CsvLogLayer`, so it only fires when the **last** `Arc` disappears,
-/// not on every `.clone()` dropped. I/O errors are swallowed here (`Drop` has no channel back to
-/// a caller); a no-op if the buffer is already empty.
+/// Best-effort safety net, **not** the supported contract: the CLI path installs a `'static` global
+/// `Dispatch` that the process never drops, so [`CsvLogLayer::close`] is the only way to guarantee
+/// the buffer reaches disk there.
+///
+/// Implemented on `CsvLogLayerInner` rather than on [`CsvLogLayer`], so it fires only when the
+/// **last** `Arc` disappears, not on every dropped clone. I/O errors are swallowed here — `Drop`
+/// has no channel back to a caller — and it is a no-op if the buffer is already empty.
 impl Drop for CsvLogLayerInner {
     fn drop(&mut self) {
         let _ = self.flush_rows();
@@ -1071,9 +935,8 @@ where
         event.record(&mut event_visitor);
         merged.merge_from(&event_visitor.0);
 
-        // Binding: check selection *before* computing `activity_path` (`L1-implementation-plan.md`
-        // §2.2/§2.3, critic 2026-08-29 point 3) -- `activity_path` walks the whole span stack and
-        // must never run on an event that ends up producing no row.
+        // Binding: check selection *before* computing `activity_path`, which walks the whole span
+        // stack and must never run for an event that ends up producing no row.
         if !merged.has_any_tagged_field() {
             return;
         }
@@ -1136,8 +999,8 @@ pub const CSV_FILE_NAME: &str = ".log.csv";
 /// per line — see `JsonLogLayer`.
 pub const LOG_FILE_NAME: &str = "freeports.log.jsonl";
 
-/// What `init` hands back: the destinations that hold data in memory and must be settled before
-/// the process exits — the accumulated `.log.csv` rows and the `freeports.log.jsonl` buffer. The global
+/// What `init` hands back: the destinations that hold data in memory and must be settled before the
+/// process exits — the accumulated `.log.csv` rows and the `freeports.log.jsonl` buffer. The global
 /// `Dispatch` installed by `init` is `'static` and never dropped, so neither one reaches disk
 /// without this.
 #[derive(Debug, Clone)]
@@ -1146,12 +1009,13 @@ pub struct LogHandle {
     file: SharedFileWriter,
     /// `Some` only at maximum verbosity — see `YamlLogLayer` and `init`.
     yaml: Option<YamlLogLayer>,
-    /// P1: what the worker processes logged, in job order, waiting to be poured into this run's
-    /// own files at `close()`. Held in memory rather than merged file-by-file because the worker
-    /// area is deleted as soon as the jobs are done, while this run's files are only written at
-    /// the very end.
-    /// `Arc` come gli altri due campi: un `LogHandle` clonato deve condividere lo stesso buffer,
-    /// altrimenti la copia che riceve i log dei figli non e' quella su cui si chiama `close()`.
+    /// What the worker processes logged, in job order, waiting to be poured into this run's own
+    /// files at `close()`.
+    ///
+    /// Held in memory rather than merged file by file because the worker area is deleted as soon as
+    /// the jobs are done, while this run's files are only written at the very end. Behind an `Arc`
+    /// like the other two fields: a cloned [`LogHandle`] must share the same buffer, or the copy
+    /// that receives the children's logs is not the one `close()` is called on.
     absorbed: Arc<Mutex<Vec<WorkerLogs>>>,
 }
 
@@ -1221,26 +1085,26 @@ impl LogHandle {
         self.csv.set_destination(&dir.join(CSV_FILE_NAME))
     }
 
-    /// Flushes every destination. Attempts the `freeports.log.jsonl` flush even if the CSV one failed,
-    /// so a failure in one never costs the diagnostics held by the other; the CSV error wins as
-    /// the reported one, being the artifact the integration tests compare.
+    /// Flushes every destination. Attempts the `freeports.log.jsonl` flush even if the CSV one
+    /// failed, so a failure in one never costs the diagnostics held by the other; the CSV error
+    /// wins as the reported one, being the artifact the integration tests compare.
     pub fn close(&self) -> Result<(), TracingSetupError> {
-        // Nessuna destinazione = nessun file (L5). Ci si arriva solo quando la corsa muore
-        // *prima* che la configurazione risolva, cioe' prima che `cli::run::execute` sappia dove
-        // vanno gli output: fino a L5 in quel caso il registro ripiegava sulla cartella di
-        // lavoro, lasciando un `.log.csv` di sola intestazione a ogni corsa fallita. Le righe in
-        // sospeso sono tutte eventi che hanno gia' raggiunto stderr e `freeports.log.jsonl`.
+        // No destination means no file. This is reached only when a run dies *before* the
+        // configuration resolves — that is, before it is known where the outputs go. Falling back
+        // to the working directory instead would leave a header-only `.log.csv` behind after every
+        // failed run. The pending rows are all events that have already reached stderr and
+        // `freeports.log.jsonl`.
         if !self.csv.has_destination() {
             self.csv.discard();
         }
-        // Ogni destinazione viene tentata comunque, anche se una precedente ha fallito: un
-        // errore su una non deve costare le diagnostiche tenute dalle altre. Il CSV vince come
-        // errore riportato, essendo l'artefatto che i test d'integrazione confrontano.
+        // Every destination is attempted even if an earlier one failed: an error on one must not
+        // cost the diagnostics held by the others. The CSV wins as the reported error, being the
+        // artefact the integration tests compare.
         let csv_result = self.csv.close();
         let yaml_result = self.yaml.as_ref().map_or(Ok(()), YamlLogLayer::close);
-        // Dopo, mai prima: le righe del padre sono ordinate e scritte per prime, e `.log.csv` e
-        // `.freeports.log.yaml` vengono entrambi *troncati* dalla scrittura del padre -- riversare
-        // i figli in anticipo significherebbe scriverli e poi cancellarli.
+        // After, never before: the parent's rows are sorted and written first, and both `.log.csv`
+        // and `.freeports.log.yaml` are *truncated* by that write — pouring the children in earlier
+        // would mean writing them and then erasing them.
         let absorbed_result = self.pour_absorbed();
         let file_result = self.file.flush();
         csv_result?;
@@ -1265,9 +1129,10 @@ fn strip_csv_header(bytes: &[u8]) -> Vec<u8> {
     }
 }
 
-/// Un `LogHandle` completo **senza** installare alcun subscriber globale: serve ai test di
-/// `cli::run::execute`, che devono poter chiamare `set_csv_dir` senza bruciare l'unica
-/// `set_global_default` del processo di test.
+/// A complete [`LogHandle`] **without** installing any global subscriber.
+///
+/// For the tests of `cli::run::execute`, which need to call `set_csv_dir` without burning the test
+/// process's one `set_global_default`.
 #[cfg(test)]
 pub fn log_handle_for_tests(log_dir: &Path) -> Result<LogHandle, TracingSetupError> {
     let (_, file_writer) = file_layer::<tracing_subscriber::Registry>(
@@ -1299,7 +1164,7 @@ where
     error
 }
 
-/// File name of the structured error log written only at maximum verbosity — L3 of `PLAN.md` §3.
+/// File name of the structured error log, written only at maximum verbosity.
 pub const YAML_FILE_NAME: &str = ".freeports.log.yaml";
 
 /// Whether this run generates `.freeports.log.yaml` at all: **only at maximum verbosity**
@@ -1309,25 +1174,25 @@ pub fn wants_yaml_log(verbosity: Verbosity) -> bool {
     verbosity == Verbosity::Trace
 }
 
-/// Level recorded into `.freeports.log.yaml`: warnings and errors. It is the *error* log — the
-/// plan calls it "la serializzazione degli errori" — so it takes what went wrong, not a second
-/// copy of the trace that `-vvv` already writes to `freeports.log`.
+/// Level recorded into `.freeports.log.yaml`: warnings and errors.
+///
+/// It is the *error* log, so it takes what went wrong, not a second copy of the trace that `-vvv`
+/// already writes to `freeports.log.jsonl`.
 pub const YAML_LEVEL: LevelFilter = LevelFilter::WARN;
 
-/// The error attached to one record, in the **structural** form of Q-L3 option (b): no
-/// `Serialize` derived on the crate's ~25 `thiserror` enums, nothing about their shape frozen
-/// into a serialization contract, and third-party errors work too.
+/// The error attached to one record, in **structural** form: nothing derives `Serialize` on the
+/// crate's error enums, no error's shape is frozen into a serialization contract, and third-party
+/// errors work too.
 ///
-/// `debug` stands in for the `type` field the plan sketched. A `&dyn Error` cannot report its own
-/// concrete type name (`type_name_of_val` on a trait object answers `dyn core::error::Error`, and
-/// `Error::type_id` is unstable), but `{:?}` on a `thiserror` enum already prints the variant and
-/// its fields — `CastError::NotANumber { value: "n/a" }` — which is strictly more than the type
-/// name would have been.
+/// `debug` stands in for a type name. A `&dyn Error` cannot report its own concrete type
+/// (`type_name_of_val` on a trait object answers `dyn core::error::Error`, and `Error::type_id` is
+/// unstable), but `{:?}` on a `thiserror` enum already prints the variant and its fields —
+/// `CastError::NotANumber { value: "n/a" }` — which is strictly more than the type name would have
+/// been.
 ///
-/// `pub` and `Deserialize` since P1 (`agent-memory/P1-implementation-plan.md` §2): the same shape
-/// carries a job's failure from a worker process back to the parent, which has to *read* it. The
-/// alternative was a second, identical record type in `cli::worker` — the same `source()` walk with
-/// the same cycle guard, written twice.
+/// It is `pub` and `Deserialize` because the same shape carries a job's failure from a worker
+/// process back to the parent, which has to *read* it. The alternative was a second, identical
+/// record type in `cli::worker`: the same `source()` walk with the same cycle guard, written twice.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ErrorRecord {
     pub debug: String,
@@ -1455,8 +1320,8 @@ impl Visit for RecordVisitor {
 }
 
 /// The current wall clock, formatted exactly as the pre-L5 text log printed it
-/// (`2026-08-30T08:12:25.626426Z`). Goes through `tracing_subscriber`'s own `SystemTime`
-/// formatter rather than a new date dependency: same bytes as before, nothing added to `Cargo.toml`.
+/// (`2026-08-30T08:12:25.626426Z`). Goes through `tracing_subscriber`'s own `SystemTime` formatter
+/// rather than a new date dependency: same bytes as before, nothing added to `Cargo.toml`.
 fn now_timestamp() -> String {
     let mut buffer = String::new();
     let _ = SystemTime.format_time(&mut Writer::new(&mut buffer));
@@ -1528,7 +1393,7 @@ where
 ///    holding the file in memory.
 ///
 /// `.freeports.log.yaml` (L3) keeps its own job: a small, human-readable digest of the failures
-/// only, at maximum verbosity. Both files are built from the same [`LogRecord`].
+/// only, at maximum verbosity. Both files are built from the same record type.
 #[derive(Debug, Clone)]
 pub struct JsonLogLayer {
     writer: SharedFileWriter,
@@ -1658,12 +1523,12 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
 
     // Binding: the CSV layer **must** carry a level filter. A layer without one leaves the
     // registry's global max level at `TRACE`, so every `trace!` in the crate is constructed and
-    // dispatched even at `-q` — cause 1 of the ~100x slowdown measured in
-    // `agent-memory/L4-logging-tuning-plan.md` §0. Do not remove `.with_filter` here.
-    // L3: il log YAML degli errori esiste **solo** alla verbosita' massima, e resta nella
-    // cartella di lavoro (`log_dir`) invece di seguire gli output come fa `.log.csv` — e' un
-    // artefatto diagnostico, non un prodotto della corsa. `EventLevelFilter` a `WARN`: e' il log
-    // *degli errori*, non un secondo trace.
+    // dispatched even at `-q`. Do not remove `.with_filter` here.
+    //
+    // The YAML error log exists **only** at maximum verbosity, and stays in the working directory
+    // rather than following the outputs as `.log.csv` does: it is a diagnostic artefact, not a
+    // product of the run. Its filter is `WARN` because it is the log *of errors*, not a second
+    // trace.
     let yaml = wants_yaml_log(verbosity)
         .then(|| YamlLogLayer::create(&log_dir.join(YAML_FILE_NAME)));
 
@@ -1687,45 +1552,34 @@ mod tests {
     use std::sync::PoisonError;
     use tracing_subscriber::prelude::*;
 
-    /// Serializes **every** test in this whole `mod tests` block that installs a `tracing`
-    /// dispatcher, via `tracing::subscriber::with_default` or `tracing::subscriber::
-    /// set_global_default` (`init`). This is a process-wide race, not a per-callsite one: a
-    /// `tracing_core` callsite's `Interest` is cached the first time that callsite is ever hit in
-    /// the process, as the AND of every *currently live* `Dispatch`'s interest -- on any thread,
-    /// not just the one installing the dispatcher that triggers the recomputation
-    /// (`tracing_core::callsite::rebuild_interest`). A dispatcher built from a static
-    /// `LevelFilter` (as `stderr_layer`/`file_layer`/`init` all use) can therefore permanently
-    /// cache `Interest::never()` for a brand-new callsite belonging to a *completely unrelated*
-    /// test on another thread, the very first time that callsite fires while the restrictive
-    /// dispatcher happens to be alive -- observed concretely: `csv_layer::row_ordering::
-    /// dropping_the_last_clone_without_calling_close_still_flushes_accumulated_rows` flaked
-    /// (~1 in 15-20 runs of this module, only alongside the rest of the suite, never in
-    /// isolation) because its own, otherwise never-touched-elsewhere callsite got poisoned by a
-    /// `stderr_layer_observable_filtering` dispatcher alive on another thread at that instant --
-    /// `CsvLogLayer::on_event` was then never invoked for that event, so `Drop`'s flush correctly
-    /// wrote nothing.
+    /// Serializes **every** test in this file that installs a `tracing` dispatcher, whether through
+    /// `tracing::subscriber::with_default` or `set_global_default`.
     ///
-    /// This extends the narrower precedent already fixed once in this module (see the original,
-    /// submodule-local `SERIAL` this replaces, on `stderr_layer_observable_filtering` below): that
-    /// fix only serialized tests sharing the exact same callsite. The hazard is broader --
-    /// *any* live dispatcher with a static level filter can poison *any* brand-new callsite
-    /// elsewhere -- so the fix has to be broader too: one shared lock, held for the whole body of
-    /// every test in this file that ever installs a dispatcher, whether or not it looks related to
-    /// any other. Same philosophy as before ("eliminare la corsa, non limitarsi a nasconderla"):
-    /// this removes the race outright rather than only hiding its one first-observed symptom.
+    /// The race is process-wide, not per-callsite. A `tracing_core` callsite's `Interest` is cached
+    /// the first time that callsite is ever hit in the process, as the AND of every *currently
+    /// live* dispatcher's interest — on any thread, not only the one that installed the dispatcher
+    /// triggering the recomputation. A dispatcher built from a static `LevelFilter`, which every
+    /// builder here uses, can therefore permanently cache `Interest::never()` for a brand-new
+    /// callsite belonging to a completely unrelated test on another thread, the first time that
+    /// callsite fires while the restrictive dispatcher happens to be alive.
+    ///
+    /// This was observed, not theorised: a `row_ordering` test flaked roughly once in fifteen runs,
+    /// only alongside the rest of the suite and never in isolation, because its own callsite was
+    /// poisoned by an unrelated dispatcher alive on another thread at that instant.
+    ///
+    /// Hence one shared lock held for the whole body of every dispatcher-installing test, related
+    /// or not. Serializing only tests that share a callsite would hide the first observed symptom
+    /// rather than remove the race.
     static SERIAL: Mutex<()> = Mutex::new(());
 
-    /// Joins seven already-escaped cell values with commas and a trailing `\n`, matching the
-    /// `.log.csv` column order (`Page,Activity,First coord ref,Second coord ref,First coord,
-    /// Second coord,Message` -- L1, `L1-implementation-plan.md` §2.1). Used everywhere below
-    /// instead of hand-typed comma counts, which are error prone to read.
+    /// Joins seven already-escaped cell values with commas and a trailing newline, in `.log.csv`
+    /// column order. Used everywhere below instead of hand-typed comma counts, which are hard to
+    /// read and easy to miscount.
     fn row(cells: [&str; 7]) -> String {
         format!("{}\n", cells.join(","))
     }
 
-    /// M9 (`M9-implementation-plan.md` §0 Q5, §4): riscrive completamente `mod verbosity`
-    /// (M0) sopra `Verbosity::from_verbose_and_quiet_counts`/`level_filter`, che sostituiscono
-    /// `from_flag_count`/`level` -- rimossi, non deprecati (vedi il doc-comment del modulo).
+    /// [`Verbosity`]: the six-level scale, and `-v`/`-q` as independent dials.
     mod verbosity {
         use super::*;
         use tracing_subscriber::filter::LevelFilter;
@@ -1801,9 +1655,8 @@ mod tests {
             }
         }
 
-        /// `-v`/`-q` sono manopole indipendenti, non mutuamente esclusive (divergenza voluta dal
-        /// riferimento Python, `M9-implementation-plan.md` §0 Q5): nessuna combinazione è un
-        /// errore.
+        /// `-v` and `-q` are independent dials, not mutually exclusive flags: no combination of
+        /// them is an error.
         mod independent_dials_never_error {
             use super::*;
             use test_case::test_case;
@@ -1818,8 +1671,7 @@ mod tests {
             }
         }
 
-        /// Nessuna perdita di comportamento sul solo `-v` rispetto alla vecchia
-        /// `from_flag_count` (rimossa): stessa tabella, `quiet` fissato a 0.
+        /// No behaviour is lost on `-v` alone: the same table, with `quiet` fixed at 0.
         mod equivalence_with_old_from_flag_count_formula {
             use super::*;
             use test_case::test_case;
@@ -1906,38 +1758,29 @@ mod tests {
         }
     }
 
-    /// Comportamento osservabile di `stderr_layer` (nuovo a M9): prima non serviva distinguere
-    /// "nessun evento passa" da "livello più permissivo", perché non esisteva `Silent`.
+    /// The **observable** behaviour of `stderr_layer`: what it actually writes.
     ///
-    /// **Riscritto rispetto alla prima versione di questi test** (test-writer aveva usato un
-    /// layer "spia" fratello aggiunto sullo stesso `Registry` per contare gli eventi che
-    /// "superano" il filtro di `stderr_layer`). Quel design è strutturalmente sbagliato per due
-    /// motivi indipendenti, verificati empiricamente (non solo per ispezione) prima di riscrivere
-    /// — vedi la decisione registrata in `STATUS.md` alla chiusura di M9:
-    /// 1. Il filtro applicato con `.with_filter(...)` (`Filtered<L, F, S>`) governa **solo**
-    ///    l'`on_event` del layer a cui è attaccato. Un layer fratello aggiunto con un secondo
-    ///    `.with(...)` sullo stesso `Registry` non è "dietro" quel filtro: riceve ogni evento
-    ///    indipendentemente da cosa `stderr_layer` decida di scrivere.
-    /// 2. `tracing` mette in cache l'interesse per singolo *callsite* (riga di codice sorgente) a
-    ///    livello di processo, non per singola chiamata. I quattro test originali chiamavano le
-    ///    stesse macro (`tracing::error!("e")` ecc., stessa riga) da `#[test]` diversi eseguiti in
-    ///    parallelo su thread diversi con dispatcher diversi: una corsa fra `with_default` di test
-    ///    concorrenti sulla cache globale del callsite produceva risultati non deterministici
-    ///    (osservato: `silent_shows_nothing_at_all` riceveva comunque tutti e 5 i livelli).
+    /// Two traps make the obvious test design wrong, both confirmed empirically rather than by
+    /// inspection:
     ///
-    /// Fix: si cattura l'output **reale** scritto dal layer iniettando un writer di test
-    /// (`SharedBuffer`, tramite il seam `fmt_layer_with_writer` usato anche da `stderr_layer`
-    /// stesso — si esercita quindi la vera logica di produzione, non una sua reimplementazione),
-    /// e i quattro test condividono un `Mutex` che serializza l'unico callsite che hanno in comune
-    /// (`emit_one_event_per_level_at`), eliminando la corsa sulla cache di `tracing` invece di
-    /// limitarsi a nasconderla.
+    /// 1. a filter applied with `.with_filter(…)` governs **only** the `on_event` of the layer it is
+    ///    attached to. A sibling layer added with a second `.with(…)` on the same `Registry` is not
+    ///    "behind" that filter: it receives every event regardless of what `stderr_layer` decides to
+    ///    write. Counting events with a spy layer therefore measures nothing;
+    /// 2. `tracing` caches interest per *callsite* — per line of source — process-wide, not per call.
+    ///    Tests firing the same macro line from different threads with different dispatchers race on
+    ///    that global cache and produce non-deterministic results.
+    ///
+    /// So these tests capture the layer's **real** output by injecting a test writer through the
+    /// same seam `stderr_layer` itself uses, exercising the production logic rather than a
+    /// reimplementation of it, and share a lock that serializes their one common callsite.
     mod stderr_layer_observable_filtering {
         use super::*;
         use std::sync::{Arc, Mutex};
 
-        /// Writer di test: un buffer in memoria condiviso, letto dopo la chiusura dello scope di
-        /// dispatch. `MakeWriter::make_writer` clona l'`Arc` interno, così ogni scrittura del
-        /// layer finisce nello stesso buffer osservato dal test.
+        /// A test writer: a shared in-memory buffer, read after the dispatch scope closes.
+        /// `MakeWriter::make_writer` clones the inner `Arc`, so every write by the layer lands in
+        /// the same buffer the test observes.
         #[derive(Clone, Default, Debug)]
         struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
 
@@ -2119,12 +1962,12 @@ mod tests {
         }
     }
 
-    /// L5: `freeports.log` e' diventato `freeports.log.jsonl` — una riga JSON per evento, con il
-    /// `target` che stderr non stampa piu' e l'errore serializzato che stderr non ha mai portato.
+    /// `freeports.log.jsonl`: one JSON line per event, carrying the `target` that stderr no longer
+    /// prints and the serialized error that stderr never carried.
     mod json_layer {
         use super::*;
 
-        /// Un errore a due livelli, per avere una `source()` chain vera da serializzare.
+        /// A two-level error, so there is a real `source()` chain to serialize.
         #[derive(Debug, thiserror::Error)]
         #[error("the inner thing broke")]
         struct InnerError;
@@ -2136,10 +1979,9 @@ mod tests {
             source: InnerError,
         }
 
-        /// Esegue `body` con un `file_layer` a `Trace`, poi restituisce le righe del file gia'
-        /// deserializzate. Ogni riga deve essere JSON valido di per se': e' l'intero senso del
-        /// formato a righe, quindi il parsing e' parte dell'asserzione, non un dettaglio del
-        /// supporto di test.
+        /// Runs `body` with a `file_layer` at `Trace`, then returns the file's lines already
+        /// deserialized. Every line must be valid JSON on its own — that is the whole point of the
+        /// line-oriented format — so parsing is part of the assertion, not a detail of the fixture.
         fn records(body: impl FnOnce()) -> Vec<serde_json::Value> {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
             let dir = tempfile::tempdir().expect("tempdir");
@@ -2186,8 +2028,8 @@ mod tests {
                 );
             }
 
-            /// Il `target` e' precisamente cio' che L5 toglie da stderr: se sparisse anche di
-            /// qui, l'informazione sarebbe persa del tutto.
+            /// The module path is precisely what stderr no longer prints: were it to disappear from
+            /// here too, the information would be lost altogether.
             #[test]
             fn the_module_path_removed_from_stderr_is_kept_here() {
                 let records = records(|| tracing::error!("boom"));
@@ -2206,7 +2048,7 @@ mod tests {
                 assert_eq!(record["fields"]["format"], "EURIZON-EN23");
             }
 
-            /// Uno span aperto e chiuso non produce righe: il file registra eventi, non span.
+            /// Opening and closing a span writes no line: the file records events, not spans.
             #[test]
             fn opening_a_span_alone_writes_nothing() {
                 let records = records(|| {
@@ -2221,9 +2063,8 @@ mod tests {
             use super::*;
             use pretty_assertions::assert_eq;
 
-            /// La richiesta dell'utente: quando l'evento e' legato a un `Err`, il file ne
-            /// contiene la deserializzazione — forma `Debug`, forma `Display` e catena di
-            /// `source()`, non una sola stringa appiattita.
+            /// When the event is tied to an `Err`, the file carries the whole error: `Display`,
+            /// `Debug` and the `source()` chain, not one flattened string.
             #[test]
             fn an_event_tied_to_an_error_carries_display_debug_and_the_source_chain() {
                 let records = records(|| {
@@ -2246,8 +2087,7 @@ mod tests {
                 assert!(error["source"].is_null(), "got: {error}");
             }
 
-            /// Un evento che non ha niente a che vedere con un errore non deve inventarsi la
-            /// chiave.
+            /// An event with nothing to do with an error must not invent an `error` key.
             #[test]
             fn an_event_with_no_error_has_no_error_key() {
                 let records = records(|| tracing::info!("all good"));
@@ -2260,9 +2100,8 @@ mod tests {
             use super::*;
             use pretty_assertions::assert_eq;
 
-            /// Le stesse coordinate del `.log.csv`, risolte con la stessa regola condivisa
-            /// (`build_record`): lo span piu' interno batte quello esterno, l'evento batte ogni
-            /// span.
+            /// The same coordinates as `.log.csv`, resolved by the same shared rule: the innermost
+            /// span beats the outer one, the event beats every span.
             #[test]
             fn coordinates_come_from_the_enclosing_spans_too() {
                 let records = records(|| {
@@ -2286,9 +2125,8 @@ mod tests {
             }
         }
 
-        /// Il motivo per cui il file e' a righe e non un unico documento JSON o YAML: i record
-        /// raggiungono il disco mentre la corsa procede, quindi il log di un processo morto a
-        /// meta' resta leggibile.
+        /// Why the file is line-oriented and not one JSON or YAML document: records reach the disk
+        /// while the run is still going, so the log of a process that died is still readable.
         mod streaming {
             use super::*;
 
@@ -2300,9 +2138,9 @@ mod tests {
                 let (layer, _writer) =
                     file_layer(&path, Verbosity::Trace).expect("file layer construction");
                 let subscriber = tracing_subscriber::registry().with(layer);
-                // Abbastanza eventi da superare il buffer di `BufWriter` (8 KiB): e' la soglia
-                // oltre la quale il contenuto e' gia' sul disco senza che nessuno abbia chiuso
-                // niente -- esattamente cio' che si vuole leggere dopo un crash.
+                // Enough events to overflow the `BufWriter` (8 KiB): past that threshold the
+                // content is on disk without anyone having closed anything — exactly what one wants
+                // to read after a crash.
                 tracing::subscriber::with_default(subscriber, || {
                     for i in 0..500u64 {
                         tracing::info!(page = i, "still running");
@@ -2431,17 +2269,13 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// Esaustivo su `TAGGED_FIELDS` (§2.1/§5.4 di `L1-implementation-plan.md`): ciascuno
-            /// dei cinque campi taggati, da solo, seleziona una riga -- sostituisce i vecchi test
-            /// ad hoc `the_two_company_columns_come_from_their_own_fields`/
-            /// `company_match_alone_selects_a_row` con una copertura completa e uniforme.
+            /// Exhaustive over `TAGGED_FIELDS`: each of the five tagged fields, on its own, selects
+            /// a row.
             ///
-            /// Il piano illustra questo test come `#[test_case("page", "1")]` parametrico sul
-            /// *nome* del campo, ma le macro di `tracing` richiedono un identificatore di campo
-            /// letterale a tempo di compilazione: il nome del campo non può essere una variabile
-            /// runtime. Si parametrizza quindi su una funzione di emissione (`fn()`, senza
-            /// cattura, coercibile da una closure letterale) invece che su una coppia
-            /// nome/valore -- stessa esaustività, adattata al vincolo del linguaggio.
+            /// Parameterised over an emitting function rather than over a `(name, value)` pair,
+            /// because the `tracing` macros need a literal field identifier at compile time: the
+            /// field name cannot be a runtime variable. Same exhaustiveness, adapted to the
+            /// language's constraint.
             #[test_case(|| { tracing::info!(page = 1u64, "solo"); }; "page alone")]
             #[test_case(|| { tracing::info!(coord_ref_1 = "x", "solo"); }; "coord_ref_1 alone")]
             #[test_case(|| { tracing::info!(coord_ref_2 = "x", "solo"); }; "coord_ref_2 alone")]
@@ -2487,10 +2321,9 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                // No active span: `Activity` (index 1) is empty. `coord_1`/`coord_2` carry the
-                // unit in the value itself (`"row 3"`, `"col 2"`), per the L1 convention -- no
-                // real producer exercises this yet (`L1-implementation-plan.md` §1.2), but the
-                // layer must still pass the value through verbatim.
+                // No active span, so `Activity` is empty. `coord_1` and `coord_2` carry their unit
+                // inside the value itself (`"row 3"`, `"col 2"`); no real producer exercises this
+                // yet, but the layer must still pass the value through verbatim.
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
@@ -2506,9 +2339,7 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// Sostituisce `the_two_company_columns_come_from_their_own_fields` (colonna
-            /// `Company` eliminata, §1.3 di `L1-implementation-plan.md`): stesso schema, sui nomi
-            /// superstiti `coord_ref_1`/`coord_ref_2`.
+            /// The two ref columns come from their own fields, `coord_ref_1` and `coord_ref_2`.
             #[test]
             fn the_two_ref_columns_come_from_their_own_fields() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2533,11 +2364,6 @@ mod tests {
                 assert_eq!(cells[3], "NAV", "\"Second coord ref\" comes from `coord_ref_2`");
             }
 
-            // `company_match_alone_selects_a_row` (a hand-written single-field test) is gone: its
-            // job -- "each tagged field alone selects a row" -- is now covered exhaustively for
-            // all five surviving tagged fields by
-            // `selectivity::each_tagged_field_alone_selects_a_row` (§5.4 of
-            // `L1-implementation-plan.md`), rather than by one ad hoc test per old field.
 
             #[test]
             fn event_field_overrides_a_same_named_span_field() {
@@ -2569,8 +2395,8 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// Esaustività: la sovrascrittura evento-su-span non è provata solo su `page` (test
-            /// sopra), ma anche su un campo `coord_*` (§5.1 di `L1-implementation-plan.md`).
+            /// Exhaustiveness: event-over-span overriding is pinned not only on `page` (the test
+            /// above) but also on a `coord_*` field.
             #[test]
             fn event_field_overrides_a_same_named_span_coord_field() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2786,17 +2612,9 @@ mod tests {
             }
         }
 
-        /// Colonna `Activity` (§2.2/§5.2 di `L1-implementation-plan.md`): percorso `/`-separato
-        /// dei nomi degli span attivi, dal più esterno al più interno. `Activity` non è mai un
-        /// campo taggato (§1.4 -- non entra mai in `CapturedFields`/`TAGGED_FIELDS`), quindi non
-        /// basta da sola a selezionare una riga: gli ultimi due test di questo modulo pinnano
-        /// esattamente questa invariante (Q-L2).
-        /// `EventLevelFilter` — il filtro che rende sostenibile il costo del logging senza
-        /// perdere il contesto degli eventi che restano. Ogni test qui difende una delle due
-        /// meta' del contratto: gli span passano sempre, gli eventi no.
-        /// La destinazione differita del `.log.csv` — cio' che gli permette di finire accanto
-        /// agli output invece che nella cwd, pur essendo il layer installato molto prima che la
-        /// configurazione dica dove sono gli output.
+        /// The deferred `.log.csv` destination — what lets the file end up beside the outputs
+        /// rather than in the working directory, even though the layer is installed long before the
+        /// configuration says where the outputs are.
         mod deferred_destination {
             use super::*;
             use pretty_assertions::assert_eq;
@@ -2837,10 +2655,10 @@ mod tests {
                 );
             }
 
-            /// Chiudere senza aver mai fissato una destinazione non deve perdere le righe in
-            /// silenzio: e' un errore esplicito. `LogHandle::close` non ci arriva mai — da L5
-            /// chiama `discard()` invece di ripiegare sulla cartella di lavoro — ma il layer da
-            /// solo deve dirlo, invece di ingoiare.
+            /// Closing without ever having settled a destination must not lose the rows silently: it
+            /// is an explicit error. `LogHandle::close` never gets there, since it calls
+            /// `discard()` rather than falling back to the working directory, but the layer on its
+            /// own has to say so instead of swallowing.
             #[test]
             fn closing_without_a_destination_is_an_error_not_a_silent_loss() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2855,8 +2673,8 @@ mod tests {
                 }
             }
 
-            /// Nessuna riga e nessuna destinazione: non c'e' niente da scrivere, quindi non c'e'
-            /// niente da segnalare.
+            /// No rows and no destination: there is nothing to write, so there is nothing to fail
+            /// over.
             #[test]
             fn closing_an_empty_layer_without_a_destination_is_a_no_op() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2864,15 +2682,18 @@ mod tests {
             }
         }
 
+        /// `EventLevelFilter` — the filter that makes the cost of logging bearable without losing
+        /// the context of the events that remain. Each test here defends one half of the contract:
+        /// spans always pass, events do not.
         mod event_level_filter {
             use super::*;
             use pretty_assertions::assert_eq;
             use tracing_subscriber::Layer;
 
-            /// La regressione che ha motivato l'esistenza di questo tipo: con un
-            /// `LevelFilter::WARN` semplice al posto suo, un `info_span!` non viene mai aperto,
-            /// il `warn!` interno perde il campo `page` ereditato e la riga non viene neppure
-            /// selezionata. Su un job reale erano 391 righe che diventavano 0.
+            /// The regression this type exists for: with a plain `LevelFilter::WARN` in its place an
+            /// `info_span!` is never opened, the `warn!` inside it loses the inherited `page`
+            /// field, and the row is not even selected. On a real job that was 391 rows becoming
+            /// zero.
             #[test]
             fn a_warning_inside_an_info_span_keeps_the_span_page_at_warn_level() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2904,8 +2725,8 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// L'altra meta': gli eventi sotto il livello richiesto non arrivano, anche quando
-            /// sono dentro uno span che il filtro lascia passare.
+            /// The other half: events below the requested level do not arrive, even when they are
+            /// inside a span the filter lets through.
             #[test]
             fn debug_and_trace_events_never_reach_the_layer_at_warn_level() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -2930,9 +2751,9 @@ mod tests {
                 );
             }
 
-            /// `max_level_hint` e' cio' che spegne i `debug!`/`trace!` al callsite (il grosso del
-            /// guadagno): deve restare `INFO` finche' gli span sono `info_span!`, e non scendere
-            /// al livello degli eventi.
+            /// `max_level_hint` is what switches `debug!` and `trace!` off at the callsite, which is
+            /// where most of the saving comes from: it must stay at `INFO` while the spans are
+            /// `info_span!`, and never drop to the event level.
             #[test]
             fn max_level_hint_never_drops_below_the_span_level() {
                 use tracing_subscriber::layer::Filter;
@@ -2946,8 +2767,8 @@ mod tests {
                 }
             }
 
-            /// Sopra il livello degli span il suggerimento segue la verbosita' richiesta,
-            /// altrimenti `-vv`/`-vvv` non mostrerebbero nulla di piu'.
+            /// Above the span level the hint follows the requested verbosity, or `-vv` and `-vvv`
+            /// would show nothing more.
             #[test]
             fn max_level_hint_follows_the_event_level_above_the_span_level() {
                 use tracing_subscriber::layer::Filter;
@@ -2960,7 +2781,7 @@ mod tests {
                 }
             }
 
-            /// `-qq` deve essere silenzio totale: nemmeno la contabilita' degli span.
+            /// `-qq` must be complete silence: not even span bookkeeping.
             #[test]
             fn off_stays_off_spans_included() {
                 use tracing_subscriber::layer::Filter;
@@ -2972,6 +2793,9 @@ mod tests {
             }
         }
 
+        /// The `Activity` column: the `/`-separated path of the active span names, outermost to
+        /// innermost. `Activity` is never a tagged field, so it enriches a row but never selects
+        /// one on its own; the last two tests of this module pin exactly that.
         mod activity_column {
             use super::*;
             use pretty_assertions::assert_eq;
@@ -3047,9 +2871,8 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// Pinna Q-L2/§1.4 di `L1-implementation-plan.md`: uno span attivo interamente privo
-            /// di campi taggati non produce una riga, anche se `Activity` avrebbe comunque un
-            /// valore non vuoto -- `Activity` da sola non è mai un motivo per scrivere una riga.
+            /// An active span with no tagged fields at all produces no row, even though `Activity`
+            /// would have a non-empty value: `Activity` alone is never a reason to write a row.
             #[test]
             fn an_active_but_entirely_untagged_span_still_appears_in_activity_without_selecting_a_row()
              {
@@ -3072,9 +2895,9 @@ mod tests {
                 );
             }
 
-            /// Un span esterno privo di campi taggati non impedisce a un campo più interno di
-            /// selezionare la riga, e il suo nome compare comunque in `Activity` accanto a quello
-            /// dello span che ha davvero portato il campo.
+            /// An outer span with no tagged fields does not stop an inner field from selecting the
+            /// row, and its name still appears in `Activity` next to that of the span that
+            /// actually carried the field.
             #[test]
             fn an_untagged_span_appears_in_activity_alongside_a_row_selected_by_a_deeper_tagged_field()
              {
@@ -3110,12 +2933,13 @@ mod tests {
             }
         }
 
-        /// Determinismo (§2.3/§5.3 di `L1-implementation-plan.md`): le righe non sono più scritte
-        /// in streaming, si accumulano in un buffer e vengono ordinate per `RowOrderKey`
-        /// (`(pagina, sequenza di arrivo)`) solo a `close()`. Questo modulo è la sola prova che il
-        /// meccanismo di ordinamento funzioni -- nessun test di integrazione lo esercita (§6.1 del
-        /// piano: il confronto pytest del repo formati ordina già entrambi i lati, e i soli 4 file
-        /// di riferimento con righe dati sono già in ordine di pagina crescente).
+        /// Determinism: rows are not written as they arrive but accumulated and sorted by
+        /// `RowOrderKey` — `(page, arrival sequence)` — at `close()`.
+        ///
+        /// This module is the only proof that the ordering mechanism works: no integration test
+        /// exercises it, since the pytest comparison of the formats repository sorts both sides
+        /// already, and the few reference files that have data rows are in increasing page order to
+        /// begin with.
         mod row_ordering {
             use super::*;
             use pretty_assertions::assert_eq;
@@ -3186,8 +3010,8 @@ mod tests {
                 );
             }
 
-            /// Pinna la scelta di §0 Q-L1c di `L1-implementation-plan.md`: nessuna fixture reale
-            /// la esercita oggi, è una scelta di principio.
+            /// No real fixture exercises this today; it is a decision of principle, pinned so it
+            /// does not drift.
             #[test]
             fn rows_without_a_page_sort_after_rows_with_a_page() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3230,8 +3054,8 @@ mod tests {
                 );
             }
 
-            /// Rete di sicurezza `Drop` (§0 Q-L1d): senza mai chiamare `close()`, quando l'unico
-            /// `Arc` restante esce di scope il buffer viene comunque svuotato su disco.
+            /// The `Drop` safety net: with `close()` never called, the buffer still reaches disk
+            /// when the last remaining `Arc` goes out of scope.
             #[test]
             fn dropping_the_last_clone_without_calling_close_still_flushes_accumulated_rows() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3255,8 +3079,8 @@ mod tests {
                 assert_eq!(content, expected);
             }
 
-            /// `Drop` va implementato su `CsvLogLayerInner`, non su `CsvLogLayer`: deve scattare
-            /// solo quando l'ultimo `Arc` sparisce, non a ogni singolo clone droppato.
+            /// `Drop` belongs on `CsvLogLayerInner`, not on `CsvLogLayer`: it must fire only when
+            /// the last `Arc` disappears, not on every dropped clone.
             #[test]
             fn dropping_one_clone_while_another_is_still_held_does_not_flush_yet() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3286,9 +3110,8 @@ mod tests {
                 assert_eq!(after, expected, "dropping the last remaining clone must flush");
             }
 
-            /// Test di stress in stile "long list" (`F2-implementation-plan.md` §5.5): molti
-            /// eventi in un ordine di pagina non crescente e fisso (non casuale, per essere
-            /// riproducibile), tutti ordinati dopo `close()`.
+            /// A stress test: many events in a fixed non-increasing page order — fixed rather than
+            /// random, so it is reproducible — all sorted after `close()`.
             #[test]
             fn many_events_in_scrambled_page_order_are_all_sorted_after_close() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3325,29 +3148,23 @@ mod tests {
                 assert_eq!(observed_pages, expected_pages, "all rows must be sorted by page after close()");
             }
 
-            /// Critic 2026-08-29, punto 1 (`L1-implementation-plan.md` §2.5/§5.3): la prova, senza
-            /// Python, che `close()` riporta un vero errore di I/O invece di panicare o di
-            /// restituire silenziosamente `Ok` -- è il pezzo verificabile a livello di
-            /// `CsvLogLayer` della precedenza d'errore corretta in `main.rs`/`py_run_job`.
+            /// Proof, without involving Python, that `close()` reports a real I/O error instead of
+            /// panicking or silently returning `Ok`.
             ///
-            /// Sostituisce il `File` scrivibile del layer con un handle indipendente, fresco,
-            /// aperto in sola lettura sullo stesso percorso: la scrittura successiva fallisce con
-            /// un vero errore di I/O (il descrittore non è aperto in scrittura) invece di riuscire
-            /// o di panicare. Bianco-scatola deliberato: accede al campo privato
-            /// `CsvLogLayerInner::file` (§2.3 del piano), che vive nello stesso file e lo espone ai
-            /// suoi discendenti per costruzione delle regole di visibilità di Rust.
+            /// It replaces the layer's writable `File` with an independent, freshly opened
+            /// read-only handle on the same path, so the following write fails with a genuine I/O
+            /// error rather than succeeding. Deliberately white-box: it reaches the private
+            /// `CsvLogLayerInner::file`, which lives in this same file and is visible to its
+            /// descendants by Rust's own visibility rules.
             ///
-            /// **Non** si sabota il file descriptor originale chiudendolo da sotto (una prima
-            /// versione di questo test lo faceva aprendo un secondo `File` sullo stesso numero di
-            /// fd via `File::from_raw_fd` e droppandolo subito): quel pattern crea due `OwnedFd`
-            /// indipendenti proprietari dello stesso fd, e quando il `File` originale del layer
-            /// viene droppato più avanti (fine scope del test, o `Drop` su un altro clone),
-            /// l'hardening I/O-safety della libreria standard rileva il "double close" e
-            /// **abortisce l'intero processo** (`fatal runtime error: IO Safety violation`) invece
-            /// di limitarsi a restituire un errore -- osservato concretamente su rustc 1.94.0,
-            /// riproducibile anche a singolo thread, e in esecuzione parallela capace di
-            /// corrompere il fd di un altro test in corso. Rimpiazzare l'intero `File` (invece di
-            /// duplicarne solo il numero di fd) evita del tutto la doppia proprietà.
+            /// It does **not** sabotage the original file descriptor by closing it from underneath.
+            /// Opening a second `File` on the same fd number via `File::from_raw_fd` and dropping
+            /// it creates two independent `OwnedFd`s owning one descriptor; when the layer's
+            /// original `File` is later dropped, the standard library's I/O-safety hardening
+            /// detects the double close and **aborts the whole process** instead of returning an
+            /// error. Observed on rustc 1.94.0, reproducible single-threaded, and under parallel
+            /// execution able to corrupt another running test's descriptor. Replacing the whole
+            /// `File` avoids the double ownership entirely.
             #[test]
             fn close_reports_an_io_error_instead_of_panicking() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3381,21 +3198,13 @@ mod tests {
         }
     }
 
-    /// `YamlLogLayer` — il log strutturato degli errori di L3. I test sono raggruppati per
-    /// argomento: forma del record, l'errore serializzato (la ragione d'essere del file), le
-    /// coordinate ereditate dagli span, il ciclo di vita del file.
-    /// L5: `.log.csv` esiste **solo** accanto agli output. Fino a L4 `LogHandle::close`
-    /// ripiegava sulla cartella passata a `init` — la cartella di lavoro, per la CLI — cosi' che
-    /// ogni corsa fallita prima della risoluzione della configurazione vi lasciava un `.log.csv`
-    /// di sola intestazione. Riprodotto dall'utente e da
-    /// `agent-memory/L5-structured-log-plan.md`.
-    /// P1: i log che i processi figli hanno scritto nelle loro cartelle private finiscono nei file
-    /// della corsa, in ordine di job, e senza rovinarne la forma.
+    /// The logs that child processes wrote in their private directories end up in this run's files,
+    /// in job order, without spoiling their shape.
     mod absorbing_worker_logs {
         use super::*;
 
-        /// Una cartella di log come la lascerebbe un figlio: le tre destinazioni, con l'intestazione
-        /// che il `.log.csv` di ogni corsa ha per contratto.
+        /// A log directory as a child process would leave it: the three destinations, with the
+        /// header every run's `.log.csv` carries by contract.
         fn worker_log_dir(dir: &std::path::Path, name: &str, message: &str) -> std::path::PathBuf {
             let log_dir = dir.join(name);
             std::fs::create_dir_all(&log_dir).unwrap();
@@ -3430,8 +3239,9 @@ mod tests {
             assert!(csv.contains("second job spoke"), "the second worker's row is missing:\n{csv}");
         }
 
-        /// Un secondo blocco di intestazione in mezzo al file lo renderebbe illeggibile a qualunque
-        /// lettore CSV -- e i 31 `.log.csv` di riferimento del repo formati sono letti da pytest.
+        /// A second header block in the middle of the file would make it unreadable to any CSV
+        /// reader — and the reference `.log.csv` files of the formats repository are read by
+        /// pytest.
         #[test]
         fn the_run_csv_keeps_exactly_one_header() {
             let dir = tempfile::tempdir().unwrap();
@@ -3447,8 +3257,8 @@ mod tests {
             assert_eq!(csv.matches(CSV_HEADER.trim_end()).count(), 1, "expected exactly one header in:\n{csv}");
         }
 
-        /// L'ordine e' quello dei job, non quello in cui i figli hanno finito: e' cio' che rende il
-        /// registro leggibile come una corsa sola.
+        /// The order is that of the jobs, not that in which the children finished: it is what makes
+        /// the log readable as a single run.
         #[test]
         fn workers_are_poured_in_job_order() {
             let dir = tempfile::tempdir().unwrap();
@@ -3474,15 +3284,14 @@ mod tests {
             handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first")).unwrap();
             handle.close().unwrap();
 
-            // `log_handle_for_tests` apre `freeports.log.jsonl` nella cartella che gli si passa,
-            // che qui e' `out` -- non la radice della tempdir.
+            // `log_handle_for_tests` opens `freeports.log.jsonl` in the directory it is given,
+            // which here is `out`, not the root of the temporary directory.
             let jsonl = std::fs::read_to_string(out.join(LOG_FILE_NAME)).unwrap();
             assert!(jsonl.contains("\"first\""), "the worker's json line is missing:\n{jsonl}");
         }
 
-        /// Un figlio morto prima di scrivere qualunque file non deve far fallire la chiusura: il
-        /// referto mancante segnala gia' quel guasto, e perdere anche il log del padre lo
-        /// raddoppierebbe invece di spiegarlo.
+        /// A child that died before writing any file must not make closing fail: the missing report
+        /// already signals that failure, and losing the parent's log as well would hide it.
         #[test]
         fn a_worker_that_left_no_files_behind_is_not_an_error() {
             let dir = tempfile::tempdir().unwrap();
@@ -3494,7 +3303,7 @@ mod tests {
             handle.close().expect("closing must still succeed");
         }
 
-        /// Una corsa senza figli non deve comportarsi diversamente da prima di P1.
+        /// A run with no children must behave exactly as it did before worker processes existed.
         #[test]
         fn absorbing_nothing_leaves_the_run_files_exactly_as_they_were() {
             let dir = tempfile::tempdir().unwrap();
@@ -3507,11 +3316,14 @@ mod tests {
         }
     }
 
+    /// `.log.csv` exists **only** beside the outputs. Falling back to the directory passed to
+    /// `init` — the working directory, for the CLI — left a header-only `.log.csv` behind after
+    /// every run that failed before the configuration resolved.
     mod csv_never_in_the_working_directory {
         use super::*;
 
-        /// Un `LogHandle` la cui destinazione CSV non viene mai fissata, con righe in sospeso:
-        /// e' la corsa che muore prima di sapere dove vanno gli output.
+        /// A `LogHandle` whose CSV destination is never settled, with rows pending: the run that
+        /// dies before knowing where the outputs go.
         fn handle_with_pending_rows(dir: &std::path::Path) -> LogHandle {
             let handle = log_handle_for_tests(dir).expect("test log handle");
             let subscriber = tracing_subscriber::registry().with(handle.csv.clone());
@@ -3533,8 +3345,8 @@ mod tests {
             );
         }
 
-        /// L'altra meta' del contratto: fissata la destinazione, non si perde niente. Le righe
-        /// accumulate *prima* della chiamata finiscono nel file giusto.
+        /// The other half of the contract: once the destination is settled, nothing is lost. Rows
+        /// accumulated *before* the call end up in the right file.
         #[test]
         fn a_settled_destination_still_receives_the_rows_logged_before_it_was_known() {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3556,10 +3368,13 @@ mod tests {
         }
     }
 
+    /// `YamlLogLayer`, the structured error log. Grouped by topic: the shape of a record, the
+    /// serialized error (the file's reason to exist), the coordinates inherited from spans, and
+    /// the file's lifecycle.
     mod yaml_layer {
         use super::*;
 
-        /// Un errore a due livelli, per avere una `source()` chain vera da serializzare.
+        /// A two-level error, so there is a real `source()` chain to serialize.
         #[derive(Debug, thiserror::Error)]
         #[error("the inner thing broke")]
         struct InnerError;
@@ -3571,8 +3386,8 @@ mod tests {
             source: InnerError,
         }
 
-        /// Esegue `body` con un `YamlLogLayer` filtrato come in produzione e restituisce il
-        /// contenuto del file, oppure `None` se il layer non ne ha scritto nessuno.
+        /// Runs `body` with a `YamlLogLayer` filtered as in production and returns the file's
+        /// content, or `None` if the layer wrote no file at all.
         fn yaml_after(body: impl FnOnce()) -> Option<String> {
             let dir = tempfile::tempdir().expect("tempdir");
             let path = dir.path().join(YAML_FILE_NAME);
@@ -3604,7 +3419,7 @@ mod tests {
                 );
             }
 
-            /// I campi che non sono ne' messaggio ne' coordinate non si perdono.
+            /// Fields that are neither the message nor coordinates are not lost.
             #[test]
             fn other_event_fields_are_kept_under_fields() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3619,9 +3434,9 @@ mod tests {
         mod serialized_error {
             use super::*;
 
-            /// La ragione d'essere del file: un sito che registra l'errore con `log_error`
-            /// ottiene forma `Debug`, forma `Display` e l'intera catena di `source()`, invece di
-            /// una sola stringa appiattita.
+            /// The reason the file exists: a site that records its error with `log_error` yields
+            /// the whole structure — `Display`, `Debug` and the `source()` chain — not one
+            /// flattened string.
             #[test]
             fn log_error_serializes_display_debug_and_the_whole_source_chain() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3635,7 +3450,7 @@ mod tests {
                 assert!(yaml.contains("the inner thing broke"), "got:\n{yaml}");
             }
 
-            /// Un errore senza cause non deve produrre una chiave `source` vuota.
+            /// An error with no cause must not produce an empty `source` key.
             #[test]
             fn an_error_without_a_source_omits_the_source_key() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3647,8 +3462,8 @@ mod tests {
                 assert!(!yaml.contains("source:"), "got:\n{yaml}");
             }
 
-            /// Un sito che interpola l'errore nel messaggio senza `log_error` resta valido: il
-            /// record esiste, semplicemente senza la parte strutturata.
+            /// A site that interpolates the error into its message without `log_error` stays valid:
+            /// the record exists, simply without the structured part.
             #[test]
             fn a_site_without_log_error_still_records_the_message() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3662,8 +3477,8 @@ mod tests {
         mod inherited_coordinates {
             use super::*;
 
-            /// Le stesse coordinate del `.log.csv`, risolte con la stessa regola: lo span piu'
-            /// interno batte quello esterno, l'evento batte ogni span.
+            /// The same coordinates as `.log.csv`, resolved by the same rule: the innermost span
+            /// beats the outer one, the event beats every span.
             #[test]
             fn coordinates_come_from_the_enclosing_spans_too() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3692,16 +3507,16 @@ mod tests {
         mod file_lifecycle {
             use super::*;
 
-            /// A differenza del `.log.csv`, la cui sola esistenza fa parte del contratto dei test
-            /// d'integrazione, una corsa senza errori non deve lasciare in giro un file vuoto.
+            /// Unlike `.log.csv`, whose very existence is part of the integration tests' contract,
+            /// a run with no errors must not leave an empty file behind.
             #[test]
             fn a_run_with_no_warnings_leaves_no_file_at_all() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
                 assert!(yaml_after(|| tracing::info!("all good")).is_none());
             }
 
-            /// E' il log **degli errori**: `info!`/`debug!`/`trace!` non vi finiscono, nemmeno
-            /// alla verbosita' che lo genera.
+            /// It is the log **of errors**: `info!`, `debug!` and `trace!` do not reach it, not
+            /// even at the verbosity that creates it.
             #[test]
             fn only_warnings_and_errors_reach_it() {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
@@ -3736,9 +3551,9 @@ mod tests {
             }
         }
 
-        /// La regola dell'utente: il file esiste **solo** a verbosita' massima. `init` non e'
-        /// chiamabile qui (una sola `set_global_default` per processo), quindi si esercita la
-        /// funzione che `init` interroga, esaustivamente su tutti e sei i livelli.
+        /// The file exists **only** at maximum verbosity. `init` cannot be called here — one
+        /// `set_global_default` per process — so the function `init` consults is exercised instead,
+        /// exhaustively over all six levels.
         mod generated_only_at_max_verbosity {
             use super::*;
             use test_case::test_case;
@@ -3787,10 +3602,10 @@ mod tests {
             // `tests::init::first_call_succeeds_and_creates_both_log_files_second_call_reports_already_initialized`
             // rather than here: `tracing::subscriber::SetGlobalDefaultError` has no public
             // constructor, so the only way to obtain a real one is to actually trigger it by
-            // calling `set_global_default` twice in the same process; doing that from more than
-            // one test would race other tests for who "wins" the one-time global install
-            // (`cargo test` runs tests in parallel by default), so all such coverage lives in
-            // that single sequential test instead.
+            // calling `set_global_default` twice in the same process; doing that from more than one
+            // test would race other tests for who "wins" the one-time global install (`cargo test`
+            // runs tests in parallel by default), so all such coverage lives in that single
+            // sequential test instead.
         }
 
         mod source_chain {

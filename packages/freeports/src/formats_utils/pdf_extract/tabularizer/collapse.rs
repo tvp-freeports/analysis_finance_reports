@@ -1,45 +1,19 @@
-//! Collasso di righe/celle multi-riga (CollapseAlgorithm, SplittingState).
+//! Collapsing rows and cells that the page layout broke across several lines.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::tabularizer::collapse`, meno il confine PyO3
-//! (`FromPyObject` per `CollapseAlgorithm`/`SplittingState`, `#[pyfunction] py_collapse_table_rows`).
-//! `ColumnConfig`/`TableConfig` non sono definiti qui (a differenza del riferimento): per
-//! decisione esplicita di questa milestone vivono in `pdf_extract::position` (vedi il doc-comment
-//! di quel modulo e la decisione R2 di `PLAN.md`), e questo modulo li importa da li'.
-//! `SplittingDirection`/`SplittingState`/`NullableState` sono anch'essi definiti in `position`
-//! (evita una dipendenza circolare fra i due moduli: vedi il commento li') e qui sono
-//! ri-esportati dal loro percorso storico, cosi' che nulla fuori da questi due file debba sapere
-//! del trasloco.
+//! A table cell whose text is too long to fit wraps, and the wrapped remainder arrives as a
+//! separate line with its own coordinates. Collapsing puts it back where it belongs. There are two
+//! strategies, usable alone or one after the other:
 //!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
+//! - **pattern**: consecutive cells in the same column collapse onto the lowest row of the run, or the highest if the column's splitting direction says so. A column marked `Disallow` is left alone;
+//! - **geometry**: a row with at least one empty cell is a candidate; it may only be split if every empty cell it holds is nullable. Cells in splittable rows inherit their column's splitting direction, and vertical runs of such rows collapse up or down accordingly — including where two runs meet, and the last row of one already has a target from the other.
 //!
-//! - `pub enum CollapseAlgorithm { Pattern, Geometry, GeometryThenPattern, PatternThenGeometry }`.
-//! - `pub enum SplittingDirection { Up, Down }` e
-//!   `pub enum SplittingState { Allow(SplittingDirection), Disallow }`; `pub type NullableState = bool`.
-//! - `pub fn collapse_table_rows(indexes: Vec<(usize,usize)>, table_config: &TableConfig,
-//!   alghoritm: CollapseAlgorithm) -> Vec<(usize,usize)>`: se `table_config.cols` e' `None`, lo
-//!   sostituisce con `n_cols` colonne "sconosciute" (`limits: None, splitting: None, nullable:
-//!   None`, una per colonna, **non** lo stesso `ColumnConfig` clonato/aliasato — altrimenti
-//!   impostare `splitting` su una sola colonna dopo la chiamata ne muterebbe altre per
-//!   condivisione, bug gia' noto e corretto altrove nel porting di `position`); dispaccia
-//!   all'algoritmo scelto, applicando entrambe le strategie in sequenza per le due varianti
-//!   composte.
-//! - Strategia "pattern" (`collapse_table_rows_by_pattern`): sequenze consecutive di celle nella
-//!   stessa colonna collassano sulla riga minima (`SplittingState::Allow(Down)`, default se
-//!   `splitting` e' `None`) o massima (`Allow(Up)`) della sequenza; `Disallow` lascia la colonna
-//!   invariata.
-//! - Strategia "geometry" (`collapse_table_rows_by_geometry`): righe con almeno una cella vuota
-//!   sono "collassabili"; una riga e' "splittabile" solo se ogni cella vuota che contiene e'
-//!   `nullable`; le celle presenti in righe splittabili ereditano lo `splitting` di colonna,
-//!   altrimenti `Disallow`; sequenze verticali di righe splittabili+collassabili in una colonna
-//!   collassano verso l'alto o il basso a seconda della direzione, con gestione delle sequenze
-//!   che si toccano (l'ultima riga di ogni run puo' gia' avere un target da un run opposto).
+//! The configuration types come from [`super::super::position`]; the splitting and nullability
+//! enums are defined there too and re-exported here from their historical path, so nothing outside
+//! these two files needs to know where they live.
 
 use super::super::position::{ColumnConfig, TableConfig};
 pub use super::super::position::{NullableState, SplittingDirection, SplittingState};
 
-// `Debug` aggiunto in M7 (modifica puramente additiva a codice M3 verbatim, stesso precedente
-// dei derive aggiunti a M1 durante M2): `tabularizer::TableCoordinatesConfig` lo richiede.
 #[derive(Debug, Clone, Copy)]
 pub enum CollapseAlgorithm {
     Pattern,
@@ -132,7 +106,7 @@ fn is_row_collapsable(row: &[bool], _cfg: &[GeometryCollapseConfig]) -> bool {
     row.iter().any(|full| !full)
 }
 fn is_row_splittable(row: &[bool], cfg: &[GeometryCollapseConfig]) -> bool {
-    // Only unsplittable rows are the ones that contains empty non nullable cells
+    // A row is unsplittable exactly when it contains an empty cell that is not nullable.
     !(0..row.len()).filter(|&i| !row[i]).any(|j| !cfg[j].nullable)
 }
 
@@ -447,7 +421,7 @@ mod tests {
                 (3, 0),
                 (3, 1),
                 (3, 2),
-                // collapsable lines:
+                // Collapsable lines:
                 (2, 1),
                 (4, 0),
                 (5, 0),
@@ -638,11 +612,10 @@ mod tests {
 
         #[test]
         fn missing_column_config_is_filled_with_independent_unknown_columns_not_aliased_clones() {
-            // Se `cols` fosse riempito clonando/aliasando lo stesso `ColumnConfig`, configurare
-            // in modo diverso una singola colonna dopo la chiamata (o un bug analogo interno)
-            // altererebbe anche le altre: qui verifichiamo solo il comportamento osservabile,
-            // cioe' che senza configurazione esplicita ogni colonna si comporta secondo i
-            // default (`Allow(Down)` per il pattern), indipendentemente dalle altre.
+            // With no explicit configuration every column must behave according to the defaults,
+            // independently of the others. Filling `cols` by sharing one `ColumnConfig` between
+            // columns would make configuring a single column afterwards alter the rest; this checks
+            // the observable half of that.
             let cfg = TableConfig { rows: None, cols: None };
             let cells: Vec<(usize, usize)> = vec![(0, 0), (1, 0), (0, 1), (2, 1)];
             let result = collapse_table_rows(cells, &cfg, CollapseAlgorithm::Pattern);

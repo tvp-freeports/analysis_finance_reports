@@ -1,25 +1,22 @@
-//! Il livello semistructured: algoritmi **nominati**, nativi oppure scritti dall'autore.
+//! The semistructured level: **named** algorithms, native or written by the format's author.
 //!
-//! Sta a metà fra gli altri due. Come structured, l'algoritmo può essere nella libreria; come
-//! unstructured, riceve una configurazione ricca invece di una manciata di colonne, e può essere
-//! scritto dall'autore. La differenza vera è che qui l'algoritmo ha un **nome**:
-//! `formats_mapping.csv` dice quale nome serve quale segmento di quale pipeline, e
-//! `args/{segmento}.yaml` ne porta la configurazione.
+//! It sits between the other two. Like structured, the algorithm can live in the library; like
+//! unstructured, it takes a rich configuration instead of a handful of columns, and it may be
+//! written by the author. What is distinctive is that the algorithm has a **name**: a mapping table
+//! says which name serves which segment of which pipeline, and a YAML file per segment carries its
+//! configuration.
 //!
-//! - [`formats_mapping`] legge il CSV;
-//! - [`args`] legge e risolve gli YAML;
-//! - [`native`] è il registro degli algoritmi implementati in Rust;
-//! - un nome non nativo si cerca in `local_extensions/{segmento}.py`, il modulo dell'autore.
+//! - [`formats_mapping`] reads the mapping table;
+//! - [`args`] reads and resolves the YAML;
+//! - [`native`] is the registry of algorithms implemented in Rust;
+//! - a non-native name is looked up in the author's module for that segment.
 //!
-//! **Un nome definito sia nativamente sia dall'autore è un errore di configurazione**, non una
-//! precedenza da indovinare: la regola vale appena il modulo dell'autore viene caricato, per
-//! *tutti* i nomi nativi del segmento, non solo per quello che la riga in esame richiede. È la
-//! stessa scelta del riferimento, e la ragione è che l'alternativa — far vincere l'uno o l'altro —
-//! rende invisibile una collisione che quasi sempre è un errore di battitura.
+//! # A name defined both natively and by the author is an error
 //!
-//! Per il contratto duck-typed dei pipe d'autore vedi
-//! [`unstructured::py_pipe`](super::unstructured::py_pipe) (decisione D-M7-3): anche qui, in
-//! questa fase, un modulo d'autore non può importare `freeports`.
+//! Not a precedence to be guessed. The check runs over *every* native name of the segment as soon
+//! as the author's module is loaded, not only over the name the row in question asks for. The
+//! alternative — letting one of them win — makes invisible a collision that is nearly always a
+//! typo.
 
 pub mod args;
 pub mod formats_mapping;
@@ -39,8 +36,8 @@ use args::ArgsError;
 use formats_mapping::{FormatsMappingError, MappingRow};
 use native::NativeError;
 
-/// I tre segmenti di una pipeline, che qui sono anche tre nomi di file (`args/{x}.yaml`,
-/// `local_extensions/{x}.py`) e tre colonne di `formats_mapping.csv`.
+/// The three segments of a pipeline, which here are also three file names and three columns of the
+/// mapping table.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SegmentKind {
     PdfExtract,
@@ -49,10 +46,10 @@ pub enum SegmentKind {
 }
 
 impl SegmentKind {
-    /// I tre segmenti, nell'ordine in cui una pipeline li applica.
+    /// The three segments, in the order a pipeline applies them.
     pub const ALL: [SegmentKind; 3] = [SegmentKind::PdfExtract, SegmentKind::TextFilter, SegmentKind::Deserialize];
 
-    /// Il nome con cui il segmento compare nei file del repo formati.
+    /// The name the segment goes by in the repository's files.
     pub fn file_stem(self) -> &'static str {
         match self {
             SegmentKind::PdfExtract => "pdf_extract",
@@ -61,7 +58,7 @@ impl SegmentKind {
         }
     }
 
-    /// La cella di `formats_mapping.csv` che riguarda questo segmento.
+    /// The cell of the mapping row concerning this segment.
     fn cell(self, row: &MappingRow) -> Option<&str> {
         match self {
             SegmentKind::PdfExtract => row.pdf_extract.as_deref(),
@@ -71,7 +68,7 @@ impl SegmentKind {
     }
 }
 
-/// Fallimenti nel caricamento del livello semistructured.
+/// Failures of loading the semistructured level.
 #[derive(Debug, thiserror::Error)]
 pub enum SemistructuredError {
     #[error(transparent)]
@@ -93,7 +90,7 @@ pub enum SemistructuredError {
     MalformedArgs { segment: &'static str, name: String, message: String },
     #[error("segment '{segment}': no native or author-provided algorithm named '{name}' is registered")]
     UnknownAlgorithm { segment: &'static str, name: String },
-    /// Un nome definito sia nativamente sia dall'autore. Vedi il doc-comment del modulo.
+    /// A name defined both natively and by the author. See the module documentation.
     #[error("segment '{segment}': '{name}' is defined both natively and by the author's module")]
     AmbiguousAlgorithm { segment: &'static str, name: String },
     #[error("segment '{segment}': author-provided '{name}' is not callable")]
@@ -106,7 +103,7 @@ pub enum SemistructuredError {
     Python { segment: &'static str, message: String },
 }
 
-/// Il percorso del modulo d'autore di un segmento.
+/// The path of a segment's author-written module.
 pub fn local_extension_path(formats_repo_dir: &Path, segment: SegmentKind) -> PathBuf {
     formats_repo_dir
         .join(formats_mapping::SEMISTRUCTURED_DIR)
@@ -114,8 +111,8 @@ pub fn local_extension_path(formats_repo_dir: &Path, segment: SegmentKind) -> Pa
         .join(format!("{}.py", segment.file_stem()))
 }
 
-/// Il nome della classe di input che l'autore deve affiancare a una funzione: `standard_cost_curr`
-/// → `InputStandardCostCurr`. Verbatim dalla regola del riferimento.
+/// The name of the input class an author must provide alongside a function: `standard_cost_curr`
+/// becomes `InputStandardCostCurr`.
 pub fn input_class_name(name: &str) -> String {
     let mut out = String::from("Input");
     for part in name.split('_') {
@@ -128,13 +125,13 @@ pub fn input_class_name(name: &str) -> String {
     out
 }
 
-/// Da dove viene l'algoritmo richiesto da una cella di `formats_mapping.csv`.
+/// Where the algorithm a mapping cell asks for comes from.
 enum AlgorithmSource {
     Native,
     Author { func: Py<PyAny>, input_class: Py<PyAny> },
 }
 
-/// Importa il modulo d'autore di un segmento, se esiste.
+/// Imports a segment's author module, if it exists.
 fn load_author_module<'py>(
     py: Python<'py>,
     formats_repo_dir: &Path,
@@ -167,7 +164,7 @@ fn load_author_module<'py>(
     }
 }
 
-/// Risolve un nome di algoritmo, verificando la collisione nativo/autore.
+/// Resolves an algorithm name, checking for a native/author collision.
 fn resolve(
     py: Python<'_>,
     formats_repo_dir: &Path,
@@ -182,8 +179,8 @@ fn resolve(
         };
     };
 
-    // Il controllo di ambiguità gira su **tutti** i nomi nativi del segmento, non solo su quello
-    // richiesto: una collisione è un errore di configurazione a prescindere da chi la usi.
+    // The ambiguity check runs over **every** native name of the segment, not only the one
+    // requested: a collision is a configuration error regardless of who uses it.
     for native_name in native::names(segment) {
         if module.hasattr(*native_name).unwrap_or(false) {
             return Err(SemistructuredError::AmbiguousAlgorithm {
@@ -217,7 +214,7 @@ fn resolve(
     Ok(AlgorithmSource::Author { func: func.unbind(), input_class: input_class.unbind() })
 }
 
-/// I pipe che un algoritmo produce per un segmento, già nella forma che il motore usa.
+/// The pipes an algorithm produces for a segment, already in the form the engine uses.
 enum SegmentPipes {
     PdfExtract(Vec<Arc<dyn crate::core::pipeline::PdfExtractPipe>>),
     TextFilter(Vec<Arc<dyn crate::core::pipeline::TextFilterPipe>>),
@@ -233,7 +230,7 @@ impl SegmentPipes {
         }
     }
 
-    /// Versa i pipe nella pipeline giusta.
+    /// Pours the pipes into the right segment of the pipeline.
     fn push_into(self, pipeline: &mut Pipeline) {
         match self {
             SegmentPipes::PdfExtract(pipes) => pipes.into_iter().for_each(|p| {
@@ -249,7 +246,7 @@ impl SegmentPipes {
     }
 }
 
-/// Costruisce i pipe di un algoritmo **nativo** a partire dai suoi argomenti YAML.
+/// Builds the pipes of a **native** algorithm from its YAML arguments.
 fn build_native(
     segment: SegmentKind,
     name: &str,
@@ -268,13 +265,13 @@ fn build_native(
             })?;
             Ok(SegmentPipes::PdfExtract(vec![Arc::new(investments), Arc::new(fund), Arc::new(currency)]))
         }
-        // `resolve` non può produrre `Native` per nessun'altra coppia: `native::contains` è la sua
-        // unica sorgente, e il registro ha un solo elemento.
+        // `resolve` cannot produce a native source for any other pair: the registry is its only
+        // source.
         _ => unreachable!("native::contains only registers (PdfExtract, \"standard_cost_curr\")"),
     }
 }
 
-/// Converte un valore YAML nell'equivalente Python, per costruire l'`Input*` di un autore.
+/// Converts a YAML value into its Python equivalent, to build an author's input object.
 fn yaml_to_py<'py>(py: Python<'py>, value: &serde_yaml::Value) -> PyResult<Bound<'py, PyAny>> {
     Ok(match value {
         serde_yaml::Value::Null => py.None().into_bound(py),
@@ -302,8 +299,8 @@ fn yaml_to_py<'py>(py: Python<'py>, value: &serde_yaml::Value) -> PyResult<Bound
     })
 }
 
-/// Costruisce i pipe di un algoritmo **d'autore**: `func(Input*(**args))`, poi si avvolge ciò che
-/// ne esce.
+/// Builds the pipes of an **author's** algorithm: call the function with its input object, then
+/// wrap whatever comes out.
 fn build_author(
     py: Python<'_>,
     segment: SegmentKind,
@@ -371,10 +368,10 @@ fn build_author(
     })
 }
 
-/// Le pipeline semistructured che il repo definisce per `format_name`.
+/// The semistructured pipelines the repository defines for `format_name`.
 ///
-/// Un formato che non compare in `formats_mapping.csv` non ne definisce nessuna — e i tre file
-/// YAML vengono letti comunque, perché un file mancante è un errore del repo, non del formato.
+/// A format absent from the mapping table defines none — and the YAML files are read anyway,
+/// because a missing one is an error in the repository rather than in the format.
 pub fn get_pipelines(
     formats_repo_dir: &Path,
     format_name: &str,
@@ -389,8 +386,8 @@ pub fn get_pipelines(
     }
 
     let mut pipelines: HashMap<PipelineName, Pipeline> = HashMap::new();
-    // Quanti pipe ha già emesso ciascuna coppia `(pipeline, segmento)`: è il contatore che decide
-    // la scelta posizionale negli argomenti a lista (vedi il doc-comment di [`args`]).
+    // How many pipes each `(pipeline, segment)` pair has already emitted: the counter that drives
+    // the positional choice among list-valued arguments (see [`args`]).
     let mut emitted: HashMap<(String, SegmentKind), usize> = HashMap::new();
 
     Python::attach(|py| -> Result<(), SemistructuredError> {
@@ -442,7 +439,7 @@ mod tests {
 
     const MAPPING_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
 
-    /// La configurazione YAML minima di `standard_cost_curr`.
+    /// The minimal YAML configuration of the one native algorithm.
     const COST_CURR_ARGS: &str = "\
 A-EN24(investments):
   body_set:
@@ -452,7 +449,7 @@ A-EN24(investments):
   currency: EUR
 ";
 
-    /// Un repo formati con i file semistructured, tutti presenti e vuoti per default.
+    /// A formats repository with the semistructured files, all present and empty by default.
     struct Repo {
         dir: TempDir,
     }
@@ -626,7 +623,7 @@ A-EN24(investments):
                 "formats_mapping.csv",
                 &format!("{MAPPING_HEADER}A-EN24(investments),standard_cost_curr,,\nA-EN24(investments),standard_cost_curr,,\n"),
             );
-            // Un solo argomento a scalare: entrambe le righe lo condividono, e i pipe diventano 6.
+            // A single scalar argument: both rows share it, so the pipes come to six.
             repo.write("args/pdf_extract.yaml", COST_CURR_ARGS);
             let pipelines = get_pipelines(repo.path(), "A-EN24").unwrap();
             assert_eq!(pipelines[&PipelineName::new("investments")].pdf_extract.len(), 6);
@@ -634,7 +631,7 @@ A-EN24(investments):
 
         #[test]
         fn a_stacked_args_list_is_indexed_by_emitted_pipes_not_by_row() {
-            // `standard_cost_curr` emette 3 pipe: la seconda riga cerca quindi l'indice 3, non 1.
+            // The algorithm emits three pipes, so the second row looks for index 3 rather than 1.
             let repo = Repo::new();
             repo.write(
                 "formats_mapping.csv",
@@ -706,8 +703,8 @@ A-EN24(investments):
         }
     }
 
-    /// I test che attaccano l'interprete: i moduli `local_extensions/` sintetici non importano
-    /// `freeports` (D-M7-3).
+    /// The tests that attach the interpreter. The synthetic author modules deliberately do not
+    /// import the crate's own Python package.
     mod python_boundary {
         use super::*;
         use pretty_assertions::assert_eq;

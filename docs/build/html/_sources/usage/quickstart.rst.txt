@@ -1,9 +1,0 @@
-================
-Quickstart guide
-================
-
-.. important::
-
-   Before using the command please read the :doc:`validation section <validation/index>`
-
-After :ref:`installation <install>`, you should have the ``freeports`` command available in your environment.

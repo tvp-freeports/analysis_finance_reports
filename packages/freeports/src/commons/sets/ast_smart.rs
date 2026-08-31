@@ -1,9 +1,12 @@
-//! AST di insiemi con semplificazione (`SmartAstSet`/`SmartAstNode`).
+//! A simplifying set expression tree: [`SmartAstSet`] and [`SmartAstNode`].
 //!
-//! Stessa algebra di `ast_simple`, ma ogni `|`/`&`/`/` fra due foglie prova a semplificare subito
-//! usando `Overlappable::set_relation` (uguali/sottoinsieme/soprainsieme collassano in una sola
-//! foglia, disgiunti/sovrapposti restano un `Branch`). Come `ast_simple`, resta `UncomparableSet`:
-//! la semplificazione è locale alle coppie di foglie, non normalizza l'intero albero.
+//! The same algebra as [`super::ast_simple`], but every operator between two leaves tries to
+//! simplify immediately using their set relation: equal, subset and superset collapse into a single
+//! leaf, while disjoint and overlapping stay a branch.
+//!
+//! It is still [`UncomparableSet`]: simplification is local to pairs of leaves and does not
+//! normalise the whole tree, so two trees built differently can still denote the same set without
+//! comparing equal.
 
 use super::{Container, Overlappable, SetAlgebra, SetOps, SetRelation, UncomparableSet};
 use std::ops::{BitAnd, BitOr, Div};

@@ -1,46 +1,29 @@
-//! Parsing dei valori di configurazione (report, url, path, rinomine): la grammatica
-//! `<url>:<path>:<name>` di `targets/conf_parse.md`.
+//! Parsing a document specifier: the `<url>:<path>:<name>` grammar.
 //!
-//! `M9-implementation-plan.md` §1/§3 passo 3, §0 Q3/Q4. Porta la grammatica di
-//! `DocumentSpec.from_str` (`packages/freeports_core/python/freeports/_internals/cli/
-//! conf_parse.py`), **non** l'intera classe pydantic: un `parse` puro più una validazione
-//! separata ("almeno url o path specificato"), chiamata da `cli::freeports_config`, non
-//! incorporata in `parse` stesso.
+//! One string names where a report comes from, where it goes on disk, and what to call it — any of
+//! the three being optional.
 //!
-//! # Grammatica (identica al riferimento, tracciata riga per riga — vedi
-//! # `M9-implementation-plan.md` per la derivazione completa)
+//! # The grammar
 //!
-//! - Lo schema url (`http://`/`https://`) è rilevato in testa alla stringa (dopo aver tolto un
-//!   eventuale `"` iniziale, se presente, per permettere di quotare l'intero specificatore).
-//! - Il resto è spezzato in segmenti da `:` **non fra virgolette**; un segmento può essere
-//!   racchiuso fra `"..."` per proteggere `:` al suo interno (es. porta di un url, path Windows,
-//!   nome con `:`).
-//! - **1 segmento**: solo path/nome (nessuno schema rilevato) → `path` = valore assoluto rispetto
-//!   alla cwd, `name` = la sua rappresentazione testuale, `url` = `None`. Con schema rilevato →
-//!   `url` = schema + segmento, `name` = url, `path` = `None`.
-//! - **2 segmenti, senza `:` finale**: `<url>:<name>` (con schema) o `<path>:<name>` (senza).
-//! - **2 segmenti, con `:` finale** (`<url>:<path>:`): richiede uno schema rilevato — `url` =
-//!   schema + segmento 1, `path` = segmento 2 (assoluto), `name` = `url` (fallback). **Senza**
-//!   schema rilevato è [`DocumentSpecError::MissingUrlScheme`] (§0 Q4: il riferimento Python
-//!   concatenerebbe `None + str`, un `TypeError` mai catturato — qui un errore tipizzato, mai un
-//!   panic).
-//! - **3 segmenti** (`<url>:<path>:<name>`): richiede sempre uno schema rilevato per lo stesso
-//!   motivo — senza, [`DocumentSpecError::MissingUrlScheme`] (stessa classe di problema di sopra,
-//!   non esplicitamente nominata da §0 Q4 ma stessa causa: concatenare uno schema assente).
-//! - **0, o 4+ segmenti**: [`DocumentSpecError::InvalidSegmentCount`] (il riferimento solleva
-//!   `ValueError` nel proprio ramo `else` finale).
-//! - **Stringa vuota** (dopo `.strip()`): tutti e tre i campi `None` — non è un errore di `parse`,
-//!   lo diventa solo passando per `input_should_be_specified` (vedi sotto).
+//! - a URL scheme (`http://`, `https://`) is detected at the head of the string, after stripping a leading quote if there is one, so that a whole specifier may be quoted;
+//! - the rest is split into segments on `:` **outside quotes**; a segment may be wrapped in quotes to protect a `:` inside it — a URL port, a Windows path, a name containing a colon;
+//! - **one segment**: with no scheme, a path (made absolute against the working directory) whose text is also the name; with a scheme, a URL that is also the name;
+//! - **two segments**: `<url>:<name>` or `<path>:<name>`, depending on whether a scheme was found;
+//! - **two segments and a trailing colon** (`<url>:<path>:`): requires a scheme;
+//! - **three segments** (`<url>:<path>:<name>`): requires a scheme.
 //!
-//! **Nota per l'implementazione**: nessun `unwrap`/`expect`/indicizzazione che possa panicare su
-//! un input arbitrario — verificato dal test di stress sotto (100+ stringhe generate).
+//! Requiring the scheme in the last two cases is what turns "no URL to prepend" into a typed error
+//! instead of a value built from nothing.
 //!
+//! **Zero, or four or more segments** is an error, and an **empty string** parses into a spec with
+//! no fields set — not an error here, only when validated as an actual input.
+//!
+//! Parsing never panics on any input, whatever its shape, which the stress test below exercises.
 use std::path::PathBuf;
 use crate::core::tracing_setup::log_error;
 
-/// Separatore condiviso fra `cli::batch` (righe CSV) e `config_locations::env`
-/// (`FREEPORTS_REPORTS`, `M9-implementation-plan.md` §0 Q3) -- un'unica costante, non due
-/// letterali `'|'` duplicati che potrebbero divergere.
+/// The separator between several document specifiers, shared by batch rows and the environment: one
+/// constant rather than two literals that could drift apart.
 pub const DOC_SPEC_SEPARATOR: char = '|';
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -52,11 +35,11 @@ pub struct DocumentSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum DocumentSpecError {
-    /// 2 o 3 segmenti che richiedono uno schema `http(s)://` rilevato, ma nessuno schema è
-    /// stato trovato in testa allo specificatore (§0 Q4).
+    /// A form requiring a URL scheme was used, but no scheme was found at the head of the
+    /// specifier.
     #[error("document specifier {specifier:?} has {segment_count} segments but no http(s):// scheme was found")]
     MissingUrlScheme { specifier: String, segment_count: usize },
-    /// 0, oppure 4 o più segmenti -- nessuna forma della grammatica li accetta.
+    /// Zero, or four or more segments: no form of the grammar accepts them.
     #[error("document specifier {specifier:?} has {segment_count} segments, expected 1 to 3")]
     InvalidSegmentCount { specifier: String, segment_count: usize },
     /// Da `input_should_be_specified`: né `url` né `path` sono specificati.
@@ -66,10 +49,10 @@ pub enum DocumentSpecError {
 
 const URL_SCHEMES: [&str; 2] = ["http://", "https://"];
 
-/// Risolve un segmento non-url a path assoluto rispetto alla cwd (`os.path.abspath` del
-/// riferimento). Se la cwd non è leggibile (limite di sistema, non un errore di parsing) il
-/// segmento resta relativo piuttosto che far fallire l'intero parsing per una causa estranea
-/// alla grammatica.
+/// Resolves a non-URL segment to an absolute path against the working directory.
+///
+/// If the working directory cannot be read — a system limit, not a parsing error — the segment
+/// stays relative rather than failing the whole parse for a reason unrelated to the grammar.
 fn abspath(segment: &str) -> PathBuf {
     let path = PathBuf::from(segment);
     if path.is_absolute() {
@@ -83,12 +66,12 @@ fn abspath(segment: &str) -> PathBuf {
         })
 }
 
-/// Spezza `body` (già privato dello schema url, se presente) in segmenti separati da `:` non
-/// fra virgolette, spogliando le virgolette che racchiudono un intero segmento. Ritorna anche
-/// se l'ultimo carattere consumato è stato un `:` non fra virgolette (usato dal chiamante per
-/// distinguere `<url>:<path>:` da `<url>:<name>` nel caso a 2 segmenti) -- porting diretto di
-/// `DocumentSpec.from_str` (`conf_parse.py`), incluso il trattamento delle virgolette non in
-/// testa a un segmento (restano caratteri letterali, non aprono/chiudono la zona quotata).
+/// Splits the body, already stripped of its URL scheme, into segments separated by unquoted colons,
+/// removing the quotes that wrap a whole segment.
+///
+/// Also reports whether the last character consumed was an unquoted colon, which is what tells
+/// `<url>:<path>:` from `<url>:<name>` in the two-segment case. A quote that is not at the head of
+/// a segment stays a literal character and neither opens nor closes a quoted region.
 fn split_segments(body: &str) -> (Vec<String>, bool) {
     let mut segments: Vec<String> = Vec::new();
     let mut quote_area = false;
@@ -114,7 +97,7 @@ fn split_segments(body: &str) -> (Vec<String>, bool) {
 }
 
 impl DocumentSpec {
-    /// Non panica mai, qualunque sia l'input (vedi `tests::stress`).
+    /// Never panics, whatever the input.
     pub fn parse(specifier: &str) -> Result<DocumentSpec, DocumentSpecError> {
         let trimmed = specifier.trim();
         if trimmed.is_empty() {
@@ -191,9 +174,9 @@ impl DocumentSpec {
         }
     }
 
-    /// Validazione separata, non incorporata in `parse` (a differenza del riferimento, dove è
-    /// un `model_validator`): un `DocumentSpec` con tutti e tre i campi `None` (es. dalla
-    /// stringa vuota) è un `parse` valido ma un documento non specificato.
+    /// Validation kept separate from parsing: a spec with all three fields unset — from the empty
+    /// string, say — is a valid parse but not a specified document. Keeping the two apart lets a
+    /// caller parse a value it does not yet require.
     pub fn input_should_be_specified(&self) -> Result<(), DocumentSpecError> {
         if self.url.is_none() && self.path.is_none() { Err(DocumentSpecError::InputNotSpecified) } else { Ok(()) }
     }
@@ -272,7 +255,7 @@ mod tests {
 
         #[test]
         fn without_a_url_scheme_it_is_a_typed_error_not_a_panic() {
-            // §0 Q4: the reference would concatenate `None + str` here (uncaught `TypeError`).
+            // Without the scheme requirement, there would be nothing to build a URL from here.
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("report.pdf:other:"));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {
@@ -295,9 +278,7 @@ mod tests {
 
         #[test]
         fn without_a_url_scheme_it_is_a_typed_error_not_a_panic() {
-            // Same class of bug as the 2-segment trailing-colon case (§0 Q4): the reference would
-            // also concatenate `None + str` here. Not explicitly named by Q4, but the identical
-            // failure mode -- treated the same way, flagged in the test-writer's report.
+            // The same failure mode as the two-segment case with a trailing colon.
             let result = std::panic::catch_unwind(|| DocumentSpec::parse("a:b:c"));
             assert!(result.is_ok(), "must not panic");
             match result.unwrap() {

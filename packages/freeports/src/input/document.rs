@@ -1,11 +1,8 @@
-//! `input::document` — uno dei tre moduli di confine PyO3 (`PLAN.md` §2 principio 1, §3): PyMuPDF
-//! si chiama qui, una volta per documento, e il risultato diventa subito `core::page::Page`
-//! nativo (`Page::raw` conserva comunque il dict originale, M5 D-M5-2, per i pipe Python di M7).
+//! Loading a PDF document: one of the crate's three PyO3 boundary modules.
 //!
-//! Contratto: `agent-memory/M6-implementation-plan.md` §3.3. **Q2** (confermata dall'utente,
-//! stesso file §0): `load_document`/`load_document_pages` non sono elencate da `PLAN.md` §9, ma
-//! sono comunque in scope per questa milestone — il buco va documentato (stesso trattamento di
-//! `TablePosMeasureUnit`), non lasciato silenzioso (`STATUS.md`).
+//! PyMuPDF is called here, once per document, and its output becomes a native [`Page`] straight
+//! away. The original dict is kept on the page for the pipes that expect it, but nothing downstream
+//! has to know a PDF reader was involved.
 
 pub mod page_dict;
 pub mod selection;
@@ -36,10 +33,15 @@ fn open_error(path: &Path, message: impl std::fmt::Display) -> DocumentError {
     DocumentError::Open { path: path.display().to_string(), message: message.to_string() }
 }
 
-/// Apre `path` con `fitz`, itera le sue pagine (1-based, come `Page::number`), estrae
-/// `page.get_text("dict")` per ciascuna e la converte subito in `Page` nativa (`Page::raw` tiene
-/// il dict originale). **Q2**: non elencata da `PLAN.md` §9, proposta comunque — vedi il
-/// doc-comment del modulo.
+/// Opens `path`, iterates its pages, extracts each one's text dict and converts it immediately into
+/// a native [`Page`].
+///
+/// Page numbers are 1-based, matching [`Page::number`].
+///
+/// # Errors
+///
+/// [`DocumentError::Open`] if the file cannot be opened, and the parse errors of the pages
+/// themselves.
 pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, DocumentError> {
     Python::attach(|py| {
         let fitz = PyModule::import(py, "fitz").map_err(|e| open_error(path, e))?;
@@ -49,11 +51,11 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
 
         let mut pages = Vec::with_capacity(page_count);
         for i in 0..page_count {
-            // `Page::number` e' 1-based, mentre `fitz`/PyMuPDF indicizza le pagine da 0.
+            // [`Page::number`] is 1-based, while PyMuPDF indexes pages from zero.
             let page_number = u32::try_from(i + 1).expect("a pdf with more than u32::MAX pages does not occur in practice");
-            // Orchestration point (rule 3): grouping the sub-steps below (load, get_text, parse,
-            // build) under one span per page, so their events/logs share a `page` coordinate --
-            // same field name as the `page` span opened later by `core::algorithm`.
+            // Groups the sub-steps below — load, extract, parse, build — under one span per page,
+            // so their events share a `page` coordinate under the same field name the engine's own
+            // page span uses later.
             let page_span = tracing::info_span!("page", page = page_number);
             let _page_guard = page_span.enter();
 
@@ -75,9 +77,9 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
             let images = pdfimages_from_pagedict(&page_dict);
             let raw = dict.clone().into_any().unbind();
 
-            // La prima riga di testo della pagina, non solo i conteggi: a `-vv` questa riga per
-            // pagina diventa un indice del documento con cui orientarsi, invece di 1140 righe
-            // indistinguibili.
+            // The page's first line of text, not just the counts: at `-vv` this one line per page
+            // becomes an index of the document to navigate by, instead of a thousand
+            // indistinguishable rows.
             tracing::debug!(
                 found = %lines.first().map(|line| line.text().clone()).unwrap_or_default(),
                 line_count = lines.len(),
@@ -92,8 +94,8 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
     })
 }
 
-/// Come [`load_document_pages`], ma wrappato in un `Document` — `id`/`format` sono forniti dal
-/// chiamante (non rilevati qui: la rilevazione del formato è `formats_repo::id_format`, M7).
+/// Like [`load_document_pages`], but wrapped in a [`Document`]. The id and format are supplied by
+/// the caller; detecting the format is `formats_repo`'s job.
 pub fn load_document(path: &Path, id: impl Into<DocumentId>, format: impl Into<FormatName>, auto_rotate: bool) -> Result<Document, DocumentError> {
     let pages = load_document_pages(path, auto_rotate)?;
     Ok(Document::new(id, format, pages))
@@ -103,24 +105,19 @@ pub fn load_document(path: &Path, id: impl Into<DocumentId>, format: impl Into<F
 mod tests {
     use super::*;
 
-    /// **Unico** sottomodulo che tocca davvero PyMuPDF in tutta `input::document` (D-M6-3,
-    /// `PLAN.md` §11/§10 D13). Richiede `fitz` importabile: attivare `venv/freeports-dev`
-    /// (`AGENTS.md`) prima di `cargo test`, come per ogni altro test che tocca Python in questo
-    /// crate.
+    /// The **only** submodule in this file that really touches PyMuPDF. It needs `fitz` importable,
+    /// so the development virtualenv has to be active before running the tests.
     mod python_boundary {
         use super::*;
         use pyo3::types::PyList;
 
-        /// Costruisce un PDF minimo **con fitz stesso** (nuovo documento, una pagina, del testo
-        /// inserito) in un file temporaneo, invece di un fixture binario nel repo. In un unico
-        /// `#[test] fn` (non uno per fase, per restare l'unico test che tocca PyMuPDF, D-M6-3):
+        /// Builds a minimal PDF **with PyMuPDF itself** — a new document, one page, some text —
+        /// into a temporary file, rather than committing a binary fixture. It is one test rather
+        /// than several so that it stays the single test touching PyMuPDF:
         ///
-        /// 1. carica quel PDF con `load_document` e verifica pagine/dimensioni/testo/`raw`;
-        /// 2. esercita transitivamente `PageDict::from_py` sui due casi limite non bloccanti di
-        ///    `agent-memory/M6-implementation-plan.md` §3.1 (blocco `Text` senza chiave "lines",
-        ///    blocco senza chiave "type") con dict costruiti a mano — nessun test dedicato per
-        ///    `from_py` altrove (D-M6-3);
-        /// 3. verifica `DocumentError::Open` per un path inesistente.
+        /// 1. loads that PDF and checks pages, dimensions, text and the retained dict;
+        /// 2. exercises the page-dict parsing on its two non-blocking edge cases (a text block with no lines key, a block with no type key) using hand-built dicts;
+        /// 3. checks the error for a path that does not exist.
         #[test]
         fn loads_lines_and_images_from_a_real_pymupdf_document() {
             let tmp = tempfile::Builder::new().suffix(".pdf").tempfile().expect("could not create a temp file for the test pdf");
@@ -157,9 +154,8 @@ mod tests {
                 assert_eq!(width, 200.0);
             });
 
-            // Casi limite non bloccanti di `PageDict::from_py` (agent-memory/M6-implementation-plan.md
-            // §3.1): esercitati solo qui, con dict costruiti a mano nello stesso interprete gia'
-            // attaccato sopra — nessun test dedicato altrove (D-M6-3).
+            // The edge cases of the page-dict parsing, exercised here with hand-built dicts inside
+            // the interpreter already attached above.
             Python::attach(|py| {
                 let block_without_lines_key = PyDict::new(py);
                 block_without_lines_key.set_item("type", 0).unwrap();

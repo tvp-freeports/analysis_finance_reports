@@ -1,40 +1,17 @@
-//! Costruttori di `TextBlock` standard (fondo, societa' di gestione, gestore degli investimenti).
+//! Builders for the standard [`TextBlock`]s: fund, management company, investments manager.
 //!
-//! Port di `freeports_core/src/formats_utils/text_filter/standard_txt_blks.rs`, **senza** gli
-//! enum `OneTextBlockType`/`ResultStandardFiltering` del riferimento: in questo crate quel ruolo
-//! lo fa gia' [`crate::core::classes::BlockType`] (costanti associate, M2) — vedi
-//! `agent-memory/M4-implementation-plan.md` §3.
+//! Each comes in two flavours. The `_txt_blk` form derives the block from a [`PdfBlock`],
+//! inheriting its content and keeping the originating block; the `_from_content` form builds one
+//! from a string alone, for values that are format constants or promises rather than something read
+//! off a page.
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! The management-company and investments-manager builders carry one metadata key,
+//! `"managed_funds"`, holding the set of fund names **as written** rather than normalised — the
+//! metadata is read by whoever writes the output, where the human-readable form is what belongs. An
+//! empty set yields an empty [`BlockValue::Set`], not a missing field, so a consumer never has to
+//! tell "no funds" from "the key was not written".
 //!
-//! ```text
-//! pub fn standard_fund_txt_blk(pdf_blk: PdfBlock) -> TextBlock;                 // BlockType::FUND
-//! pub fn standard_fund_txt_blk_from_content(fund: &str) -> TextBlock;
-//!
-//! pub fn standard_management_company_txt_blk(pdf_blk: PdfBlock, funds: &BTreeSet<MatchFund>)
-//!     -> TextBlock;                                             // BlockType::MANAGEMENT_COMPANY
-//! pub fn standard_management_company_txt_blk_from_content(name: &str, funds: &BTreeSet<MatchFund>)
-//!     -> TextBlock;
-//!
-//! pub fn standard_investmet_manager_txt_blk(pdf_blk: PdfBlock, funds: &BTreeSet<MatchFund>)
-//!     -> TextBlock;                                             // BlockType::INVESTMENTS_MANAGER
-//! pub fn standard_investmet_manager_txt_blk_from_content(name: &str, funds: &BTreeSet<MatchFund>)
-//!     -> TextBlock;
-//! ```
-//!
-//! (nomi esatti presi da `PLAN.md` §9: `standard_management_company_txt_blk`,
-//! `standard_investmet_manager_txt_blk` — sic, refuso "investmet" del riferimento originale
-//! mantenuto perche' e' il nome pubblico richiesto esplicitamente.)
-//!
-//! - `standard_fund_txt_blk`/`_from_content` non prendono `funds` (nessuna metadata), esattamente
-//!   come il riferimento.
-//! - Le due coppie `management_company`/`investmet_manager` scrivono in `metadata` una sola
-//!   chiave, `"managed_funds"`, il cui valore e' `BlockValue::Set` dei **nomi come scritti**
-//!   (`MatchFund::name()`, non `MatchFund::normalized()`) avvolti in `BlockValue::Str` — un
-//!   `BTreeSet<MatchFund>` vuoto da' un `BlockValue::Set` vuoto, non un campo assente.
-//! - `standard_*_txt_blk` (variante `PdfBlock`) usa `TextBlock::new` (eredita `content` dal
-//!   `pdf_blk` dato, e lo conserva in `TextBlock::pdf_block`); `standard_*_txt_blk_from_content`
-//!   usa `TextBlock::from_content` (nessun `pdf_block`, `content` e' la stringa data).
+//! The block types themselves are the associated constants of [`crate::core::classes::BlockType`].
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -42,8 +19,8 @@ use crate::core::classes::value::BlockValue;
 use crate::core::classes::{BlockType, PdfBlock, TextBlock};
 use crate::core::match_fund::MatchFund;
 
-/// `{"managed_funds": <BlockValue::Set dei nomi scritti>}` — condivisa dalle quattro varianti
-/// "management_company"/"investmet_manager".
+/// `{"managed_funds": <set of the names as written>}`, shared by the four management-company and
+/// investments-manager builders.
 fn managed_funds_metadata(funds: &BTreeSet<MatchFund>) -> BTreeMap<String, BlockValue> {
     let names: BTreeSet<BlockValue> =
         funds.iter().map(|f| BlockValue::Str(f.name().to_string())).collect();

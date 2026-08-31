@@ -1,15 +1,13 @@
-//! `MatchFund`: l'identita' di un fondo, definita dal suo nome normalizzato.
+//! [`MatchFund`]: a fund's identity, defined by its normalised name.
 //!
-//! Lo stesso fondo compare, dentro un report e fra report diversi, con scritture che differiscono
-//! per accenti, maiuscole, punteggiatura o spaziatura ("Café Fund", "CAFE  FUND", "Cafe' Fund").
-//! `MatchFund` tiene il nome **come e' scritto** — quello che finisce nell'output — accanto alla
-//! sua forma profondamente normalizzata ([`crate::core::normalization::deep_normalize_string`]),
-//! che e' l'unica cosa su cui si basano uguaglianza, ordine e hash.
+//! The same fund appears — within one report and across reports — spelled in ways that differ by
+//! accents, case, punctuation or spacing: `"Café Fund"`, `"CAFE  FUND"`, `"Cafe' Fund"`. A
+//! [`MatchFund`] keeps the name **as written**, which is what ends up in the output, next to its
+//! deeply normalised form ([`crate::core::normalization::deep_normalize_string`]), which is the
+//! only thing equality, ordering and hashing look at.
 //!
-//! Porting da `freeports_core` (`src/core/match_fund.rs`) senza il confine PyO3: qui non serve
-//! ne' il `#[pyclass]` ne' il ponte Python che gli faceva da mixin per Pydantic (`PLAN.md` §3).
-//! La forma normalizzata resta **derivata**: i campi sono privati e non c'e' modo di costruire un
-//! `MatchFund` in cui `n_name` non corrisponda a `name`.
+//! The normalised form is **derived and kept private**: there is no way to build a [`MatchFund`]
+//! whose normalised field disagrees with its name, so the two can never drift apart.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
@@ -17,7 +15,19 @@ use std::hash::{Hash, Hasher};
 
 use super::normalization::deep_normalize_string;
 
-/// Nome di un fondo, confrontabile a meno di accenti, punteggiatura, maiuscole e spaziatura.
+/// A fund name, comparable up to accents, punctuation, case and spacing.
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::match_fund::MatchFund;
+///
+/// let written = MatchFund::new("Café Fund (EUR)");
+/// let shouted = MatchFund::new("CAFE  FUND EUR");
+///
+/// assert_eq!(written, shouted);              // same fund
+/// assert_eq!(written.name(), "Café Fund (EUR)");  // but the original spelling survives
+/// ```
 #[derive(Debug, Clone)]
 pub struct MatchFund {
     name: String,
@@ -31,18 +41,18 @@ impl MatchFund {
         MatchFund { name, n_name }
     }
 
-    /// Il nome come e' scritto nel documento: e' questo che va nell'output.
+    /// The name as written in the document: this is what goes into the output.
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    /// La forma normalizzata, su cui si basa l'identita'.
+    /// The normalised form, on which identity is based.
     pub fn normalized(&self) -> &str {
         &self.n_name
     }
 
-    /// Se questo nome e quello dato indicano lo stesso fondo, senza dover costruire un secondo
-    /// `MatchFund`.
+    /// Whether this name and the given one denote the same fund, without building a second
+    /// [`MatchFund`] to compare against.
     pub fn matches(&self, other: &str) -> bool {
         self.n_name == deep_normalize_string(other)
     }
@@ -62,8 +72,8 @@ impl PartialOrd for MatchFund {
     }
 }
 
-/// Ordina per forma normalizzata, coerentemente con [`PartialEq`]: due nomi equivalenti sono
-/// `Ordering::Equal`, non ordinati per la scrittura originale.
+/// Orders by normalised form, consistently with [`PartialEq`]: two equivalent names compare
+/// `Ordering::Equal` rather than being ordered by their original spelling.
 impl Ord for MatchFund {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.n_name.cmp(&other.n_name)
@@ -76,17 +86,18 @@ impl Hash for MatchFund {
     }
 }
 
-/// Mostra la forma normalizzata: e' cio' che conta per il confronto, e nei log e' l'informazione
-/// che spiega perche' due nomi diversi sono stati considerati lo stesso fondo. Il nome originale
-/// resta disponibile con [`MatchFund::name`].
+/// Shows the normalised form: it is what comparison acts on, and in a log it is the piece of
+/// information that explains why two differently written names were treated as one fund. The
+/// original name stays available through [`MatchFund::name`].
 impl fmt::Display for MatchFund {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.n_name)
     }
 }
 
-/// Serializzato come il **nome originale**: la forma normalizzata e' derivabile e ricalcolarla in
-/// lettura costa meno che portarsela dietro, oltre a rendere impossibile un JSON incoerente.
+/// Serialised as the **original name**: the normalised form is derivable, recomputing it on read
+/// costs less than carrying it around, and leaving it out makes an inconsistent JSON impossible to
+/// write in the first place.
 impl Serialize for MatchFund {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.name)
@@ -129,9 +140,8 @@ mod tests {
             assert_eq!(empty.normalized(), "");
         }
 
-        /// La normalizzazione e' idempotente, quindi normalizzare un nome gia' normalizzato da'
-        /// la stessa identita': un `MatchFund` costruito dalla forma normalizzata di un altro e'
-        /// uguale all'originale.
+        /// Normalisation is idempotent, so normalising an already normalised name yields the same
+        /// identity: a `MatchFund` built from another's normalised form equals the original.
         #[test]
         fn the_normalized_form_has_the_same_identity_as_the_original() {
             let original = MatchFund::new("Café, S.p.A. – Fondo");

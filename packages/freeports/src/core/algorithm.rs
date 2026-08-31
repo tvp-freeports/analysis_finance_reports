@@ -1,34 +1,22 @@
-//! [`Algorithm`]: classificazione delle pagine, schedule, dispatch ai bundle per page class.
+//! [`Algorithm`]: page classification, the schedule, and dispatch to a bundle per page class.
 //!
-//! `PLAN.md` §5.5. È il livello che tiene insieme tutto il resto del motore: sa quali pipeline
-//! classificano le pagine, in che ordine le page class vanno elaborate, e quale bundle spetta a
-//! ciascuna.
+//! This is the layer that holds the rest of the engine together: it knows which pipelines classify
+//! pages, in what order the page classes are to be processed, and which bundle each of them gets.
 //!
-//! **Multi-documento nativo dal primo giorno** (`PLAN.md` D7, `targets/2_multireport_support.md`).
-//! [`Algorithm::apply`] è il caso particolare di [`Algorithm::apply_multidocument`] con un solo
-//! documento, non una seconda implementazione: la classificazione avviene **per documento** (il
-//! finalizer gira una volta per documento, non una volta per tutte le pagine messe insieme),
-//! mentre lo schedule lavora sull'**unione** delle pagine di tutti i documenti.
+//! # Multi-document from the start
 //!
-//! **Cosa non è M5.**
+//! [`Algorithm::apply`] is [`Algorithm::apply_multidocument`] with one document, not a second
+//! implementation. Classification happens **per document** — the finalizer runs once per document,
+//! not once over all the pages together — while the schedule works on the **union** of every
+//! document's pages.
 //!
-//! - `Algorithm::load` (`PLAN.md` §5.5) legge il repo formati, cioè
-//!   `formats_repo::{structured,semistructured,unstructured}`: è M7. M5 fornisce
-//!   [`Algorithm::new`] con le validazioni che il riferimento fa in `Algorithm.__new__`.
-//! - La verifica che ogni pipeline sia **completa** (`PLAN.md` §6.4) sta in `load`, non qui: il
-//!   riferimento la fa a monte, quando acquisisce le pipeline. [`PipelinesBundle::incomplete`]
-//!   esiste perché M7 possa farla con un messaggio utile.
-//! - [`PageClassFinalizer::Python`] del piano diventa qui [`PageClassFinalizer::Custom`], che
-//!   prende un [`PageClassFinalize`] qualunque: il callable dell'autore arriva con M7 e vi si
-//!   innesta senza che `core` conosca PyO3.
+//! # Results accumulate per page
 //!
-//! **Risultati per pagina — divergenza voluta dal riferimento** (decisione dell'utente
-//! 2026-08-23, `agent-memory/M5-implementation-plan.md` D-M5-3). Il riferimento accumula i
-//! risultati in un dict `res[(doc, page)] = risultati_dello_step`, con **assegnazione**: se una
-//! page class compare in due step, la stessa pagina viene elaborata due volte e i risultati del
-//! primo step spariscono dall'output (pur avendo alimentato il `filter_data` del secondo). Qui i
-//! risultati si **accumulano** in [`PageOutcome::results`]. Nei casi normali — una page class in
-//! un solo step — il comportamento è identico; differisce solo nel caso che oggi perde dati.
+//! If a page class appears in two steps, the same page is processed twice. Its results
+//! **accumulate** in [`PageOutcome::results`] rather than the later step overwriting the earlier
+//! one. In the ordinary case — a page class in a single step — the two behaviours coincide; they
+//! differ only where overwriting would silently drop data that a step had already produced and that
+//! had already fed the next step's `filter_data`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -44,10 +32,10 @@ use crate::core::schedule::{PageClass, Schedule, ScheduledPage, ScheduleError};
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
 use crate::core::tracing_setup::log_error;
 
-/// Chi ha l'ultima parola sulla classificazione delle pagine di un documento.
+/// Whoever has the last word on the classification of a document's pages.
 ///
-/// Riceve i contributi grezzi prodotti dalle pipeline di classificazione — che possono essere in
-/// numero diverso dalle pagine — e deve restituire **esattamente una** class per pagina.
+/// Receives the raw contributions produced by the classification pipelines — which may differ in
+/// number from the pages — and must return **exactly one** class per page.
 pub trait PageClassFinalize: Send + Sync {
     fn finalize(
         &self,
@@ -55,13 +43,13 @@ pub trait PageClassFinalize: Send + Sync {
     ) -> Result<Vec<Option<PageClass>>, PipeError>;
 }
 
-/// Il finalizer di un formato: quello banale, o quello scritto dall'autore.
+/// A format's finalizer: either the trivial one, or one written by the format author.
 #[derive(Clone)]
 pub enum PageClassFinalizer {
-    /// Nessuna finalizzazione: i contributi delle pipeline di classificazione sono già la
-    /// classificazione finale, una per pagina.
+    /// No finalization: the contributions of the classification pipelines are already the final
+    /// classification, one per page.
     Identity,
-    /// Un finalizer fornito dal formato. M7 ci innesta il `compute_page_class` dell'autore.
+    /// A finalizer supplied by the format.
     Custom(Arc<dyn PageClassFinalize>),
 }
 
@@ -86,33 +74,29 @@ impl std::fmt::Debug for PageClassFinalizer {
     }
 }
 
-/// I risultati di **una** pagina.
+/// The results of **one** page.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PageOutcome {
-    /// Numero di pagina 1-based.
+    /// 1-based page number.
     pub page: u32,
-    /// La class con cui la pagina è stata schedulata.
+    /// The class the page was scheduled under.
     pub class: PageClass,
-    /// I risultati prodotti. Vuoto se la pagina è stata saltata per un fallimento non fatale, o
-    /// se i pipe non avevano nulla da dire.
+    /// The results produced. Empty if the page was skipped because of a non-fatal failure, or if
+    /// the pipes had nothing to say.
     pub results: Vec<Extracted>,
 }
 
-/// I risultati di **un** documento: la forma tipizzata del dict `{(doc_name, page_n): [...]}`
-/// del riferimento.
-///
-/// `output::routines` (M8) lo convertirà in `DocumentResults`, che è il tipo destinato alla
-/// scrittura dei CSV; qui non esiste ancora.
+/// The results of **one** document.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DocumentOutcome {
     pub id: DocumentId,
     pub format: FormatName,
-    /// Solo le pagine effettivamente **schedulate**, in ordine di numero di pagina. Una pagina
-    /// non classificata (class `None`) non entra in nessuno step e non compare qui.
+    /// Only the pages actually **scheduled**, in page-number order. An unclassified page enters no
+    /// step and does not appear here.
     pub pages: Vec<PageOutcome>,
 }
 
-/// L'algoritmo di estrazione di un formato.
+/// A format's extraction algorithm.
 #[derive(Debug, Clone)]
 pub struct Algorithm {
     format: FormatName,
@@ -123,12 +107,14 @@ pub struct Algorithm {
 }
 
 impl Algorithm {
-    /// Costruisce l'algoritmo a partire dalle pipeline già risolte, replicando le tre validazioni
-    /// del riferimento:
+    /// Builds the algorithm from already-resolved pipelines, applying three validations:
     ///
-    /// 1. ogni pipeline di classificazione ha un'implementazione;
-    /// 2. le page class dello schedule e quelle del mapping coincidono **esattamente**;
-    /// 3. non esistono pipeline senza implementazione né implementazioni mai usate.
+    /// 1. every classification pipeline has an implementation;
+    /// 2. the page classes of the schedule and those of the mapping coincide **exactly**;
+    /// 3. there are neither pipelines without an implementation nor implementations never used.
+    ///
+    /// The second is the one that catches the common mistake: a format whose classifier emits a
+    /// class the schedule never names would otherwise drop those pages without a word.
     pub fn new(
         format: impl Into<FormatName>,
         pipelines: BTreeMap<PipelineName, Pipeline>,
@@ -195,14 +181,14 @@ impl Algorithm {
         &self.schedule
     }
 
-    /// Il bundle di una page class, o l'errore che lo dice.
+    /// The bundle of a page class, or the error saying there is none.
     fn bundle(&self, class: &PageClass) -> Result<&PipelinesBundle, AlgorithmError> {
         self.bundles
             .get(class)
             .ok_or_else(|| AlgorithmError::UnmappedPageClass { class: class.clone() })
     }
 
-    /// Classifica le pagine di **un** documento e applica il finalizer.
+    /// Classifies the pages of **one** document and applies the finalizer.
     pub fn classify_pages(
         &self,
         doc: &Document,
@@ -210,13 +196,13 @@ impl Algorithm {
         self.classify_pages_with(doc, Parallelism::SEQUENTIAL)
     }
 
-    /// [`Self::classify_pages`] con le pagine distribuite su più thread (`PLAN.md` §4 P2).
+    /// [`Self::classify_pages`] with the pages spread across threads.
     ///
-    /// P0 ha misurato che la classificazione vale da 1:8,5 a 1:157 rispetto agli step, e che pesa
-    /// solo dove è scritta in Python — dove però il GIL la riserializza e
-    /// [`PipelinesBundle::scales_with_threads`] la fa degradare a sequenziale. Il metodo esiste
-    /// perché il piano lo prevede e perché il caso "classificazione Rust su un documento enorme"
-    /// esiste (AMUNDI-EN24: 1.824 pagine), non perché ci si aspetti molto.
+    /// Classification is worth between a eighth and a hundred-and-fiftieth of what the steps cost,
+    /// and it weighs anything only where it is written in Python — where the GIL re-serialises it
+    /// and [`PipelinesBundle::scales_with_threads`] degrades it to sequential anyway. The method
+    /// exists for the case of a pure Rust classifier over a very large document, not because much
+    /// is expected of it in general.
     pub fn classify_pages_with(
         &self,
         doc: &Document,
@@ -226,9 +212,9 @@ impl Algorithm {
         let _classify_guard = classify_span.enter();
 
         let mut raw = Vec::with_capacity(doc.pages.len());
-        // I contributi si raccolgono per pagina e si validano **dopo**, in ordine di pagina: è
-        // ciò che rende l'errore riportato identico a quello del ciclo sequenziale anche quando
-        // più pagine falliscono insieme (`agent-memory/P2-implementation-plan.md` D-P2-4).
+        // Contributions are collected per page and validated **afterwards**, in page order: that is
+        // what makes the reported error identical to the sequential loop's even when several pages
+        // fail together.
         for (page, contributions) in doc.pages.iter().zip(self.classify_each_page(&doc.pages, parallelism)) {
             for result in contributions? {
                 match result {
@@ -256,8 +242,8 @@ impl Algorithm {
         Ok(classified)
     }
 
-    /// Classifica più documenti. Il finalizer gira **per documento**, non sull'unione delle
-    /// pagine: è ciò che chiede `targets/2_multireport_support.md`.
+    /// Classifies several documents. The finalizer runs **per document**, not over the union of the
+    /// pages.
     pub fn classify_pages_multidocument(
         &self,
         docs: &[Document],
@@ -265,11 +251,11 @@ impl Algorithm {
         self.classify_pages_multidocument_with(docs, Parallelism::SEQUENTIAL)
     }
 
-    /// [`Self::classify_pages_multidocument`] con il parallelismo per pagina.
+    /// [`Self::classify_pages_multidocument`] with per-page parallelism.
     ///
-    /// I documenti restano in sequenza fra loro: parallelizzare *anche* i documenti significa
-    /// annidare rayon dentro rayon per un guadagno che P1 (i job in processi) copre già meglio,
-    /// scavalcando anche il GIL del caricamento.
+    /// The documents stay sequential with respect to each other: parallelising them *as well* would
+    /// nest rayon inside rayon for a gain that running jobs in separate processes already covers
+    /// better, since that also gets past the GIL held during loading.
     pub fn classify_pages_multidocument_with(
         &self,
         docs: &[Document],
@@ -278,24 +264,21 @@ impl Algorithm {
         docs.iter().map(|doc| self.classify_pages_with(doc, parallelism)).collect()
     }
 
-    /// Applica le pipeline di classificazione a **ogni** pagina, in parallelo quando conviene.
+    /// Applies the classification pipelines to **every** page, in parallel when it pays.
     ///
-    /// Restituisce un risultato per pagina, nello stesso ordine delle pagine: chi chiama decide
-    /// cosa farne. Tre condizioni devono valere insieme perché si distribuisca davvero — più di
-    /// una pagina e più di un thread ([`Parallelism::is_worth_it`]), pipe che scalano con i
-    /// thread, e un pool disponibile. Se una manca si torna sul ciclo sequenziale, che è lo
-    /// stesso codice: `classify_one` è scritta una volta sola.
+    /// Returns one result per page, in page order; what to do with them is the caller's business.
+    /// Three conditions must hold together for work to really be spread — more than one page and
+    /// more than one thread ([`Parallelism::is_worth_it`]), pipes that scale with threads, and an
+    /// available pool. If one is missing the sequential loop runs, which is the same code:
+    /// `classify_one` is written once.
     fn classify_each_page(
         &self,
         pages: &[Page],
         parallelism: Parallelism,
     ) -> Vec<Result<Vec<Extracted>, PipeError>> {
-        // Lo span `page` serve qui esattamente come nel ciclo degli step piu' sotto: senza,
-        // tutti gli eventi dei tre segmenti della classificazione (la maggioranza degli
-        // eventi di un'esecuzione) arrivavano al `.log.csv` **senza numero di pagina**, e
-        // nessun `pipe` puo' conoscerlo da se'. Era l'unico buco rimasto: nella fase di
-        // esecuzione `page_span` avvolge gia' `bundle.apply`, quindi `pdf_extract`,
-        // `text_filter` e `deserialize` lo ereditano tutti.
+        // The `page` span is needed here just as in the step loop below. Without it every event
+        // from the three segments of classification — the majority of the events of a run — reached
+        // the `.log.csv` with no page number, and no pipe can know it on its own.
         let classify_one = |page: &Page| {
             let page_span = tracing::info_span!("page", page = page.number);
             page_span.in_scope(|| self.page_classify.apply(page, &FilterData::EMPTY))
@@ -307,14 +290,14 @@ impl Algorithm {
         let Some(pool) = parallelism::pool(parallelism) else {
             return pages.iter().map(classify_one).collect();
         };
-        // Uno span non attraversa da solo un confine di thread: senza riagganciare quello del
-        // chiamante, `Activity` perderebbe `run/job/document/classify` proprio sugli eventi che
-        // ne hanno più bisogno (`PLAN.md` §4 P2, punto 3).
+        // A span does not cross a thread boundary by itself: without re-attaching the caller's,
+        // `Activity` would lose `run/job/document/classify` on exactly the events that need it
+        // most.
         let parent = tracing::Span::current();
         pool.install(|| pages.par_iter().map(|page| parent.in_scope(|| classify_one(page))).collect())
     }
 
-    /// La pipeline completa su un solo documento — caso particolare di
+    /// The whole pipeline over a single document — a special case of
     /// [`Algorithm::apply_multidocument`].
     pub fn apply(
         &self,
@@ -324,7 +307,7 @@ impl Algorithm {
         self.apply_with(doc, companies, Parallelism::SEQUENTIAL)
     }
 
-    /// [`Self::apply`] con il parallelismo per pagina.
+    /// [`Self::apply`] with per-page parallelism.
     pub fn apply_with(
         &self,
         doc: &Document,
@@ -336,7 +319,7 @@ impl Algorithm {
         Ok(outcomes.remove(0))
     }
 
-    /// Classificazione **per documento**, schedule sull'**unione** delle pagine.
+    /// Classification **per document**, schedule over the **union** of the pages.
     pub fn apply_multidocument(
         &self,
         docs: &[Document],
@@ -345,18 +328,18 @@ impl Algorithm {
         self.apply_multidocument_with(docs, companies, Parallelism::SEQUENTIAL)
     }
 
-    /// [`Self::apply_multidocument`] con le pagine di uno step distribuite su più thread.
+    /// [`Self::apply_multidocument`] with the pages of a step spread across threads.
     ///
-    /// È il passo P2 del piano, e il punto dove P0 dice che si vince: dentro il ciclo delle
-    /// pagine di uno step vive `TextFilterInvestmentsStandard`, cioè l'85-96% del lavoro del
-    /// motore, Rust puro e senza GIL. Le pagine dello stesso step sono indipendenti per
-    /// costruzione — `pages_of_the_same_step_do_not_see_each_others_results` lo garantisce — e
-    /// restano tali: gli step, invece, sono in sequenza fra loro perché ognuno legge i risultati
-    /// di tutti i precedenti.
+    /// This is where the gain is. Inside the per-page loop of a step lives the text filtering that
+    /// accounts for most of the engine's work, in pure Rust and free of the GIL. The pages of one
+    /// step are independent by construction —
+    /// `pages_of_the_same_step_do_not_see_each_others_results` pins that down — and stay so; the
+    /// steps themselves remain sequential, because each reads the results of all the ones before
+    /// it.
     ///
-    /// Il tetto è quello di Amdahl misurato da P0: con il caricamento PyMuPDF al 35-75% del tempo
-    /// di un job, su un singolo documento non si va oltre 1,5x-2,9x qualunque sia il numero di
-    /// core. Il resto lo fa P1, in batch.
+    /// The ceiling is Amdahl's: with PyMuPDF loading taking 35-75% of a job's time, a single
+    /// document does not go past roughly 1.5x-2.9x however many cores there are. Getting past that
+    /// means running whole jobs in separate processes.
     pub fn apply_multidocument_with(
         &self,
         docs: &[Document],
@@ -366,33 +349,33 @@ impl Algorithm {
         let classifications = self.classify_pages_multidocument_with(docs, parallelism)?;
         let scheduled = self.schedule.assign(docs, &classifications)?;
 
-        // `(indice documento, numero pagina) -> (class, risultati accumulati)`. La chiave è
-        // l'indice e non l'id perché due documenti possono legittimamente avere lo stesso id.
+        // `(document index, page number) -> (class, accumulated results)`. The key is the index
+        // rather than the id because two documents may legitimately share an id.
         let mut per_page: BTreeMap<(usize, u32), (PageClass, Vec<Extracted>)> = BTreeMap::new();
-        // Il `filter_data` degli step successivi al primo: l'accumulo di *tutti* gli step
-        // precedenti, non solo dell'ultimo (D-M5-1).
+        // The `filter_data` of every step after the first: the accumulation of *all* preceding
+        // steps, not only the last one.
         let mut previous: Vec<Extracted> = Vec::new();
 
         for (step_index, step_pages) in scheduled.iter().enumerate() {
-            // Lo span di orchestrazione dello step: `class`/`page` (sotto) e `pipeline`/i tre
-            // segmenti/`pipe` (dentro `bundle.apply`) vi si annidano tutti, dando a ogni evento
-            // prodotto durante questo step il suo posto nell'`Activity` del `.log.csv`
-            // (`PLAN.md` §3 L1/L2).
+            // The step's orchestration span: `class` and `page` below, and `pipeline`, the three
+            // segments and `pipe` inside `bundle.apply`, all nest under it, which is what gives
+            // every event produced during this step its place in the `Activity` column of the
+            // `.log.csv`.
             let step_span = tracing::info_span!("step", step = step_index);
             let _step_guard = step_span.enter();
             tracing::info!(pages = step_pages.len(), "step started");
 
             let mut produced_in_this_step: Vec<Extracted> = Vec::new();
-            // Le pagine di uno step sono già raggruppate per class in ordine contiguo (`Schedule::
-            // assign` le costruisce cosi', class per class): `chunk_by` isola ogni gruppo senza
-            // dover riordinare o confrontare a mano.
+            // The pages of a step are already grouped by class in contiguous order, since
+            // `Schedule::assign` builds them class by class: `chunk_by` isolates each group without
+            // reordering or comparing by hand.
             for class_group in step_pages.chunk_by(|a, b| a.class == b.class) {
                 let class_span = tracing::info_span!("class", class = %class_group[0].class);
                 let _class_guard = class_span.enter();
 
-                // Le pagine del gruppo condividono la class, quindi il bundle e il `filter_data`:
-                // risolverli una volta sola per gruppo invece che una volta per pagina è anche ciò
-                // che permette al `?` di restare fuori dal ciclo parallelo.
+                // The pages of a group share the class, hence the bundle and the `filter_data`:
+                // resolving them once per group instead of once per page is also what keeps the `?`
+                // outside the parallel loop.
                 let bundle = self.bundle(&class_group[0].class)?;
                 let data = if step_index == 0 {
                     FilterData::TargetCompanies(companies)
@@ -401,9 +384,8 @@ impl Algorithm {
                 };
 
                 let results_per_page = self.apply_each_page(bundle, class_group, &data, parallelism);
-                // La ricomposizione è sequenziale e in ordine di pagina: `produced_in_this_step` e
-                // `per_page` risultano **identici** al caso sequenziale, non solo equivalenti
-                // (`PLAN.md` §4 P2, punto 2).
+                // Recomposition is sequential and in page order, so `produced_in_this_step` and
+                // `per_page` come out **identical** to the sequential case, not merely equivalent.
                 for (scheduled_page, results) in class_group.iter().zip(results_per_page) {
                     let results = results?;
                     produced_in_this_step.extend(results.iter().cloned());
@@ -425,21 +407,21 @@ impl Algorithm {
                 pages: Vec::new(),
             })
             .collect();
-        // `per_page` è una `BTreeMap`: iterandola le pagine escono già ordinate per
-        // `(documento, numero di pagina)`, che è l'ordine in cui vanno scritte.
+        // `per_page` is a `BTreeMap`: iterating it yields the pages already ordered by
+        // `(document, page number)`, which is the order they are to be written in.
         for ((doc_index, page), (class, results)) in per_page {
             outcomes[doc_index].pages.push(PageOutcome { page, class, results });
         }
         Ok(outcomes)
     }
 
-    /// Applica il bundle a ogni pagina schedulata del gruppo, in parallelo quando conviene.
+    /// Applies the bundle to every scheduled page of the group, in parallel when it pays.
     ///
-    /// Restituisce un risultato per pagina, nello stesso ordine: la ricomposizione — e quindi
-    /// l'ordine dei risultati e il primo errore riportato — resta al chiamante, sequenziale.
+    /// Returns one result per page, in the same order: recomposition — and therefore the order of
+    /// the results and which error is reported first — stays with the caller, sequentially.
     ///
-    /// Il fallimento **non fatale** di una pagina resta un `Ok(vec![])` con il suo warning, come
-    /// nel ciclo sequenziale: è la pagina saltata di `PLAN.md` §5.5, non un errore del job.
+    /// A **non-fatal** page failure stays an `Ok(vec![])` with its warning, as in the sequential
+    /// loop: it is a skipped page, not a failed job.
     fn apply_each_page(
         &self,
         bundle: &PipelinesBundle,
@@ -448,17 +430,14 @@ impl Algorithm {
         parallelism: Parallelism,
     ) -> Vec<Result<Vec<Extracted>, AlgorithmError>> {
         let apply_one = |scheduled_page: &ScheduledPage<'_>| {
-            // Lo span dà a ogni evento prodotto dai pipe di questa pagina il numero di
-            // pagina, che è la colonna `Page` del `.log.csv`: nessun pipe lo conosce da
-            // sé, e passarlo a mano fino in fondo vorrebbe dire aggiungerlo a ogni firma.
+            // This span gives every event produced by this page's pipes the page number, which is
+            // the `Page` column of the `.log.csv`. No pipe knows it on its own, and threading it
+            // through by hand would mean adding it to every signature.
             let page_span = tracing::info_span!("page", page = scheduled_page.page.number);
             page_span.in_scope(|| match bundle.apply(scheduled_page.page, data) {
                 Ok(results) => Ok(results),
                 Err(error) if error.is_page_failure() => {
-                    // Non fatale: si logga e si prosegue. A differenza del riferimento —
-                    // dove la gerarchia di logger Python era scollegata e il messaggio non
-                    // raggiungeva `.log.csv` — qui il warning arriva davvero
-                    // (`PLAN.md` §5.5).
+                    // Non-fatal: log and carry on.
                     tracing::warn!(
                         document = %scheduled_page.doc.id,
                         page = scheduled_page.page.number,
@@ -477,13 +456,13 @@ impl Algorithm {
         let Some(pool) = parallelism::pool(parallelism) else {
             return pages.iter().map(apply_one).collect();
         };
-        // Come in `classify_each_page`: lo span del chiamante va riagganciato a mano su ogni
-        // thread, o `Activity` perde `run/job/document/step/class`.
+        // As in `classify_each_page`, the caller's span has to be re-attached on each thread, or
+        // `Activity` loses `run/job/document/step/class`.
         let parent = tracing::Span::current();
         pool.install(|| pages.par_iter().map(|page| parent.in_scope(|| apply_one(page))).collect())
     }
 
-    /// API di test per segmento: solo `pdf_extract`, per la page class data.
+    /// Per-segment API: `pdf_extract` alone, for the given page class.
     pub fn apply_pdf_extract(
         &self,
         page: &Page,
@@ -492,7 +471,7 @@ impl Algorithm {
         Ok(self.bundle(class)?.apply_pdf_extract(page)?)
     }
 
-    /// API di test per segmento: `pdf_extract` + `text_filter`, per la page class data.
+    /// Per-segment API: `pdf_extract` + `text_filter`, for the given page class.
     pub fn apply_text_filter(
         &self,
         page: &Page,
@@ -502,15 +481,14 @@ impl Algorithm {
         Ok(self.bundle(class)?.apply_text_filter(page, data)?)
     }
 
-    /// API di test per segmento: la catena **completa** di ogni pipeline della page class data.
+    /// Per-segment API: the **full** chain of every pipeline of the given page class.
     ///
-    /// Non è la stessa cosa di incatenare a mano [`Self::apply_text_filter`] e
-    /// [`Self::apply_deserializer`], e la differenza conta quando una page class mappa **più di
-    /// una** pipeline — come `merges` di KAIROS-EN23, che ne mappa due (`renames` e `merges`).
-    /// Incatenandoli a mano, i blocchi di testo di *tutte* le pipeline finiscono in un mucchio
-    /// solo e ogni pipe `deserialize` li vede tutti, compresi quelli che non sono suoi: due
-    /// eventi diventano quattro entità. Qui invece ogni pipeline resta una catena chiusa, come
-    /// nella pipeline vera ([`Self::apply`]) e come nel riferimento.
+    /// This is not the same as chaining [`Self::apply_text_filter`] and
+    /// [`Self::apply_deserializer`] by hand, and the difference matters when a page class maps
+    /// **more than one** pipeline. Chained by hand, the text blocks of *all* the pipelines land in
+    /// one heap and every `deserialize` pipe sees them all, including those that are not its own:
+    /// two events become four entities. Here each pipeline stays a closed chain, as in the real
+    /// pipeline ([`Self::apply`]).
     pub fn apply_deserialize(
         &self,
         page: &Page,
@@ -520,11 +498,11 @@ impl Algorithm {
         Ok(self.bundle(class)?.apply_deserialize(page, data)?)
     }
 
-    /// API di test per segmento: solo `deserialize`, a partire da blocchi di testo già pronti.
+    /// Per-segment API: `deserialize` alone, starting from text blocks that are already prepared.
     ///
-    /// La firma è quella di `PLAN.md` §5.5 (blocchi in ingresso), non quella del riferimento
-    /// (che riparte dalla pagina): così i tre metodi decompongono davvero la catena in tre pezzi
-    /// concatenabili, invece di ripetere due volte i segmenti a monte.
+    /// Taking blocks as input rather than starting again from the page is what makes the three
+    /// methods genuinely decompose the chain into three composable pieces, instead of re-running
+    /// the upstream segments twice.
     pub fn apply_deserializer(
         &self,
         blocks: &[TextBlock],
@@ -532,8 +510,8 @@ impl Algorithm {
     ) -> Result<Vec<Extracted>, AlgorithmError> {
         let mut out = Vec::new();
         for pipeline in self.bundle(class)?.iter() {
-            // Bypassa `Pipeline::apply` (che apre lo span da sé): questa API di test chiama il
-            // segmento direttamente, quindi lo span `pipeline[<nome>]` va aperto qui a mano.
+            // This bypasses `Pipeline::apply`, which opens the span itself: the per-segment API
+            // calls the segment directly, so `pipeline[<name>]` has to be opened here by hand.
             let pipeline_span = tracing::info_span!("pipeline", pipeline = %pipeline.name);
             let _pipeline_guard = pipeline_span.enter();
             out.extend(pipeline.deserialize.apply(blocks)?);
@@ -602,7 +580,7 @@ mod tests {
         .expect("fixed, valid input")
     }
 
-    /// Una pipeline completa che classifica ogni blocco con `class`.
+    /// A complete pipeline that classifies every block as `class`.
     fn classifying_pipeline(name: &str, class: Option<&str>) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
@@ -611,7 +589,7 @@ mod tests {
         pipeline
     }
 
-    /// Una pipeline completa che deposita una promessa per blocco.
+    /// A complete pipeline that deposits one promise per block.
     fn promising_pipeline(name: &str, id: &str) -> Pipeline {
         let mut pipeline = Pipeline::new(name);
         pipeline.pdf_extract.push(LinesToBlocks::pipe("extract"));
@@ -624,8 +602,8 @@ mod tests {
         classes.iter().copied().collect()
     }
 
-    /// L'algoritmo minimo usato dalla maggior parte dei test: la pipeline `classify` classifica
-    /// tutto come `"a"`, la pipeline `work` elabora le pagine di class `"a"`.
+    /// The minimal algorithm most tests use: the `classify` pipeline classifies everything as
+    /// `"a"`, the `work` pipeline processes the pages of class `"a"`.
     fn simple_algorithm() -> Algorithm {
         Algorithm::new(
             "FMT",
@@ -765,8 +743,8 @@ mod tests {
 
         #[test]
         fn a_pipeline_may_serve_both_classification_and_a_page_class() {
-            // Nessuna delle tre validazioni lo vieta, e il riferimento nemmeno: la pipeline
-            // compare sia fra quelle di classificazione sia nel mapping.
+            // None of the three validations forbids this: the pipeline appears both among the
+            // classifying ones and in the mapping.
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([(
@@ -820,8 +798,8 @@ mod tests {
 
         #[test]
         fn one_classification_per_page_is_required_after_the_finalizer() {
-            // Due righe per pagina -> due contributi per pagina: con il finalizer identita' il
-            // conto non torna, ed e' un errore.
+            // Two lines per page means two contributions per page: with the identity finalizer the
+            // count does not add up, and that is an error.
             let algorithm = simple_algorithm();
             let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x", "y"])])).unwrap_err();
             assert_eq!(
@@ -899,7 +877,7 @@ mod tests {
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
-                    // La pipeline di classificazione deposita promesse invece di classificare.
+                    // The classification pipeline deposits promises instead of classifying.
                     (PipelineName::new("classify"), promising_pipeline("classify", "id")),
                     (PipelineName::new("work"), promising_pipeline("work", "id")),
                 ]),
@@ -916,8 +894,8 @@ mod tests {
 
         #[test]
         fn each_document_is_finalized_on_its_own() {
-            // Il finalizer registra quante classificazioni riceve per chiamata: due documenti da
-            // una pagina devono produrre due chiamate da una, non una da due.
+            // The finalizer records how many classifications it receives per call: two one-page
+            // documents must produce two calls of one, not one call of two.
             struct RecordingFinalizer(std::sync::Mutex<Vec<usize>>);
             impl PageClassFinalize for RecordingFinalizer {
                 fn finalize(
@@ -1000,8 +978,8 @@ mod tests {
 
         #[test]
         fn the_pages_of_an_outcome_are_ordered_by_page_number() {
-            // Lo schedule le visita per class, non per numero: l'ordine finale deve comunque
-            // essere quello di pagina.
+            // The schedule visits them by class, not by number: the final order must still be page
+            // order.
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1010,7 +988,7 @@ mod tests {
                 ]),
                 &[PipelineName::new("classify")],
                 PageClassFinalizer::Identity,
-                // `b` prima di `a`: la pagina 2 (class `b`) viene schedulata per prima.
+                // `b` before `a`: page 2, of class `b`, is scheduled first.
                 Schedule::new(vec![step(&["b", "a"])]),
                 BTreeMap::from([
                     (PageClass::new("a"), vec![PipelineName::new("work")]),
@@ -1026,8 +1004,8 @@ mod tests {
         }
     }
 
-    /// Classifica una pagina in base al testo della sua prima riga: `"a"` -> class `a`,
-    /// qualunque altra cosa -> class `b`.
+    /// Classifies a page by the text of its first line: `"a"` gives class `a`, anything else class
+    /// `b`.
     fn alternating_classifier() -> Pipeline {
         struct ByFirstLine;
         impl crate::core::pipeline::DeserializePipe for ByFirstLine {
@@ -1054,8 +1032,8 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// Algoritmo a due step: la pagina 1 (class `a`) al primo, la pagina 2 (class `b`) al
-        /// secondo. Il filtro registrante è condiviso, così si può leggere che cosa ha visto.
+        /// A two-step algorithm: page 1 (class `a`) in the first, page 2 (class `b`) in the second.
+        /// The recording filter is shared, so what it saw can be read back.
         fn two_step_algorithm(filter: Arc<RecordingFilter>) -> Algorithm {
             let mut work_a = Pipeline::new("work_a");
             work_a.pdf_extract.push(LinesToBlocks::pipe("extract"));
@@ -1092,8 +1070,8 @@ mod tests {
             let document = doc("d", vec![page(1, &["a"]), page(2, &["b"])]);
 
             algorithm.apply(&document, &companies()).unwrap();
-            // Prima chiamata (step 0): una target company, zero risultati precedenti.
-            // Seconda chiamata (step 1): zero target companies, il risultato dello step 0.
+            // First call (step 0): one target company, zero previous results.
+            // Second call (step 1): zero target companies, the result of step 0.
             assert_eq!(filter.seen(), vec![(1, 0), (0, 1)]);
         }
 
@@ -1127,8 +1105,8 @@ mod tests {
             )
             .unwrap();
 
-            // Due pagine di class `a` al primo step, una di class `b` al secondo: la pagina `b`
-            // deve vedere entrambi i risultati precedenti.
+            // Two pages of class `a` in the first step, one of class `b` in the second: the `b`
+            // page must see both previous results.
             let document = doc("d", vec![page(1, &["a"]), page(2, &["a"]), page(3, &["b"])]);
             algorithm.apply(&document, &companies()).unwrap();
             assert_eq!(filter.seen(), vec![(1, 0), (1, 0), (0, 2)]);
@@ -1136,7 +1114,7 @@ mod tests {
 
         #[test]
         fn pages_of_the_same_step_do_not_see_each_others_results() {
-            // I risultati di uno step entrano nel `filter_data` solo allo step successivo.
+            // The results of a step enter the `filter_data` only at the following step.
             let filter = RecordingFilter::new("filter");
             let algorithm = two_step_algorithm(Arc::clone(&filter));
             let document = doc("d", vec![page(1, &["a"]), page(2, &["a"])]);
@@ -1179,8 +1157,8 @@ mod tests {
 
         #[test]
         fn the_schedule_spans_the_union_of_the_pages_of_every_document() {
-            // Il filtro vede una chiamata per pagina, di *tutti* i documenti, dentro lo stesso
-            // step: lo schedule non riparte da capo per ogni documento.
+            // The filter sees one call per page, across *all* documents, within the same step: the
+            // schedule does not start over for each document.
             let filter = RecordingFilter::new("filter");
             let mut work = Pipeline::new("work");
             work.pdf_extract.push(LinesToBlocks::pipe("extract"));
@@ -1253,8 +1231,9 @@ mod tests {
 
         #[test]
         fn a_page_failure_during_classification_is_not_absorbed() {
-            // Il riferimento assorbe `PageParseFail` solo nel ciclo dello schedule, non nella
-            // classificazione: la stessa asimmetria vale qui.
+            // A page failure is absorbed in the schedule loop but not during classification: the
+            // asymmetry is deliberate — a page that cannot even be classified has no class to be
+            // scheduled under.
             let mut classify = Pipeline::new("classify");
             classify.pdf_extract.push(FailingExtract::page_parse("skipper"));
             classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
@@ -1285,8 +1264,7 @@ mod tests {
 
         #[test]
         fn a_page_class_named_by_two_steps_keeps_the_results_of_both() {
-            // Divergenza voluta dal riferimento (D-M5-3): la' il secondo step sovrascrive i
-            // risultati del primo, qui si accumulano.
+            // The second step accumulates onto the first's results instead of overwriting them.
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1344,11 +1322,10 @@ mod tests {
             assert!(out[0].as_promises().is_some());
         }
 
-        /// Regressione: quando una page class mappa **due** pipeline, la catena completa non e'
-        /// la composizione a mano di `apply_text_filter` e `apply_deserializer`. Il caso reale e'
-        /// la class `merges` di KAIROS-EN23, che mappa `renames` e `merges`: incatenando a mano,
-        /// ogni pipe `deserialize` vede anche i blocchi dell'altra pipeline e due eventi
-        /// diventano quattro entita'.
+        /// Regression: when a page class maps **two** pipelines, the full chain is not the
+        /// hand-made composition of `apply_text_filter` and `apply_deserializer`. Chained by hand,
+        /// every `deserialize` pipe also sees the other pipeline's blocks and two events become
+        /// four entities.
         #[test]
         fn apply_deserialize_keeps_each_pipeline_a_closed_chain() {
             let algorithm = Algorithm::new(
@@ -1374,8 +1351,8 @@ mod tests {
             let chained = algorithm.apply_deserialize(&page, &class, &FilterData::EMPTY).unwrap();
             assert_eq!(chained.len(), 2, "una entita' per pipeline, non il prodotto incrociato");
 
-            // La composizione a mano e' proprio cio' che non va fatto: la si esercita qui per
-            // fissare la differenza, non perche' sia un'alternativa accettabile.
+            // The hand-made composition is precisely what must not be done: it is exercised here to
+            // pin the difference down, not because it is an acceptable alternative.
             let blocks =
                 algorithm.apply_text_filter(&page, &class, &FilterData::EMPTY).unwrap();
             let crossed = algorithm.apply_deserializer(&blocks, &class).unwrap();
@@ -1399,9 +1376,9 @@ mod tests {
         }
     }
 
-    /// P1 (`agent-memory/P1-implementation-plan.md` §3): `Vec<DocumentOutcome>` e' il payload che un
-    /// job worker rispedisce al padre. E' l'intero risultato del job: se qualcosa si perde qui, il
-    /// padre scrive un CSV incompleto senza che nulla fallisca.
+    /// `Vec<DocumentOutcome>` is the payload a worker job sends back to the parent — the job's
+    /// entire result. If something is lost here, the parent writes an incomplete CSV without
+    /// anything failing.
     mod serde_round_trip {
         use super::*;
         use crate::core::pipeline::Extracted;
@@ -1444,16 +1421,16 @@ mod tests {
             assert_eq!(round_trip(&v), v);
         }
 
-        /// Un job che non ha estratto nulla e' un esito legittimo, non un errore: deve attraversare
-        /// il confine come tale, non diventare un payload malformato.
+        /// A job that extracted nothing is a legitimate outcome, not an error: it must cross the
+        /// boundary as such rather than become a malformed payload.
         #[test]
         fn an_empty_payload_survives() {
             let v: Vec<DocumentOutcome> = vec![];
             assert_eq!(round_trip(&v), v);
         }
 
-        /// L'ordine dei documenti e quello delle pagine dentro ciascuno sono la ragione per cui il
-        /// padre puo' concatenare i risultati e ottenere lo stesso file del caso sequenziale.
+        /// The order of the documents, and of the pages within each, is why the parent can
+        /// concatenate the results and obtain the same file as the sequential case.
         #[test]
         fn the_order_of_documents_and_of_pages_is_preserved() {
             let restored = round_trip(&outcomes());
@@ -1463,8 +1440,8 @@ mod tests {
             assert_eq!(pages, [1, 7]);
         }
 
-        /// Il numero di pagina reale dei report grossi (AMUNDI-EN24: 1.824 pagine) sta in un `u32`,
-        /// ma passa da JSON, dove i numeri sono `f64`: la prova che nessun troncamento avviene.
+        /// The real page numbers of large reports fit in a `u32`, but they travel through JSON,
+        /// where numbers are `f64`: this is the proof that no truncation happens.
         #[test]
         fn a_high_page_number_survives_the_json_number_representation() {
             let mut v = outcomes();
@@ -1514,20 +1491,20 @@ mod tests {
         }
     }
 
-    /// P2: le pagine di uno step (e della classificazione) distribuite su più thread.
+    /// The pages of a step — and of classification — spread across threads.
     ///
-    /// Il criterio di ogni test è lo stesso: **il risultato non deve cambiare**. Il parallelismo
-    /// è un dettaglio di esecuzione, e l'unico test che lo osserva davvero è
-    /// `two_pages_of_the_same_step_really_run_on_two_threads` — gli altri confrontano sequenziale
-    /// e parallelo e basta.
+    /// Every test here has the same criterion: **the result must not change**. Parallelism is an
+    /// execution detail, and the only test that really observes it is
+    /// `two_pages_of_the_same_step_really_run_on_two_threads`; the others just compare sequential
+    /// against parallel.
     mod parallel_pages {
         use super::*;
 
-        /// Un documento con `count` pagine, ognuna con **una** riga distinguibile.
+        /// A document with `count` pages, each carrying **one** distinguishable line.
         ///
-        /// Una riga sola non è un dettaglio estetico: `classifying_pipeline` produce un
-        /// contributo di class per *blocco*, e un blocco nasce da una riga — due righe per pagina
-        /// darebbero due class per pagina e il finalizer identità le rifiuterebbe.
+        /// The single line is not cosmetic: `classifying_pipeline` produces one class contribution
+        /// per *block*, and a block comes from a line — two lines per page would give two classes
+        /// per page and the identity finalizer would refuse them.
         fn wide_document(count: u32) -> Document {
             let pages = (1..=count).map(|n| page(n, &[&format!("page {n}")])).collect();
             doc("wide", pages)
@@ -1551,8 +1528,8 @@ mod tests {
 
             #[test]
             fn a_multi_step_schedule_accumulates_the_same_results_either_way() {
-                // Due step, due class: il secondo step legge i risultati del primo, e l'ordine
-                // con cui li legge è ciò che il parallelismo non deve poter cambiare.
+                // Two steps, two classes: the second step reads the first's results, and the order
+                // in which it reads them is what parallelism must not be able to change.
                 let algorithm = Algorithm::new(
                     "FMT",
                     BTreeMap::from([
@@ -1610,8 +1587,8 @@ mod tests {
         mod failures {
             use super::*;
 
-            /// D-P2-4: con più pagine che falliscono, l'errore riportato è quello della pagina di
-            /// numero più basso, come nel ciclo sequenziale che si fermava alla prima.
+            /// With several pages failing, the reported error is the lowest-numbered page's, as in
+            /// the sequential loop, which stopped at the first.
             #[test]
             fn the_reported_error_is_the_one_of_the_lowest_numbered_page() {
                 let mut work = Pipeline::new("work");
@@ -1639,8 +1616,8 @@ mod tests {
                 assert!(concurrent.contains("page 3 is doomed"), "got: {concurrent}");
             }
 
-            /// Un fallimento **assorbibile** non è un errore del job: la pagina esce vuota, e
-            /// questo non cambia sotto parallelismo.
+            /// An **absorbable** failure is not a job error: the page comes out empty, and that
+            /// does not change under parallelism.
             #[test]
             fn an_absorbed_page_failure_leaves_the_same_empty_outcome() {
                 let mut work = Pipeline::new("work");
@@ -1670,8 +1647,8 @@ mod tests {
         mod degradation {
             use super::*;
 
-            /// I pipe d'autore riprendono il GIL a ogni chiamata: il bundle che ne contiene uno
-            /// resta sequenziale, e il risultato è quello di sempre.
+            /// Author-written pipes take the GIL back on every call: a bundle containing one stays
+            /// sequential, and the result is the usual one.
             #[test]
             fn a_gil_bound_bundle_produces_the_same_outcome_on_one_thread() {
                 let mut work = Pipeline::new("work");
@@ -1698,7 +1675,7 @@ mod tests {
                 );
             }
 
-            /// `pages = 1` non è "un thread": è il codice sequenziale, senza pool.
+            /// `pages = 1` is not "one thread": it is the sequential code, with no pool.
             #[test]
             fn one_page_at_a_time_is_the_sequential_path() {
                 let witness = ThreadWitness::new("witness", 1);
@@ -1733,11 +1710,12 @@ mod tests {
         mod threads_really_used {
             use super::*;
 
-            /// L'unico test che guarda *come* il lavoro viene eseguito e non solo cosa produce.
+            /// The only test that looks at *how* the work is executed and not merely at what it
+            /// produces.
             ///
-            /// Il pipe non ritorna finché non sono arrivate due chiamate (con una scadenza, così
-            /// che il caso sequenziale fallisca invece di appendersi): se le pagine dello stesso
-            /// step girassero una dopo l'altra, i thread distinti sarebbero uno.
+            /// The pipe does not return until two calls have arrived, with a deadline so that the
+            /// sequential case fails instead of wedging: were the pages of one step to run one
+            /// after the other, the number of distinct threads would be one.
             #[test]
             fn two_pages_of_the_same_step_really_run_on_two_threads() {
                 let witness = ThreadWitness::new("witness", 2);

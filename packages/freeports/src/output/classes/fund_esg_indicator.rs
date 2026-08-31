@@ -1,24 +1,9 @@
-//! `FundEsgIndicator`: un indicatore ESG di un fondo (`fund`, `name`, `value`).
+//! [`FundEsgIndicator`]: one ESG indicator of a fund.
 //!
-//! M8, passo 2 (`agent-memory/M8-implementation-plan.md` §3). Il più semplice delle cinque
-//! entità mancanti: un solo campo promettibile (`fund`), nessun vincolo numerico — `name`/`value`
-//! sono stringhe libere (es. `name = "GHG intensity"`, `value = "12.3"`), portate senza
-//! interpretazione. Vedi `packages/freeports_core/src/output/classes/fund_esg_indicator.rs` per
-//! il riferimento.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! pub struct FundEsgIndicator { pub fund: Promised<String>, pub name: String, pub value: String }
-//! impl FundEsgIndicator {
-//!     pub fn build(fund: &BlockValue, name: impl Into<String>, value: impl Into<String>)
-//!         -> Result<Self, OutputClassError>;
-//! }
-//! impl PromisableFields for FundEsgIndicator { /* pending() -> ["fund"] se pendente */ }
-//! ```
-//!
-//! Deriva `Debug, Clone, PartialEq, Eq, Serialize, Deserialize` (nessun campo `f64`, quindi `Eq`
-//! non è un problema qui a differenza di `Equity`/`Bond`).
+//! The simplest of the output entities: one promisable field, the fund, and no numeric constraints.
+//! The indicator's name and value are free strings — `"GHG intensity"`, `"12.3"` — carried without
+//! interpretation, because the set of indicators is open and a report may name one this crate has
+//! never heard of.
 
 use serde::{Deserialize, Serialize};
 
@@ -28,8 +13,7 @@ use crate::core::promise::Promise;
 
 use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
 
-/// Un indicatore ESG di un fondo: `name`/`value` sono stringhe libere, portate senza
-/// interpretazione (es. `name = "GHG intensity"`, `value = "12.3"`).
+/// An ESG indicator of a fund. The name and value are free strings, carried without interpretation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundEsgIndicator {
     #[serde(with = "serde_promised")]

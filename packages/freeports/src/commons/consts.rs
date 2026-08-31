@@ -1,53 +1,21 @@
-//! Pure-Rust domain enums: `Currency`, `SfdrArticle`, `FinancialInstrument`.
+//! The closed domain vocabularies: [`Currency`], [`SfdrArticle`], [`FinancialInstrument`].
 //!
-//! Port of the *logic* half of `packages/freeports_core/src/commons/consts.rs` (see that
-//! reference file's module doc for the value-lookup vs. name-lookup asymmetry this preserves).
-//! All PyO3 / pydantic-schema machinery from the reference (`#[pyclass]`, `__class_getitem__`,
-//! `__get_pydantic_core_schema__`, the `__members__` `PyDict` classattr, singleton `is`
-//! semantics, the custom-metaclass `__iter__` workaround) is dropped: `commons` is not one of
-//! the two Python-boundary modules (`PLAN.md` §3), and this crate has no Python shim layer yet
-//! (`PLAN.md` §0).
+//! # Lookup by code and by name are deliberately different
 //!
-//! ## Deviations from the reference worth calling out
+//! [`Currency::from_code`] is an exact ISO-code match and accepts no aliases;
+//! [`Currency::from_name`] accepts the canonical names **and** the `"EURO"` alias for `EUR`. The
+//! asymmetry is intentional and must not be collapsed into one lookup: a code column in a data file
+//! has to mean exactly what it says, while free text naming a currency does not.
 //!
-//! - **`SfdrArticle` variant names.** The Python-era names `ART_6`/`ART_8`/`ART_9` trip rustc's
-//!   `non_camel_case_types` lint (verified empirically: `rustc -W non-camel-case-types` flags
-//!   them and suggests exactly `Art6`/`Art8`/`Art9`) because of the `_<digit>` suffix — unlike
-//!   `Currency`'s or `FinancialInstrument`'s all-caps variants (`USD`, `EQUITY`, ...), which
-//!   rustc's heuristic accepts as acronym-shaped and does NOT flag. Renamed here to
-//!   `Art6`/`Art8`/`Art9` to stay lint-clean without an `#[allow(...)]` escape hatch.
-//!   Declaration order (6, 8, 9) is unchanged from the reference.
-//! - **`int_value()` is dropped, not ported.** The reference's `int_value()` tables
-//!   (`EQUITY=1,BOND=2`, `ART_6=1,ART_8=2,ART_9=3`) existed only for Python `enum.value` /
-//!   pydantic-dump compatibility (`__repr__`, the `.value` getter, `pydantic_value_ser_schema`).
-//!   Nothing in this crate's design (`PLAN.md` §4.1, §9) calls for a numeric identity for these
-//!   two enums, and the tests below deliberately do not assert one.
-//!   **Open question, flagged rather than guessed**: confirm with the user that dropping
-//!   `int_value()` permanently (vs. re-adding it later for, say, an output CSV column) is
-//!   correct — see the task report for this milestone.
+//! Serialisation follows the code semantics — a bare string such as `"EUR"` — so `"EURO"` fails to
+//! deserialize even though it resolves as a name.
 //!
-//! ## Expected API surface these tests assume (the contract the implementer must meet)
+//! # Declaration order is significant
 //!
-//! - `Currency::variants() -> &'static [Currency]` — all 46 members, in the reference's
-//!   declaration order (order is significant, see the reference module doc).
-//! - `Currency::code(&self) -> &'static str` — canonical ISO code.
-//! - `Currency::symbol(&self) -> &'static str` — currency symbol.
-//! - `Currency::from_code(code: &str) -> Option<Currency>` — exact ISO-code match only, no
-//!   aliases: mirrors the old `Currency(value)`.
-//! - `Currency::from_name(name: &str) -> Option<Currency>` — canonical names *and* the `"EURO"`
-//!   alias for `EUR`: mirrors the old `Currency[name]`. Deliberately asymmetric with
-//!   `from_code` — do not collapse the two into one lookup.
-//! - `Currency` (de)serializes via its ISO code as a bare JSON string (`"EUR"`, not
-//!   `{"code":"EUR"}`), using `from_code`/`code` semantics — i.e. deserialization is
-//!   exact-match, *not* alias-accepting (`"EURO"` must fail to deserialize even though
-//!   `from_name("EURO")` succeeds as a lookup).
-//! - `FinancialInstrument`, `SfdrArticle` derive `Serialize`/`Deserialize` with serde's default
-//!   (externally tagged) enum representation — no custom wire format needed.
-//! - All three enums derive `Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash` (required
-//!   so they can sit inside `core::classes::value::BlockValue`, see `PLAN.md` §4.1 — which is
-//!   itself `Ord`, since it must be usable as a `BTreeSet` element and `BTreeMap` key). The
-//!   ordering is *declaration* order, not alphabetical: for `Currency` that is the reference
-//!   Python enum's `__members__` order, which is already the module's stated invariant.
+//! All three enums derive `Ord` from declaration order, not alphabetically, and
+//! [`Currency::variants`] yields them in that order. Consumers scanning for the first currency
+//! mentioned in a text depend on it, and the enums have to be `Ord` to sit inside an ordered
+//! [`BlockValue`](crate::core::classes::value::BlockValue).
 
 use serde::{Deserialize, Serialize};
 

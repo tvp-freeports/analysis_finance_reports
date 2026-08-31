@@ -1,26 +1,24 @@
-//! `PdfBlock` e `TextBlock`: le due unita' di lavoro che attraversano la pipeline.
+//! [`PdfBlock`] and [`TextBlock`]: the two units of work that travel through a pipeline.
 //!
-//! Un `PdfBlock` e' cio' che il segmento *pdf_extract* ritaglia da una pagina; un `TextBlock` e'
-//! cio' che il segmento *text_filter* ne ricava dopo aver deciso che il testo e' rilevante, e
-//! conserva un riferimento al blocco PDF da cui proviene. Il segmento *deserialize* legge poi i
-//! `TextBlock` e produce le entita' di `output`.
+//! A [`PdfBlock`] is what the *pdf_extract* segment cuts out of a page. A [`TextBlock`] is what the
+//! *text_filter* segment makes of it once it has decided the text is relevant, and it keeps a
+//! reference back to the PDF block it came from. The *deserialize* segment then reads text blocks
+//! and produces the entities of `output`.
 //!
-//! Rispetto al riferimento cambiano tre cose, tutte volute (`PLAN.md` §4.2):
+//! Three design points worth knowing:
 //!
-//! - `metadata` e `content` non sono piu' `dict`/`Any` Python ma [`BlockValue`] (vedi
-//!   `classes::value`), quindi serde funziona per derivazione e non serve un `serialization.py`;
-//! - `type_block` e' un newtype [`BlockType`] invece di una `String` nuda: i tipi di blocco li
-//!   estendono i repo formati, quindi un enum chiuso non funzionerebbe (decisione D2), ma il
-//!   newtype da' comunque un tipo distinto e un posto dove tenere le costanti standard;
-//! - `Hash` e' derivato. Nel riferimento `__hash__` *mutava* `metadata` per riuscire a calcolare
-//!   l'hash, e siccome `__eq__` era definito come uguaglianza di hash, anche un semplice `==`
-//!   mutava entrambi gli operandi (decisione D3). Qui non serve: [`BlockValue`] e' gia'
-//!   `Hash + Ord` di suo.
+//! - `metadata` and `content` are [`BlockValue`]s (see [`value`]) rather than untyped maps, so
+//!   serde works by derivation and no hand-written serialisation layer is needed;
+//! - `type_block` is a [`BlockType`] newtype rather than a bare `String`. A closed enum would not
+//!   work, because formats repositories invent their own block types; the newtype still gives a
+//!   distinct type in signatures and somewhere to keep the standard constants;
+//! - `Hash` is simply derived, and hashing or comparing a block does not mutate it. This is worth
+//!   stating because it is easy to build a hash over a map by sorting it in place, and a `==` with
+//!   side effects on both operands is a bug that hides for a long time. [`BlockValue`] is
+//!   `Hash + Ord` on its own, so nothing of the sort is needed.
 //!
-//! Le cinque eccezioni marcatrici del riferimento (`ExpectedPdfBlockNotFound`,
-//! `ExpectedTextBlockNotFound`, `PageParseFail`, `LineParseFail`, `ExtractionFieldFail`) **non**
-//! stanno qui: diventano varianti di `PipeError`/`PageError` insieme al motore (`PLAN.md` §8),
-//! perche' descrivono fallimenti dell'esecuzione di un pipe, non del modello dati.
+//! Failures of *running* a pipe are not modelled here: they belong to `PipeError` and `PageError`,
+//! because they describe execution going wrong, not the data model.
 
 pub mod value;
 
@@ -31,49 +29,45 @@ use serde::{Deserialize, Serialize};
 
 pub use value::{BlockValue, BlockValueError};
 
-/// Il tipo di un blocco, come stringa: `"FUND"`, `"TABLE_BODY"`, un nome inventato da un repo
-/// formati, ...
+/// A block's type, as a string: `"FUND"`, `"TABLE_BODY"`, or a name invented by a formats
+/// repository.
 ///
-/// E' un newtype su [`Cow<'static, str>`] e non su `String` per una ragione precisa: `Cow`
-/// permette di dichiarare i tipi standard come vere costanti associate
-/// (`const FUND: BlockType = ...`), cosa impossibile con `String`, senza pagare
-/// un'allocazione ogni volta che si nomina un tipo standard. Un tipo costruito a runtime da un
-/// repo formati usa il ramo `Owned` e si confronta normalmente con uno costante.
+/// A newtype over [`Cow<'static, str>`] rather than over `String` for one precise reason: `Cow`
+/// allows the standard types to be declared as real associated constants
+/// (`const FUND: BlockType = …`), which `String` cannot, without paying an allocation every time a
+/// standard type is named. A type built at runtime by a formats repository takes the `Owned` branch
+/// and compares equal to a constant one as usual.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct BlockType(Cow<'static, str>);
 
 impl BlockType {
-    /// Blocco PDF marcato come rilevante dal classificatore standard
-    /// (`OnePdfBlockType::RELEVANT_BLOCK` / `OneTextBlockType::RELEVANT_BLOCK` nel riferimento).
+    /// A PDF block marked relevant by the standard classifier.
     pub const RELEVANT_BLOCK: BlockType = BlockType(Cow::Borrowed("RELEVANT_BLOCK"));
-    /// Nome del fondo ritagliato dalla pagina (`ResultStandardExtraction::FUND_NAME`).
+    /// The fund name cut out of the page.
     pub const FUND_NAME: BlockType = BlockType(Cow::Borrowed("FUND_NAME"));
-    /// Riga che dichiara la valuta del prospetto (`ResultStandardExtraction::CURRENCY_STATEMENT`).
+    /// The line declaring the report's currency.
     pub const CURRENCY_STATEMENT: BlockType = BlockType(Cow::Borrowed("CURRENCY_STATEMENT"));
-    /// Corpo della tabella degli investimenti (`ResultStandardExtraction::TABLE_BODY`).
+    /// The body of the investments table.
     pub const TABLE_BODY: BlockType = BlockType(Cow::Borrowed("TABLE_BODY"));
-    /// Articolo SFDR dichiarato (`ResultStandardExtraction::SFDR_ARTICLE`).
+    /// The declared SFDR article.
     pub const SFDR_ARTICLE: BlockType = BlockType(Cow::Borrowed("SFDR_ARTICLE"));
-    /// Indicatore di classe della pagina (`ResultStandardExtraction::PAGE_CLASS`).
+    /// A marker of the page's class.
     pub const PAGE_CLASS: BlockType = BlockType(Cow::Borrowed("PAGE_CLASS"));
-    /// Fondo, come `TextBlock` prodotto da `standard_fund_txt_blk`.
+    /// A fund, as the text block a standard fund filter produces.
     pub const FUND: BlockType = BlockType(Cow::Borrowed("FUND"));
-    /// Societa' di gestione, come `TextBlock` prodotto da `standard_management_company_txt_blk`.
+    /// A management company, as the text block a standard filter produces.
     pub const MANAGEMENT_COMPANY: BlockType = BlockType(Cow::Borrowed("MANAGEMENT_COMPANY"));
-    /// Gestore degli investimenti, come `TextBlock` prodotto da
-    /// `standard_investmet_manager_txt_blk`.
+    /// An investments manager, as the text block a standard filter produces.
     pub const INVESTMENTS_MANAGER: BlockType = BlockType(Cow::Borrowed("INVESTMENTS_MANAGER"));
-    /// Riga di tabella riconosciuta come titolo azionario
-    /// (`ResultStandardFiltering::EQUITY_TARGET` nel riferimento). Aggiunta in M5 insieme a
-    /// `TextFilterInvestmentsStandard`, che è l'unico a produrla.
+    /// A table row recognised as an equity holding.
     pub const EQUITY_TARGET: BlockType = BlockType(Cow::Borrowed("EQUITY_TARGET"));
-    /// Riga di tabella riconosciuta come obbligazione, cioè con un tasso d'interesse o una
-    /// scadenza nel testo (`ResultStandardFiltering::BOND_TARGET` nel riferimento).
+    /// A table row recognised as a bond, that is, one carrying an interest rate or a maturity date
+    /// in its text.
     pub const BOND_TARGET: BlockType = BlockType(Cow::Borrowed("BOND_TARGET"));
 
-    /// I tipi standard, in un unico posto: serve ai test e ai messaggi diagnostici che vogliono
-    /// suggerire "forse intendevi uno di questi".
+    /// The standard types in one place: used by tests and by diagnostics that want to suggest "did
+    /// you mean one of these?".
     pub const STANDARD: &'static [BlockType] = &[
         BlockType::RELEVANT_BLOCK,
         BlockType::FUND_NAME,
@@ -88,12 +82,12 @@ impl BlockType {
         BlockType::BOND_TARGET,
     ];
 
-    /// Costruisce un tipo di blocco arbitrario — la via che usano i repo formati.
+    /// Builds an arbitrary block type — the route a formats repository takes.
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         BlockType(name.into())
     }
 
-    /// Il nome del tipo.
+    /// The type's name.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -117,7 +111,8 @@ impl From<String> for BlockType {
     }
 }
 
-/// Confronto diretto con una stringa, per non costringere ogni `if` a costruire un `BlockType`.
+/// Direct comparison against a string, so that a conditional does not have to build a
+/// [`BlockType`] just to ask.
 impl PartialEq<str> for BlockType {
     fn eq(&self, other: &str) -> bool {
         self.0 == other
@@ -130,7 +125,7 @@ impl PartialEq<&str> for BlockType {
     }
 }
 
-/// Errori del modulo: (de)serializzazione JSON di un blocco e lettura tipizzata dei suoi campi.
+/// Failures of this module: JSON (de)serialisation of a block, and typed reads of its fields.
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
     #[error("block JSON (de)serialization failed: {0}")]
@@ -139,7 +134,7 @@ pub enum BlockError {
     Value(#[from] BlockValueError),
 }
 
-/// Un ritaglio di pagina PDF: cosa e', da dove viene, cosa contiene.
+/// A cut-out of a PDF page: what it is, where it came from, what it holds.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PdfBlock {
     pub type_block: BlockType,
@@ -156,12 +151,12 @@ impl PdfBlock {
         PdfBlock { type_block: type_block.into(), metadata, content: content.into() }
     }
 
-    /// Blocco senza metadati — il caso piu' comune nei pipe di estrazione semplici.
+    /// A block with no metadata — the common case in simple extraction pipes.
     pub fn bare(type_block: impl Into<BlockType>, content: impl Into<BlockValue>) -> Self {
         PdfBlock::new(type_block, BTreeMap::new(), content)
     }
 
-    /// Legge un metadato tipizzato, distinguendo "assente" da "di tipo sbagliato".
+    /// Reads a typed metadata field, telling "absent" apart from "wrong type".
     pub fn metadata_or_fail(&self, field: &str) -> Result<&BlockValue, BlockValueError> {
         self.metadata.get(field).ok_or_else(|| BlockValueError::MissingField { field: field.to_string() })
     }
@@ -175,11 +170,11 @@ impl PdfBlock {
     }
 }
 
-/// Testo giudicato rilevante, con il blocco PDF da cui e' stato ricavato.
+/// Text judged relevant, together with the PDF block it was derived from.
 ///
-/// `pdf_block` e' opzionale perche' un `TextBlock` puo' anche nascere da un contenuto costruito
-/// (`TextBlock::from_content`), senza una porzione di pagina alle spalle — per esempio quando il
-/// valore e' una costante di formato o una [`crate::core::promise::Promise`].
+/// `pdf_block` is optional because a text block can also be born from constructed content, with no
+/// region of a page behind it — when the value is a format constant, say, or a
+/// [`crate::core::promise::Promise`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TextBlock {
     pub type_block: BlockType,
@@ -190,9 +185,10 @@ pub struct TextBlock {
 }
 
 impl TextBlock {
-    /// Costruisce un `TextBlock` a partire da un `PdfBlock`, **ereditandone il contenuto**: e' la
-    /// via normale, e la ragione per cui non esiste un costruttore che accetti sia `pdf_block`
-    /// sia `content` (potrebbero contraddirsi).
+    /// Builds a text block from a PDF block, **inheriting its content**.
+    ///
+    /// This is the normal route, and the reason there is no constructor taking both a `pdf_block`
+    /// and a `content`: the two could contradict each other.
     pub fn new(
         type_block: impl Into<BlockType>,
         metadata: BTreeMap<String, BlockValue>,
@@ -206,7 +202,7 @@ impl TextBlock {
         }
     }
 
-    /// Costruisce un `TextBlock` da un contenuto dato, senza blocco PDF di provenienza.
+    /// Builds a text block from given content, with no originating PDF block.
     pub fn from_content(
         type_block: impl Into<BlockType>,
         metadata: BTreeMap<String, BlockValue>,
@@ -220,7 +216,7 @@ impl TextBlock {
         }
     }
 
-    /// Legge un metadato tipizzato, distinguendo "assente" da "di tipo sbagliato".
+    /// Reads a typed metadata field, telling "absent" apart from "wrong type".
     pub fn metadata_or_fail(&self, field: &str) -> Result<&BlockValue, BlockValueError> {
         self.metadata.get(field).ok_or_else(|| BlockValueError::MissingField { field: field.to_string() })
     }
@@ -261,8 +257,8 @@ mod tests {
             assert_eq!(names.len(), BlockType::STANDARD.len());
         }
 
-        /// Il punto del newtype su `Cow`: una costante e un tipo costruito a runtime dallo stesso
-        /// nome sono lo stesso `BlockType`, con lo stesso hash.
+        /// The point of the `Cow` newtype: a constant and a type built at runtime from the same
+        /// name are the same [`BlockType`], with the same hash.
         #[test]
         fn constant_and_runtime_built_type_coincide() {
             let from_repo = BlockType::new(String::from("FUND"));
@@ -412,8 +408,8 @@ mod tests {
             assert_ne!(base, PdfBlock::new(BlockType::FUND_NAME, base.metadata.clone(), "y"));
         }
 
-        /// L'ordine di inserimento dei metadati non conta, e — a differenza del riferimento —
-        /// confrontare o hashare due blocchi non li modifica (`PLAN.md` D3).
+        /// Metadata insertion order does not matter, and comparing or hashing two blocks does not
+        /// modify them.
         #[test]
         fn comparing_and_hashing_does_not_modify_the_blocks() {
             let mut m1 = BTreeMap::new();

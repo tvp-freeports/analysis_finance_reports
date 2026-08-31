@@ -1,33 +1,9 @@
-//! Download dei PDF e gestione della cache locale.
+//! Downloading PDFs and managing the local cache.
 //!
-//! `PLAN.md` §9, `M9-implementation-plan.md` §0 Q1 (passo 2): porting di
-//! `packages/freeports_core/src/input/download.rs`, tolto il confine PyO3 (nessun chiamante
-//! Python in questo crate — a differenza del riferimento, non serve riprodurre le eccezioni
-//! `requests.exceptions.*`) e `requests`, sostituito da `ureq` (già dipendenza, usato in modo
-//! sincrono per l'unica chiamata bloccante che questo modulo fa).
-//!
-//! **Bug del riferimento Python, deliberatamente non riprodotto** (`M9-implementation-plan.md`
-//! §4, "input::companies_db/input::download"): quando `pdf` è dato, il riferimento **legge** lo
-//! stream per scriverlo su disco e poi restituisce quello stesso oggetto già esaurito, quindi un
-//! secondo `.read()` sul valore di ritorno restituisce vuoto. Qui `download_pdf` restituisce
-//! sempre `Vec<u8>` (mai uno stream con stato interno), quindi il bug non è nemmeno rappresentabile:
-//! la stessa copia dei byte va sia sul disco (se richiesto) sia al chiamante.
-//!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum DownloadError {
-//!     Status { url: String, code: u16, status_text: String },   // risposta non-2xx
-//!     Transport { url: String, message: String },                // connessione rifiutata/DNS/timeout
-//!     Io { path: PathBuf, source: std::io::Error },              // fallita la scrittura su disco
-//! }
-//!
-//! /// GET bloccante su `url` (timeout 10s, come il riferimento). Se `pdf` è `Some`, salva anche
-//! /// una copia dei byte scaricati in quel path prima di restituirli. Ritorna sempre gli stessi
-//! /// byte scaricati, indipendentemente da `pdf`.
-//! pub fn download_pdf(url: &str, pdf: Option<&std::path::Path>) -> Result<Vec<u8>, DownloadError>;
-//! ```
+//! [`download_pdf`] always returns owned bytes rather than a stream. That is deliberate: with a
+//! stream, writing the file to disk consumes it, and a caller reading the returned value afterwards
+//! gets nothing. Returning bytes makes that failure unrepresentable — the same copy goes both to
+//! disk and to the caller.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -43,10 +19,15 @@ pub enum DownloadError {
     Io { path: PathBuf, source: std::io::Error },
 }
 
-/// GET bloccante su `url` (timeout 10s, come il riferimento). Se `pdf` è `Some`, salva anche una
-/// copia dei byte scaricati in quel path prima di restituirli -- una scrittura fallita non
-/// intacca i byte già scaricati con successo in memoria, quindi torna un errore invece di
-/// restituire un risultato parziale silenzioso.
+/// A blocking GET on `url`, with a ten-second timeout. If `pdf` is given, a copy of the downloaded
+/// bytes is also written there before they are returned.
+///
+/// # Errors
+///
+/// [`DownloadError::Status`] for a non-2xx response, [`DownloadError::Transport`] for a refused
+/// connection, DNS failure or timeout, and [`DownloadError::Io`] if the write fails — a failed
+/// write does not invalidate the bytes already downloaded, but it is reported rather than silently
+/// yielding a partial result.
 pub fn download_pdf(url: &str, pdf: Option<&Path>) -> Result<Vec<u8>, DownloadError> {
     let response = ureq::get(url).timeout(Duration::from_secs(10)).call().map_err(|e| match e {
         ureq::Error::Status(code, response) => {
@@ -76,9 +57,8 @@ mod tests {
     use std::io::{Read, Write};
     use std::net::TcpListener;
 
-    /// Spinge in ascolto un server HTTP one-shot su una porta assegnata dal SO, risponde con i
-    /// byte dati alla prima connessione, poi si ferma -- niente rete reale, stesso approccio del
-    /// riferimento Rust (`freeports_core/src/input/download.rs::tests::serve_once`).
+    /// Starts a one-shot HTTP server on a port the operating system assigns, answers the first
+    /// connection with the given bytes, then stops. No real network is involved.
     fn serve_once(raw_response: &'static [u8]) -> String {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = listener.local_addr().unwrap();
@@ -116,8 +96,8 @@ mod tests {
         fn without_a_pdf_path_nothing_is_written_to_disk() {
             let url = serve_once(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
             download_pdf(&url, None).unwrap();
-            // Nothing to assert on disk directly (no path was given); this documents the
-            // contract that `pdf: None` performs no filesystem write at all.
+            // Nothing to assert on disk, no path having been given; this documents the contract
+            // that `pdf: None` performs no filesystem write at all.
         }
 
         #[test]
@@ -167,8 +147,8 @@ mod tests {
 
         #[test]
         fn connection_refused_is_a_typed_transport_error() {
-            // Bind then immediately drop a listener to get a port nothing is listening on -- a
-            // fast, deterministic connection refusal with no real network/DNS dependency.
+            // Bind and immediately drop a listener to obtain a port nothing is listening on — a
+            // fast, deterministic connection refusal with no dependency on the real network or DNS.
             let listener = TcpListener::bind("127.0.0.1:0").unwrap();
             let addr = listener.local_addr().unwrap();
             drop(listener);

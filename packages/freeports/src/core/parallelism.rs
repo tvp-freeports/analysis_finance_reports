@@ -1,62 +1,66 @@
-//! Quante pagine alla volta, e su quale pool di thread.
+//! How many pages at a time, and on which thread pool.
 //!
-//! `PLAN.md` §4 P2. Il motore non decide da sé quanto parallelizzare: riceve una [`Parallelism`]
-//! e la rispetta. È una scelta deliberata (`agent-memory/P2-implementation-plan.md` D-P2-2): le
-//! firme storiche di [`Algorithm`](crate::core::algorithm::Algorithm) restano sequenziali, le
-//! varianti `*_with` prendono questo parametro, e `pages == 1` percorre esattamente il codice di
-//! prima — che è il modo con cui `PLAN.md` §6 vuole si verifichi il determinismo.
+//! The engine never decides on its own how much to parallelise: it is handed a [`Parallelism`] and
+//! obeys it. That is deliberate. The historical [`Algorithm`](crate::core::algorithm::Algorithm)
+//! signatures stay sequential and the `*_with` variants take this parameter, so `pages == 1` walks
+//! exactly the same code as before — which is how the equivalence between a sequential run and a
+//! parallel one can be checked at all.
 //!
-//! # Perché un pool proprio e non quello globale di rayon
+//! # Why a pool of its own, and not rayon's global one
 //!
-//! `rayon::ThreadPoolBuilder::build_global` si può chiamare una volta sola per processo, e il pool
-//! globale appartiene a chi *incorpora* il crate — l'example `p0_profile`, un consumatore Python,
-//! un binario di terze parti. Sequestrarlo sarebbe una decisione presa a nome suo. Qui si tiene
-//! un pool dedicato, costruito pigramente alla prima richiesta di parallelismo vero.
+//! `rayon::ThreadPoolBuilder::build_global` can be called only once per process, and the global
+//! pool belongs to whoever *embeds* this crate — a Python consumer, a third-party binary, a
+//! profiling harness. Seizing it would be a decision taken in their name. Instead a dedicated pool
+//! is built lazily, on the first request for real parallelism.
 //!
-//! # Il GIL non entra da questa porta
+//! # The GIL does not come in through this door
 //!
-//! Il pool serve a distribuire lavoro **Rust puro**. I pipe definiti dall'autore di un formato
-//! riprendono il GIL a ogni chiamata e su N thread si riserializzano fra loro: per questo non
-//! vengono distribuiti affatto, ma rilevati e degradati a sequenziale
-//! (`PipelinesBundle::scales_with_threads`).
+//! This pool distributes **pure Rust** work only. Pipes written by a format author take the GIL
+//! back on every call and would re-serialise against each other across N threads, so they are not
+//! distributed at all: they are detected and degraded to sequential by
+//! [`PipelinesBundle::scales_with_threads`].
+//!
+//! [`PipelinesBundle::scales_with_threads`]:
+//!     crate::core::pipeline::bundle::PipelinesBundle::scales_with_threads
 
 use std::sync::OnceLock;
 
-/// Quanto parallelismo il motore può usare.
+/// How much parallelism the engine may use.
 ///
-/// Un solo campo oggi. È una struct e non un `usize` nudo perché P3 (`pipelines`) e P5
-/// (lo schema `parallelism` completo) vi si aggiungono come campi, senza cambiare nessuna firma.
+/// One field today. It is a struct rather than a bare `usize` so that further levels can be added
+/// as fields without changing a single signature.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Parallelism {
-    /// Quante pagine dello stesso step (o della stessa classificazione) elaborare insieme.
-    /// `1` significa *sequenziale*, non "un thread": non si tocca nemmeno il pool.
+    /// How many pages of the same step — or of the same classification pass — to process together.
+    ///
+    /// `1` means *sequential*, not "one thread": the pool is not even touched.
     pub pages: usize,
 }
 
 impl Parallelism {
-    /// Il comportamento di sempre: nessun thread, nessun pool, nessuna differenza osservabile.
+    /// The behaviour that has always been: no threads, no pool, nothing observably different.
     pub const SEQUENTIAL: Parallelism = Parallelism { pages: 1 };
 
-    /// Tante pagine quanti sono i thread hardware disponibili.
+    /// As many pages as there are hardware threads available.
     ///
-    /// `available_parallelism` fallisce su piattaforme che non sanno rispondere: in quel caso la
-    /// risposta prudente è "una", non un numero inventato.
+    /// `available_parallelism` fails on platforms that cannot answer; there the careful reply is
+    /// one, not an invented number.
     pub fn auto() -> Parallelism {
         Parallelism { pages: available_threads() }
     }
 
-    /// `pages` pagine alla volta, con `0` normalizzato a `1`.
+    /// `pages` pages at a time, with `0` normalised to `1`.
     ///
-    /// Zero arriva da configurazioni scritte a mano e da divisioni di budget fra job
-    /// (`cli::run::page_parallelism`): trattarlo come sequenziale è più utile che rifiutarlo.
+    /// Zero arrives from hand-written configurations and from splitting a worker budget across
+    /// jobs; treating it as sequential is more useful than rejecting it.
     pub fn pages(pages: usize) -> Parallelism {
         Parallelism { pages: pages.max(1) }
     }
 
-    /// `true` se vale la pena distribuire `count` unità di lavoro.
+    /// Whether distributing `count` units of work is worth it at all.
     ///
-    /// Una sola pagina non si parallelizza: il costo di distribuzione di rayon sarebbe pagato per
-    /// intero e il guadagno sarebbe zero.
+    /// A single page is never parallelised: rayon's distribution cost would be paid in full for no
+    /// gain.
     pub fn is_worth_it(&self, count: usize) -> bool {
         self.pages > 1 && count > 1
     }
@@ -68,23 +72,22 @@ impl Default for Parallelism {
     }
 }
 
-/// Quanti thread hardware, o `1` se il sistema non lo sa dire.
+/// How many hardware threads there are, or `1` if the system cannot say.
 pub fn available_threads() -> usize {
     std::thread::available_parallelism().map_or(1, |n| n.get())
 }
 
 static POOL: OnceLock<rayon::ThreadPool> = OnceLock::new();
 
-/// Il pool dedicato del motore, costruito alla prima richiesta.
+/// The engine's dedicated pool, built on first use.
 ///
-/// **La prima richiesta fissa la dimensione per tutta la vita del processo.** In una corsa reale
-/// il valore è uno solo (lo stesso `Parallelism` attraversa tutto il job), quindi il caso "due
-/// dimensioni diverse" esiste solo nei test; là il pool più grande basta comunque, perché la
-/// distribuzione effettiva la decide `Parallelism::is_worth_it`, non la taglia del pool.
+/// **The first request fixes the size for the lifetime of the process.** In a real run there is
+/// only ever one value — the same [`Parallelism`] travels through the whole job — so the case of
+/// two different sizes exists only in tests, and there the larger pool is harmless: how much work
+/// is actually spread is decided by [`Parallelism::is_worth_it`], not by the pool's size.
 ///
-/// Se rayon non riesce a costruire il pool — non ci sono thread da dare — la risposta è `None` e
-/// il chiamante torna sul percorso sequenziale invece di fallire: il parallelismo è una
-/// ottimizzazione, non un requisito di correttezza.
+/// Returns `None` if rayon cannot build the pool, and the caller then falls back to the sequential
+/// path instead of failing: parallelism is an optimisation, not a correctness requirement.
 pub fn pool(parallelism: Parallelism) -> Option<&'static rayon::ThreadPool> {
     if let Some(existing) = POOL.get() {
         return Some(existing);

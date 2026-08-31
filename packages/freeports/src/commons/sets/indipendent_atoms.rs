@@ -1,12 +1,14 @@
-//! Insiemi su atomi disgiunti (`DisjointAtomsSet`, `AtomAlgebra`).
+//! Sets over disjoint atoms: [`DisjointAtomsSet`] and [`AtomAlgebra`].
 //!
-//! Terza rappresentazione della stessa algebra: invece di un albero di operazioni, un
-//! `DisjointAtomsSet` mantiene direttamente l'insieme (sempre già semplificato) degli atomi
-//! disgiunti che lo compongono. `AtomAlgebra`/`AtomOperations` definiscono il contratto che un
-//! tipo di atomo concreto deve rispettare (confronto via `Overlappable`, più le operazioni che
-//! producono uno o più atomi quando due atomi si sovrappongono senza essere l'uno sottoinsieme
-//! dell'altro). A differenza di `ast_simple`/`ast_smart`, questa rappresentazione implementa
-//! `ComparableSet`: due `DisjointAtomsSet` sono sempre confrontabili.
+//! The third representation of the same algebra: instead of a tree of operations, the set holds
+//! directly the disjoint atoms composing it, always already simplified. [`AtomAlgebra`] and
+//! [`AtomOperations`] are the contract a concrete atom type must meet — comparison through
+//! [`Overlappable`], plus the operations producing one or more atoms when two overlap without one
+//! containing the other.
+//!
+//! Unlike the two tree representations, this one implements [`ComparableSet`]: two of these sets
+//! can always be compared, because equal sets have equal canonical forms. That is what it buys, and
+//! the cost is that every operation does the simplification work eagerly.
 
 use super::{ComparableSet, Container, Overlappable, SetAlgebra, SetRelation};
 use std::collections::HashSet;
@@ -800,7 +802,8 @@ mod tests {
                 // instead, which stays single-atom in this mock.
 
                 let set = DisjointAtomsSet(HashSet::from([SplittingAtom::new([1, 2, 3, 4, 5, 6, 7, 8])]));
-                // self \ other = {1,2,3,4,5,6,7,8} \ {5,6,7,8,9,10} = {1,2,3,4}: 4 elements -> Four.
+                // self \ other = {1,2,3,4,5,6,7,8} \ {5,6,7,8,9,10} = {1,2,3,4}: 4 elements ->
+                // Four.
                 let res = set.atom_subtraction(SplittingAtom::new([5, 6, 7, 8, 9, 10]));
                 assert_eq!(
                     res.0,

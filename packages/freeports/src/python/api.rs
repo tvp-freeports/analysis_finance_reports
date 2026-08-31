@@ -1,8 +1,9 @@
-//! Shim delle facciate d'ingresso: `Algorithm`, `run_job`, `get_formats`, la config su file.
+//! The shims of the entry points: the algorithm, running a job, listing the formats, reading the
+//! configuration file.
 //!
-//! È la parte di API che serve a **`freeports_dev`**, non agli autori di formato: caricare
-//! l'algoritmo di un formato, applicarne un segmento a una pagina sola (i test a pagina singola),
-//! e far girare un job intero scrivendo i CSV (i test d'integrazione).
+//! This is the part of the API the **development tooling** needs rather than format authors: load a
+//! format's algorithm, apply one segment to a single page for the per-page tests, and run a whole
+//! job writing its output files for the integration tests.
 
 use std::path::{Path, PathBuf};
 
@@ -25,30 +26,25 @@ use super::core::{PyPdfBlock, PyTextBlock};
 use super::pipes::{extracted_to_py, filter_data_of, page_from_py, previous_results_from_py, target_companies_from_py};
 use crate::core::tracing_setup::log_error;
 
-/// Un errore nativo come `ValueError` Python.
+/// A native error as a Python `ValueError`.
 fn value_error<E: std::fmt::Display>(error: E) -> PyErr {
     PyValueError::new_err(error.to_string())
 }
 
-/// Shim Python di [`Algorithm`].
+/// The Python shim of an algorithm.
 ///
-/// I tre `apply_*` sono l'API a segmenti che `freeports-dev` usa per i test a pagina singola.
-/// Rispetto al riferimento cambia **come** sono concatenati, non cosa restituiscono: là
-/// `apply_text_filter` e `apply_deserialize` ripartivano ogni volta dalla pagina, rieseguendo i
-/// segmenti a monte; qui il nativo `apply_deserializer` parte dai blocchi di testo (`PLAN.md`
-/// §5.5), quindi è lo shim a rifare la catena `pdf_extract -> text_filter` prima di
-/// deserializzare. Il risultato visto da Python è lo stesso.
+/// The three per-segment methods are the API the development tooling drives for its single-page
+/// tests. What differs from a naive chaining is *how* they compose, not what they return: the
+/// native per-segment API starts from text blocks, so this shim redoes the extraction and filtering
+/// chain before deserializing.
 #[pyclass(name = "Algorithm", module = "freeports.core", frozen)]
 pub struct PyAlgorithm(Algorithm);
 
 #[pymethods]
 impl PyAlgorithm {
-    /// `Algorithm.load(formats_repo_dir, format_name, format_names=None)`.
-    ///
-    /// **Divergenza assorbita qui:** il terzo argomento è accettato e ignorato. Nel riferimento
-    /// era l'elenco dei formati noti, che il chiamante doveva procurarsi da `get_formats` e
-    /// passare; il nativo [`Algorithm::load`] lo rilegge da sé dal repo, quindi passarlo non
-    /// aggiunge nulla — ma i chiamanti esistenti lo passano ancora.
+    /// **A divergence absorbed here:** the third argument is accepted and ignored. It used to be
+    /// the list of known formats, which the caller had to fetch and pass; the native loader reads
+    /// it from the repository itself, so passing it adds nothing — but existing callers still do.
     #[staticmethod]
     #[pyo3(signature = (formats_repo_dir, format_name, format_names=None))]
     fn load(
@@ -77,7 +73,7 @@ impl PyAlgorithm {
         self.0.format().as_str()
     }
 
-    /// Le page class che lo schedule attraversa, nell'ordine dello schedule.
+    /// The page classes the schedule visits, in schedule order.
     #[getter]
     fn page_classes(&self) -> Vec<String> {
         self.0.schedule().page_classes().iter().map(|class| class.as_str().to_string()).collect()
@@ -137,9 +133,8 @@ impl PyAlgorithm {
             previous_count = previous.len(),
             "Algorithm.apply_deserialize called from Python"
         );
-        // `Algorithm::apply_deserialize` e non `apply_text_filter` + `apply_deserializer`: le due
-        // cose differiscono quando una page class mappa piu' pipeline, vedi il doc-comment di
-        // quel metodo.
+        // The full per-page chain, not the hand-made composition of two segments: the two differ
+        // when a page class maps several pipelines.
         let extracted = self.0.apply_deserialize(&page, &PageClass::new(page_class), &data).map_err(|e| {
             tracing::error!(error = log_error(&e), page_class, "apply_deserialize failed: {e}");
             value_error(e)
@@ -152,11 +147,10 @@ impl PyAlgorithm {
     }
 }
 
-/// I nomi dei formati dichiarati da `formats.csv`.
+/// The names of the formats the repository declares.
 ///
-/// **Divergenza:** il riferimento restituiva un `pd.DataFrame` indicizzato per nome, e i
-/// chiamanti ne prendevano sempre e solo `.index`. Qui restituisce direttamente la lista dei nomi:
-/// il resto della tabella non era mai stato letto da nessuno, e il crate non dipende da pandas.
+/// **A divergence:** this used to return a whole table indexed by name, of which callers only ever
+/// took the index. It returns the names directly: the rest of the table was never read by anyone.
 #[pyfunction]
 #[pyo3(name = "get_formats", signature = (formats_repo_dir))]
 pub fn py_get_formats(formats_repo_dir: PathBuf) -> PyResult<Vec<String>> {
@@ -170,7 +164,7 @@ pub fn py_get_formats(formats_repo_dir: PathBuf) -> PyResult<Vec<String>> {
     })
 }
 
-/// Il formato che corrisponde a un url di report, se il repo ne dichiara uno.
+/// The format matching a report URL, if the repository declares one.
 #[pyfunction]
 #[pyo3(name = "url_to_format", signature = (formats_repo_dir, url))]
 pub fn py_url_to_format(formats_repo_dir: PathBuf, url: &str) -> PyResult<Option<String>> {
@@ -185,7 +179,7 @@ pub fn py_url_to_format(formats_repo_dir: PathBuf, url: &str) -> PyResult<Option
     })
 }
 
-/// Il profilo di scrittura da stringa, con gli stessi nomi accettati dalla riga di comando.
+/// The write profile from a string, with the same names the command line accepts.
 fn out_profile_of(value: &str) -> PyResult<OutStructureMode> {
     match value.to_ascii_lowercase().as_str() {
         "regular" => Ok(OutStructureMode::Regular),
@@ -200,7 +194,7 @@ fn out_profile_of(value: &str) -> PyResult<OutStructureMode> {
     }
 }
 
-/// I flag di scrittura da stringa: nomi separati da virgola, come li scrive un file di config.
+/// The write flags from a string: comma-separated names, as a configuration file writes them.
 fn out_flags_of(value: &str) -> PyResult<OutFlags> {
     let mut flags = OutFlags::default();
     for name in value.split(',').map(str::trim).filter(|name| !name.is_empty()) {
@@ -218,7 +212,7 @@ fn out_flags_of(value: &str) -> PyResult<OutFlags> {
     Ok(flags)
 }
 
-/// Una terzina `(url, path, name)` come [`DocumentSpec`].
+/// A `(url, path, name)` triple as a document spec.
 fn document_spec_of(spec: (Option<String>, Option<PathBuf>, Option<String>)) -> PyResult<DocumentSpec> {
     let (url, path, name) = spec;
     if url.is_none() && path.is_none() {
@@ -230,12 +224,11 @@ fn document_spec_of(spec: (Option<String>, Option<PathBuf>, Option<String>)) -> 
     Ok(DocumentSpec { url, path, name })
 }
 
-/// Fa girare **un** job e ne scrive i risultati, come una singola invocazione da riga di comando.
+/// Runs **one** job and writes its results, like a single command-line invocation.
 ///
-/// È il punto d'ingresso dei test d'integrazione di `freeports-dev`: prende argomenti primitivi
-/// invece di una `CliArgs`, salta la catena di merge delle sorgenti di configurazione (file, env,
-/// riga di comando: qui non ce n'è nessuna) e chiama la stessa `job::run` + `output::write_results`
-/// che usa `cli::run::execute`.
+/// The entry point of the development tooling's integration tests: it takes primitive arguments
+/// instead of parsed command-line ones, skips the merge of the configuration sources — there are
+/// none here — and calls the same job run and result write the command line does.
 #[pyfunction]
 #[pyo3(name = "run_job", signature = (
     input_reports, format, target_lists, formats_repo_path, input_db_path, out_path,
@@ -290,15 +283,13 @@ pub fn py_run_job(
         value_error(e)
     })?;
 
-    // Il `.log.csv` accanto agli altri CSV, come fa il riferimento — la cartella di output, non la
-    // cwd in cui il binario lo scrive. È un file che i test d'integrazione confrontano, quindi
-    // deve esistere anche quando non ha nessuna riga da scrivere: `CsvLogLayer::create` ne emette
-    // subito l'intestazione.
+    // The log goes beside the other output files, in the output directory rather than in the
+    // working directory. It is a file the integration tests compare, so it must exist even with no
+    // rows to write: creating the layer emits its header at once.
     //
-    // Il layer è installato **per chiamata** con `with_default` e non con `set_global_default`:
-    // un processo pytest chiama `run_job` una volta per formato, e un subscriber globale si può
-    // installare una sola volta per processo. `with_default` usa lo scope thread-local, che ha
-    // comunque la precedenza su un eventuale globale.
+    // The layer is installed **per call**, with a scoped subscriber rather than a global one: a
+    // test process calls this once per format, and a global subscriber can be installed only once
+    // per process. The scoped one is thread-local and takes precedence over any global anyway.
     if config.out_profile != OutStructureMode::SingleFile {
         std::fs::create_dir_all(&config.out_path).map_err(|e| {
             tracing::error!(error = log_error(&e), out_path = %config.out_path.display(), "run_job: cannot create the output directory: {e}");
@@ -328,33 +319,22 @@ pub fn py_run_job(
             .with(csv_layer.clone().with_filter(tracing_setup::csv_event_filter()))
     };
 
-    // **Sequenziale, e non e' una dimenticanza di P2.** Due ragioni indipendenti, ognuna
-    // sufficiente:
+    // **Sequential, and not an oversight.** Two independent reasons, each sufficient:
     //
-    // 1. il subscriber qui sopra e' installato con `with_default`, che ha uno scope
-    //    **thread-local**: i thread di un pool rayon non lo vedrebbero, e ogni evento prodotto
-    //    dalle pagine distribuite sparirebbe dal `.log.csv` che questo entry point esiste per
-    //    produrre;
-    // 2. un `#[pyfunction]` gira con il GIL gia' preso dal chiamante. Un pipe d'autore su un
-    //    thread rayon si metterebbe in attesa di un GIL che il thread chiamante non rilascia
-    //    finche' non ha finito di aspettare i thread: uno stallo, non un rallentamento. La
-    //    degradazione di `scales_with_threads` lo evita gia', ma non e' il genere di cosa da
-    //    lasciare appesa a una sola difesa.
+    // 1. the subscriber above is installed with **thread-local** scope: the threads of a worker pool would not see it, and every event produced by distributed pages would vanish from the very log this entry point exists to produce;
+    // 2. this function runs with the GIL already held by its caller. An author's pipe on a pool thread would wait for a GIL the calling thread does not release until it has finished waiting for those threads: a deadlock, not a slowdown. The automatic degradation for GIL-bound pipes already avoids it, but this is not the kind of thing to leave hanging on a single defence.
     //
-    // Il guadagno di P2 e' della CLI (`cli::run`), che installa un subscriber **globale** e non
-    // tiene il GIL.
+    // The parallel gain belongs to the command line, which installs a **global** subscriber and
+    // holds no GIL.
     let result = tracing::subscriber::with_default(subscriber, || {
         let outcomes = job::run(&config, Parallelism::SEQUENTIAL)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         output::write_results(&config, &outcomes).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         Ok(())
     });
-    // Always attempted, regardless of `result`. `result` (the pipeline's real outcome) has
-    // precedence over `close_result` if both fail: `Result::and` returns `result`'s `Err` without
-    // evaluating further when `result` is already `Err`, otherwise it returns `close_result` --
-    // same policy as `main.rs` (`L1-implementation-plan.md` §2.5, critic 2026-08-29 point 1: an
-    // earlier draft did `csv_layer.close().map_err(value_error)?; result`, which discarded a real
-    // pipeline failure in `result` behind a `close()` failure via the early `?`).
+    // Always attempted, whatever the outcome. The pipeline's real outcome takes precedence over a
+    // close failure if both fail: an early return on the close would discard a genuine pipeline
+    // failure behind a bookkeeping one.
     let close_result = csv_layer.close();
     result.and(close_result.map_err(|e| {
         // Same no-subscriber caveat as above, worse here: `with_default`'s thread-local scope has
@@ -365,11 +345,11 @@ pub fn py_run_job(
     }))
 }
 
-/// Shim Python del file di configurazione `freeports.yaml`.
+/// The Python shim of the configuration file.
 ///
-/// Espone solo ciò che i chiamanti ne leggono davvero: dove trovarlo e quale input database
-/// dichiara. Non è la `FreeportsConfig` completa, che è il risultato del merge di tutte le
-/// sorgenti e non ha senso costruire da Python.
+/// It exposes only what callers really read from it: where to find it, and which input database it
+/// declares. It is not the complete resolved configuration, which is the result of merging every
+/// source and makes no sense to build from Python.
 #[pyclass(name = "FreeportsFileConfig", module = "freeports.cli", frozen)]
 pub struct PyFreeportsFileConfig(PartialConfig);
 
@@ -386,8 +366,7 @@ impl PyFreeportsFileConfig {
         file::load(Some(Path::new(&path))).map(PyFreeportsFileConfig).map_err(value_error)
     }
 
-    /// Il nome è in maiuscolo come nel riferimento, dove le chiavi di configurazione erano
-    /// attributi maiuscoli dell'oggetto.
+    /// The name is upper-cased, as configuration keys were exposed as upper-case attributes.
     #[getter]
     #[pyo3(name = "INPUT_DB_PATH")]
     fn input_db_path(&self) -> Option<PathBuf> {

@@ -1,17 +1,12 @@
-//! Il livello unstructured: pipeline definite in Python dall'autore del formato.
+//! The unstructured level: pipelines written in Python by the format's author.
 //!
-//! "Unstructured" significa che l'algoritmo di un segmento è unico per quel formato e non si
-//! lascia parametrizzare: l'unico modo di esprimerlo è scriverne il codice, e quel codice vive nel
-//! repo formati, non nella libreria. È uno dei due punti di contatto con Python del crate
-//! (`PLAN.md` §3), insieme al caricamento del PDF.
+//! "Unstructured" means a segment's algorithm is unique to that format and does not lend itself to
+//! parameterisation: the only way to express it is to write the code, and that code lives in the
+//! formats repository rather than in the library. It is one of the crate's two points of contact
+//! with Python, the other being loading the PDF.
 //!
-//! - [`loader`] trova e importa il modulo Python del formato e ne legge `pipelines` e
-//!   `compute_page_class`;
-//! - [`py_pipe`] avvolge i callable che ne escono nei trait dei pipe, così che il motore non
-//!   distingua un pipe d'autore da uno nativo.
-//!
-//! Vedi il doc-comment di [`loader`] per il limite di questa fase (nessun binding Python, quindi
-//! nessun repo formati reale caricabile) e per il contratto duck-typed che lo aggira.
+//! - [`loader`] finds and imports the format's Python module and reads its pipelines and page-class function;
+//! - [`py_pipe`] wraps the callables that come out in the pipe traits, so that the engine cannot tell an author's pipe from a native one.
 
 pub mod loader;
 pub mod py_pipe;

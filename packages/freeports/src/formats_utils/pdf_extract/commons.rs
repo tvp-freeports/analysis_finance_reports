@@ -1,42 +1,9 @@
-//! Helper condivisi dai pipe pdf_extract (SelectExpectedText, estrazione o fallimento pagina).
+//! Helpers shared by the `pdf_extract` pipes: selecting expected text, or failing the page.
 //!
-//! **Non verbatim** (a differenza degli altri moduli di `pdf_extract`): il vecchio riferimento
-//! (`freeports_core::formats_utils::pdf_extract::common`) e' PyO3 al 100% — `selection: Py<PyAny>`
-//! duck-tipizzato su un metodo Python `.select(lines) -> list`, errori sollevati come `PyErr`.
-//! Non c'e' equivalente Python qui: la pipeline e' Rust puro da M3 in poi, quindi `selection`
-//! diventa un `PdfLineSet` concreto gia' risolto (`select::pdf_line::PdfLineSet`) — **non** un
-//! `PdfLineSelection` (che puo' ancora essere `Relative` e richiede `.contextualize(lines)` prima
-//! di poter essere interrogato): risolvere l'eventuale parte relativa e' responsabilita' del
-//! chiamante, cosi' questo modulo non deve dipendere da `pdf_extract::relative`/`select::relative`.
-//!
-//! `PageError`/`PipeError` non esistono ancora (arrivano in M5/M8): la variante "non trovato" e
-//! quella "fallimento pagina" vivono percio' in un solo enum locale, `CommonsError`
-//! (`thiserror`, un enum per modulo, `PLAN.md` §8) — quando M5/M8 introdurranno i tipi definitivi,
-//! questo enum si convertira' (o sara' sostituito) in quello, ma non prima.
-//!
-//! Preservata la *logica* del riferimento (corretta gia' li', vedi il suo doc-comment: `logger`/
-//! `ExpectedPdfBlockNotFound`/`PageParseFail` referenziati senza import, bug gia' corretto prima
-//! del porting):
-//!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub enum CommonsError { ExpectedTextNotFound{ name: String }, PageParseFail{ source:
-//!   Box<CommonsError> } }`, `thiserror::Error`:
-//!   - `ExpectedTextNotFound`: messaggio `"Pdf block during extraction of \"{name}\" not found"`.
-//!   - `PageParseFail`: messaggio uguale a quello della sua `source` (`#[error("{source}")]`,
-//!     `#[source] source: Box<CommonsError>`) — rispecchia il riferimento, dove il messaggio del
-//!     `PageParseFail` python era letteralmente la stringificazione dell'errore causa
-//!     (`err.value(py).str()`), con la causa incatenata (`set_cause`/`__cause__`).
-//! - `pub fn select_expected_text(selection: &PdfLineSet, lines: &[PdfLine], name: &str) ->
-//!   Result<String, CommonsError>`: il testo della *prima* riga di `lines` (nell'ordine dato, non
-//!   riordinato) per cui `selection.contains(line)` e' vero; `Err(CommonsError::
-//!   ExpectedTextNotFound{name})` se nessuna riga corrisponde (lista vuota inclusa).
-//! - `pub fn extract_text_pdf_block_or_fail_page(selection: &PdfLineSet, lines: &[PdfLine], name:
-//!   &str, type_block: BlockType) -> Result<Vec<PdfBlock>, CommonsError>`: chiama
-//!   `select_expected_text`; in caso di successo restituisce `vec![PdfBlock::bare(type_block,
-//!   text)]` (un solo blocco, coerente con `PLAN.md` §4.2 — niente metadati); in caso di
-//!   `ExpectedTextNotFound`, lo avvolge in `CommonsError::PageParseFail{source}` (senza
-//!   modificarne il messaggio, che resta quello della causa).
+//! The selection handed in is an already-resolved [`PdfLineSet`], not a `PdfLineSelection`, which
+//! may still be relative and need contextualising against the page's lines first. Resolving that is
+//! the caller's job, which keeps this module free of any dependency on the relative-selection
+//! machinery.
 
 use crate::commons::sets::Container;
 use crate::core::classes::{BlockType, PdfBlock};
@@ -55,10 +22,14 @@ pub enum CommonsError {
     },
 }
 
-/// Il testo della prima riga di `lines` (nell'ordine dato) che `selection` seleziona.
+/// The text of the first line of `lines`, in the order given, that `selection` selects.
+///
+/// # Errors
+///
+/// [`CommonsError::ExpectedTextNotFound`] if no line matches, the empty list included.
 pub fn select_expected_text(selection: &PdfLineSet, lines: &[PdfLine], name: &str) -> Result<String, CommonsError> {
     let found = lines.iter().find(|line| selection.contains(line)).map(|line| line.text().clone());
-    // Il testo scelto, non un booleano: e' la riga che un autore di formati va a cercare nel PDF.
+    // The chosen text, not a boolean: it is the line a format author goes looking for in the PDF.
     match &found {
         Some(text) => tracing::trace!(coord_ref_2 = name, found = %text, "selection resolved to a line"),
         None => tracing::debug!(coord_ref_2 = name, "selection matched no line on this page"),
@@ -66,7 +37,13 @@ pub fn select_expected_text(selection: &PdfLineSet, lines: &[PdfLine], name: &st
     found.ok_or_else(|| CommonsError::ExpectedTextNotFound { name: name.to_string() })
 }
 
-/// Estrae un unico `PdfBlock` "bare" dal testo selezionato, o fallisce l'intera pagina.
+/// Extracts a single bare [`PdfBlock`] from the selected text, or fails the whole page.
+///
+/// # Errors
+///
+/// [`CommonsError::PageParseFail`] wrapping the not-found error. The wrapper keeps the cause's
+/// message unchanged, so the page-level failure reads as the reason it happened rather than as a
+/// generic one.
 pub fn extract_text_pdf_block_or_fail_page(
     selection: &PdfLineSet,
     lines: &[PdfLine],

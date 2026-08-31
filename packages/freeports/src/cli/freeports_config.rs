@@ -1,68 +1,21 @@
-//! `FreeportsConfig`: configurazione completa e validata di un job (o di una riga di batch).
+//! [`FreeportsConfig`]: a job's complete, validated configuration.
 //!
-//! `M9-implementation-plan.md` §1/§3 passo 9, §0 Q8. Porta le validazioni
-//! `@model_validator(mode="after")` del riferimento (`conf_parse.py::FreeportsConfig`) più la
-//! nuova regola di §0 Q8, in quest'ordine (rilevante, vedi sotto):
+//! The point where a merged pile of optional values becomes something that either runs or says why
+//! it cannot. The validations, **in this order** because the order matters:
 //!
-//! 1. `require_target_lists` (nuova, §0 Q8) — fallisce veloce, controllo di presenza puro.
-//! 2. `detect_format`
-//! 3. `validate_document_specs` (`pdf_path_validation` di `targets/conf_parse.md`, **non** la
-//!    versione buggata del riferimento — vedi il caveat in testa a `M9-implementation-plan.md`).
-//! 4. `set_compress_flag` — deve precedere 5 (può cambiare `OUT_PATH`).
-//! 5. `out_path_exists`
-//! 6. `out_path_single_file`
+//! 1. require the target lists — a pure presence check, so it fails fast;
+//! 2. detect the format, where none was given;
+//! 3. validate the document specs;
+//! 4. set the compression flag, which must come before the next rule, since it can change the output path;
+//! 5. check that the output path's parent exists;
+//! 6. check the single-file profile's path.
 //!
-//! **Nota di scope del test-writer sulla regola 3** (`validate_document_specs`): `conf_parse.py`
-//! è verificato bacato su questa funzione (`d.is_dir()`/`d.parent`/`d.exist()` chiamati su un
-//! `DocumentSpec`, non su un `Path` — non esistono, righe mai eseguite con successo), e
-//! `targets/conf_parse.md` descrive per esteso solo il ramo "url presente" (l'ultimo paragrafo
-//! del file lo conferma: parla esplicitamente dell'intenzione di scaricare quando si specifica
-//! `save_pdf`+`url`(+`path`)). Il ramo "solo path, nessun url" (espansione di una directory in
-//! `*.pdf` multipli) resta quello del riferimento, non contraddetto da `conf_parse.md`. Restano
-//! **genuinamente ambigue**, e quindi **non testate qui** (segnalate nel resoconto finale, non
-//! indovinate silenziosamente):
-//! - l'effetto collaterale del riferimento che spegne **globalmente** `SAVE_PDF` quando un
-//!   singolo documento non ha un path selezionabile (`self.SAVE_PDF = False` dentro un ciclo su
-//!   *tutti* i documenti — comportamento pre-multi-documento, mai riconciliato con una lista);
-//! - il ramo "directory + `save_pdf=false`": se il glob `*.pdf` vada comunque espanso, o se la
-//!   regola sia invece "esiste `dir/report.pdf`?" come lascia intendere la frase di
-//!   `targets/conf_parse.md` sul caso directory (scritta nel contesto del ramo con url, non
-//!   chiarita per il ramo senza url).
+//! # Two known ambiguities, left as they are
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
-//!
-//! ```text
-//! #[derive(Debug, Clone, PartialEq)]
-//! pub struct FreeportsConfig {
-//!     pub verbosity: crate::core::tracing_setup::Verbosity,
-//!     pub reports: Vec<crate::cli::conf_parse::DocumentSpec>,
-//!     pub target_lists: Vec<String>,
-//!     pub format: String,
-//!     pub out_path: std::path::PathBuf,
-//!     pub out_profile: crate::output::routines::write::OutStructureMode,
-//!     pub out_flags: crate::output::routines::write::OutFlags,
-//!     pub parallelism: crate::cli::parallelism_config::ParallelismConfig,
-//!     pub batch_file: Option<std::path::PathBuf>,
-//!     pub save_pdf: bool,
-//!     pub formats_repo_path: Option<std::path::PathBuf>,
-//!     pub input_db_path: Option<std::path::PathBuf>,
-//!     pub config_file: Option<std::path::PathBuf>,
-//! }
-//!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum FreeportsConfigError {
-//!     NoTargetLists,                                            // §0 Q8
-//!     NoFormatSpecifiedOrDetected,
-//!     ConflictingDetectedFormats { detected: Vec<String> },
-//!     InputNotSpecified { specifier_index: usize },              // da DocumentSpec::input_should_be_specified
-//!     DocumentPathDoesNotExist { path: std::path::PathBuf },
-//!     DocumentDirectoryDoesNotExist { path: std::path::PathBuf },
-//!     DocumentParentDirectoryDoesNotExist { path: std::path::PathBuf },
-//!     OutPathParentDoesNotExist { path: std::path::PathBuf },
-//! }
-//!
-//! pub fn validate(merged: crate::cli::partial_config::MergedConfig) -> Result<FreeportsConfig, FreeportsConfigError>;
-//! ```
+//! In the document-spec validation, two branches are genuinely undecided and are deliberately not
+//! pinned by tests: whether a single document without a selectable path should switch saving off
+//! **globally** for the run, and whether a directory with saving off should still expand to every
+//! PDF in it. Both are noted rather than guessed.
 
 use std::path::PathBuf;
 
@@ -74,9 +27,8 @@ use crate::formats_repo::metadata::{get_formats, url_to_format};
 use crate::output::routines::write::{OutFlags, OutStructureMode};
 use crate::core::tracing_setup::log_error;
 
-/// `Serialize`/`Deserialize` (P1): una configurazione risolta attraversa il confine di processo
-/// verso un job worker, in JSON. E' l'unico motivo per cui sono qui -- nessuna sorgente di
-/// configurazione (file/env/cmd) legge questa struttura, tutte producono un `PartialConfig`.
+/// A resolved configuration crosses a process boundary to a worker job, as JSON — the only reason
+/// it is serializable. No configuration source reads this struct; they all produce a partial one.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FreeportsConfig {
     pub verbosity: Verbosity,
@@ -86,9 +38,8 @@ pub struct FreeportsConfig {
     pub out_path: PathBuf,
     pub out_profile: OutStructureMode,
     pub out_flags: OutFlags,
-    /// I due livelli di parallelismo gia' risolti a una richiesta ciascuno (P5). Il default
-    /// globale `n_workers` e' stato applicato qui: da questo punto in poi nessuno lo riguarda
-    /// piu', e `cli::run` deve solo tradurre `auto` in un numero.
+    /// The two parallelism levels, each already resolved to one request. The global default has
+    /// been applied here: past this point nothing else needs to know about it.
     pub parallelism: ParallelismConfig,
     pub batch_file: Option<PathBuf>,
     pub save_pdf: bool,
@@ -165,17 +116,15 @@ fn detect_format(reports: &[DocumentSpec], explicit: Option<&str>, formats_repo_
     explicit.map(str::to_string).ok_or(FreeportsConfigError::NoFormatSpecifiedOrDetected)
 }
 
-/// Un percorso senza estensione è trattato come una directory anche quando non esiste ancora sul
-/// disco (necessario per distinguere `DocumentDirectoryDoesNotExist` da
-/// `DocumentParentDirectoryDoesNotExist` su un percorso mancante -- vedi i due casi corrispondenti
-/// in `mod validate_document_specs` dei test): un percorso *con* estensione (tipicamente `.pdf`)
-/// è invece trattato come un file da scaricare, la cui cartella padre deve esistere.
+/// A path with no extension is treated as a directory even when it does not exist yet, which is
+/// what lets a missing directory be told from a missing parent. A path *with* an extension is
+/// treated as a file to be downloaded, whose parent directory must exist.
 fn looks_like_a_directory(path: &std::path::Path) -> bool {
     path.extension().is_none()
 }
 
-/// `pdf_path_validation` di `targets/conf_parse.md` -- vedi il caveat nel doc-comment del modulo
-/// sui rami genuinamente ambigui (non testati qui, segnalati nel resoconto finale).
+/// Validates the document specs; see the module documentation for the two branches deliberately
+/// left undecided.
 fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result<Vec<DocumentSpec>, FreeportsConfigError> {
     let mut result = Vec::new();
     for (index, spec) in reports.into_iter().enumerate() {
@@ -216,8 +165,7 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
                         let new_path = path.join("report.pdf");
                         result.push(DocumentSpec { url: Some(url), path: Some(new_path), name });
                     } else {
-                        // `PLAN.md` §1: directory + `save_pdf=false` -> espande `*.pdf` (stesso
-                        // trattamento del ramo senza url).
+                        // A directory with saving off expands to every PDF in it.
                         for pdf in glob_pdf_files(&path) {
                             let file_name = pdf.file_name().and_then(|n| n.to_str()).unwrap_or_default();
                             let entry_name = name.clone().map(|n| format!("{n}/{file_name}"));
@@ -227,25 +175,23 @@ fn validate_document_specs(reports: Vec<DocumentSpec>, save_pdf: bool) -> Result
                 } else if path.is_file() {
                     result.push(DocumentSpec { url: Some(url), path: Some(path), name });
                 } else if looks_like_a_directory(&path) {
-                    // Un percorso senza estensione, mai visto sul disco: trattato come una
-                    // directory che avrebbe dovuto esistere già (`targets/conf_parse.md`: "essa
-                    // deve esistere"), non come un file da scaricare.
+                    // A path with no extension, never seen on disk: treated as a directory that
+                    // should already have existed, not as a file to download.
                     if save_pdf {
                         return Err(FreeportsConfigError::DocumentDirectoryDoesNotExist { path });
                     }
                     tracing::warn!(path = %path.display(), "invalid directory specified with save_pdf=false and url present, falling back to url");
                     result.push(DocumentSpec { url: Some(url), path: Some(path), name });
                 } else if save_pdf {
-                    // File non esistente: `save_pdf=true` richiede solo che la cartella padre
-                    // esista (verrà scaricato lì).
+                    // A file that does not exist: with saving on, only its parent directory need
+                    // exist, the file being downloaded there.
                     let parent_exists = path.parent().is_some_and(|p| p.as_os_str().is_empty() || p.is_dir());
                     if !parent_exists {
                         return Err(FreeportsConfigError::DocumentParentDirectoryDoesNotExist { path });
                     }
                     result.push(DocumentSpec { url: Some(url), path: Some(path), name });
                 } else {
-                    // `save_pdf=false`: avvisa e fa fallback sull'url, mai un errore
-                    // (`targets/conf_parse.md`).
+                    // With saving off: warn and fall back to the URL, never an error.
                     tracing::warn!(path = %path.display(), "invalid file specified with save_pdf=false and url present, falling back to url");
                     result.push(DocumentSpec { url: Some(url), path: Some(path), name });
                 }
@@ -293,7 +239,7 @@ fn set_compress_flag(out_path: PathBuf, mut out_flags: OutFlags) -> (PathBuf, Ou
     }
 }
 
-/// Wraps [`validate_impl`] to log the outcome exactly once -- this is the only place every
+/// Wraps `validate_impl` to log the outcome exactly once -- this is the only place every
 /// `FreeportsConfigError` variant is actually constructed (directly, or -- for `InputNotSpecified`
 /// -- by wrapping a `DocumentSpecError` from `cli::conf_parse`).
 pub fn validate(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfigError> {
@@ -351,9 +297,8 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
         out_path,
         out_profile,
         out_flags,
-        // Il default globale scende sui due livelli qui, e solo qui: un livello che nessuna
-        // sorgente ha toccato eredita `n_workers` (`agent-memory/P5-implementation-plan.md`
-        // D-P5-1), che a sua volta vale `auto` se nemmeno lui e' stato toccato.
+        // The global default descends onto the two levels here, and only here: a level no source
+        // touched inherits it, and it in turn is automatic if nothing touched it either.
         parallelism: ParallelismConfig {
             jobs: values.parallelism_jobs.or(values.n_workers).unwrap_or(Workers::Auto),
             pages: values.parallelism_pages.or(values.n_workers).unwrap_or(Workers::Auto),
@@ -375,9 +320,9 @@ mod tests {
     use crate::output::routines::write::{OutFlags, OutStructureMode};
     use std::path::PathBuf;
 
-    /// Un `MergedConfig` valido di base, costruito su un `TempDir` reale (un pdf esistente, una
-    /// directory di output esistente): ogni test parte da qui e sovrascrive un solo campo, così un
-    /// test che rompe `out_path` dice, per costruzione, che è *quello* a rompersi.
+    /// A valid merged configuration built on a real temporary directory — an existing PDF, an
+    /// existing output directory. Every test starts from it and overrides a single field, so a test
+    /// that breaks one says, by construction, that it is *that* field breaking.
     struct ValidConfig {
         _dir: tempfile::TempDir,
         merged: MergedConfig,
@@ -420,11 +365,12 @@ mod tests {
         validate(config.merged).expect("expected a valid configuration to validate successfully")
     }
 
-    /// P1 (`agent-memory/P1-implementation-plan.md` §3): un `FreeportsConfig` risolto attraversa
-    /// il confine di processo verso un job worker, serializzato in JSON. Il round-trip deve essere
-    /// **fedele campo per campo**: un campo che si perde per strada non fa fallire il figlio, gli fa
-    /// eseguire un job diverso da quello che il padre ha risolto -- un errore silenzioso, il peggior
-    /// tipo. Da qui l'uso di `assert_eq!` sull'intera struttura, non su singoli campi.
+    /// A resolved configuration crosses a process boundary to a worker job as JSON.
+    ///
+    /// The round trip must be faithful **field by field**: a field lost on the way does not make
+    /// the child fail, it makes the child run a *different* job from the one the parent resolved —
+    /// a silent error, the worst kind. Hence comparing the whole struct rather than individual
+    /// fields.
     mod serde_round_trip {
         use super::*;
 
@@ -459,8 +405,8 @@ mod tests {
             assert_eq!(round_trip(&config), config);
         }
 
-        /// Un documento puo' arrivare al figlio come url, come path, o come entrambi: sono i tre
-        /// modi in cui `DocumentSpec` esce da `validate`, e vanno tutti oltre il confine.
+        /// A document may reach the child as a URL, as a path, or as both: the three shapes
+        /// validation produces, all of which must cross.
         #[test]
         fn every_shape_of_document_spec_survives() {
             let mut config = expect_ok(ValidConfig::new());
@@ -492,9 +438,9 @@ mod tests {
             }
         }
 
-        /// `out_profile` e `out_flags` decidono *dove e come* si scrive. Il figlio non scrive
-        /// l'output finale, ma li porta comunque: sbagliarli qui significherebbe un `.log.csv` in
-        /// un posto diverso da quello che il padre si aspetta.
+        /// The output profile and flags decide *where and how* things are written. The child does
+        /// not write the final output but carries them anyway: getting them wrong here would put
+        /// its log somewhere the parent does not expect.
         #[test]
         fn every_out_structure_mode_survives() {
             for profile in [OutStructureMode::Regular, OutStructureMode::SingleFile, OutStructureMode::Structured] {
@@ -515,8 +461,8 @@ mod tests {
             }
         }
 
-        /// Le stringhe che attraversano il confine vengono dai repo formati e dai CSV dell'utente:
-        /// non sono ASCII per garanzia di nessuno.
+        /// The strings crossing the boundary come from formats repositories and from the user's own
+        /// files: nobody guarantees they are ASCII.
         #[test]
         fn non_ascii_names_and_formats_survive() {
             let mut config = expect_ok(ValidConfig::new());
@@ -549,8 +495,8 @@ mod tests {
 
         #[test]
         fn an_explicitly_empty_target_lists_is_not_an_error() {
-            // §0 Q8: the rule is about *absence of a source*, not about the list's content -- a
-            // user may deliberately choose zero target lists.
+            // The rule is about the *absence of a source*, not about the list's content: a user may
+            // deliberately choose zero target lists.
             let mut config = ValidConfig::new();
             config.merged.values.target_lists = Some(vec![]);
             assert!(validate(config.merged).is_ok());
@@ -790,8 +736,7 @@ mod tests {
 
         #[test]
         fn url_only_no_path_with_save_pdf_true_defaults_the_path_to_report_pdf_in_the_cwd() {
-            // targets/conf_parse.md, last paragraph: "se si mette solo url save_pdf salva un file
-            // report.pdf nella cartella corrente".
+            // With only a URL given, saving writes the file into the current directory.
             let mut config = ValidConfig::new();
             config.merged.values.save_pdf = Some(true);
             config.merged.values.reports = Some(vec![DocumentSpec {
@@ -912,9 +857,9 @@ mod tests {
         }
     }
 
-    /// P5 (`agent-memory/P5-implementation-plan.md` D-P5-1). `validate` e' il solo punto in cui il
-    /// default globale `n_workers` scende sui due livelli: da qui in poi `FreeportsConfig` porta
-    /// due richieste indipendenti, e chi le legge non sa piu' da quale sorgente vengano.
+    /// Validation is the only point where the global default descends onto the two levels: past it,
+    /// the configuration carries two independent requests and whoever reads them no longer knows
+    /// where they came from.
     mod parallelism_inheritance {
         use super::*;
 
@@ -964,8 +909,8 @@ mod tests {
             assert_eq!(resolved(None, None, None), ParallelismConfig::default());
         }
 
-        /// `-j 1` e le sue tre forme equivalenti: e' il modo con cui `PLAN.md` §6 vuole si
-        /// verifichi il determinismo, e deve restare raggiungibile con un solo valore.
+        /// `-j 1` and its three equivalent forms: the fully sequential configuration, which must
+        /// stay reachable with a single value, since it is what the determinism checks rest on.
         #[test]
         fn one_as_the_global_default_is_the_fully_sequential_configuration() {
             assert_eq!(resolved(Some(Workers::Fixed(1)), None, None), ParallelismConfig::SEQUENTIAL);

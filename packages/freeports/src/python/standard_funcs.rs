@@ -1,21 +1,17 @@
-//! Shim di `freeports.standard_funcs`: i ventuno pipe pronti all'uso che un repo formati compone.
+//! The shims of the twenty-one ready-made pipes a formats repository composes.
 //!
-//! # Ventuno nomi, tre tipi
+//! # Twenty-one names, three types
 //!
-//! Nel riferimento ogni pipe standard è una classe Python (o un `#[pyclass]`) a sé. In Rust sono
-//! `Arc<dyn PdfExtractPipe>`, `Arc<dyn TextFilterPipe>`, `Arc<dyn DeserializePipe>`: un solo tipo
-//! per segmento. I nomi pubblici qui sotto sono perciò **funzioni** che costruiscono uno dei tre
-//! involucri di [`super::pipes`], non ventuno `#[pyclass]`. Da Python la differenza non si vede —
-//! `PdfExtractFundStandard(sel)` restituisce un oggetto chiamabile in entrambi i casi — e in
-//! cambio il layer non duplica ventuno volte lo stesso involucro.
+//! In Rust the pipes are one trait object per segment, so the public names here are **functions**
+//! building one of the three wrappers rather than twenty-one classes. From Python the difference is
+//! invisible, and in exchange the layer does not duplicate the same wrapper twenty-one times.
 //!
-//! # Le firme sono quelle del riferimento, non quelle di Rust
+//! # The signatures are the ones author code already uses
 //!
-//! Il codice d'autore dei repo formati è già scritto, e va chiamato così com'è: dove la firma
-//! nativa diverge da quella Python (argomenti raggruppati in una struct, un `bool` al posto di un
-//! callable, argomenti che il riferimento accetta e butta via) è **questo** layer a fare il
-//! ponte, non i moduli d'autore ad adeguarsi. Ogni divergenza è annotata sul costruttore che la
-//! assorbe.
+//! Author modules are already written and must be callable as they are: where a native signature
+//! diverges from the Python one — arguments grouped into a struct, a flag in place of a callable,
+//! arguments accepted and thrown away — it is **this** layer that bridges, not the author modules
+//! that adapt. Each divergence is documented on the constructor absorbing it.
 
 pub mod deserialize;
 pub mod pdf_extract;

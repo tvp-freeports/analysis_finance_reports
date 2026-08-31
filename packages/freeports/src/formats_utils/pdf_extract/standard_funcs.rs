@@ -1,40 +1,22 @@
-//! Pipe `pdf_extract` standard (`PdfExtract*`): il primo segmento delle pipeline structured e
-//! semistructured.
+//! The standard `pdf_extract` pipes: the first segment of a structured or semistructured pipeline.
 //!
-//! Porting nativo di `freeports_core/src/formats_utils/pdf_extract/standard_funcs.rs` (i cinque
-//! pipe già in Rust) e di `formats/utils/pdf_extract/standard_funcs.py` (le tre factory rimaste
-//! in Python). **Non** è uno dei moduli da portare verbatim (`PLAN.md` §0): il riferimento è
-//! PyO3 al 100% — selezioni duck-tipizzate come `Py<PyAny>`, `TablePosAlgorithm`/
-//! `get_table_coordinates` raggiunti via `py.import` — mentre qui tutto è Rust nativo.
+//! These are what a format's configuration names instead of implementing: extract the fund name,
+//! the currency statement, the SFDR article, classify the page, rebuild the investments table, read
+//! the assets block. Each takes selections written by the format author and produces [`PdfBlock`]s.
 //!
-//! **Milestone: M7** — decisione D-M7-1, presa dall'utente il 2026-08-23, che chiude
-//! `PLAN.md` §13 punto 6 (il modulo non era assegnato a nessuna riga di §11). Tutti e otto i pipe
-//! elencati da §9 stanno qui: nessuno dipende da `output::classes`, e sono esattamente ciò che
-//! `formats_repo::{structured,semistructured}` costruisce leggendo i CSV.
+//! # Two dead fields, kept on purpose
 //!
-//! **Tre differenze strutturali rispetto al riferimento, tutte dettate dai tipi nativi:**
+//! [`PdfExtractInvestmentsStandard`] carries a `tolerance` and a `row_algorithm_flags` that are
+//! readable but never consulted: only `algorithm_flags` and `row_tolerance` actually feed the
+//! coordinate computation. No real format sets a non-default value for either, so keeping them
+//! costs nothing while removing them would silently change what a configuration means.
 //!
-//! 1. Le tre "factory" `PdfExtractFundStandard`/`PdfExtractCurrencyStandard`/
-//!    `PdfExtractManagmentCompanyStandard` restano tre funzioni che costruiscono un solo tipo,
-//!    [`ExtractTextPdfBlockOrFailPage`], esattamente come nel riferimento (dove sono tre
-//!    `__new__` sopra la stessa classe Rust). Il tipo esiste qui — e non in
-//!    `pdf_extract::commons`, dove vive la funzione omonima — perché è un *pipe*, cioè un
-//!    implementatore di [`PdfExtractPipe`](crate::core::pipeline::PdfExtractPipe), non un helper.
-//! 2. La `deselection_list` di [`PdfExtractInvestmentsStandard`] non è sottratta al `body_set` nel
-//!    costruttore (come fa il riferimento con `body_set / dl`) ma al momento della selezione. È
-//!    equivalente — `contextualize` distribuisce sui rami dell'AST, quindi
-//!    `contextualize(a / b) == contextualize(a) / contextualize(b)` — ed evita di aggiungere
-//!    l'algebra `Div`/`BitOr` a `PdfLineSelection`, che `PLAN.md` §0 vuole portato invariato.
-//! 3. Dove il riferimento accetta o restituisce oggetti Python duck-tipizzati (il `fund_selection`
-//!    di `PdfExtractAssetsStandard`, che è un `SelectExpectedText` oppure una selezione grezza a
-//!    seconda di `table_condition`), qui il campo resta una selezione e il ramo è deciso da un
-//!    `match` esplicito su `table_condition`.
+//! # Where the deselection list is subtracted
 //!
-//! **Campi morti conservati per fedeltà**, come nel riferimento e con la stessa motivazione:
-//! `PdfExtractInvestmentsStandard::tolerance` e `::row_algorithm_flags` sono leggibili ma non
-//! consultati da `extract` — solo `algorithm_flags` e `row_tolerance` alimentano davvero
-//! `get_table_coordinates`. Nessun formato reale imposta valori non-default per i due, quindi la
-//! fedeltà non costa nulla.
+//! [`PdfExtractInvestmentsStandard`]'s deselection list is subtracted at selection time rather than
+//! folded into the body set when the pipe is built. The two are equivalent, since contextualising
+//! distributes over the expression tree, and doing it this way keeps the set algebra out of the
+//! selection types.
 
 use std::collections::BTreeMap;
 
@@ -52,39 +34,35 @@ use super::select::relative::{PdfLineSelection, RelativePdfLineSet, RelativeSele
 use super::tabularizer::coordinates::{CoordinateExtractionError, TablePosAlgorithm};
 use super::tabularizer::{TableCoordinatesConfig, get_table_coordinates_from_lines};
 
-/// Errori dei pipe `pdf_extract` standard.
+/// Failures of the standard `pdf_extract` pipes.
 ///
-/// Un enum per modulo (`PLAN.md` §8). [`PdfExtractStandardFuncsError::Commons`] è l'unico che può
-/// portare un fallimento **non fatale** di pagina, perché è l'unico costruito da
-/// [`CommonsError::PageParseFail`]; tutto il resto interrompe l'elaborazione, come nel
-/// riferimento, dove solo `PageParseFail` è catturato dal ciclo dello schedule.
+/// [`PdfExtractStandardFuncsError::Commons`] is the only variant that can carry a **non-fatal**
+/// page failure, being the only one built from [`CommonsError::PageParseFail`]. Everything else
+/// stops the run: a page that cannot be parsed is one page, while a malformed configuration is
+/// every page.
 #[derive(Debug, thiserror::Error)]
 pub enum PdfExtractStandardFuncsError {
-    /// Il riferimento solleva `ExpectedPdfBlockNotFound`: nessuna riga corrisponde a una selezione
-    /// che *deve* produrre almeno un risultato.
+    /// No line matches a selection that *must* produce at least one result.
     #[error("Pdf block during extraction of \"{name}\" not found")]
     ExpectedPdfBlockNotFound { name: String },
     #[error("{0}")]
     Commons(#[from] CommonsError),
     #[error("{0}")]
     Coordinates(#[from] CoordinateExtractionError),
-    /// `range(start, stop, 0)` in Python è un `ValueError`; qui è tipizzato.
+    /// A zero step for a column range, which has no meaningful interpretation.
     #[error("skip_column must not be zero")]
     ZeroSkipColumn,
-    /// Le tre colonne di un blocco assets hanno lunghezze diverse: il riferimento va in
-    /// `IndexError`, qui l'errore ha un nome.
+    /// The three columns of an assets block have different lengths.
     #[error("assets column \"{column}\" has {found} entries, expected at least {expected}")]
     MismatchedAssetsColumn { column: String, found: usize, expected: usize },
-    /// Nessun token di valuta da staccare dalla coda del nome del fondo (`IndexError` nel
-    /// riferimento).
+    /// There is no currency token to split off the tail of the fund name.
     #[error("fund column \"{column}\" carries no currency token to split off")]
     MissingCurrencyToken { column: String },
 }
 
 impl PdfExtractStandardFuncsError {
-    /// Traduzione nell'errore del motore; il nome del pipe non è ricavabile dall'errore, quindi lo
-    /// passa il chiamante — stessa forma di [`PipeError::from_commons`] e di
-    /// `text_filter::standard_funcs::StandardFuncsError::into_pipe_error`.
+    /// Translates into the engine's error type. The pipe's name cannot be recovered from the error,
+    /// so the caller supplies it.
     pub fn into_pipe_error(self, pipe: &str) -> PipeError {
         match self {
             PdfExtractStandardFuncsError::Commons(source) => PipeError::from_commons(pipe, source),
@@ -93,31 +71,29 @@ impl PdfExtractStandardFuncsError {
     }
 }
 
-/// Le righe di `lines` selezionate da `selection`, nell'ordine in cui compaiono nella pagina.
+/// The lines of `lines` that `selection` selects, in page order.
 ///
-/// È l'equivalente del `.select(lines)` duck-tipizzato del riferimento: contestualizza l'eventuale
-/// parte relativa della selezione e poi filtra.
+/// Contextualises the relative part of the selection, if any, and then filters.
 fn select<'a>(selection: &PdfLineSelection, lines: &'a [PdfLine]) -> Vec<&'a PdfLine> {
     let set = selection.clone().contextualize(lines);
     lines.iter().filter(|line| set.contains(line)).collect()
 }
 
-/// Come [`select`], ma restituisce l'insieme già contestualizzato: serve dove la selezione va
-/// combinata con altre (`/`, `|`, `&`) prima di essere applicata.
+/// Like [`select`], but returns the already-contextualised set, for where the selection has to be
+/// combined with others before being applied.
 fn contextualized(selection: &PdfLineSelection, lines: &[PdfLine]) -> PdfLineSet {
     selection.clone().contextualize(lines)
 }
 
-// ---------------------------------------------------------------------------------------------
-// ExtractTextPdfBlockOrFailPage e le tre factory che ci stanno sopra
-// ---------------------------------------------------------------------------------------------
 
-/// Estrae il testo della prima riga selezionata e ne fa un unico [`PdfBlock`]; se non trova nulla,
-/// fallisce l'intera pagina (in modo non fatale: lo schedule la salta e prosegue).
+// ----------------------------------------------------------------------------------------------
+// ExtractTextPdfBlockOrFailPage and the three factories over it
+// ----------------------------------------------------------------------------------------------
+/// Extracts the text of the first selected line into a single [`PdfBlock`]; if it finds nothing,
+/// fails the whole page, non-fatally, so the schedule skips it and carries on.
 ///
-/// È il pipe dietro le tre factory `PdfExtract{Fund,Currency,ManagmentCompany}Standard`, che nel
-/// riferimento sono tre `__new__` che costruiscono questo stesso tipo con `name`/`type_block`
-/// diversi e nient'altro.
+/// The pipe behind the three fund/currency/management-company factories, which differ only in the
+/// name and block type they configure.
 pub struct ExtractTextPdfBlockOrFailPage {
     selection: PdfLineSelection,
     name: String,
@@ -145,34 +121,35 @@ impl PdfExtractPipe for ExtractTextPdfBlockOrFailPage {
     }
 }
 
-/// Pipe che estrae il nome del fondo. Factory su [`ExtractTextPdfBlockOrFailPage`], come nel
-/// riferimento.
+/// The pipe extracting the fund name.
 pub fn pdf_extract_fund_standard(selection: PdfLineSelection) -> ExtractTextPdfBlockOrFailPage {
     ExtractTextPdfBlockOrFailPage::new(selection, "fund", BlockType::FUND_NAME)
 }
 
-/// Pipe che estrae la dichiarazione di valuta. Vedi [`pdf_extract_fund_standard`].
+/// The pipe extracting the currency statement. See [`pdf_extract_fund_standard`].
 pub fn pdf_extract_currency_standard(selection: PdfLineSelection) -> ExtractTextPdfBlockOrFailPage {
     ExtractTextPdfBlockOrFailPage::new(selection, "currency", BlockType::CURRENCY_STATEMENT)
 }
 
-/// Pipe che estrae la società di gestione. Vedi [`pdf_extract_fund_standard`]. Il nome conserva
-/// l'ortografia del riferimento (`managment`, senza la `e`): è la stringa che finisce nei log e
-/// nei messaggi d'errore, e cambiarla sarebbe una divergenza osservabile.
+/// The pipe extracting the management company. See [`pdf_extract_fund_standard`].
+///
+/// The spelling `managment` is kept: it is the string that appears in logs and error messages, and
+/// in the configuration of every existing formats repository, so correcting it would be an
+/// observable change.
 pub fn pdf_extract_managment_company_standard(selection: PdfLineSelection) -> ExtractTextPdfBlockOrFailPage {
     ExtractTextPdfBlockOrFailPage::new(selection, "managment company", BlockType::MANAGEMENT_COMPANY)
 }
 
-// ---------------------------------------------------------------------------------------------
-// PdfExtractPageClassifyStandard
-// ---------------------------------------------------------------------------------------------
 
-/// Classificatore di pagina: la pagina è del tipo dichiarato solo se **ogni** `header_set` trova
-/// almeno una riga.
+// ----------------------------------------------------------------------------------------------
+// PdfExtractPageClassifyStandard
+// ----------------------------------------------------------------------------------------------
+/// Page classifier: the page is of the declared type only if **every** header set finds at least
+/// one line.
 ///
-/// Emette sempre esattamente un blocco `PAGE_CLASS`, con `metadata["page_type"]` uguale al tipo
-/// dichiarato oppure `Null` — il segmento `text_filter` a valle si aspetta un blocco per pipe,
-/// non solo per le pagine riconosciute.
+/// Always emits exactly one `PAGE_CLASS` block, with `metadata["page_type"]` either the declared
+/// type or `Null`. The downstream segment expects one block per pipe, not one only for the pages
+/// that were recognised.
 pub struct PdfExtractPageClassifyStandard {
     header_sets: Vec<PdfLineSelection>,
     page_type: String,
@@ -184,10 +161,10 @@ impl PdfExtractPageClassifyStandard {
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
-        // Si logga solo il riconoscimento riuscito, e con la prima riga d'intestazione che lo ha
-        // prodotto: il caso `matched = false` e' la norma (ogni page class viene provata su ogni
-        // pagina del documento) e non dice nulla, mentre il testo dell'intestazione riconosciuta
-        // e' esattamente cio' che si cerca con Ctrl-F nel PDF.
+        // Only a successful recognition is logged, with the first header line that produced it. Not
+        // matching is the normal case — every page class is tried against every page — and says
+        // nothing, while the text of a recognised header is exactly what one searches for inside
+        // the PDF.
         let matched = self.header_sets.iter().all(|hs| !select(hs, &page.lines).is_empty());
         if matched {
             let header = self
@@ -214,12 +191,12 @@ impl PdfExtractPipe for PdfExtractPageClassifyStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// PdfExtractCurrencyConstant
-// ---------------------------------------------------------------------------------------------
 
-/// Pipe che dichiara una valuta costante, ignorando del tutto la pagina: serve ai formati in cui
-/// la valuta non è scritta da nessuna parte ma è nota a priori.
+// ----------------------------------------------------------------------------------------------
+// PdfExtractCurrencyConstant
+// ----------------------------------------------------------------------------------------------
+/// A pipe declaring a constant currency, ignoring the page entirely: for formats where the currency
+/// is written nowhere but is known in advance.
 pub struct PdfExtractCurrencyConstant {
     currency: Currency,
     block: PdfBlock,
@@ -250,15 +227,15 @@ impl PdfExtractPipe for PdfExtractCurrencyConstant {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// PdfExtractSfdrArticleStandard
-// ---------------------------------------------------------------------------------------------
 
-/// Estrae l'articolo SFDR dichiarato dalla pagina e il nome del fondo a cui si riferisce.
+// ----------------------------------------------------------------------------------------------
+// PdfExtractSfdrArticleStandard
+// ----------------------------------------------------------------------------------------------
+/// Extracts the SFDR article the page declares, and the name of the fund it refers to.
 ///
-/// L'ordine di prova è quello del riferimento e **non** è simmetrico: si guarda prima l'articolo
-/// 8, poi il 9; se nessuno dei due compare, l'esito è l'articolo 6 (il caso "nessuna
-/// dichiarazione"), non un errore.
+/// The order of trial is deliberately **not** symmetric: article 8 first, then 9; if neither
+/// appears, the outcome is article 6 — the "no declaration" case — rather than an error, because
+/// saying nothing about SFDR is itself a classification.
 pub struct PdfExtractSfdrArticleStandard {
     art9_selection: PdfLineSelection,
     art8_selection: PdfLineSelection,
@@ -288,9 +265,8 @@ impl PdfExtractSfdrArticleStandard {
         if funds.is_empty() {
             return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "Fund name".to_string() });
         }
-        // Più righe: si concatenano i testi dall'alto verso il basso. L'ordinamento è per `y0`,
-        // stabile (`sort_by` lo è), quindi righe alla stessa altezza restano nell'ordine di pagina
-        // — come nel riferimento, che usa il `sorted` stabile di Python.
+        // Several lines: the texts are concatenated top to bottom. The sort is by vertical position
+        // and is stable, so lines at the same height keep page order.
         if funds.len() > 1 {
             funds.sort_by(|a, b| {
                 let (_, ay, _, _) = a.bbox().as_tuple();
@@ -316,15 +292,15 @@ impl PdfExtractPipe for PdfExtractSfdrArticleStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// PdfExtractInvestmentsStandard
-// ---------------------------------------------------------------------------------------------
 
-/// Il pipe che ricostruisce la tabella degli investimenti: una riga PDF per cella, con le
-/// coordinate `(riga, colonna)` messe nei metadati perché sia `text_filter` a rileggerle.
+// ----------------------------------------------------------------------------------------------
+// PdfExtractInvestmentsStandard
+// ----------------------------------------------------------------------------------------------
+/// The pipe that rebuilds the investments table: one PDF line per cell, with the `(row, column)`
+/// coordinates put into the metadata for the next segment to read back.
 ///
-/// `tolerance` e `row_algorithm_flags` sono conservati ma **non consultati** da [`Self::call`] —
-/// campi morti ereditati dal riferimento, vedi il doc-comment del modulo.
+/// `tolerance` and `row_algorithm_flags` are kept but **not** consulted; see the module
+/// documentation.
 pub struct PdfExtractInvestmentsStandard {
     body_set: PdfLineSelection,
     deselection_list: Vec<PdfLineSelection>,
@@ -335,10 +311,8 @@ pub struct PdfExtractInvestmentsStandard {
     company_index: Option<usize>,
 }
 
-/// Parametri di costruzione di [`PdfExtractInvestmentsStandard`]. Nel riferimento sono nove
-/// argomenti con default; qui una struct con [`Default`] gioca lo stesso ruolo delle keyword di
-/// Python, e i due argomenti che il riferimento accetta ma butta via (`manco_set`, `currency_set`)
-/// semplicemente non esistono.
+/// The construction parameters of [`PdfExtractInvestmentsStandard`], grouped into a struct with a
+/// [`Default`] so that call sites name what they set.
 pub struct InvestmentsStandardArgs {
     pub body_set: PdfLineSelection,
     pub deselection_list: Vec<PdfLineSelection>,
@@ -350,7 +324,7 @@ pub struct InvestmentsStandardArgs {
 }
 
 impl InvestmentsStandardArgs {
-    /// Gli stessi default della firma del riferimento, con il solo `body_set` obbligatorio.
+    /// The usual defaults, with only `body_set` required.
     pub fn new(body_set: PdfLineSelection) -> Self {
         Self {
             body_set,
@@ -378,12 +352,12 @@ impl PdfExtractInvestmentsStandard {
         Self { body_set, deselection_list, algorithm_flags, tolerance, row_algorithm_flags, row_tolerance, company_index }
     }
 
-    /// La tolleranza configurata, mai consultata dall'algoritmo (campo morto del riferimento).
+    /// The configured tolerance, never consulted by the algorithm; see the module documentation.
     pub fn tolerance(&self) -> f32 {
         self.tolerance
     }
 
-    /// I flag di riga configurati, mai consultati dall'algoritmo (campo morto del riferimento).
+    /// The configured row flags, never consulted by the algorithm; see the module documentation.
     pub fn row_algorithm_flags(&self) -> TablePosAlgorithm {
         self.row_algorithm_flags
     }
@@ -447,13 +421,12 @@ impl PdfExtractPipe for PdfExtractInvestmentsStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// PdfExtractAssetsStandard
-// ---------------------------------------------------------------------------------------------
 
-/// `range(0, len, step)` di Python, ristretto a ciò che serve qui: passo zero è un errore, passo
-/// negativo produce una sequenza vuota (in Python `range(0, len, negativo)` è vuoto per ogni
-/// `len > 0`, e questa funzione è raggiunta solo con `len > 0`).
+// ----------------------------------------------------------------------------------------------
+// PdfExtractAssetsStandard
+// ----------------------------------------------------------------------------------------------
+/// A range from zero to `len` with the given step, restricted to what is needed here: a zero step
+/// is an error, and a negative step yields an empty sequence.
 fn range_0_to_len_step(len: usize, step: i64) -> Result<Vec<usize>, PdfExtractStandardFuncsError> {
     if step == 0 {
         return Err(PdfExtractStandardFuncsError::ZeroSkipColumn);
@@ -464,37 +437,34 @@ fn range_0_to_len_step(len: usize, step: i64) -> Result<Vec<usize>, PdfExtractSt
     Ok((0..len).step_by(step as usize).collect())
 }
 
-/// Una delle tre colonne numeriche di un blocco assets, con il moltiplicatore della finestra di
-/// ricerca che la individua a partire dalla propria etichetta.
+/// One of the three numeric columns of an assets block, with the multiplier of the search window
+/// that locates it from its own label.
 #[derive(Clone)]
 pub struct AssetsColumn {
-    /// Selezione dell'etichetta da cui parte la finestra di ricerca.
+    /// The selection of the label the search window starts from.
     pub anchor: PdfLineSelection,
-    /// Spostamento `(dx, dy)` della finestra rispetto all'ancora, in multipli della sua bbox.
+    /// The window's `(dx, dy)` offset from the anchor, in multiples of the anchor's bounding box.
     pub vector: (f32, f32),
-    /// Moltiplicatore di larghezza della finestra.
+    /// The window's width multiplier.
     pub width: f32,
-    /// Moltiplicatore di altezza della finestra.
+    /// The window's height multiplier.
     pub height: f32,
 }
 
 impl AssetsColumn {
-    /// Gli stessi default del riferimento: `vec=(1.2, 0.0)`, `mult=(100.0, 1.3)`.
+    /// The usual defaults: an offset of `(1.2, 0.0)` and multipliers of `(100.0, 1.3)`.
     pub fn new(anchor: PdfLineSelection) -> Self {
         Self { anchor, vector: (1.2, 0.0), width: 100.0, height: 1.3 }
     }
 }
 
-/// Estrae i blocchi "patrimonio del fondo": totale attivo, passività, patrimonio netto, più fondo,
-/// valuta ed eventuale data.
+/// Extracts the fund-assets blocks: total assets, liabilities, net assets, plus the fund, its
+/// currency and possibly a date.
 ///
-/// Due modalità, come nel riferimento:
+/// Two modes:
 ///
-/// - `table_condition: false` — una sola coppia fondo/valuta per pagina, estratta con
-///   `select_expected_text` (che fa fallire la pagina se manca);
-/// - `table_condition: true` — la pagina contiene una tabella con un fondo per colonna: i nomi si
-///   ricompongono per colonna, e la valuta o è una sola per tutti (se c'è una selezione dedicata)
-///   oppure è l'ultima parola del nome di ciascun fondo.
+/// - `table_condition: false` — one fund/currency pair per page, extracted with a selection that fails the page if it is missing;
+/// - `table_condition: true` — the page holds a table with one fund per column: the names are recomposed column by column, and the currency is either a single one for all of them, where a dedicated selection exists, or the last word of each fund's name.
 pub struct PdfExtractAssetsStandard {
     fund_set: PdfLineSelection,
     currency_set: Option<PdfLineSelection>,
@@ -506,10 +476,8 @@ pub struct PdfExtractAssetsStandard {
     skip_column: i64,
 }
 
-/// Parametri di costruzione di [`PdfExtractAssetsStandard`]. Nel riferimento sono quattordici
-/// argomenti con default; qui una struct con un costruttore minimo gioca lo stesso ruolo delle
-/// keyword di Python, e tiene la firma dentro il limite di `clippy::too_many_arguments` senza
-/// doverlo silenziare come fa il riferimento.
+/// The construction parameters of [`PdfExtractAssetsStandard`], grouped into a struct so the call
+/// site names what it sets rather than passing fourteen positional arguments.
 pub struct AssetsStandardArgs {
     pub fund_set: PdfLineSelection,
     pub currency_set: Option<PdfLineSelection>,
@@ -522,8 +490,7 @@ pub struct AssetsStandardArgs {
 }
 
 impl AssetsStandardArgs {
-    /// Le cinque selezioni obbligatorie, con gli stessi default del riferimento per il resto
-    /// (`date_set=None`, `table_condition=False`, `skip_column=1`).
+    /// The five required selections, with the usual defaults for the rest.
     pub fn new(
         fund_set: PdfLineSelection,
         currency_set: Option<PdfLineSelection>,
@@ -545,9 +512,13 @@ impl AssetsStandardArgs {
 }
 
 impl PdfExtractAssetsStandard {
-    /// Costruisce il pipe. Fallisce se `table_condition` è `false` e manca la selezione della
-    /// valuta: senza di essa il ramo non-tabellare non avrebbe nulla da cui ricavarla (nel
-    /// riferimento è un `ValueError` sollevato nel costruttore, non a runtime).
+    /// Builds the pipe.
+    ///
+    /// # Errors
+    ///
+    /// If `table_condition` is `false` and the currency selection is missing: without it the
+    /// non-tabular branch would have nothing to derive a currency from. Catching it here means a
+    /// misconfigured format fails when it is loaded rather than in the middle of a run.
     pub fn build(args: AssetsStandardArgs) -> Result<Self, PdfExtractStandardFuncsError> {
         let AssetsStandardArgs {
             fund_set,
@@ -565,14 +536,13 @@ impl PdfExtractAssetsStandard {
         Ok(Self { fund_set, currency_set, date_set, tot_assets, liabilities, net_assets, table_condition, skip_column })
     }
 
-    /// Le righe della pagina meno quelle di solo spazio: nel riferimento è
-    /// `PdfLineSelection.text("") / PdfLineSelection.text("^ $")`.
+    /// The page's lines minus the whitespace-only ones.
     fn meaningful_lines(page: &Page) -> Vec<PdfLine> {
         let set = PdfLineSet::select_text("") / PdfLineSet::select_text("^ $");
         page.lines.iter().filter(|line| set.contains(line)).cloned().collect()
     }
 
-    /// Le righe che cadono nella finestra mobile ancorata a `column.anchor`.
+    /// The lines falling inside the moving window anchored to `column.anchor`.
     fn select_column<'a>(column: &AssetsColumn, lines: &'a [PdfLine]) -> Vec<&'a PdfLine> {
         let leaf = RelativeSelectPdfLineSet::area_from_movewindow(
             column.anchor.clone(),
@@ -585,7 +555,7 @@ impl PdfExtractAssetsStandard {
         select(&selection, lines)
     }
 
-    /// I nomi dei fondi ricomposti per colonna, quando la pagina è tabellare.
+    /// The fund names recomposed column by column, when the page is tabular.
     fn fund_texts_by_column(&self, lines: &[PdfLine]) -> Result<Vec<String>, PdfExtractStandardFuncsError> {
         let funds: Vec<PdfLine> = select(&self.fund_set, lines).into_iter().cloned().collect();
         if funds.is_empty() {
@@ -611,8 +581,8 @@ impl PdfExtractAssetsStandard {
             .collect())
     }
 
-    /// Stacca l'ultima parola di ogni nome di fondo e la usa come valuta: è il fallback del ramo
-    /// tabellare quando non c'è una selezione di valuta dedicata.
+    /// Splits the last word off each fund name and takes it as the currency: the fallback of the
+    /// tabular branch when there is no dedicated currency selection.
     fn split_trailing_currencies(
         fund_texts: Vec<String>,
     ) -> Result<(Vec<String>, Vec<String>), PdfExtractStandardFuncsError> {
@@ -629,7 +599,7 @@ impl PdfExtractAssetsStandard {
         Ok((funds, currencies))
     }
 
-    /// Il testo delle celle di una colonna, ai soli indici richiesti da `skip_column`.
+    /// The text of a column's cells, at only the indices `skip_column` asks for.
     fn column_texts(
         items: &[&PdfLine],
         indices: &[usize],
@@ -665,7 +635,7 @@ impl PdfExtractAssetsStandard {
         let (fund_texts, currency_texts) = if !self.table_condition {
             let fund_set = contextualized(&self.fund_set, &lines);
             let fund = select_expected_text(&fund_set, &lines, "fund")?;
-            // `build` garantisce che `currency_set` sia presente in questo ramo.
+            // The constructor guarantees the currency selection is present in this branch.
             let currency_selection =
                 self.currency_set.as_ref().expect("build rejects a missing currency_set when table_condition is false");
             let currency_set = contextualized(currency_selection, &lines);
@@ -758,7 +728,7 @@ mod tests {
         Page::new(1, (300.0, 300.0), lines, Vec::new())
     }
 
-    /// Selezione assoluta per testo, la forma che i repo formati usano di gran lunga più spesso.
+    /// An absolute text selection, by far the most common form in a formats repository.
     fn text_sel(pattern: &str) -> PdfLineSelection {
         OptionallyRelative::Absolute(PdfLineSet::select_text(pattern))
     }
@@ -932,7 +902,7 @@ mod tests {
 
         #[test]
         fn article_8_wins_over_article_9_when_both_appear() {
-            // Asimmetria del riferimento, pinnata di proposito: l'8 è controllato per primo.
+            // The asymmetry, pinned on purpose: article 8 is checked first.
             let p = page(vec![
                 line("Article 8 and Article 9 disclosure", (0.0, 0.0, 60.0, 10.0)),
                 line("Fund Alpha", (0.0, 20.0, 60.0, 30.0)),
@@ -1106,8 +1076,8 @@ mod tests {
 
         #[test]
         fn a_column_mismatch_from_the_positioning_algorithm_surfaces_as_an_error() {
-            // Righe di larghezza incompatibile con un numero fisso di colonne: qui basta forzare
-            // il conteggio via `company_index` fuori scala per verificare che l'errore risalga.
+            // Lines whose width is incompatible with a fixed column count: forcing the count out of
+            // range through `company_index` is enough to check that the error travels up.
             let args = InvestmentsStandardArgs { company_index: Some(0), ..InvestmentsStandardArgs::new(text_sel("")) };
             assert!(PdfExtractInvestmentsStandard::new(args).call(&table_page()).is_ok());
         }
@@ -1121,7 +1091,7 @@ mod tests {
     mod assets {
         use super::*;
 
-        /// Pagina non tabellare: etichette a sinistra, valori a destra.
+        /// A non-tabular page: labels on the left, values on the right.
         fn simple_page() -> Page {
             page(vec![
                 line("Fund Alpha", (0.0, 0.0, 40.0, 10.0)),
@@ -1199,8 +1169,8 @@ mod tests {
 
         #[test]
         fn a_missing_fund_name_is_reported_as_expected_text_not_found() {
-            // Il riferimento usa `SelectExpectedText`, che solleva `ExpectedPdfBlockNotFound` e
-            // **non** `PageParseFail`: l'errore e' fatale per il documento, non una pagina saltata.
+            // This branch raises a not-found error and **not** a page-parse failure: it is fatal
+            // for the document rather than a skipped page.
             let p = page(simple_page().lines.into_iter().filter(|l| l.text() != "Fund Alpha").collect());
             let err = simple_pipe().call(&p).unwrap_err();
             assert!(matches!(err, PdfExtractStandardFuncsError::Commons(CommonsError::ExpectedTextNotFound { .. })));

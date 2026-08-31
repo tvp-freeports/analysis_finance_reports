@@ -1,18 +1,11 @@
-//! I metadati del repo formati: l'elenco dei formati e la mappa URL → formato.
+//! The repository's metadata: the list of formats and the URL-to-format map.
 //!
-//! Due CSV in `metadata/`:
+//! Two CSV files:
 //!
-//! - `formats.csv` — una riga per formato, con le componenti (`Name`, `Locale`, `Year`,
-//!   `Country`, `Version`) da cui si **sintetizza** il nome del formato,
-//!   `Nome-Locale<AA>[@Paese][.Versione]`. Il nome non è scritto da nessuna parte: esiste solo
-//!   come risultato di questa sintesi, ed è la chiave con cui tutto il resto del repo si
-//!   riferisce al formato.
-//! - `url_mapping.csv` — quali URL appartengono a quale formato, usato per riconoscere il formato
-//!   di un documento scaricato dal suo indirizzo.
+//! - the format list — one row per format, with the components from which the format name is **synthesised** as `Name-Locale<YY>[@Country][.Version]`. The name is written nowhere: it exists only as the result of this synthesis, and it is the key everything else in the repository refers to the format by;
+//! - the URL mapping — which URLs belong to which format, used to recognise the format of a document from the address it was downloaded from.
 //!
-//! Porting di `repo/metadata.py` (e del suo porting Rust parziale in `freeports_core`), senza
-//! pandas/pandera: il crate `csv` con struct tipizzate più validazione esplicita, come chiede
-//! `PLAN.md` §2 principio 7. Ogni errore riporta la riga.
+//! Every error reports the row, this being a file people edit by hand.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -21,10 +14,10 @@ use serde::Deserialize;
 
 use super::id_format::{IdFormat, id_matches};
 
-/// Sottocartella del repo formati che contiene i due CSV.
+/// The subdirectory of the repository holding the two CSV files.
 pub const METADATA_DIR: &str = "metadata";
 
-/// Fallimenti nella lettura dei metadati.
+/// Failures of reading the metadata.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum MetadataError {
     #[error("missing formats-repository CSV file: {0}")]
@@ -41,7 +34,7 @@ pub enum MetadataError {
     UnknownFormatName { path: PathBuf, line: usize, name: String },
 }
 
-/// Una riga di `formats.csv`.
+/// A row of the format list.
 #[derive(Debug, Clone, Deserialize)]
 struct FormatRow {
     #[serde(rename = "Name")]
@@ -50,8 +43,8 @@ struct FormatRow {
     locale: String,
     #[serde(rename = "Year")]
     year: String,
-    /// Colonna obbligatoria, cella quasi sempre vuota: come nel riferimento, la *presenza* della
-    /// colonna è richiesta anche quando nessuna riga la valorizza.
+    /// A required column whose cell is almost always empty: the column must be *present* even when
+    /// no row fills it in.
     #[serde(rename = "Country")]
     country: String,
     #[serde(rename = "Version")]
@@ -59,8 +52,8 @@ struct FormatRow {
 }
 
 impl FormatRow {
-    /// Il nome sintetizzato: `Nome-Locale<AA>`, più `@Paese` e `.Versione` se le colonne sono
-    /// valorizzate. `<AA>` sono le **ultime due cifre** dell'anno, comunque sia scritto.
+    /// The synthesised name: `Name-Locale<YY>`, plus `@Country` and `.Version` where those columns
+    /// are filled in. `<YY>` is the **last two digits** of the year, however it is written.
     fn format_name(&self) -> String {
         let year = self.year.trim();
         let yy = if year.len() >= 2 { &year[year.len() - 2..] } else { year };
@@ -77,7 +70,7 @@ impl FormatRow {
     }
 }
 
-/// Una riga di `url_mapping.csv`.
+/// A row of the URL mapping.
 #[derive(Debug, Clone, Deserialize)]
 struct UrlRow {
     #[serde(rename = "Format name")]
@@ -86,7 +79,8 @@ struct UrlRow {
     url: String,
 }
 
-/// Apre un CSV di `metadata/`, distinguendo "il file non c'è" da "il file non si legge".
+/// Opens one of the metadata CSV files, telling "the file is not there" apart from "the file will
+/// not read".
 fn open_csv(formats_repo_dir: &Path, file_name: &str) -> Result<(PathBuf, csv::Reader<std::fs::File>), MetadataError> {
     let path = formats_repo_dir.join(METADATA_DIR).join(file_name);
     if !path.is_file() {
@@ -97,12 +91,12 @@ fn open_csv(formats_repo_dir: &Path, file_name: &str) -> Result<(PathBuf, csv::R
     Ok((path, reader))
 }
 
-/// Traduce un errore del crate `csv` nell'errore giusto: una colonna mancante è una diagnosi
-/// diversa (e molto più utile) da una riga malformata.
+/// Translates a CSV error into the right one: a missing column is a different, and far more useful,
+/// diagnosis than a malformed row.
 fn row_error(path: &Path, line: usize, error: &csv::Error) -> MetadataError {
-    // Il crate `csv` annega "missing field `X`" in un messaggio più lungo con posizione e byte:
-    // qui la si ripesca, perché una colonna assente è una diagnosi diversa (e molto più
-    // azionabile per chi cura il repo formati) da una riga malformata.
+    // The `csv` crate buries "missing field" inside a longer message with a position and a byte
+    // offset; it is fished back out here, because a missing column is far more actionable for
+    // whoever maintains the repository.
     let message = error.to_string();
     if let Some(rest) = message.split("missing field `").nth(1)
         && let Some(column) = rest.split('`').next()
@@ -112,7 +106,7 @@ fn row_error(path: &Path, line: usize, error: &csv::Error) -> MetadataError {
     MetadataError::MalformedRow { path: path.to_path_buf(), line, reason: message }
 }
 
-/// Legge tutte le righe tipizzate di un CSV, numerandole a partire da 1 (l'intestazione non conta).
+/// Reads all the typed rows of a CSV, numbering them from one, the header not counting.
 fn read_rows<T: serde::de::DeserializeOwned>(
     formats_repo_dir: &Path,
     file_name: &str,
@@ -125,19 +119,18 @@ fn read_rows<T: serde::de::DeserializeOwned>(
     Ok((path, rows))
 }
 
-/// I nomi dei formati dichiarati dal repo, nell'ordine in cui compaiono in `formats.csv`.
+/// The format names the repository declares, in the order they appear in the format list.
 ///
-/// Ogni nome sintetizzato è verificato contro la grammatica dei nomi di formato e contro i nomi
-/// già visti: due righe che sintetizzano lo stesso nome sono un errore di configurazione (nel
-/// riferimento è l'`unique=True` dell'indice pandera).
+/// Every synthesised name is checked against the format-name grammar and against the names already
+/// seen: two rows synthesising the same name are a configuration error.
 pub fn get_formats(formats_repo_dir: &Path) -> Result<Vec<String>, MetadataError> {
     let (_, rows): (_, Vec<FormatRow>) = read_rows(formats_repo_dir, "formats.csv")?;
     let mut seen = HashSet::new();
     let mut names = Vec::with_capacity(rows.len());
     for row in rows {
         let name = row.format_name();
-        // La grammatica accetta il nome nudo, senza pipeline né indice: è ciò che `formats.csv`
-        // dichiara.
+        // The grammar accepts the bare name, with neither pipeline nor index, which is what the
+        // format list declares.
         if !id_matches(&name, IdFormat::ExpandableNoIndex) {
             return Err(MetadataError::InvalidFormatName(name));
         }
@@ -150,11 +143,10 @@ pub fn get_formats(formats_repo_dir: &Path) -> Result<Vec<String>, MetadataError
     Ok(names)
 }
 
-/// Legge `url_mapping.csv`, verificando **tutte** le righe prima di restituirne una qualsiasi.
+/// Reads the URL mapping, validating **every** row before returning any of them.
 ///
-/// La validazione è volutamente eager e sull'intero file, come la `validate` di pandera del
-/// riferimento: un formato sconosciuto in fondo al file è un errore anche se la riga che serviva
-/// era la prima.
+/// The validation is deliberately eager and whole-file: an unknown format at the bottom of the file
+/// is an error even when the row actually needed was the first.
 fn read_url_mapping(formats_repo_dir: &Path, format_names: &[String]) -> Result<Vec<UrlRow>, MetadataError> {
     let (path, rows): (_, Vec<UrlRow>) = read_rows(formats_repo_dir, "url_mapping.csv")?;
     let known: HashSet<&str> = format_names.iter().map(String::as_str).collect();
@@ -170,19 +162,19 @@ fn read_url_mapping(formats_repo_dir: &Path, format_names: &[String]) -> Result<
     Ok(rows)
 }
 
-/// Il formato a cui appartiene `url`, se il repo ne dichiara uno.
+/// The format `url` belongs to, if the repository declares one.
 ///
-/// Vince il **prefisso letterale più lungo**: un `Url` in tabella non è mai interpretato come
-/// espressione regolare, nemmeno se contiene metacaratteri. A parità di lunghezza vince la riga
-/// che viene prima nel file (l'`idxmax()` stabile di pandas).
+/// The **longest literal prefix** wins. A URL in the table is never interpreted as a regular
+/// expression, even when it contains metacharacters. On equal length the row appearing first in the
+/// file wins.
 pub fn url_to_format(
     formats_repo_dir: &Path,
     format_names: &[String],
     url: &str,
 ) -> Result<Option<String>, MetadataError> {
     let rows = read_url_mapping(formats_repo_dir, format_names)?;
-    // `max_by_key` restituirebbe l'**ultimo** massimo; qui serve il primo, quindi il confronto è
-    // strettamente maggiore.
+    // `max_by_key` would return the **last** maximum; the first is wanted here, so the comparison
+    // is strictly greater.
     let mut best: Option<&UrlRow> = None;
     for row in rows.iter().filter(|row| url.starts_with(row.url.as_str())) {
         if best.is_none_or(|current| row.url.len() > current.url.len()) {
@@ -205,7 +197,7 @@ pub fn url_to_format(
     }
 }
 
-/// Tutti gli URL dichiarati, raggruppati per formato e nell'ordine del file.
+/// Every declared URL, grouped by format and in file order.
 pub fn get_url_mapping(
     formats_repo_dir: &Path,
     format_names: &[String],
@@ -226,8 +218,8 @@ mod tests {
     use std::fs;
     use tempfile::TempDir;
 
-    /// Un repo formati minimale su disco: `PLAN.md` §10 vuole i test d'integrazione su una
-    /// `TempDir`, non su fixture esterni, e vale a maggior ragione per gli unitari.
+    /// A minimal formats repository on disk: the tests build one in a temporary directory rather
+    /// than depending on an external fixture.
     fn repo(files: &[(&str, &str)]) -> TempDir {
         let dir = TempDir::new().expect("temp dir");
         fs::create_dir_all(dir.path().join(METADATA_DIR)).expect("metadata dir");
@@ -368,8 +360,8 @@ mod tests {
         #[test]
         fn the_longest_matching_prefix_wins() {
             let dir = full_repo();
-            // Entrambe le righe AMUNDI-EN24 sono prefissi; vince la più lunga, che qui porta però
-            // lo stesso formato: il test pinna la scelta della riga, non solo dell'esito.
+            // Both rows are prefixes; the longer wins, and here it happens to carry the same format
+            // — the test pins which row is chosen, not merely the outcome.
             let found = url_to_format(dir.path(), &names(), "https://www.amundi.com/ABC/report.pdf").unwrap();
             assert_eq!(found, Some("AMUNDI-EN24".to_string()));
         }
@@ -463,8 +455,8 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// Le prime righe reali di `analysis_finance_reports_formats/metadata/`, riprodotte in
-        /// una `TempDir`: il test resta indipendente da quel repo, ma la forma è quella vera.
+        /// The first real rows of an actual formats repository, reproduced in a temporary
+        /// directory: the test stays independent of that repository while keeping its real shape.
         #[test]
         fn reproduces_the_names_of_the_real_italian_formats_repository() {
             let dir = repo(&[(

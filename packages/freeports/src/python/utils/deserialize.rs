@@ -1,10 +1,4 @@
-//! Shim di `freeports.utils.deserialize`: i cast e i due decoratori di tipo blocco.
-//!
-//! I cast sono funzioni pure di `formats_utils::deserialize::cast`; i decoratori
-//! (`deserialize_block_type`/`deserialize_block_types`) non hanno un corrispettivo nativo, e non
-//! l'avranno: restringono un callable **Python** a certi tipi di blocco, cioè fanno una cosa che
-//! ha senso solo da questo lato del confine. Nel riferimento erano tre righe di Python; qui sono
-//! due classi-decoratore, la stessa forma già usata da `text_filter`'s `fund_filter_data`.
+//! The shims of the casts and the two block-type decorators.
 
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
@@ -15,24 +9,22 @@ use crate::formats_utils::deserialize::cast;
 use crate::python::consts::PyCurrency;
 use crate::core::tracing_setup::log_error;
 
-/// Un errore di cast come `ValueError` Python — è come il riferimento li faceva arrivare.
+/// A cast error as a Python `ValueError`.
 ///
-/// Loggato prima della conversione (rule 1 di L2, stesso motivo di
-/// `python::input::py_get_target_companies`): oltre questo punto l'errore vive solo come eccezione
-/// Python, invisibile alla pipeline di tracing/`.log.csv` di questo crate. `warn!`, non `error!`:
-/// e' il "cast fallito" canonico della convenzione, non un fallimento che impedisce di produrre il
-/// lavoro richiesto — molto codice d'autore lo cattura e prosegue (`try_cast` del riferimento).
+/// Logged before the conversion: past this point the error lives only as a Python exception,
+/// invisible to this crate's own logging. A warning rather than an error, because it is the
+/// canonical failed cast — much author code catches it and carries on.
 fn cast_error(error: cast::CastError) -> PyErr {
     tracing::warn!(error = log_error(&error), "cast failed: {error}");
     pyo3::exceptions::PyValueError::new_err(error.to_string())
 }
 
-/// Una [`Date`] nativa come `datetime.date` Python.
+/// A native date as a Python date.
 fn date_to_py<'py>(py: Python<'py>, date: Date) -> PyResult<Bound<'py, PyAny>> {
     py.import("datetime")?.getattr("date")?.call_method1("fromisoformat", (date.to_string(),))
 }
 
-/// Un numero in virgola mobile da testo. `keep_sign` conserva il segno meno iniziale.
+/// A floating-point number from text. Keeping the sign preserves a leading minus.
 #[pyfunction]
 #[pyo3(name = "to_float", signature = (data, keep_sign=false))]
 pub fn py_to_float(data: &str, keep_sign: bool) -> PyResult<f64> {
@@ -46,7 +38,7 @@ pub fn py_to_int(data: &str, keep_sign: bool) -> PyResult<i64> {
     cast::to_int(data, keep_sign).map_err(cast_error)
 }
 
-/// Una percentuale come frazione (`norm`) o come numero puro.
+/// A percentage as a fraction, or as a plain number.
 #[pyfunction]
 #[pyo3(name = "perc_to_float", signature = (perc, norm=true, keep_sign=false))]
 pub fn py_perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> PyResult<f64> {
@@ -74,47 +66,47 @@ pub fn py_to_date<'py>(py: Python<'py>, data: &str) -> PyResult<Bound<'py, PyAny
     date_to_py(py, cast::to_date(data).map_err(cast_error)?)
 }
 
-/// Il numero del mese da un nome di mese inglese.
+/// The month number from an English month name.
 #[pyfunction]
 #[pyo3(name = "to_int_en_month", signature = (text))]
 pub fn py_to_int_en_month(text: &str) -> PyResult<u8> {
     cast::to_int_en_month(text).map_err(cast_error)
 }
 
-/// Il numero del mese da un nome di mese italiano.
+/// The month number from an Italian month name.
 #[pyfunction]
 #[pyo3(name = "to_int_it_month", signature = (text))]
 pub fn py_to_int_it_month(text: &str) -> PyResult<u8> {
     cast::to_int_it_month(text).map_err(cast_error)
 }
 
-/// Una data il cui mese è scritto in inglese.
+/// A date whose month is written in English.
 #[pyfunction]
 #[pyo3(name = "to_date_with_en_month", signature = (text))]
 pub fn py_to_date_with_en_month<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyAny>> {
     date_to_py(py, cast::to_date_with_en_month(text).map_err(cast_error)?)
 }
 
-/// Una data il cui mese è scritto in italiano.
+/// A date whose month is written in Italian.
 #[pyfunction]
 #[pyo3(name = "to_date_with_it_month", signature = (text))]
 pub fn py_to_date_with_it_month<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyAny>> {
     date_to_py(py, cast::to_date_with_it_month(text).map_err(cast_error)?)
 }
 
-/// `True` se il testo ha la forma di un numero.
+/// Whether the text has the shape of a number.
 #[pyfunction]
 #[pyo3(name = "is_numeric_shape", signature = (data))]
 pub fn py_is_numeric_shape(data: &str) -> bool {
     cast::is_numeric_shape(data)
 }
 
-/// I due decoratori che restringono un deserializer ai blocchi di certi tipi.
+/// The two decorators that restrict a deserializer to blocks of certain types.
 ///
-/// Il decorato riceve il blocco solo se il suo `type_block` è fra quelli dichiarati; altrimenti
-/// il risultato è `None`, che i segmenti a valle sanno già ignorare. Sono decoratori
-/// *parametrici* — `@deserialize_block_type("FUND")`, non `@deserialize_block_type` — quindi
-/// chiamarli costruisce la fabbrica, e chiamare la fabbrica avvolge la funzione.
+/// The decorated function receives the block only if its type is among those declared; otherwise
+/// the result is nothing, which the downstream segments already know to ignore. They are
+/// *parametric* decorators, so calling one builds the factory and calling the factory wraps the
+/// function.
 macro_rules! block_type_decorator {
     ($factory:ident, $wrapper:ident, $py_name:literal, $doc:literal) => {
         #[doc = $doc]
@@ -125,8 +117,8 @@ macro_rules! block_type_decorator {
 
         #[pymethods]
         impl $factory {
-            /// Un solo tipo o molti: la stessa firma variadica copre entrambi i decoratori, e
-            /// `deserialize_block_type("FUND")` è semplicemente il caso a un argomento.
+            /// One type or many: the same variadic signature covers both decorators, a single type
+            /// simply being the one-argument case.
             #[new]
             #[pyo3(signature = (*blk_types))]
             fn new(blk_types: &Bound<'_, PyTuple>) -> PyResult<$factory> {
@@ -149,9 +141,9 @@ macro_rules! block_type_decorator {
 
         #[pymethods]
         impl $wrapper {
-            /// Gli argomenti sono passati alla cieca: così il decoratore vale sia per una
-            /// funzione `(txt_blk)` sia per un metodo `(self, txt_blk)`, senza due varianti come
-            /// nel riferimento. Il blocco è sempre l'ultimo argomento.
+            /// The arguments are passed through blindly, so that the decorator works both for a
+            /// plain function and for a method, without two variants. The block is always the last
+            /// argument.
             #[pyo3(signature = (*args))]
             fn __call__<'py>(
                 &self,

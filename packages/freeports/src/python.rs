@@ -1,30 +1,26 @@
-//! Il layer di binding Python: `import freeports` da Python arriva qui.
+//! The Python binding layer: `import freeports` from Python arrives here.
 //!
-//! # Cosa è, e cosa non è
+//! # What it is, and what it is not
 //!
-//! Questo albero è **solo shim**: newtype `#[pyclass]` che avvolgono i tipi del crate e funzioni
-//! `#[pyfunction]` che convertono argomenti Python in argomenti Rust e chiamano le routine
-//! native. Nessuna logica di dominio vive qui. È la ragione per cui il codice esistente non è
-//! stato annotato con attributi PyO3: `PLAN.md` §14 vuole PyO3 confinato al bordo, e il bordo è
-//! questo modulo.
+//! This tree is **shim only**: newtypes wrapping the crate's types, and functions converting Python
+//! arguments into Rust ones and calling the native routines. No domain logic lives here. That is
+//! why nothing elsewhere in the crate is annotated with PyO3 attributes — the boundary is meant to
+//! be one place, and this is it.
 //!
-//! # Niente `_native`, niente `_internals`
+//! # No private layers underneath
 //!
-//! Il pacchetto Python **è** l'estensione compilata: `freeports` importato da Python è questo
-//! `#[pymodule]`, non un package Python puro che ne re-esporta i simboli. I due layer privati
-//! che il vecchio `freeports_core` interponeva — `freeports._native` (l'estensione) e
-//! `freeports._internals` (l'implementazione in Python puro) — non esistono più: il primo perché
-//! l'indirezione non serve a nulla quando non c'è codice Python da nascondere, il secondo perché
-//! quell'implementazione ora è in Rust.
+//! The Python package **is** the compiled extension: `freeports` imported from Python is this
+//! module, not a pure-Python package re-exporting its symbols. The two private layers an earlier
+//! design interposed are gone — the first because the indirection buys nothing when there is no
+//! Python code to hide, the second because that implementation is now in Rust.
 //!
-//! # Sottomoduli e `sys.modules`
+//! # Submodules and the import machinery
 //!
-//! `from freeports.core import PdfBlock` chiede a Python di importare il **modulo**
-//! `freeports.core`. Un'estensione compilata non è un package: non ha una directory da cui
-//! Python possa pescare un sottomodulo, quindi il solo modo perché quell'import funzioni è
-//! registrare ogni sottomodulo annidato in `sys.modules` sotto il suo nome puntato. Lo fa
-//! [`register_submodules`], ricorsivamente, all'inizializzazione del modulo — così anche i due
-//! livelli (`freeports.utils.pdf_extract`) funzionano senza casi speciali.
+//! `from freeports.core import PdfBlock` asks Python to import the **module** `freeports.core`. A
+//! compiled extension is not a package: it has no directory for Python to fetch a submodule from,
+//! so the only way that import can work is to register every nested submodule under its full dotted
+//! name. `register_submodules` does that recursively at initialisation, so that even two levels
+//! down works with no special case.
 
 pub mod api;
 pub mod consts;
@@ -39,11 +35,11 @@ pub mod utils;
 
 use pyo3::prelude::*;
 
-/// Registra ricorsivamente in `sys.modules` ogni sottomodulo di `module`, sotto il nome puntato
-/// completo, e gli assegna il proprio `__name__`.
+/// Recursively registers every submodule of `module` under its full dotted name, and gives each its
+/// own `__name__`.
 ///
-/// Senza `__name__` corretto, `pickle` e i messaggi d'errore mostrerebbero il nome breve con cui
-/// il macro `#[pymodule]` ha costruito il sottomodulo (`core` invece di `freeports.core`).
+/// Without the correct name, pickling and error messages would show the short name the macro built
+/// the submodule with, rather than the dotted one.
 fn register_submodules(py: Python<'_>, module: &Bound<'_, PyModule>, prefix: &str) -> PyResult<()> {
     let sys_modules = py.import("sys")?.getattr("modules")?;
     let contents: Vec<(String, Py<PyAny>)> = module
@@ -62,35 +58,33 @@ fn register_submodules(py: Python<'_>, module: &Bound<'_, PyModule>, prefix: &st
     Ok(())
 }
 
-/// Registra in `sys.modules` il `freeports` compilato **dentro questo artefatto**, se non ce n'è
-/// già uno.
+/// Registers the `freeports` compiled **into this artefact**, if there is not one already.
 ///
-/// # La trappola che questa funzione disinnesca
+/// # The trap this disarms
 ///
-/// PyO3 registra il tipo Python di un `#[pyclass]` **per artefatto compilato**. Il crate viene
-/// compilato due volte — come `cdylib` (il `.so` che Python importa) e come `rlib` (dentro il
-/// binario `freeports` e dentro i binari di test) — quindi esistono due `PdfBlock` diversi, e non
-/// si riconoscono a vicenda.
+/// PyO3 registers a class's Python type **per compiled artefact**. This crate is compiled twice —
+/// as the shared library Python imports, and as a library inside the binary and inside the test
+/// binaries — so there are two distinct `PdfBlock` types, and they do not recognise each other.
 ///
-/// Quando è il binario a girare, il modulo d'autore di un formato fa `from freeports.core import
-/// PdfBlock` e Python gli dà la classe del **`.so` installato**; il blocco che il motore gli passa
-/// però viene dall'`rlib` dentro il binario. L'errore che ne esce è quello, memorabile, di
-/// `'PdfBlock' object cannot be cast as 'PdfBlock'`.
+/// When the binary is running, a format's author module does `from freeports.core import PdfBlock`
+/// and Python hands it the class of the **installed** extension, while the block the engine passes
+/// it comes from the library inside the binary. The result is the memorable `'PdfBlock' object
+/// cannot be cast as 'PdfBlock'`.
 ///
-/// Seminando `sys.modules` *prima* che qualunque modulo d'autore venga importato, `freeports`
-/// risolve al modulo di questo artefatto e i due lati coincidono di nuovo.
+/// Seeding the module table *before* any author module is imported makes `freeports` resolve to
+/// this artefact's module, and the two sides coincide again.
 ///
-/// **Idempotente, e non sovrascrive mai.** Se `freeports` è già in `sys.modules` siamo dentro il
-/// `.so` (Python lo ha importato per arrivare fin qui) e quello è già l'artefatto giusto:
-/// rimpiazzarlo creerebbe di nuovo il disallineamento, al contrario.
+/// **Idempotent, and never overwrites.** If `freeports` is already registered we are inside the
+/// extension — Python imported it to get here — and that is already the right artefact: replacing
+/// it would recreate the mismatch the other way round.
 pub fn install(py: Python<'_>) -> PyResult<()> {
     let sys_modules = py.import("sys")?.getattr("modules")?;
     if sys_modules.contains("freeports")? {
         return Ok(());
     }
-    // `self::freeports` e non `freeports`: nei doc-test il crate stesso e' passato a rustdoc come
-    // `--extern freeports`, e il nome nudo diventa ambiguo fra il crate e il modulo qui sotto
-    // (`E0659`). Il percorso qualificato dice quale dei due, e vale in ogni contesto.
+    // The qualified path, not the bare name: in doc-tests the crate itself is passed to rustdoc
+    // under its own name, and the bare form becomes ambiguous between the crate and the module
+    // below. The qualified path says which, and holds in every context.
     let module = pyo3::wrap_pymodule!(self::freeports)(py).into_bound(py).cast_into::<PyModule>()?;
     module.setattr("__name__", "freeports")?;
     sys_modules.set_item("freeports", &module)?;
@@ -98,12 +92,10 @@ pub fn install(py: Python<'_>) -> PyResult<()> {
     Ok(())
 }
 
-/// Il modulo Python `freeports`.
+/// The Python module `freeports`.
 ///
-/// Il nome Rust del modulo deve essere `freeports` e non altro: il macro `#[pymodule]` ne deriva
-/// il simbolo d'inizializzazione C `PyInit_freeports`, che è quello che l'import machinery di
-/// Python cerca nel `.so`. `pyproject.toml` dichiara `module-name = "freeports"` per la stessa
-/// ragione, e non dichiara `python-source`, perché non c'è alcun sorgente Python da affiancare.
+/// The Rust module's name must be exactly this: the macro derives the C initialisation symbol from
+/// it, and that symbol is what Python's import machinery looks for in the shared library.
 #[pyo3::pymodule]
 pub mod freeports {
     use super::*;
@@ -264,20 +256,18 @@ pub mod freeports {
 mod tests {
     use super::*;
 
-    /// Inietta in `sys.modules` il `freeports` compilato **dentro questo binario di test**.
+    /// Injects the `freeports` compiled **into this test binary** into the module table.
     ///
-    /// Serve perché `cargo test` non passa da un `.so` installato: senza questo, un
-    /// `py.import("freeports")` cercherebbe il pacchetto sul filesystem e troverebbe (o non
-    /// troverebbe) un artefatto diverso da quello che i test stanno verificando. È la stessa
-    /// trappola d'identità cross-modulo che `freeports_core` documentava nel suo `lib.rs`: PyO3
-    /// registra il tipo Python di un `#[pyclass]` **per artefatto compilato**, quindi due copie
-    /// dello stesso sorgente producono due tipi che non si riconoscono a vicenda.
+    /// Needed because a test run does not go through an installed extension: without it, importing
+    /// `freeports` would look for the package on the filesystem and find — or fail to find — an
+    /// artefact other than the one under test. It is the same cross-artefact identity trap
+    /// [`install`] disarms.
     fn seed(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         install(py)?;
         py.import("sys")?.getattr("modules")?.get_item("freeports")?.cast_into::<PyModule>().map_err(PyErr::from)
     }
 
-    /// Esegue `code` con `freeports` già seminato, restituendo l'errore Python se ce n'è uno.
+    /// Runs `code` with `freeports` already seeded, returning the Python error if there is one.
     fn run(code: &str) -> PyResult<()> {
         Python::attach(|py| {
             seed(py)?;
@@ -304,8 +294,7 @@ mod tests {
             run("import freeports.core; assert freeports.core.__name__ == 'freeports.core', freeports.core.__name__").unwrap();
         }
 
-        /// Il vincolo esplicito dell'utente: i due layer privati del vecchio pacchetto non
-        /// devono esistere più, in nessuna forma.
+        /// The two private layers of the earlier package must not exist any more, in any form.
         #[test]
         fn there_is_no_native_and_no_internals_submodule() {
             run("import freeports; assert not hasattr(freeports, '_native'), 'freeports._native must not exist'").unwrap();
@@ -359,8 +348,8 @@ mod tests {
             .unwrap();
         }
 
-        /// `Investment`/`AssetsManager`/`FundChangeName` sono tuple di tipi, non classi base:
-        /// e' cio' che serve a `isinstance`, ed e' cio' che il repo formati usa.
+        /// The three aliases are tuples of types rather than base classes: that is what
+        /// `isinstance` needs, and what a formats repository uses.
         #[test]
         fn the_three_aliases_are_usable_as_isinstance_targets() {
             run(
@@ -401,8 +390,8 @@ mod tests {
             .unwrap();
         }
 
-        /// Il vincolo contabile di `FundAssets` (`liabilities + net_assets == tot_assets`) e'
-        /// verificato in Rust: lo shim lo deve far arrivare come `ValueError`, non come panic.
+        /// The accounting constraint is checked in Rust: the shim must surface it as a
+        /// `ValueError`, not as a panic.
         #[test]
         fn an_unbalanced_fund_assets_is_a_value_error_not_a_panic() {
             run(
@@ -457,8 +446,8 @@ mod tests {
             .unwrap();
         }
 
-        /// `managed_funds` accetta un iterabile qualunque, non solo un `set`: un deserializer
-        /// d'autore non e' tenuto a costruirne uno.
+        /// The managed funds accept any iterable, not only a set: an author's deserializer is not
+        /// obliged to build one.
         #[test]
         fn an_assets_manager_coerces_any_iterable_of_names() {
             run(
@@ -528,8 +517,8 @@ mod tests {
             .unwrap();
         }
 
-        /// I decoratori sono il pezzo di `utils` che non ha un corrispettivo nativo: restringono
-        /// un callable Python, quindi vivono solo nello shim.
+        /// The decorators are the part of the utilities with no native counterpart: they restrict a
+        /// Python callable, so they exist only in the shim.
         #[test]
         fn a_block_type_decorator_skips_blocks_of_another_type() {
             run(
@@ -587,8 +576,8 @@ mod tests {
             .unwrap();
         }
 
-        /// `TablePosAlgorithm` non e' un catalogo di nomi ma un insieme di flag: il repo formati
-        /// li combina con `|`, ed e' quella la forma da preservare.
+        /// The table algorithm flags are a set of flags rather than a catalogue of names: a formats
+        /// repository combines them with `|`, and that is the form to preserve.
         #[test]
         fn the_table_algorithm_flags_combine_with_or() {
             run(
@@ -610,8 +599,8 @@ mod tests {
             .unwrap();
         }
 
-        /// Il repo formati imposta `splitting` **dopo** la costruzione: senza setter quella riga
-        /// smetterebbe di funzionare.
+        /// A formats repository sets the splitting **after** construction: without a setter that
+        /// line would stop working.
         #[test]
         fn a_column_config_splitting_is_settable_after_construction() {
             run(
@@ -701,9 +690,9 @@ mod tests {
             .unwrap();
         }
 
-        /// I due costruttori sono separati proprio perche' un `content` e un `pdf_block` insieme
-        /// potrebbero contraddirsi: `from_content` non prende un blocco PDF, e il costruttore non
-        /// prende un contenuto.
+        /// The two constructors are separate precisely because a content and a PDF block given
+        /// together could contradict each other: one does not take a block, the other does not take
+        /// a content.
         #[test]
         fn the_two_text_block_constructors_are_separate() {
             run(
@@ -722,8 +711,8 @@ mod tests {
             .unwrap();
         }
 
-        /// Il codice d'autore riscrive il contenuto di un blocco gia' costruito: e' la ragione per
-        /// cui `TextBlock` non e' `frozen` (vedi il suo doc-comment).
+        /// Author code rewrites the content of an already-built block, which is why a text block is
+        /// not frozen.
         #[test]
         fn a_text_block_content_is_rewritable() {
             run(
@@ -735,8 +724,7 @@ mod tests {
             .unwrap();
         }
 
-        /// L'ordine posizionale e' quello del riferimento, ed e' come i moduli d'autore lo
-        /// scrivono davvero: `PdfBlock(tipo, metadata, contenuto)`.
+        /// The positional order is the one author modules actually write: type, metadata, content.
         #[test]
         fn the_blocks_take_their_arguments_in_the_reference_order() {
             run(

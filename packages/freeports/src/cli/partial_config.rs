@@ -1,94 +1,29 @@
-//! Configurazione parziale e merge fra le sorgenti (cmd > env > file > default > batch).
+//! A partial configuration, and the merge across sources.
 //!
-//! `PLAN.md` §9 (implicito: `cli::{CliArgs, execute}`), `M9-implementation-plan.md` §1/§3 passo 5.
-//! **Un solo `PartialConfig`**, non tre struct pydantic quasi identiche come nel riferimento
-//! (`FreeportsFileConfig`/`FreeportsEnvConfig`/`FreeportsCmdConfig`): un solo tipo con tutti i
-//! campi `Option<T>`, prodotto da `config_locations::{cmd,env,file}::load(...)` e da `cli::batch`
-//! (una riga di CSV = un `PartialConfig`).
+//! **One** partial type with every field optional, produced by each configuration source and by
+//! each batch row, rather than one struct per source. Partial because no single source is required
+//! to say everything, and optional per field because the merge is **per field**: a configuration
+//! file may set one thing and the environment another, and neither should erase the other.
 //!
-//! Possiede anche il meccanismo condiviso di risoluzione singolare/plurale di
-//! `M9-implementation-plan.md` §0 Q3: `file::load`/`env::load` chiamano entrambi
-//! `resolve_singular_and_plural_reports` per combinare `url:`/`pdf:`
-//! (`FREEPORTS_URL`/`FREEPORTS_PDF`) con `reports:`/`FREEPORTS_REPORTS` -- specificare **sia** la
-//! forma singolare **sia** quella plurale sulla stessa sorgente è un errore di configurazione
-//! esplicito (`PLAN.md` §2 principio 4: mai un override silenzioso).
+//! Precedence, lowest to highest: defaults, file, environment, command line, batch row.
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! # Singular and plural reports
 //!
-//! ```text
-//! #[derive(Debug, Clone, Default, PartialEq)]
-//! pub struct PartialConfig {
-//!     pub verbosity: Option<crate::core::tracing_setup::Verbosity>,
-//!     pub reports: Option<Vec<crate::cli::conf_parse::DocumentSpec>>,
-//!     pub target_lists: Option<Vec<String>>,
-//!     pub format: Option<String>,
-//!     pub out_path: Option<std::path::PathBuf>,
-//!     pub out_profile: Option<crate::output::routines::write::OutStructureMode>,
-//!     pub out_flags: Option<crate::output::routines::write::OutFlags>,
-//!     pub n_workers: Option<crate::cli::parallelism_config::Workers>,
-//!     pub parallelism_jobs: Option<crate::cli::parallelism_config::Workers>,
-//!     pub parallelism_pages: Option<crate::cli::parallelism_config::Workers>,
-//!     pub batch_file: Option<std::path::PathBuf>,
-//!     pub save_pdf: Option<bool>,
-//!     pub formats_repo_path: Option<std::path::PathBuf>,
-//!     pub input_db_path: Option<std::path::PathBuf>,
-//!     pub config_file: Option<std::path::PathBuf>,
-//! }
+//! Every source accepts either a single report or a list of them. Giving **both** on the same
+//! source is an explicit configuration error rather than one silently winning: an override nobody
+//! can see is worse than a refusal.
 //!
-//! #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-//! pub enum ConfigSource { Default, File, Env, Cmd, Batch }
+//! # What the defaults do and do not set
 //!
-//! #[derive(Debug, Clone, Default)]
-//! pub struct MergedConfig {
-//!     pub values: PartialConfig,
-//!     pub sources: std::collections::BTreeMap<&'static str, ConfigSource>,
-//! }
+//! [`defaults`] deliberately leaves `target_lists` unset, so that its absence stays observable and
+//! validation can report it. It does set every structural field, because a field no source ever
+//! touches must still resolve to something, and an unset one would otherwise become an error no
+//! configuration could avoid.
 //!
-//! **Judgment call del test-writer, segnalato nel resoconto finale**: `M9-implementation-plan.md`
-//! §1/§0 Q5/Q8 fissa esplicitamente solo due valori di `defaults()` (`verbosity`/`target_lists`).
-//! Perché `cli::freeports_config::validate` possa mai produrre una `FreeportsConfig` completa
-//! (i cui campi non-`target_lists`/`format`/`reports` **non** sono `Option`) quando nessuna
-//! sorgente reale tocca un campo, `defaults()` deve fornire un valore anche per gli altri campi
-//! "strutturali" -- altrimenti `validate` non avrebbe altra scelta che un ulteriore errore
-//! "campo mai impostato" non previsto da nessuna delle sei regole del piano. Scelta qui, non
-//! decisa esplicitamente dal piano: `defaults()` fissa anche `out_path` alla cwd **assoluta**
-//! risolta a runtime (`std::env::current_dir()`, con fallback a `PathBuf::from(".")` nel raro
-//! caso in cui la cwd non sia leggibile) -- **non** il letterale `Path(".")` del riferimento
-//! (`DEFAULT_CONFIG["OUT_PATH"]`): verificato con `rustc` prima di scrivere questo test che
-//! `Path::new(".").parent()` in Rust è `Some("")` (percorso vuoto, `.exists() == false`), a
-//! differenza di `pathlib.Path(".").parent` in Python (che resta `Path(".")`, sempre esistente) --
-//! un letterale `"."` avrebbe fatto fallire `out_path_exists` per **ogni** configurazione che non
-//! specifica esplicitamente `--out`, l'esatto opposto di un default utile. `out_profile: Some(Regular)`,
-//! `out_flags: Some(OutFlags::default())`, `n_workers: Some(Workers::Auto)` (**cambiato da P5**: era
-//! `Some(1)`, la semplificazione che rinunciava al rilevamento automatico dei core del riferimento
-//! -- ora `auto` si risolve a runtime, `agent-memory/P5-implementation-plan.md` D-P5-4),
-//! `save_pdf: Some(true)` (come `DEFAULT_CONFIG["SAVE_PDF"]`), `reports: Some(Vec::new())` (nessuna
-//! regola del piano richiede che `reports` provenga da una sorgente esplicita, a differenza di
-//! `target_lists` -- §0 Q8 è specifico di quel campo).
-//!
-//! /// `defaults()` è il tier più basso del merge (`M9-implementation-plan.md` §1, passo 6 della
-//! /// sequenza): imposta esplicitamente `verbosity: Some(Verbosity::Warn)` (produce il
-//! /// "Warn+Error di default" richiesto dall'utente quando nessun'altra sorgente tocca il campo,
-//! /// §0 Q5) ma **non** imposta `target_lists` (resta `None` se nessuna sorgente lo tocca, §0
-//! /// Q8 dipende da questo -- niente `Vec::new()` silenzioso).
-//! pub fn defaults() -> MergedConfig;
-//!
-//! /// Un campo `Some` in `overlay` sovrascrive il corrispondente in `base.values` e registra
-//! /// `source` in `base.sources` sotto il nome del campo; un campo `None` in `overlay` lascia
-//! /// `base` (valore e provenienza) del tutto invariato.
-//! pub fn overwrite(base: MergedConfig, overlay: PartialConfig, source: ConfigSource) -> MergedConfig;
-//!
-//! #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-//! #[error("this source sets both a singular report (url/pdf) and the plural `reports` key")]
-//! pub struct SourceReportsConflict;
-//!
-//! /// Usato sia da `config_locations::file::load` sia da `config_locations::env::load`
-//! /// (`M9-implementation-plan.md` §0 Q3): due call site reali, non un'astrazione ipotetica.
-//! pub fn resolve_singular_and_plural_reports(
-//!     singular: Option<crate::cli::conf_parse::DocumentSpec>,
-//!     plural: Option<Vec<crate::cli::conf_parse::DocumentSpec>>,
-//! ) -> Result<Option<Vec<crate::cli::conf_parse::DocumentSpec>>, SourceReportsConflict>;
-//! ```
+//! The default output path is the **absolute** working directory resolved at runtime rather than
+//! the literal `"."`: in Rust the parent of `"."` is the empty path, which never exists, so a
+//! literal would make the output-path check fail for every configuration that did not set `--out`
+//! explicitly — the opposite of a useful default.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -108,17 +43,14 @@ pub struct PartialConfig {
     pub out_path: Option<PathBuf>,
     pub out_profile: Option<OutStructureMode>,
     pub out_flags: Option<OutFlags>,
-    /// Il default globale del parallelismo (P5): il valore che ogni livello prende se
-    /// `parallelism.<livello>` non dice altro. Sopravvive al nome storico `n_workers` perche' e'
-    /// il nome che le tre sorgenti espongono da sempre (`--workers`/`-j`, `FREEPORTS_N_WORKERS`,
-    /// chiave YAML `n_workers`).
+    /// The global parallelism default: the value each level takes when its own key says nothing. It
+    /// keeps the name `n_workers` because that is the name every source has always exposed.
     pub n_workers: Option<Workers>,
-    /// Override del livello job (P1). I due livelli sono campi separati e non una
-    /// [`ParallelismConfig`] intera perche' il merge fra sorgenti e' **per campo**: un file di
-    /// configurazione puo' fissare `pages` e l'ambiente `jobs`, e nessuno dei due deve
-    /// cancellare l'altro.
+    /// The job-level override. The two levels are separate fields rather than one resolved
+    /// configuration because the merge is **per field**: a file may fix the page level and the
+    /// environment the job level, and neither must cancel the other.
     pub parallelism_jobs: Option<Workers>,
-    /// Override del livello pagina (P2). Stessa ragione di [`Self::parallelism_jobs`].
+    /// The page-level override. Same reason as [`Self::parallelism_jobs`].
     pub parallelism_pages: Option<Workers>,
     pub batch_file: Option<PathBuf>,
     pub save_pdf: Option<bool>,
@@ -142,19 +74,12 @@ pub struct MergedConfig {
     pub sources: BTreeMap<&'static str, ConfigSource>,
 }
 
-/// Tier più basso del merge (`M9-implementation-plan.md` §1, passo 6 della sequenza). Fissa
-/// esplicitamente `verbosity: Some(Verbosity::Warn)` (produce il "Warn+Error di default" richiesto
-/// dall'utente quando nessun'altra sorgente tocca il campo, §0 Q5) e **non** imposta
-/// `target_lists` (resta `None` se nessuna sorgente lo tocca, §0 Q8 dipende da questo -- niente
-/// `Vec::new()` silenzioso).
+/// The lowest tier of the merge.
 ///
-/// **Judgment call, non pinnata esplicitamente dal piano** (vedi il doc-comment del modulo): ogni
-/// altro campo "strutturale" (`out_path`/`out_profile`/`out_flags`/`n_workers`/`save_pdf`/
-/// `reports`) riceve comunque un default, altrimenti `cli::freeports_config::validate` non
-/// avrebbe altra scelta che un errore "campo mai impostato" non previsto da nessuna delle sei
-/// regole del piano. `out_path` è la cwd **assoluta** risolta a runtime, non il letterale
-/// `Path(".")` del riferimento: `Path::new(".").parent()` è `Some("")` in Rust (percorso vuoto,
-/// mai esistente), a differenza di `pathlib.Path(".").parent` in Python.
+/// Sets the verbosity explicitly, and deliberately does **not** set `target_lists`, whose absence
+/// has to stay observable for validation to report it. Every other structural field does get a
+/// default; see the module documentation for why, and for why the output path is the absolute
+/// working directory rather than a literal `"."`.
 pub fn defaults() -> MergedConfig {
     let out_path = std::env::current_dir().unwrap_or_else(|e| {
         tracing::warn!(error = log_error(&e), "cannot read the current directory, defaulting out_path to \".\": {e}");
@@ -182,9 +107,8 @@ pub fn defaults() -> MergedConfig {
     }
 }
 
-/// Un campo `Some` in `overlay` sovrascrive il corrispondente in `base.values` e registra `source`
-/// in `base.sources` sotto il nome del campo; un campo `None` in `overlay` lascia `base` (valore e
-/// provenienza) del tutto invariato.
+/// A field set in the overlay overwrites the corresponding one and records where it came from; a
+/// field left unset leaves both the value and its provenance untouched.
 pub fn overwrite(mut base: MergedConfig, overlay: PartialConfig, source: ConfigSource) -> MergedConfig {
     macro_rules! apply {
         ($field:ident) => {
@@ -216,8 +140,8 @@ pub fn overwrite(mut base: MergedConfig, overlay: PartialConfig, source: ConfigS
 #[error("this source sets both a singular report (url/pdf) and the plural `reports` key")]
 pub struct SourceReportsConflict;
 
-/// Usato sia da `config_locations::file::load` sia da `config_locations::env::load`
-/// (`M9-implementation-plan.md` §0 Q3): due call site reali, non un'astrazione ipotetica.
+/// Shared by the file and environment sources, which both accept a report in singular and plural
+/// form.
 pub fn resolve_singular_and_plural_reports(
     singular: Option<DocumentSpec>,
     plural: Option<Vec<DocumentSpec>>,
@@ -354,8 +278,8 @@ mod tests {
 
         #[test]
         fn target_lists_has_no_default_stays_none() {
-            // §0 Q8: no silent `Vec::new()` default -- absence must be observable so
-            // `freeports_config::validate`'s `require_target_lists` rule can fire.
+            // No silent empty default: the absence has to be observable so that validation can
+            // report a missing target list.
             assert_eq!(defaults().values.target_lists, None);
         }
 
@@ -384,17 +308,17 @@ mod tests {
             );
         }
 
-        /// P5: il default globale del parallelismo e' `auto`, non piu' `1`. E' il valore che i
-        /// due livelli ereditano quando nessuna sorgente li tocca, ed e' cio' che rende paralleli
-        /// per default sia un batch (P1) sia le pagine di uno step (P2).
+        /// The global parallelism default is automatic. It is the value both levels inherit when no
+        /// source touches them, and what makes both a batch and the pages of a step parallel by
+        /// default.
         #[test]
         fn n_workers_defaults_to_auto() {
             assert_eq!(defaults().values.n_workers, Some(Workers::Auto));
         }
 
-        /// I due override per livello restano `None`: un livello che nessuno tocca non ha un
-        /// valore proprio, eredita quello globale. Se `defaults()` li impostasse, il default
-        /// globale non potrebbe piu' raggiungerli.
+        /// The two per-level overrides stay unset: a level nobody touches has no value of its own
+        /// and inherits the global one. Were the defaults to set them, the global default could no
+        /// longer reach them.
         #[test]
         fn the_two_per_level_overrides_are_left_unset() {
             assert_eq!(defaults().values.parallelism_jobs, None);
@@ -408,8 +332,8 @@ mod tests {
 
         #[test]
         fn reports_defaults_to_an_empty_list_not_none() {
-            // Unlike `target_lists` (§0 Q8), no rule requires `reports` to come from an explicit
-            // source -- a config with zero reports is a degenerate but valid starting point.
+            // Unlike the target lists, no rule requires the reports to come from an explicit
+            // source: a configuration with no reports is a degenerate but valid starting point.
             assert_eq!(defaults().values.reports, Some(vec![]));
         }
 

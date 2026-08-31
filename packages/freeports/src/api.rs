@@ -1,67 +1,39 @@
-//! Superficie pubblica del crate (`PLAN.md` §9): sole re-export, nessuna logica propria.
-//! L'albero interno resta libero di cambiare; solo ciò che è re-esportato da qui è garantito
-//! per chi usa la libreria.
+//! The crate's public surface: re-exports only, no logic of its own.
 //!
-//! Abilitato incrementalmente, milestone per milestone, man mano che i moduli esistono davvero
-//! (`PLAN.md` §14, passo di chiusura). M1 abilita solo `consts`, l'unica porzione di `commons`
-//! elencata nella superficie pubblica di `PLAN.md` §9 — `date`/`geometry`/`sets`/`flag_expr`/
-//! `i18n` restano utilità interne, usate da milestone future ma non riesportate. M2 aggiunge la
-//! parte di `core` che esiste: `PdfBlock`, `TextBlock` e `Promise` (`Pipeline` e `Algorithm`
-//! arrivano con M5). M3 aggiunge la parte di `utils::pdf_extract` che non dipende dal confine
-//! PyMuPDF (arriva con M6): `position`/`tabularizer` e le config `TableConfig`/`RowConfig`/
-//! `ColumnConfig`. M5 aggiunge `Pipeline` e
-//! `Algorithm`, con tutto ciò che serve a costruirli e a leggerne i risultati (vedi il doc-comment
-//! di `core`).
+//! Everything reachable from `crate::api` is a promise to library users; everything else is an
+//! internal tree that may be reorganised at any time. The two are kept apart on purpose, so that
+//! moving a type between modules is never a breaking change.
 //!
-//! M6 chiude il sottoinsieme di `utils::pdf_extract` lasciato aperto da M3 (`agent-memory/
-//! M6-implementation-plan.md`): le quattro funzioni di `PLAN.md` §9 che leggono un dict PyMuPDF o
-//! una stringa di configurazione (`pdfline_selection_from_dict`, `pdfline_selection_from_str`,
-//! `pdfimages_from_pagedict`, `pdflines_from_pagedict`), più i tipi di supporto senza i quali non
-//! sono costruibili/leggibili da fuori (`PageDict` e le sue tre parti; la forma "dict" di criterio
-//! `InputPdfLineSet`/`FontCriterion`/`InputAreaSpec`; `LineSelectionError`) — stesso trattamento
-//! già riservato a `BlockType`/`BlockValue` in M2. M6 aggiunge anche un nuovo modulo `api::input`,
-//! non elencato da `PLAN.md` §9 (che per `input` nomina solo `load_target_companies`/
-//! `compile_target_companies`, `input::companies_db`, fuori scope qui): senza `load_document`/
-//! `load_document_pages` nessun consumatore esterno potrebbe mai costruire un `Document` reale da
-//! un path PDF, quindi il buco fra §9 e lo scope necessario è documentato allo stesso modo,
-//! non lasciato silenzioso (M6, Q2 confermata dall'utente).
+//! The surface is deliberately narrower than the internal tree, and each submodule below explains
+//! what it exposes and why. One rule recurs: a facade type drags in the types of its own public
+//! fields and signatures. Exposing [`core::PdfBlock`] without `BlockType` and
+//! `BlockValue` would give callers a struct they cannot read; exposing a fallible function without
+//! its error type would give them a `Result` they cannot match on. Those companions are not surface
+//! creep, they are what makes the facade usable.
 //!
-//! M7 chiude il resto: gli otto pipe `standard_funcs::pdf_extract` (D-M7-1), i tre livelli del
-//! repo formati con `Algorithm::load` che li fonde, e **`TablePosMeasureUnit`**, che risolve
-//! `PLAN.md` §13 punto 4 — il tipo esisteva nel riferimento, in `position.py`, come unità di
-//! misura della tolleranza del `get_table_coordinates` che parte dalle *righe* di una pagina.
-//! Quel wrapper è ciò che §9 elenca e ciò che gli autori di formato chiamano davvero, quindi è lui
-//! a portare qui il nome `get_table_coordinates`; la funzione per celle già costruite di
-//! `tabularizer::coordinates`, esportata da M3 con quel nome, diventa
-//! `get_table_coordinates_from_cells`. È l'unica rinomina di questa superficie finora, e riguarda
-//! solo l'alias pubblico: dentro il crate i due nomi restano quelli di sempre.
+//! A few public names differ from their internal ones, where the internal name is right inside the
+//! crate but ambiguous outside it — see [`utils::pdf_extract`] for the only two cases.
 
 pub mod consts {
+    //! The closed vocabularies an extracted value can take: currency, instrument kind, SFDR
+    //! article.
     pub use crate::commons::consts::{Currency, FinancialInstrument, SfdrArticle};
 }
 
 pub mod core {
-    //! `PLAN.md` §9 elenca `PdfBlock`, `TextBlock` e `Promise`; a questi si aggiungono
-    //! `BlockType` e `BlockValue`, che l'elenco non nominava ma senza i quali i due blocchi sono
-    //! inutilizzabili — sono i tipi dei loro campi pubblici. `BlockValueError` viaggia con
-    //! `BlockValue` per la stessa ragione: e' l'errore che restituiscono i suoi accessori.
+    //! The extraction engine: documents, pages, pipelines, promises, and the algorithm that runs
+    //! them.
     //!
-    //! M5 aggiunge i due tipi che `PLAN.md` §9 elencava e che non esistevano ancora, `Pipeline` e
-    //! `Algorithm`, e con loro il resto del motore. Come già per `BlockType`/`BlockValue` in M2,
-    //! l'elenco di §9 nomina solo le due facciate: da fuori il crate non si può costruire un
-    //! `Algorithm` senza i tipi dei suoi argomenti (`PipelineName`, `Schedule`, `PageClass`,
-    //! `PageClassFinalizer`), non si può scrivere un pipe senza il suo trait e senza
-    //! `FilterData`/`Extracted`/`PipeError`, e non si possono leggere i risultati senza
-    //! `DocumentOutcome`/`PageOutcome`. Sono tutti tipi di firme pubbliche già esposte, non
-    //! superficie nuova per scelta.
+    //! [`Algorithm`] is the entry point — it turns a [`Document`] into [`DocumentOutcome`]s — and
+    //! the rest of this module is what a caller needs to build one, to write a pipe for it, or to
+    //! read its results. [`Parallelism`] is the argument of the `*_with` variants of those methods;
+    //! without it only the sequential signatures are reachable from outside the crate.
     pub use crate::core::algorithm::{
         Algorithm, AlgorithmError, DocumentOutcome, PageClassFinalize, PageClassFinalizer,
         PageOutcome,
     };
     pub use crate::core::classes::{BlockType, BlockValue, BlockValueError, PdfBlock, TextBlock};
     pub use crate::core::page::{Document, DocumentId, FormatName, Page, PageError, PageImage};
-    // P2: il parametro con cui si chiedono le varianti `*_with` di `Algorithm`. Senza, da fuori
-    // il crate esistono solo le firme sequenziali.
     pub use crate::core::parallelism::Parallelism;
     pub use crate::core::pipeline::bundle::PipelinesBundle;
     pub use crate::core::pipeline::{
@@ -75,11 +47,20 @@ pub mod core {
 }
 
 pub mod utils {
+    //! Geometry helpers a format author reaches for while writing a `pdf_extract` pipe.
     pub mod pdf_extract {
-        //! Sottoinsieme di `PLAN.md` §9 già disponibile a fine M3: le config di
-        //! posizionamento/tabularizzazione e i loro tipi di supporto. `Limits` viene da
-        //! `commons::geometry` (M1) ma è qui perché è il tipo dei campi `limits` di
-        //! `RowConfig`/`ColumnConfig` — senza, quelle due struct non sono costruibili da fuori.
+        //! Positioning and tabularisation: turning the blocks of a page into rows, columns and
+        //! tables.
+        //!
+        //! Two names differ from their internal ones. Inside the crate,
+        //! `coordinates::get_table_coordinates` takes cells that are already built and
+        //! `tabularizer::get_table_coordinates_from_lines` starts from the lines of a page; from
+        //! outside, the second is the one format authors actually call, so it takes the plain name
+        //! here and the first becomes `get_table_coordinates_from_cells`.
+        //!
+        //! `Limits` belongs to `commons::geometry` rather than here, but it is the type of the
+        //! `limits` field of both [`RowConfig`] and [`ColumnConfig`]: without it neither struct can
+        //! be built.
         pub use crate::commons::geometry::Limits;
         pub use crate::formats_utils::pdf_extract::position::{
             ColumnConfig, PositionError, RowConfig, TableConfig, get_groups,
@@ -107,26 +88,27 @@ pub mod utils {
 }
 
 pub mod input {
-    //! Non elencato da `PLAN.md` §9 (che per `input` nomina solo `load_target_companies`/
-    //! `compile_target_companies`, `input::companies_db`, fuori scope qui) — gap fra §9 e lo
-    //! scope necessario, stesso trattamento di `TablePosMeasureUnit` (vedi `STATUS.md`). Senza un
-    //! punto d'ingresso che apra un PDF reale, nessun consumatore fuori da questo crate potrebbe
-    //! mai costruire un `Document` (M6, Q2 confermata dall'utente,
-    //! `agent-memory/M6-implementation-plan.md`).
+    //! Opening a PDF and reading its pages.
+    //!
+    //! The engine consumes [`Document`](super::core::Document) values, and this is the only way to
+    //! obtain a real one from a path — everything else in the surface assumes the document already
+    //! exists.
     pub use crate::input::document::{DocumentError, load_document, load_document_pages};
 }
 
 pub mod standard_funcs {
-    //! I pipe pronti che i repo formati costruiscono dai propri file di configurazione.
+    //! The ready-made pipes that a formats repository builds from its own configuration files.
     //!
-    //! `PLAN.md` §9 elenca tre famiglie; M7 abilita quella `pdf_extract` (decisione D-M7-1) e la
-    //! parte già esistente di `text_filter`/`deserialize` — le dieci funzioni che costruiscono
-    //! entità di `output::classes` arrivano con M8, tranne le tre anticipate da D-M7-2.
+    //! These are the three pipe families of the engine — `pdf_extract`, `text_filter`,
+    //! `deserialize` — in the form a format author selects by name instead of implementing. Writing
+    //! a format means choosing among these and configuring them; writing a *new* pipe means
+    //! implementing the corresponding trait from [`super::core`] instead.
     //!
-    //! Le tre "factory" del riferimento (`PdfExtractFundStandard` e sorelle) sono funzioni e non
-    //! tipi, perché nel riferimento non sono mai state altro che tre costruttori sopra lo stesso
-    //! tipo, `ExtractTextPdfBlockOrFailPage`.
+    //! Some of them are plain functions rather than types: where a family needs several
+    //! constructors over one underlying pipe, the constructors are functions and the pipe stays a
+    //! single type.
     pub mod pdf_extract {
+        //! Pipes that turn a raw page into blocks: text, tables, page classification.
         pub use crate::formats_utils::pdf_extract::standard_funcs::{
             AssetsColumn, AssetsStandardArgs, ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs,
             PdfExtractAssetsStandard, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
@@ -136,9 +118,7 @@ pub mod standard_funcs {
     }
 
     pub mod text_filter {
-        //! M8 aggiunge le tre funzioni restanti (`TextFilterSfdrArticleStandard`,
-        //! `TextFilterManagmentCompanyStandard`, `TextFilterAssetsStandard`), che dipendevano da
-        //! `output::classes`.
+        //! Pipes that keep only the blocks belonging to the funds and fields being looked for.
         pub use crate::formats_utils::text_filter::standard_funcs::{
             StandardFuncsError, TextFilterAssetsStandard, TextFilterInvestmentsStandard,
             TextFilterManagmentCompanyStandard, TextFilterPageClassifyStandard, TextFilterSfdrArticleStandard,
@@ -146,10 +126,7 @@ pub mod standard_funcs {
     }
 
     pub mod deserialize {
-        //! M8 aggiunge le cinque funzioni restanti (`DeserializeSfdrArticleStandard`,
-        //! `DeserializerManagmentCompanyStandard`, `DeserializerInvestmentsManagerFromManco`,
-        //! `DeserializerInvestmentsManagerStandard`, `DeserializerAssetsStandard`), che dipendevano
-        //! da `output::classes` — chiude anche M4.
+        //! Pipes that turn surviving blocks into the typed entities of [`super::super::output`].
         pub use crate::formats_utils::deserialize::standard_funcs::{
             DeserializeSfdrArticleStandard, DeserializeStandardFuncsError, DeserializerAssetsStandard,
             DeserializerFundStandard, DeserializerInvestmentStandard, DeserializerInvestmentsManagerFromManco,
@@ -160,27 +137,22 @@ pub mod standard_funcs {
 }
 
 pub mod formats_repo {
-    //! Il caricamento di un repo formati.
+    //! Loading a formats repository.
     //!
-    //! `PLAN.md` §9 non elenca questo modulo, perché la sua unica facciata è `Algorithm::load`,
-    //! che vive già su `core::Algorithm`. Sono riesportati comunque il tipo d'errore — senza il
-    //! quale `load` non è gestibile da fuori — e le due funzioni di riconoscimento del formato da
-    //! URL, che sono ciò che un chiamante usa *prima* di sapere quale formato caricare.
+    //! The main facade is `Algorithm::load`, which lives on [`Algorithm`](super::core::Algorithm);
+    //! exported here are its error type and the two format-recognition helpers, which a caller uses
+    //! *before* it knows which format to load — mapping a document URL to a format name.
     pub use crate::formats_repo::LoadError;
     pub use crate::formats_repo::load_pipelines;
     pub use crate::formats_repo::metadata::{MetadataError, get_formats, get_url_mapping, url_to_format};
 }
 
 pub mod output {
-    //! Le entità prodotte dai pipe `deserialize`.
+    //! The entities produced by `deserialize` pipes: what an extraction run ultimately yields.
     //!
-    //! **Completo da M8.** `PLAN.md` §9 elenca questa superficie con nomi che non corrispondono
-    //! a quelli reali del codice (`FundChangeName` singolare invece di `FundRename`/`FundMerge`;
-    //! `SfdrArticle` invece di `FundSfdrClassification`, che collide col nome già pubblico di
-    //! `consts::SfdrArticle`; `FundEsgIndicators` plurale invece di `FundEsgIndicator` singolare)
-    //! — riesportati qui sono i nomi **reali** già scelti nel codice, non la lettera di §9
-    //! (`PLAN.md` §13, decisione Q2, stessa filosofia già usata per `get_table_coordinates`/
-    //! `TablePosMeasureUnit` in M7). M7 aveva anticipato `Fund`/`Equity`/`Bond` (decisione D-M7-2).
+    //! One name deserves an explanation: `FundSfdrClassification` is the fund-level entity,
+    //! distinct from [`consts::SfdrArticle`](super::consts::SfdrArticle), which is the enumerated
+    //! article value carried inside it.
     pub use crate::output::classes::assets_manager::{AssetsManagerData, InvestmentsManager, ManagementCompany};
     pub use crate::output::classes::fund::Fund;
     pub use crate::output::classes::fund_assets::FundAssets;
@@ -192,10 +164,10 @@ pub mod output {
 }
 
 pub mod cli {
-    //! M9 chiude `PLAN.md` §9: `cli::{CliArgs, execute}` -- superficie minima per invocare il
-    //! binario da codice esterno (di libreria o di test) senza passare da `main`. `CliError` è
-    //! riesportato insieme, senza il quale l'esito di `execute` non sarebbe gestibile da fuori
-    //! crate (stesso principio già seguito per `BlockValueError`/`PromiseError` in M2).
+    //! Driving the command-line application from code.
+    //!
+    //! [`CliArgs`] plus [`execute`] are what `main` itself uses, exposed so that an embedding
+    //! program or an integration test can run a whole job without shelling out to the binary.
     pub use crate::cli::config_locations::cmd::CliArgs;
     pub use crate::cli::run::{CliError, execute};
 }

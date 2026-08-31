@@ -1,126 +1,27 @@
-//! Pipe `text_filter` standard — porting di
-//! `freeports_core/src/formats_utils/text_filter/standard_funcs.rs`.
+//! The standard `text_filter` pipes: deciding which of a page's blocks concern the funds and
+//! companies being looked for.
 //!
-//! **Scope.** M4 ha portato la parte che non dipendeva dal motore
-//! (`TextFilterPageClassifyStandard`, `extract_currency_from_text`); M5 ha aggiunto
-//! `TextFilterInvestmentsStandard` — con `PdfBlocksTable` inlined, come nel riferimento — che
-//! dal `filter_data` legge **solo** le `CompanyMatchInfos` ed è quindi diventato costruibile non
-//! appena `FilterData` è esistito. Restano fuori `TextFilterSfdrArticleStandard`,
-//! `TextFilterManagmentCompanyStandard` e `TextFilterAssetsStandard`, che dal `filter_data`
-//! estraggono `Fund`/`Equity`/`Bond`: dipendono da `output::classes` (M8), non dal motore.
+//! The most substantial of them is [`TextFilterInvestmentsStandard`], which walks the investments
+//! table one row at a time, asks whether any target company is named in the row, and if so reads
+//! the row's fields at the offsets the format configured. [`TextFilterPageClassifyStandard`]
+//! reduces a page's classification contributions to one, and the remaining three pick out the SFDR
+//! article, the management company and the fund's assets.
 //!
-//! Da M5 i pipe di questo modulo implementano il trait
-//! [`TextFilterPipe`](crate::core::pipeline::TextFilterPipe): il metodo `call` inerente resta
-//! come API diretta e tipizzata sui suoi errori, il trait è la forma che il motore usa e che
-//! traduce quegli errori in [`PipeError`].
+//! # Reading a currency out of free text
 //!
-//! **Contratto atteso dai test qui sotto** (il test-writer non scrive codice di produzione):
+//! [`extract_currency_from_text`] makes two passes. First, every three-uppercase-letter word in the
+//! text **as written**, in the order it appears, and the first that is a valid code wins. Only if
+//! none is does it fall back to scanning the upper-cased text for each known ISO code in turn, then
+//! for the `EURO` alias.
 //!
-//! ```text
-//! pub struct TextFilterPageClassifyStandard;
-//! impl TextFilterPageClassifyStandard {
-//!     pub fn call(&self, pdf_blks: &[PdfBlock]) -> Result<Vec<TextBlock>, StandardFuncsError>;
-//! }
+//! Order matters, and the first pass exists to get it right: scanning for known codes finds
+//! whichever code happens to come first in the *list of currencies*, not the one the document
+//! actually declared. Neither pass ever matches a fragment that is not delimited by a word
+//! boundary, so `"EURUSD"` and `"100EUR"` are not currencies.
 //!
-//! pub fn extract_currency_from_text(text: &str) -> Result<Currency, StandardFuncsError>;
-//!
-//! #[derive(Debug, thiserror::Error)]
-//! pub enum StandardFuncsError { /* un enum locale, stesso trattamento provvisorio di
-//!     CommonsError (M3, pdf_extract::commons) — verra' assorbito da PipeError in M5 */ }
-//! ```
-//!
-//! `TextFilterPageClassifyStandard::call`: itera `pdf_blks` **nell'ordine dato**; ogni blocco
-//! deve gia' avere in `metadata` la chiave `"page_type"` (impostata a monte da un pipe
-//! `pdf_extract`, eventualmente a `BlockValue::Null` se quel blocco non e' classificato) — legge
-//! quel campo con `metadata_or_fail("page_type")`. Se piu' di un blocco porta un `page_type`
-//! diverso da `Null`, e' un errore (anche se i due valori non-null fossero uguali fra loro conta
-//! comunque come "gia' trovato un valore" nel riferimento: qui pero' i test si limitano al caso
-//! con valori diversi, l'unico specificato dal piano). Il risultato e' un singolo `TextBlock` di
-//! tipo `BlockType::PAGE_CLASS`, costruito con `TextBlock::new` dall'**ultimo** `PdfBlock` della
-//! lista (non il primo — facile da invertire per errore nel porting), con
-//! `metadata = {"page_type": <valore trovato, o Null se nessuno}`. `pdf_blks` vuoto e' un errore.
-//!
-//! `extract_currency_from_text`: due passate, la prima vince appena trova qualcosa (bugfix gia'
-//! documentato nel riferimento — un vecchio flag `found` che doveva interrompere la scansione di
-//! fallback dopo il primo match non veniva mai impostato, quindi l'ultima valuta dichiarata
-//! nell'enum vinceva sempre invece della prima incontrata nel testo; qui la prima passata che
-//! trova qualcosa restituisce subito, senza continuare):
-//! 1. Cerca ogni sotto-stringa di 3 lettere maiuscole delimitata da confini di parola (`\b`) nel
-//!    testo **cosi' come scritto** (non maiuscolizzato), **nell'ordine in cui appaiono**; per la
-//!    prima che e' un codice/nome valido (`Currency::from_name`), restituisce quella valuta.
-//! 2. Se nessuna delle candidate sopra e' valida (incluso il caso "nessuna candidata trovata"),
-//!    prova, sul testo maiuscolizzato, il codice ISO di ogni `Currency::variants()` **in ordine
-//!    di dichiarazione**, delimitato da `\b`; poi prova l'alias `"EURO"` allo stesso modo. La
-//!    prima che matcha vince.
-//! 3. Se niente matcha in nessuna delle due passate, e' un errore.
-//!
-//! Nessuna delle due passate individua mai una sotto-stringa che non sia delimitata da un confine
-//! di parola vero e proprio: una tripletta di lettere maiuscole incollata ad altre lettere o
-//! cifre adiacenti (es. `"EURUSD"`, `"100EUR"`) non conta.
-//!
-//! ---
-//!
-//! **M8 (`agent-memory/M8-implementation-plan.md` §2/§3, passo 9): le tre funzioni restanti.**
-//!
-//! ```text
-//! pub struct TextFilterSfdrArticleStandard { /* prefissi letterali + regex, demand_investment_funds_match */ }
-//! impl TextFilterSfdrArticleStandard {
-//!     pub fn new(prefix_strings: Vec<String>, prefix_patterns: Vec<String>, demand_investment_funds_match: bool)
-//!         -> Result<Self, StandardFuncsError>;
-//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
-//! }
-//!
-//! pub struct TextFilterManagmentCompanyStandard;
-//! impl TextFilterManagmentCompanyStandard {
-//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
-//! }
-//!
-//! pub struct TextFilterAssetsStandard { /* date_regex: Option<Regex>, remove_from_fund_regexes: Vec<Regex> */ }
-//! impl TextFilterAssetsStandard {
-//!     pub fn new(date_regex: Option<&str>, remove_from_fund_regexes: Vec<String>) -> Result<Self, StandardFuncsError>;
-//!     pub fn call(&self, pdf_blks: &[PdfBlock], data: &FilterData<'_>) -> Result<Vec<TextBlock>, StandardFuncsError>;
-//! }
-//! ```
-//!
-//! **`TextFilterSfdrArticleStandard::call`**: prende il **primo** blocco di `pdf_blks` (lista
-//! vuota -> [`StandardFuncsError::NoPdfBlocks`], già esistente — stesso errore di
-//! `TextFilterPageClassifyStandard`, non un errore "non fatale" come `ExpectedTextBlockNotFound`,
-//! perché nel riferimento nessuno lo cattura), legge `content` (nome fondo), toglie i prefissi
-//! letterali (`str::replace`) e poi quelli a pattern (`Regex::replace_all` con `""`), in
-//! quest'ordine. Costruisce un `MatchFund` dal nome ripulito; verifica appartenenza all'insieme
-//! dei fondi-investimento (`Equity`/`Bond` **risolti** — `.data.fund.resolved()` — visti in
-//! `data.previous()`) **solo se** `demand_investment_funds_match` è vero. Se il match non serve o
-//! è soddisfatto: un blocco `SFDR_ARTICLE` con `content` = nome ripulito, `metadata` = quella del
-//! primo blocco pdf (porta già `"article"`, scritta da `PdfExtractSfdrArticleStandard`, M7).
-//! Altrimenti: lista vuota, non un errore.
-//!
-//! **`TextFilterManagmentCompanyStandard::call`**: costruisce l'insieme dei `MatchFund` dai
-//! `Fund` **risolti** (`.name()`) visti in `data.previous()`; cerca il **primo** blocco
-//! `MANAGEMENT_COMPANY` fra `pdf_blks` (nessuno trovato ->
-//! [`StandardFuncsError::ExpectedTextBlockNotFound`], variante già esistente); chiama
-//! `standard_management_company_txt_blk` (M4) — non lo reimplementa.
-//!
-//! **`TextFilterAssetsStandard::call`**: itera **tutti** i `pdf_blks` (nessun filtro per
-//! `type_block`: si presume che il segmento gli passi solo `RELEVANT_BLOCK` prodotti da
-//! `PdfExtractAssetsStandard`), legge `metadata["fund"]` (obbligatorio), applica
-//! `remove_from_fund_regexes` (0+ pattern, sostituzione con `""`, applicati **prima** del
-//! confronto), verifica appartenenza all'insieme dei `Fund` risolti di `data.previous()` — un
-//! fondo non presente **non produce nulla per quel blocco** (non un errore, il ciclo continua con
-//! gli altri blocchi). Se presente: applica opzionalmente `date_regex` su `metadata["date"]` (un
-//! solo gruppo catturante — validato **a costruzione**, non a chiamata: un pattern con zero o più
-//! di un gruppo è un [`StandardFuncsError::InvalidPattern`] al momento di `new`, non un panic su
-//! `.at(1)` a runtime); un valore che non matcha affatto il pattern configurato è invece
-//! [`StandardFuncsError::DateRegexMismatch`] a chiamata. Converte `metadata["currency"]` con
-//! [`extract_currency_from_text`] (già in questo file) e la riscrive come `BlockValue::Currency`
-//! — coerente con la decisione di `DeserializerAssetsStandard` (M8,
-//! `formats_utils::deserialize::standard_funcs`) di accettare una valuta già tipizzata come
-//! percorso primario. Il blocco risultante è `TextBlock::from_content(RELEVANT_BLOCK, metadata,
-//! "")`, come nel riferimento.
-//!
-//! **Due varianti nuove di [`StandardFuncsError`]**, che l'implementer deve aggiungere (il
-//! test-writer non tocca l'enum esistente): `InvalidPattern { pattern: String, message: String }`
-//! (pattern regex non valido, o con un numero di gruppi catturanti sbagliato, a costruzione) e
-//! `DateRegexMismatch { text: String }` (il pattern è valido ma non matcha il valore a chiamata).
+//! Every pipe here implements [`TextFilterPipe`]; the
+//! inherent `call` stays as a direct API typed on its own errors, and the trait is the form the
+//! engine uses.
 
 use once_cell::sync::Lazy;
 use onig::Regex;
@@ -148,13 +49,12 @@ pub enum StandardFuncsError {
     Value(#[from] crate::core::classes::value::BlockValueError),
     #[error("no currency found in text")]
     NoCurrencyFound,
-    /// Il testo su cui il pipe si aspettava di trovare un blocco non c'è. **Non è fatale**:
-    /// `TextFilterInvestmentsStandard::run_loop` lo assorbe e passa alla riga successiva, come il
-    /// riferimento fa catturando `ExpectedTextBlockNotFound`.
+    /// The block the pipe expected to find is not there. **Not fatal**: the row is skipped and the
+    /// loop moves on.
     #[error("matching text block not found")]
     ExpectedTextBlockNotFound,
-    /// La pagina non è interpretabile: diventa un fallimento di pagina, che l'algoritmo assorbe
-    /// saltando la pagina intera.
+    /// The page cannot be interpreted: becomes a page failure, which the algorithm absorbs by
+    /// skipping the page.
     #[error("{message}")]
     PageParseFail { message: String },
     #[error("two subfunds in the same page")]
@@ -167,22 +67,21 @@ pub enum StandardFuncsError {
     Match { message: String },
     #[error("inconsistent investments table: {message}")]
     InconsistentTable { message: String },
-    /// Un pattern regex non e' valido, o non ha il numero di gruppi catturanti richiesto —
-    /// verificato a **costruzione**, non a chiamata.
+    /// A regex pattern is invalid, or does not have the required number of capture groups — checked
+    /// at **construction**, not at call time, so a misconfigured format fails when it is loaded.
     #[error("invalid pattern '{pattern}': {message}")]
     InvalidPattern { pattern: String, message: String },
-    /// Il pattern e' valido ma non matcha il valore dato a chiamata.
+    /// The pattern is valid but does not match the value given at call time.
     #[error("value '{text}' does not match the configured date pattern")]
     DateRegexMismatch { text: String },
 }
 
 impl StandardFuncsError {
-    /// Traduzione nell'errore del motore. Il nome del pipe non è ricavabile dall'errore, quindi lo
-    /// passa il chiamante — stessa forma di [`PipeError::from_commons`].
+    /// Translates into the engine's error type. The pipe's name cannot be recovered from the error,
+    /// so the caller supplies it.
     ///
-    /// Solo [`StandardFuncsError::PageParseFail`] diventa un fallimento **non fatale** di pagina:
-    /// tutto il resto interrompe l'elaborazione, come nel riferimento, dove solo `PageParseFail`
-    /// è catturato dal ciclo dello schedule.
+    /// Only [`StandardFuncsError::PageParseFail`] becomes a **non-fatal** page failure; everything
+    /// else stops the run.
     pub fn into_pipe_error(self, pipe: &str) -> PipeError {
         match self {
             StandardFuncsError::Value(source) => PipeError::value(pipe, source),
@@ -213,8 +112,8 @@ impl TextFilterPageClassifyStandard {
             }
         }
         let page_type = found.cloned().unwrap_or(BlockValue::Null);
-        // Come per `PdfExtractPageClassifyStandard`: la non-classificazione e' il caso normale su
-        // quasi ogni pagina, e loggarla riempirebbe il file senza dire niente.
+        // As for the page classifier: not being classified is the normal case on nearly every page,
+        // and logging it would fill the file without saying anything.
         if !page_type.is_null() {
             tracing::debug!(coord_ref_2 = ?page_type, "page class assigned");
         }
@@ -230,15 +129,10 @@ fn word_boundary_pattern(word: &str) -> Regex {
     Regex::new(&format!(r"\b{word}\b")).expect("currency code/alias is a fixed, valid pattern")
 }
 
-/// Estrae una [`Currency`] da testo libero — vedi il doc-comment del modulo per l'algoritmo a due
-/// passate (prima passata su candidate a tre lettere maiuscole nell'ordine in cui appaiono nel
-/// testo cosi' com'e' scritto, seconda passata sui codici ISO/alias `EURO` nel testo
-/// maiuscolizzato).
+/// Extracts a [`Currency`] from free text; see the module documentation for the two passes.
 ///
-/// **Nota su `onig`**: `Regex::is_match` in questo crate testa un match sull'*intera* stringa
-/// (vedi la sua doc "Match vs Search"), non una ricerca al suo interno — a differenza di
-/// `Regex::find`/`find_iter`, che cercano ovunque. Ogni controllo qui sotto usa quindi `find`,
-/// non `is_match`, per un pattern che deve poter matchare in qualunque posizione del testo.
+/// Every check below uses a search rather than a whole-string match, because the pattern has to be
+/// able to match anywhere in the text.
 pub fn extract_currency_from_text(text: &str) -> Result<Currency, StandardFuncsError> {
     for (start, end) in ISO_CODE_CANDIDATE.find_iter(text) {
         if let Some(currency) = Currency::from_name(&text[start..end]) {
@@ -273,54 +167,49 @@ impl TextFilterPipe for TextFilterPageClassifyStandard {
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// TextFilterInvestmentsStandard, con PdfBlocksTable inlined (è il suo unico chiamante reale)
-// ---------------------------------------------------------------------------------------------
 
-/// La tabella degli investimenti di una pagina, ricostruita dai metadati `table-row`/`table-col`
-/// dei blocchi PDF.
+// ----------------------------------------------------------------------------------------------
+// TextFilterInvestmentsStandard, with PdfBlocksTable inlined (its only real caller)
+// ----------------------------------------------------------------------------------------------
+/// A page's investments table, rebuilt from the `table-row` and `table-col` metadata of its PDF
+/// blocks.
 ///
-/// Porting di `PdfBlocksTable` del riferimento, con una semplificazione resa possibile
-/// dall'uscita da Python: là la tabella tiene **due** viste degli stessi oggetti (`_blks` piatta e
-/// `_table` per riga/colonna) e conta sull'aliasing di Python perché una mutazione fatta da una
-/// vista si veda dall'altra. Qui i blocchi sono valori, non riferimenti: l'aliasing non esiste e
-/// non serve, quindi la vista per riga/colonna conserva **indici** nella lista piatta, che è
-/// l'unica proprietaria. Il comportamento osservabile è lo stesso; sparisce la possibilità che le
-/// due viste divergano.
+/// The grid holds **indices** into the flat list of blocks, which is the sole owner, rather than a
+/// second set of references to the same blocks. One owner means the two views cannot drift apart,
+/// which is the failure mode of keeping both.
 ///
-/// Assunzione ereditata dal riferimento: i valori di `table-row` sono `0..n_righe`, contigui.
-/// Là violarla dà un `IndexError`; qui dà [`StandardFuncsError::InconsistentTable`].
+/// Assumes the `table-row` values are contiguous from zero; violating that is
+/// [`StandardFuncsError::InconsistentTable`] rather than an out-of-range access.
 struct PdfBlocksTable {
     blks: Vec<PdfBlock>,
-    /// riga → colonna → indici in `blks` che occupano quella cella (di norma 0 o 1; più d'uno è
-    /// possibile ed è gestito, come nel riferimento).
+    /// row → column → indices into `blks` occupying that cell; normally zero or one, but more is
+    /// possible and handled.
     indexes: Vec<Vec<Vec<usize>>>,
 }
 
-/// Che cosa c'è in una cella.
+/// What a cell holds.
 ///
-/// [`Cell::Many`] non porta i blocchi: nel riferimento la cella con più blocchi restituisce la
-/// lista grezza, e i suoi due soli chiamanti o guardano solo "è occupata?" (indifferente) o
-/// leggono subito `.content`, che su una lista solleva `AttributeError` e viene catturato
-/// ricadendo su `None`. Qui la variante senza dati esprime esattamente quelle due risposte —
-/// "occupata" sì, "leggibile" no — senza tenere valori che nessuno legge.
+/// [`Cell::Many`] deliberately carries no blocks: its only two consumers either ask whether the
+/// cell is occupied, or read a single content that a multi-block cell cannot provide. The variant
+/// expresses exactly those two answers — occupied yes, readable no — without holding values nobody
+/// reads.
 enum Cell<'a> {
     Empty,
     One(&'a PdfBlock),
     Many,
 }
 
-/// Legge un metadato intero obbligatorio di un blocco della tabella.
+/// Reads a required integer metadata field of a table block.
 fn table_meta_int(block: &PdfBlock, field: &str) -> Result<i64, StandardFuncsError> {
     Ok(block.metadata_or_fail(field)?.int_or_fail(field)?)
 }
 
-/// Legge un metadato booleano obbligatorio di un blocco della tabella.
+/// Reads a required boolean metadata field of a table block.
 fn table_meta_bool(block: &PdfBlock, field: &str) -> Result<bool, StandardFuncsError> {
     Ok(block.metadata_or_fail(field)?.bool_or_fail(field)?)
 }
 
-/// Il contenuto testuale di un blocco della tabella.
+/// The text content of a table block.
 fn table_content(block: &PdfBlock) -> Result<String, StandardFuncsError> {
     Ok(block.content.str_or_fail("content")?.to_string())
 }
@@ -356,15 +245,15 @@ impl PdfBlocksTable {
         self.indexes.iter().map(Vec::len).max().unwrap_or(0)
     }
 
-    /// `self._blks[i]` di Python, indici negativi compresi (`-1` = ultimo).
+    /// Indexes the flat list, negative indices included, where `-1` is the last.
     fn get_flat(&self, i: i64) -> Option<&PdfBlock> {
         let len = self.blks.len() as i64;
         let idx = if i < 0 { i + len } else { i };
         (0..len).contains(&idx).then(|| &self.blks[idx as usize])
     }
 
-    /// `self._table[row][col]` di Python, indici negativi compresi; fuori range è una cella vuota,
-    /// non un errore (è ciò che fa il riferimento).
+    /// Indexes the grid, negative indices included; out of range is an empty cell rather than an
+    /// error, since a table with a ragged edge is normal.
     fn get_cell(&self, row: i64, col: i64) -> Cell<'_> {
         let rows = self.indexes.len() as i64;
         let r = if row < 0 { row + rows } else { row };
@@ -384,9 +273,8 @@ impl PdfBlocksTable {
         }
     }
 
-    /// Toglie il blocco in posizione `j` dalla lista piatta e dalla griglia, ricompattando gli
-    /// indici. Se la riga resta vuota, la riga sparisce e i `table-row` delle righe successive
-    /// scalano di uno.
+    /// Removes the block at `j` from both the flat list and the grid, recompacting the indices. If
+    /// the row is left empty it disappears and the following rows shift up by one.
     fn pop(&mut self, j: usize) -> Result<(), StandardFuncsError> {
         if j >= self.blks.len() {
             return Err(StandardFuncsError::InconsistentTable {
@@ -431,8 +319,8 @@ impl PdfBlocksTable {
         Ok(())
     }
 
-    /// Fonde il contenuto dei blocchi `j` e `i` — nell'ordine in cui compaiono nella lista, non
-    /// nell'ordine degli argomenti — scrivendo il risultato in `i` e togliendo `j`.
+    /// Merges the contents of blocks `j` and `i` — in the order they appear in the list, not the
+    /// order of the arguments — writing the result into `i` and removing `j`.
     fn merge(&mut self, j: usize, i: usize) -> Result<(), StandardFuncsError> {
         let (first, last) = if i < j { (i, j) } else { (j, i) };
         if first >= self.blks.len() || last >= self.blks.len() {
@@ -450,28 +338,26 @@ impl PdfBlocksTable {
     }
 }
 
-/// Dove si trova la riga che si sta estraendo: la posizione nella lista piatta, la cella
-/// d'ancoraggio nella griglia e la larghezza della tabella.
+/// Where the row being extracted is: its position in the flat list, its anchor cell in the grid,
+/// and the table's width.
 ///
-/// I tre valori viaggiano sempre insieme (`run_loop` li calcola una volta e li passa sia a
-/// `push_extracted_field` sia a `extract_field`), quindi stanno in una struct invece che in tre
-/// parametri ripetuti.
+/// The three always travel together, so they live in a struct rather than as three repeated
+/// parameters.
 #[derive(Debug, Clone, Copy)]
 struct RowAnchor {
-    /// Posizione della riga nella lista piatta dei blocchi.
+    /// The row's position in the flat list of blocks.
     flat_index: i64,
-    /// Cella `(riga, colonna)` da cui partono gli spiazzamenti geometrici.
+    /// The `(row, column)` cell the geometric offsets start from.
     base: (i64, i64),
-    /// Numero di colonne della tabella, per il rientro degli spiazzamenti.
+    /// The table's column count, for wrapping the offsets.
     n_cols: i64,
 }
 
-/// Estrae le righe di investimento di una tabella, una per società bersaglio riconosciuta.
+/// Extracts the investment rows of a table, one per recognised target company.
 ///
-/// Le `*_pos` sono spiazzamenti rispetto alla cella d'ancoraggio: in modalità geometrica
-/// (`geometrical_indexes`) sono distanze lineari che rientrano nella riga successiva quando
-/// superano la larghezza della tabella; altrimenti sono spiazzamenti nella lista piatta dei
-/// blocchi.
+/// The `*_pos` values are offsets from the anchor cell. In geometric mode they are linear distances
+/// that wrap into the next row when they exceed the table's width; otherwise they are positions in
+/// the flat list of blocks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextFilterInvestmentsStandard {
     pub market_value_pos: i64,
@@ -479,18 +365,17 @@ pub struct TextFilterInvestmentsStandard {
     pub perc_net_assets_pos: Option<i64>,
     pub acquisition_currency_pos: Option<i64>,
     pub acquisition_cost_pos: Option<i64>,
-    /// Se vero, gli spiazzamenti sono geometrici (riga/colonna con rientro); se falso, sono
-    /// posizioni nella lista piatta.
+    /// Whether the offsets are geometric — row and column with wrapping — or positions in the flat
+    /// list.
     pub geometrical_indexes: bool,
-    /// Se vero, una cella spezzata su due blocchi viene fusa nel blocco **precedente**; se falso,
-    /// nel successivo.
+    /// Whether a cell split across two blocks merges into the **preceding** block or the following
+    /// one.
     pub merge_prev: bool,
 }
 
 impl TextFilterInvestmentsStandard {
-    /// I sette parametri sono quelli del riferimento, che li riceve dal CSV del repo formati; la
-    /// firma resta la stessa perché è `formats_repo::structured` (M7) a costruirlo da quelle
-    /// colonne.
+    /// The seven parameters come from a formats repository's configuration columns, which is what
+    /// builds this pipe.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         market_value_pos: i64,
@@ -501,9 +386,8 @@ impl TextFilterInvestmentsStandard {
         geometrical_indexes: bool,
         merge_prev: bool,
     ) -> Result<Self, StandardFuncsError> {
-        // Verbatim dal riferimento, compreso il fatto che il controllo scatta **solo** quando
-        // entrambe le posizioni opzionali sono presenti: con una sola delle due, un valore uguale
-        // a `market_value_pos` non viene rifiutato.
+        // The check fires **only** when both optional positions are present: with just one of them,
+        // a value colliding with `market_value_pos` is not rejected.
         if let (Some(nq), Some(pna)) = (nominal_quantity_pos, perc_net_assets_pos)
             && (nq == market_value_pos || nq == pna || market_value_pos == pna)
         {
@@ -520,11 +404,10 @@ impl TextFilterInvestmentsStandard {
         })
     }
 
-    /// Separa il nome del fondo e la valuta dai blocchi di tabella, poi estrae le righe.
+    /// Separates the fund name and the currency from the table blocks, then extracts the rows.
     ///
-    /// Quirk ereditato dal riferimento e conservato: se il ciclo sulla tabella non produce
-    /// **nessuna** riga, il risultato è vuoto — anche il blocco di testo del nome del fondo, già
-    /// costruito, viene scartato.
+    /// A quirk worth knowing: if the loop over the table produces **no** rows, the result is empty
+    /// — the fund-name block, already built, is discarded along with it.
     pub fn call(
         &self,
         pdf_blks: &[PdfBlock],
@@ -547,8 +430,8 @@ impl TextFilterInvestmentsStandard {
                     return Err(StandardFuncsError::TwoCurrenciesInSamePage);
                 }
                 let text = blk.content.str_or_fail("content")?;
-                // Qui — e solo qui — una valuta non riconosciuta fa fallire la **pagina**, non il
-                // documento: è il `PageParseFail` del riferimento.
+                // Here, and only here, an unrecognised currency fails the **page** rather than the
+                // document.
                 currency_found = Some(extract_currency_from_text(text).map_err(|e| {
                     StandardFuncsError::PageParseFail { message: e.to_string() }
                 })?);
@@ -560,9 +443,8 @@ impl TextFilterInvestmentsStandard {
         let mut inv = self.run_loop(&investments_blks, target_companies)?;
         if inv.is_empty() {
             if !results.is_empty() {
-                // Quirk of the reference, preserved verbatim (see the doc-comment above): the
-                // fund/currency blocks already built above are discarded along with the empty
-                // investments table.
+                // The quirk described above: the fund and currency blocks already built are
+                // discarded along with the empty investments table.
                 tracing::debug!(
                     "no investment rows extracted - discarding the fund/currency blocks already built for this page"
                 );
@@ -580,8 +462,8 @@ impl TextFilterInvestmentsStandard {
         Ok(results)
     }
 
-    /// Il ciclo sulle righe della tabella: per ogni blocco, decide se è spezzato sulla riga
-    /// successiva, cerca una società bersaglio nel suo testo e, se la trova, ne estrae i campi.
+    /// The loop over the table's rows: for each block, decide whether it is split onto the next
+    /// row, look for a target company in its text, and if one is found extract the row's fields.
     fn run_loop(
         &self,
         pdf_blocks: &[PdfBlock],
@@ -595,9 +477,8 @@ impl TextFilterInvestmentsStandard {
         let n_cols = table.n_cols() as i64;
 
         let mut i: i64 = 0;
-        // Deliberatamente dichiarata **fuori** dal ciclo: la coda sotto la riusa con il valore
-        // che il ciclo le ha lasciato (0 se il ciclo non è mai girato), non con la colonna
-        // dell'ultimo blocco. È così nel riferimento.
+        // Deliberately declared **outside** the loop: the tail below reuses it with whatever value
+        // the loop left — zero if the loop never ran — not with the column of the last block.
         let mut col: i64 = 0;
 
         while i < table.len() as i64 - 1 {
@@ -679,7 +560,7 @@ impl TextFilterInvestmentsStandard {
         Ok(out)
     }
 
-    /// La società bersaglio riconosciuta nel testo, se ce n'è una.
+    /// The target company recognised in the text, if there is one.
     fn matched_company(
         &self,
         content: &str,
@@ -690,11 +571,10 @@ impl TextFilterInvestmentsStandard {
             .map_err(|e| StandardFuncsError::Match { message: e.to_string() })
     }
 
-    /// Estrae i campi della riga e, se il blocco atteso c'era, lo accoda a `out`.
+    /// Extracts the row's fields and, if the expected block was there, appends it to `out`.
     ///
-    /// Un [`StandardFuncsError::ExpectedTextBlockNotFound`] viene **assorbito** — la riga si
-    /// salta, il ciclo prosegue — esattamente come il riferimento fa catturando l'eccezione
-    /// omonima.
+    /// A [`StandardFuncsError::ExpectedTextBlockNotFound`] is **absorbed**: the row is skipped and
+    /// the loop carries on.
     fn push_extracted_field(
         &self,
         out: &mut Vec<TextBlock>,
@@ -711,10 +591,10 @@ impl TextFilterInvestmentsStandard {
                 Ok(())
             }
             Err(StandardFuncsError::ExpectedTextBlockNotFound) => {
-                // `coord_ref_1`, non un campo `company` qualsiasi: la prima colonna di ancoraggio
-                // del `.log.csv` esiste proprio per questo, un testo con cui ritrovare la riga
-                // dentro il PDF. Come campo libero finiva fuori dalle colonne e restava leggibile
-                // solo su stderr.
+                // `coord_ref_1`, rather than an arbitrary field name: the first anchor column of
+                // the `.log.csv` exists precisely for this, a piece of text with which the row can
+                // be found again inside the PDF. As a free field it fell outside the columns and
+                // was readable only on stderr.
                 tracing::warn!(
                     coord_ref_1 = company,
                     "expected text block not found near the matched company - row skipped"
@@ -725,13 +605,10 @@ impl TextFilterInvestmentsStandard {
         }
     }
 
-    /// I campi di una riga di investimento, letti agli spiazzamenti configurati a partire dalla
-    /// cella d'ancoraggio.
+    /// The fields of one investment row, read at the configured offsets from the anchor cell.
     ///
-    /// In modalità geometrica lo spiazzamento è una **distanza lineare** che rientra nella riga
-    /// successiva quando eccede la larghezza della tabella (`rem_euclid`/`div_euclid`), non una
-    /// somma di coordinate: il ramo "tupla" del riferimento è codice morto, perché ogni `*_pos`
-    /// è sempre un intero semplice.
+    /// In geometric mode an offset is a **linear distance** that wraps into the next row when it
+    /// exceeds the table's width, not a pair of coordinates added component-wise.
     fn extract_field(
         &self,
         table: &PdfBlocksTable,
@@ -748,8 +625,8 @@ impl TextFilterInvestmentsStandard {
         let resolve = |offset: i64| -> Option<String> {
             if self.geometrical_indexes {
                 let (r, c) = base;
-                // `n_cols` non è mai zero: `run_loop` esce prima se la tabella è vuota, e ogni
-                // riga della griglia ha almeno una colonna.
+                // The column count is never zero: the loop exits earlier if the table is empty, and
+                // every row of the grid has at least one column.
                 let col_offset = (c + offset).rem_euclid(n_cols) - c;
                 let row_offset = (c + offset).div_euclid(n_cols);
                 cell_content(r + row_offset, c + col_offset)
@@ -768,7 +645,7 @@ impl TextFilterInvestmentsStandard {
         };
 
         let mut metadata = BTreeMap::new();
-        // `metadata.get("manco")` del riferimento: la chiave assente vale `None`, non è un errore.
+        // An absent key is `None` rather than an error.
         metadata.insert(
             "manco".to_string(),
             anchor.metadata.get("manco").cloned().unwrap_or(BlockValue::Null),
@@ -785,8 +662,8 @@ impl TextFilterInvestmentsStandard {
             (self.acquisition_cost_pos, "acquisition cost"),
         ] {
             if let Some(pos) = pos {
-                // A differenza di `market value`, un campo opzionale che non si trova non fa
-                // fallire l'estrazione: resta `Null`, come nel riferimento.
+                // Unlike the market value, an optional field that is not found does not fail the
+                // extraction: it stays `Null`.
                 metadata
                     .insert(name.to_string(), resolve(pos).map_or(BlockValue::Null, BlockValue::from));
             }
@@ -831,13 +708,13 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
     }
 }
 
-// Il prefisso `\A` su ogni pattern non è decorativo: il riferimento Python usa `re.match`, che
-// tenta il match **solo** dalla posizione 0, mentre `onig::Regex::captures` cerca ovunque. Senza
-// l'ancoraggio, su un contenuto come `"1,300,000.00 ITALY BTPS 3.4% ..."` (che inizia con una
-// cifra, quindi `re.match` non matcha affatto il primo pattern, che pretende una lettera iniziale)
-// una ricerca libera matcherebbe a partire da `"ITALY"` e produrrebbe un `interest rate` spurio.
-// È un caso reale, non ipotetico: il riferimento lo documenta come regressione trovata su fixture
-// vere.
+// The `\A` prefix on each pattern is not decorative: matching must begin at position 0, while a
+// free search would match anywhere.
+//
+// On a content such as `"1,300,000.00 ITALY BTPS 3.4% …"`, which starts with a digit, the first
+// pattern — which requires a leading letter — must not match at all. A free search would start
+// matching at `"ITALY"` and invent an interest rate. This is a real regression found on genuine
+// fixtures, not a hypothetical one.
 static PERC_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
     [r"\A[a-zA-Z].*((\d+[.,]\d+)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
         .into_iter()
@@ -857,9 +734,9 @@ static DATE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
     .collect()
 });
 
-/// Compila un pattern regex fornito da un repo formati, traducendo un pattern non valido in un
-/// errore tipizzato invece di un `panic!` — a differenza dei pattern fissi di libreria sopra
-/// (`PERC_REGEXES`/`DATE_REGEXES`/...), questi arrivano da configurazione esterna.
+/// Compiles a regex pattern supplied by a formats repository, turning an invalid pattern into a
+/// typed error rather than a panic. Unlike the fixed library patterns above, these come from
+/// external configuration.
 fn compile_pattern(pattern: &str) -> Result<Regex, StandardFuncsError> {
     Regex::new(pattern).map_err(|e| StandardFuncsError::InvalidPattern {
         pattern: pattern.to_string(),
@@ -867,20 +744,17 @@ fn compile_pattern(pattern: &str) -> Result<Regex, StandardFuncsError> {
     })
 }
 
-/// I fondi visti come `Fund` **risolti** (`.name()`) negli step precedenti dello schedule, come
-/// insieme di [`MatchFund`] — condiviso da `TextFilterManagmentCompanyStandard` e
-/// `TextFilterAssetsStandard`.
+/// The funds seen as **resolved** `Fund`s in the preceding steps of the schedule, as a set of
+/// [`MatchFund`].
 fn resolved_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
     data.previous().iter().filter_map(Extracted::as_fund).filter_map(Fund::name).map(MatchFund::new).collect()
 }
 
-/// Il pipe `text_filter` per la classificazione SFDR (art. 6/8/9) di un fondo.
+/// The `text_filter` pipe for a fund's SFDR classification (article 6, 8 or 9).
 ///
-/// Vedi il doc-comment del modulo per l'algoritmo esatto: prende il **primo** blocco pdf, toglie
-/// gli eventuali prefissi letterali (ancorati all'inizio della stringa, come un vero prefisso —
-/// non una sostituzione di sottostringa ovunque compaia) e poi quelli a pattern, in
-/// quest'ordine; verifica opzionalmente l'appartenenza all'insieme dei fondi-investimento visti
-/// negli step precedenti.
+/// Takes the **first** PDF block, strips the literal prefixes and then the pattern ones, in that
+/// order, and optionally checks that the resulting fund is among the investment funds seen in
+/// earlier steps.
 pub struct TextFilterSfdrArticleStandard {
     prefix_strings: Vec<String>,
     prefix_patterns: Vec<Regex>,
@@ -898,7 +772,7 @@ impl TextFilterSfdrArticleStandard {
         Ok(Self { prefix_strings, prefix_patterns, demand_investment_funds_match })
     }
 
-    /// I nomi (risolti) dei fondi-investimento (`Equity`/`Bond`) visti negli step precedenti.
+    /// The resolved names of the investment funds (equities and bonds) seen in earlier steps.
     fn resolved_investment_funds(data: &FilterData<'_>) -> BTreeSet<MatchFund> {
         data.previous()
             .iter()
@@ -916,9 +790,8 @@ impl TextFilterSfdrArticleStandard {
         let first = pdf_blks.first().ok_or(StandardFuncsError::NoPdfBlocks)?;
         let mut fund_name = first.content.str_or_fail("content")?.to_string();
 
-        // Prefissi letterali: `str::replace` — una sostituzione della sottostringa ovunque
-        // compaia, esattamente come il riferimento (`fund_name.replace(prefix.as_str(), "")`),
-        // applicati in ordine prima dei prefissi a pattern.
+        // Literal prefixes are removed as substrings wherever they occur, applied in order and
+        // before the pattern prefixes.
         for prefix in &self.prefix_strings {
             fund_name = fund_name.replace(prefix.as_str(), "");
         }
@@ -948,9 +821,8 @@ impl TextFilterPipe for TextFilterSfdrArticleStandard {
     }
 }
 
-/// Il pipe `text_filter` per la società di gestione: cerca il **primo** blocco
-/// `MANAGEMENT_COMPANY` e delega a [`standard_management_company_txt_blk`] (M4) — non lo
-/// reimplementa.
+/// The `text_filter` pipe for the management company: finds the **first** `MANAGEMENT_COMPANY`
+/// block and delegates to [`standard_management_company_txt_blk`].
 pub struct TextFilterManagmentCompanyStandard;
 
 impl TextFilterManagmentCompanyStandard {
@@ -978,9 +850,9 @@ impl TextFilterPipe for TextFilterManagmentCompanyStandard {
     }
 }
 
-/// Il pipe `text_filter` per il patrimonio di un fondo. Itera **tutti** i `pdf_blks` (nessun
-/// filtro per `type_block`: si presume che il segmento gli passi solo `RELEVANT_BLOCK` prodotti
-/// da `PdfExtractAssetsStandard`).
+/// The `text_filter` pipe for a fund's assets. Iterates **every** block without filtering by type,
+/// on the assumption that the segment hands it only the relevant blocks the assets extractor
+/// produced.
 pub struct TextFilterAssetsStandard {
     date_regex: Option<Regex>,
     remove_from_fund_regexes: Vec<Regex>,
@@ -1157,8 +1029,8 @@ mod tests {
 
         #[test]
         fn prefers_the_first_currency_mentioned_in_the_text() {
-            // Pins the already-fixed reference bug: the result must depend on which code
-            // actually appears first in the text, not on Currency's declaration order.
+            // The result must depend on which code actually appears first in the text, not on the
+            // declaration order of the currency list.
             assert_eq!(
                 extract_currency_from_text("Converted from USD to EUR").unwrap(),
                 Currency::USD
@@ -1176,7 +1048,7 @@ mod tests {
 
         #[test]
         fn does_not_match_a_code_glued_to_other_letters() {
-            // "EURUSD" is a single 6-letter word: neither "EUR" nor "USD" is a standalone,
+            // `"EURUSD"` is a single six-letter word: neither `"EUR"` nor `"USD"` is a standalone,
             // word-boundary-delimited match inside it.
             assert!(extract_currency_from_text("Ticker: EURUSD").is_err());
         }
@@ -1187,14 +1059,14 @@ mod tests {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // M5: i due pipe visti attraverso i trait del motore, e TextFilterInvestmentsStandard
-    // -----------------------------------------------------------------------------------------
 
     use crate::core::pipeline::{FilterData, PipeError, TextFilterPipe};
+    // ------------------------------------------------------------------------------------------
+    // The pipes seen through the engine's traits, and TextFilterInvestmentsStandard
+    // ------------------------------------------------------------------------------------------
     use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, TargetCompanyInput};
 
-    /// Un blocco di riga di tabella, con i tre metadati che `PdfBlocksTable` pretende.
+    /// A table-row block, with the three metadata fields the table requires.
     fn table_row(row: i64, col: i64, text: &str, is_max_width: bool) -> PdfBlock {
         let metadata = BTreeMap::from([
             ("table-row".to_string(), BlockValue::Int(row)),
@@ -1204,8 +1076,8 @@ mod tests {
         PdfBlock::new(BlockType::TABLE_BODY, metadata, text)
     }
 
-    /// Società bersaglio costruite dal solo nome — `match_company` matcha già sul nome
-    /// normalizzato, senza bisogno di regex o simboli.
+    /// Target companies built from the name alone — matching already works on the normalised name,
+    /// with no need for regexes or symbols.
     fn targets(names: &[&str]) -> Vec<CompanyMatchInfos> {
         CompanyMatchInfos::compile_from_target_companies(
             names
@@ -1221,7 +1093,7 @@ mod tests {
         .expect("names without patterns always compile")
     }
 
-    /// Il filtro nella configurazione più semplice: solo `market_value_pos`, indici geometrici.
+    /// The filter in its simplest configuration: only `market_value_pos`, geometric indices.
     fn simple_investments(market_value_pos: i64) -> TextFilterInvestmentsStandard {
         TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, false)
             .expect("positions are consistent")
@@ -1297,9 +1169,8 @@ mod tests {
 
         #[test]
         fn a_single_optional_position_is_never_checked_against_market_value() {
-            // Quirk verbatim del riferimento: il controllo scatta solo se *entrambe* le
-            // posizioni opzionali sono presenti, quindi qui la collisione con `market_value_pos`
-            // passa inosservata.
+            // The check fires only if *both* optional positions are present, so the collision with
+            // `market_value_pos` goes unnoticed here.
             assert!(
                 TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, false)
                     .is_ok()
@@ -1360,7 +1231,7 @@ mod tests {
         #[test]
         fn an_optional_field_that_is_not_there_stays_null_instead_of_failing() {
             let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
-            // `% net assets` punta alla colonna 5, che non esiste.
+            // `% net assets` points at column 5, which does not exist.
             let filter =
                 TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false)
                     .unwrap();
@@ -1371,7 +1242,7 @@ mod tests {
         #[test]
         fn a_market_value_that_is_not_there_drops_the_whole_row() {
             let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
-            // A differenza dei campi opzionali, un `market value` mancante fa saltare la riga.
+            // Unlike the optional fields, a missing market value makes the row be skipped.
             assert!(simple_investments(9).call(&blks, &targets(&["Acme Corp"])).unwrap().is_empty());
         }
 
@@ -1394,7 +1265,7 @@ mod tests {
 
         #[test]
         fn a_geometric_offset_wraps_into_the_next_row() {
-            // Tabella 2x2: dalla cella (0,0) l'offset 2 rientra nella riga successiva, colonna 0.
+            // A 2x2 table: from cell (0,0) an offset of 2 wraps into the next row, column 0.
             let blks = vec![
                 table_row(0, 0, "Acme Corp", false),
                 table_row(0, 1, "ignored", false),
@@ -1458,10 +1329,9 @@ mod tests {
 
         #[test]
         fn content_starting_with_a_digit_gets_no_spurious_interest_rate() {
-            // Regressione documentata nel riferimento: i pattern delle percentuali sono ancorati
-            // con `\A` e pretendono una lettera iniziale, quindi su un contenuto che inizia con
-            // una cifra non devono matchare — anche se "3.4%" compare piu' avanti nel testo. Una
-            // ricerca non ancorata matcherebbe a partire da "ITALY" e inventerebbe un campo.
+            // The percentage patterns are anchored and require a leading letter, so on a content
+            // starting with a digit they must not match — even though `"3.4%"` appears later in the
+            // text. An unanchored search would match from `"ITALY"` and invent a field.
             let blk = instrument_of("1,300,000.00 ITALY BTPS 3.4% 23-28/03/2025");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
             assert!(
@@ -1482,13 +1352,12 @@ mod tests {
         use super::*;
         use pretty_assertions::assert_eq;
 
-        /// Il nome della società spezzato su due blocchi consecutivi della **stessa colonna**, con
-        /// la seconda metà da sola nella riga 1.
+        /// A company name split across two consecutive blocks of the **same column**, with the
+        /// second half alone on row 1.
         ///
-        /// "Da sola" è la condizione che fa scattare la fusione: il riferimento considera una
-        /// cella spezzata solo se la riga di sondaggio ha **una sola** colonna occupata (oppure se
-        /// entrambe le colonne adiacenti sono vuote). Il valore di mercato sta quindi nella riga 0,
-        /// non nella riga 1, che deve restare occupata da un blocco solo.
+        /// "Alone" is what triggers the merge: a cell counts as split only if the probing row has a
+        /// **single** occupied column, or if both adjacent columns are empty. The market value
+        /// therefore sits on row 0, not row 1, which has to stay occupied by one block only.
         fn split_table(first: &str, second: &str, is_max_width: bool) -> Vec<PdfBlock> {
             vec![
                 table_row(0, 0, first, is_max_width),
@@ -1609,8 +1478,8 @@ mod tests {
 
         #[test]
         fn no_matched_rows_discards_the_fund_block_too() {
-            // Quirk verbatim del riferimento: se il ciclo non produce righe, il risultato e'
-            // vuoto — anche il blocco del fondo, gia' costruito, viene buttato.
+            // If the loop produces no rows the result is empty — the fund block, already built, is
+            // thrown away with it.
             let mut blks = vec![fund_block("Alpha Fund")];
             blks.extend(rows());
             assert!(
@@ -1681,8 +1550,8 @@ mod tests {
 
         #[test]
         fn a_later_schedule_step_sees_no_target_companies_and_matches_nothing() {
-            // Conseguenza diretta della semantica di `FilterData` scelta dall'utente (D-M5-1):
-            // fuori dal primo step questo pipe non ha società con cui fare match.
+            // A direct consequence of the `FilterData` semantics: outside the first step this pipe
+            // has no companies to match against.
             let previous = Vec::new();
             let out =
                 simple_investments(1).filter(&rows(), &FilterData::Previous(&previous)).unwrap();
@@ -1709,9 +1578,6 @@ mod tests {
         }
     }
 
-    // -----------------------------------------------------------------------------------------
-    // M8: le tre funzioni deferite (`agent-memory/M8-implementation-plan.md` §2, passo 9).
-    // -----------------------------------------------------------------------------------------
 
     mod text_filter_sfdr_article {
         use super::*;
@@ -1773,15 +1639,13 @@ mod tests {
 
             #[test]
             fn literal_prefixes_are_applied_before_regex_prefixes() {
-                // Il letterale è un `str::replace` **non ancorato** (verificato contro il
-                // riferimento congelato: `fund_name.replace(prefix.as_str(), "")`), quindi rimuove
-                // "Foo " ovunque compaia, non solo in testa. Con questo input l'ordine conta
-                // davvero: se il letterale va per primo toglie "Foo " a metà stringa, lasciando
-                // "Extra Bar" — su cui la regex ancorata "^Extra Foo " non trova più nulla da
-                // togliere (il suo "Foo " è già sparito). Se la regex andasse per prima, invece,
-                // matcherebbe l'intero prefisso "Extra Foo " sull'input originale e lo
-                // rimuoverebbe, lasciando solo "Bar". I due ordini producono risultati diversi,
-                // a dimostrazione che il letterale va davvero applicato per primo.
+                // The literal prefix is an **unanchored** substring removal, so it strips `"Foo "`
+                // wherever it occurs, not only at the head. With this input the order genuinely
+                // matters: applying the literal first removes `"Foo "` from the middle, leaving
+                // `"Extra Bar"`, on which the anchored pattern `"^Extra Foo "` no longer finds
+                // anything. Applying the pattern first would instead match the whole `"Extra Foo "`
+                // prefix of the original and leave `"Bar"`. The two orders give different results,
+                // which is what shows the literal really is applied first.
                 let filter = TextFilterSfdrArticleStandard::new(
                     vec!["Foo ".to_string()],
                     vec!["^Extra Foo ".to_string()],
@@ -1920,10 +1784,9 @@ mod tests {
                 .call(std::slice::from_ref(&block), &FilterData::Previous(&previous))
                 .unwrap();
 
-            // `Fund::name()` normalizza e maiuscolizza (`ALPHA FUND`, non `Alpha Fund`): il set
-            // atteso va derivato dagli stessi `Fund` di `previous`, non da letterali indipendenti,
-            // altrimenti diverge dalla scrittura che `TextFilterManagmentCompanyStandard` produce
-            // davvero in `managed_funds` (che usa `MatchFund::name()`, il nome come scritto).
+            // The expected set has to be derived from the same funds as `previous`, not from
+            // independent literals, or it diverges from what the pipe actually writes into
+            // `managed_funds` — which uses the name as written.
             let funds: BTreeSet<MatchFund> = previous
                 .iter()
                 .map(|extracted| MatchFund::new(extracted.as_fund().unwrap().name().unwrap()))

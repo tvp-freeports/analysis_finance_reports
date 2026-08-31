@@ -1,44 +1,16 @@
-//! Coordinate di tabella (TablePosAlgorithm, CellGeometry, get_table_coordinates).
+//! Table coordinates: which row and column each cell of a page belongs to.
 //!
-//! Porting verbatim (`PLAN.md` §0/§12 D14) di
-//! `freeports_core::formats_utils::pdf_extract::tabularizer::coordinates`, meno il confine PyO3
-//! (`FromPyObject` per `TablePosAlgorithm`, `#[derive(FromPyObject)]` su `CellGeometry`,
-//! `#[pyfunction] py_get_table_coordinates`, la conversione `CoordinateExtractionError -> PyErr`).
+//! The algorithm works without any declared grid. It repeatedly picks a *ruler* — the smallest of
+//! the cells not yet indexed, or the largest with [`TablePosAlgorithm::BigCellRule`] — assigns to
+//! it every cell that shares its position within tolerance, and then renumbers the rulers in
+//! increasing position. Doing this along both axes gives a `(row, column)` for every cell.
 //!
-//! **Decisione R2 (`PLAN.md`)**: `CellGeometry` definito **qui** e' l'unico canonico del crate —
-//! quello davvero usato dall'algoritmo, validato tramite `Limits::build` (a differenza di un
-//! secondo `CellGeometry` non validato che compariva in un vecchio riferimento di `position.rs`,
-//! mai portato). `position::RowConfig`/`ColumnConfig`/`TableConfig` non definiscono un proprio
-//! `CellGeometry`: quello *usato per costruire* le celle di una tabella e' sempre questo.
+//! Where a format's configuration states explicit limits for a position, those are used instead of
+//! a discovered ruler, and a mismatch between the number of rulers found and the number the
+//! configuration declares is an error rather than a silent reinterpretation.
 //!
-//! `ColumnConfig`/`RowConfig`/`TableConfig` vivono in `pdf_extract::position` (non in
-//! `tabularizer`, a differenza del vecchio riferimento): importati da li'.
-//!
-//! Contratto atteso dai test qui sotto (il test-writer non scrive codice di produzione):
-//!
-//! - `pub enum CoordinateExtractionError { MismatchColumnNumber(usize,usize),
-//!   MismatchRowNumber(usize,usize) }`, `thiserror::Error` con un messaggio che riporta atteso e
-//!   trovato.
-//! - `bitflags! { pub struct TablePosAlgorithm: u8 { Default=0; ReturnRows=1; BigCellRule=2;
-//!   UseRulerArea=4; UseTestPos=8; } }`.
-//! - `pub struct CellGeometry { bounds: (f32,f32,f32,f32), tolerance: f32 }` (campi privati
-//!   leggibili dai test annidati), con `CellGeometry::new(bounds, tolerance) -> Self` che va in
-//!   panico (messaggi `"Invalid horizontal interval: {err:?}"` / `"Invalid vertical interval:
-//!   {err:?}"`) se `Limits::build` rifiuta l'intervallo orizzontale/verticale di `bounds`.
-//! - `CellGeometryUnindexed` (privato): `pos = (a+b)/2.0`, `area = b-a` lungo l'asse scelto
-//!   (orizzontale se `horizontal`, verticale altrimenti), con `from_cell_geometry`/`from_limits`.
-//! - `same_position`/`position_in_area`/`areas_intersect` (privati): confronto tolleranza-aware
-//!   fra due `CellGeometryUnindexed`.
-//! - `get_table_indexes(cells, algorithm_flags, table_config) -> Result<Vec<usize>,
-//!   CoordinateExtractionError>`: assegna iterativamente ogni cella non ancora indicizzata al
-//!   "ruler" piu' vicino (il piu' piccolo, o il piu' grande con `BigCellRule`, salvo quando la
-//!   config fornisce dei limiti espliciti per quella posizione), poi rinumera i ruler per
-//!   posizione crescente; errore se il numero di ruler non combacia con la config esplicita
-//!   (righe o colonne, a seconda di `ReturnRows`).
-//! - `get_table_coordinates(cells, algorithm_flags, table_config) -> Result<Vec<(usize,usize)>,
-//!   CoordinateExtractionError>`: `(riga, colonna)` per cella, calcolando entrambi gli assi;
-//!   va in panico se `algorithm_flags` include gia' `ReturnRows` (non ha senso chiedere
-//!   esplicitamente le righe quando si vogliono entrambi gli assi).
+//! [`CellGeometry`] defined here is the crate's canonical one: the validated cell the algorithm
+//! actually works on.
 
 use std::collections::HashMap;
 use std::iter::zip;
@@ -47,8 +19,8 @@ use bitflags::bitflags;
 
 use crate::commons::geometry::Limits;
 
-// `ColumnConfig`/`RowConfig` sono usati solo dai test (`use super::*` annidato piu' volte): nella
-// build non-test di questo modulo restano inutilizzati, da cui l'`allow` mirato.
+// `ColumnConfig` and `RowConfig` are used only by the tests, hence the targeted `allow` for the
+// non-test build.
 #[allow(unused_imports)]
 use super::super::position::{ColumnConfig, RowConfig, TableConfig};
 
@@ -61,8 +33,6 @@ pub enum CoordinateExtractionError {
 }
 
 bitflags! {
-    // `Debug` aggiunto in M7 (modifica puramente additiva a codice M3 verbatim, stesso precedente
-    // dei derive aggiunti a M1 durante M2): `tabularizer::TableCoordinatesConfig` lo richiede.
     #[derive(Debug,Clone,Copy)]
     pub struct TablePosAlgorithm: u8 {
         const Default = 0b000000000;
@@ -74,7 +44,7 @@ bitflags! {
 }
 
 impl TablePosAlgorithm {
-    /// I nomi dei flag, per l'espressione che il repo formati scrive nei suoi CSV/YAML.
+    /// The flag names, for the expression a formats repository writes in its configuration.
     fn flag_names() -> std::collections::HashMap<String, u64> {
         std::collections::HashMap::from([
             ("RETURN_ROWS".to_string(), TablePosAlgorithm::ReturnRows.bits() as u64),
@@ -84,23 +54,21 @@ impl TablePosAlgorithm {
         ])
     }
 
-    /// Analizza l'espressione di flag scritta dal repo formati (`"USE_RULER_AREA"`,
-    /// `"BIG_CELL_RULE | USE_RULER_AREA"`, ...).
+    /// Parses the flag expression a formats repository writes (`"USE_RULER_AREA"`, `"BIG_CELL_RULE
+    /// | USE_RULER_AREA"`, …).
     ///
-    /// Aggiunta in M7 — è il `TablePosAlgorithm.from_dict` del riferimento, che qui non poteva
-    /// esistere prima perché nessun modulo leggeva ancora la configurazione del repo. Delega a
-    /// `commons::flag_expr` (M1), che accetta il nome singolo del riferimento e in più le
-    /// espressioni booleane: è un superinsieme, quindi non si perde nulla.
+    /// Delegates to [`crate::commons::flag_expr`], which accepts a single flag name as well as full
+    /// boolean expressions.
     pub fn from_expression(expression: &str) -> Result<Self, crate::commons::flag_expr::FlagExprError> {
         let bits = crate::commons::flag_expr::evaluate(expression, &Self::flag_names())?;
-        // `evaluate` lavora su `u64`; i quattro flag stanno in un `u8` e `evaluate` non può
-        // produrre bit che non gli siano stati dati, quindi il troncamento non perde nulla.
+        // The evaluator works on `u64` while the four flags fit in a `u8`; it cannot produce bits
+        // it was not given, so the truncation loses nothing.
         Ok(TablePosAlgorithm::from_bits_truncate(bits as u8))
     }
 }
 
-/// Unico `CellGeometry` canonico del crate (decisione R2, `PLAN.md`): quello usato realmente
-/// dall'algoritmo di posizionamento, validato tramite `Limits::build`.
+/// A table cell: its bounds and the tolerance within which it counts as sharing a position with
+/// another.
 #[derive(Debug, Clone, Copy)]
 pub struct CellGeometry {
     bounds: (f32, f32, f32, f32),
@@ -120,10 +88,9 @@ impl CellGeometry {
     }
 }
 
-// Nessun parametro di lifetime (a differenza del riferimento, che porta un `PhantomData<&'a
-// CellGeometry>` puramente decorativo): tutti i campi sono valori posseduti, e i test di questa
-// milestone costruiscono `CellGeometryUnindexed` a partire da due riferimenti a lifetime
-// indipendenti nella stessa espressione, il che non elide con un parametro di lifetime esplicito.
+// No lifetime parameter: every field is owned, and the tests build one of these from two references
+// with independent lifetimes in the same expression, which would not elide against an explicit
+// parameter.
 #[derive(Debug, Clone, Copy)]
 struct CellGeometryUnindexed {
     index: usize,
@@ -256,8 +223,8 @@ mod tests {
 
         #[test]
         fn accepts_valid_bounds() {
-            // Nessun `matches!` con letterali in virgola mobile nel pattern (vietato dal
-            // compilatore): confronto diretto dei campi dopo il pattern-match sulla struct.
+            // No `matches!` with floating-point literals in the pattern, which the compiler
+            // forbids: the fields are compared directly after destructuring.
             let CellGeometry { bounds, tolerance } = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0);
             assert_eq!(bounds, (0.1, 2.0, 40.0, 22.0));
             assert_eq!(tolerance, 43.0);
