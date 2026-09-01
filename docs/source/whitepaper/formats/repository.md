@@ -8,16 +8,14 @@ the engine, touches nothing anyone else maintains, and can be published by whoev
 reports. `analysis_finance_reports_formats` — *Italy, five top groups* — is one such repository, and
 there is nothing privileged about it.
 
-## Starting one
-
+## Starting a repository
 ```console
 $ freeports-dev init-format-repo path/to/my-formats
 $ cd path/to/my-formats
 $ freeports-dev setup-input-db          # a minimal input database, for the tests
 ```
 
-## Layout
-
+## The layout of a repository
 ```text
 package.yaml                     identity and version of the repository
 metadata/
@@ -41,8 +39,7 @@ tests/
 validation/                      who vouches for what, and under which methodology
 ```
 
-## Metadata
-
+## The `metadata/` tables
 `metadata/formats.csv` lists the formats by their **components**, not by their names:
 
 ```text

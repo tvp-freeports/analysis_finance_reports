@@ -58,8 +58,7 @@ It receives the raw per-page classes of **one document** and returns the resolve
 place in the engine where reasoning across pages is available at all
 ({doc}`../../design/classification`).
 
-## Errors
-
+## What happens when your pipe raises
 A Python exception raised by your pipe is logged **with its traceback** and converted to a typed
 error at the boundary. No Python exception travels further into the engine, so a format cannot crash
 a run in a way that loses the other formats' results — the job fails, and it fails with a message

@@ -28,8 +28,7 @@ class nobody processes" is a statement about the format: two files that must agr
 the second like the first would hide a configuration error behind an empty output table, which is
 the failure mode hardest to notice and most expensive to debug.
 
-## Per document, always
-
+## Classification runs per document, always
 Classification runs **once per document**, even in a multi-document run, and this is not an
 implementation detail — see {doc}`multidocument`.
 
@@ -46,8 +45,7 @@ Running the finalizer over the union of several documents would be wrong in an o
 of document B would be treated as following page 39 of document A, and a continuation rule would
 join tables that have nothing to do with each other.
 
-## What it costs
-
+## What classification costs
 Measured: classification is between one eighth and one hundred-and-fiftieth of the work of the
 extraction steps, and it weighs anything at all only where it is written in Python. On one large
 report with an author's classifier it was 1.08 s of a 17.7 s job — 6.1%; on the others it did not

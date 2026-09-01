@@ -51,8 +51,7 @@ file that violates one is wrong even if every step that produced it was right
 - **an absent optional value is an empty cell** — never `None`, never `null` — and a floating-point
   number always carries at least one decimal.
 
-## The two flags
-
+## The two output flags
 ### `--archive` / `-z`
 
 Additionally writes a compressed **sibling** of the output: `.tar.gz` for the directory profiles,

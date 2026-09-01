@@ -31,9 +31,40 @@
 //! | `target_lists` | target lists | a list |
 //! | `formats_repo` | formats repository path | |
 //! | `db_path` | input database path | |
+//! | `dev` | settings for `freeports-dev` | a section; see below |
+//! | `validate` | settings for `freeports-validate` | a section; see below |
 //!
 //! An unknown key is an **explicit error**. A misspelled key that is silently ignored configures
 //! nothing and says nothing, which is exactly the failure this refuses.
+//!
+//! # The two tooling sections
+//!
+//! `dev` and `validate` configure the two commands that only **format authors** run. The engine
+//! never reads a value from either, and both are optional: a file that extracts data has no reason
+//! to contain them, and one that omits them is not incomplete.
+//!
+//! They are nevertheless parsed *here*, rather than by each tool, for two reasons. The engine is
+//! already the only thing that knows where a configuration file lives, what it may be called and in
+//! which order the tiers are searched, and duplicating that in two more places is how three
+//! programs end up disagreeing about which file they read. And parsing them here extends the
+//! unknown-key refusal into the sections, so a misspelled `dev.tagret_lists` fails loudly instead of
+//! configuring nothing.
+//!
+//! They stay **out of [`PartialConfig`]**, which is the engine's own merge type. A tooling setting
+//! that travelled through the four-tier merge would look like an engine option, and would have to
+//! answer questions — what does the command line say about it, what does a batch row say — that it
+//! has no answer to. [`load_both`] returns them alongside instead.
+//!
+//! | key | field |
+//! |---|---|
+//! | `dev.target_lists` | the target lists a format repository's own tests search for |
+//! | `dev.noconfirm` | skip `make-tests` confirmation prompts |
+//! | `dev.page_type` | the default page type for `make-tests` and `inspect-page` |
+//! | `validate.key_id` | the GPG key identifying the person signing grants |
+//!
+//! Everything shared between the three commands — `formats_repo` and `db_path` above all — stays at
+//! the **top level**, where all three read it. That is what makes the repository path something you
+//! write once.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -65,6 +96,42 @@ pub enum FileConfigError {
     InvalidOutProfile { path: PathBuf, value: String },
     #[error("{}: invalid value for '{key}': {value:?}", path.display())]
     InvalidValue { path: PathBuf, key: &'static str, value: String },
+}
+
+/// The `dev` section: what `freeports-dev` reads from the configuration file.
+///
+/// Every field optional, and the whole section optional, because the command is only run by format
+/// authors. A field left out is not a default of zero — it is "this file says nothing", and the
+/// tool falls back to its own default.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct DevFileConfig {
+    /// The lists a format repository's own tests search for. `freeports-dev` defaults to `TEST`,
+    /// the single list `setup-input-db` writes.
+    pub target_lists: Option<Vec<String>>,
+    /// Skip the confirmation prompts of `make-tests`.
+    pub noconfirm: Option<bool>,
+    /// The default page type for `make-tests` and `inspect-page`, for a repository whose formats do
+    /// not call their pages `investments`.
+    pub page_type: Option<String>,
+}
+
+/// The `validate` section: what `freeports-validate` reads from the configuration file.
+///
+/// One field today, and that is not an accident of scope: the key identifying the signer is the
+/// only thing the tool needs told and cannot work out, and it is the thing worth writing down once
+/// rather than exporting from a shell profile.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ValidateFileConfig {
+    /// The GPG key the grants are signed with, in any form `gpg --list-keys` accepts.
+    pub key_id: Option<String>,
+}
+
+/// The two tooling sections together, kept apart from [`PartialConfig`]; see the module
+/// documentation for why they do not travel through the engine's merge.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ToolingConfig {
+    pub dev: DevFileConfig,
+    pub validate: ValidateFileConfig,
 }
 
 const CONFIG_FILE_NAMES: [&str; 2] = ["freeports.yaml", "freeports.yml"];
@@ -282,6 +349,46 @@ fn out_flags_section(
     Ok((separate_out, compressed))
 }
 
+/// The `dev` section. An unknown sub-key is an error, as everywhere else in this file.
+fn dev_section(path: &Path, value: &serde_yaml::Value) -> Result<DevFileConfig, FileConfigError> {
+    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key: "dev",
+        value: format!("{value:?}"),
+    })?;
+    let mut config = DevFileConfig::default();
+    for (key, entry) in mapping {
+        match key.as_str().unwrap_or_default() {
+            "target_lists" => config.target_lists = Some(value_as_string_list(path, "dev.target_lists", entry)?),
+            "noconfirm" => config.noconfirm = Some(value_as_bool(path, "dev.noconfirm", entry)?),
+            "page_type" => config.page_type = Some(value_as_string(path, "dev.page_type", entry)?),
+            other => {
+                return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("dev.{other}") });
+            }
+        }
+    }
+    Ok(config)
+}
+
+/// The `validate` section. Same discipline as [`dev_section`].
+fn validate_section(path: &Path, value: &serde_yaml::Value) -> Result<ValidateFileConfig, FileConfigError> {
+    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key: "validate",
+        value: format!("{value:?}"),
+    })?;
+    let mut config = ValidateFileConfig::default();
+    for (key, entry) in mapping {
+        match key.as_str().unwrap_or_default() {
+            "key_id" => config.key_id = Some(value_as_string(path, "validate.key_id", entry)?),
+            other => {
+                return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("validate.{other}") });
+            }
+        }
+    }
+    Ok(config)
+}
+
 fn value_as_bool(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<bool, FileConfigError> {
     value.as_bool().ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
 }
@@ -296,7 +403,11 @@ fn value_as_string_list(path: &Path, key: &'static str, value: &serde_yaml::Valu
 /// Wraps `load_impl` to log any failure exactly once -- this is the only place every
 /// `FileConfigError` variant is actually constructed (directly or via the small `value_as_*`/
 /// `parse_verbosity` helpers below).
-pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
+///
+/// Reads the file **once** and hands back both halves: what the engine merges, and what the two
+/// tooling commands read. Splitting them into two public entry points that each open the file would
+/// mean two chances to disagree about what it says.
+pub fn load_both(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), FileConfigError> {
     let result = load_impl(path);
     if let Err(e) = &result {
         tracing::error!(error = log_error(e), "{e}");
@@ -304,11 +415,21 @@ pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     result
 }
 
+/// The engine's half. The overwhelmingly common caller, which is why it keeps the short name.
+pub fn load(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
+    load_both(path).map(|(engine, _tooling)| engine)
+}
+
+/// The tooling half, for `freeports-dev` and `freeports-validate` through the Python API.
+pub fn load_tooling(path: Option<&Path>) -> Result<ToolingConfig, FileConfigError> {
+    load_both(path).map(|(_engine, tooling)| tooling)
+}
+
 /// No path yields the empty configuration, with no error; a path is read and validated, an unknown
 /// key being an error.
-fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
+fn load_impl(path: Option<&Path>) -> Result<(PartialConfig, ToolingConfig), FileConfigError> {
     let Some(path) = path else {
-        return Ok(PartialConfig::default());
+        return Ok((PartialConfig::default(), ToolingConfig::default()));
     };
 
     let content = std::fs::read_to_string(path).map_err(|source| FileConfigError::Io { path: path.to_path_buf(), source })?;
@@ -316,7 +437,7 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         serde_yaml::from_str(&content).map_err(|source| FileConfigError::Yaml { path: path.to_path_buf(), source })?;
 
     let mapping = match value {
-        serde_yaml::Value::Null => return Ok(PartialConfig::default()),
+        serde_yaml::Value::Null => return Ok((PartialConfig::default(), ToolingConfig::default())),
         serde_yaml::Value::Mapping(m) => m,
         _ => {
             return Err(FileConfigError::Yaml {
@@ -326,9 +447,9 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         }
     };
 
-    const KNOWN_KEYS: [&str; 15] = [
+    const KNOWN_KEYS: [&str; 17] = [
         "verbosity", "out_path", "out_profile", "out_flags", "n_workers", "parallelism", "batch_file", "save_pdf",
-        "url", "pdf", "reports", "format", "target_lists", "formats_repo", "db_path",
+        "url", "pdf", "reports", "format", "target_lists", "formats_repo", "db_path", "dev", "validate",
     ];
 
     let mut fields: HashMap<&'static str, serde_yaml::Value> = HashMap::new();
@@ -362,6 +483,12 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         fields.get("formats_repo").map(|v| value_as_string(path, "formats_repo", v)).transpose()?.map(PathBuf::from);
     let input_db_path = fields.get("db_path").map(|v| value_as_string(path, "db_path", v)).transpose()?.map(PathBuf::from);
 
+    // The two sections the engine parses but never reads; see the module documentation.
+    let tooling = ToolingConfig {
+        dev: fields.get("dev").map(|v| dev_section(path, v)).transpose()?.unwrap_or_default(),
+        validate: fields.get("validate").map(|v| validate_section(path, v)).transpose()?.unwrap_or_default(),
+    };
+
     let url = fields.get("url").map(|v| value_as_string(path, "url", v)).transpose()?;
     let pdf = fields.get("pdf").map(|v| value_as_string(path, "pdf", v)).transpose()?;
     let singular =
@@ -389,7 +516,7 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         .map_err(|source| FileConfigError::ReportsConflict { path: path.to_path_buf(), source })?;
 
     tracing::info!(path = %path.display(), "loaded configuration from file");
-    Ok(PartialConfig {
+    Ok((PartialConfig {
         verbosity,
         reports,
         target_lists,
@@ -406,7 +533,7 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         formats_repo_path,
         input_db_path,
         config_file: None,
-    })
+    }, tooling))
 }
 
 #[cfg(test)]
@@ -848,6 +975,141 @@ mod tests {
             let path = write(dir.path(), "cfg.yaml", "out_flags:\n  archive: sometimes\n");
             let error = load(Some(&path)).unwrap_err().to_string();
             assert!(error.contains("out_flags.archive"), "{error}");
+        }
+    }
+
+    /// The `dev` and `validate` sections: optional, parsed but never merged into the engine's
+    /// configuration, and as strict about unknown sub-keys as everything else here.
+    mod tooling_sections {
+        use super::*;
+
+        mod absent_or_empty {
+            use super::*;
+
+            #[test]
+            fn a_file_with_neither_section_yields_an_empty_tooling_config() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "out_path: /tmp/out\n");
+                assert_eq!(load_tooling(Some(&path)).unwrap(), ToolingConfig::default());
+            }
+
+            #[test]
+            fn no_file_at_all_yields_an_empty_tooling_config() {
+                assert_eq!(load_tooling(None).unwrap(), ToolingConfig::default());
+            }
+
+            #[test]
+            fn an_empty_section_yields_a_section_with_every_field_unset() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "dev: {}\nvalidate: {}\n");
+                assert_eq!(load_tooling(Some(&path)).unwrap(), ToolingConfig::default());
+            }
+        }
+
+        mod dev_keys {
+            use super::*;
+
+            #[test]
+            fn every_dev_key_is_read() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "dev:\n  target_lists: [TEST, OTHER]\n  noconfirm: true\n  page_type: holdings\n",
+                );
+                let dev = load_tooling(Some(&path)).unwrap().dev;
+                assert_eq!(dev.target_lists, Some(vec!["TEST".to_string(), "OTHER".to_string()]));
+                assert_eq!(dev.noconfirm, Some(true));
+                assert_eq!(dev.page_type, Some("holdings".to_string()));
+            }
+
+            #[test]
+            fn a_key_left_out_stays_unset_rather_than_taking_a_value() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "dev:\n  noconfirm: true\n");
+                let dev = load_tooling(Some(&path)).unwrap().dev;
+                assert_eq!(dev.noconfirm, Some(true));
+                assert_eq!(dev.target_lists, None);
+                assert_eq!(dev.page_type, None);
+            }
+
+            #[test]
+            fn an_unknown_sub_key_is_rejected_and_named_with_its_section() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "dev:\n  tagret_lists: [TEST]\n");
+                let result = load_tooling(Some(&path));
+                assert!(matches!(result, Err(FileConfigError::UnknownKey { .. })), "got {result:?}");
+                assert!(result.unwrap_err().to_string().contains("dev.tagret_lists"));
+            }
+
+            #[test]
+            fn a_non_boolean_noconfirm_is_a_typed_error_not_a_panic() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "dev:\n  noconfirm: sometimes\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+
+            #[test]
+            fn a_section_written_as_a_scalar_is_a_typed_error_not_a_panic() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "dev: true\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+        }
+
+        mod validate_keys {
+            use super::*;
+
+            #[test]
+            fn the_key_id_is_read() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  key_id: DEADBEEF\n");
+                assert_eq!(load_tooling(Some(&path)).unwrap().validate.key_id, Some("DEADBEEF".to_string()));
+            }
+
+            #[test]
+            fn an_unknown_sub_key_is_rejected_and_named_with_its_section() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  keyid: DEADBEEF\n");
+                let result = load_tooling(Some(&path));
+                assert!(result.unwrap_err().to_string().contains("validate.keyid"));
+            }
+
+            /// A fingerprint is all digits until it is quoted, and YAML would hand back a number.
+            #[test]
+            fn an_unquoted_all_digit_key_id_is_a_typed_error_rather_than_a_silent_misread() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  key_id: 12345678\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+        }
+
+        mod kept_apart_from_the_engine {
+            use super::*;
+
+            /// The point of the separation: a section present in the file changes nothing about
+            /// what the engine will do.
+            #[test]
+            fn the_sections_leave_the_engine_configuration_untouched() {
+                let dir = tempfile::tempdir().unwrap();
+                let with = write(
+                    dir.path(),
+                    "with.yaml",
+                    "out_path: /tmp/out\ndev:\n  noconfirm: true\nvalidate:\n  key_id: DEADBEEF\n",
+                );
+                let without = write(dir.path(), "without.yaml", "out_path: /tmp/out\n");
+                assert_eq!(load(Some(&with)).unwrap(), load(Some(&without)).unwrap());
+            }
+
+            /// One read of the file answers both questions, which is why there is a `load_both`.
+            #[test]
+            fn load_both_returns_the_same_halves_the_two_narrow_entry_points_do() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "out_path: /tmp/out\nvalidate:\n  key_id: DEADBEEF\n");
+                let (engine, tooling) = load_both(Some(&path)).unwrap();
+                assert_eq!(engine, load(Some(&path)).unwrap());
+                assert_eq!(tooling, load_tooling(Some(&path)).unwrap());
+            }
         }
     }
 

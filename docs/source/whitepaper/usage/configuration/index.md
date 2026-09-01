@@ -11,6 +11,26 @@ this area describes each of them plus the options they all share.
 | {doc}`config_file` | YAML key → option, and where the file is looked for |
 | {doc}`batch_rows` | batch CSV column → option |
 
+The same four sources, the same precedence and the same per-field merge also configure
+`freeports-dev` and `freeports-validate`, through two optional sections of the configuration file
+and two environment prefixes of their own. Both commands are only run by format authors, so that is
+documented where they are: {doc}`../../formats/configuration`.
+
+<!-- The toctree is hidden and sits here, above the first section, on purpose: placed at the
+     end of the page it would be nested under whatever section came last, which is neither what
+     the hierarchy is nor what the side panel should show. -->
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+
+options
+cmd_args
+env_variables
+config_file
+batch_rows
+```
+
 ## Four sources, one order
 
 Precedence, from weakest to strongest:
@@ -80,8 +100,7 @@ The rule also refuses settings that were *considered and never implemented*. `ou
 is rejected even though `compressed` is the field's internal name, because accepting it would make an
 option that does not exist look active.
 
-## The one thing that does not work
-
+## The one setting that does not work: verbosity
 ```{warning}
 `FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key are **parsed, validated and
 merged, but not applied** to the logging of an ordinary run. The parent process installs its logging
@@ -92,15 +111,4 @@ Measured, not inferred: with `FREEPORTS_VERBOSITY=trace` and no flags, stderr st
 Worker child processes *do* honour the resolved value, since it reaches them inside their request —
 so a parent and its children can disagree about verbosity in the same run. Today the verbosity of the
 process you are watching can only be set with `-v` and `-q`.
-```
-
-```{toctree}
-:maxdepth: 1
-:hidden:
-
-options
-cmd_args
-env_variables
-config_file
-batch_rows
 ```

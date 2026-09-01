@@ -20,6 +20,13 @@ dependencies = [
     "check-jsonschema",
 ]
 
+# Reading settings from the freeports configuration file needs the engine, which is a compiled
+# extension pulling in a PDF library. Verifying somebody else's grants should not require that, so
+# the dependency is an extra rather than a requirement: without it the command still takes its
+# settings from the command line and the environment, and only loses the file tier.
+[project.optional-dependencies]
+config = ["freeports"]
+
 [project.urls]
 github = "https://github.com/tvp-freeports/analysis_finance_reports"
 documentation = "https://docs.freeports.org"

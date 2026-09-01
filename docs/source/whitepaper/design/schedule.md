@@ -3,8 +3,7 @@
 *Implemented.* A sequence of **steps**, each naming a set of page classes. It is what turns a pool
 of classified pages into an order of work.
 
-## Steps exist for one reason
-
+## Steps exist for one reason: feeding the next step
 > **The results of one step are the input filter of the next.**
 
 That is what makes a two-stage extraction expressible. Step one finds the funds; step two finds the
@@ -26,8 +25,7 @@ Without steps the same thing would have to be expressed as an ordering constrain
 which is precisely what {doc}`pages` exists to avoid. Steps put the dependency between *stages*,
 where it is real, instead of between *pages*, where it would be a lie.
 
-## What a step hands the next one
-
+## `FilterData`: what a step hands the next one
 `FilterData` — what a pipe is given besides the page — is an **enum**, not a struct with two fields:
 
 | Variant | Available |
@@ -46,8 +44,7 @@ rather than papered over — the alternative was carrying both kinds of filter d
 would make every pipe pay for a case almost none of them want.
 ```
 
-## Order is insertion order
-
+## Step order is insertion order
 Steps preserve the order they were declared in and deduplicate. Iterating them in hash order would
 make the order of processing — and therefore the order of the output — unpredictable, and
 reproducible tests impossible. See {doc}`determinism`.

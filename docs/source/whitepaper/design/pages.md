@@ -3,8 +3,7 @@
 *Implemented.* This is the assumption everything else in the engine rests on, and the one worth
 understanding before any other.
 
-## The assumption
-
+## The assumption: a page carries its own context
 > **A page carries the context needed to understand what is on it.**
 
 A document is opened once, through PyMuPDF, and immediately becomes a sequence of native pages. From
@@ -14,8 +13,7 @@ own**, with no knowledge of the pages before or after it.
 The assumption is restrictive, and it is deliberately restrictive. It is false of some pages of some
 reports, and the engine does not pretend otherwise — see {doc}`promises` for what happens there.
 
-## What follows from it
-
+## What the page assumption makes possible
 Three good properties, and they are not independent benefits so much as three faces of the same one:
 
 **Work divides.** Nothing in the description of the algorithm mentions threads or processes, and
@@ -30,8 +28,7 @@ that a 1,800-page document now produces a different table.
 **A failure is local.** A page the engine cannot read is a page that is skipped, with a log row
 naming it and a coordinate inside it. It is not a run that dies, and it is not a silent hole either.
 
-## What it costs
-
+## What the page assumption costs
 The cost is real and is paid in two places.
 
 **Some values genuinely are not on the page.** A fund name printed once on the section's cover, a
@@ -43,8 +40,7 @@ about a pair of pages, not about a page. The engine's answer is to confine that 
 **classification**, where a per-document finalizer may look at the whole sequence, and to keep it
 out of extraction entirely. See {doc}`classification`.
 
-## The alternative that was rejected
-
+## The rejected alternative: a second pass over the document
 A second pass over the document: read it once to gather context, once more to use it.
 
 It was rejected because it doubles the most expensive part of a run — PDF loading and page parsing

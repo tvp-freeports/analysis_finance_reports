@@ -22,12 +22,12 @@ command line only has to say what is different this time.
 | `parallelism` | `parallelism_jobs`, `parallelism_pages` | a map, only `jobs` and `pages` |
 | `batch_file` | `batch_file` | |
 | `verbosity` | `verbosity` | *parsed and merged, but not applied; see* {doc}`index` |
+| `dev`, `validate` | — | sections read by the two tooling commands, never by the engine; see below |
 
 There is no key for `config_file`: a configuration file naming the configuration file to read would
 be a chicken with no egg.
 
-## A complete example
-
+## A complete example file
 ```yaml
 formats_repo: ~/work/formats-repo
 db_path: ~/work/input-db
@@ -45,7 +45,27 @@ parallelism:
 verbosity: info
 ```
 
-## The two sections
+## The two sections the engine never reads
+
+The same file also configures `freeports-dev` and `freeports-validate`, under two optional sections:
+
+```yaml
+dev:
+  target_lists: [TEST]
+validate:
+  key_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+```
+
+Both commands are only ever run by **format authors**. If you extract data, these sections do not
+exist for you, and a file without them is complete. {doc}`../../formats/configuration` is their
+reference.
+
+They live here rather than in two files of their own so that the settings genuinely shared with the
+engine — `formats_repo`, `db_path` — stay at the top level and get written **once**, for all three
+commands. The engine parses the sections and then ignores them; parsing them at all is what extends
+the unknown-key refusal below into `dev.tagret_lists`.
+
+## The two grouped settings
 
 `parallelism` and `out_flags` are **maps with a closed set of sub-keys** — two settings of one
 thing, grouped so the file reads as it thinks. Both behave the same way:
@@ -60,8 +80,7 @@ thing, grouped so the file reads as it thinks. Both behave the same way:
 Note that `out_flags.archive` is spelled as the flag is, not as the field is: `compressed` is the
 internal name and is rejected here.
 
-## Types
-
+## The file wants real YAML types
 The file wants **real YAML types**, unlike the environment, which only has strings: `save_pdf: true`
 is a boolean, not the string `"true"`. Parallelism is the one place both are accepted, because YAML
 already distinguishes `2` from `auto` and refusing a quoted number would be a subtlety with no gain.

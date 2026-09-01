@@ -40,8 +40,7 @@ Line by line:
 : where the tables go. A directory for the default profile. Defaults to the working directory, so
   omitting it is legal and rarely what you want.
 
-## What you get
-
+## What the run produced
 ```console
 $ ls results/
 assets_managers.csv     funds_change_name.csv          funds.csv
@@ -69,8 +68,7 @@ Two jobs, one run, **one** set of tables, with the `Report` column telling the r
 not the same as two separate runs concatenated: in one invocation the two documents share promise
 resolution and fund deduplication. See {doc}`../design/multidocument`.
 
-## When it does not work
-
+## When the first run does not work
 | Symptom | Usually |
 |---|---|
 | stops at once, says a target list is missing | `--target-list` not given — the first check |

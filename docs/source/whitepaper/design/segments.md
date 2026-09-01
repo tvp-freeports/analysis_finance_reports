@@ -15,8 +15,7 @@ entity or into promise entries. This diagram covers the pipeline only — what d
 pipeline a page gets is {doc}`classification` and {doc}`schedule`.
 ```
 
-## The three questions
-
+## The three questions the segments answer
 **`pdf_extract` — what is on this page.** Takes the page, returns `PdfBlock`s. By convention it
 looks only at **graphical** evidence: font, size, position, and text that is part of the layout
 rather than of the content. Keeping it away from meaning is what makes it reusable — a table is a
@@ -32,8 +31,7 @@ is spent: measured, 85–96% of the engine's work, and a single standard pipe in
 a typed entity. No filtering happens here: once meaning is settled the transformation is per block,
 so the segment is *defined* to be per block. Measured at under 0.2% of a run.
 
-## Why three, and not a graph
-
+## Why three segments, and not a graph
 **Rejected: a general graph of transformations**, which is more expressive and would let a format do
 anything.
 
@@ -45,8 +43,7 @@ costing three times a simple one, and it is what the merge across the three leve
 A general graph gives up exactly that. Nothing then says which node an author may replace in
 isolation, and "inherit the rest" stops having a meaning.
 
-## Why not four
-
+## Why there is no fourth segment yet
 A fourth was considered and not added, and the machinery is **generic in the number of segments**,
 so adding one is cheap if a fourth separable question ever appears.
 

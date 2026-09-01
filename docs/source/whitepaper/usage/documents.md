@@ -11,8 +11,7 @@ Any of the three may be absent, and the shape is **inferred rather than declared
 flag saying "this one is a URL". A `http://` or `https://` scheme at the head is what makes a
 segment a URL; everything else is a path.
 
-## The forms
-
+## The forms a specifier can take
 | You write | url | path | name |
 |---|---|---|---|
 | `report.pdf` | — | that path, made absolute | its own text |
@@ -52,6 +51,17 @@ On the command line, repeat `-i` or give several values after one:
 ```console
 $ freeports -i "a.pdf:2023" "b.pdf:2024" -f EURIZON-EN23 …
 ```
+
+Several documents in one invocation are **one job over a bundle**, not a loop of separate runs. That
+distinction is the reason the feature exists, and it matters most when the files are pieces of *one*
+report: publishers routinely split a report across files aimed at different audiences, so the
+holdings are in one file and the managers of those funds in another, and neither file on its own
+contains enough to extract the holdings with their managers attached.
+
+Passed together, the pages of every file are classified per file and then **scheduled as one pool**,
+so a step reading one document produces the filter data a later step over another document is given.
+The bundle yields what no member of it yields alone. {doc}`../design/multidocument` is the full
+account.
 
 From the environment and from a batch cell, where there is only one string to work with, the
 specifiers are separated by a **pipe**:

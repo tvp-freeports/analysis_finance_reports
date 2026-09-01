@@ -8,7 +8,7 @@ repository.
 | Command | Answers | Needs |
 |---|---|---|
 | `freeports-dev` | *what does the engine see on this page, and does it still see it tomorrow?* | Python, the engine |
-| `freeports-validate` | *who vouched for this file, under which published methodology, and is that still true?* | GnuPG and `jq`, plus two Python packages it installs itself |
+| `freeports-validate` | *who vouched for this file, under which published methodology, and is that still true?* | GnuPG and `jq`, plus two Python packages it installs itself. Not the engine, unless you want the configuration file |
 
 Both are installed from the source tree ({doc}`../usage/installation`):
 
@@ -18,32 +18,34 @@ $ pip install packages/freeports_dev packages/freeports_validate
 
 ## Both commands need to find a formats repository
 
-Every subcommand of either tool works *inside* a formats repository, and each resolves which one in
-the same three steps, in this order:
+Every subcommand of either tool works *inside* a formats repository, and both resolve which one the
+way the engine resolves everything: **command line, then environment, then configuration file, then a
+default**.
 
-1. an explicit `--repo` / `-r` argument;
-2. the `FREEPORTS_FORMATS_REPO` environment variable;
-3. the current working directory.
+1. `--repo` / `-r` / `--formats-directory` / `-F` — the engine's own four spellings, all accepted;
+2. `FREEPORTS_FORMATS_REPO_PATH` — again the engine's variable, not a second one;
+3. `formats_repo` in the configuration file;
+4. the default: the working directory, except for `freeports-validate`, which first walks up to the
+   enclosing Git repository.
 
-```{warning}
-`FREEPORTS_FORMATS_REPO` is **not** the same variable as the engine's
-`FREEPORTS_FORMATS_REPO_PATH` ({doc}`../usage/configuration/index`). Setting only one of the two leaves the other
-tool falling back to the working directory, which is the kind of failure that looks like a bug in
-whichever command you happened to run second. Export both, to the same path:
-
-    export FREEPORTS_FORMATS_REPO=~/work/my-formats
-    export FREEPORTS_FORMATS_REPO_PATH=~/work/my-formats
-```
+That is one path, written once, found by all three commands. {doc}`configuration` is the full
+account — the two optional sections, the environment prefixes, the precedence.
 
 `freeports-dev` additionally checks that the directory really is one — `metadata/formats.csv` has to
 exist — and refuses with a message naming the path rather than failing later and obscurely.
+
+```{note}
+`FREEPORTS_FORMATS_REPO`, without the `_PATH`, used to be a **second** variable meaning the same
+thing, so setting one left the other command falling back to the working directory. The two are now
+one, and the old name is **no longer read at all** — a profile still exporting it silently
+configures nothing.
+```
 
 ---
 
 ## `freeports-dev`
 
-### The subcommands
-
+### The `freeports-dev` subcommands
 | Subcommand | Does |
 |---|---|
 | `init-format-repo <path>` | writes an empty formats repository at `<path>` |
@@ -57,8 +59,7 @@ They are meant to be used in that order the first time and in the
 `inspect-document → inspect-page → make-tests → test` loop after that; {doc}`writing-a-format`
 walks through the loop with a real format, and this page is the reference for the options.
 
-### Starting a repository
-
+### Creating an empty repository
 ```console
 $ freeports-dev init-format-repo ~/work/my-formats
 $ cd ~/work/my-formats
@@ -87,13 +88,19 @@ Page 25: investments
 | Option | Meaning |
 |---|---|
 | `--format` / `-f` | the format to load. **Required** |
-| `--page` / `-p` | classify only this page (1-based); omitted, every page is classified |
+| `--page` / `-p` | report only this page (1-based); omitted, every page is reported |
 | `--report` | the PDF. Defaults to `tests/formats/<FORMAT>/report.pdf` |
-| `--repo` / `-r` | the formats repository |
+| `--repo` / `-r`, `--config`, `--db-directory` / `-I` | the shared options; see {doc}`configuration` |
 
 Run this before anything else. A page that should be `investments` and comes back `unclassified` is
 a classification problem, and nothing downstream of it can be right until it is fixed — chasing the
 extraction of a page the engine never selected is the single most common way to lose an afternoon.
+
+`--page` narrows what is **printed**, not what is classified: the whole document is classified either
+way. A format may supply a finalizer that rewrites the raw per-page answers looking at all of them
+together — *every page after the holdings header is holdings* is the usual shape — so a page
+classified on its own can get a different answer from the same page classified in its document, and
+the isolated one is the wrong one.
 
 ### `inspect-page` — what the engine sees, stage by stage
 
@@ -105,12 +112,13 @@ $ freeports-dev inspect-page --format CARNE-EN23 --page 25 --page-type investmen
 |---|---|
 | `--format` / `-f` | the format. **Required** |
 | `--page` / `-p` | the page number, 1-based. **Required** |
-| `--page-type` / `-t` | the page class to process it as. Default `investments` |
+| `--page-type` / `-t` | the page class to process it as. Default `investments`, or `dev.page_type` |
 | `--mode` / `-m` | what to print — see below. Default `results` |
 | `--strings` | the strings to look for, **required** by the three line-set modes |
 | `--report` | the PDF. Defaults to `tests/formats/<FORMAT>/report.pdf` |
 | `--filter-data` | a `.pkl` of filter data. Defaults to the repository's test companies |
-| `--repo` / `-r` | the formats repository |
+| `--target-list` / `-T` | which lists those test companies come from. Default `TEST` |
+| `--repo` / `-r`, `--config`, `--db-directory` / `-I` | the shared options; see {doc}`configuration` |
 
 The modes fall into three families, and choosing the right family is most of the skill:
 
@@ -141,10 +149,11 @@ $ freeports-dev make-tests --format CARNE-EN23 --page 25 --page-type investments
 
 | Option | Meaning |
 |---|---|
-| `--format` / `-f`, `--page` / `-p`, `--page-type` / `-t` | as above. All three **required** |
+| `--format` / `-f`, `--page` / `-p` | as above. Both **required** |
+| `--page-type` / `-t` | as above. No longer required: `dev.page_type` can supply it, and it defaults to `investments` |
 | `--document` / `-d` | the document variant, for a format with several |
-| `--report`, `--filter-data`, `--repo` | as above |
-| `--noconfirm` | do not ask before writing each fixture |
+| `--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, `--db-directory` | as above |
+| `--noconfirm` | do not ask before writing each fixture. Also `dev.noconfirm` |
 | `--skip-pdf-blks`, `--skip-txt-blks`, `--skip-results` | leave that fixture out |
 | `--print_pdf_blks`, `--print_txt_blks` | also print those blocks while generating |
 | `--noprint_results` | do not print the results while generating |
@@ -155,6 +164,9 @@ it prints before answering: `make-tests` records *what the code does now*, so co
 result promotes a bug into the specification, and the test will then defend it.
 
 `--noconfirm` is for regenerating fixtures you have already reviewed, not for generating new ones.
+As with the engine's boolean flags, the flag can only switch it **on**; to make it a standing choice
+set `dev.noconfirm` in the configuration file, and to switch that back off write `false` there —
+an absent flag says nothing, it does not say no.
 
 ### `test` — run the repository's tests
 
@@ -189,8 +201,7 @@ Everything this command does revolves around one file: your **validation documen
 `<repo>/validation/<your_name>.yaml`, signed by your GPG key. {doc}`../validation` explains why the
 mechanism is shaped this way; this section is how to operate it.
 
-### Prerequisites
-
+### What `freeports-validate` needs installed
 Unlike `freeports-dev`, this tool is a set of shell scripts, so it depends on **programs**. Two of
 them are Python packages and are installed with it; the rest must come from your system:
 
@@ -201,6 +212,7 @@ them are Python packages and are installed with it; the rest must come from your
 | `jq` | `yq` shells out to it — it *is* the expression engine | your system's package manager |
 | `gpg` | signing and verifying, and as the source of your identity | GnuPG 2 |
 | `sha256sum`, `realpath` | content hashes and repository-relative paths | GNU coreutils |
+| `freeports` | **optional** — only to read settings from the configuration file | `pip install 'freeports-validate[config]'` |
 
 ```{warning}
 **Two unrelated programs are called `yq`, and this project needs a specific one.**
@@ -255,15 +267,30 @@ most documentation reaches for, prints the 16-digit long ID, and a document buil
 rejected by `check-jsonschema` with a message about a pattern rather than about the key.
 ```
 
-**3. Tell the tool which key to use**, through `AFINANCE_VALIDATION_KEYID`. Every subcommand refuses
-to start without it:
+**3. Tell the tool which key to use.** Every subcommand refuses to start without it, and there are
+three ways to say it — the same three every other setting has ({doc}`configuration`):
 
 ```console
-$ export AFINANCE_VALIDATION_KEYID=E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+$ freeports-validate -k E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304 check-grants   # this once
+$ export FREEPORTS_VALIDATE_KEY_ID=E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304     # this shell
 ```
 
-`packages/freeports_validate/.env.template` is that one line, ready to copy next to your other
-per-project environment settings.
+```yaml
+# freeports-config.yaml, next to the repository — the one worth writing down
+validate:
+  key_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+```
+
+`packages/freeports_validate/.env.template` is the environment form, ready to copy next to your
+other per-project settings. Reading it from the configuration file needs the engine installed
+alongside — `pip install 'freeports-validate[config]'` — because that is the one thing that knows
+where a configuration file lives.
+
+```{note}
+This variable used to be called `AFINANCE_VALIDATION_KEYID`, a name from before the project was
+called freeports and the only setting anywhere that did not begin with `FREEPORTS_`. The old name is
+**no longer read**: a shell that exports only it gets the same refusal as one that sets nothing.
+```
 
 **4. Publish the public half**, if anyone else will ever verify your grants. Verification is
 `gpg --verify` against the signer's public key: without it, `check-grants` can confirm that a
@@ -336,8 +363,7 @@ $ freeports-validate ungrant with "basic check"            # the methodology and
 The last form asks for confirmation, because it removes every grant made under that methodology at
 once.
 
-### Checking
-
+### Checking grants
 ```console
 $ freeports-validate check-grants                    # your own document
 $ freeports-validate check-grants someone_else.yaml  # another contributor's
@@ -348,8 +374,7 @@ every adopted methodology, and the hash of every granted file. The exit status i
 them fails, which is what makes it a CI step rather than a report you read.
 
 ```{warning}
-With no argument it checks **only your own** document — the one belonging to
-`AFINANCE_VALIDATION_KEYID`. If you have none in this repository it says so and then reports *"All
+With no argument it checks **only your own** document — the one belonging to the key you configured. If you have none in this repository it says so and then reports *"All
 validation documents passed verification"*, having verified nothing. In continuous integration,
 name the documents to check, or iterate over `validation/*.yaml`; a green bare `check-grants` is not
 evidence that a repository's grants hold.
@@ -380,10 +405,14 @@ fixed, and its reference output genuinely should differ — the grant does not f
 automatically, and that is the design working. Restating it is explicit:
 
 ```console
-$ freeports-validate update file <path> with "basic check"   # one file's hash
+$ freeports-validate update file <path> with "basic check"   # one file's hash, if already granted
 $ freeports-validate update methodology "basic check"        # a methodology page changed
 $ freeports-validate update version                          # the general methodology changed
 ```
+
+`update file` restates an existing claim; it does not create one. A file that was never granted
+under that methodology is refused, naming the `grant` that would be the right command — it used to be
+accepted, do nothing, and report success.
 
 Each re-signs afterwards. `update methodology` is the heavy one: a changed methodology page means
 the claims made under it were made about a text that no longer exists, so it **drops every file
@@ -396,8 +425,7 @@ it should be run by the person who has actually confirmed that the change was ex
 because a check went red converts a real signal into a signature.
 ```
 
-### Where everything lives
-
+### Where the validation files live
 | Path | What |
 |---|---|
 | `<repo>/validation/<name>.yaml` | one validation document per contributor |

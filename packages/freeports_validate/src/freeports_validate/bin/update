@@ -70,6 +70,15 @@ update_file_hash() {
     local rel_path
     rel_path=$(realpath --relative-to="$REPO_ROOT" "$file_path")
     
+    # A file that was never granted under this methodology has no entry to update, and the
+    # assignment below would quietly do nothing. Say so instead: `update` restates an existing
+    # claim, it does not create one -- that is what `grant` is for.
+    if ! file_granted_with_methodology "$PERSONAL_DOC" "$methodology" "$rel_path"; then
+        print_error "'$rel_path' is not granted under methodology '$methodology'"
+        echo "Use 'grant $rel_path with \"$methodology\"' to vouch for it in the first place."
+        return 1
+    fi
+
     # Update file in specific methodology
     print_info "Updating '$rel_path' in methodology '$methodology'"
     yq -y -i "(.data[] | select(.methodology == \"$methodology\").files[] | select(.path == \"$rel_path\")).sha256 = \"$new_hash\"" "$PERSONAL_DOC"
@@ -192,8 +201,18 @@ case "$SUBCOMMAND" in
             print_error "Must specify 'with <methodology>'"
             exit 1
         fi
-        
-        update_file_hash "${FILES[0]}" "$METHODOLOGY"
+
+        # Normalised like every other branch. Without this, `with basic_check` looked for a
+        # methodology stored as "basic check", the selection matched nothing, the assignment was a
+        # silent no-op -- and the success message below still claimed the hash had been updated.
+        method_name=$(normalize_methodology_name "$METHODOLOGY")
+
+        if ! methodology_exists "$PERSONAL_DOC" "$method_name"; then
+            print_error "Methodology '$method_name' not found in validation document"
+            exit 1
+        fi
+
+        update_file_hash "${FILES[0]}" "$method_name" || exit 1
         ;;
         
     *)

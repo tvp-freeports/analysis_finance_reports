@@ -737,3 +737,56 @@ mod out_flags {
         assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
     }
 }
+
+/// Le due sezioni degli strumenti (`dev`, `validate`) vivono nello stesso file di configurazione del
+/// motore ma **non sono opzioni del motore**: non entrano nel merge a quattro livelli e non possono
+/// cambiare nulla di una corsa. Sono qui perche' e' il file del motore a portarle, e perche' un
+/// autore di formati e un semplice utente devono poter usare lo stesso file.
+mod tooling_sections {
+    use super::*;
+
+    /// La proprieta' che conta: aggiungere le due sezioni a un file lascia la configurazione
+    /// risolta **identica**. Se un giorno una di esse finisse in `PartialConfig`, questo test lo
+    /// direbbe subito.
+    #[test]
+    fn the_two_sections_change_nothing_about_a_run() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let without = write_yaml(fixture.path(), "without.yaml", "out_profile: structured\n");
+        let with = write_yaml(
+            fixture.path(),
+            "with.yaml",
+            "out_profile: structured\ndev:\n  target_lists: [TEST]\n  noconfirm: true\n  page_type: holdings\nvalidate:\n  key_id: DEADBEEF\n",
+        );
+        let (mut with, mut without) = (fixture.resolve(&[], &with), fixture.resolve(&[], &without));
+        // L'unico campo che *deve* differire: i due file hanno nomi diversi perche' sono due file.
+        assert_ne!(with.config_file, without.config_file);
+        with.config_file = None;
+        without.config_file = None;
+        assert_eq!(with, without);
+    }
+
+    /// Un file che le contiene resta un file valido per chi estrae soltanto: nessuna delle due e'
+    /// obbligatoria, nessuna delle due e' rifiutata.
+    #[test]
+    fn a_file_carrying_them_is_still_accepted_by_the_engine() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "validate:\n  key_id: DEADBEEF\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(config.format, "A-EN24");
+    }
+
+    /// Il rifiuto delle chiavi sconosciute arriva **dentro** le sezioni: e' l'unica ragione per cui
+    /// il motore le analizza invece di ignorarle.
+    #[test]
+    fn a_misspelled_sub_key_fails_the_run_naming_its_full_path() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "dev:\n  tagret_lists: [TEST]\n");
+        let base = fixture.base_args(&config_file);
+        let all: Vec<&str> = base.iter().map(String::as_str).collect();
+        let error = resolve_configs(parse(&all)).expect_err("una sotto-chiave sconosciuta deve fermare la corsa");
+        assert!(error.to_string().contains("dev.tagret_lists"), "got {error}");
+    }
+}

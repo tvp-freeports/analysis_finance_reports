@@ -3,8 +3,7 @@
 *Implemented.* What the project models, and why the shape of the output is treated as an invariant
 rather than as a formatting choice.
 
-## What comes out of a pipeline
-
+## `Extracted`: what comes out of a pipeline
 `Extracted` is the union of the entity kinds the project models — equity, bond, fund, fund assets,
 SFDR classification, ESG indicator, rename, merge, management company, investments manager — **plus
 one member that is not an entity at all**: the promise entries a pipe deposited ({doc}`promises`).
@@ -36,8 +35,7 @@ The reason is a claim about *what kind of fact* it is. An output file that viola
 statement about the world that cannot be true. Validation attached to the writing would be checking
 the writer; validation attached to the schema is checking the claim.
 
-## The three rules a consumer can rely on
-
+## Three rules a consumer of the tables can rely on
 They hold across every profile, and they exist so nobody has to guess
 ({doc}`../usage/output`):
 

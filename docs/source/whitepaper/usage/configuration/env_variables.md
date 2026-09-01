@@ -25,8 +25,12 @@ Stronger than the configuration file, weaker than the command line. Per-option d
 | `FREEPORTS_CONFIG_FILE` | `config_file` |
 | `FREEPORTS_VERBOSITY` | `verbosity` — *parsed and merged, but not applied; see* {doc}`index` |
 
-## Rules of this source
+Two further prefixes exist and belong to the other two commands, not to the engine:
+`FREEPORTS_DEV_…` for `freeports-dev` and `FREEPORTS_VALIDATE_…` for `freeports-validate`. They
+mirror the `dev:` and `validate:` sections of the configuration file one for one, and are documented
+in {doc}`../../formats/configuration`.
 
+## Rules of the environment
 **An absent variable leaves its option unset**, and is never an error.
 
 **Setting both `FREEPORTS_REPORTS` and one of the singular variables is an error.** One of the two
@@ -35,8 +39,7 @@ would have to win silently, and an override nobody can see is worse than a refus
 **A variable whose value is not valid UTF-8 is ignored with a warning**, rather than failing the
 run — it is almost always an accident of the shell rather than an intention.
 
-## Grammars
-
+## The grammars the variables accept
 **Booleans** — `FREEPORTS_SEPARATE_OUT`, `FREEPORTS_ARCHIVE`, `FREEPORTS_SAVE_PDF` — accept, case
 insensitively:
 
@@ -59,8 +62,7 @@ only in the name that appears in the error.
 **Several documents** in `FREEPORTS_REPORTS` are separated by a pipe, `|` — the same separator a
 batch cell uses, and one constant in the code rather than two literals that could drift apart.
 
-## The list that is never split
-
+## `FREEPORTS_TARGET_LIST` is never split
 `FREEPORTS_TARGET_LIST` becomes a **one-element** list holding the whole raw value, whatever is in
 it. A name containing a comma, or a pipe, still names one list. To use several lists, use a source
 that has a list type — the command line, or the YAML file.

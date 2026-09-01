@@ -3,8 +3,7 @@
 *Implemented.* The answer to the one thing {doc}`pages` cannot handle: a value the page needs but
 does not carry.
 
-## The idea
-
+## The idea: a named placeholder
 A value a page cannot resolve on its own becomes a **promise** — a named placeholder — and the run
 continues. Nothing waits, nothing is re-read, and the page stays the unit of work.
 
@@ -20,8 +19,7 @@ page 3   deposits:  ("fund-name-of-section-3", "Global Equity Fund")
 Neither page knows about the other. Page 3 does not know anyone wants that name; page 412 does not
 know where it will come from. They agree only on an **id**.
 
-## Three stages
-
+## The three stages: collection, flattening, resolution
 **1. Collection.** As pages are deserialized, every pipe deposits `(id, value)` pairs into a
 **multimap**. A multimap, not a map, because several pages legitimately contribute to the same id: a
 fund name printed at the head of every page of its section, a total repeated at the foot of each
@@ -32,8 +30,7 @@ replaced, and every id keeps its own *sequence* of contributions.
 
 **3. Resolution.** Entities with pending fields are resolved against the flattened map.
 
-## Three properties that are not obvious
-
+## Three properties of promises that are not obvious
 These are the parts that bite people writing a pipe, and each was decided against a plausible
 alternative.
 
@@ -84,7 +81,6 @@ Multiplication is a cartesian product when more than one field is multiple. Ordi
 **first** and multiple fields expand **second**, so the copies are made from an already-resolved
 entity rather than resolving the same fields once per copy — the same answer, computed once.
 
-## The maps are ordered
-
+## Promise maps are ordered, never hashed
 Insertion or key order, never hash order. For equal content the cycle a failure reports is always
 **the same** cycle, so an error message can be asserted in a test. See {doc}`determinism`.

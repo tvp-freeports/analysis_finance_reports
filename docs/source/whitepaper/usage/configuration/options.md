@@ -6,8 +6,7 @@ per-option reference; the four pages after it are the per-source views of the sa
 Every card has the same fields, in the same order, so the page can be consulted rather than read. A
 dash means *this source cannot set this option*.
 
-## Summary
-
+## All sixteen options at a glance
 | Option | Command line | Environment | YAML | Batch |
 |---|---|---|---|---|
 | [reports](#reports) | `-i` | `FREEPORTS_URL`, `FREEPORTS_PDF`, `FREEPORTS_REPORTS` | `url`, `pdf`, `reports` | `url`, `pdf` |

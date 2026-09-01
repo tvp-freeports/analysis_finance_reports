@@ -7,28 +7,9 @@ different format, not a revision of this one.
 Formats do not live in the engine. They live in a **formats repository**, and this area is about
 what you put in one and how you work on it. Why they live outside is {doc}`../design/formats-as-plugins`.
 
-## The pages
-
-| Page | Answers |
-|---|---|
-| {doc}`writing-a-format` | the whole path of adding support for a new report |
-| {doc}`levels/structured` | rows in a spreadsheet, no code |
-| {doc}`levels/semistructured` | a named algorithm plus YAML |
-| {doc}`levels/unstructured` | a Python module, when a layout resists parameterisation |
-| {doc}`selections` | how you say *where to look* on a page |
-| {doc}`dev-loop` | inspect-document → inspect-page → make-tests → test |
-| {doc}`repository` | the repository itself: layout, metadata, orchestration, versioning |
-| {doc}`tooling` | `freeports-dev` and `freeports-validate`, option by option |
-
-## Start here
-
-```console
-$ freeports-dev init-format-repo ~/work/my-formats
-$ cd ~/work/my-formats
-$ freeports-dev setup-input-db
-```
-
-Then {doc}`writing-a-format`.
+<!-- The toctree is hidden and sits here, above the first section, on purpose: placed at the
+     end of the page it would be nested under whatever section came last, which is neither what
+     the hierarchy is nor what the side panel should show. -->
 
 ```{toctree}
 :maxdepth: 1
@@ -42,4 +23,27 @@ selections
 dev-loop
 repository
 tooling
+configuration
 ```
+
+## What each formats page answers
+| Page | Answers |
+|---|---|
+| {doc}`writing-a-format` | the whole path of adding support for a new report |
+| {doc}`levels/structured` | rows in a spreadsheet, no code |
+| {doc}`levels/semistructured` | a named algorithm plus YAML |
+| {doc}`levels/unstructured` | a Python module, when a layout resists parameterisation |
+| {doc}`selections` | how you say *where to look* on a page |
+| {doc}`dev-loop` | inspect-document → inspect-page → make-tests → test |
+| {doc}`repository` | the repository itself: layout, metadata, orchestration, versioning |
+| {doc}`tooling` | `freeports-dev` and `freeports-validate`, option by option |
+| {doc}`configuration` | configuring those two the way the engine is configured |
+
+## Starting a formats repository
+```console
+$ freeports-dev init-format-repo ~/work/my-formats
+$ cd ~/work/my-formats
+$ freeports-dev setup-input-db
+```
+
+Then {doc}`writing-a-format`.

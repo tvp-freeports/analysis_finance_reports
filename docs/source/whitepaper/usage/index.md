@@ -4,8 +4,27 @@ Everything needed to install `freeports`, point it at a document, and get tables
 reference: it says what each thing does, not why it was built that way. The *why* is {doc}`the design
 section <../design/index>`.
 
-## The pages
+<!-- The toctree is hidden and sits here, above the first section, on purpose: placed at the
+     end of the page it would be nested under whatever section came last, which is neither what
+     the hierarchy is nor what the side panel should show. -->
 
+```{toctree}
+:maxdepth: 2
+:hidden:
+
+installation
+inputs
+quickstart
+command
+documents
+output
+logging
+batch
+parallelism
+configuration/index
+```
+
+## What each usage page answers
 | Page | Answers |
 |---|---|
 | {doc}`installation` | what do I install, and how |
@@ -19,8 +38,7 @@ section <../design/index>`.
 | {doc}`parallelism` | the two levels, `auto`, the measurements, the price in memory |
 | {doc}`configuration/index` | the four sources a setting can come from, and how they merge |
 
-## The shape of a run
-
+## The shape of a run: one or more jobs
 One invocation of `freeports` is one or more **jobs**. A job is one report, read with one format,
 against one set of target companies. Whether the reports come from `--input` given several times or
 from the rows of a batch CSV, the results of every job in the run are accumulated together and
@@ -30,8 +48,7 @@ That is worth stating plainly because it explains an otherwise surprising proper
 reports in one invocation is not the same as running them twice and concatenating. In one
 invocation they share the promise resolution and the deduplication of funds; in two they do not.
 
-## The minimum
-
+## The four things a run needs
 Four things must be given, and only one of them can ever be worked out by the engine on its own:
 
 | What | How | Can be inferred? |
@@ -50,19 +67,3 @@ $ freeports --input report.pdf --format EURIZON-EN23 \
 None of the four has a useful default, and the engine refuses rather than guessing. If no target
 list is given the run stops immediately, before opening anything — the check is first because
 failing fast on a missing input is kinder than failing after four minutes of PDF.
-
-```{toctree}
-:maxdepth: 2
-:hidden:
-
-installation
-inputs
-quickstart
-command
-documents
-output
-logging
-batch
-parallelism
-configuration/index
-```

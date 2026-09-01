@@ -37,8 +37,7 @@ recipe for *one layout*, not for one company forever.
 *which* fund; that was printed on a cover page eleven pages earlier, and the currency was declared
 in a header. A page-at-a-time reader that insists on producing complete records will produce none.
 
-## The shape of the answer
-
+## The shape of the answer: three commitments
 Three commitments follow from those three difficulties, and between them they explain most of the
 engine's design. They are developed properly in {doc}`design/index`; here is what they are for.
 

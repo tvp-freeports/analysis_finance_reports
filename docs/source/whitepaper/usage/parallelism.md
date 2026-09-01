@@ -24,8 +24,7 @@ parallelism:
   pages: auto
 ```
 
-## The two levels
-
+## The two parallelism levels
 **Jobs run in separate processes.** Loading a PDF goes through PyMuPDF, which means through Python,
 which means through the GIL — profiling put that load at 35–75% of a job's wall time. Threads would
 have re-serialised exactly the part worth parallelising. The children report their results back to
@@ -37,8 +36,7 @@ so that a program embedding the crate keeps its own.
 
 `-j 1` therefore has a universal meaning: one job at a time *and* one page at a time.
 
-## What it buys, and what it costs
-
+## What parallelism buys, and what it costs
 Measured on a 20-thread machine, two large reports in one run:
 
 | | Time | Note |

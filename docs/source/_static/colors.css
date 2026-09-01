@@ -59,3 +59,60 @@ a:active, a:hover, a:visited {
 }
 
 
+
+
+/* ---------------------------------------------------------------------------
+ * Tables of prose must wrap.
+ *
+ * The Read the Docs theme sets `white-space: nowrap` on every cell of a
+ * responsive table, and again on every inline code span. That is right for the
+ * API tables it was designed around -- a signature broken across two lines is
+ * unreadable -- and wrong for this site, where most tables are sentences. A
+ * three-column table of prose then grows to whatever the longest sentence
+ * measures, pushes past the content area and overlaps the column beside it.
+ *
+ * Cells wrap; the table still scrolls inside its own box if a single cell
+ * genuinely cannot fit, so the page itself never scrolls sideways.
+ * ------------------------------------------------------------------------- */
+
+.wy-table-responsive {
+    overflow-x: auto;
+}
+
+.wy-table-responsive table td,
+.wy-table-responsive table th,
+.rst-content table.docutils td,
+.rst-content table.docutils th {
+    white-space: normal;
+    vertical-align: top;
+}
+
+/* Nothing here breaks a word in the middle, and that is a decision rather than
+ * an omission. Both `overflow-wrap: break-word` and `anywhere` were tried on
+ * table cells: they do make every table fit, by squeezing columns below the
+ * width of their own contents, and the sixteen-option table came out reading
+ * `formats _repo_p ath` and `separat e_out`. An identifier broken mid-token is
+ * worse than a scrollbar, because a reader cannot tell whether the break is
+ * part of the name.
+ *
+ * So a table that genuinely cannot fit stays at its natural width and scrolls
+ * inside the wrapper above. The page itself still never scrolls sideways. */
+
+/* The theme leaves the header row nowrap as well. */
+.rst-content table.docutils thead,
+.wy-table thead {
+    white-space: normal;
+}
+
+/* The theme breaks links mid-word -- `.rst-content p a { word-wrap: break-word }`
+ * -- which is reasonable for a bare URL in a paragraph and wrong in a table,
+ * where the links are identifiers. It is what turned the Option column of the
+ * sixteen-option table into `formats _repo_p ath`. Inside a table a link is a
+ * name and stays whole; if that makes the table too wide, the wrapper scrolls. */
+.rst-content table.docutils td p a,
+.rst-content table.docutils th p a,
+.wy-table-responsive table td p a,
+.wy-table-responsive table th p a {
+    word-wrap: normal;
+    overflow-wrap: normal;
+}

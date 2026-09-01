@@ -29,10 +29,29 @@
 //! lists/company_to_list.csv                 List name,Company name
 //! ```
 //!
-//! Every file is validated: company names unique, each bud already normalised and contained in the
-//! company's normalised name, each regex matching that name, dates in `YYYY-MM-DD` form, ticker
-//! symbols two to six upper-case letters, and every cross-reference pointing at an entity that
-//! exists.
+//! Every file is validated: company names unique, dates in `YYYY-MM-DD` form, ticker symbols two to
+//! six upper-case letters, and every cross-reference pointing at an entity that exists. The bud and
+//! regex of `companies.csv` are additionally checked against the company's own name; the two
+//! `companies_additional_*` files are not, and the section below says why.
+//!
+//! # The main table and the additional files are validated differently, on purpose
+//!
+//! The `Bud` and `Regex` columns of `companies.csv` sit next to the name and describe *it*, so they
+//! are checked against it: the bud already normalised and contained in the normalised name, the
+//! regex matching that name. An identifier there that contradicts the name it accompanies could
+//! only ever produce a false match or none.
+//!
+//! `companies_additional_buds.csv` and `companies_additional_regexs.csv` hold **the other names the
+//! same company genuinely goes by** — a former name, a brand, a parent group, the string one
+//! registrar insists on printing. They have no reason to resemble the name in `companies.csv`, so
+//! [`load_additional`] applies no name-consistency check at all. Requiring containment there would
+//! forbid exactly the case the files exist for.
+//!
+//! An additional **bud** is still required to be already normalised, and that is a different
+//! question from resembling the name. A bud is compared verbatim against text the matcher has
+//! deeply normalised, so one written with capitals or accents matches nothing, ever, and says
+//! nothing about it. The check is about the alphabet the comparison happens in, not about the
+//! company. An additional regex is exempt, being a pattern rather than a literal.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -212,12 +231,24 @@ fn load_companies(input_db_directory: &Path) -> Result<Vec<CompanyRow>, Companie
 }
 
 /// Shared by the two additional-value files, which have the same shape — an index column naming a
-/// company plus one value column — and the same cross-reference check.
+/// company plus one value column — and the same cross-reference check: the company exists.
+///
+/// Deliberately **no name-consistency check**, unlike `load_companies`; see the module
+/// documentation. A regex here is not compiled either — that happens in `compile_target_companies`,
+/// so a syntax error in one surfaces when the matchers are built rather than when the file is read.
+///
+/// `already_normalized` asks for the one check that does still apply, and only the bud file sets
+/// it. A bud is compared verbatim against text that the matcher has deeply normalised, so a bud
+/// carrying capitals or accents can never match anything — it fails silently, which is the worst
+/// way for it to fail. That has nothing to do with resembling the company's name: it is about the
+/// value being in the alphabet the comparison happens in. A regex is not subject to it, being a
+/// pattern rather than a literal.
 fn load_additional(
     input_db_directory: &Path,
     subdir: &str,
     file_name: &str,
     value_column: &'static str,
+    already_normalized: bool,
     company_names: &HashSet<String>,
 ) -> Result<Vec<(String, String)>, CompaniesDbError> {
     let path = input_db_directory.join(subdir).join(file_name);
@@ -230,6 +261,13 @@ fn load_additional(
         .map(|(company_name, value)| {
             if !company_names.contains(&company_name) {
                 return Err(CompaniesDbError::UnknownReference { path: path.clone(), kind: "company", value: company_name });
+            }
+            if already_normalized {
+                require_already_normalized(
+                    value_column,
+                    &value,
+                    &format!("{}, company '{company_name}'", path.display()),
+                )?;
             }
             Ok((company_name, value))
         })
@@ -353,9 +391,10 @@ pub fn load_target_companies(
     let companies = load_companies(input_db_directory)?;
     let company_names: HashSet<String> = companies.iter().map(|c| c.name.clone()).collect();
 
-    let additional_buds = load_additional(input_db_directory, COMPANIES_DIR, "companies_additional_buds.csv", "Bud", &company_names)?;
+    let additional_buds =
+        load_additional(input_db_directory, COMPANIES_DIR, "companies_additional_buds.csv", "Bud", true, &company_names)?;
     let additional_regexs =
-        load_additional(input_db_directory, COMPANIES_DIR, "companies_additional_regexs.csv", "Regex", &company_names)?;
+        load_additional(input_db_directory, COMPANIES_DIR, "companies_additional_regexs.csv", "Regex", false, &company_names)?;
     let list_names = load_lists(input_db_directory)?;
     let company_to_list = load_company_to_list(input_db_directory, &list_names, &company_names)?;
     let market_names = load_markets(input_db_directory)?;
@@ -606,6 +645,68 @@ mod tests {
             let f = Fixture::new();
             f.write(COMPANIES_DIR, "companies.csv", "Bud,Regex\n,\n");
             assert!(load_target_companies(&f.root(), &tl(&["TEST"])).is_err());
+        }
+    }
+
+    /// The asymmetry the module documentation describes: `companies.csv` is checked against the
+    /// company's own name, the two additional files are not, because they carry the *other* names
+    /// the company genuinely goes by.
+    mod additional_files_are_not_checked_against_the_name {
+        use super::*;
+
+        /// The same value that `bud_not_contained_in_name_is_rejected` refuses in the main table.
+        #[test]
+        fn an_additional_bud_bearing_no_resemblance_to_the_name_is_accepted() {
+            let f = Fixture::new();
+            f.write(COMPANIES_DIR, "companies_additional_buds.csv", "Company name,Bud\nBlackRock,aladdin\n");
+            let result = load_target_companies(&f.root(), &tl(&["OTHER"])).unwrap();
+            assert_eq!(result[0].buds, vec!["black".to_string(), "aladdin".to_string()]);
+        }
+
+        /// Likewise the value refused by `regex_not_matching_name_is_rejected`.
+        #[test]
+        fn an_additional_regex_matching_nothing_in_the_name_is_accepted() {
+            let f = Fixture::new();
+            f.write(COMPANIES_DIR, "companies_additional_regexs.csv", "Company name,Regex\nBlackRock,\\baladdin\\b\n");
+            let result = load_target_companies(&f.root(), &tl(&["OTHER"])).unwrap();
+            assert_eq!(result[0].regexs, vec!["^black ?rock".to_string(), "\\baladdin\\b".to_string()]);
+        }
+
+        /// The one check that *does* reach the bud file, and it is not about the name: a bud is
+        /// compared verbatim against deeply normalised text, so an un-normalised one would match
+        /// nothing and never say why.
+        #[test_case::test_case("ALADDIN"; "capitals")]
+        #[test_case::test_case("alad\u{ed}in"; "an accent")]
+        #[test_case::test_case("al  addin"; "a doubled space")]
+        #[test_case::test_case("black-rock"; "punctuation")]
+        fn an_additional_bud_that_is_not_already_normalized_is_rejected(bud: &str) {
+            let f = Fixture::new();
+            f.write(COMPANIES_DIR, "companies_additional_buds.csv", &format!("Company name,Bud\nBlackRock,{bud}\n"));
+            match load_target_companies(&f.root(), &tl(&["OTHER"])) {
+                Err(CompaniesDbError::NotNormalized { .. }) => {}
+                Err(other) => panic!("expected NotNormalized, got {other:?}"),
+                Ok(_) => panic!("an un-normalized additional bud must be rejected"),
+            }
+        }
+
+        /// The asymmetry inside the asymmetry: the same demand is **not** made of a regex, which is
+        /// a pattern rather than a literal and legitimately carries anchors, classes and escapes.
+        #[test]
+        fn an_additional_regex_is_not_required_to_be_already_normalized() {
+            let f = Fixture::new();
+            f.write(COMPANIES_DIR, "companies_additional_regexs.csv", "Company name,Regex\nBlackRock,\\bALADDIN\\b\n");
+            let result = load_target_companies(&f.root(), &tl(&["OTHER"])).unwrap();
+            assert_eq!(result[0].regexs, vec!["^black ?rock".to_string(), "\\bALADDIN\\b".to_string()]);
+        }
+
+        /// Loading does not compile the pattern, so an unparseable one gets this far; it is
+        /// `compile_target_companies` that reports it, as `an_invalid_regex_that_passes_loading_but_fails_pattern_compilation_propagates`
+        /// pins from the other side.
+        #[test]
+        fn an_unparseable_additional_regex_survives_loading() {
+            let f = Fixture::new();
+            f.write(COMPANIES_DIR, "companies_additional_regexs.csv", "Company name,Regex\nBlackRock,(unclosed\n");
+            assert!(load_target_companies(&f.root(), &tl(&["OTHER"])).is_ok());
         }
     }
 

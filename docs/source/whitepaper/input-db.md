@@ -8,8 +8,7 @@ Keeping it separate is the same decision as keeping formats separate. Which comp
 question about your work, not about PDF parsing, and two people using the same formats repository
 will disagree about it — legitimately.
 
-## Layout
-
+## The layout of a database
 ```text
 companies/
   companies.csv                    Name,Bud,Regex
@@ -34,26 +33,48 @@ Alphabet,alphabet,\balphabet\b
 Each company has a **name** — what ends up in the output — and up to three kinds of evidence for
 finding it in text that was typeset for humans:
 
-**Buds** are verbatim fragments that must be present. They are given already normalised, and each
-must actually occur in the company's own normalised name; a bud that does not is rejected when the
-database is read, because it could only ever produce a false match or none.
+**Buds** are verbatim fragments that gate the cheap pass. The matcher tries a company's regexes
+against a piece of text only if one of that company's buds occurs in it, which is what keeps a table
+of hundreds of rows against hundreds of companies fast. A bud is therefore about *the text*, not
+about the name.
 
 **Regexes** are the patterns the name takes in practice — abbreviations, legal suffixes, group
-names. Each must match its own company's name, for the same reason.
+names.
 
 **Tickers** are exchange symbols, two to six upper-case letters, attached to a company and a market.
 
-The two `companies_additional_*` files exist so that a company can have more than one bud or regex
-without the main table growing columns. The distinction is only about file shape; the matcher treats
-them the same.
+### The main table is checked against the name; the additional files are not
+
+This is the distinction that matters, and it is not a matter of file shape.
+
+The `Bud` and `Regex` columns of `companies.csv` describe **the company's own name**. So they are
+checked against it: the bud must be already normalised and must actually occur in the normalised
+name, and the regex must match that name. If you put an identifier here, it has to be consistent
+with the name it sits next to — one that is not could only ever produce a false match or none, and
+is rejected when the database is read.
+
+The two `companies_additional_*` files are for **the other names the same company genuinely goes
+by** — a former name, a brand, a parent group, a local subsidiary, the string a particular registrar
+insists on printing. `Alphabet` is written `Google` in half the reports that hold it. These have no
+reason to resemble the name in `companies.csv`, so **no such check is applied to them**: the only
+validation is that the company they name exists in the main table.
+
+Do not read that as laxity. It is the point of the two files: a bud or a regex that had to be
+contained in the official name could not express the case they exist for.
+
+One check does still reach an additional **bud**, and it is a different question from resembling the
+name: it must be **already normalised**. A bud is compared verbatim against text the matcher has
+normalised, so `ALADDIN` or `black-rock` would match nothing, ever, and say nothing about it — the
+check is about the alphabet the comparison happens in. An additional **regex** is exempt, being a
+pattern rather than a literal: anchors, character classes and escapes have no business being
+normalised.
 
 Matching runs on **normalised** forms — accents, case, punctuation and spacing removed, in three
 increasing degrees — so that `Café Fund`, `CAFE  FUND` and `Cafe' Fund` are one name. The name is
 kept exactly as written alongside the normalised form, and it is the written one that reaches the
 output.
 
-## Lists
-
+## Target lists, and their provenance
 A run does not search for the whole database; it searches for **lists**, named with `--target-list`
 / `-T`. A list is a curated set of companies with a provenance:
 
@@ -89,16 +110,19 @@ would reject a pattern that works perfectly.
 
 ## Everything is validated on load
 
-Company names unique; every bud already normalised and contained in its company's normalised name;
-every regex matching that name; dates in `YYYY-MM-DD`; ticker symbols two to six upper-case letters;
-every cross-reference — a list naming a company, a ticker naming a market — pointing at something
-that exists.
+Company names unique; every bud and regex **of the main table** consistent with its own company's
+name, as above; dates in `YYYY-MM-DD`; ticker symbols two to six upper-case letters; every
+cross-reference — a list naming a company, a ticker naming a market, an additional bud or regex
+naming a company — pointing at something that exists.
+
+Additional buds and regexes are checked for that last cross-reference, plus — buds only — that they
+are already normalised. A regex among them is not even compiled until the run needs it, so a syntax
+error in one is reported when the matchers are built rather than when the file is read.
 
 The database is read before any PDF is opened, so a mistake in it is reported in seconds rather than
 after a long run produced a table with a company quietly missing from it.
 
-## Getting one
-
+## Getting an input database
 `freeports-dev setup-input-db` writes a minimal database with a single list called `TEST`, which is
 what a formats repository's own tests use. A real one is grown from it: the shape is small enough to
 edit in a spreadsheet, and the validation is strict enough to catch what a spreadsheet gets wrong.

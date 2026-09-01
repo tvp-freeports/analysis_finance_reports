@@ -23,8 +23,7 @@ body_set = PdfLineSelection(font="ArialMT", font_size=(6.95, 6.97))
 The size range is not fussiness: a PDF's nominal 7-point body text is rarely exactly 7.0, and a
 range is how you say "the body face" rather than "this one line".
 
-## Composition
-
+## Composing selections, and building one relative to another
 Selections compose with `&`, which is ordinary conjunction. The useful part is that they can also be
 built **relative to another selection**:
 
@@ -61,8 +60,7 @@ and is faster without. Keeping the two apart is the same separation the segments
 built on: `pdf_extract` looks at graphical evidence, `text_filter` at meaning
 ({doc}`../design/segments`).
 
-## Finding out what to write
-
+## Finding out which selection to write
 The line-set modes of `inspect-page` exist for exactly this, and are the fastest way to learn what
 font and size a value is actually set in:
 

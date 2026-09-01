@@ -17,7 +17,7 @@ use crate::cli::{freeports_config, job, output};
 use crate::core::algorithm::Algorithm;
 use crate::core::parallelism::Parallelism;
 use crate::core::tracing_setup::{self, CsvLogLayer};
-use crate::core::page::FormatName;
+use crate::core::page::{Document, FormatName};
 use crate::core::schedule::PageClass;
 use crate::formats_repo::metadata;
 use crate::output::routines::write::{OutFlags, OutStructureMode};
@@ -25,6 +25,12 @@ use crate::output::routines::write::{OutFlags, OutStructureMode};
 use super::core::{PyPdfBlock, PyTextBlock};
 use super::pipes::{extracted_to_py, filter_data_of, page_from_py, previous_results_from_py, target_companies_from_py};
 use crate::core::tracing_setup::log_error;
+
+/// The document identifier the inspection shim gives the pages it is handed.
+///
+/// It only ever appears in an error message: a classification failure names the document it was
+/// classifying, and pages arriving from Python belong to no run and have no identifier of their own.
+const INSPECTED_DOCUMENT_ID: &str = "inspected document";
 
 /// A native error as a Python `ValueError`.
 fn value_error<E: std::fmt::Display>(error: E) -> PyErr {
@@ -77,6 +83,34 @@ impl PyAlgorithm {
     #[getter]
     fn page_classes(&self) -> Vec<String> {
         self.0.schedule().page_classes().iter().map(|class| class.as_str().to_string()).collect()
+    }
+
+    /// Classifies **a whole document**: which of the format's page classes each page belongs to,
+    /// `None` for a page the format claims none of.
+    ///
+    /// Takes the list of `page.get_text("dict")` dicts, in document order, and numbers them from
+    /// one accordingly. It has to be the whole document and not one page at a time, because a
+    /// format may supply a finalizer that rewrites the raw per-page answers looking at all of them
+    /// together — "every page after the holdings header is holdings" is the shape of it. A page
+    /// classified in isolation would then get a different answer from the same page classified in
+    /// its document, and the isolated one is the wrong one.
+    #[pyo3(signature = (pages))]
+    fn classify_pages(&self, pages: &Bound<'_, PyAny>) -> PyResult<Vec<Option<String>>> {
+        let mut native = Vec::new();
+        for (index, page) in pages.try_iter()?.enumerate() {
+            let mut parsed = page_from_py(&page?)?;
+            // `page_from_py` numbers every page 1, having no way to know better; here the position
+            // in the list is the page number, and classifiers are entitled to read it.
+            parsed.number = index as u32 + 1;
+            native.push(parsed);
+        }
+        tracing::debug!(pages = native.len(), "Algorithm.classify_pages called from Python");
+        let document = Document::new(INSPECTED_DOCUMENT_ID, self.0.format().clone(), native);
+        let classified = self.0.classify_pages(&document).map_err(|e| {
+            tracing::error!(error = log_error(&e), "classify_pages failed: {e}");
+            value_error(e)
+        })?;
+        Ok(classified.into_iter().map(|class| class.map(|c| c.as_str().to_string())).collect())
     }
 
     fn apply_pdf_extract(&self, page: &Bound<'_, PyAny>, page_class: &str) -> PyResult<Vec<PyPdfBlock>> {
@@ -349,11 +383,20 @@ pub fn py_run_job(
 
 /// The Python shim of the configuration file.
 ///
-/// It exposes only what callers really read from it: where to find it, and which input database it
-/// declares. It is not the complete resolved configuration, which is the result of merging every
-/// source and makes no sense to build from Python.
+/// It exposes only what callers really read from it: where to find it, which input database and
+/// formats repository it declares, and the two tooling sections that `freeports-dev` and
+/// `freeports-validate` are configured through. It is not the complete resolved configuration,
+/// which is the result of merging every source and makes no sense to build from Python.
+///
+/// This class is the whole reason the two tooling commands need no configuration machinery of their
+/// own: finding the file, deciding which tier wins and refusing an unknown key all happen once, in
+/// Rust, and both commands read the answer from here.
+///
+/// Every getter is upper-case and flat, so the three names for one setting differ only in
+/// punctuation: `dev.page_type` in the file, `FREEPORTS_DEV_PAGE_TYPE` in the environment,
+/// `DEV_PAGE_TYPE` here.
 #[pyclass(name = "FreeportsFileConfig", module = "freeports.cli", frozen)]
-pub struct PyFreeportsFileConfig(PartialConfig);
+pub struct PyFreeportsFileConfig(PartialConfig, file::ToolingConfig);
 
 #[pymethods]
 impl PyFreeportsFileConfig {
@@ -365,7 +408,8 @@ impl PyFreeportsFileConfig {
 
     #[new]
     fn new(path: PathBuf) -> PyResult<Self> {
-        file::load(Some(Path::new(&path))).map(PyFreeportsFileConfig).map_err(value_error)
+        let (engine, tooling) = file::load_both(Some(Path::new(&path))).map_err(value_error)?;
+        Ok(PyFreeportsFileConfig(engine, tooling))
     }
 
     /// The name is upper-cased, as configuration keys were exposed as upper-case attributes.
@@ -385,5 +429,33 @@ impl PyFreeportsFileConfig {
     #[pyo3(name = "OUT_PATH")]
     fn out_path(&self) -> Option<PathBuf> {
         self.0.out_path.clone()
+    }
+
+    /// `dev.target_lists` — the lists a format repository's own tests search for.
+    #[getter]
+    #[pyo3(name = "DEV_TARGET_LISTS")]
+    fn dev_target_lists(&self) -> Option<Vec<String>> {
+        self.1.dev.target_lists.clone()
+    }
+
+    /// `dev.noconfirm` — skip the `make-tests` confirmation prompts.
+    #[getter]
+    #[pyo3(name = "DEV_NOCONFIRM")]
+    fn dev_noconfirm(&self) -> Option<bool> {
+        self.1.dev.noconfirm
+    }
+
+    /// `dev.page_type` — the default page type for `make-tests` and `inspect-page`.
+    #[getter]
+    #[pyo3(name = "DEV_PAGE_TYPE")]
+    fn dev_page_type(&self) -> Option<String> {
+        self.1.dev.page_type.clone()
+    }
+
+    /// `validate.key_id` — the GPG key grants are signed with.
+    #[getter]
+    #[pyo3(name = "VALIDATE_KEY_ID")]
+    fn validate_key_id(&self) -> Option<String> {
+        self.1.validate.key_id.clone()
     }
 }

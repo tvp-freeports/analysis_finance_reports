@@ -2,8 +2,7 @@
 
 The path from *"this PDF is not supported"* to *"this PDF is supported and the tests say so"*.
 
-## Before anything: what you are choosing
-
+## Before anything: choosing a level
 A format specifies, for each page class it cares about, up to three segments
 ({doc}`../design/segments`). There are three **levels** at which a segment can be specified, and they
 differ only in how much of the algorithm you supply yourself:
@@ -130,8 +129,7 @@ snapshot.
 The reference output of a format is a claim about the world. The project records who is making it
 and on what basis — {doc}`../validation` for the mechanism, {doc}`tooling` for the commands.
 
-## Two rules that will save you time
-
+## Two rules about matching and unresolved pages
 **Company matching is first-match-wins, in file order.** The input database's order is meaningful,
 not incidental. A format that seems to attribute a holding to the wrong company is often reporting a
 database problem rather than an extraction one. See {doc}`../input-db`.

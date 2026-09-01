@@ -9,8 +9,7 @@ what a tool parses afterwards are not the same artefact ({doc}`../design/limits`
 | `freeports.log.jsonl` | the **working** directory | one JSON object per line, for tools | your verbosity |
 | `.log.csv` | the **output** directory | the extraction's own audit trail | `warn` and above |
 
-## Verbosity
-
+## The six verbosity levels
 `-v` and `-q` are **independent dials** rather than opposed flags: the net of the two counts is
 added to the default and clamped, so no combination is an error.
 

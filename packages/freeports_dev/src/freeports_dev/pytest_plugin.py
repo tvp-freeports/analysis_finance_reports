@@ -37,6 +37,18 @@ def _get_test_companies(rootdir=None):
     return gtc(rootdir)
 
 
+def _target_lists():
+    """The lists both the fixture loader and the pipeline test search for.
+
+    Read through the configuration rather than written `["TEST"]` in two places, so that a repository
+    whose tests are built against a different list says so once. It still resolves to `TEST` when
+    nothing says otherwise, which is what every format repository in existence relies on.
+    """
+    from freeports_dev.config import active
+
+    return active().target_lists
+
+
 def _load_filter_data(cache, variant_path, page_type):
     """Load filter_data from filter_data.json or fall back to test companies.
 
@@ -252,7 +264,7 @@ class PipelineTest(Function):
         run_job(
             input_reports=[(None, str(self.parent.path / "report.pdf"), "report")],
             format=self.format_name,
-            target_lists=["TEST"],
+            target_lists=_target_lists(),
             formats_repo_path=str(_formats_cache["repo_dir"]),
             input_db_path=str(input_db),
             out_path=str(out_path),

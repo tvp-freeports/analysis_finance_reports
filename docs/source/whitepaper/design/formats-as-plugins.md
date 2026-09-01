@@ -3,8 +3,7 @@
 *Implemented.* The project's main structural bet, and the reason there is an engine at all rather
 than a program per issuer.
 
-## The bet
-
+## The bet: the engine knows no report
 The engine knows **nothing** about any particular report. What it knows is how to run a schedule of
 steps over classified pages, feed each page through pipelines, and resolve what comes out. Which
 pages, and what to do with them, comes from a **formats repository** — an ordinary directory, in its
@@ -14,8 +13,7 @@ The consequence is the point: **supporting a new report needs no release of the 
 nothing anyone else maintains, and can be published independently. `analysis_finance_reports_formats`
 is one such repository, and there is nothing privileged about it.
 
-## What this buys, and what it costs
-
+## What keeping formats outside buys, and what it costs
 **Buys:** the part that does not change and the part that grows constantly are versioned, tested and
 released separately. A layout that breaks costs one repository a fix, not a release of everything.
 

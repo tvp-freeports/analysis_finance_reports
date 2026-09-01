@@ -3,8 +3,7 @@
 Between the two others. The algorithm has a **name**; you say which name serves which segment, and
 configure it in YAML.
 
-## The two files
-
+## The two files a semistructured format needs
 `content/algorithms/semistructured/formats_mapping.csv` says which named algorithm serves which
 segment of which pipeline:
 
@@ -29,8 +28,7 @@ AMUNDI-IT24(investments):
   tolerance: 1.0
 ```
 
-## The key
-
+## The key that links a format to an algorithm
 `{format}({pipeline})`, falling back to the bare `{format}` only for the **unnamed** pipeline. The
 two forms are not interchangeable: writing `AMUNDI-IT24` when the pipeline has a name will not be
 found, and the failure is silent in the sense that the segment simply has no configuration.
@@ -51,8 +49,7 @@ An algorithm that returns three pipes advances that counter by **three**. This i
 surprises people, and it is worth restating: the counter follows the pipes actually produced, so
 adding an algorithm earlier in the same segment shifts every list index after it.
 
-## Your own names
-
+## Algorithm names of your own
 An algorithm name may be implemented natively or by you, in your repository's Python.
 
 Defining the same name **both** ways is an **error**, not a precedence to be remembered. The check

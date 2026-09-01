@@ -4,8 +4,7 @@ Every option, what it sets, and what happens when it is left out. The same setti
 from three other sources — see {doc}`configuration/index` — and this page is the command-line view of
 them.
 
-## At a glance
-
+## Every option at a glance
 ```text
 freeports  -i <document>…  -f <format>  -F <formats-repo>  -I <input-db>  -T <list>…
            [-o <path>] [-P <profile>] [-z] [--separate-out] [--no-download]
@@ -135,8 +134,7 @@ pinned it to a number.
 Zero and negative values are a typed error naming the option you mistyped, not a generic message
 about a concept. {doc}`parallelism`.
 
-## Verbosity
-
+## Verbosity: `-v` and `-q`
 `-v` and `-q` are **counted** and are **independent dials**, not opposed flags: the net of the two
 counts is added to the default and clamped, so no combination is an error and `-vv -q` is legal.
 
@@ -155,8 +153,7 @@ configuration file's `verbosity` key are parsed, validated and merged, but never
 setup of the parent process — see the warning in {doc}`configuration/index`.
 ```
 
-## One hidden option
-
+## `--internal-worker`, the one hidden option
 `--internal-worker` exists and is hidden from `--help` on purpose. It is not a user interface but
 the channel between two copies of the same binary: a parent running the jobs of a batch in child
 processes passes it to itself, naming a request file inside a temporary directory that disappears

@@ -18,8 +18,7 @@ A test that passes four times out of five is worse than a slower map. An error m
 different cycle on each run cannot be asserted, so it stops being tested, so it stops being
 maintained.
 
-## What is guaranteed
-
+## What determinism guarantees
 | | Guaranteed |
 |---|---|
 | output tables | **byte-identical** regardless of the parallelism settings |
@@ -31,8 +30,7 @@ The first is the strong one, and it is tested rather than asserted: the same run
 at N produces the same files, checked in the integration suite and by checksum against the formats
 repository's reference outputs.
 
-## The one place it was relaxed
-
+## The one place determinism was relaxed
 Byte-for-byte determinism was the original requirement for the parallel work. It was relaxed, on
 purpose, to **semantic equivalence**: the parallel output must contain the same data, not
 necessarily in the same order.
@@ -48,8 +46,7 @@ strategies. What happened next is worth recording:
 That is the ideal outcome for that kind of permission, and it is why reference outputs remain
 comparable by checksum even though the constraint that protected them was formally dropped.
 
-## What is not guaranteed
-
+## What determinism does not guarantee
 **The interleaving of log lines across concurrent jobs.** Two jobs running at once produce lines in
 whatever order they happen; the merge restores job order at the end, not the original instants.
 

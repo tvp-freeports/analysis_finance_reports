@@ -12,6 +12,28 @@ Every page here states what it describes and whether that thing **exists**:
 | *planned* | designed, argued for, not built. The page says what would change |
 | *accepted limit* | a known edge deliberately left as it is, with the reason |
 
+<!-- The toctree is hidden and sits here, above the first section, on purpose: placed at the
+     end of the page it would be nested under whatever section came last, which is neither what
+     the hierarchy is nor what the side panel should show. -->
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+
+pages
+promises
+classification
+schedule
+multidocument
+segments
+blocks
+entities-and-output
+formats-as-plugins
+determinism
+parallelism
+limits
+```
+
 ## The whole algorithm at a glance
 
 ```{figure} assets/algorithm-overview.svg
@@ -30,8 +52,7 @@ The two halves of that picture are the two halves of this section. Everything up
 about *which pages get processed and in what order*; everything after it is about *what a page
 becomes*.
 
-## The pages
-
+## What each design page answers
 **The foundations** — the one assumption everything else rests on, and what it costs.
 
 | Page | Says |
@@ -63,21 +84,3 @@ becomes*.
 | {doc}`determinism` | what order is guaranteed, and what is not |
 | {doc}`parallelism` | parallelism as a consequence of the page assumption, not an addition |
 | {doc}`limits` | the accepted limits, stated rather than hidden |
-
-```{toctree}
-:maxdepth: 1
-:hidden:
-
-pages
-promises
-classification
-schedule
-multidocument
-segments
-blocks
-entities-and-output
-formats-as-plugins
-determinism
-parallelism
-limits
-```

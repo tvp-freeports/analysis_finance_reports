@@ -60,8 +60,7 @@ is, and it is what makes the merge with the other levels useful rather than theo
 take its `pdf_extract` from here and its `text_filter` from a Python module, by leaving the second
 unspecified at this level ({doc}`../../design/formats-as-plugins`).
 
-## Two conventions worth knowing
-
+## Two conventions of the structured tables
 **An empty cell means *absent*, everywhere.** Not zero, not the default — absent. It is the same rule
 the output files follow.
 

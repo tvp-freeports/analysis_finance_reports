@@ -147,6 +147,25 @@ intersphinx_mapping = {
 # -- Output HTML -------------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
+
+# Il pannello laterale deve essere **l'indice completo del sito**, non l'elenco delle sole pagine.
+#
+# `navigation_depth` conta i livelli a partire dalla radice, e le sezioni di una pagina sono un
+# livello come gli altri: `whitepaper` -> `usage` -> `configuration` -> `options` consuma gia'
+# quattro livelli, che e' il default del tema, quindi le sedici opzioni dentro `options.md` non
+# comparivano affatto. Sei livelli coprono il ramo piu' profondo del sito piu' le sue sottosezioni.
+#
+# `collapse_navigation: False` toglie l'altra meta' del problema: con il default, i rami che non
+# contengono la pagina corrente non vengono espansi, quindi per *vedere* una sezione bisognava gia'
+# essere arrivati sulla sua pagina — e per arrivarci servivano i link interni al testo. Ora ogni
+# ramo e' apribile da qualunque punto del sito.
+html_theme_options = {
+    "collapse_navigation": False,
+    "navigation_depth": 6,
+    "sticky_navigation": True,
+    "titles_only": False,
+}
+
 html_logo = "https://www.freeports.org/assets/logo/square.svg"
 html_static_path = ["_static"]
 html_css_files = ["colors.css"]

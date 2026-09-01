@@ -42,8 +42,7 @@ pages in this documentation are not editable prose.** Correcting a typo in one o
 signed grants in repositories maintained by other people. Changing them is a deliberate operation —
 re-granting and re-signing — not an act of tidying.
 
-## The methodologies
-
+## The three published methodologies
 A methodology says what a person actually did before vouching. Three are published today, and they
 differ in how much verification they claim, not in how much they promise:
 

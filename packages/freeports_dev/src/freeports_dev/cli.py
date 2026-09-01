@@ -1,28 +1,41 @@
+"""The `freeports-dev` command line.
+
+Every subcommand takes its settings from a :class:`~freeports_dev.config.DevConfig` rather than
+reading the environment itself, so that one setting resolves the same way whichever subcommand asked
+for it. The options shared with the engine — the repository, the input database, the configuration
+file, the target lists — are declared once, on the parent parsers below, and carry the same names and
+short letters `freeports` uses.
+"""
+
 import argparse
-import os
 import sys
 from pathlib import Path
 
-
-def _resolve_repo(repo_arg=None):
-    if repo_arg:
-        return Path(repo_arg).resolve()
-    env = os.environ.get("FREEPORTS_FORMATS_REPO")
-    if env:
-        return Path(env).resolve()
-    return Path.cwd()
+from freeports_dev.config import DevConfig, set_active
 
 
-def _cmd_test(args):
-    import pytest
+def _repo_or_exit(config):
+    """The formats repository, checked to actually be one.
 
-    repo = _resolve_repo(args.repo)
+    The same guard three subcommands had inline, in one place: pointing any of them at a directory
+    that is not a formats repository fails the same way, with the same message.
+    """
+    repo = config.formats_repo
     if not (repo / "metadata" / "formats.csv").exists():
         print(
             f"Error: {repo} does not appear to be a formats repository "
             f"(missing metadata/formats.csv)"
         )
         sys.exit(1)
+    return repo
+
+
+def _cmd_test(args):
+    import pytest
+
+    config = DevConfig(args)
+    repo = _repo_or_exit(config)
+    set_active(config)
 
     test_dir = (
         repo / "tests" / "formats" / args.format if args.format else repo / "tests"
@@ -36,13 +49,8 @@ def _cmd_test(args):
 
 
 def _cmd_make_tests(args):
-    repo = _resolve_repo(args.repo)
-    if not (repo / "metadata" / "formats.csv").exists():
-        print(
-            f"Error: {repo} does not appear to be a formats repository "
-            f"(missing metadata/formats.csv)"
-        )
-        sys.exit(1)
+    config = DevConfig(args)
+    repo = _repo_or_exit(config)
 
     from freeports_dev.make_tests import add_page_test
 
@@ -57,13 +65,13 @@ def _cmd_make_tests(args):
     add_page_test(
         fmt=args.format,
         document=args.document,
-        page_type=args.page_type,
+        page_type=config.page_type,
         n_page=args.page,
         base_out_path=base_path,
         base_in_path=base_path,
         report_file=args.report,
         filter_data=filter_data,
-        noconfirm=args.noconfirm,
+        noconfirm=config.noconfirm,
         skip_pdf_blks=args.skip_pdf_blks,
         skip_txt_blks=args.skip_txt_blks,
         skip_results=args.skip_results,
@@ -74,7 +82,8 @@ def _cmd_make_tests(args):
 
 
 def _cmd_inspect_page(args):
-    repo = _resolve_repo(args.repo)
+    config = DevConfig(args)
+    repo = config.formats_repo
 
     from freeports_dev.create_test_page import (
         get_page_dict,
@@ -102,30 +111,31 @@ def _cmd_inspect_page(args):
 
     filter_data = args.filter_data
     if filter_data is None:
-        filter_data = gtc(repo)
+        filter_data = gtc(repo, config.target_lists, config)
 
+    page_type = config.page_type
     if args.mode == "pdf_blks":
-        pdf_blks = a.apply_pdf_extract(page, args.page_type)
+        pdf_blks = a.apply_pdf_extract(page, page_type)
         for blk in pdf_blks:
             print(blk)
     elif args.mode == "txt_blks":
-        txt_blks = a.apply_text_filter(page, filter_data, args.page_type)
+        txt_blks = a.apply_text_filter(page, filter_data, page_type)
         for blk in txt_blks:
             print(blk)
     elif args.mode == "results":
-        results = a.apply_deserialize(page, filter_data, args.page_type)
+        results = a.apply_deserialize(page, filter_data, page_type)
         for r in results:
             print(r)
     elif args.mode == "table_md":
-        pdf_blks = a.apply_pdf_extract(page, args.page_type)
+        pdf_blks = a.apply_pdf_extract(page, page_type)
         print_pdf_blks_table_MD(pdf_blks)
     elif args.mode == "table_ascii":
-        pdf_blks = a.apply_pdf_extract(page, args.page_type)
+        pdf_blks = a.apply_pdf_extract(page, page_type)
         print_pdf_blks_table_ASCII(pdf_blks)
 
 
 def _cmd_inspect_document(args):
-    repo = _resolve_repo(args.repo)
+    repo = DevConfig(args).formats_repo
 
     from freeports.core import Algorithm
     from freeports.formats_repo import get_formats
@@ -137,17 +147,28 @@ def _cmd_inspect_document(args):
     a = Algorithm.load(repo, args.format, get_formats(repo))
     pdf_file = pymupdf.Document(str(report_file))
 
+    # The whole document is classified even when only one page is asked about, and that is not
+    # waste. A format may supply a finalizer that rewrites the raw per-page answers looking at all
+    # of them at once -- "every page after the holdings header is holdings" -- so a page classified
+    # on its own can get a different answer from the same page classified in its document. The
+    # isolated answer is the wrong one, and it is the one somebody would act on.
+    pages = [p.get_text("dict") for p in pdf_file]
+    classifications = a.classify_pages(pages)
+
     if args.page is not None:
-        page = pdf_file[args.page - 1].get_text("dict")
-        classification = a.classify_pages([page])
-        label = classification[0] if classification[0] is not None else "unclassified"
-        print(f"Page {args.page}: {label}")
+        if not 1 <= args.page <= len(classifications):
+            print(
+                f"Error: page {args.page} is outside {report_file}, which has {len(classifications)}"
+            )
+            sys.exit(1)
+        numbered = [(args.page, classifications[args.page - 1])]
     else:
-        pages = [p.get_text("dict") for p in pdf_file]
-        classifications = a.classify_pages(pages)
-        for i, cls in enumerate(classifications, 1):
-            label = cls if cls is not None else "unclassified"
-            print(f"Page {i}: {label}")
+        numbered = list(enumerate(classifications, 1))
+
+    for number, page_class in numbered:
+        print(
+            f"Page {number}: {page_class if page_class is not None else 'unclassified'}"
+        )
 
 
 def _cmd_init_repo(args):
@@ -158,11 +179,76 @@ def _cmd_init_repo(args):
 
 
 def _cmd_setup_input_db(args):
-    repo = _resolve_repo(args.repo)
+    repo = DevConfig(args).formats_repo
     from freeports_dev.input_db import copy_default_input_db
 
     copy_default_input_db(repo / "tests")
     print(f"Input DB created at {repo / 'tests' / 'input_db'}")
+
+
+def _common_parser():
+    """The options every subcommand that works on an existing repository accepts.
+
+    Declared once and inherited, so the repository is named the same way whichever subcommand is
+    being run. The long names and short letters are the engine's: `freeports` accepts
+    `--formats-directory`/`--repo`/`-F`/`-r` and `--db-directory`/`-I` for the same two things, and a
+    format author should not have to remember which command wanted which spelling.
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--repo",
+        "-r",
+        "--formats-directory",
+        "-F",
+        dest="repo",
+        metavar="PATH",
+        help="Formats repository [default: $FREEPORTS_FORMATS_REPO_PATH, then `formats_repo` in the "
+        "configuration file, then the working directory]",
+    )
+    parser.add_argument(
+        "--db-directory",
+        "-I",
+        dest="db_directory",
+        metavar="PATH",
+        help="Input database, overriding the repository's own tests/input_db "
+        "[default: $FREEPORTS_INPUT_DB_PATH]",
+    )
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        help="Configuration file to read [default: $FREEPORTS_CONFIG_FILE, then the file the engine "
+        "would find in the working, user and system tiers]",
+    )
+    return parser
+
+
+def _targets_parser():
+    """The target lists, for the subcommands that actually filter by company."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--target-list",
+        "-T",
+        dest="target_list",
+        nargs="+",
+        metavar="NAME",
+        help="Lists to search [default: $FREEPORTS_DEV_TARGET_LIST, then `dev.target_lists` in the "
+        "configuration file, then TEST]",
+    )
+    return parser
+
+
+def _page_type_parser():
+    """The page type, defaulted through the configuration rather than hard-coded in the flag."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--page-type",
+        "-t",
+        dest="page_type",
+        metavar="TYPE",
+        help="Page type [default: $FREEPORTS_DEV_PAGE_TYPE, then `dev.page_type` in the "
+        "configuration file, then investments]",
+    )
+    return parser
 
 
 def main():
@@ -171,9 +257,13 @@ def main():
         description="Development tools for freeports format repositories",
     )
     sub = parser.add_subparsers(dest="command")
+    common = _common_parser()
+    targets = _targets_parser()
+    page_type = _page_type_parser()
 
-    p_test = sub.add_parser("test", help="Run format tests via pytest")
-    p_test.add_argument("--repo", "-r", help="Path to formats repository")
+    p_test = sub.add_parser(
+        "test", parents=[common, targets], help="Run format tests via pytest"
+    )
     p_test.add_argument(
         "--format", "-f", help="Run tests only for a specific format (e.g. AMUNDI-EN24)"
     )
@@ -181,15 +271,15 @@ def main():
         "pytest_args", nargs=argparse.REMAINDER, help="Arguments forwarded to pytest"
     )
 
-    p_make = sub.add_parser("make-tests", help="Create test fixtures for a format page")
-    p_make.add_argument("--repo", "-r", help="Path to formats repository")
+    p_make = sub.add_parser(
+        "make-tests",
+        parents=[common, targets, page_type],
+        help="Create test fixtures for a format page",
+    )
     p_make.add_argument(
         "--format", "-f", required=True, help="Format name (e.g. AMUNDI-EN24)"
     )
     p_make.add_argument("--page", "-p", type=int, required=True, help="Page number")
-    p_make.add_argument(
-        "--page-type", "-t", required=True, help="Page type (e.g. investments)"
-    )
     p_make.add_argument(
         "--document", "-d", help="Document variant (for multi-document formats)"
     )
@@ -212,17 +302,12 @@ def main():
     p_make.add_argument("--skip-results", action="store_true")
 
     p_page = sub.add_parser(
-        "inspect-page", help="Inspect a PDF page for format development"
+        "inspect-page",
+        parents=[common, targets, page_type],
+        help="Inspect a PDF page for format development",
     )
-    p_page.add_argument("--repo", "-r", help="Path to formats repository")
     p_page.add_argument("--format", "-f", required=True, help="Format name")
     p_page.add_argument("--page", "-p", type=int, required=True, help="Page number")
-    p_page.add_argument(
-        "--page-type",
-        "-t",
-        default="investments",
-        help="Page type for pipeline modes (pdf_blks|txt_blks|results), default: investments",
-    )
     p_page.add_argument(
         "--mode",
         "-m",
@@ -260,9 +345,9 @@ def main():
 
     p_doc = sub.add_parser(
         "inspect-document",
+        parents=[common],
         help="Classify pages of a PDF document to determine their page types",
     )
-    p_doc.add_argument("--repo", "-r", help="Path to formats repository")
     p_doc.add_argument("--format", "-f", required=True, help="Format name")
     p_doc.add_argument(
         "--page",
@@ -277,10 +362,11 @@ def main():
     )
     p_init.add_argument("path", help="Path for the new repository")
 
-    p_setup = sub.add_parser(
-        "setup-input-db", help="Create tests/input_db/ with default TEST list"
+    sub.add_parser(
+        "setup-input-db",
+        parents=[common],
+        help="Create tests/input_db/ with default TEST list",
     )
-    p_setup.add_argument("--repo", "-r", help="Path to formats repository")
 
     args = parser.parse_args()
 

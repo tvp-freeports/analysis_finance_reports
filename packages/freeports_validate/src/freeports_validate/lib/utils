@@ -1,15 +1,27 @@
 #!/bin/bash
-if [ -z "$AFINANCE_VALIDATION_KEYID" ]; then
-    echo "Specify the public key id to use as identity"
-    echo "use environment variable AFINANCE_VALIDATION_KEYID"
+
+# Everything a script needs is decided by `cli.py` before it hands over, and arrives here already
+# resolved: the command line, the environment and the configuration file have been merged there, in
+# the one place that knows how. The two fallbacks below are the tool's own defaults, reached only
+# when nothing named a value at all.
+
+if [ -z "$FREEPORTS_VALIDATE_KEY_ID" ]; then
+    echo "Specify the public key that identifies you as the signer."
+    echo "Give it as --key-id, as FREEPORTS_VALIDATE_KEY_ID, or as validate.key_id in the"
+    echo "freeports configuration file."
     exit 1
 fi
-export KEYID="$AFINANCE_VALIDATION_KEYID"
+export KEYID="$FREEPORTS_VALIDATE_KEY_ID"
 
-if [ -n "$FREEPORTS_FORMATS_REPO" ]; then
-    export REPO_ROOT="$FREEPORTS_FORMATS_REPO"
+if [ -n "$FREEPORTS_FORMATS_REPO_PATH" ]; then
+    export REPO_ROOT="$FREEPORTS_FORMATS_REPO_PATH"
 else
-    export REPO_ROOT=$(git rev-parse --show-toplevel)
+    # This command's own default, and deliberately reaching further than the working directory the
+    # other two fall back to: a validation document lives at the repository root, while grants are
+    # issued from wherever in the tree the granted file happens to be. Outside a Git checkout there
+    # is nothing to walk up to, so the working directory is the last resort -- which is what the
+    # other two commands would have done in the first place.
+    export REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 fi
 
 export LIB_DIR="${FREEPORTS_VALIDATE_LIB}"

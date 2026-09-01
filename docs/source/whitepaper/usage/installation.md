@@ -1,7 +1,6 @@
 # Installation
 
-## What you are installing
-
+## The three distributions
 Three distributions, with distinct jobs. Only the first is needed to extract data.
 
 | Distribution | Gives you | Who needs it |
@@ -15,17 +14,16 @@ Python imports the compiled extension itself — there is no Python source tree 
 the `freeports` command is a native binary built from the same crate. This matters for installation
 only in that building from source needs a Rust toolchain as well as Python.
 
-## Prerequisites
-
+## Prerequisites for installing
 | | Needed by | Note |
 |---|---|---|
 | Python ≥ 3.10 | everything | the two tooling packages accept 3.8, but the engine sets the floor |
 | a Rust toolchain | building from source | `rustup` with the stable channel is enough |
 | [PyMuPDF](https://pypi.org/project/PyMuPDF/) | the engine | pulled in as a dependency; the one external library the engine cannot do without |
 | GnuPG and `jq` | `freeports-validate` only | its Python dependencies come with it; these two must come from your system — see {doc}`../formats/tooling` |
+| the engine | `freeports-validate`, **optionally** | only to read the configuration file; see below |
 
-## From source
-
+## Installing from source
 Work in a virtual environment. The engine is a compiled extension, and mixing it with a system
 Python is the fastest way to an import error nobody can reproduce.
 
@@ -57,6 +55,17 @@ The two tooling packages are plain setuptools projects:
 ```console
 $ pip install packages/freeports_dev packages/freeports_validate
 ```
+
+`freeports-validate` does **not** require the engine: verifying somebody else's grants should not
+mean installing a PDF extractor. The one thing it gives up without it is reading its settings from
+the freeports configuration file, which needs the engine's knowledge of where such a file lives. To
+have that tier as well:
+
+```console
+$ pip install 'packages/freeports_validate[config]'
+```
+
+A format author installing all three has it anyway.
 
 ### The `freeports` binary
 

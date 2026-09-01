@@ -22,8 +22,7 @@ makes **this job** different, and everything about the run as a whole — where 
 repository and database to use, how much parallelism, the output shape — is said once on the command
 line or in a file rather than repeated on every row.
 
-## Rules of this source
-
+## Rules of a batch row
 **An unknown column is an error**, not something ignored, and the message names the column. Same
 principle as the file's unknown keys.
 
@@ -37,8 +36,7 @@ which row is nearly useless.
 case-insensitively, and nothing else. A batch file is written once and read by a program, not typed
 at a shell prompt, so the permissiveness that helps a shell script buys nothing here.
 
-## How `url` and `pdf` combine
-
+## How `url` and `pdf` combine in a row
 The `pdf` cell is always split on the pipe, even when it holds one element:
 
 - **one element** is treated as the *singular* specifier, and a `url` in the same row overrides its

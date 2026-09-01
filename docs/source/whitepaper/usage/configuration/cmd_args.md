@@ -25,8 +25,7 @@ The strongest source except in batch mode, where a row overrides it. Per-option 
 | `-v`, `-q` | `verbosity` | counted; only when at least one is given |
 | `--internal-worker` | — | hidden; the channel between two copies of the binary, not a setting |
 
-## Rules of this source
-
+## Rules of the command line
 **An absent flag leaves its option unset, never set to a default.** Defaults belong to the defaults
 tier, and a command line that set everything would make every other source unreachable — a
 configuration file could then never contribute anything.
@@ -42,8 +41,7 @@ The option is left unset unless at least one of the two appears.
 **Repeatable flags leave the option unset when absent**, not empty. `-i` given zero times is not
 "no documents", it is "this source says nothing about documents".
 
-## Validation at this source
-
+## What the command line rejects outright
 Three things are rejected here rather than later, each with the flag's own name in the message so
 that someone who mistyped `--pages` reads `--pages` and not a generic sentence about parallelism:
 

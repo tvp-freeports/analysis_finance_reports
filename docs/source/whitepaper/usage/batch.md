@@ -3,8 +3,7 @@
 `--batch` / `-b` takes a CSV, **one job per row**. It is the way to describe many extractions once
 and run them as a unit, and it is also where the highest-precedence configuration source lives.
 
-## The columns
-
+## The batch columns
 Recognised case-insensitively, with spaces and underscores equivalent — `save pdf`, `Save_PDF` and
 `SAVE PDF` are one column.
 
@@ -75,8 +74,17 @@ Both run several documents in one invocation, and they are not the same thing:
 | documents | one job, several documents | one job **per row** |
 | format | one, for all of them | per row |
 | target lists | one set, for all of them | per row |
-| use it when | one layout, many files | different layouts or different lists |
+| the pages | one pool: every step sees them all | one pool per row, isolated from the others |
+| filter data, promises, deduplication | shared across the documents | per row |
+| use it when | the files are **pieces of one report** | the files are **separate reports** |
 
-Several `-i` is the multi-document case ({doc}`../design/multidocument`): the pages of all the
-documents are classified per document and then scheduled **together**. Batch is genuinely separate
-jobs that happen to be run together and reported together.
+The last two rows are the whole difference. Several `-i` is the multi-document case
+({doc}`../design/multidocument`): the pages of all the documents are classified per document and then
+scheduled **together**, so a step reading one file produces the filter data a later step over another
+file receives. That is what lets a report published as several files — holdings in one, the managers
+of those funds in another — be extracted as the single report it is. Batch is genuinely separate jobs
+that happen to be run together and reported together; nothing crosses between rows.
+
+Reaching for batch where a bundle was meant produces output that looks right and is incomplete: each
+row extracts what its own file contains, and the information that only exists across the files is
+simply absent.

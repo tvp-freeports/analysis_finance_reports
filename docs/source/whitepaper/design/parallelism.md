@@ -6,8 +6,7 @@ the page had been the unit of work all along.
 
 This page is why the levels are what they are. How to drive them is {doc}`../usage/parallelism`.
 
-## What the profiler found
-
+## What the profiler found in four real reports
 Four real reports, 29 to 1,824 pages, profiled through the spans the engine already carries:
 
 | Finding | Measure |
@@ -60,8 +59,7 @@ that is off by default never runs, is therefore never exercised, and still has t
 every change to the code it wraps. A feature that exists only to honour an earlier plan is a
 maintenance cost with no user.
 
-## What it costs
-
+## What parallelism costs in memory
 | | |
 |---|---|
 | gain | 39.4 s → 16.7 s (**2.36×**) on two large reports, defaults, output byte-identical |
@@ -71,8 +69,7 @@ The memory is the real price, and it is why the job level is the one worth turni
 machine: `--jobs 1` keeps page-level threading and drops the concurrent copies of the document,
 giving up the smaller of the two gains.
 
-## An optimisation not taken
-
+## An optimisation not taken: the hottest pipe
 The single hottest pipe — 30–54% of a job, pure Rust, single-threaded and deterministic — has never
 been optimised internally. Indexing the target companies instead of scanning them, and reducing
 regex compilation per call, could plausibly be worth as much as the whole parallelism effort, with

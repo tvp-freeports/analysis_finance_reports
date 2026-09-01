@@ -15,8 +15,22 @@ particular report, plus **formats** — small, separately maintained recipes, on
 that tell it where to look. The engine is the part that does not change; the formats are the part
 the community grows.
 
-## The four areas
+<!-- The toctree is hidden and sits here, above the first section, on purpose: placed at the
+     end of the page it would be nested under whatever section came last, which is neither what
+     the hierarchy is nor what the side panel should show. -->
 
+```{toctree}
+:maxdepth: 2
+
+problem
+usage/index
+formats/index
+design/index
+input-db
+validation
+```
+
+## The four areas of the whitepaper
 | Area | Is | For |
 |---|---|---|
 | {doc}`problem` and {doc}`validation` | what the project is for, and what we do and refuse to do about being trusted | anyone, no technical background needed |
@@ -27,8 +41,7 @@ the community grows.
 Plus {doc}`input-db`, which is how you say which companies a run is looking for — needed by everyone
 who runs it and maintained by whoever curates the lists.
 
-## Reading paths
-
+## Reading paths, by what you need
 **Assessing whether to rely on this.** {doc}`problem`, then {doc}`validation`. Two chapters, no
 technical background, and they are honest about the limits rather than reassuring.
 
@@ -44,8 +57,7 @@ lists what is accepted, what is broken, and what is designed and not built. If t
 choice no longer holds, that is worth knowing — and the choices about *technology* rather than
 *algorithm* are in {doc}`the implementation notes <../dev/implementation-notes>`.
 
-## The one-paragraph version
-
+## The whole project in one paragraph
 A document becomes a sequence of pages, and **the page is the unit of work**: it is assumed to carry
 the context needed to understand what is on it. Pages are classified — per document — then poured
 into one **schedule** of steps, where each step's results filter the next. Every page of a class goes
@@ -54,14 +66,3 @@ us, what does it mean. What comes out is an entity, or a **promise** for a value
 know. At the end, promises resolve, entities accumulate, and the whole run writes **one** set of
 tables. Everything else — parallelism, testability, localised failures — follows from that first
 assumption.
-
-```{toctree}
-:maxdepth: 2
-
-problem
-usage/index
-formats/index
-design/index
-input-db
-validation
-```
