@@ -25,6 +25,7 @@ This methodology covers files in the test output directories (``tests/.../out/``
 - ``.pkl`` files (specifically ``results.pkl``)
 
 **Protocol Steps**
+
 1. **File Generation Check**: Verify that all expected output files are created by the program
 2. **Basic Content Validation**: 
    - Check that CSV files contain data with expected columns

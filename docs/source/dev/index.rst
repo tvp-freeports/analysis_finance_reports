@@ -6,6 +6,11 @@ This section is about contributing to **this** repository — the engine, its to
 documentation. Writing a *format* is a different activity, in a different repository, and it is
 covered by :doc:`the whitepaper <../whitepaper/formats/index>`.
 
+:doc:`How to contribute <../contribute>` is the page above this one: it maps the project's
+repositories, describes all five development cycles — engine, format, input database,
+documentation, validation — and says which one you are in. Come here once you know it is this
+repository.
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
