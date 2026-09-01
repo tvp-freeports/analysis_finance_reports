@@ -4,47 +4,57 @@ This project is intended parse finance pdf reports and create `CSV` dataset.
 The purpose of the project and related infos can be found at the [*official website*](https://www.freeports.org).
 
 ## Installation
-There are for now 2 installation method:
-- using `pip` *(Recommended)*
-- from source
-### Using `pip`
-Install in a python virtual environment launching
+Two things are installed together and are easy to confuse: the `freeports` **command** and the
+`freeports` **Python module**. They are two build products of one Rust crate, and neither implies
+the other.
+
+### From PyPI
 ```bash
-pip install freeports_analysis
+pip install freeports
 ```
+
 ### From source
-> Requirements:
-> You need to have the python `build` package. 
-> You can install it in your virtual environment with `pip install build`
-1. Clone the repository:
+The repository's `Makefile` does the whole setup, virtual environment included:
+
 ```bash
 git clone https://github.com/tvp-freeports/analysis_finance_reports.git
-```
-2. `cd` into the created directory
-```bash
 cd analysis_finance_reports
+make install                  # the engine: extension and command
+source venv/freeports-dev/bin/activate
+make installcheck             # says nothing if both work
 ```
-3. build the package
-```bash
-python -m build .
-```
-4. install local package
-```bash
-pip install .
-```
-5. enjoy
 
+Building from source needs a Rust toolchain (`rustup`, stable channel) as well as Python ≥ 3.10.
+
+One target per role, and `make help` lists the rest:
+
+| You are | Run |
+|---|---|
+| using the engine | `make install` |
+| working on the engine | `make dev-engine` |
+| writing a PDF format | `make dev-formats` |
+| writing documentation | `make dev-docs` |
+| maintaining all of it | `make dev-all` |
+
+`make doctor` reports what is installed, what is missing, and which target supplies it.
 
 ## Quickstart
-To start use the command provided with the library call
 ```bash
 freeports -h
 ```
-to see the options. All the option can be provided as environment variables.
-If you want to use `freeports` as a python library write in you code
+shows the options; all of them can also be given as environment variables or in a configuration
+file. To drive the engine as a library instead:
+
 ```python
-import freeports_analysis as fra
+import freeports
 ```
 
-## Usage
-To have a complete overview of the package look at the [full documentation](https://docs.freeports.org).
+A working installation is not yet a working run: two inputs must exist first, and neither ships
+with the engine — an **input database** of target companies and a **formats repository** with the
+parsing definitions for the documents you have. See the
+[full documentation](https://docs.freeports.org).
+
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md), and the developer section of the
+[documentation](https://docs.freeports.org) for the build system, the test conventions and the
+translation workflow.

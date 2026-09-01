@@ -13,19 +13,26 @@ The catalogues live in ``docs/source/locales/<lang>/LC_MESSAGES/``, one ``.po`` 
 where ``<lang>`` is an `ISO 639 <https://en.wikipedia.org/wiki/ISO_639>`_ code. Edit them with a
 text editor or a dedicated tool such as `Poedit <https://poedit.net/>`_.
 
-The three steps, from inside ``docs/``:
+The three steps, from the repository root:
 
 .. code-block:: console
 
-    make gettext        # extract the translatable strings from the current sources
-    sphinx-intl update  # merge them into the existing .po files
-    sphinx-intl build   # compile .po into .mo
+    make i18n-extract   # extract the translatable strings from the current sources
+    make i18n-update    # merge them into the existing .po files
+    make i18n-build     # compile .po into .mo
 
-Then build one language:
+``make i18n`` runs all three. Then build one language:
 
 .. code-block:: console
 
-    sphinx-build -b html -D language=it source build/it
+    make docs-lang DOCLANG=it
+
+.. warning::
+
+   ``make i18n-update`` rewrites every catalogue against the *current* sources. After the prose was
+   rewritten it touches several hundred files at once — new ``.po`` for pages that never had one,
+   and obsolete entries marked in the rest. That is the correct outcome, but it is a large,
+   deliberate commit of its own, not something to let ride along with an unrelated change.
 
 .. note::
 

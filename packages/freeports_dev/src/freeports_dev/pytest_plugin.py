@@ -1,4 +1,3 @@
-import json as _json
 import os
 from pathlib import Path
 
@@ -14,7 +13,6 @@ from freeports.cli import run_job
 from freeports.formats_repo import get_formats
 
 from freeports_dev.serialization import load as json_load
-from freeports_dev.serialization import from_serializable
 import _pytest.fixtures as fixtures
 
 _formats_cache = {"valid": None, "repo_dir": None}

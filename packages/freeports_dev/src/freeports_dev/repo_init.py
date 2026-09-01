@@ -5,7 +5,6 @@ modified without touching Python code.
 """
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path

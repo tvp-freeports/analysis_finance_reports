@@ -6,14 +6,14 @@ license = "GPL-3.0"
 
 [lib]
 name = "freeports"
-# `cdylib` produce il modulo d'estensione `freeports` importabile da Python (M10, `src/python.rs`);
-# `rlib` resta perche' il binario e i test lo linkano come libreria normale.
+# `cdylib` produces the `freeports` extension module importable from Python (M10, `src/python.rs`);
+# `rlib` stays because the binary and the tests link it as an ordinary library.
 #
-# **Niente feature `extension-module` di PyO3**, di proposito: quella feature dice a PyO3 di *non*
-# linkare libpython, che e' giusto per una estensione pura ma romperebbe il binario `freeports`,
-# che Python lo incorpora (`auto-initialize`, gli serve per PyMuPDF e per i moduli d'autore). Il
-# `.so` esce quindi con una dipendenza dinamica da `libpython3.x.so` — stessa scelta gia' fatta
-# dal vecchio `freeports_core`, e funzionante.
+# **No PyO3 `extension-module` feature**, on purpose: that feature tells PyO3 *not* to link
+# libpython, which is right for a pure extension but would break the `freeports` binary, which
+# embeds Python (`auto-initialize`, needed for PyMuPDF and for author-written modules). The `.so`
+# therefore ships with a dynamic dependency on `libpython3.x.so` — the same choice the old
+# `freeports_core` already made, and it works.
 crate-type = ["rlib", "cdylib"]
 
 [[bin]]
@@ -24,20 +24,20 @@ path = "src/main.rs"
 # --- logging ---------------------------------------------------------------
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# --- regex: Oniguruma, non il crate `regex` (sintassi compatibile con Python) --
+# --- regex: Oniguruma, not the `regex` crate (Python-compatible syntax) --------
 onig = "6.5"
-# --- serializzazione -------------------------------------------------------
+# --- serialisation ---------------------------------------------------------
 serde = { version = "1", features = ["derive"] }
-# `float_roundtrip`: senza, la *lettura* di un f64 da JSON sbaglia di un ULP quando la sua
-# rappresentazione decimale piu' corta non e' quella scritta. I referti dei job worker (P1) sono
-# JSON, quindi senza questa feature una corsa in processi produce numeri diversi da una sequenziale
-# -- vedi `cli::worker::tests::report_round_trip::a_float_survives_the_report_bit_for_bit`.
+# `float_roundtrip`: without it, *reading* an f64 back from JSON is off by one ULP when its
+# shortest decimal representation is not the one written. The worker jobs' reports (P1) are JSON,
+# so without this feature a multi-process run produces different numbers from a sequential one
+# -- see `cli::worker::tests::report_round_trip::a_float_survives_the_report_bit_for_bit`.
 serde_json = { version = "1", features = ["float_roundtrip"] }
 serde_yaml = "0.9"
 csv = "1"
-# --- parallelismo a thread sulle pagine (P2) --------------------------------
+# --- thread parallelism over pages (P2) ------------------------------------
 rayon = "1.10"
-# --- utilita' ---------------------------------------------------------------
+# --- utilities -------------------------------------------------------------
 once_cell = "1"
 bitflags = "2.10"
 ordered-float = { version = "5.1", features = ["serde"] }
@@ -49,9 +49,9 @@ url = "2"
 flate2 = "1"
 tar = "0.4"
 clap = { version = "4", features = ["derive"] }
-# --- ricerca directory di configurazione OS (tier utente, M9-implementation-plan.md §0 Q2) -----
+# --- OS configuration-directory lookup (user tier, M9-implementation-plan.md §0 Q2) ------------
 dirs = "6"
-# --- unico ponte verso Python: PyMuPDF e i pipe definiti dall'autore --------
+# --- the only bridge to Python: PyMuPDF and author-defined pipes -----------
 pyo3 = { version = "0.27", features = ["auto-initialize"] }
 
 [dev-dependencies]

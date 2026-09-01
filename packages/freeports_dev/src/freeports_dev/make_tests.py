@@ -3,7 +3,6 @@ from freeports_dev.create_test_page import (
     get_pdf_blocks,
     get_text_blocks,
     get_results,
-    get_page_dict,
 )
 from freeports_dev.input_db import get_test_companies as gtc
 from freeports.core import Algorithm
@@ -84,7 +83,7 @@ def add_page_test(
                 print(f"Used filter data from {filter_data_file}")
             else:
                 filter_data = from_serializable(data)
-                print(f"Used custom filter data (filter_data.json present)")
+                print("Used custom filter data (filter_data.json present)")
         else:
             filter_data = gtc(repo_root)
         out_filter_data_file = None

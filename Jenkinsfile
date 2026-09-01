@@ -1,27 +1,47 @@
-// WARNING:
-// This file is hashed and referred in `docs/source/validation/general_methodology.rst`
-// so any change to it can result in an invalidation into the mechanism to grant trust.
-// DON'T CHANGE IF YOU ARE NOT SURE OF THE CONSEQUENCES!!
+// ============================================================================
+//  PIPELINE NOT IN USE — kept because it will be turned back on shortly.
+// ============================================================================
+//
+//  No Jenkins controller currently builds this repository. The file stays here, kept current,
+//  rather than being deleted and rewritten from scratch at reactivation time: what deleting it
+//  would lose is not the code — it is the thresholds, the trend graphs and the credentials that
+//  have already been agreed on.
+//
+//  Being stopped, the pipeline is not verified against a real controller. Before turning it back
+//  on: run it once on a scratch branch, and read the two notes marked ATTENTION below.
+//
+//  --- Historical note --------------------------------------------------------------------------
+//  This file used to open with a warning claiming its hash was cited in
+//  `docs/source/validation/general_methodology.rst`, and that modifying it would invalidate the
+//  grants. The warning was verified and is false: no validation document, neither in this
+//  repository nor in `analysis_finance_reports_formats/`, cites the `Jenkinsfile`. It was removed
+//  because a wrong security warning is worse than no warning at all.
+//
+//  --- Relationship with the Makefile -----------------------------------------------------------
+//  Every stage invokes a `make` target, never a command sequence of its own. That is deliberate:
+//  the previous version of this file linted `src/` with pylint and ran `pytest tests/`, paths that
+//  vanished with the Python engine, and nobody noticed because the pipeline described the build on
+//  its own terms. A target, by contrast, is exercised daily by whoever is developing: if it
+//  breaks, it breaks where somebody notices.
+// ============================================================================
+
 pipeline {
     agent any
 
-    environment {        
-        // PyPI credentials should be stored in Jenkins credentials
-        PYPI_CREDENTIALS = credentials('pypi-credentials')
-        VENV_DIR = "venv/freeports-dev"
-        LINT_SCORE_THRESHOLD = '9.0'
-        COVERAGE_THRESHOLD = '70.0'
+    environment {
+        PYPI_CREDENTIALS      = credentials('pypi-credentials')
+        VENV_DIR              = 'venv/freeports-dev'
         COVERAGE_THRESHOLD_DOCS = '90.0'
-        REPORTS_DIR = 'reports'
-        DOCS_DIR = 'docs/build/html'
-        TREND_DATA_DIR = 'trend_data'
+        REPORTS_DIR           = 'reports'
+        DOCS_DIR              = 'docs/build/html'
+        TREND_DATA_DIR        = 'trend_data'
     }
+
     stages {
         stage('Checkout') {
             steps {
                 script {
                     sh 'git fetch --tags'
-                    // Verify if this is a tagged build
                     def tag = sh(script: "git describe --tags --exact-match || echo ''", returnStdout: true).trim()
                     if (tag ==~ /^v?\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/) {
                         env.IS_RELEASE_TAG = 'true'
@@ -34,125 +54,83 @@ pipeline {
                 }
             }
         }
+
+        // `make init` creates the venv, wires up the git hooks and installs everything: the
+        // engine (extension + binary), the tooling, the documentation dependencies.
+        //
+        // ATTENTION at reactivation: the agent needs a stable Rust toolchain (rustup) as well as
+        // Python. The engine is a crate, no longer a pure Python package.
         stage('Setup') {
             steps {
                 sh """
-                    contrib/init.sh
+                    make init
                     mkdir -p ${REPORTS_DIR}
                 """
             }
         }
+
+        // clippy on the crate + ruff on the two Python packages. Pass/fail, with no score: the
+        // out-of-ten score belonged to pylint, which this repository has not used since the
+        // engine moved to Rust.
         stage('Lint') {
-             steps {
-                script {
-                    // Run pylint and capture the score
-                    lintOutput = sh(
-                        script: """
-                            . ${VENV_DIR}/bin/activate
-                            pylint --exit-zero --output-format=json src > ${REPORTS_DIR}/pylint.json || true
-                            pylint --msg-template='{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})' --exit-zero src | tee ${REPORTS_DIR}/pylint.txt
-                        """,
-                        returnStdout: true
-                    )
-                    
-                    // Extract the score from the output
-                    lintScore = sh(
-                        script: """
-                            . ${VENV_DIR}/bin/activate
-                            python -c \"import re; print(re.search(r'Your code has been rated at (\\d+\\.\\d+)/10', open('${REPORTS_DIR}/pylint.txt').read()).group(1))\"
-                        """,
-                        returnStdout: true
-                    ).trim()
-                    
-                    // Store the score for the trend graph
-                    currentBuild.description = "Lint score: ${lintScore}/10"
-                    
-                    // Fail if score is below threshold
-                    if (Float.parseFloat(lintScore) < Float.parseFloat(env.LINT_SCORE_THRESHOLD)) {
-                        error("Lint score ${lintScore} is below threshold of ${env.LINT_SCORE_THRESHOLD}")
-                    }
-                }
+            steps {
+                sh 'make lint 2>&1 | tee ${REPORTS_DIR}/lint.txt'
             }
             post {
                 always {
-                    // Archive lint reports
-                    archiveArtifacts "${REPORTS_DIR}/pylint.*"
-                    // Record the lint score for trend analysis
-                    recordIssues(
-                        tools: [pyLint(pattern: "${REPORTS_DIR}/pylint.txt")],
-                        healthy: 8, unhealthy: 6, minimumSeverity: 'LOW'
-                    )
+                    archiveArtifacts "${REPORTS_DIR}/lint.txt"
                 }
             }
         }
+
+        // The crate's full suite: unit, integration, doctests.
+        //
+        // ATTENTION at reactivation: the coverage threshold the previous version enforced (70%)
+        // is missing here. That is not an oversight — coverage was measured by `pytest-cov` over
+        // Python code that no longer exists, and for Rust it would need a tool this repository
+        // does not currently have. The candidate is `cargo llvm-cov`, to be added first as a
+        // Makefile target (`coverage`) and only then as a threshold here: a threshold nobody can
+        // reproduce locally is a threshold that gets switched off at the first failure.
         stage('Test') {
             steps {
-                sh """
-                    . ${VENV_DIR}/bin/activate
-                    pytest tests/ --cov=src --cov-report=xml:${REPORTS_DIR}/coverage.xml --junitxml=${REPORTS_DIR}/test-results.xml  # Adjust test directory
-                """
-            }
-            post {
-                always {
-                    script {
-                        coverageOutput = sh(
-                            script: """
-                                . ${VENV_DIR}/bin/activate
-                                python -c 'import xml.etree.ElementTree as ET; print(ET.parse(\"${REPORTS_DIR}/coverage.xml\").getroot().attrib[\"line-rate\"])' || echo \"0\"
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        coveragePercent = (Float.parseFloat(coverageOutput) * 100).round(2)
-                        currentBuild.description = "${currentBuild.description} | Test coverage: ${coveragePercent}%"
-                        
-                        // Fail if coverage is below threshold (only check if tests passed)
-                        if (currentBuild.resultIsBetterOrEqualTo('SUCCESS')) {
-                            if (coveragePercent < Float.parseFloat(env.COVERAGE_THRESHOLD)) {
-                                error("Test coverage ${coveragePercent}% is below threshold of ${env.COVERAGE_THRESHOLD}%")
-                            }
-                        }
-                    }
-                    withChecks("Test restults"){
-                        junit "${REPORTS_DIR}/test-results.xml"
-
-                    }
-                }
+                sh 'make check'
             }
         }
+
         stage('Build') {
             when {
                 expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
             }
             steps {
-                sh """
-                    . ${VENV_DIR}/bin/activate
-                    python -m build
-                """
+                // The crate's wheel (maturin) + wheels and sdists of the two tooling packages.
+                sh 'make dist'
                 archiveArtifacts 'dist/*'
             }
         }
+
         stage('Build Docs') {
             steps {
                 script {
-                    sh """
-                        . ${VENV_DIR}/bin/activate
-                        cd docs && make html && make coverage && cd ../
-                    """
-                    
-                    // Check documentation coverage (requires sphinx-coverage)
+                    // The whole site, rustdoc included, plus the `sphinx.ext.coverage` report
+                    // on the documented API.
+                    sh '''
+                        make docs
+                        make docs-coverage
+                    '''
+
                     docsCoverage = sh(
-                        script: """
+                        script: '''
                             . ${VENV_DIR}/bin/activate
                             python -c 'import re; \
-                            text = open(\"docs/build/coverage/python.txt\").read(); \
-                            match = re.search(r\"TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%\", text); \
-                            print(match.group(1)) if match else print(\"0\")' || echo \"0\"
-                        """,
+                            text = open("docs/build/coverage/python.txt").read(); \
+                            match = re.search(r"TOTAL\\s+\\|\\s+(\\d+\\.\\d+)%", text); \
+                            print(match.group(1)) if match else print("0")' || echo "0"
+                        ''',
                         returnStdout: true
                     ).trim().toFloat()
-                    
-                    currentBuild.description = "${currentBuild.description} | Docs coverage: ${docsCoverage}%"
-                    
+
+                    currentBuild.description = "Docs coverage: ${docsCoverage}%"
+
                     if (docsCoverage < Float.parseFloat(env.COVERAGE_THRESHOLD_DOCS)) {
                         error("Documentation coverage ${docsCoverage}% is below threshold of ${env.COVERAGE_THRESHOLD_DOCS}%")
                     }
@@ -165,15 +143,16 @@ pipeline {
                             allowMissing: false,
                             alwaysLinkToLastBuild: true,
                             keepAll: true,
-                            reportDir: 'docs/build/html',
+                            reportDir: "${DOCS_DIR}",
                             reportFiles: 'index.html',
-                            reportName: 'API Documentation'
+                            reportName: 'Documentation'
                         ]
                     )
                     archiveArtifacts 'docs/build/coverage/python.txt'
                 }
             }
         }
+
         stage('Release to PyPI') {
             when {
                 allOf {
@@ -187,7 +166,6 @@ pipeline {
             }
             steps {
                 script {
-                    // Upload to PyPI
                     withCredentials([usernamePassword(credentialsId: 'pypi-credentials', usernameVariable: 'PYPI_USERNAME', passwordVariable: 'PYPI_PASSWORD')]) {
                         sh """
                             . ${VENV_DIR}/bin/activate
@@ -198,71 +176,35 @@ pipeline {
             }
         }
     }
+
     post {
         always {
-            // Clean up virtual environment
-            sh 'rm -rf ./*'
-            sh 'rm -rf ./.*'
-
-            // Generate lint trend graph (requires Plot plugin)
             script {
-                // Create trend data directory if it doesn't exist
                 sh "mkdir -p ${TREND_DATA_DIR}"
-                
-                // Store metrics for trend graphs
-                def metrics = [
-                    'lint': currentBuild.description?.replaceAll(/.*Lint score: (\d+\.\d+).*/, '$1'),
-                    'test': currentBuild.description?.replaceAll(/.*Test coverage: (\d+\.\d+)%.*/, '$1'),
-                    'docs': currentBuild.description?.replaceAll(/.*Docs coverage: (\d+\.\d+)%.*/, '$1')
-                ]
-                
-                // Append new data to existing trend files
-                metrics.each { name, value ->
-                    def scoreFile = "${TREND_DATA_DIR}/${name}_score.csv"
-                    def scoreLine = "${value}\n"
-                    writeFile file: scoreFile, text: "${name} score\n${scoreLine}", encoding: 'UTF-8'
-                    archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
-                }
+
+                def docsScore = currentBuild.description?.replaceAll(/.*Docs coverage: (\d+\.\d+)%.*/, '$1')
+                def scoreFile = "${TREND_DATA_DIR}/docs_score.csv"
+                writeFile file: scoreFile, text: "docs score\n${docsScore}\n", encoding: 'UTF-8'
+                archiveArtifacts artifacts: scoreFile, onlyIfSuccessful: false
             }
-             
-            plot(
-                csvFileName: 'plot-pylintscore.csv',
-                title: 'Pylint Score Trend',
-                yaxis: 'Score (0-10)',
-                group: 'Quality of code', 
-                numBuilds: '50',
-                description: 'Lint score of codebase generated by `pylint`',
-                style: 'line',
-                csvSeries: [[file: "${TREND_DATA_DIR}/lint_score.csv"]],
-                yaxisMinimum: '0',
-                yaxisMaximum: '10'
-            )
-            
-            plot(
-                csvFileName: 'plot-testcoverage.csv',
-                title: 'Test Coverage Trend',
-                yaxis: 'Coverage %',
-                group: 'Quality of code', 
-                numBuilds: '50',
-                description: 'Test coverage of codebase generated by `pytest`',
-                csvSeries: [[file: "${TREND_DATA_DIR}/test_score.csv"]],
-                style: 'line',
-                yaxisMinimum: '0',
-                yaxisMaximum: '100'
-            )
-            
+
             plot(
                 csvFileName: 'plot-docscoverage.csv',
                 title: 'Documentation Coverage Trend',
                 yaxis: 'Coverage %',
-                group: 'Quality of code', 
+                group: 'Quality of code',
                 numBuilds: '50',
-                description: 'Documentation coverage of codebase generated by `sphinx.ext.coverage`',
+                description: 'Documentation coverage generated by `sphinx.ext.coverage`',
                 csvSeries: [[file: "${TREND_DATA_DIR}/docs_score.csv"]],
                 style: 'line',
                 yaxisMinimum: '0',
                 yaxisMaximum: '100'
             )
+
+            // Workspace cleanup. The previous version ran `rm -rf ./*` followed by
+            // `rm -rf ./.*`, which in a Jenkins working directory is a line not to leave lying
+            // around: `./.*` includes `..`.
+            cleanWs()
         }
     }
 }

@@ -56,12 +56,17 @@ Building
 
 .. code-block:: console
 
-    pip install -r contrib/requirements.docs.txt
-    make -C docs rustdoc html
+    make dev-docs     # once: Sphinx, the i18n tooling, and the three packages installed
+    make docs         # the whole site, rustdoc included
 
-The result is ``docs/build/html/index.html``. ``make html`` on its own skips regenerating rustdoc,
-which is what you want while editing prose. ``make -C docs rustdoc`` puts ``cargo doc`` output into
+The result is ``docs/build/html/index.html``. ``make docs-html`` skips regenerating rustdoc, which
+is what you want while editing prose; ``make docs-rustdoc`` puts ``cargo doc`` output into
 ``docs/source/_extra/rustdoc/``, from where Sphinx copies it into the site verbatim.
+``make docs-serve`` serves the result locally, and ``make docs-coverage`` reports how much of the
+API is actually documented.
+
+Building the site installs the three packages because autodoc imports them for real — which is
+also why ``make dev-docs`` is not just the Sphinx dependencies.
 
 Read the Docs runs the same steps — its ``pre_build`` job is that same ``make -C docs rustdoc`` —
 so a build that works locally is a build that publishes.
@@ -70,7 +75,7 @@ To build one language:
 
 .. code-block:: console
 
-    sphinx-build -b html -D language=it docs/source docs/build/it
+    make docs-lang DOCLANG=it
 
 Generated output — ``docs/build/``, ``docs/source/_generated/`` and ``docs/source/_extra/`` — is
 ignored by git. It is produced by a build, and a build product in version control goes stale the

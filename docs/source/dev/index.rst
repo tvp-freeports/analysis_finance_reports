@@ -10,6 +10,7 @@ covered by :doc:`the whitepaper <../whitepaper/formats/index>`.
    :maxdepth: 1
    :caption: Contents:
 
+   build
    implementation-notes
    tests
    docs
@@ -38,22 +39,31 @@ Formats are **not** here. They live in formats repositories, maintained separate
 Working on the crate
 ====================
 
+From a fresh clone, the whole setup is one command:
+
 .. code-block:: console
 
-    python3 -m venv venv/freeports && source venv/freeports/bin/activate
-    pip install --upgrade pip maturin
-    cd packages/freeports
-    maturin develop --release      # rebuild the extension in place
-    cargo build --release          # the command-line binary
-    cargo test --lib               # unit tests: the bulk of the coverage
-    cargo test --test '*'          # integration tests
-    cargo test --doc               # the examples in the doc-comments
-    cargo clippy --all-targets
+    make init                      # venv, git hooks, everything installed
+    source venv/freeports-dev/bin/activate
 
-``maturin develop`` builds the extension module; ``cargo build`` builds the binary. They are two
-build products of one crate and neither implies the other, so after changing Rust that the Python
-side uses, rebuild the extension — a stale ``.so`` is the usual explanation for a change that
-"had no effect".
+Then, for the day-to-day loop:
+
+.. code-block:: console
+
+    make develop                   # rebuild the extension in place
+    make build                     # the command-line binary
+    make test-unit                 # unit tests: the bulk of the coverage
+    make check                     # the full suite: unit, integration, doctest
+    make lint                      # clippy on the crate, ruff on the Python sources
+
+``make develop`` builds the extension module; ``make build`` builds the binary. They are two build
+products of one crate and neither implies the other, so after changing Rust that the Python side
+uses, rebuild the extension — a stale ``.so`` is the usual explanation for a change that "had no
+effect".
+
+Every target is a recipe of commands you could type by hand, and ``make help`` lists them all.
+:doc:`build` explains the arrangement: one command per role, where things get installed, and what
+``make doctor`` tells you when an environment is in a state nobody expected.
 
 Conventions
 ===========
@@ -75,12 +85,14 @@ Conventions
 Continuous integration
 ======================
 
-Commits are built by the project's CI, which lints, runs the tests, and builds this documentation.
-A release is published from a version tag.
-
 .. note::
 
-   The pipeline configuration in ``Jenkinsfile`` predates the move of the engine to Rust: it lints
-   ``src/`` with pylint and runs ``pytest tests/``, paths that no longer exist in this repository,
-   and it runs no ``cargo`` step at all. Treat the local commands above as the real gate until it
-   is updated.
+   **No CI currently builds this repository.** The ``Jenkinsfile`` describes a pipeline that is
+   stopped, not obsolete: it is kept, and kept current, because it will be turned back on. Until
+   then, the real gate is the local one — ``make pre-commit``, which is what the commit hook runs.
+
+Each of its stages invokes a make target rather than a command sequence of its own. That is
+deliberate: the previous version of that file linted ``src/`` with pylint and ran ``pytest
+tests/``, paths that vanished with the Python engine, and nobody noticed because the pipeline
+described the build on its own terms. A target, by contrast, is exercised daily by whoever is
+working here.

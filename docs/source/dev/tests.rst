@@ -11,10 +11,10 @@ The bulk of the coverage is in the Rust crate, as unit tests inside the module t
 
 .. code-block:: console
 
-    cd packages/freeports
-    cargo test --lib          # unit tests
-    cargo test --test '*'     # integration tests
-    cargo test --doc          # the examples in the doc-comments
+    make check            # all of it — what the commit hook runs
+    make test-unit        # unit tests
+    make test-integration # integration tests
+    make test-doc         # the examples in the doc-comments
 
 Two conventions are not optional:
 
@@ -36,8 +36,8 @@ Tests for a format live in its **formats repository**, not here, and are run wit
 
 .. code-block:: console
 
-    freeports-dev test --repo path/to/formats-repo
-    freeports-dev test --repo path/to/formats-repo --format CARNE-EN23
+    make test-formats REPO=path/to/formats-repo
+    make test-formats REPO=path/to/formats-repo FORMAT=CARNE-EN23
 
 Each format under ``tests/formats/<FORMAT>/`` has three things:
 

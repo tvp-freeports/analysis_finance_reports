@@ -16,6 +16,7 @@ src/*.egg-info
 **/*.pdf
 __pycache__/
 /build/
+packages/*/build/
 .ruff_cache/
 .pytest_cache
 .env
@@ -32,9 +33,12 @@ freeports.log.jsonl
 .continue
 pylint.json
 CLAUDE.md
-# Output della build della documentazione: generato, non versionato.
+# Documentation build output: generated, not versioned.
 docs/build/
-# Autosummary genera i .rst dell API dai pacchetti installati, a ogni build.
+# Autosummary generates the API .rst files from the installed packages, on every build.
 docs/source/_generated/
-# rustdoc, copiato qui da `make rustdoc` e pubblicato come sotto-percorso del sito.
+# rustdoc, copied here by `make rustdoc` and published as a sub-path of the site.
 docs/source/_extra/
+# Working areas of the Jenkins pipeline (stopped, but the names stay reserved).
+/reports/
+/trend_data/

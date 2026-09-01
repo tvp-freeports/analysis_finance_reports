@@ -1,15 +1,19 @@
 #!/bin/sh
 #
-# Pre-commit hook. Active because `core.hooksPath` points at `.githooks/`, which the repository's
-# `.gitconfig` sets up — there is nothing to install by hand.
+# Pre-commit hook. Active because `core.hooksPath` points at `.githooks/`, which `make githooks`
+# sets up.
 #
 # Three gates, cheapest first:
 #   1. the `freeports-dev` environment must be active (the tests that cross into PyMuPDF need it);
 #   2. no non-ASCII filenames may be added;
-#   3. `make test` — the crate's full suite, see the Makefile at the repository root.
+#   3. `make pre-commit` — clippy, ruff, and the crate's full suite.
 #
-# Note that the test run sees the *working tree*, not the staged snapshot: a commit of a subset of
-# your changes is tested against everything you have on disk.
+# The third gate is a *name*, not a list: what the commit gate consists of is decided in the
+# Makefile at the repository root, so it can grow without this file being touched. Today it is
+# lint plus the full test suite.
+#
+# Note that it sees the *working tree*, not the staged snapshot: a commit of a subset of your
+# changes is checked against everything you have on disk.
 
 if [ "$(basename "${VIRTUAL_ENV:-}")" != "freeports-dev" ] && [ "${CONDA_DEFAULT_ENV:-}" != "freeports-dev" ]; then
     echo "You have to activate \`freeports-dev\` environment to commit" 1>&2
@@ -54,11 +58,11 @@ MSG
 	exit 1
 fi
 
-# Last, because it is the slow one. The `|| exit 1` is not decoration: without it a failing suite
+# Last, because it is the slow one. The `|| exit 1` is not decoration: without it a failing gate
 # only prints its errors and the commit goes through anyway.
-make test || {
+make pre-commit || {
 	echo 1>&2
-	echo "Tests failed — commit refused. Run \`make test\` to see the failures again," 1>&2
+	echo "Commit gate failed — commit refused. Run \`make pre-commit\` to see it again," 1>&2
 	echo "or commit with --no-verify if you know what you are doing." 1>&2
 	exit 1
 }

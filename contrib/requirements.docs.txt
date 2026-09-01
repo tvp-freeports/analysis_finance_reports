@@ -1,7 +1,19 @@
-# Dipendenze della sola build della documentazione. I pacchetti documentati
-# (freeports, freeports_dev, freeports_validate) sono installati a parte:
-# autodoc li importa davvero, non li simula.
+# Dependencies of the documentation build alone, translation included.
+#
+# The documented packages (freeports, freeports_dev, freeports_validate) are installed separately:
+# autodoc really imports them, it does not mock them. `make dev-docs` does both things.
+#
+# This file is an external contract: `.readthedocs.yaml` refers to it by name. Its name does not
+# change without that one changing too.
+
 sphinx
 sphinx_rtd_theme
-# MyST: la prosa nuova si scrive in Markdown dentro Sphinx (strategia D1/Q-D2).
+# MyST: new prose is written in Markdown inside Sphinx (strategy D1/Q-D2).
 myst-parser
+
+# Translation. `sphinx-intl` merges the extracted strings into the `.po` files and compiles them
+# into `.mo`; Babel is the gettext library it builds on. They are here rather than in a file of
+# their own because the documentation's i18n *is* documentation: whoever builds the site in Italian
+# needs both things and not two install commands.
+sphinx-intl
+Babel

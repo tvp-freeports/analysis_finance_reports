@@ -27,33 +27,44 @@ only in that building from source needs a Rust toolchain as well as Python.
 Work in a virtual environment. The engine is a compiled extension, and mixing it with a system
 Python is the fastest way to an import error nobody can reproduce.
 
+The repository's `Makefile` does the whole thing, virtual environment included:
+
 ```console
 $ git clone https://github.com/tvp-freeports/analysis_finance_reports.git
 $ cd analysis_finance_reports
-$ python3 -m venv venv/freeports
-$ source venv/freeports/bin/activate
-$ pip install --upgrade pip maturin
+$ make install                 # the engine: extension and command
+$ source venv/freeports-dev/bin/activate
 ```
 
-Then the engine, built by [maturin](https://www.maturin.rs/) because of the Rust extension:
+A format author wants the tooling as well, which is one target rather than three commands:
 
 ```console
-$ pip install packages/freeports
+$ make dev-formats             # engine + freeports-dev + freeports-validate
 ```
 
-For an editable install while working on the crate itself, use maturin directly. `maturin develop`
-rebuilds the extension in place, and `--release` is worth the extra compile time for anything but
-the smallest report:
+`make help` lists the rest, and {doc}`../../dev/build` explains the arrangement. If anything looks
+off, `make doctor` says what is installed, what is missing, and which target supplies it.
+
+### The same thing by hand
+Nothing above is magic, and none of it is required — the targets are recipes of ordinary commands,
+which is what you want if you are installing into an environment the Makefile knows nothing about:
+
+```console
+$ python3 -m venv venv/freeports
+$ source venv/freeports/bin/activate
+$ pip install --upgrade pip
+$ pip install packages/freeports                            # the engine, built by maturin
+$ pip install packages/freeports_dev packages/freeports_validate
+```
+
+The engine is built by [maturin](https://www.maturin.rs/) because of the Rust extension; the two
+tooling packages are plain setuptools projects. For an editable install while working on the crate
+itself, use maturin directly — `maturin develop` rebuilds the extension in place, and `--release`
+is worth the extra compile time for anything but the smallest report:
 
 ```console
 $ cd packages/freeports
-$ maturin develop --release
-```
-
-The two tooling packages are plain setuptools projects:
-
-```console
-$ pip install packages/freeports_dev packages/freeports_validate
+$ maturin develop --release          # or, from the root: make develop
 ```
 
 `freeports-validate` does **not** require the engine: verifying somebody else's grants should not
@@ -69,8 +80,11 @@ A format author installing all three has it anyway.
 
 ### The `freeports` binary
 
-`maturin develop` builds the *extension module*, not the command-line binary: the two are separate
-build products of one crate. Build the binary with cargo and put it on your `PATH`:
+`pip install` and `maturin develop` build the *extension module*, not the command-line binary: the
+two are separate build products of one crate, and neither implies the other. This is the usual
+reason an installation ends up half-done — the module imports and the command is nowhere.
+
+`make install` covers both. Done by hand it is a cargo build and a copy:
 
 ```console
 $ cd packages/freeports
@@ -78,10 +92,20 @@ $ cargo build --release
 $ install -m 755 target/release/freeports ~/.local/bin/freeports
 ```
 
+By default `make install-binary` puts it in the active environment's `bin/`, so that uninstalling
+is complete; `make install-binary PREFIX=/usr/local` installs it system-wide instead, and
+`DESTDIR` is honoured for packaging.
+
 Everything the binary does is also reachable from Python through the same crate, so this step is
 optional if you drive the engine as a library.
 
 ## Checking the installation
+
+```console
+$ make installcheck
+```
+
+which is these two questions, and says nothing if both work:
 
 ```console
 $ freeports --help

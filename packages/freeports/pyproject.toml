@@ -16,10 +16,10 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
-# Nessun `python-source`: il pacchetto Python **e'** l'estensione compilata. Il vecchio
-# `freeports_core` aveva un albero `python/freeports/` che re-esportava da `freeports._native`;
-# qui quel livello non esiste piu' (vedi il doc-comment di `src/python.rs`).
+# No `python-source`: the Python package **is** the compiled extension. The old `freeports_core`
+# had a `python/freeports/` tree re-exporting from `freeports._native`; that layer no longer exists
+# here (see the doc-comment of `src/python.rs`).
 #
-# `module-name` deve coincidere col nome del `#[pyo3::pymodule]` esterno in `src/python.rs`:
-# maturin cerca il simbolo `PyInit_<ultima componente>`, e un disallineamento fa fallire l'import.
+# `module-name` must match the name of the outer `#[pyo3::pymodule]` in `src/python.rs`: maturin
+# looks for the symbol `PyInit_<last component>`, and a mismatch makes the import fail.
 module-name = "freeports"

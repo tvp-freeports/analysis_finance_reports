@@ -1,12 +1,12 @@
-"""Configurazione della build Sphinx.
+"""Configuration of the Sphinx build.
 
-Strategia documentale (passo D1 di `packages/freeports/PLAN.md`, domanda Q-D2 chiusa il
-2026-08-31): **un solo sito Sphinx**, con MyST perche' la prosa nuova si scriva in Markdown,
-e **rustdoc pubblicato accanto** come sotto-percorso invece che duplicato a mano in `.rst`.
+Documentation strategy (step D1 of `packages/freeports/PLAN.md`, question Q-D2 closed on
+2026-08-31): **a single Sphinx site**, with MyST so that new prose is written in Markdown, and
+**rustdoc published alongside** as a sub-path rather than transcribed by hand into `.rst`.
 
-Il sito copre tre pacchetti Python vivi — `freeports` (l'estensione PyO3), `freeports_dev`,
-`freeports_validate` — e rimanda a rustdoc per l'API del crate. Il pacchetto `freeports_analysis`
-che questo file importava fino a D1 non esiste piu' da due riscritture.
+The site covers three live Python packages — `freeports` (the PyO3 extension), `freeports_dev`,
+`freeports_validate` — and defers to rustdoc for the crate's API. The `freeports_analysis` package
+this file used to import until D1 has not existed for two rewrites.
 """
 
 import importlib
@@ -17,26 +17,26 @@ from pathlib import Path
 
 _SOURCE_DIR = Path(__file__).parent
 
-# -- Sottomoduli dell'estensione compilata -----------------------------------
+# -- Submodules of the compiled extension -------------------------------------
 #
-# `autosummary` decide se esplorare i figli di un modulo con `hasattr(obj, "__path__")`, e poi
-# li elenca con `pkgutil.iter_modules(obj.__path__)`. Nessuna delle due cose funziona su
-# `freeports`, che e' un'estensione PyO3: sul disco c'e' un unico `.so`, e i sottomoduli
-# (`utils.text_filter`, `interfaces.pdf_blks`, `standard_funcs.deserialize`, ...) esistono
-# come oggetti-modulo registrati in `sys.modules` dal crate, non come file. Senza questo
-# accorgimento il sito documenterebbe 10 moduli su 18, perdendo per strada proprio l'API che
-# serve a chi scrive un formato.
+# `autosummary` decides whether to explore a module's children with `hasattr(obj, "__path__")`,
+# and then lists them with `pkgutil.iter_modules(obj.__path__)`. Neither works on `freeports`,
+# which is a PyO3 extension: there is a single `.so` on disk, and the submodules
+# (`utils.text_filter`, `interfaces.pdf_blks`, `standard_funcs.deserialize`, ...) exist as module
+# objects registered in `sys.modules` by the crate, not as files. Without this workaround the site
+# would document 10 modules out of 18, losing along the way precisely the API a format author
+# needs.
 #
-# Il rimedio sta tutto qui, nella build della documentazione: si annota `__path__ = []` sui
-# moduli compilati che dichiarano figli in `__all__`. Cosi' `autosummary` li riconosce come
-# package ed elenca i figli dalla via che funziona — `__all__`, che il crate popola a ogni
-# livello — mentre `iter_modules([])`, non avendo cartelle da leggere, non aggiunge nulla.
-# Il crate non viene toccato, e il suo comportamento a runtime nemmeno: l'annotazione vive
-# solo nel processo di `sphinx-build`.
+# The remedy lives entirely here, in the documentation build: `__path__ = []` is annotated onto the
+# compiled modules that declare children in `__all__`. That way `autosummary` recognises them as
+# packages and lists the children by the route that works — `__all__`, which the crate populates at
+# every level — while `iter_modules([])`, having no directories to read, adds nothing. The crate is
+# not touched, and neither is its runtime behaviour: the annotation lives only inside the
+# `sphinx-build` process.
 
 
 def _mark_compiled_subpackages(module, _seen=None):
-    """Annota come package i sottomoduli compilati che ne contengono altri."""
+    """Annotate as packages the compiled submodules that contain others."""
     seen = _seen if _seen is not None else set()
     if module.__name__ in seen:
         return
@@ -57,22 +57,22 @@ for _documented_package in ("freeports", "freeports_dev", "freeports_validate"):
     try:
         _mark_compiled_subpackages(importlib.import_module(_documented_package))
     except ImportError:
-        # Un pacchetto assente e' gia' segnalato da autodoc, con un messaggio migliore di
-        # quello che potrebbe dare un errore di configurazione qui.
+        # A missing package is already reported by autodoc, with a better message than a
+        # configuration error here could give.
         pass
 
-# -- Identita' del progetto --------------------------------------------------
+# -- Project identity --------------------------------------------------------
 
 project = "freeports"
 copyright = "2025, Oreste Sciacqualegni"
 author = "Oreste Sciacqualegni"
 
-# Letta dal pacchetto installato invece che scritta a mano: una versione copiata qui invecchia
-# in silenzio, e la build della documentazione importa comunque il pacchetto per autodoc.
+# Read from the installed package instead of written by hand: a version copied here goes stale in
+# silence, and the documentation build imports the package for autodoc anyway.
 #
-# L'import e' aliasato perche' Sphinx legge *ogni* nome di livello modulo di questo file come
-# un'opzione di configurazione: un `version` importato diventerebbe il `version` del progetto,
-# e la scrittura di `objects.inv` morirebbe passando una funzione a `re.sub`.
+# The import is aliased because Sphinx reads *every* module-level name in this file as a
+# configuration option: an imported `version` would become the project's `version`, and writing
+# `objects.inv` would die passing a function to `re.sub`.
 try:
     release = _installed_version("freeports")
 except PackageNotFoundError:
@@ -80,24 +80,24 @@ except PackageNotFoundError:
 
 version = release
 
-# -- Internazionalizzazione --------------------------------------------------
+# -- Internationalisation ----------------------------------------------------
 #
-# Impalcatura gettext mantenuta per decisione esplicita dell'utente (Q-D2): quali lingue
-# davvero si mantengano e' una domanda aperta, ma il meccanismo resta cablato in modo che la
-# risposta non richieda di rimontarlo. `docs/source/locales/` non e' toccato da D1.
+# gettext scaffolding kept by explicit decision of the user (Q-D2): which languages are really
+# maintained is an open question, but the mechanism stays wired up so that the answer does not
+# require reassembling it. `docs/source/locales/` is untouched by D1.
 
 locale_dirs = ["locales/"]
 language = "en"
 gettext_compact = False
 
-# I `.mo` sono compilati e **versionati**. Con la ricompilazione automatica, ogni `make html`
-# li riscrive e sporca la copia di lavoro con una ventina di file binari modificati che nessuno
-# ha chiesto di cambiare — per giunta quelli di `en`, che e' la lingua sorgente e non traduce
-# nulla. La compilazione dei cataloghi resta un gesto deliberato (`sphinx-intl build`, o questa
-# riga a `True`) invece di un effetto collaterale della build del sito.
+# The `.mo` files are compiled and **versioned**. With automatic recompilation, every `make html`
+# rewrites them and dirties the working copy with a couple of dozen modified binary files nobody
+# asked to change — and those of `en` at that, which is the source language and translates nothing.
+# Compiling the catalogues stays a deliberate act (`sphinx-intl build`, or this line set to `True`)
+# rather than a side effect of building the site.
 gettext_auto_build = False
 
-# -- Configurazione generale -------------------------------------------------
+# -- General configuration ---------------------------------------------------
 
 extensions = [
     "sphinx_rtd_theme",
@@ -115,8 +115,8 @@ pygments_style = "sphinx"
 
 # -- MyST --------------------------------------------------------------------
 #
-# La prosa che D3/D4 devono ancora scrivere va in Markdown; i `.rst` esistenti restano `.rst`
-# e continuano a costruire, senza conversione forzata.
+# The prose D3/D4 have yet to write goes in Markdown; the existing `.rst` files stay `.rst` and
+# keep building, with no forced conversion.
 
 myst_enable_extensions = [
     "colon_fence",
@@ -131,34 +131,34 @@ myst_heading_anchors = 3
 autosummary_generate = True
 napoleon_numpy_docstring = True
 
-# Indispensabile perche' `freeports` sia documentato per intero, e non un default cosmetico.
-# Il pacchetto **e'** l'estensione compilata: sul disco c'e' un solo `.so`, quindi il
-# `pkgutil.iter_modules` con cui autosummary esplora un package ricorsivamente trova un unico
-# modulo e si ferma li'. I sottomoduli veri (`core`, `utils`, `interfaces`, `standard_funcs`,
-# ...) esistono solo come attributi del modulo genitore, ed e' `__all__` a dichiararli — cosa
-# che il crate fa a ogni livello. Rispettando `__all__`, autosummary li raccoglie come membri
-# importati e l'albero viene fuori tutto: 17 moduli invece di 2.
+# Indispensable for `freeports` to be documented in full, not a cosmetic default. The package
+# **is** the compiled extension: there is a single `.so` on disk, so the `pkgutil.iter_modules`
+# autosummary uses to explore a package recursively finds one module and stops there. The real
+# submodules (`core`, `utils`, `interfaces`, `standard_funcs`, ...) exist only as attributes of the
+# parent module, and it is `__all__` that declares them — which the crate does at every level. By
+# honouring `__all__`, autosummary collects them as imported members and the whole tree comes out:
+# 17 modules instead of 2.
 autosummary_ignore_module_all = False
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
 
-# -- Output HTML -------------------------------------------------------------
+# -- HTML output -------------------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
 
-# Il pannello laterale deve essere **l'indice completo del sito**, non l'elenco delle sole pagine.
+# The side panel must be **the complete index of the site**, not a list of pages alone.
 #
-# `navigation_depth` conta i livelli a partire dalla radice, e le sezioni di una pagina sono un
-# livello come gli altri: `whitepaper` -> `usage` -> `configuration` -> `options` consuma gia'
-# quattro livelli, che e' il default del tema, quindi le sedici opzioni dentro `options.md` non
-# comparivano affatto. Sei livelli coprono il ramo piu' profondo del sito piu' le sue sottosezioni.
+# `navigation_depth` counts levels from the root, and a page's sections are a level like any other:
+# `whitepaper` -> `usage` -> `configuration` -> `options` already consumes four levels, which is
+# the theme's default, so the sixteen options inside `options.md` did not appear at all. Six levels
+# cover the deepest branch of the site plus its subsections.
 #
-# `collapse_navigation: False` toglie l'altra meta' del problema: con il default, i rami che non
-# contengono la pagina corrente non vengono espansi, quindi per *vedere* una sezione bisognava gia'
-# essere arrivati sulla sua pagina — e per arrivarci servivano i link interni al testo. Ora ogni
-# ramo e' apribile da qualunque punto del sito.
+# `collapse_navigation: False` removes the other half of the problem: with the default, branches
+# that do not contain the current page are not expanded, so to *see* a section you had to have
+# arrived at its page already — and getting there needed the in-text links. Now every branch can be
+# opened from anywhere on the site.
 html_theme_options = {
     "collapse_navigation": False,
     "navigation_depth": 6,
@@ -170,10 +170,10 @@ html_logo = "https://www.freeports.org/assets/logo/square.svg"
 html_static_path = ["_static"]
 html_css_files = ["colors.css"]
 
-# rustdoc non e' integrato ne' duplicato: `make rustdoc` (o il job di build di Read the Docs)
-# deposita `cargo doc --no-deps` in `_extra/rustdoc/`, e Sphinx lo copia tale e quale nella
-# radice del sito. Il percorso e' dichiarato solo se esiste davvero, cosi' una build senza
-# toolchain Rust resta verde invece di fallire su una cartella assente.
+# rustdoc is neither integrated nor duplicated: `make rustdoc` (or Read the Docs' build job)
+# deposits `cargo doc --no-deps` into `_extra/rustdoc/`, and Sphinx copies it verbatim into the
+# root of the site. The path is declared only if it really exists, so that a build without a Rust
+# toolchain stays green instead of failing on a missing directory.
 html_extra_path = [
     str(p.relative_to(_SOURCE_DIR)) for p in [_SOURCE_DIR / "_extra"] if p.is_dir()
 ]

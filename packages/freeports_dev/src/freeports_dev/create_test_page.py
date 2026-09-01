@@ -1,7 +1,6 @@
 import pymupdf as pypdf
 from lxml import etree
 import textwrap
-from pathlib import Path
 from typing import List
 import dill
 from freeports.core import Algorithm, PdfBlock

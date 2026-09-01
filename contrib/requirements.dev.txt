@@ -1,0 +1,29 @@
+# Development tools: what is needed to *work on* the repository, not to use it.
+#
+# The three packages' own dependencies are not here — they are in their respective
+# `pyproject.toml`, which is the only place they can be declared once. A requirements file that
+# repeats them is a file that diverges: that is what had happened to `requirements.devtools.txt`,
+# which listed PyMuPDF and lxml already declared elsewhere.
+#
+# Installed by `make install-dev-deps`, and therefore by `make dev-engine` and `make dev-all`.
+
+# Builds the PyO3 extension in place (`maturin develop`) and the crate's wheels (`maturin build`).
+# `pip install packages/freeports` does not need it — it fetches its own copy, in isolation — but
+# the development loop does, because `maturin develop` does not go through pip.
+maturin
+
+# Lint and formatting of the Python sources. `ruff format` is also the `clean` filter that
+# `.gitconfig` installs: Python files are formatted as they are committed.
+ruff
+
+# The two Python tooling packages have no tests of their own yet; pytest is here because it is a
+# declared dependency of `freeports_dev`, which registers a plugin, and because a formats
+# repository's tests run through it.
+pytest
+
+# Building and publishing the distributions (`make dist`).
+build
+twine
+
+# Jupyter kernel, for interactive exploration of a document while developing a format.
+ipykernel

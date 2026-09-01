@@ -7,14 +7,14 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
-    # Serve due volte: per compilare l'estensione PyO3 che autodoc importa, e per generare
-    # rustdoc, che il sito pubblica come sotto-percorso invece di duplicarlo a mano in `.rst`.
+    # Needed twice over: to compile the PyO3 extension autodoc imports, and to generate rustdoc,
+    # which the site publishes as a sub-path instead of transcribing it by hand into `.rst`.
     rust: "latest"
   jobs:
     pre_build:
-      # Stesso bersaglio che si usa in locale, cosi' il sito pubblicato e quello costruito
-      # sullo schermo di chi scrive non divergono. Deposita `cargo doc` in
-      # `docs/source/_extra/rustdoc/`, da dove `html_extra_path` lo copia nel sito.
+      # The same target used locally, so that the published site and the one built on the
+      # writer's screen do not diverge. It deposits `cargo doc` into
+      # `docs/source/_extra/rustdoc/`, from where `html_extra_path` copies it into the site.
       - make -C docs rustdoc
 
 sphinx:
@@ -23,9 +23,9 @@ sphinx:
 python:
   install:
     - requirements: contrib/requirements.docs.txt
-    # autodoc importa davvero i pacchetti: vanno installati, non simulati. `freeports` e'
-    # costruito da maturin (dichiarato nel suo `build-system`), e per questo serve la
-    # toolchain Rust qui sopra.
+    # autodoc really imports the packages: they must be installed, not mocked. `freeports` is
+    # built by maturin (declared in its `build-system`), which is why the Rust toolchain above is
+    # needed.
     - method: pip
       path: packages/freeports
     - method: pip

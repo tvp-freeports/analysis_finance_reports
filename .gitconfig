@@ -1,4 +1,12 @@
+# Repository-specific git configuration, linked in by `make githooks`
+# (`git config --local include.path`).
+#
+# The filter formats the Python sources with `ruff format` as they enter the index: formatting is
+# never something a review has to discuss, and nobody has to remember to run it. The logic — where
+# to look for `ruff`, and what to do when it is not there — lives in
+# `contrib/python-format-filter.sh`, because a filter that fails makes every git command touching
+# that file fail.
 [filter "python_format"]
-    clean = ruff format --force-exclude --stdin-filename %f < %f  
+    clean = contrib/python-format-filter.sh %f
     smudge = cat
     required
