@@ -11,14 +11,27 @@ Lo stato della riscrittura precedente (M0..M10, tutte chiuse) e' recuperabile da
 **Fase P chiusa al 2026-08-31**: P0/P1/P2/P5 implementate, P3/P4 chiuse senza implementazione
 perche' la misura non le giustifica.
 
-**D1 e D2 chiuse al 2026-08-31**: la strategia documentale e' decisa (Sphinx unico + MyST +
+**D1, D2 e D3 chiuse al 2026-08-31**: la strategia documentale e' decisa (Sphinx unico + MyST +
 rustdoc accanto), l'impalcatura e' in piedi e **verde** — prima di quel giorno la build Sphinx non
-partiva affatto — e i doc-comment del sorgente sono stati riscritti tutti, in inglese e senza piu'
-alcun residuo del porting. Restano aperte **D3** (whitepaper) e **D4** (riconciliazione della
-prosa Sphinx esistente); nessuna delle due e' bloccata da una domanda, salvo Q-D1 sul registro del
-whitepaper. Restano inoltre le segnalazioni Q-P0/Q-P2b/Q-P5, che non bloccano nulla, la scelta
-delle lingue da mantenere (rimandata dall'utente), e una nuova segnalazione aperta da D2 su
-`JobError::MissingInputDbPath` — vedi la riga D2.
+partiva affatto — i doc-comment del sorgente sono stati riscritti tutti, e il **whitepaper** e'
+scritto: 11 capitoli, ~12.000 parole, in `docs/source/whitepaper/`.
+
+**D5 e D5a chiuse al 2026-08-31**: la documentazione e' passata da 11 pagine piatte a **42 pagine
+in tre aree** — `usage/` (come si usa), `formats/` (come si estende), `design/` (perche' l'algoritmo
+e' fatto cosi') — piu' `dev/implementation-notes.rst`, dove sono finite le scelte di *tecnologia*
+che l'utente non voleva nel whitepaper. **La fase D e' quindi chiusa per intero**, e con essa il
+piano di `PLAN.md`: F, L, P e D non hanno piu' passi aperti.
+
+**L3 e' ritirata**: `.freeports.log.yaml` non esiste piu'. Il passo resta in tabella perche' e'
+stato fatto e poi disfatto, e sapere *perche'* conta piu' di far sparire la riga.
+
+**D4 e' assorbita da D3 per decisione dell'utente** («anche le parti esistenti devono essere
+corrette e integrate»): la prosa Sphinx esistente non e' stata lasciata come isola a cui rimandare,
+ma o corretta in loco o riportata dentro il whitepaper, con la pagina originale rimossa. Cio' che
+resta di D4 e' solo l'unica parte che **non si puo'** toccare — `docs/source/validation/**`, che e'
+indirizzato per contenuto (vedi la riga D3). Restano le segnalazioni Q-P0/Q-P2b/Q-P5/Q-D2b, che non
+bloccano nulla, la scelta delle lingue da mantenere (rimandata dall'utente), e tre nuove
+segnalazioni aperte da D3 — vedi la riga D3.
 
 | # | Passo | Stato | Note |
 |---|---|---|---|
@@ -28,7 +41,7 @@ delle lingue da mantenere (rimandata dall'utente), e una nuova segnalazione aper
 | **L1** | Nuovo schema `.log.csv` (colonna `Activity`, coordinate generalizzate, righe ordinate) | ✅ chiusa | Piano/critic/test-writer/implementer in `agent-memory/L1-implementation-plan.md`. `cargo test --lib` -> **2511 passati, 0 falliti** (venv attivo); `cargo test` -> **65 d'integrazione passati, 0 falliti** (12+29+22+2); `pytest tests/formats` -> **259 passati, 0 falliti** dopo la rigenerazione dei 31 `.log.csv`. Dettagli in "Decisioni prese" |
 | **L2** | Strumentazione capillare, 7 aree | ✅ chiusa | **7/7 aree chiuse** (`cli` -> `input` -> `formats_repo` -> `core` -> `formats_utils` -> `output` -> `commons`), piu' tutti gli specchi `python/` (inclusi i 5 residui senza mappatura 1:1 su una singola area — `interfaces.rs`/`pipes.rs`/`api.rs`/`consts.rs`/`convert.rs` — ripiegati sull'ultimo passo `commons` come chiusura). Aggiunto l'intero vocabolario `Activity` che mancava (`PLAN.md` §3 L1): `formats_repo[<path>]`/`format[<nome>]`, `classify`/`step[<n>]`/`class[<page_class>]`/`pipeline[<nome>]`/`pdf_extract`/`text_filter`/`deserialize`/`pipe[<nome>]`, `write[<file>]`. Corretto il residuo italiano `"pagina saltata"` -> `"page skipped"` (area `core`, come previsto) e altri due mislivellamenti trovati in revisione (`unstructured/py_pipe.rs`: `info!`->`warn!`; `deserialize/standard_funcs.rs`: `error!`->`warn!`). Verificato indipendentemente ad ogni area, mai una regressione: `cargo test --lib` -> **2511 passati, 0 falliti**; `cargo test` -> **65 d'integrazione passati, 0 falliti** (12+29+22+2); `cargo clippy --lib --tests` invariato (6 warning pre-esistenti, mai aumentati). Un bug ereditato segnalato e lasciato com'e' per decisione esplicita dell'utente (`find_config`); due note strutturali aperte per una sessione futura, non bloccanti. Dettagli area per area in "Decisioni prese" |
 | **L4** | Messa a punto del logging dopo la revisione dell'utente su L2 | ✅ chiusa (2 giri) | Revisione dell'utente su L2 chiusa: troppi log, forma ripetitiva (`class{class=investments}`), programma ~100x piu' lento, messaggi non contestualizzati, pagina assente in TextFilter/Deserialize. Diagnosi misurata e piano in `agent-memory/L4-logging-tuning-plan.md`. Risultato: **13,0 s** contro i **19 minuti** di partenza sullo stesso job (EURIZON-EN23.A, 1140 pagine, verbosita' di default); `.log.csv` da **2,8 GB** a **609 righe**; `pytest tests/formats` da 388 s a **93 s**. `cargo test --lib` -> **2518 passati, 0 falliti**; `cargo test` -> **65 d'integrazione passati, 0 falliti**; `pytest tests/formats` -> **259 passati, 0 falliti** dopo la rigenerazione dei 22 `.log.csv` (dei 31 confrontati) autorizzata dall'utente; **nessuno** degli altri 277 file di `out/**` toccato, provato con checksum SHA-256 prima/dopo. `cargo clippy` invariato (gli stessi 6 warning pre-esistenti). **Secondo giro (2026-08-30)** su richiesta dell'utente: `.log.csv` spostato nella cartella di `out`, ristretto a `warn`+`error`, e nuova resa della riga su stderr (niente timestamp, livello/`Activity`/target colorati). Dettagli in "Decisioni prese" |
-| **L3** | `.freeports.log.yaml` a verbosita' massima | ✅ chiusa | `YamlLogLayer`, quarto layer accanto ai tre esistenti. **Q-L3 risposta: opzione (b)** — record strutturale (`ErrorRecord`: `debug`/`display`/catena di `source()`), nessun `Serialize` derivato sui ~25 enum d'errore, funziona anche per errori di terze parti. `debug` sostituisce il `type` ipotizzato dal piano: un `&dyn Error` non sa dire il proprio tipo concreto, ma `{:?}` su un enum `thiserror` stampa gia' variante e campi (`AlgorithmLoad(UnknownFormat { format: "NOPE", known: 27 })`), che e' di piu'. Le tre decisioni lasciate aperte dal piano, risposte dall'utente: **solo `warn!`/`error!`**, file **nella cartella corrente** (e' un artefatto diagnostico, non un prodotto della corsa), **implicito in `-vvv`** senza flag dedicato. `serde_yaml` 0.9 tenuto (gia' dipendenza, gia' usato per `investments_add_infos.yaml`); la nota del piano sulla sua manutenzione resta valida ma non blocca. Perche' il file si popoli davvero, sweep di **53 siti** `error!`/`warn!` che interpolavano l'errore nel messaggio: ora vi agganciano anche `error = log_error(&e)`, il messaggio resta invariato (nessuna deriva dei fixture) e stderr non stampa piu' il campo `error` per non ripetere due volte la stessa cosa sulla stessa riga. 11 test in `tests::yaml_layer` |
+| **L3** | ~~`.freeports.log.yaml` a verbosita' massima~~ | ⛔ **ritirata il 2026-08-31 (D5a)** — quanto segue e' storia, il file non si genera piu' | `YamlLogLayer`, quarto layer accanto ai tre esistenti. **Q-L3 risposta: opzione (b)** — record strutturale (`ErrorRecord`: `debug`/`display`/catena di `source()`), nessun `Serialize` derivato sui ~25 enum d'errore, funziona anche per errori di terze parti. `debug` sostituisce il `type` ipotizzato dal piano: un `&dyn Error` non sa dire il proprio tipo concreto, ma `{:?}` su un enum `thiserror` stampa gia' variante e campi (`AlgorithmLoad(UnknownFormat { format: "NOPE", known: 27 })`), che e' di piu'. Le tre decisioni lasciate aperte dal piano, risposte dall'utente: **solo `warn!`/`error!`**, file **nella cartella corrente** (e' un artefatto diagnostico, non un prodotto della corsa), **implicito in `-vvv`** senza flag dedicato. `serde_yaml` 0.9 tenuto (gia' dipendenza, gia' usato per `investments_add_infos.yaml`); la nota del piano sulla sua manutenzione resta valida ma non blocca. Perche' il file si popoli davvero, sweep di **53 siti** `error!`/`warn!` che interpolavano l'errore nel messaggio: ora vi agganciano anche `error = log_error(&e)`, il messaggio resta invariato (nessuna deriva dei fixture) e stderr non stampa piu' il campo `error` per non ripetere due volte la stessa cosa sulla stessa riga. 11 test in `tests::yaml_layer` |
 | **L5** | Log su file strutturato, stderr leggibile a colpo d'occhio | ✅ chiusa | Revisione dell'utente su L3/L4 chiuse (2026-08-30), cinque richieste, tutte chiuse: (1) `freeports.log` -> **`freeports.log.jsonl`**, un oggetto JSON per riga (`JsonLogLayer`); (2) stderr **senza `target`** (il percorso del modulo), che resta invece un campo di ogni record del file; (3) `.log.csv` **mai piu' nella cartella corrente** — la causa era il fallback di `LogHandle::close`, che scattava a ogni corsa fallita prima della risoluzione della configurazione, riprodotto e rimosso (`CsvLogLayer::discard`); (4) **quattro colori** nel percorso degli span (nomi ciano, valori magenta chiaro, `/` e `[`/`]` grigio scuro, campi in dim) invece di uno solo; (5) **errore serializzato anche nel log su file**, grazie a `LogRecord`/`build_record` condivisi fra `JsonLogLayer` e `YamlLogLayer`. `cargo test --lib` -> **2550 passati, 0 falliti** (12 nuovi: `tests::json_layer`, `tests::csv_never_in_the_working_directory`); `cargo test` -> **65 d'integrazione passati**; `pytest tests/formats` -> **259 passati**, con i 31 `.log.csv` e i 277 altri file di `out/**` **byte-identici** prima/dopo (checksum SHA-256) — nessuna rigenerazione necessaria; `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno in `tracing_setup.rs`). Piano in `agent-memory/L5-structured-log-plan.md`. Dettagli in "Decisioni prese" |
 | **P0** | Profilo su report reali | ✅ chiusa | Misura, non implementazione: **nessun file di produzione toccato**. Strumento in `packages/freeports/examples/p0_profile.rs` (example di cargo, fuori dal binario, da rieseguire dopo P1..P4), che legge gli `info_span!` gia' installati da L2 con un layer `tracing` che accumula il tempo per percorso di span; filtro identico a quello di produzione alla verbosita' di default, overhead sotto la soglia di rumore (profilo 0,70/2,55/17,66/21,30 s contro binario `release` 0,72/2,58/17,75/21,40 s). **Quattro** documenti invece di tre: MEDIOLANUM-ES24.B (29 pagine), UBS-EN23 (222), EURIZON-EN23 (1.140, aggiunto perche' e' l'unico grande **con** pipe Python d'autore), AMUNDI-EN24 (1.824, interamente structured). Le tre risposte: (1) **caricamento PyMuPDF 35-75% del totale**, di cui 72-93% PyMuPDF vero (verificato a parte con lo stesso `load_page`+`get_text("dict")` da Python puro); (2) **classificazione da 1:8,5 a 1:157 rispetto agli step**, e pesa solo dove e' scritta in Python; (3) **`text_filter` e' l'85-96% del lavoro del motore e dentro c'e' un solo pipe**, `TextFilterInvestmentsStandard` (Rust puro, 14-20 ms/pagina, **30-54% del tempo totale di un job**), mentre `deserialize` sta sotto lo 0,2% ovunque. Nessuna regressione: `cargo test --lib` -> **2550 passati, 0 falliti**; `cargo test --test '*'` -> **65 passati, 0 falliti** (12+29+22+2); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nell'example). Rapporto completo in `agent-memory/P0-profile.md`; conseguenze su P2/P4/P5 e rischio §9.3 riportate in `PLAN.md` |
 | **P1** | Job/documento — processi | ✅ chiusa | **Q-P1 e Q-P2 risposte il 2026-08-30**, passo sbloccato e chiuso lo stesso giorno. Piano, checklist e scostamenti in `agent-memory/P1-implementation-plan.md`. La premessa di `PLAN.md` §4 P1 era **sbagliata** e l'ho corretta prima di iniziare: i job **non** scrivono i propri CSV, `execute` concatena i `DocumentOutcome` di tutti e fa **una sola** `write_results` con i parametri della prima configurazione risolta — per questo servono processi **con IPC dei risultati**, non processi indipendenti. Otto passi (P1.1..P1.8): derive serde su config e risultati, modulo `cli::worker` (protocollo a due file JSON), flag nascosto `--internal-worker`, pool a scorrimento con raccolta in slot indicizzati, unione dei log in ordine di job. `cargo test --lib` -> **2.608 passati, 0 falliti** (+58); `cargo test --test '*'` -> **72 passati, 0 falliti** (12+29+**7 nuovi**+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file, nessuna rigenerazione necessaria); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). **Guadagno misurato: 13,34 s -> 7,08 s, 1,88x** su un batch di 2 job (i due EURIZON-EN23) con `-j 2`, tre ripetizioni stabili entro l'1%. Dettagli in "Decisioni prese" |
@@ -38,10 +51,13 @@ delle lingue da mantenere (rimandata dall'utente), e una nuova segnalazione aper
 | **P5** | Configurazione `parallelism` | ✅ chiusa | Piano, decisioni e scostamenti in `agent-memory/P5-implementation-plan.md`. Nuovo modulo `cli::parallelism_config` (`Workers` = `Auto`/`Fixed`, `ParallelismConfig`), che **sostituisce** i due provvisori: `cli::run::{job_parallelism,page_parallelism}` sono spariti, al loro posto `resolve_parallelism`, che risolve i due livelli insieme perche' il secondo dipende dal primo. Superficie: `--workers`/`-j` (default globale di **entrambi** i livelli), `--jobs`/`--pages` (override per livello), `FREEPORTS_N_WORKERS`/`FREEPORTS_PARALLELISM_JOBS`/`FREEPORTS_PARALLELISM_PAGES`, chiavi YAML `n_workers` e `parallelism: {jobs, pages}`; tutte accettano un intero positivo **o** `auto`. **Guadagno misurato con il default** (due job grandi, EURIZON-EN23 + AMUNDI-EN24, binario `release`, due ripetizioni: 39,37/39,73 s contro 16,68/16,70 s): **39,4 s -> 16,7 s, 2,36x**, con l'output **byte-identico** a quello della corsa sequenziale. Prezzo: picco di memoria **783 MB -> ~1,2 GB**. `cargo test --lib` -> **2.681 passati, 0 falliti** (+48); `cargo test --test '*'` -> **83 passati, 0 falliti** (12+1+34+**12** di cui 5 nuovi+22+2); `pytest tests/formats` -> **259 passati, 0 falliti**; `out/**` **byte-identico** prima/dopo (checksum SHA-256 su 308 file); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo). **Un difetto di P1 scoperto e corretto qui**, vedi "Decisioni prese" |
 | **D1** | Strategia documentale (Sphinx+MyST+rustdoc vs mdbook) | ✅ chiusa | **Q-D2 risposta il 2026-08-31**, passo sbloccato e chiuso lo stesso giorno: *un solo sito Sphinx + MyST + rustdoc accanto* (mdbook scartato), *impalcatura gettext mantenuta* con la sorte delle singole lingue rimandata. Piano, decisioni e verifiche in `agent-memory/D1-docs-strategy-plan.md`. La build **prima** non partiva nemmeno: `conf.py` faceva `from freeports_analysis import *`, un pacchetto morto da due riscritture, e `sphinx-build` moriva in *Configuration error*. Ora `sphinx-build -b html` -> **exit 0**, 15 warning **tutti in prosa preesistente** e nessuno nei file scritti qui (sono di D4: `.rst` malformato e riferimenti morti a `freeports_analysis.conf_parse`/`batch_mode`). Rimossi da git **254 file di output generato** — i 47 `.rst` di `docs/source/_generated/` previsti dal piano piu' **207 file di `docs/build/`**, il sito HTML costruito del pacchetto morto, che era tracciato — e tutti e tre i percorsi generati ora gitignorati. **Il difetto vero, non previsto dal piano**: autosummary documentava **10 moduli su 18** di `freeports`, perche' il pacchetto *e'* l'estensione compilata (un solo `.so` sul disco) e le due euristiche di autosummary — `pkgutil.iter_modules(__path__)` per elencare i figli, `hasattr(obj, '__path__')` per decidere se esplorarli — falliscono entrambe sui sottomoduli PyO3. Verificato che la superficie del crate e' **sana** (`__all__` corretto a ogni livello, tutti e 8 i nidificati importabili per nome), quindi **il crate non e' stato toccato**: due correzioni confinate in `conf.py` (`autosummary_ignore_module_all = False` e `_mark_compiled_subpackages()`, che annota `__path__ = []` sui moduli compilati con figli) portano da 12 a **28 pagine di modulo**, con autodoc che rende membri veri. rustdoc cablato con `make -C docs rustdoc` (`--target-dir` dedicata, per non pubblicare la documentazione di dipendenze rimasta in `target/doc`) e pubblicato sotto `/rustdoc/` via `html_extra_path`, link verificato contro il sito costruito. `.readthedocs.yaml` era rotto in due punti (l'ultima `python.install` puntava al file di configurazione stesso; installava `requirements.minimal.txt`, che e' attrezzatura di sviluppo): ora installa i tre pacchetti veri e dichiara `tools.rust`. **Nessun sorgente Rust toccato**; dei 308 file di `tests/formats/*/out/**` **zero** hanno mtime di oggi. Traduzioni **non toccate** per decisione esplicita. Dettagli in "Decisioni prese" |
 | **D2** | Doc-comment riscritti, area per area | ✅ chiusa | **Tutte e nove le aree**, in una sessione. Piano, checklist e resoconto in `agent-memory/D2-doccomment-plan.md`. La misura del piano (6.103 righe di doc-comment, ~2.961 italiane, baseline `13284baa`) era **superata**: F, L e P avevano nel frattempo aggiunto codice, e la misura di partenza reale era **7.470 righe di doc-comment + 1.122 di commento `//`** su 119 file, di cui ~4.800 italiane, piu' **466** righe con rimandi a `PLAN.md`/`STATUS.md`/`agent-memory`/`§`/milestone. **Perimetro**: i commenti `//` sono dentro D2, non fuori — F1 li aveva esplicitamente rimandati qui. **Risultato**: nel crate non resta *una sola* riga di commento in italiano ne' *un solo* rimando a un documento di processo (verificato con uno scanner a vocabolario sull'intero albero). I doc-comment passano da 7.470 a **5.401** righe e i `//` da 1.122 a **986**: il 28% in meno a parita' di contenuto utile, perche' sparisce il residuo operativo e non la sostanza — il caso limite e' il doc di modulo di `core/tracing_setup.rs`, da **209 righe** di contratto d'implementazione (firme in blocchi ```` ```text ````, tabelle di test, «RIAPERTO a M9») a **76** che descrivono il modulo che c'e'. **Doc-test**: il crate ne aveva **0**; ora ne ha **5**, sui tre livelli di normalizzazione, su `MatchFund` e su `Promise` — esempi che il compilatore verifica, quindi documentazione che non puo' invecchiare in silenzio. **Sette difetti veri trovati rileggendo**, sei corretti e uno segnalato: una riga di sommario finita sul metodo sbagliato (`pipeline/bundle.rs`), un parametro chiamato col vecchio nome italiano nel doc (`promise_resolution.rs`), **sei** doc di modulo impilati su due soli moduli in `tracing_setup.rs` (lasciandone quattro senza), due doc che contraddicevano il codice dieci righe sotto (`OutStructureMode` in `output/routines/write.rs`, `PyDeserializePipe` in `formats_repo/unstructured/py_pipe.rs`), e — segnalato, non corretto, perche' la correzione riguarda il codice — `JobError::MissingInputDbPath`, che e' nell'enum pubblico ma **nessun percorso costruisce piu'**. **Verifiche**: `cargo test --lib` -> **2.681 passati, 0 falliti**; `cargo test --doc` -> **5 passati, 0 falliti**; `cargo test --test '*'` -> **83 passati, 0 falliti**; `pytest tests/formats` -> **259 passati, 0 falliti**; `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti); `cargo doc --no-deps` da **31 warning a 0**; i 308 file di `tests/formats/*/out/**` **tutti intatti** (zero con mtime della sessione). Nessun sorgente non-commento toccato: D2 non cambia comportamento, e non l'ha cambiato |
-| **D3** | Whitepaper | ⬜ da fare | Materiale di partenza: `docs/source/{dev/code,usage/command,validation/**}.rst` + `PLAN.md` storico §2/§12/§13 |
-| **D4** | Riporto e riconciliazione dei contenuti Sphinx | ⬜ da fare | ~9.000 parole di prosa esistente, 4 locali gettext |
+| **D3** | Whitepaper (e riconciliazione della prosa esistente) | ✅ chiusa | **Q-D1 risposta il 2026-08-31** — *pubblico tecnico + istituzionale*, *sezione a capitoli*, *sintesi + rimando* — e passo chiuso lo stesso giorno. Piano e checklist in `agent-memory/D3-whitepaper-plan.md`. **11 capitoli, ~12.000 parole**, MyST Markdown in `docs/source/whitepaper/`: `index`, `problem`, `install`, `usage`, `configuration`, `execution-model`, `writing-a-format`, `formats-repo`, `input-db`, `validation`, `design-decisions`. Il dislivello di registro e' dichiarato nell'indice: `problem` e `validation` si leggono senza essere sviluppatori, il resto no. **Perimetro allargato in corsa dall'utente** («anche le parti esistenti devono essere corrette e integrate»), quindi D3 assorbe D4: **8 pagine rimosse** perche' descrivevano un'architettura di due riscritture fa e il loro contenuto vero e' entrato nel whitepaper (`usage/{installation,quickstart,command}.rst`, `usage/config/*.rst`, `dev/code.rst`, `dev/example.rst` — quest'ultima era uno scheletro di sole intestazioni), **6 corrette in loco** (`index.rst`, `contribute.rst`, `dev/{index,tests,docs,i18n}.rst`), 2 gia' buone da D1 e solo ricollegate (`API.rst`, `rustdoc.rst`). **`docs/source/validation/**` non toccato**, per il vincolo verificato qui sotto. Verifiche: `sphinx-build -b html` -> **exit 0, 8 warning, tutti e otto dentro `validation/**`** e quindi intoccabili (erano 15 alla chiusura di D1: i 7 spariti stavano nelle pagine rimosse, inclusi i riferimenti morti a `freeports_analysis.conf_parse`/`batch_mode`); **zero** warning in cio' che e' stato scritto o corretto qui; i `{doc}` e le ancore interne risolvono, verificato sull'HTML costruito. Quattro residui italiani sopravvissuti a D2 corretti contestualmente; `cargo test --lib` -> **2.681 passati, 0 falliti**, `cargo doc --no-deps` **0 warning**; i 308 file di `tests/formats/*/out/**` **tutti intatti** (zero con mtime della sessione). Tre segnalazioni nuove, vedi "Decisioni prese" |
+| **D4** | Riporto e riconciliazione dei contenuti Sphinx | ✅ assorbita da D3 | Non c'e' piu' un passo separato: l'utente ha esteso D3 alla correzione e integrazione della prosa esistente, e D3 l'ha fatta (vedi la riga sopra: 8 pagine rimosse, 6 corrette). Resta fuori **solo** `docs/source/validation/**`, che non si puo' correggere senza invalidare grant firmati — e' un'operazione deliberata con `freeports-validate update` + nuova firma, non un lavoro di documentazione. Restano da decidere le lingue delle traduzioni, che era gia' una domanda a se' rimandata dall'utente in Q-D2 |
+| **D5** | Riorganizzazione della documentazione: gerarchia, `usage/` a cartella, `design/` sull'algoritmo | ✅ chiusa — **eseguita il 2026-08-31** | Resoconto in `agent-memory/D5-execution.md`; il piano e le sei domande restano in `agent-memory/D5-docs-restructure-plan.md`. L'utente ha detto «procedi con D5 vera e propria» senza rispondere a Q-D5-1..6 una per una: adottate le **raccomandazioni del piano**, dichiarate a lui prima di iniziare (tecnologia -> `dev/implementation-notes.rst`; `usage/` dentro `whitepaper/`; design non implementato documentato come *previsto*; `design/` in inglese). Da **11 pagine piatte** (~12.400 parole) a **42 pagine in 3 aree** (~28.500 parole): `usage/` 16 pagine con `configuration/` a 5, `design/` 13, `formats/` 9 con `levels/` a 3. Piu' `dev/implementation-notes.rst` (1.367 parole), dove finiscono le scelte di **tecnologia** che l'utente non voleva nel whitepaper. Otto pagine rimosse perche' interamente riversate. Schema d'insieme nuovo, `design/assets/algorithm-overview.svg`, **scritto a mano** (quindi diffabile, e con un blocco `prefers-color-scheme: dark`). Verifiche: `sphinx-build -b html` -> exit 0, **4 warning, gli stessi di prima e tutti dentro `validation/**`**; **0 link interni rotti su 3.698** nelle pagine Sphinx. Nessun sorgente Rust toccato, nessun file di `tests/formats/*/out/**` toccato. Dettagli e scostamenti in "Decisioni prese" |
+| **V1** | `freeports-validate`: una sola implementazione di `yq`, dipendenze dichiarate, copia morta rimossa | ✅ chiusa (2026-09-01) | Chiude Q-D5a-1. **Il presupposto dell'utente era sbagliato e l'ho corretto prima di procedere**: go-yq **non e' un fork** di python-yq, sono due progetti indipendenti che hanno collso sul nome. python-yq (kislyuk) e' un guscio sottile attorno a **jq** — il linguaggio dei filtri *e'* jq; go-yq (mikefarah) e' un'implementazione Go con un linguaggio proprio. Criterio dell'utente: «il piu' basico e vicino a jq» -> **python-yq**. La prima stima (19 conversioni contro 1) sconsigliava questa direzione, ma **era sbagliata alla misura**: le tre costruzioni go-yq hanno equivalenti jq diretti e verificati — `sortKeys(..)` -> **`-S`** (l'ordinamento ricorsivo delle chiavi di jq), `strenv(X)` -> **`env.X`**, `yq -i` -> **`yq -y -i`** (python-yq accetta `-i` purche' ci sia `-y`). Convertiti **17 punti in 4 file**; `sortKeys` isolato in una funzione `canonical_document()` in `validation_utils.sh`, perche' e' *la definizione dei byte su cui si firma* e non deve piu' essere copiata a mano in due posti. **Argomento decisivo emerso strada facendo**: `freeports-validate` e' gia' un pacchetto Python, quindi `yq` e `check-jsonschema` possono diventare **dipendenze dichiarate** in `pyproject.toml` — con go-yq non si sarebbe mai potuto, e sarebbe rimasta per sempre l'installazione a mano di un binario che e' esattamente cio' che ha bloccato la sessione. Verifica **end-to-end reale**, non a occhio: chiave GPG usa-e-getta in un `GNUPGHOME` isolato (il portachiavi dell'utente non e' stato toccato), poi `create-document` -> `sign-document` -> `grant with` -> `grant <file>` -> `check-grants` -> `update file` -> `ungrant` -> `check-grants`, **tutti verdi**, con la firma che regge attraverso tre riscritture del documento. Rimossa la **copia morta** dello strumento al primo livello del pacchetto (9 script + `lib/`, pre-packaging, facevano `git rev-parse` e cercavano `${REPO_ROOT}/validation/lib/utils`, inesistente) — autorizzata dall'utente. Documentazione riallineata: `formats/tooling.md` e `usage/installation.md` dicevano go-yq. `sphinx-build` -> exit 0. |
+| **D5a** | Tre richieste dell'utente arrivate dopo il piano di D5: opzioni di output da ambiente/file, ritiro del log YAML, guida agli strumenti | ✅ chiusa | Piano e scostamenti in `agent-memory/D5-session-plan.md`. **(1) Profilo e flag di output configurabili da ogni sorgente**: `FREEPORTS_OUT_PROFILE`/`FREEPORTS_SEPARATE_OUT`/`FREEPORTS_ARCHIVE` e le chiavi YAML `out_profile` + sezione `out_flags: {separate_out, archive}`; per farlo correttamente le due flag sono diventate **due campi indipendenti** di `PartialConfig` (vedi "Decisioni prese"). **(2) `.freeports.log.yaml` ritirato**: `YamlLogLayer`, le sue costanti, `wants_yaml_log`, l'assorbimento dai worker e gli 11 test spariscono; le destinazioni passano da quattro a tre. **(3) Nuovo capitolo `whitepaper/tooling.md`**, ~2.400 parole, riferimento completo di `freeports-dev` e `freeports-validate` — prerequisiti, generazione della chiave GPG, `AFINANCE_VALIDATION_KEYID`, ciclo grant/sign/check. Verifiche: `cargo test --lib` -> **2.703 passati, 0 falliti**; `cargo test` -> **94 d'integrazione passati, 0 falliti** (di cui 1 nuovo, il presidio che a `-vvv` nessun file YAML compare); `pytest tests/formats` -> **259 passati, 0 falliti** con l'estensione ricostruita, e i **308 file di `out/**` byte-identici** (checksum SHA-256 prima/dopo); `cargo clippy --all-targets` invariato (gli stessi 6 warning pre-esistenti, nessuno nel codice nuovo); `sphinx-build -b html` -> exit 0, **4 warning, tutti dentro `validation/**`** e nessuno nelle pagine scritte qui. Provato anche a mano col binario `release` su MEDIOLANUM-ES24.B: `out_profile`/`out_flags` dal file funzionano, l'ambiente li scavalca per campo, e con `-vvv` in cartella pulita compare **solo** `freeports.log.jsonl`. Tre segnalazioni nuove, vedi "Decisioni prese" |
 
-Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato) · ❌ chiusa senza implementazione (decisa da una misura, non dimenticata)
+Legenda: ⬜ da fare · 🟡 in corso · ✅ chiusa (test verdi, `STATUS.md` aggiornato) · ❌ chiusa senza implementazione (decisa da una misura, non dimenticata) · ⛔ fatta e poi ritirata su richiesta dell'utente (la riga resta perche' il *perche'* conta)
 
 ## Baseline al momento della scrittura del piano (2026-08-24, commit `13284baa`)
 
@@ -65,14 +81,17 @@ Testo completo in `PLAN.md` §7. In sintesi:
 | Q-F3 | F3 | ~~Rigenerazione dei 228 JSON confermata, `out/**` intatto?~~ **Risposta 2026-08-29: si'** ("procedi con F3"). |
 | Q-L1 | ~~**L1, e a cascata L2/L3**~~ | ~~I 31 `out/.log.csv` si possono rigenerare, o serve una modalita' di compatibilita'?~~ **Risposta 2026-08-29: si', rigenerazione una tantum.** |
 | Q-L2 | ~~L1~~ | ~~Nome/posizione della colonna span; `Activity` da sola basta a generare una riga?~~ **Risposta 2026-08-29: no, come raccomandato.** |
-| Q-L3 | ~~L3~~ | ~~YAML: quando si genera, cosa contiene, record strutturale o `Serialize` sugli enum?~~ **Risposta 2026-08-30: record strutturale (opzione b); solo `warn`/`error`; solo a `-vvv`, implicito, nella cartella corrente.** |
+| Q-L3 | ~~L3~~ | ~~YAML: quando si genera, cosa contiene, record strutturale o `Serialize` sugli enum?~~ **Risposta 2026-08-30: record strutturale (opzione b); solo `warn`/`error`; solo a `-vvv`, implicito, nella cartella corrente.** **Superata il 2026-08-31 (D5a): l'utente ha chiesto che a `trace` si generi `freeports.log.jsonl` e *non* `.freeports.log.yaml`. Il file e il suo layer sono stati rimossi; la domanda non ha piu' oggetto.** |
 | Q-P0 | l'ordine di tutta la fase P | **Rimandata 2026-08-30** ("procedi con P1"): resta un passo a se', dopo. **Nuova (2026-08-30, aperta da P0).** `TextFilterInvestmentsStandard` da solo e' il 30-54% del tempo totale di un job, ed e' Rust mono-thread e deterministico: si apre un passo di ottimizzazione *interna* di quel pipe prima di P1/P2? |
 | Q-P1 | ~~P1~~ | ~~Processi figli ammessi, o solo thread?~~ **Risposta 2026-08-30: processi figli, con IPC dei risultati verso il padre.** |
 | Q-P2 | ~~P2, P3, P4~~ | ~~Determinismo byte-per-byte confermato come vincolo?~~ **Risposta 2026-08-30: no, basta l'equivalenza semantica.** Nota: P2 e' comunque risultato byte-identico, senza dover spendere il margine concesso. |
 | Q-P5 | nulla — segnalazione | **Nuova (2026-08-31, aperta da P5).** Il default `jobs: auto` rende paralleli i batch senza che nessuno lo chieda: **2,36x** piu' veloce, ma il picco di memoria passa da 783 MB a ~1,2 GB con due soli job grandi, e cresce con il numero di job concorrenti. Va bene cosi', o il default prudente (`jobs: 1`) e' preferibile e il parallelismo va chiesto? E' una riga in `partial_config::defaults`. |
 | Q-P2b | nulla — segnalazione | **Nuova (2026-08-30, aperta da P2).** Il binario `freeports` esce con **SIGSEGV** dopo aver scritto correttamente tutti gli output, sul formato CARNE-EN23. Preesistente e indipendente da P2 (stesso crash sul percorso sequenziale). Si sistema, e come? |
-| Q-D1 | D3 | Il whitepaper parla anche a un pubblico non tecnico? |
+| Q-D1 | ~~D3~~ | ~~Il whitepaper parla anche a un pubblico non tecnico?~~ **Risposta 2026-08-31: si', tecnico + istituzionale**, con un dislivello dichiarato; forma a **capitoli** (non pagina unica); **sintesi + rimando**, senza duplicare la prosa esistente. Poi estesa dall'utente: «anche le parti esistenti devono essere corrette e integrate», che assorbe D4 in D3. |
 | Q-D2b | nulla — segnalazione | **Nuova (2026-08-31, aperta da D2).** `JobError::MissingInputDbPath` e' una variante dell'enum d'errore pubblico di `cli::job` che **nessun percorso costruisce piu'**: il test end-to-end `cli::run::tests::python_boundary` esercita proprio la combinazione che dovrebbe farla scattare (`--target-list` senza `--db-directory`) e si aspetta successo, e il codice la tratta come "nessuna azienda bersaglio disponibile". D2 ha reso esplicito il fatto nel doc-comment invece di descrivere un errore impossibile, ma la scelta vera e' fra togliere la variante e farla scattare davvero — e riguarda il codice, non il commento. |
+| Q-D5a-1 | ~~segnalazione~~ | ~~`freeports-validate` non parte: `yq` e `check-jsonschema` non installati e non dichiarati, e gli script vogliono **due `yq` diversi**.~~ **Risolta il 2026-09-01**, vedi la riga **V1**. L'utente ha scelto il criterio («tieni quello piu' basico e vicino a jq»), e la scelta e' caduta sul `yq` **Python**. |
+| Q-D5a-2 | nulla — segnalazione | **Nuova (2026-08-31, aperta da D5a).** `--separate-out` costruisce il nome del file come `{tabella}__{report}__{formato}.csv`, e il nome del report, quando non e' stato dato esplicitamente, **e' il percorso completo del PDF**: con `-i /path/to/report.pdf` la scrittura fallisce con «cannot write CSV out/investments__/path/to/report.pdf__FMT.csv: No such file or directory». Pre-esistente e indipendente da D5a — identico dalla riga di comando — e si aggira dando un nome al documento (`-i percorso:NOME`). Va corretto sanificando il nome in fase di scrittura, o rifiutando in validazione un nome che contiene un separatore di percorso? |
+| Q-D5a-3 | nulla — segnalazione | **Riaperta (2026-08-31, da D5a).** Con `.freeports.log.yaml` ritirato, la domanda Q-D5-4 si riduce a un solo file: `freeports.log.jsonl` resta nella **cartella di lavoro** mentre `.log.csv` e' stato spostato negli output perche' «prodotto della corsa». Sono due file della stessa corsa in due posti diversi. Si sposta anche lui, si lascia dov'e' come artefatto diagnostico, o si rende configurabile? |
 | Q-D2 | ~~D1, D4~~ | ~~Sphinx unico + rustdoc accanto (scartando mdbook)? Che ne e' delle 4 traduzioni?~~ **Risposta 2026-08-31: si', Sphinx unico + MyST + rustdoc accanto**; sulle traduzioni **si tiene l'impalcatura, la scelta delle lingue e' rimandata**. Nota emersa misurando prima di chiedere: le «quattro traduzioni» che il piano usava come primo argomento a favore di Sphinx sono in realta' **una sola parziale** — `it` al 61% della prosa viva, `fr` e `pt` **stub a zero**, `en` la lingua sorgente; e 1165 dei 1660 msgid venivano da `_generated/`, cioe' dal pacchetto morto. La scelta resta motivata dagli **altri tre** argomenti del piano (`validation/**` gia' scritto, pubblicazione RTD gia' in piedi, nessun secondo toolchain), non piu' dal primo. |
 
 ## Decisioni prese durante l'implementazione
@@ -881,6 +900,283 @@ doc-comment del crate, che riscrive comunque.
   l'invariante 2 di questo documento. Da rileggere insieme alla chiusura di P1, che dichiarava
   `out/**` byte-identico — e lo era, perche' quei confronti passavano dal percorso sequenziale.
 
+- 2026-08-31 — **Q-D1 risposta, in tre parti.** *Pubblico*: tecnico **e** istituzionale, un solo
+  documento con il dislivello dichiarato nell'indice invece di due documenti. *Forma*: sezione a
+  capitoli in `docs/source/whitepaper/`, non pagina unica — con l'elenco di contenuti di
+  `PLAN.md` §5 D3 una pagina sola sarebbe stata un muro da 12.000 parole, e D4 non avrebbe avuto
+  dove innestare la prosa esistente. *Duplicazione*: sintesi e rimando, mai riscrivere cio' che
+  esiste altrove.
+- 2026-08-31 — **D3 assorbe D4, per estensione chiesta dall'utente a lavoro iniziato**: «anche le
+  parti esistenti devono essere corrette e integrate». Cambia la premessa della terza risposta: il
+  "rimando" aveva senso solo se le pagine rimandate erano vere, e non lo erano. Quindi ogni pagina
+  esistente e' stata o corretta o riportata dentro il whitepaper e rimossa. Il criterio applicato:
+  **si corregge in loco** cio' che parla al contributore di *questo* repo (`contribute.rst`,
+  `dev/**`), **si riporta nel whitepaper** cio' che parla all'utente del programma (`usage/**`) o
+  descrive il motore (`dev/code.rst`).
+- 2026-08-31 — **Vincolo trovato misurando, non previsto da `PLAN.md`: `docs/source/validation/**`
+  e' indirizzato per contenuto e non si puo' correggere.** Verificato con `sha256sum` contro
+  `analysis_finance_reports_formats/validation/oreste_sciacqualegni.yaml`: i quattro file
+  corrispondono **esattamente** agli hash incisi la' dentro — `general_methodology.rst` e' il campo
+  `version:` del documento di validazione, `methodologies/{basic_check,agreement_and_good_faith}.rst`
+  sono le due metodologie dichiarate, `assertions/validation_algorithm_trustworthiness.rst` e' un
+  file concesso. **Un byte cambiato invalida un grant firmato in un altro repo.** Da qui due
+  conseguenze: il capitolo `whitepaper/validation.md` riassume e rimanda invece di riscrivere, e gli
+  **8 warning residui della build Sphinx stanno tutti li'** e vanno lasciati stare (due titoli con
+  overline corta, tre blocchi RST indentati male). Avvertenza aggiunta in `dev/docs.rst`, perche' e'
+  esattamente il tipo di file che qualcuno "sistema" in buona fede.
+- 2026-08-31 — **Quattro commenti italiani sopravvissuti a D2**, che dichiarava zero residui:
+  `output/routines/write.rs:61`, `python/utils/deserialize.rs:62`, `python/api.rs:358`,
+  `cli/freeports_config.rs:269`. Tradotti qui, contestualmente — sono doc-comment, nessun effetto
+  sul comportamento, e `cargo doc` li pubblica sul sito, quindi lasciarli sarebbe stato un difetto
+  del prodotto che D3 consegna. `cargo test --lib` 2.681/0 invariato. Lezione per un controllo
+  futuro: lo scanner di D2 cercava sostantivi di dominio; questi quattro si trovano solo cercando
+  **parole funzionali** (`della`, `deve`, `invece`, `aggiuntivi`).
+- 2026-08-31 — **Segnalazione (D3-1): l'estensione installata nel venv era vecchia di due passi.**
+  `freeports.__doc__` tornava ancora in italiano perche' il `.so` nel venv era anteriore a D2, non
+  perche' il sorgente lo fosse. Rilevante oltre l'aneddoto: **autodoc importa davvero i pacchetti**,
+  quindi la pagina `API` documenta l'estensione *installata*, non il sorgente. Chi costruisce il
+  sito deve fare `maturin develop --release` prima, altrimenti pubblica docstring vecchie senza che
+  nulla segnali l'incoerenza. Fatto in questa sessione prima della build.
+- 2026-08-31 — **Segnalazione (D3-2): `freeports.freeports` esiste.** Il modulo Python espone un
+  attributo `freeports` che e' un *altro* oggetto modulo (`freeports.freeports is freeports` ->
+  `False`), residuo di `wrap_pymodule!` + `register_submodules`. Non e' in `__all__`, quindi
+  autosummary non lo documenta e il sito non ne risente, ma e' superficie pubblica non voluta. D1
+  aveva verificato "superficie sana" guardando `__all__` e i nidificati per nome, che e' un
+  controllo che non poteva vederlo.
+- 2026-08-31 — **Segnalazione (D3-3): tre pezzi di attrezzatura descrivono un repo che non esiste
+  piu'.** Non toccati, perche' fuori dal perimetro di un passo di documentazione, ma vanno decisi:
+  (a) `Jenkinsfile` passa pylint su `src/` ed esegue `pytest tests/` — due percorsi che in questo
+  repo non esistono — e non lancia **nessuno** step `cargo`; (b) `contrib/init.sh` finisce con
+  `pip install --editable .` su una radice **senza `pyproject.toml`**; (c) l'`AGENTS.md` di questo
+  repo descrive ancora `freeports_engine`, `_internals/`, Pydantic, Pandera e i fixture `.pkl`.
+  Anche l'help di `freeports-dev inspect-page --filter-data` dice ancora `.pkl` mentre F3 ha portato
+  i fixture a JSON. La documentazione pubblicata ora e' allineata al codice; questi quattro no.
+- 2026-08-31 — **Nota, non causata da D3**: `packages/freeports/freeports.log.jsonl` esiste, vuoto,
+  con mtime di stamattina (ore 11:40, ben prima di questa sessione). L5 aveva chiuso il caso del
+  `.log.csv` nella cartella di lavoro; il log JSONL invece la cartella di lavoro la usa ancora. Se
+  vale anche per lui la regola "i file di una corsa stanno nella cartella di output", e' un secondo
+  giro dello stesso difetto.
+
+- 2026-08-31 — **Verificato: `.freeports.log.yaml` viene generato, contrariamente a quanto
+  riportato.** Provato eseguendo il binario `release` in una cartella pulita su MEDIOLANUM-ES24.B
+  col venv attivo: con `-vv` il file **non** c'e' (giusto, e' la regola di L3), con `-vvv` c'e',
+  1.973 byte, con i record `warn`/`error` completi di percorso di span
+  (`run/job[...]/step[0]/class[investments]/page[16]/pipeline[investments]/text_filter/pipe[...]`)
+  e di errore strutturato. Sembrava assente per due ragioni che si sommano: e' un **file nascosto**
+  e sta nella **cartella corrente**, non in quella di output dove L5 ha portato `.log.csv`. Non e'
+  un difetto del codice ma di **scopribilita'**: la documentazione lo nominava in tabella senza
+  dire ne' che e' nascosto ne' dove finisce, ed e' un punto che D5 deve correggere
+  (`usage/logging`). Resta invece aperta la domanda di design gia' segnalata: `.log.csv` e' stato
+  spostato negli output perche' «prodotto della corsa», e nella cartella corrente restano sia
+  `.freeports.log.yaml` sia `freeports.log.jsonl` — vedi Q-D5-4 nel piano di D5.
+
+- 2026-08-31 — **Bug trovato (D3-4): la verbosita' e' onorata solo da `-v`/`-q`; `FREEPORTS_VERBOSITY`
+  e la chiave YAML `verbosity` non fanno nulla.** E' la spiegazione vera del «`.freeports.log.yaml`
+  non mi viene generato» riportato dall'utente — la mia verifica precedente lo generava perche'
+  passavo `-vvv` sulla riga di comando. Causa: `main.rs` chiama `tracing_setup::init(verbosity, ..)`
+  con `Verbosity::from_verbose_and_quiet_counts(args.verbose, args.quiet)`, cioe' **prima** che la
+  configurazione sia risolta e **soltanto** dai contatori della riga di comando; `cli::run` non
+  reinizializza mai il logging. Il campo `FreeportsConfig::verbosity` viene comunque risolto
+  fondendo file/ambiente/comando, e viene **serializzato nella richiesta dei worker**: `cli/worker.rs`
+  fa `init(request.config.verbosity, ..)`. Quindi i processi figli onorano la verbosita' risolta e
+  il padre no — due comportamenti diversi nello stesso programma. Misurato in cartella pulita su
+  MEDIOLANUM-ES24.B: con `FREEPORTS_VERBOSITY=trace` e nessun flag, stderr resta a 5 righe (livello
+  `warn`) e nessuno `.freeports.log.yaml`; identico con `verbosity: trace` in
+  `freeports-config.yaml`. **Non corretto**: e' un bug ereditato e §6 invariante 6 impone di
+  chiedere prima. Le due strade sono (a) rileggere la verbosita' dopo la risoluzione della
+  configurazione e reinstallare i layer — ma `set_global_default` si puo' chiamare una volta sola,
+  quindi servirebbe un `reload::Layer`; (b) dichiarare che la verbosita' e' solo da riga di comando
+  e **togliere** la chiave YAML e la variabile d'ambiente, che oggi accettano un valore e lo
+  ignorano. La documentazione pubblicata ora descrive il comportamento reale e segnala il difetto
+  (`whitepaper/configuration.md`, `whitepaper/usage.md`).
+- 2026-08-31 — **Diagramma `dev/assets/schema_algorithm.svg` aggiornato e rimesso in linea.** Era
+  orfano da quando D3 ha rimosso `dev/code.rst`, l'unica pagina che lo includeva, ed etichettava i
+  segmenti coi nomi di due riscritture fa. Rinominate sette etichette sul modello attuale —
+  `PdfFilter`->`pdf_extract`, `TextExtract`->`text_filter`, `Deserialize`->`deserialize`,
+  `PromisesResolutionContext`->`PromiseEntries`, `PromisesResolutionMap`->`PromiseMap`,
+  `FinancialData`->`Extracted` (due occorrenze) — ricalcolando `textLength` (larghezza per
+  carattere costante nell'export LibreOffice: 381 a 635px, 338 a 564px) e ricentrando `x`, cosi' le
+  etichette restano dentro i riquadri. SVG validato e reso con `rsvg-convert` per controllo visivo.
+  Incluso in `whitepaper/execution-model.md` come `{figure}` con didascalia che dichiara il limite:
+  **e' il diagramma di una pipeline, non dell'algoritmo** — classificazione, page class e schedule
+  non ci sono. Due cose restano da fare, in D5: un secondo schema d'insieme che copra quella parte,
+  e il riallineamento del master `schema_algorithm.odg`, che ora **diverge** dall'SVG (l'ho
+  modificato solo nell'SVG; chi riapre l'`.odg` e riesporta perde le rinomine).
+
+### D5a — opzioni di output da ambiente e file, ritiro del log YAML, guida agli strumenti
+
+- 2026-08-31 — **Le due out flags erano un campo solo, e aggiungere ambiente e file lo avrebbe reso
+  un difetto visibile.** `PartialConfig` aveva `out_flags: Option<OutFlags>`, cioe' le due flag
+  viaggiavano nel merge **insieme**: la prima sorgente che ne toccava una sovrascriveva anche
+  l'altra. Finche' l'unica sorgente era la riga di comando la cosa non si vedeva (nessun tier
+  sotto la toccava mai); con file e ambiente sarebbe diventata `archive: true` nel file cancellato
+  da `FREEPORTS_SEPARATE_OUT=true` nell'ambiente — esattamente l'override silenzioso che il
+  principio «il merge e' per campo, e nessuna sorgente ne cancella un'altra» vieta, e che questo
+  codice rifiuta ovunque altrove (i due livelli di `parallelism` sono separati per la stessa
+  ragione). Sono quindi diventate **due campi indipendenti**, `separate_out` e `compressed`,
+  ricomposti in un `OutFlags` solo in `freeports_config::validate`. Effetto collaterale
+  **voluto** sulla riga di comando: `--separate-out` da solo non riporta piu' `compressed: false`,
+  lascia il campo intatto — presente vuol dire «vero», assente vuol dire «non ho detto nulla», la
+  stessa asimmetria che `--no-download` ha sempre avuto. Non e' una regressione: prima nessuna
+  sorgente sotto la riga di comando poteva dire qualcosa su quel campo.
+
+- 2026-08-31 — **Grammatica scelta per le due sorgenti nuove.** Ambiente: tre variabili distinte
+  (`FREEPORTS_OUT_PROFILE`, `FREEPORTS_SEPARATE_OUT`, `FREEPORTS_ARCHIVE`), coi booleani della
+  stessa grammatica permissiva di `FREEPORTS_SAVE_PDF` (`true`/`yes`/`1`/`y`/`t` e i contrari).
+  File: la chiave `out_profile` piu' una **sezione** `out_flags` con le sole sotto-chiavi
+  `separate_out` e `archive`, sul modello di `parallelism` — sono due impostazioni di una cosa
+  sola, e una sotto-chiave sconosciuta e' un errore, `out_flags.compressed` incluso (il nome
+  interno del campo non e' il nome pubblico dell'opzione: pubblicamente si chiama `archive`, come
+  il flag). I nomi dei profili sono quelli che la riga di comando gia' accetta, senza distinzione
+  fra maiuscole e minuscole, cosi' che una corsa non cambi significato spostandosi da un flag a
+  una variabile.
+
+- 2026-08-31 — **`.freeports.log.yaml` ritirato per intero, non solo disattivato.** Richiesta
+  dell'utente: a `trace` si deve generare `freeports.log.jsonl` (come gia' faceva) e **non** il
+  file YAML. Poiche' `-vvv` era l'unica condizione in cui esisteva, disattivarlo avrebbe lasciato
+  in albero un layer, due costanti, un predicato, un ramo di assorbimento dai worker e 11 test che
+  non possono piu' essere raggiunti: sono stati rimossi. Le destinazioni passano da **quattro a
+  tre** (stderr, `freeports.log.jsonl`, `.log.csv`), `LogHandle` perde il campo `yaml` e
+  `WorkerLogs` il suo terzo file. **Non e' andato perso nulla**: `LogRecord`, `build_record` e
+  `ErrorRecord` — cioe' il record strutturale con `debug`/`display`/catena di `source()` che era la
+  ragione d'essere di L3 — restano, ed erano gia' condivisi con `JsonLogLayer` da L5. Ogni riga che
+  finiva nello YAML finisce nel JSONL, che a `-vvv` e' un sovrainsieme: lo YAML prendeva
+  `warn`+`error`, il JSONL prende tutto. `serde_yaml` resta dipendenza, che serve al file di
+  configurazione e a `investments_add_infos.yaml`. Presidio contro la ricomparsa:
+  `tests/cli_worker_processes.rs::artifacts_stay_where_they_belong::at_trace_verbosity_only_the_jsonl_log_is_written_never_a_yaml_one`,
+  che esegue il binario vero a `-vvv` con due job in processi figli e controlla cartella di lavoro
+  **e** cartella di output.
+
+- 2026-08-31 — **`whitepaper/tooling.md`, capitolo nuovo.** L'utente ha chiesto di spiegare «come
+  usare e configurare `freeports-dev` e `freeports-validate`, come generare la chiave GPG ecc.».
+  Il sito ne parlava solo di sfuggita, sparso fra `install`, `formats-repo`, `writing-a-format` e
+  `validation`, e mai in forma di riferimento. Il capitolo copre: i due modi in cui ciascuno trova
+  il repo formati — e la trappola vera, che `freeports-dev`/`freeports-validate` leggono
+  **`FREEPORTS_FORMATS_REPO`** mentre il motore legge **`FREEPORTS_FORMATS_REPO_PATH`**, due nomi
+  diversi per la stessa cosa; ogni sottocomando di `freeports-dev` con la sua tabella di opzioni e
+  le otto modalita' di `inspect-page`; per `freeports-validate` i programmi esterni che gli servono
+  e che nessuno installa per te, la generazione della chiave GPG, e **il dettaglio che blocca
+  tutti**: lo schema vuole in `who.pubkey_id` l'**impronta di 40 cifre esadecimali**, non il long
+  key id di 16 che `--keyid-format=long` stampa, quindi `AFINANCE_VALIDATION_KEYID` va preso da
+  `gpg --with-colons --fingerprint`. Poi il ciclo create/grant/sign/check/update, con il perche' di
+  ogni rifiuto. Le pagine che gia' nominavano i due comandi ora rimandano qui.
+
+- 2026-08-31 — **`docs/source/validation/**` continua a risultare modificato nel working tree**,
+  esattamente come alla fine della sessione precedente e **non per opera di questa**: gli hash sul
+  disco di `assertions/validation_algorithm_trustworthiness.rst` (`bb5f563f…`) e
+  `methodologies/agreement_and_good_faith.rst` (`474496da…`) restano diversi da quelli incisi in
+  `analysis_finance_reports_formats/validation/oreste_sciacqualegni.yaml` (`2a785621…` e
+  `3f00f9af…`). Il secondo e' l'hash **della metodologia**, quindi invalida ogni grant fatto sotto
+  «agreement and good faith». La segnalazione resta aperta e va risolta prima di qualunque lavoro
+  sui documenti di validazione: `git checkout -- docs/source/validation/` se la modifica non era
+  voluta, `freeports-validate update` piu' nuova firma se lo era.
+
+### D5 — riorganizzazione della documentazione
+
+- 2026-08-31 — **Le sei domande aperte non sono state poste una seconda volta.** Il piano di D5
+  diceva «da rivedere con l'utente prima di eseguire»; l'utente ha risposto «procedi con D5 vera e
+  propria». Trattata come sblocco, non come delega: le **raccomandazioni del piano** sono state
+  adottate per tutte e sei e **dichiarate a lui prima di scrivere una riga**, cosi' che potesse
+  fermarne una. La sola con un costo di ripensamento non banale era Q-D5-6 (lingua di `design/`):
+  inglese, per coerenza con il resto del sito e coi doc-comment. Q-D5-2 — `usage/` dentro il
+  whitepaper — resta reversibile con uno spostamento di un livello.
+
+- 2026-08-31 — **La sezione `design/` non e' una riscrittura di `execution-model.md`.** L'utente
+  aveva chiesto di attingere a dove *lui* aveva descritto il design (`targets/*.md`,
+  `packages/richieste.txt`) e al sorgente, non alla prosa esistente. Il risultato e' che tre
+  pagine non hanno un antecedente nel whitepaper: `design/multidocument.md` (da
+  `targets/2_multireport_support.md`, inclusa la ragione per cui la colonna `prefix out` e'
+  sparita — uniformare gli schemi fra modalita' batch e non), il riquadro *planned* di
+  `design/segments.md` (da `targets/3_add_segments.md`: quarto segmento, filtro di default che non
+  filtra, deserializer standard per block type), e `design/limits.md`, che raccoglie in un posto
+  solo i limiti accettati e i difetti noti che prima erano sparsi o taciuti.
+
+- 2026-08-31 — **`usage/documents.md` documenta una matrice che non era scritta da nessuna parte.**
+  `targets/conf_parse.md` descrive caso per caso cosa fa `save_pdf` — cartella esistente, file
+  inesistente con genitore valido, path senza estensione mai visto, fallback sull'URL — e il
+  whitepaper la riassumeva in tre righe. Ora sono due tabelle, una per valore di `save_pdf`,
+  verificate contro `validate_document_specs` nel sorgente e non contro il documento di intenti.
+
+- 2026-08-31 — **Le opzioni canoniche sono 16, non 14 come diceva il piano.** Due in piu' perche'
+  D5a ha separato `separate_out` da `compressed`, una perche' il piano non contava `config_file`.
+  Ogni scheda ha gli stessi nove campi nello stesso ordine, cosi' la pagina si consulta invece di
+  leggersi.
+
+- 2026-08-31 — **Trovata scrivendo `formats/levels/semistructured.md`: la regola del contatore delle
+  liste non era documentata da nessuna parte.** Dove un valore YAML e' una lista, l'elemento usato
+  e' scelto da **quanti pipe sono gia' stati emessi** per quella pipeline e quel segmento, non dalla
+  posizione della riga nella tabella di mapping — e un algoritmo che restituisce tre pipe avanza il
+  contatore di tre. E' esattamente il genere di regola che si scopre sbagliando, ed e' ora scritta.
+
+- 2026-08-31 — **Schema d'insieme scritto a mano in SVG**, non esportato da un `.odg`. Copre cio'
+  che il diagramma esistente dichiara di non coprire: classificazione per documento, unione,
+  schedule a step, bundle per page class, e la chiusura su promesse e tabelle. Scritto a mano per
+  due ragioni: e' leggibile in un diff, e ha un blocco `@media (prefers-color-scheme: dark)` che un
+  export non potrebbe avere. Reso con `rsvg-convert` e controllato visivamente; una sovrapposizione
+  fra un'etichetta di sezione e una freccia e' stata corretta li'. **Nota tecnica utile a chi ne
+  fara' altri**: `librsvg` **non** risolve le variabili CSS (`var(--x)`), e un primo tentativo che
+  le usava rendeva ogni riquadro nero. Colori letterali nelle classi, override nel media query.
+
+- 2026-08-31 — **Il master `schema_algorithm.odg` continua a divergere** dal suo SVG (Q-D5-5). Non
+  toccato: l'utente ha detto che al diagramma puo' metter mano lui. Il vecchio SVG resta in linea,
+  ora incluso da `design/segments.md`, con la didascalia che dichiara il proprio limite.
+
+### V1 — `freeports-validate` su una sola implementazione di `yq`
+
+- 2026-09-01 — **La mia prima raccomandazione era go-yq, ed era basata su una misura giusta ma una
+  conclusione sbagliata.** Avevo contato 19 costruzioni go-yq contro 1 python-yq e concluso «lo
+  strumento e' scritto per go-yq, si corregge la riga che sta fuori». Il conteggio era esatto; il
+  peso no. Le tre costruzioni go-yq hanno **equivalenti jq diretti** — verificati eseguendoli, non
+  dedotti — e quindi le 19 conversioni sono sostituzioni meccaniche, non riscritture:
+
+  | go-yq | jq / python-yq |
+  |---|---|
+  | `sortKeys(..)` | il flag **`-S`**, che e' l'ordinamento ricorsivo delle chiavi di jq |
+  | `strenv(X)` | `env.X` |
+  | `yq -i` | `yq -y -i` (python-yq vuole `-i` accompagnato da `-y`) |
+
+- 2026-09-01 — **L'argomento che ha deciso non era nel confronto iniziale**: `freeports-validate`
+  *e' gia'* un pacchetto Python, quindi con python-yq le sue due dipendenze diventano **dichiarate**
+  in `pyproject.toml` e `pip install` le porta. Con go-yq sarebbero rimaste per sempre
+  un'installazione manuale fuori banda — cioe' esattamente il modo in cui questa sessione si e'
+  bloccata due volte. Restano di sistema `gpg`, `jq`, `sha256sum`, `realpath`, che nessun
+  `pyproject.toml` puo' esprimere.
+
+- 2026-09-01 — **`sortKeys` non e' un dettaglio di stile: e' la definizione dei byte su cui si
+  firma.** Compariva copiato a mano in due punti (`validate_document_signature` e
+  `generate_document_signature`), cioe' in due posti che *devono* produrre lo stesso stream o la
+  verifica fallisce senza dire perche'. Isolato in `canonical_document()`, con il commento che
+  spiega perche' l'implementazione di `yq` non e' intercambiabile: **due implementazioni non
+  emettono gli stessi byte**, quindi una firma prodotta sotto una non si verifica sotto l'altra.
+
+- 2026-09-01 — **Conseguenza da sapere prima di rifirmare qualcosa**: cambiare implementazione di
+  `yq` **invalida le firme esistenti**, perche' cambia la serializzazione canonica. Il costo qui e'
+  ~zero perche' l'unico documento firmato in albero
+  (`analysis_finance_reports_formats/validation/oreste_sciacqualegni.yaml`) e' gia' da rifare per
+  conto suo — vedi la riga sotto. Se ce ne fossero stati altri, sarebbe stata la ragione principale
+  per non toccare nulla.
+
+- 2026-09-01 — **Verificato end-to-end con una chiave vera, non a occhio.** Chiave GPG usa-e-getta
+  generata in un `GNUPGHOME` isolato dentro lo scratchpad, cosi' il portachiavi dell'utente non e'
+  stato toccato ne' letto in scrittura. Ciclo completo: `create-document` -> `sign-document` ->
+  `grant with "basic check"` -> `grant <file>` -> `check-grants` (7 controlli verdi) ->
+  `update file` -> `check-grants` -> `ungrant` -> `check-grants`. La firma regge attraverso tre
+  riscritture del documento, quindi il round-trip YAML->JSON->YAML di python-yq e' **esatto e
+  stabile** sulla firma armored multi-riga, che era il rischio vero della conversione.
+
+- 2026-09-01 — **Il documento di validazione del repo formati e' indietro di due riscritture**, e
+  non c'entra con questa conversione. `check-grants` su di esso da' **170 errori**: i percorsi
+  citano `tests/formats/algorithms/<FORMAT>/...` mentre il repo ha `tests/formats/<FORMAT>/...`, e
+  cita fixture `.pkl` che F3 ha rigenerato in JSON. Va **rifatto**, non aggiornato a mano. La firma
+  che risulta invalida su questa macchina e' invece un falso allarme locale: la chiave pubblica
+  dell'autore non e' in questo portachiavi.
+
+- 2026-09-01 — **Rimossa la copia morta** dello strumento al primo livello di
+  `packages/freeports_validate/`: 9 script piu' `lib/`, versione pre-packaging che faceva
+  `git rev-parse --show-toplevel` e cercava `${REPO_ROOT}/validation/lib/utils`, un percorso che non
+  esiste. Nessun riferimento dal pacchetto vivo (`src/freeports_validate/`), verificato prima di
+  rimuovere. Autorizzata esplicitamente dall'utente.
+
 ## Invarianti (non negoziabili senza l'utente)
 
 1. `tests/formats/*/out/**` non si tocca — unica eccezione possibile `out/.log.csv`, solo con
@@ -889,7 +1185,8 @@ doc-comment del crate, che riscrive comunque.
    quello con 1. *(Verificato end-to-end alla chiusura di P5, sulle quattro combinazioni dei due
    livelli piu' il default: `tests/cli_worker_processes.rs::parallelism_options`, e a mano su due
    report reali. E' l'invariante che ha fatto emergere il difetto `float_roundtrip` di P1.)*
-3. Nessuna regressione: 2.474 unitari + 63 d'integrazione + 259 del repo formati.
+3. Nessuna regressione: 2.474 unitari + 63 d'integrazione + 259 del repo formati. *(Al 2026-08-31,
+   dopo D5a: 2.703 unitari + 94 d'integrazione + 259 del repo formati.)*
 4. Test Rust raggruppati per argomento in sottomoduli, mai lista piatta.
 5. Modifiche al codice del repo formati: si propongono, non si applicano.
 6. Bug ereditati: correzione alla radice, ma chiedendo prima, offrendo l'opzione "parametro opt-in

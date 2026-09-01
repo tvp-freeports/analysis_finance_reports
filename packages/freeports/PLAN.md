@@ -387,6 +387,16 @@ va deciso con l'utente.
 
 ### L3. `.freeports.log.yaml` a verbosita' massima
 
+> **RITIRATA il 2026-08-31 (D5a).** L'utente ha chiesto che a `trace` si generi
+> `freeports.log.jsonl` — come gia' faceva — e **non** `.freeports.log.yaml`. Il file, il suo
+> layer, le sue costanti e i suoi 11 test sono stati rimossi dal crate, e ogni riferimento e'
+> sparito dalla documentazione. Il motivo e' quello che la nota di L5 qui sotto («Ridondanza da
+> decidere con l'utente») aveva gia' isolato: lo YAML era un **sottoinsieme** del JSONL, prodotto
+> solo alla verbosita' in cui il JSONL e' al suo piu' completo. Cio' che di L3 aveva valore —
+> `ErrorRecord`, cioe' l'errore in forma strutturale con `debug`/`display`/catena di `source()`, e
+> lo sweep dei 53 siti che lo popolano — **resta**, perche' da L5 e' condiviso con `JsonLogLayer`.
+> Quanto segue e' quindi storia: descrive un passo che e' stato fatto e poi disfatto.
+
 Alla verbosita' massima (`-vvv`, `Verbosity::Trace`) si genera anche un file YAML con la
 **serializzazione degli errori**. Da progettare come un quarto layer, `YamlLogLayer`, accanto ai
 tre esistenti (stderr, `freeports.log`, `.log.csv`).
@@ -482,6 +492,9 @@ richieste, tutte chiuse lo stesso giorno; passi e diagnosi in
 `freeports.log.jsonl`: a `-vvv` il secondo contiene gia' tutti i record `warn`/`error` con
 l'errore serializzato, piu' tutto il resto. Il primo resta perche' e' piccolo e leggibile da un
 umano, ma la sovrapposizione va detta, non nascosta.
+
+> **Decisa il 2026-08-31 (D5a): il file YAML e' stato ritirato**, e questa nota e' la ragione per
+> cui. Vedi il riquadro in testa a L3.
 
 **Nota, non cambiata.** stderr emette le sequenze ANSI anche quando non e' un terminale (comportamento
 di L4, non introdotto qui): con quattro colori invece di uno, un `2>file` ne raccoglie
@@ -848,12 +861,57 @@ Materiale gia' esistente da cui attingere, non da riscrivere da zero: `docs/sour
 il `PLAN.md` storico §2/§12/§13, che contiene gia' le motivazioni delle scelte in forma
 discorsiva.
 
+> **Attuata il 2026-08-31** (Q-D1 risposta: pubblico tecnico **e** istituzionale, forma a
+> capitoli, sintesi + rimando). Resoconto in `agent-memory/D3-whitepaper-plan.md`, sintesi nella
+> riga D3 di `STATUS.md`. Undici capitoli, ~12.000 parole, MyST in `docs/source/whitepaper/`.
+> Quattro scostamenti da quanto previsto sopra:
+>
+> 1. **D4 e' assorbita qui**, per estensione chiesta dall'utente a lavoro iniziato («anche le parti
+>    esistenti devono essere corrette e integrate»). Il "materiale da cui attingere" elencato sopra
+>    non era attingibile: `dev/code.rst` e `usage/command.rst` descrivevano `PdfFilter`/
+>    `TextExtract`/`Deserialize` e opzioni (`OUT_CSV`, `PREFIX_OUT`, verbosita' 0-5 su `logging`
+>    Python) che non esistono da due riscritture. Sono state riscritte nel whitepaper e le pagine
+>    rimosse — otto in tutto — mentre sei sono state corrette in loco;
+> 2. **`docs/source/validation/**` non e' correggibile**: e' indirizzato per contenuto, e i suoi
+>    hash sono incisi in un documento di validazione firmato in un altro repo (verificato con
+>    `sha256sum`). Il capitolo `validation.md` riassume e rimanda; gli 8 warning Sphinx residui
+>    stanno tutti li' e restano;
+> 3. la fonte piu' utile non e' stata nessuna delle tre elencate, ma i **doc-comment di modulo
+>    riscritti da D2**: sono l'unica descrizione del motore aggiornata al codice, ed e' da li' che
+>    vengono i capitoli `execution-model` e `writing-a-format`;
+> 4. quattro commenti italiani sopravvissuti a D2 sono stati trovati e tradotti contestualmente
+>    (`cargo doc` li pubblica sul sito, quindi erano un difetto del prodotto consegnato da D3).
+
 ### D4. Riporto e riconciliazione dei contenuti Sphinx esistenti
 
 Passata di verifica su ogni `.rst` non generato: ancora vero? riferito a nomi vivi? Le parti su
 `freeports_analysis`/`freeports_core` vanno riscritte sui nomi attuali, quelle su comandi e
 config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiato semantica su
 `-v`/`-q`), quelle di validazione controllate contro `freeports_validate`.
+
+> **Assorbita da D3 il 2026-08-31.** Non e' piu' un passo separato: l'utente ha esteso D3 alla
+> correzione e integrazione della prosa esistente, e D3 l'ha eseguita. La passata di verifica c'e'
+> stata su ogni `.rst` non generato; il risultato e' che quasi nessuno era "ancora vero". Cio' che
+> resta fuori e' **solo** `docs/source/validation/**`, per il vincolo di indirizzamento per
+> contenuto descritto nella nota di D3 — correggerlo e' un'operazione con `freeports-validate
+> update` e una nuova firma, non un lavoro di documentazione. La sorte delle traduzioni resta la
+> domanda gia' rimandata dall'utente in Q-D2.
+
+### D5. Riorganizzazione dell'albero della documentazione
+
+Non era nel piano originale: nasce dalla revisione dell'utente su D3 (2026-08-31) — `usage` a
+cartella e configurazione piu' spiegata, `design-decisions` che cambia oggetto (il design
+dell'**algoritmo**, non le scelte di tecnologia), piu' gerarchia e piu' schematica, attingendo alle
+descrizioni di design dell'utente in `targets/` e al sorgente.
+
+> **Attuata il 2026-08-31.** Piano in `agent-memory/D5-docs-restructure-plan.md`, resoconto in
+> `agent-memory/D5-execution.md`, sintesi nella riga D5 di `STATUS.md`. Da 11 pagine piatte a
+> **42 pagine in tre aree** (`usage/`, `formats/`, `design/`) piu' `dev/implementation-notes.rst`.
+> Quattro scostamenti dall'albero proposto, tutti registrati nel resoconto; il piu' rilevante e' che
+> `formats/tooling.md` — nata da D5a, dopo la scrittura del piano — e' stata collocata invece che
+> riassorbita.
+
+**Con D5 la fase D e' chiusa**, e con essa il piano: F, L, P e D non hanno piu' passi aperti.
 
 ---
 
@@ -887,11 +945,12 @@ config vanno riallineate a `cli::config_locations` (che nel frattempo ha cambiat
 | **Q-F3** | F | ~~Confermi che la rigenerazione riguarda i 228 JSON a pagina singola di tutti i 26 formati, e che `out/**` resta intatto?~~ **Risposta 2026-08-29: si'.** |
 | **Q-L1** | L | ~~Il nuovo schema di `.log.csv` **invalida i 31 `tests/formats/*/out/.log.csv`**, che sono file "che non si toccano". Autorizzi la loro rigenerazione una tantum come parte di L1 (e con quale verifica), oppure il motore deve poter scrivere anche il formato vecchio (flag di compatibilita')?~~ **Risposta 2026-08-29: rigenerazione una tantum**, verifica sul modello di F3 (checksum sul contenuto equivalente, revisione del delta). |
 | **Q-L2** | L | ~~Nome e posizione della colonna dello span (proposto: `Activity`, seconda); vocabolario e separatore degli span (proposto: `/`); e soprattutto: la presenza di `Activity` da sola basta a generare una riga in `.log.csv`?~~ **Risposta 2026-08-29: no**, come raccomandato — `Activity` arricchisce la riga, non la giustifica da sola. |
-| **Q-L3** | L | `.freeports.log.yaml`: solo `-vvv` o flag dedicato? solo errori/warning o tutti gli eventi? record strutturale (raccomandato) o `Serialize` derivato su ~25 enum d'errore? |
+| **Q-L3** | L | ~~`.freeports.log.yaml`: solo `-vvv` o flag dedicato? solo errori/warning o tutti gli eventi? record strutturale (raccomandato) o `Serialize` derivato su ~25 enum d'errore?~~ **Risposta 2026-08-30: record strutturale, solo `warn`/`error`, implicito in `-vvv`. Poi senza oggetto dal 2026-08-31: il file e' stato ritirato (D5a).** |
 | **Q-P0** | P | **Rimandata 2026-08-30** ("procedi con P1"): resta disponibile come passo a se', dopo P1/P2. **Nuova, aperta da P0 (2026-08-30).** `TextFilterInvestmentsStandard` da solo e' il 30-54% del tempo totale di un job, e' Rust mono-thread e deterministico. Si apre un passo di ottimizzazione *interna* di quel pipe (indicizzare le societa' bersaglio invece di scorrerle, ridurre le compilazioni di regex per chiamata) **prima** di P1/P2? Potrebbe valere quanto tutta la fase P, senza alcun rischio di non-determinismo. |
 | **Q-P1** | P | ~~Il livello job puo' usare **processi figli** (unico modo di scavalcare il GIL) con la complessita' che comporta — unione ordinata dei log, codici d'uscita, cartelle di output condivise — o si resta ai soli thread accettando il guadagno parziale?~~ **Risposta 2026-08-30: processi figli, con IPC dei risultati verso il padre.** Scartate sia la variante "ogni figlio scrive il proprio output" (cambierebbe la semantica di output della modalita' batch) sia i soli thread (il GIL riserializzerebbe proprio il 35-75% misurato da P0). |
 | **Q-P2** | P | ~~Confermi il vincolo di determinismo byte-per-byte (§6.2)? E' cio' che esclude le soluzioni piu' rapide (raccolta non ordinata) e va deciso prima di scrivere il codice.~~ **Risposta 2026-08-30: no, basta l'equivalenza semantica.** Il vincolo §6.2 si allenta: l'output parallelo deve contenere gli stessi dati, non necessariamente nello stesso ordine. Nota d'attuazione di P1: il margine si spende **solo** sull'unione dei log: i risultati dei job restano raccolti in slot indicizzati, quindi l'output aggregato resta byte-identico e i file di riferimento del repo formati restano confrontabili per checksum. |
-| **Q-D1** | D | Il whitepaper e' rivolto anche a un pubblico non tecnico (finanziario/istituzionale) o solo a sviluppatori? Cambia registro e struttura. |
+| **Q-D5** | D | ~~Le sei domande del piano di D5 (Q-D5-1..6): dove vanno le scelte di tecnologia, `usage/` dentro o fuori il whitepaper, come marcare il design non implementato, dove finiscono i log, lo schema d'insieme, la lingua di `design/`.~~ **Risposta 2026-08-31: «procedi con D5 vera e propria»**, senza risposte punto per punto. Adottate le raccomandazioni del piano, dichiarate all'utente prima di eseguire: tecnologia in `dev/implementation-notes.rst`, `usage/` dentro `whitepaper/`, design non implementato documentato e marcato *previsto*, `design/` in inglese. Resta all'utente la sola Q-D5-4 (dove va `freeports.log.jsonl`), che e' una decisione di progetto e non di documentazione. |
+| **Q-D1** | D | ~~Il whitepaper e' rivolto anche a un pubblico non tecnico (finanziario/istituzionale) o solo a sviluppatori?~~ **Risposta 2026-08-31: a entrambi**, un solo documento con il dislivello di registro dichiarato nell'indice; forma a **capitoli**; **sintesi + rimando** invece di riscrivere la prosa esistente. Estesa poco dopo dall'utente — «anche le parti esistenti devono essere corrette e integrate» — il che assorbe **D4 dentro D3**. |
 | **Q-D2** | D | ~~Confermi "un solo sito Sphinx + MyST + rustdoc accanto", scartando mdbook? E le quattro traduzioni (`en`/`fr`/`it`/`pt`) si mantengono, si congelano, o si riducono?~~ **Risposta 2026-08-31: si' alla strategia raccomandata**; sulle traduzioni, **si tiene l'impalcatura e la scelta delle lingue e' rimandata**. Correzione al motivo n.1 di §5 D1, misurata prima di porre la domanda: le quattro traduzioni sono in realta' **una sola parziale** (`it` al 61% della prosa viva; `fr` e `pt` stub a zero; `en` e' la lingua sorgente), e 1165 dei 1660 msgid venivano da `_generated/`. La scelta regge sugli altri tre motivi, non sul primo. |
 
 ---

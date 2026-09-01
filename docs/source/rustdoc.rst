@@ -26,6 +26,7 @@ Who needs which
    * - developing the crate
      - rustdoc, module by module
    * - writing a format
-     - the Python API in :doc:`API`, plus the format guides
+     - the Python API in :doc:`API`, plus :doc:`whitepaper/formats/writing-a-format`
    * - evaluating the project
-     - the prose sections: usage, design choices, and :doc:`validation <validation/index>`
+     - the :doc:`whitepaper <whitepaper/index>`, and the :doc:`validation section
+       <validation/index>` it summarises

@@ -194,7 +194,8 @@ fn out_profile_of(value: &str) -> PyResult<OutStructureMode> {
     }
 }
 
-/// The write flags from a string: comma-separated names, as a configuration file writes them.
+/// The write flags from a string: comma-separated names. A name that is absent from the list means
+/// the flag is off — this argument describes one whole run, with no other source to defer to.
 fn out_flags_of(value: &str) -> PyResult<OutFlags> {
     let mut flags = OutFlags::default();
     for name in value.split(',').map(str::trim).filter(|name| !name.is_empty()) {
@@ -264,7 +265,8 @@ pub fn py_run_job(
         input_db_path: Some(input_db_path),
         out_path: Some(out_path),
         out_profile,
-        out_flags,
+        separate_out: out_flags.map(|flags| flags.separate_out),
+        compressed: out_flags.map(|flags| flags.compressed),
         save_pdf,
         ..Default::default()
     };
@@ -355,7 +357,7 @@ pub struct PyFreeportsFileConfig(PartialConfig);
 
 #[pymethods]
 impl PyFreeportsFileConfig {
-    /// Il file di configurazione da leggere: locale, poi utente, poi di sistema.
+    /// The configuration file to read: working directory, then user tier, then system tier.
     #[staticmethod]
     fn find_config() -> Option<PathBuf> {
         file::find_config()

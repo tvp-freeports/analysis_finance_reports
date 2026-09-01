@@ -15,7 +15,8 @@
 //! | `--out`/`-o` | output path | |
 //! | `-v`/`-q` (counted) | verbosity | only when at least one is given; otherwise unset |
 //! | `--target-list`/`-T` (repeatable) | target lists | none given leaves the field unset |
-//! | `--separate-out`, `--archive` | output flags | combined into one value; neither given leaves it unset |
+//! | `--separate-out` | the separate-output flag | present means true; absent leaves it unset |
+//! | `--archive`/`-z` | the archive flag | present means true; absent leaves it unset |
 //! | `--out-profile`/`-P` | output profile | one of the profile names, case-insensitively |
 //! | `--db-directory`/`-I` | input database path | |
 //! | `--formats-directory`/`-F`/`--repo`/`-r` | formats repository path | |
@@ -32,7 +33,7 @@ use crate::cli::conf_parse::{DocumentSpec, DocumentSpecError};
 use crate::cli::parallelism_config::{Workers, WorkersParseError};
 use crate::cli::partial_config::PartialConfig;
 use crate::core::tracing_setup::Verbosity;
-use crate::output::routines::write::{OutFlags, OutStructureMode};
+use crate::output::routines::write::OutStructureMode;
 use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, Clone, clap::Parser)]
@@ -160,17 +161,12 @@ impl CliArgs {
             None
         };
 
-        let mut out_flags = OutFlags::default();
-        let mut any_out_flag = false;
-        if self.separate_out {
-            out_flags.separate_out = true;
-            any_out_flag = true;
-        }
-        if self.archive {
-            out_flags.compressed = true;
-            any_out_flag = true;
-        }
-        let out_flags = if any_out_flag { Some(out_flags) } else { None };
+        // Each flag on its own, like `--no-download`: present means true, absent leaves the field
+        // unset so that a lower tier keeps whatever it said. Reporting `Some(false)` for an absent
+        // flag would make the command line silently switch off what a file or the environment had
+        // turned on.
+        let separate_out = self.separate_out.then_some(true);
+        let compressed = self.archive.then_some(true);
 
         let out_profile = self.out_profile.as_deref().map(parse_out_profile).transpose()?;
 
@@ -183,7 +179,8 @@ impl CliArgs {
             format: self.format.clone(),
             out_path: self.out.as_ref().map(PathBuf::from),
             out_profile,
-            out_flags,
+            separate_out,
+            compressed,
             n_workers,
             parallelism_jobs,
             parallelism_pages,
@@ -200,7 +197,7 @@ impl CliArgs {
 mod tests {
     use super::*;
     use crate::core::tracing_setup::Verbosity;
-    use crate::output::routines::write::{OutFlags, OutStructureMode};
+    use crate::output::routines::write::OutStructureMode;
     use clap::Parser;
     use std::path::PathBuf;
 
@@ -470,27 +467,33 @@ mod tests {
         use super::*;
 
         #[test]
-        fn neither_flag_leaves_out_flags_none() {
+        fn neither_flag_leaves_both_fields_none() {
             let config = parse(&[]).to_partial_config().unwrap();
-            assert_eq!(config.out_flags, None);
+            assert_eq!(config.separate_out, None);
+            assert_eq!(config.compressed, None);
         }
 
+        /// One flag given must leave the *other* unset, not `Some(false)`: the command line saying
+        /// nothing about the archive flag is not the command line switching it off.
         #[test]
-        fn separate_out_alone() {
+        fn separate_out_alone_leaves_the_archive_flag_unset() {
             let config = parse(&["--separate-out"]).to_partial_config().unwrap();
-            assert_eq!(config.out_flags, Some(OutFlags { compressed: false, separate_out: true }));
+            assert_eq!(config.separate_out, Some(true));
+            assert_eq!(config.compressed, None);
         }
 
         #[test]
-        fn archive_alone_sets_compressed() {
+        fn archive_alone_leaves_the_separate_out_flag_unset() {
             let config = parse(&["--archive"]).to_partial_config().unwrap();
-            assert_eq!(config.out_flags, Some(OutFlags { compressed: true, separate_out: false }));
+            assert_eq!(config.compressed, Some(true));
+            assert_eq!(config.separate_out, None);
         }
 
         #[test]
         fn both_together() {
             let config = parse(&["--separate-out", "--archive"]).to_partial_config().unwrap();
-            assert_eq!(config.out_flags, Some(OutFlags { compressed: true, separate_out: true }));
+            assert_eq!(config.separate_out, Some(true));
+            assert_eq!(config.compressed, Some(true));
         }
     }
 

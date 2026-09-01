@@ -6,9 +6,9 @@
     Any changes to this file will change its SHA256 hash and invalidate all
     validation documents referencing this version.
 
-=============================
+====================================
 Agreement and Good Faith Methodology
-=============================
+====================================
 
 **Purpose**
 The agreement_and_good_faith methodology certifies that a contributor has read, understood, and agrees with the content of an assertion based on their technical capabilities and in good faith.
@@ -22,7 +22,8 @@ This methodology covers assertion files in the ``docs/source/validation/assertio
 - ``.svg`` files (diagram assertions)
 
 **Protocol Steps**
-1. **Thorough Reading/Review**: 
+
+1. **Thorough Reading/Review**:
    - Completely read the assertion content (text, diagrams, or visual elements)
    - Ensure understanding of all technical concepts and claims presented
 2. **Technical Capability Assessment**:

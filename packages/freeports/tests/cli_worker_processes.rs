@@ -305,6 +305,26 @@ mod artifacts_stay_where_they_belong {
         // Lo span `job` lo apre solo chi esegue un job, e in questa corsa i job li eseguono i figli.
         assert!(jsonl.contains("job finished"), "no worker record reached the run log:\n{jsonl}");
     }
+
+    /// Alla verbosita' massima il registro strutturato si genera, ed e' **l'unico**: il vecchio
+    /// `.freeports.log.yaml` e' stato ritirato (richiesta dell'utente, 2026-08-31), e ne' il padre
+    /// ne' i figli devono lasciarne piu' traccia sul disco.
+    #[test]
+    fn at_trace_verbosity_only_the_jsonl_log_is_written_never_a_yaml_one() {
+        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
+        let (output, out_dir) = fixture.run_with(2, "out", &["-vvv"]);
+        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+
+        assert!(fixture.cwd().join("freeports.log.jsonl").is_file(), "the structured log is missing");
+        for dir in [fixture.cwd(), out_dir] {
+            let yaml_logs: Vec<String> = std::fs::read_dir(&dir)
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+                .filter(|name| name.contains("log.yaml") || name.contains("log.yml"))
+                .collect();
+            assert!(yaml_logs.is_empty(), "a yaml log was written in {}: {yaml_logs:?}", dir.display());
+        }
+    }
 }
 
 mod a_failing_job {

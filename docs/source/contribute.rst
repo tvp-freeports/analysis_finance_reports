@@ -2,73 +2,74 @@
 How to contribute
 =================
 
-The general workflow to contribute is:
+There are two quite different things you might want to contribute, and they happen in different
+repositories.
 
-1. *forking the repository*
-2. making your edits to the code
-3. *submitting a pull request*
+**A new format** — support for a report layout nobody has covered yet. That work happens in a
+formats repository, not here, and needs no change to the engine. Start with
+:doc:`whitepaper/formats/index`.
 
-Before doing so you need to setup your local repository
+**A change to the engine or its tooling** — this repository. The rest of this page is about that.
 
-*************************
-Setting up the local repo
-*************************
+Setting up
+==========
 
-First thing clone locally your *forked repository*
-
-.. code-block:: console
-
-    git clone <url-forked-repo>
-
-then enter your local copy and initialize the repository launching from within the root folder of your repository
+Fork the repository, clone your fork, and work in a virtual environment:
 
 .. code-block:: console
 
-    contrib/init.sh
+    git clone <url-of-your-fork>
+    cd analysis_finance_reports
+    python3 -m venv venv/freeports
+    source venv/freeports/bin/activate
+    pip install --upgrade pip maturin
+    pip install packages/freeports_dev packages/freeports_validate
+    cd packages/freeports && maturin develop --release
 
-this script does:
+You also need a Rust toolchain — ``rustup`` with the stable channel. The engine is a Rust crate, so
+there is no way around it.
 
-* install the `githooks <https://git-scm.com/docs/githooks>`_ of the project
-* create a python `virtual environment <https://docs.python.org/3/library/venv.html>`_
-* install the required packages for developing the project
-
-**********
-Contribute
-**********
-
-Before making any contribution activate your developing virtual environment located in ``venv/freeports-dev``.
-If you want to create other virtual environment, please do that in the *gitignored* ``venv/`` directory.
-To activate the virtual environment launch:
-
-.. code-block:: console
-
-    source venv/freeports-dev/bin/activate
-
-in other to *deactivate* it, just launch the ``deactivate`` command.
-If you want to know more about how the project is structured, you can continue reading the :doc:`developer documentation <dev/index>`
-
-**********
 Guidelines
-**********
+==========
 
-* comment your code
-* add the `docstings <https://peps.python.org/pep-0257/>`_ in order to autogenerate the documentation
-* `type hint <https://peps.python.org/pep-0484/>`_ your code
-* write `tests <https://docs.pytest.org/en/stable/>`_ for your code
-* add meaningful commit messages (add the issue id if it refears to one)
-* `lint <https://www.pylint.org/>`_ your code
+* **Write the tests first**, and write them to exhaust the branches rather than to sample them.
+  Group them by topic in nested modules inside ``mod tests``.
+* **Let the code document itself**, and use doc-comments for what the code cannot say: what a module
+  guarantees, why it is built this way where the choice is not obvious, what its known limits are.
+  Add runnable examples for non-trivial types — they become doc-tests and cannot go stale in
+  silence.
+* **Errors are typed**, one enum per module. A user path does not panic.
+* **Do not widen the public API by accident.** ``api`` is the promise; the rest of the tree is
+  internal and free to move.
+* **Do not change a formats repository to accommodate an engine change.** Propose it instead: those
+  repositories have other maintainers, and their reference output is a specification.
+* **Fix inherited bugs at the root, but ask first.** Where the old behaviour may be depended on, an
+  opt-in parameter that defaults to the old behaviour is usually the right shape.
+* Meaningful commit messages, with the issue id when there is one.
 
-***************************
-Contribution to the website
-***************************
+Before opening a pull request, from ``packages/freeports``:
 
-It is possible to contribute to the `official website <https://www.freeports.org>`_ of the project
-from the specific `GitHub repository <https://github.com/tvp-freeports/analysis_finance_reports_website>`_. 
+.. code-block:: console
 
+    cargo test --lib && cargo test --test '*' && cargo test --doc
+    cargo clippy --all-targets
 
-*********
+and, if you touched anything the formats side depends on, the tests of a real formats repository.
+
+Documentation and translation
+=============================
+
+See :doc:`dev/docs` for building the site and :doc:`dev/i18n` for the translation workflow. Note the
+warning in both: the pages under ``validation/`` are content-addressed and cannot be edited casually.
+
+Contributing to the website
+===========================
+
+The project's `website <https://www.freeports.org>`_ has its own `repository
+<https://github.com/tvp-freeports/analysis_finance_reports_website>`_.
+
 Resources
-*********
+=========
+
 * `How to Contribute to Open Source <https://opensource.guide/how-to-contribute/>`_
-* `Using Pull Requests <https://help.github.com/articles/about-pull-requests/>`_
-* `GitHub Help <https://help.github.com>`_
+* `Using Pull Requests <https://docs.github.com/en/pull-requests>`_

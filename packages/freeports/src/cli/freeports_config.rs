@@ -266,9 +266,14 @@ fn validate_impl(merged: MergedConfig) -> Result<FreeportsConfig, FreeportsConfi
     // 3. `validate_document_specs`.
     let reports = validate_document_specs(reports, save_pdf)?;
 
-    // 4. `set_compress_flag` -- deve precedere 5 (può cambiare `OUT_PATH`).
+    // 4. `set_compress_flag` -- must come before 5: it can change the output path.
     let out_path = values.out_path.unwrap_or_else(|| PathBuf::from("."));
-    let out_flags = values.out_flags.unwrap_or_default();
+    // The two flags travel through the merge as separate fields and are only put back together
+    // here, where a resolved configuration is what is being built.
+    let out_flags = OutFlags {
+        compressed: values.compressed.unwrap_or(false),
+        separate_out: values.separate_out.unwrap_or(false),
+    };
     let (out_path, out_flags) = set_compress_flag(out_path, out_flags);
 
     // 5. `out_path_exists`.
@@ -343,7 +348,8 @@ mod tests {
                 format: Some("FMT".to_string()),
                 out_path: Some(out_dir),
                 out_profile: Some(OutStructureMode::Regular),
-                out_flags: Some(OutFlags::default()),
+                separate_out: Some(false),
+                compressed: Some(false),
                 n_workers: Some(Workers::Fixed(1)),
                 parallelism_jobs: None,
                 parallelism_pages: None,
@@ -770,7 +776,7 @@ mod tests {
             let mut config = ValidConfig::new();
             let expected_stripped_path = config.dir().join("out");
             config.merged.values.out_path = Some(config.dir().join("out.tar.gz"));
-            config.merged.values.out_flags = Some(OutFlags::default());
+            config.merged.values.compressed = Some(false);
             let result = expect_ok(config);
             assert!(result.out_flags.compressed);
             assert_eq!(result.out_path, expected_stripped_path);
@@ -790,7 +796,7 @@ mod tests {
             let mut config = ValidConfig::new();
             let compressed_path = config.dir().join("out.tar.gz");
             config.merged.values.out_path = Some(compressed_path);
-            config.merged.values.out_flags = Some(OutFlags { compressed: true, ..OutFlags::default() });
+            config.merged.values.compressed = Some(true);
             let result = expect_ok(config);
             assert!(result.out_flags.compressed);
         }

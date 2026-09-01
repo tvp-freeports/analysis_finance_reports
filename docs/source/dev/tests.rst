@@ -1,54 +1,66 @@
-==============
-Creating tests
-==============
+=============
+Writing tests
+=============
 
-The tests are developed using `pytest <https://docs.pytest.org/en/stable/>`_ and they are located in the ``tests/`` directory.
-This guide will forcus on the development of the tests related to the creation of a format. In order to make a test there are three steps:
+There are two test surfaces in this project, with different owners and different purposes.
 
-- create the test file in the ``tests/formats/`` directory. It has to be called ``test_{format name}.py``
-- create the dataset to test and with validated results into ``tests/data/{FORMAT NAME}/``
-- activate the relevant single page tests in the ``tests/conftest.py`` file
+The engine's own tests
+======================
 
+The bulk of the coverage is in the Rust crate, as unit tests inside the module they exercise.
 
----------
-Test file
----------
+.. code-block:: console
 
-You can take as reference any test file for the others formats. As you can see usually there are four tests:
+    cd packages/freeports
+    cargo test --lib          # unit tests
+    cargo test --test '*'     # integration tests
+    cargo test --doc          # the examples in the doc-comments
 
-- ``PdfFilter`` single page
-- ``TextExtract`` single page
-- ``Deserialize`` single page
-- ``pipeline``
+Two conventions are not optional:
 
-The first three are parametrized tests on a single page of a pdf report that usually behave in the same manner and call an utility
-to test in a standardized way. The last one is marked as ``integration_tests`` (because it is slow) and it is not run after each commit
-but only in the CI pipeline upon push on ``dev`` or ``main`` remote branches (or by the user launching ``pytest`` command without any option).
-This test is run on an entire document and check on the output ``csv``.
+* **group by topic.** Tests live in nested modules inside ``mod tests``, one module per behaviour
+  under test, never a flat list of ``#[test]`` functions. A file with two hundred flat tests is a
+  file nobody can navigate.
+* **exhaust, do not sample.** Cover the branches, including the ones that only fail, and stress the
+  edges — a parser is expected to survive any input without panicking, and that is a test, not a
+  hope.
 
-.. tip::
-    It is not mandatory to test and provide single page tests or pipeline test for all three functions 
-    if some of them are not defined or not working.
+A handful of tests reach Python, because two modules genuinely do: loading a document, and running
+an author's pipe. Everything else stays native, which is what keeps the suite fast and
+deterministic.
 
-------------
-Test dataset
-------------
+A format's tests
+================
 
-The dataset to assert the validity of tests and to recreate them consists in different files placed in ``tests/data/{FORMAT NAME}/``.
-One document pdf named ``report.pdf`` has to be present to validate the ``PdfFilter`` function and for the integration test.
-In order to check the results of the pipeline test has to be present a csv file named ``out.csv``. All the other file are used 
-for validating and generating the results of the single page tests for ``PdfFilter``, ``TextExtract`` and ``Deserialize`` functions.
-The files are named respectively ``pdf_blks-{page number}.pkl``, ``txt_blks-{page number}.pkl`` and ``financial_data-{page number}.pkl``
-and are direct dump of the object generated calling the different functions on a specific ``xml tree`` (page of the document). These files
-are `pickle files <https://docs.python.org/3/library/pickle.html>`_ containing respectively a list of ``PdfBlocks``, ``TextBlocks`` and
-``FinancialData``. To generate these files is present some utility functions in the ``devtools/make_tests.py`` file.
+Tests for a format live in its **formats repository**, not here, and are run with ``freeports-dev``:
 
+.. code-block:: console
 
+    freeports-dev test --repo path/to/formats-repo
+    freeports-dev test --repo path/to/formats-repo --format CARNE-EN23
 
---------------------------
-Activate single page tests
---------------------------
+Each format under ``tests/formats/<FORMAT>/`` has three things:
 
-The dataset referring a format can contain a variable number of single page tests to be performed. In not specified no test is performed,
-even if the dataset contains the required data. To activate it is necessary to modify the ``tests/conftest.py`` file adding
-to the ``single_page_tests`` array a key with the format name in capslock and the list of the pages to test.
+``report.pdf``
+   the document.
+
+``pages/<page class>/``
+   per-page fixtures — ``<page>-pdf_blks.json``, ``<page>-txt_blks.json``, ``<page>-results.json``,
+   and a ``filter_data.json`` per page class. They pin one page at a time, which is what tells you
+   *which segment* broke rather than that the document did. Generate them with:
+
+   .. code-block:: console
+
+       freeports-dev make-tests --repo . --format CARNE-EN23 --page 25 --page-type investments
+
+   They are JSON on purpose: a regression should be visible in a diff.
+
+``out/``
+   the expected output of the whole document. This is the repository's specification, not a
+   snapshot: if a run diverges from it, the engine changed, and the divergence is the finding.
+   Regenerating one of these files is a deliberate act with a reason attached — and because grants
+   are made against the content of exactly these files, regenerating one invalidates the grant on
+   it. See :doc:`../whitepaper/validation`.
+
+The whole-document tests are slower than the per-page ones by a wide margin. Run the per-page ones
+constantly, the document ones before you claim to be finished.

@@ -10,10 +10,11 @@
 //! ispezionare `FreeportsConfig` senza eseguire un job reale -- vedi il doc-comment di
 //! `cli::run`).
 //!
-//! **Copertura nota come parziale, segnalata nel resoconto del test-writer**: `out_profile`/
-//! `out_flags` sono testati solo su cmd/default -- `config_locations::env`/`::file` non hanno una
-//! grammatica testuale definita per questi due campi in questo piano (vedi il doc-comment di
-//! `config_locations::env`), quindi non c'è una precedenza `env`/`file` da verificare per loro.
+//! `out_profile` e le due out flags hanno da questa sessione una grammatica anche su ambiente e
+//! file (`FREEPORTS_OUT_PROFILE`/`FREEPORTS_SEPARATE_OUT`/`FREEPORTS_ARCHIVE`, chiave `out_profile`
+//! e sezione `out_flags`), quindi la loro precedenza è verificata qui come quella di ogni altro
+//! campo. Le due flag sono **campi indipendenti** nel merge: la matrice qui sotto lo verifica
+//! esplicitamente, perché è la sola proprietà che un test per campo non coglierebbe.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -32,6 +33,9 @@ const ALL_FREEPORTS_VARS: &[&str] = &[
     "FREEPORTS_PARALLELISM_PAGES",
     "FREEPORTS_BATCH_FILE",
     "FREEPORTS_OUT_PATH",
+    "FREEPORTS_OUT_PROFILE",
+    "FREEPORTS_SEPARATE_OUT",
+    "FREEPORTS_ARCHIVE",
     "FREEPORTS_SAVE_PDF",
     "FREEPORTS_FORMAT",
     "FREEPORTS_CONFIG_FILE",
@@ -624,12 +628,12 @@ mod batch_file_precedence {
     }
 }
 
-mod out_profile_and_out_flags_cmd_vs_default {
+mod out_profile {
     use super::*;
-    use freeports::output::routines::write::{OutFlags, OutStructureMode};
+    use freeports::output::routines::write::OutStructureMode;
 
     #[test]
-    fn out_profile_default_is_regular() {
+    fn default_is_regular_when_nothing_sets_it() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "");
@@ -638,16 +642,41 @@ mod out_profile_and_out_flags_cmd_vs_default {
     }
 
     #[test]
-    fn cmd_out_profile_overrides_the_default() {
+    fn file_overrides_default() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", "");
-        let config = fixture.resolve(&["--out-profile", "structured"], &config_file);
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_profile: structured\n");
+        let config = fixture.resolve(&[], &config_file);
         assert_eq!(config.out_profile, OutStructureMode::Structured);
     }
 
     #[test]
-    fn out_flags_default_is_all_false() {
+    fn env_overrides_file() {
+        let scope = EnvScope::new();
+        scope.set("FREEPORTS_OUT_PROFILE", "single_file");
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_profile: structured\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(config.out_profile, OutStructureMode::SingleFile);
+    }
+
+    #[test]
+    fn cmd_overrides_env_and_file() {
+        let scope = EnvScope::new();
+        scope.set("FREEPORTS_OUT_PROFILE", "single_file");
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_profile: structured\n");
+        let config = fixture.resolve(&["--out-profile", "regular"], &config_file);
+        assert_eq!(config.out_profile, OutStructureMode::Regular);
+    }
+}
+
+mod out_flags {
+    use super::*;
+    use freeports::output::routines::write::OutFlags;
+
+    #[test]
+    fn default_is_both_flags_off() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
         let config_file = write_yaml(fixture.path(), "cfg.yaml", "");
@@ -656,11 +685,55 @@ mod out_profile_and_out_flags_cmd_vs_default {
     }
 
     #[test]
-    fn cmd_archive_and_separate_out_override_the_default() {
+    fn file_overrides_default() {
         let _scope = EnvScope::new();
         let fixture = Fixture::new();
-        let config_file = write_yaml(fixture.path(), "cfg.yaml", "");
-        let config = fixture.resolve(&["--archive", "--separate-out"], &config_file);
+        let config_file =
+            write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n  archive: true\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
+    }
+
+    #[test]
+    fn env_overrides_file() {
+        let scope = EnvScope::new();
+        scope.set("FREEPORTS_SEPARATE_OUT", "false");
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert!(!config.out_flags.separate_out);
+    }
+
+    #[test]
+    fn cmd_overrides_env_and_file() {
+        let scope = EnvScope::new();
+        scope.set("FREEPORTS_ARCHIVE", "false");
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  archive: false\n");
+        let config = fixture.resolve(&["--archive"], &config_file);
+        assert!(config.out_flags.compressed);
+    }
+
+    /// The property a per-field test cannot show: the two flags travel the merge separately, so a
+    /// source that names one leaves what another said about the other standing.
+    #[test]
+    fn a_flag_set_by_the_file_survives_the_environment_setting_only_the_other_one() {
+        let scope = EnvScope::new();
+        scope.set("FREEPORTS_SEPARATE_OUT", "true");
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  archive: true\n");
+        let config = fixture.resolve(&[], &config_file);
+        assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
+    }
+
+    /// Same property against the strongest source: `--separate-out` on the command line says
+    /// nothing about the archive flag, and must not switch it off.
+    #[test]
+    fn a_flag_set_by_the_file_survives_the_command_line_setting_only_the_other_one() {
+        let _scope = EnvScope::new();
+        let fixture = Fixture::new();
+        let config_file = write_yaml(fixture.path(), "cfg.yaml", "out_flags:\n  archive: true\n");
+        let config = fixture.resolve(&["--separate-out"], &config_file);
         assert_eq!(config.out_flags, OutFlags { compressed: true, separate_out: true });
     }
 }

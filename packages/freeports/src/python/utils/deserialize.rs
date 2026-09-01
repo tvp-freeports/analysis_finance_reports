@@ -59,7 +59,7 @@ pub fn py_to_currency(data: &str) -> PyResult<PyCurrency> {
     cast::to_currency(data).map(PyCurrency::from).map_err(cast_error)
 }
 
-/// Una data da testo in formato numerico.
+/// A date, from text to a numeric form.
 #[pyfunction]
 #[pyo3(name = "to_date", signature = (data))]
 pub fn py_to_date<'py>(py: Python<'py>, data: &str) -> PyResult<Bound<'py, PyAny>> {

@@ -58,7 +58,7 @@ pub enum OutStructureMode {
     Structured,
 }
 
-/// Flag aggiuntivi sulla scrittura.
+/// Additional flags on writing.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OutFlags {
     pub compressed: bool,

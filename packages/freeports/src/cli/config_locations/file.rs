@@ -19,6 +19,8 @@
 //! |---|---|---|
 //! | `verbosity` | verbosity | one of the variant names, case-insensitively |
 //! | `out_path` | output path | |
+//! | `out_profile` | output profile | one of the profile names, case-insensitively |
+//! | `out_flags` | the two output flags | a map with only the `separate_out` and `archive` sub-keys, each a boolean |
 //! | `n_workers` | the global parallelism default | a positive integer or `auto` |
 //! | `parallelism` | the two per-level overrides | a map with only the `jobs` and `pages` sub-keys |
 //! | `batch_file` | batch file | |
@@ -43,6 +45,7 @@ use crate::cli::parallelism_config::Workers;
 use crate::cli::partial_config::{PartialConfig, SourceReportsConflict, resolve_singular_and_plural_reports};
 use crate::core::tracing_setup::Verbosity;
 use crate::core::tracing_setup::log_error;
+use crate::output::routines::write::OutStructureMode;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FileConfigError {
@@ -58,6 +61,8 @@ pub enum FileConfigError {
     ReportsConflict { path: PathBuf, source: SourceReportsConflict },
     #[error("{}: invalid verbosity {value:?}, expected one of: silent, erroronly, warn, info, debug, trace", path.display())]
     InvalidVerbosity { path: PathBuf, value: String },
+    #[error("{}: invalid out_profile {value:?}, expected one of: regular, single_file, structured", path.display())]
+    InvalidOutProfile { path: PathBuf, value: String },
     #[error("{}: invalid value for '{key}': {value:?}", path.display())]
     InvalidValue { path: PathBuf, key: &'static str, value: String },
 }
@@ -180,6 +185,16 @@ fn parse_verbosity(path: &Path, value: &str) -> Result<Verbosity, FileConfigErro
     }
 }
 
+/// The output profile, by the same names the command line and the environment accept.
+fn parse_out_profile(path: &Path, value: &str) -> Result<OutStructureMode, FileConfigError> {
+    match value.to_ascii_lowercase().as_str() {
+        "regular" => Ok(OutStructureMode::Regular),
+        "single_file" => Ok(OutStructureMode::SingleFile),
+        "structured" => Ok(OutStructureMode::Structured),
+        _ => Err(FileConfigError::InvalidOutProfile { path: path.to_path_buf(), value: value.to_string() }),
+    }
+}
+
 fn value_as_string(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<String, FileConfigError> {
     value
         .as_str()
@@ -234,6 +249,39 @@ fn parallelism_section(
     Ok((jobs, pages))
 }
 
+/// The `out_flags` section, with its two sub-keys.
+///
+/// A section rather than two top-level keys, on the model of `parallelism`: they are two settings
+/// of one thing. The two are returned separately, and a sub-key left out stays `None`, so a file
+/// naming only `archive` leaves the separate-output flag to whatever another source says.
+///
+/// An unknown sub-key is an error, as at the top level and as in `parallelism`.
+fn out_flags_section(
+    path: &Path,
+    value: &serde_yaml::Value,
+) -> Result<(Option<bool>, Option<bool>), FileConfigError> {
+    let mapping = value.as_mapping().ok_or_else(|| FileConfigError::InvalidValue {
+        path: path.to_path_buf(),
+        key: "out_flags",
+        value: format!("{value:?}"),
+    })?;
+    let mut separate_out = None;
+    let mut compressed = None;
+    for (key, entry) in mapping {
+        match key.as_str().unwrap_or_default() {
+            "separate_out" => separate_out = Some(value_as_bool(path, "out_flags.separate_out", entry)?),
+            "archive" => compressed = Some(value_as_bool(path, "out_flags.archive", entry)?),
+            other => {
+                return Err(FileConfigError::UnknownKey {
+                    path: path.to_path_buf(),
+                    key: format!("out_flags.{other}"),
+                });
+            }
+        }
+    }
+    Ok((separate_out, compressed))
+}
+
 fn value_as_bool(path: &Path, key: &'static str, value: &serde_yaml::Value) -> Result<bool, FileConfigError> {
     value.as_bool().ok_or_else(|| FileConfigError::InvalidValue { path: path.to_path_buf(), key, value: format!("{value:?}") })
 }
@@ -278,9 +326,9 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         }
     };
 
-    const KNOWN_KEYS: [&str; 13] = [
-        "verbosity", "out_path", "n_workers", "parallelism", "batch_file", "save_pdf", "url", "pdf", "reports",
-        "format", "target_lists", "formats_repo", "db_path",
+    const KNOWN_KEYS: [&str; 15] = [
+        "verbosity", "out_path", "out_profile", "out_flags", "n_workers", "parallelism", "batch_file", "save_pdf",
+        "url", "pdf", "reports", "format", "target_lists", "formats_repo", "db_path",
     ];
 
     let mut fields: HashMap<&'static str, serde_yaml::Value> = HashMap::new();
@@ -298,6 +346,10 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
     let verbosity = verbosity.map(|v| parse_verbosity(path, &v)).transpose()?;
 
     let out_path = fields.get("out_path").map(|v| value_as_string(path, "out_path", v)).transpose()?.map(PathBuf::from);
+    let out_profile = fields.get("out_profile").map(|v| value_as_string(path, "out_profile", v)).transpose()?;
+    let out_profile = out_profile.map(|v| parse_out_profile(path, &v)).transpose()?;
+    let (separate_out, compressed) =
+        fields.get("out_flags").map(|v| out_flags_section(path, v)).transpose()?.unwrap_or((None, None));
     let n_workers = fields.get("n_workers").map(|v| value_as_workers(path, "n_workers", v)).transpose()?;
     let (parallelism_jobs, parallelism_pages) =
         fields.get("parallelism").map(|v| parallelism_section(path, v)).transpose()?.unwrap_or((None, None));
@@ -343,8 +395,9 @@ fn load_impl(path: Option<&Path>) -> Result<PartialConfig, FileConfigError> {
         target_lists,
         format,
         out_path,
-        out_profile: None,
-        out_flags: None,
+        out_profile,
+        separate_out,
+        compressed,
         n_workers,
         parallelism_jobs,
         parallelism_pages,
@@ -697,6 +750,104 @@ mod tests {
             let dir = tempfile::tempdir().unwrap();
             let path = write(dir.path(), "cfg.yaml", "n_workers: 0\n");
             assert!(load(Some(&path)).is_err());
+        }
+    }
+
+    /// The `out_profile` key and the `out_flags` section: the shape of the output, stated once in
+    /// a file instead of on every command line.
+    mod output_shape_keys {
+        use super::*;
+        use crate::output::routines::write::OutStructureMode;
+
+        #[test_case::test_case("regular", OutStructureMode::Regular)]
+        #[test_case::test_case("single_file", OutStructureMode::SingleFile)]
+        #[test_case::test_case("structured", OutStructureMode::Structured)]
+        #[test_case::test_case("STRUCTURED", OutStructureMode::Structured; "case insensitive")]
+        fn every_profile_name_is_accepted(value: &str, expected: OutStructureMode) {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", &format!("out_profile: {value}
+"));
+            assert_eq!(load(Some(&path)).unwrap().out_profile, Some(expected));
+        }
+
+        #[test]
+        fn an_unknown_profile_name_is_a_typed_error_naming_the_alternatives() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_profile: flat
+");
+            let result = load(Some(&path));
+            assert!(matches!(result, Err(FileConfigError::InvalidOutProfile { .. })), "got {result:?}");
+            assert!(result.unwrap_err().to_string().contains("single_file"));
+        }
+
+        #[test]
+        fn a_profile_written_as_a_number_is_a_typed_error_not_a_panic() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_profile: 2
+");
+            let result = std::panic::catch_unwind(|| load(Some(&path)));
+            assert!(result.is_ok(), "must not panic");
+            assert!(result.unwrap().is_err());
+        }
+
+        #[test]
+        fn the_out_flags_section_maps_both_flags() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  separate_out: true\n  archive: true\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.separate_out, Some(true));
+            assert_eq!(config.compressed, Some(true));
+        }
+
+        /// The reason the two are separate fields: a file naming one leaves the other for another
+        /// source to decide.
+        #[test]
+        fn an_out_flags_section_may_name_a_single_flag() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  archive: true\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.compressed, Some(true));
+            assert_eq!(config.separate_out, None);
+        }
+
+        #[test]
+        fn an_explicit_false_is_recorded_as_some_false_not_as_absence() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  separate_out: false\n");
+            assert_eq!(load(Some(&path)).unwrap().separate_out, Some(false));
+        }
+
+        #[test]
+        fn an_absent_out_flags_section_leaves_both_flags_unset() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_path: /tmp/out\n");
+            let config = load(Some(&path)).unwrap();
+            assert_eq!(config.separate_out, None);
+            assert_eq!(config.compressed, None);
+        }
+
+        /// Same rule as `parallelism`: a sub-key nobody implemented must not look active.
+        #[test]
+        fn an_unknown_sub_key_of_out_flags_is_an_error_that_names_its_path() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  compressed: true\n");
+            let error = load(Some(&path)).unwrap_err().to_string();
+            assert!(error.contains("out_flags.compressed"), "{error}");
+        }
+
+        #[test]
+        fn an_out_flags_section_that_is_not_a_mapping_is_an_error() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags: true\n");
+            assert!(load(Some(&path)).is_err());
+        }
+
+        #[test]
+        fn a_non_boolean_flag_value_is_an_error_naming_its_sub_key() {
+            let dir = tempfile::tempdir().unwrap();
+            let path = write(dir.path(), "cfg.yaml", "out_flags:\n  archive: sometimes\n");
+            let error = load(Some(&path)).unwrap_err().to_string();
+            assert!(error.contains("out_flags.archive"), "{error}");
         }
     }
 

@@ -1,64 +1,50 @@
-============================
-Interazionalization *(i18n)*
-============================
+===========================
+Internationalization (i18n)
+===========================
 
-This guide focus on the translation process of the documentation and of the source code.
-The system and the conventions used by both documentation and source code internationalization
-are the one used by the `GNU gettext <https://en.wikipedia.org/wiki/Gettext>`_ system. In particular
-on the root of the repository is present a file called ``freeports.pot`` with the updated list
-of the strings present in the source code, and under ``docs/build/gettext`` the files with the
-templates of documentation translatable content. Translators will mostly work with ``.po`` files
-ready to be translated. In a second time this files are compiled in a machine readable format
-with exstension ``.mo``. So the ``.mo`` files are the one the actively contain the translation, but they are
-generated from the ``.po`` files.
+Both the documentation and the engine's user-facing messages use `GNU gettext
+<https://en.wikipedia.org/wiki/Gettext>`_. Translators work on ``.po`` files, which are compiled
+into the binary ``.mo`` catalogues that are actually read at run time.
 
------------------------
-Translation of the code
------------------------
+Translating the documentation
+=============================
 
-You can find a folder into ``src/freeports_analysis/locales`` whit different language folders.
-The id is the `ISO 639 <https://en.wikipedia.org/wiki/ISO_639>`_ code of the language.
-In the folder of the language that you want to translate there should be a directory called ``LC_MESSAGES``
-and a file called ``messages.po``. This file contains all the text strings present in the source code.
-You can translate the strings using a text editor or using a specific program to translate ``.po`` files
-like for example `Poedit <https://poedit.net/>`_.
+The catalogues live in ``docs/source/locales/<lang>/LC_MESSAGES/``, one ``.po`` per source page,
+where ``<lang>`` is an `ISO 639 <https://en.wikipedia.org/wiki/ISO_639>`_ code. Edit them with a
+text editor or a dedicated tool such as `Poedit <https://poedit.net/>`_.
 
-
---------------------------------
-Translation of the documentation
---------------------------------
-
-You can find a folder into ``docs/source/locales`` whit different language folders.
-The id identifyng the lang is the `ISO 639 <https://en.wikipedia.org/wiki/ISO_639>`_ code of the language.
-In the folder of the language that you want to translate there should be a directory called ``LC_MESSAGES``
-and a some ``.po`` files. This files contain all the text strings present in the source code.
-You can translate the strings using a text editor or using a specific program to translate ``.po`` files
-like for example `Poedit <https://poedit.net/>`_.
-
-
--------------------------
-Building the translations
--------------------------
-
-For updating the translations the deploy mechanism is similar in the case of source code and documentation and
-is caraterized by three steps:
-
-- generate the ``.pot`` file(s) using the source code or the modified documentation
-- updating the ``.po`` files using the new ``.pot`` file(s)
-- compile ``.po`` files in ``.mo`` files
-
-In the case of the source code the command to launch are:
+The three steps, from inside ``docs/``:
 
 .. code-block:: console
 
-    pybabel extract src/freeports_analysis/ -o freeports.pot 
-    pybabel update -i freeports.pot -d src/freports_analysis/locales/
-    pybabel compile -d src/freports_analysis/locales/
+    make gettext        # extract the translatable strings from the current sources
+    sphinx-intl update  # merge them into the existing .po files
+    sphinx-intl build   # compile .po into .mo
 
-In the case of the documentation are (from inside the ``docs/`` directory):
+Then build one language:
 
 .. code-block:: console
 
-    make gettext
-    sphinx-intl update
-    sphinx-intl build
+    sphinx-build -b html -D language=it source build/it
+
+.. note::
+
+   The current state, measured rather than assumed: ``en`` is the source language, ``it`` covers
+   part of the live prose, and ``fr`` and ``pt`` are empty stubs. The scaffolding is maintained;
+   which languages are actually carried forward has not been decided. A large part of the previous
+   catalogues described a package that no longer exists and does not carry over.
+
+Translating the engine's messages
+=================================
+
+The engine looks up its user-facing strings through a gettext catalogue at run time, falling back
+to the message id itself when there is no translation — a missing translation is a cosmetic
+problem, and it must never be able to stop a run.
+
+.. warning::
+
+   The catalogue tree the engine reads is **not currently in this repository**. The Python-era
+   ``src/freeports_analysis/locales/`` tree, and the ``pybabel`` workflow that maintained it, went
+   away with the Python engine; what remains in the crate is the lookup code and one ``.mo``
+   fixture used by its tests. Packaging and shipping catalogues for the Rust engine is unfinished
+   work, and this page will describe the workflow once there is one to describe.

@@ -1,6 +1,6 @@
 //! The crate's one logging subsystem: `tracing`, and nothing else.
 //!
-//! A run has four independent destinations, each a `tracing_subscriber` layer composed onto one
+//! A run has three independent destinations, each a `tracing_subscriber` layer composed onto one
 //! `Registry`. They are independent on purpose: what a person reads while watching a run and what a
 //! tool reads afterwards are not the same thing, and trying to serve both from one stream makes
 //! each worse.
@@ -10,7 +10,6 @@
 //! | stderr | watching a run happen | [`Verbosity`] |
 //! | `freeports.log.jsonl` | one JSON object per line, for tools | [`Verbosity`] |
 //! | `.log.csv` | the extraction's own audit trail, anchored to pages and coordinates | `warn` and above |
-//! | `.freeports.log.yaml` | full error structure, for a person diagnosing a failure | `warn` and above, at `-vvv` |
 //!
 //! # Verbosity
 //!
@@ -158,10 +157,6 @@ pub enum TracingSetupError {
     AlreadyInitialized { source: tracing::subscriber::SetGlobalDefaultError },
     #[error("the .log.csv destination was never set")]
     CsvDestinationUnset,
-    #[error("cannot write the yaml error log at {}: {source}", path.display())]
-    OpenYamlFile { path: PathBuf, source: std::io::Error },
-    #[error("cannot serialize the yaml error log for {}: {source}", path.display())]
-    YamlWrite { path: PathBuf, source: serde_yaml::Error },
 }
 
 /// Level of every orchestration span in the crate (`run`, `job`, `page`, `class`, `pipeline`,
@@ -348,7 +343,7 @@ impl EventFieldVisitor<'_> {
         // convention every site that attaches one with `log_error` also interpolates it into its
         // message, so printing the field as well would say the same thing twice on the same line
         // — precisely the repetitiveness this format set out to remove. The structured copy is
-        // not lost, it is what `.freeports.log.yaml` serializes.
+        // not lost, it is what `freeports.log.jsonl` serializes.
         if self.result.is_err() || field.name() == "message" || field.name() == "error" {
             return;
         }
@@ -872,11 +867,11 @@ impl CsvLogLayer {
 /// nested event inherits (`CapturedFields`) and the `name[value]` rendering of the span
 /// (`SpanLabel`).
 ///
-/// Shared as a free function, and called by **both** `CsvLogLayer` and `YamlLogLayer`, so that
-/// neither depends on the other being installed. That dependency was real and silent: with only
-/// the YAML layer in a registry, every record came out with a bare `activity: page` and no
-/// coordinates at all, because the labels and fields were only ever written by the CSV layer.
-/// Idempotent — whichever layer gets there first does the work.
+/// A free function rather than a method, so that no layer depends on another being installed.
+/// That dependency was real and silent while a second file layer existed: with the CSV layer
+/// absent, records came out with a bare `activity: page` and no coordinates at all, because the
+/// labels and fields were only ever written there. Idempotent — whichever layer gets there first
+/// does the work.
 fn record_span_metadata<S>(attrs: &span::Attributes<'_>, id: &span::Id, ctx: &Context<'_, S>)
 where
     S: Subscriber + for<'span> LookupSpan<'span>,
@@ -1007,8 +1002,6 @@ pub const LOG_FILE_NAME: &str = "freeports.log.jsonl";
 pub struct LogHandle {
     csv: CsvLogLayer,
     file: SharedFileWriter,
-    /// `Some` only at maximum verbosity — see `YamlLogLayer` and `init`.
-    yaml: Option<YamlLogLayer>,
     /// What the worker processes logged, in job order, waiting to be poured into this run's own
     /// files at `close()`.
     ///
@@ -1019,14 +1012,13 @@ pub struct LogHandle {
     absorbed: Arc<Mutex<Vec<WorkerLogs>>>,
 }
 
-/// The three log files one worker process left behind, read verbatim (P1).
+/// The two log files one worker process left behind, read verbatim (P1).
 #[derive(Debug, Default)]
 struct WorkerLogs {
     /// `.log.csv` **without** its header line: the parent's file already has one, and a second
     /// header in the middle would break every reader.
     csv_rows: Vec<u8>,
     jsonl: Vec<u8>,
-    yaml: Vec<u8>,
 }
 
 impl LogHandle {
@@ -1042,7 +1034,6 @@ impl LogHandle {
         let logs = WorkerLogs {
             csv_rows: strip_csv_header(&read(CSV_FILE_NAME)),
             jsonl: read(LOG_FILE_NAME),
-            yaml: read(YAML_FILE_NAME),
         };
         self.absorbed.lock().unwrap_or_else(PoisonError::into_inner).push(logs);
         Ok(())
@@ -1066,9 +1057,6 @@ impl LogHandle {
                 path: PathBuf::from(LOG_FILE_NAME),
                 source,
             }));
-            if let Some(yaml) = self.yaml.as_ref() {
-                record(yaml.append_raw(&logs.yaml));
-            }
         }
         first_error.map_or(Ok(()), Err)
     }
@@ -1101,14 +1089,12 @@ impl LogHandle {
         // cost the diagnostics held by the others. The CSV wins as the reported error, being the
         // artefact the integration tests compare.
         let csv_result = self.csv.close();
-        let yaml_result = self.yaml.as_ref().map_or(Ok(()), YamlLogLayer::close);
-        // After, never before: the parent's rows are sorted and written first, and both `.log.csv`
-        // and `.freeports.log.yaml` are *truncated* by that write — pouring the children in earlier
-        // would mean writing them and then erasing them.
+        // After, never before: the parent's rows are sorted and written first, and `.log.csv` is
+        // *truncated* by that write — pouring the children in earlier would mean writing them and
+        // then erasing them.
         let absorbed_result = self.pour_absorbed();
         let file_result = self.file.flush();
         csv_result?;
-        yaml_result?;
         absorbed_result?;
         file_result.map_err(|source| TracingSetupError::OpenLogFile {
             path: PathBuf::from(LOG_FILE_NAME),
@@ -1139,12 +1125,7 @@ pub fn log_handle_for_tests(log_dir: &Path) -> Result<LogHandle, TracingSetupErr
         &log_dir.join(LOG_FILE_NAME),
         Verbosity::Warn,
     )?;
-    Ok(LogHandle {
-        csv: CsvLogLayer::deferred(),
-        file: file_writer,
-        yaml: None,
-        absorbed: Arc::new(Mutex::new(Vec::new())),
-    })
+    Ok(LogHandle { csv: CsvLogLayer::deferred(), file: file_writer, absorbed: Arc::new(Mutex::new(Vec::new())) })
 }
 
 /// Coerces a concrete error into the `&dyn Error` that `tracing` records **structurally**
@@ -1152,33 +1133,18 @@ pub fn log_handle_for_tests(log_dir: &Path) -> Result<LogHandle, TracingSetupErr
 ///
 /// It exists so a log site can write `error = log_error(&e)` instead of
 /// `error = &e as &(dyn std::error::Error + 'static)`, and so the coercion is impossible to get
-/// subtly wrong. It is what fills the `error:` key of `.freeports.log.yaml` with a `Debug` form,
-/// a `Display` form and the full `source()` chain — see `ErrorRecord`.
+/// subtly wrong. It is what fills the `error:` key of a `freeports.log.jsonl` line with a `Debug`
+/// form, a `Display` form and the full `source()` chain — see `ErrorRecord`.
 ///
 /// The message of such a site keeps interpolating the error as before: stderr and `.log.csv` stay
-/// readable by a human, while the YAML gets the machine-readable version of the same failure.
+/// readable by a human, while the JSON line gets the machine-readable version of the same
+/// failure.
 pub fn log_error<E>(error: &E) -> &(dyn std::error::Error + 'static)
 where
     E: std::error::Error + 'static,
 {
     error
 }
-
-/// File name of the structured error log, written only at maximum verbosity.
-pub const YAML_FILE_NAME: &str = ".freeports.log.yaml";
-
-/// Whether this run generates `.freeports.log.yaml` at all: **only at maximum verbosity**
-/// (`-vvv`), by the user's decision. Extracted from `init` so the rule can be tested without
-/// burning the process's one and only `set_global_default`.
-pub fn wants_yaml_log(verbosity: Verbosity) -> bool {
-    verbosity == Verbosity::Trace
-}
-
-/// Level recorded into `.freeports.log.yaml`: warnings and errors.
-///
-/// It is the *error* log, so it takes what went wrong, not a second copy of the trace that `-vvv`
-/// already writes to `freeports.log.jsonl`.
-pub const YAML_LEVEL: LevelFilter = LevelFilter::WARN;
 
 /// The error attached to one record, in **structural** form: nothing derives `Serialize` on the
 /// crate's error enums, no error's shape is frozen into a serialization contract, and third-party
@@ -1246,9 +1212,7 @@ impl CoordsRecord {
     }
 }
 
-/// One entry of the two structured logs: a line of `freeports.log.jsonl`, an item of
-/// `.freeports.log.yaml`. Same shape on both, deliberately — they differ in *which* events they
-/// take and in how they are serialized, never in what a record says.
+/// One entry of the structured log: a line of `freeports.log.jsonl`.
 #[derive(Debug, Clone, serde::Serialize)]
 struct LogRecord {
     /// Wall clock, in the same format the pre-L5 text `freeports.log` printed. It moved from the
@@ -1328,8 +1292,7 @@ fn now_timestamp() -> String {
     buffer
 }
 
-/// Turns one event plus its span context into a [`LogRecord`]. Shared by `JsonLogLayer` and
-/// `YamlLogLayer` so that the two files can never drift apart on what a record contains.
+/// Turns one event plus its span context into a [`LogRecord`].
 ///
 /// Coordinates are resolved exactly as `.log.csv` resolves them, through the same `CapturedFields`
 /// the spans already carry: outermost span first, an inner span beating an outer one, the event's
@@ -1392,8 +1355,6 @@ where
 /// 2. every line stands alone, so `grep` works on it and `jq` reads it as a stream without
 ///    holding the file in memory.
 ///
-/// `.freeports.log.yaml` (L3) keeps its own job: a small, human-readable digest of the failures
-/// only, at maximum verbosity. Both files are built from the same record type.
 #[derive(Debug, Clone)]
 pub struct JsonLogLayer {
     writer: SharedFileWriter,
@@ -1428,91 +1389,6 @@ where
     }
 }
 
-/// `.freeports.log.yaml` — the structured error log of L3, written **only at maximum verbosity**
-/// and **in the working directory** (the user's decision, 2026-08-30: it is a diagnostic
-/// artifact, unlike `.log.csv`, which travels with the output).
-///
-/// Same lifecycle as `CsvLogLayer`: records accumulate in memory and reach disk only on `close()`,
-/// which `LogHandle::close` calls. Unlike the CSV there is no ordering key — the records are
-/// written in the order the events happened, which is the order you want when reading a chain of
-/// failures.
-#[derive(Debug, Clone)]
-pub struct YamlLogLayer {
-    inner: Arc<YamlLogLayerInner>,
-}
-
-#[derive(Debug)]
-struct YamlLogLayerInner {
-    path: PathBuf,
-    records: Mutex<Vec<LogRecord>>,
-}
-
-impl YamlLogLayer {
-    /// Does **not** touch the filesystem: an empty run must not leave an empty YAML file behind,
-    /// unlike `.log.csv`, whose mere existence is part of the integration-test contract.
-    pub fn create(path: &Path) -> Self {
-        Self {
-            inner: Arc::new(YamlLogLayerInner {
-                path: path.to_path_buf(),
-                records: Mutex::new(Vec::new()),
-            }),
-        }
-    }
-
-    /// Appends an already-serialized YAML sequence after the records this layer wrote (P1).
-    ///
-    /// Valid by construction: `serde_yaml` renders a `Vec` as a top-level sequence of `- ` items,
-    /// and two such sequences concatenated are still one sequence. Creates the file when the parent
-    /// itself had nothing to write — a run where only the workers logged is still a run with a log.
-    pub fn append_raw(&self, bytes: &[u8]) -> Result<(), TracingSetupError> {
-        if bytes.is_empty() {
-            return Ok(());
-        }
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.inner.path)
-            .map_err(|source| TracingSetupError::OpenYamlFile { path: self.inner.path.clone(), source })?;
-        file.write_all(bytes)
-            .map_err(|source| TracingSetupError::OpenYamlFile { path: self.inner.path.clone(), source })
-    }
-
-    /// Serializes everything accumulated so far and writes it, then empties the buffer so a
-    /// second call is a no-op. Writes nothing at all when no record was collected.
-    pub fn close(&self) -> Result<(), TracingSetupError> {
-        let mut guard = self.inner.records.lock().unwrap_or_else(PoisonError::into_inner);
-        let records = std::mem::take(&mut *guard);
-        drop(guard);
-        if records.is_empty() {
-            return Ok(());
-        }
-        let yaml = serde_yaml::to_string(&records).map_err(|source| {
-            TracingSetupError::YamlWrite { path: self.inner.path.clone(), source }
-        })?;
-        std::fs::write(&self.inner.path, yaml).map_err(|source| {
-            TracingSetupError::OpenYamlFile { path: self.inner.path.clone(), source }
-        })
-    }
-}
-
-impl<S> Layer<S> for YamlLogLayer
-where
-    S: Subscriber + for<'span> LookupSpan<'span>,
-{
-    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: Context<'_, S>) {
-        record_span_metadata(attrs, id, &ctx);
-    }
-
-    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, ctx: Context<'_, S>) {
-        merge_span_fields(values, id, &ctx);
-    }
-
-    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let record = build_record(event, &ctx);
-        self.inner.records.lock().unwrap_or_else(PoisonError::into_inner).push(record);
-    }
-}
-
 pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSetupError> {
     use tracing_subscriber::layer::SubscriberExt;
 
@@ -1524,25 +1400,13 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
     // Binding: the CSV layer **must** carry a level filter. A layer without one leaves the
     // registry's global max level at `TRACE`, so every `trace!` in the crate is constructed and
     // dispatched even at `-q`. Do not remove `.with_filter` here.
-    //
-    // The YAML error log exists **only** at maximum verbosity, and stays in the working directory
-    // rather than following the outputs as `.log.csv` does: it is a diagnostic artefact, not a
-    // product of the run. Its filter is `WARN` because it is the log *of errors*, not a second
-    // trace.
-    let yaml = wants_yaml_log(verbosity)
-        .then(|| YamlLogLayer::create(&log_dir.join(YAML_FILE_NAME)));
-
     let subscriber = tracing_subscriber::registry()
         .with(stderr_layer(verbosity))
         .with(file_layer)
-        .with(csv.clone().with_filter(EventLevelFilter::new(csv_level_filter(verbosity))))
-        .with(
-            yaml.clone()
-                .map(|layer| layer.with_filter(EventLevelFilter::new(YAML_LEVEL))),
-        );
+        .with(csv.clone().with_filter(EventLevelFilter::new(csv_level_filter(verbosity))));
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|source| TracingSetupError::AlreadyInitialized { source })?;
-    Ok(LogHandle { csv, file: file_writer, yaml, absorbed: Arc::new(Mutex::new(Vec::new())) })
+    Ok(LogHandle { csv, file: file_writer, absorbed: Arc::new(Mutex::new(Vec::new())) })
 }
 
 #[cfg(test)]
@@ -3365,208 +3229,6 @@ mod tests {
                 !dir.path().join(CSV_FILE_NAME).exists(),
                 "and still nothing in the working directory, got:\n{content}"
             );
-        }
-    }
-
-    /// `YamlLogLayer`, the structured error log. Grouped by topic: the shape of a record, the
-    /// serialized error (the file's reason to exist), the coordinates inherited from spans, and
-    /// the file's lifecycle.
-    mod yaml_layer {
-        use super::*;
-
-        /// A two-level error, so there is a real `source()` chain to serialize.
-        #[derive(Debug, thiserror::Error)]
-        #[error("the inner thing broke")]
-        struct InnerError;
-
-        #[derive(Debug, thiserror::Error)]
-        #[error("the outer thing broke")]
-        struct OuterError {
-            #[source]
-            source: InnerError,
-        }
-
-        /// Runs `body` with a `YamlLogLayer` filtered as in production and returns the file's
-        /// content, or `None` if the layer wrote no file at all.
-        fn yaml_after(body: impl FnOnce()) -> Option<String> {
-            let dir = tempfile::tempdir().expect("tempdir");
-            let path = dir.path().join(YAML_FILE_NAME);
-            let layer = YamlLogLayer::create(&path);
-            let subscriber = tracing_subscriber::registry()
-                .with(layer.clone().with_filter(EventLevelFilter::new(YAML_LEVEL)));
-            tracing::subscriber::with_default(subscriber, body);
-            layer.close().expect("close must succeed");
-            path.exists().then(|| std::fs::read_to_string(&path).expect("read the yaml log"))
-        }
-
-        mod record_shape {
-            use super::*;
-
-            #[test]
-            fn a_warning_records_activity_level_target_and_message() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    let span = tracing::info_span!("page", page = 12u64);
-                    span.in_scope(|| tracing::warn!("something is off"));
-                })
-                .expect("a warning must produce a file");
-                assert!(yaml.contains("activity: page[12]"), "got:\n{yaml}");
-                assert!(yaml.contains("level: WARN"), "got:\n{yaml}");
-                assert!(yaml.contains("message: something is off"), "got:\n{yaml}");
-                assert!(
-                    yaml.contains("target: freeports::core::tracing_setup"),
-                    "got:\n{yaml}"
-                );
-            }
-
-            /// Fields that are neither the message nor coordinates are not lost.
-            #[test]
-            fn other_event_fields_are_kept_under_fields() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    tracing::warn!(format = "EURIZON-EN23", "format is unhappy");
-                })
-                .expect("a warning must produce a file");
-                assert!(yaml.contains("format: EURIZON-EN23"), "got:\n{yaml}");
-            }
-        }
-
-        mod serialized_error {
-            use super::*;
-
-            /// The reason the file exists: a site that records its error with `log_error` yields
-            /// the whole structure — `Display`, `Debug` and the `source()` chain — not one
-            /// flattened string.
-            #[test]
-            fn log_error_serializes_display_debug_and_the_whole_source_chain() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    let e = OuterError { source: InnerError };
-                    tracing::error!(error = log_error(&e), "it failed: {e}");
-                })
-                .expect("an error must produce a file");
-                assert!(yaml.contains("display: the outer thing broke"), "got:\n{yaml}");
-                assert!(yaml.contains("OuterError { source: InnerError }"), "got:\n{yaml}");
-                assert!(yaml.contains("the inner thing broke"), "got:\n{yaml}");
-            }
-
-            /// An error with no cause must not produce an empty `source` key.
-            #[test]
-            fn an_error_without_a_source_omits_the_source_key() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    let e = InnerError;
-                    tracing::error!(error = log_error(&e), "it failed: {e}");
-                })
-                .expect("an error must produce a file");
-                assert!(!yaml.contains("source:"), "got:\n{yaml}");
-            }
-
-            /// A site that interpolates the error into its message without `log_error` stays valid:
-            /// the record exists, simply without the structured part.
-            #[test]
-            fn a_site_without_log_error_still_records_the_message() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| tracing::error!("it failed: something"))
-                    .expect("an error must produce a file");
-                assert!(yaml.contains("message: 'it failed: something'"), "got:\n{yaml}");
-                assert!(!yaml.contains("error:"), "got:\n{yaml}");
-            }
-        }
-
-        mod inherited_coordinates {
-            use super::*;
-
-            /// The same coordinates as `.log.csv`, resolved by the same rule: the innermost span
-            /// beats the outer one, the event beats every span.
-            #[test]
-            fn coordinates_come_from_the_enclosing_spans_too() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    let outer = tracing::info_span!("page", page = 44u64);
-                    outer.in_scope(|| {
-                        let inner = tracing::info_span!("field", coord_ref_2 = "market value");
-                        inner.in_scope(|| tracing::warn!(coord_1 = "row 12", "cast failed"));
-                    });
-                })
-                .expect("a warning must produce a file");
-                assert!(yaml.contains("page: '44'"), "got:\n{yaml}");
-                assert!(yaml.contains("second_ref: market value"), "got:\n{yaml}");
-                assert!(yaml.contains("first: row 12"), "got:\n{yaml}");
-            }
-
-            #[test]
-            fn an_event_with_no_coordinates_omits_the_coords_key() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| tracing::warn!("nowhere in particular"))
-                    .expect("a warning must produce a file");
-                assert!(!yaml.contains("coords:"), "got:\n{yaml}");
-            }
-        }
-
-        mod file_lifecycle {
-            use super::*;
-
-            /// Unlike `.log.csv`, whose very existence is part of the integration tests' contract,
-            /// a run with no errors must not leave an empty file behind.
-            #[test]
-            fn a_run_with_no_warnings_leaves_no_file_at_all() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                assert!(yaml_after(|| tracing::info!("all good")).is_none());
-            }
-
-            /// It is the log **of errors**: `info!`, `debug!` and `trace!` do not reach it, not
-            /// even at the verbosity that creates it.
-            #[test]
-            fn only_warnings_and_errors_reach_it() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let yaml = yaml_after(|| {
-                    tracing::info!("info-marker");
-                    tracing::debug!("debug-marker");
-                    tracing::trace!("trace-marker");
-                    tracing::warn!("warn-marker");
-                    tracing::error!("error-marker");
-                })
-                .expect("two events must produce a file");
-                assert!(yaml.contains("warn-marker"), "got:\n{yaml}");
-                assert!(yaml.contains("error-marker"), "got:\n{yaml}");
-                for absent in ["info-marker", "debug-marker", "trace-marker"] {
-                    assert!(!yaml.contains(absent), "{absent} must not be there, got:\n{yaml}");
-                }
-            }
-
-            #[test]
-            fn close_is_idempotent() {
-                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-                let dir = tempfile::tempdir().expect("tempdir");
-                let path = dir.path().join(YAML_FILE_NAME);
-                let layer = YamlLogLayer::create(&path);
-                let subscriber = tracing_subscriber::registry().with(layer.clone());
-                tracing::subscriber::with_default(subscriber, || tracing::warn!("once"));
-                layer.close().expect("first close");
-                let first = std::fs::read_to_string(&path).expect("read the yaml log");
-                layer.close().expect("second close must be a no-op");
-                let second = std::fs::read_to_string(&path).expect("read the yaml log again");
-                assert_eq!(first, second, "a second close must not duplicate or truncate");
-            }
-        }
-
-        /// The file exists **only** at maximum verbosity. `init` cannot be called here — one
-        /// `set_global_default` per process — so the function `init` consults is exercised instead,
-        /// exhaustively over all six levels.
-        mod generated_only_at_max_verbosity {
-            use super::*;
-            use test_case::test_case;
-
-            #[test_case(Verbosity::Silent, false)]
-            #[test_case(Verbosity::ErrorOnly, false)]
-            #[test_case(Verbosity::Warn, false)]
-            #[test_case(Verbosity::Info, false)]
-            #[test_case(Verbosity::Debug, false)]
-            #[test_case(Verbosity::Trace, true)]
-            fn only_trace_verbosity_asks_for_the_yaml_layer(verbosity: Verbosity, expected: bool) {
-                assert_eq!(wants_yaml_log(verbosity), expected);
-            }
         }
     }
 

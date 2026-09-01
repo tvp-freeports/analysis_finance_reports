@@ -31,7 +31,7 @@ use std::path::PathBuf;
 use crate::cli::conf_parse::DocumentSpec;
 use crate::cli::parallelism_config::Workers;
 use crate::core::tracing_setup::Verbosity;
-use crate::output::routines::write::{OutFlags, OutStructureMode};
+use crate::output::routines::write::OutStructureMode;
 use crate::core::tracing_setup::log_error;
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -42,7 +42,13 @@ pub struct PartialConfig {
     pub format: Option<String>,
     pub out_path: Option<PathBuf>,
     pub out_profile: Option<OutStructureMode>,
-    pub out_flags: Option<OutFlags>,
+    /// One half of the output flags. The two flags are **separate fields**, not one `OutFlags`
+    /// value, for the same reason the two parallelism levels are: the merge is per field, and a
+    /// file setting the archive flag must not be erased by an environment that only sets the
+    /// separate-output one.
+    pub separate_out: Option<bool>,
+    /// The other half. Same reason as [`Self::separate_out`].
+    pub compressed: Option<bool>,
     /// The global parallelism default: the value each level takes when its own key says nothing. It
     /// keeps the name `n_workers` because that is the name every source has always exposed.
     pub n_workers: Option<Workers>,
@@ -93,7 +99,8 @@ pub fn defaults() -> MergedConfig {
             format: None,
             out_path: Some(out_path),
             out_profile: Some(OutStructureMode::Regular),
-            out_flags: Some(OutFlags::default()),
+            separate_out: Some(false),
+            compressed: Some(false),
             n_workers: Some(Workers::Auto),
             parallelism_jobs: None,
             parallelism_pages: None,
@@ -124,7 +131,8 @@ pub fn overwrite(mut base: MergedConfig, overlay: PartialConfig, source: ConfigS
     apply!(format);
     apply!(out_path);
     apply!(out_profile);
-    apply!(out_flags);
+    apply!(separate_out);
+    apply!(compressed);
     apply!(n_workers);
     apply!(parallelism_jobs);
     apply!(parallelism_pages);
@@ -300,12 +308,28 @@ mod tests {
             );
         }
 
+        /// Both output flags default to off, and each is its own field: a source touching one
+        /// leaves the other where it was.
         #[test]
-        fn out_flags_defaults_to_the_all_false_default() {
-            assert_eq!(
-                defaults().values.out_flags,
-                Some(crate::output::routines::write::OutFlags::default())
+        fn both_output_flags_default_to_off() {
+            assert_eq!(defaults().values.separate_out, Some(false));
+            assert_eq!(defaults().values.compressed, Some(false));
+        }
+
+        #[test]
+        fn one_source_setting_one_output_flag_does_not_erase_the_other() {
+            let base = overwrite(
+                defaults(),
+                PartialConfig { compressed: Some(true), ..PartialConfig::default() },
+                ConfigSource::File,
             );
+            let merged = overwrite(
+                base,
+                PartialConfig { separate_out: Some(true), ..PartialConfig::default() },
+                ConfigSource::Env,
+            );
+            assert_eq!(merged.values.compressed, Some(true), "the file's archive flag must survive");
+            assert_eq!(merged.values.separate_out, Some(true));
         }
 
         /// The global parallelism default is automatic. It is the value both levels inherit when no

@@ -126,7 +126,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6079" y="2902" width="4765" height="2860"/>
         <path fill="rgb(191,0,65)" stroke="none" d="M 8461,5760 L 6080,5760 6080,2903 10842,2903 10842,5760 8461,5760 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 8461,5760 L 6080,5760 6080,2903 10842,2903 10842,5760 8461,5760 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="6747" y="4560"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="3429" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">PdfFilter</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="6366" y="4560"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4191" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">pdf_extract</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -134,7 +134,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="17509" y="2902" width="4765" height="2860"/>
         <path fill="rgb(52,101,164)" stroke="none" d="M 19891,5760 L 17510,5760 17510,2903 22272,2903 22272,5760 19891,5760 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 19891,5760 L 17510,5760 17510,2903 22272,2903 22272,5760 19891,5760 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="17796" y="4560"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4191" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">TextExtract</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="17796" y="4560"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4191" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">text_filter</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -142,7 +142,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="17825" y="9888" width="4766" height="2861"/>
         <path fill="rgb(18,118,34)" stroke="none" d="M 20208,12747 L 17826,12747 17826,9889 22589,9889 22589,12747 20208,12747 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 20208,12747 L 17826,12747 17826,9889 22589,9889 22589,12747 20208,12747 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="18112" y="11547"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4191" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">Deserialize</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="18112" y="11547"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="635px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4191" fill="rgb(255,255,255)" stroke="none" style="white-space: pre">deserialize</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -313,7 +313,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6395" y="11793" width="9529" height="2543"/>
         <path fill="rgb(221,232,203)" stroke="none" d="M 6819,11794 L 6819,11794 C 6745,11794 6672,11814 6608,11851 6543,11888 6490,11941 6453,12006 6416,12070 6396,12143 6396,12217 L 6396,13910 6396,13911 C 6396,13985 6416,14058 6453,14122 6490,14187 6543,14240 6608,14277 6672,14314 6745,14334 6819,14334 L 15498,14334 15499,14334 C 15573,14334 15646,14314 15710,14277 15775,14240 15828,14187 15865,14122 15902,14058 15922,13985 15922,13911 L 15922,12217 15922,12217 15922,12217 C 15922,12143 15902,12070 15865,12006 15828,11941 15775,11888 15710,11851 15646,11814 15573,11794 15499,11794 L 6819,11794 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 6819,11794 L 6819,11794 C 6745,11794 6672,11814 6608,11851 6543,11888 6490,11941 6453,12006 6416,12070 6396,12143 6396,12217 L 6396,13910 6396,13911 C 6396,13985 6416,14058 6453,14122 6490,14187 6543,14240 6608,14277 6672,14314 6745,14334 6819,14334 L 15498,14334 15499,14334 C 15573,14334 15646,14314 15710,14277 15775,14240 15828,14187 15865,14122 15902,14058 15922,13985 15922,13911 L 15922,12217 15922,12217 15922,12217 C 15922,12143 15902,12070 15865,12006 15828,11941 15775,11888 15710,11851 15646,11814 15573,11794 15499,11794 L 6819,11794 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="6936" y="13267"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="8445" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">PromisesResolutionContext</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="8794" y="13267"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4729" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">PromiseEntries</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="Group">
@@ -322,7 +322,7 @@
          <rect class="BoundingBox" stroke="none" fill="none" x="6395" y="7983" width="9529" height="3179"/>
          <path fill="rgb(221,232,203)" stroke="none" d="M 6925,7984 L 6925,7984 C 6832,7984 6741,8008 6661,8055 6580,8101 6513,8168 6467,8249 6420,8329 6396,8420 6396,8513 L 6396,10630 6396,10631 C 6396,10724 6420,10815 6467,10895 6513,10976 6580,11043 6661,11089 6741,11136 6832,11160 6925,11160 L 15392,11160 15393,11160 C 15486,11160 15577,11136 15657,11089 15738,11043 15805,10976 15851,10895 15898,10815 15922,10724 15922,10631 L 15922,8513 15922,8513 15922,8513 C 15922,8420 15898,8329 15851,8249 15805,8168 15738,8101 15657,8055 15577,8008 15486,7984 15393,7984 L 6925,7984 Z "/>
          <path fill="none" stroke="rgb(0,0,0)" d="M 6925,7984 L 6925,7984 C 6832,7984 6741,8008 6661,8055 6580,8101 6513,8168 6467,8249 6420,8329 6396,8420 6396,8513 L 6396,10630 6396,10631 C 6396,10724 6420,10815 6467,10895 6513,10976 6580,11043 6661,11089 6741,11136 6832,11160 6925,11160 L 15392,11160 15393,11160 C 15486,11160 15577,11136 15657,11089 15738,11043 15805,10976 15851,10895 15898,10815 15922,10724 15922,10631 L 15922,8513 15922,8513 15922,8513 C 15922,8420 15898,8329 15851,8249 15805,8168 15738,8101 15657,8055 15577,8008 15486,7984 15393,7984 L 6925,7984 Z "/>
-         <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="8963" y="8840"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4392" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">FinancialData</tspan></tspan></tspan></text>
+         <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="9639" y="8840"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="3041" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">Extracted</tspan></tspan></tspan></text>
         </g>
        </g>
        <g class="com.sun.star.drawing.CustomShape">
@@ -368,7 +368,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6395" y="16239" width="9529" height="1590"/>
         <path fill="rgb(255,255,166)" stroke="none" d="M 6660,16240 L 6661,16240 C 6614,16240 6568,16252 6528,16275 6488,16299 6455,16332 6431,16372 6408,16412 6396,16458 6396,16505 L 6396,17562 6396,17563 C 6396,17609 6408,17655 6431,17695 6455,17735 6488,17768 6528,17792 6568,17815 6614,17827 6661,17827 L 15657,17826 15658,17827 C 15704,17827 15750,17815 15790,17792 15830,17768 15863,17735 15887,17695 15910,17655 15922,17609 15922,17563 L 15922,16504 15922,16505 15922,16505 C 15922,16458 15910,16412 15887,16372 15863,16332 15830,16299 15790,16275 15750,16252 15704,16240 15658,16240 L 6660,16240 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 6660,16240 L 6661,16240 C 6614,16240 6568,16252 6528,16275 6488,16299 6455,16332 6431,16372 6408,16412 6396,16458 6396,16505 L 6396,17562 6396,17563 C 6396,17609 6408,17655 6431,17695 6455,17735 6488,17768 6528,17792 6568,17815 6614,17827 6661,17827 L 15657,17826 15658,17827 C 15704,17827 15750,17815 15790,17792 15830,17768 15863,17735 15887,17695 15910,17655 15922,17609 15922,17563 L 15922,16504 15922,16505 15922,16505 C 15922,16458 15910,16412 15887,16372 15863,16332 15830,16299 15790,16275 15750,16252 15704,16240 15658,16240 L 6660,16240 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="7612" y="17237"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="7094" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">PromisesResolutionMap</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="9470" y="17237"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="3378" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">PromiseMap</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -390,7 +390,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6395" y="18249" width="9529" height="1273"/>
         <path fill="rgb(255,255,166)" stroke="none" d="M 6607,18250 L 6608,18250 C 6571,18250 6534,18260 6502,18278 6470,18297 6443,18324 6424,18356 6406,18388 6396,18425 6396,18462 L 6396,19308 6396,19308 C 6396,19345 6406,19382 6424,19414 6443,19446 6470,19473 6502,19492 6534,19510 6571,19520 6608,19520 L 15710,19520 15710,19520 C 15747,19520 15784,19510 15816,19492 15848,19473 15875,19446 15894,19414 15912,19382 15922,19345 15922,19308 L 15922,18461 15922,18462 15922,18462 C 15922,18425 15912,18388 15894,18356 15875,18324 15848,18297 15816,18278 15784,18260 15747,18250 15710,18250 L 6607,18250 Z "/>
         <path fill="none" stroke="rgb(0,0,0)" d="M 6607,18250 L 6608,18250 C 6571,18250 6534,18260 6502,18278 6470,18297 6443,18324 6424,18356 6406,18388 6396,18425 6396,18462 L 6396,19308 6396,19308 C 6396,19345 6406,19382 6424,19414 6443,19446 6470,19473 6502,19492 6534,19510 6571,19520 6608,19520 L 15710,19520 15710,19520 C 15747,19520 15784,19510 15816,19492 15848,19473 15875,19446 15894,19414 15912,19382 15922,19345 15922,19308 L 15922,18461 15922,18462 15922,18462 C 15922,18425 15912,18388 15894,18356 15875,18324 15848,18297 15816,18278 15784,18260 15747,18250 15710,18250 L 6607,18250 Z "/>
-        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="8963" y="19088"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="4392" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">FinancialData</tspan></tspan></tspan></text>
+        <text class="SVGTextShape"><tspan class="TextParagraph"><tspan class="TextPosition" x="9639" y="19088"><tspan font-family="JetBrainsMono NF SemiBold, monospace" font-size="564px" font-weight="400" lengthAdjust="spacingAndGlyphs" textLength="3041" fill="rgb(0,0,0)" stroke="none" style="white-space: pre">Extracted</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.ConnectorShape">

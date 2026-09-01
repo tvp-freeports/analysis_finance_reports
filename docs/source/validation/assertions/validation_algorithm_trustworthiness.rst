@@ -4,9 +4,9 @@
     validation algorithm. Any changes to this file will change its content
     and should only be made with proper justification.
 
-===================================
+====================================
 Validation Algorithm Trustworthiness
-===================================
+====================================
 
 **Assertion Statement**
 The validation algorithm implemented in this system is trustworthy, technically valid, and cryptographically secure.

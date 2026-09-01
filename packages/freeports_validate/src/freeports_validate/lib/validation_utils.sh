@@ -33,6 +33,17 @@ validate_document_schema() {
     fi
 }
 
+# The exact bytes a signature is computed over: the document without its own `sign` field, with
+# every key sorted recursively so that two writers of the same content produce the same stream.
+#
+# `-S` is jq's own recursive key sort. It is the whole reason this project standardises on the
+# Python `yq`, which is a thin wrapper around jq: the other `yq` has its own expression language
+# and would need `sortKeys(..)` here, and the two do not emit identical bytes.
+canonical_document() {
+    local doc_path="$1"
+    yq -y -S 'del(.sign)' "$doc_path"
+}
+
 # Validate document signature
 validate_document_signature() {
     local doc_path="$1"
@@ -46,7 +57,7 @@ validate_document_signature() {
         return 2
     fi
 
-    if yq 'del(.sign) | sortKeys(..)' "$doc_path" | gpg --verify <(echo "$existing_sig") - >/dev/null 2>&1; then
+    if canonical_document "$doc_path" | gpg --verify <(echo "$existing_sig") - >/dev/null 2>&1; then
         [ "$verbose" = "true" ] && print_success "Signature is valid"
         return 0
     else
@@ -58,17 +69,17 @@ validate_document_signature() {
 # Generate signature
 generate_document_signature() {
     local doc_path="$1"
-    yq 'del(.sign) | sortKeys(..)' "$doc_path" | gpg --detach-sign --armor --default-key "$KEYID" -
+    canonical_document "$doc_path" | gpg --detach-sign --armor --default-key "$KEYID" -
 }
 
 # Add signature to document
 add_signature_to_document() {
     local doc_path="$1"
     local signature="$2"
-     # Export signature to env variable for yq strenv interpolation
+    # Passed through the environment rather than interpolated into the filter: an armored
+    # signature is multi-line and full of characters a shell-quoted jq expression would mangle.
     export SIG_CONTENT="$signature"
-    # Use strenv to read the environment variable
-    yq -i ".sign = strenv(SIG_CONTENT)" "$doc_path"
+    yq -y -i '.sign = env.SIG_CONTENT' "$doc_path"
     # Unset env variable after use
     unset SIG_CONTENT
 }

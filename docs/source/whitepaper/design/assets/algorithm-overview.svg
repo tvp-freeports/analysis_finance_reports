@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 700" width="920" height="700" role="img"
+     aria-label="Overview of the freeports algorithm: per-document classification, one shared schedule of steps, pipeline bundles per page class, and promise resolution before the tables are written">
+  <style>
+    .t   { font: 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #1f2328; }
+    .tb  { font: 600 13px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #1f2328; }
+    .m   { font: 11.5px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #656d76; }
+    .mi  { font: italic 11.5px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #656d76; }
+    .lbl { font: 600 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           fill: #656d76; letter-spacing: .09em; }
+    .box  { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.2; }
+    .band { fill: #eef1f4; stroke: #d8dee4; stroke-width: 1.2; }
+    .acc  { fill: #ddf4ff; stroke: #0969da; stroke-width: 1.3; }
+    .alt  { fill: #f3eefc; stroke: #8250df; stroke-width: 1.3; }
+    .a    { stroke: #8c959f; stroke-width: 1.4; fill: none; marker-end: url(#h); }
+    .ad   { stroke: #8c959f; stroke-width: 1.4; fill: none; marker-end: url(#h); stroke-dasharray: 5 3; }
+    .head { fill: #8c959f; }
+    @media (prefers-color-scheme: dark) {
+      .t, .tb { fill: #e6edf3; }
+      .m, .mi, .lbl { fill: #9198a1; }
+      .box  { fill: #161b22; stroke: #30363d; }
+      .band { fill: #12171d; stroke: #262c34; }
+      .acc  { fill: #10243e; stroke: #58a6ff; }
+      .alt  { fill: #1e1233; stroke: #bc8cff; }
+      .a, .ad { stroke: #6e7681; }
+      .head { fill: #6e7681; }
+    }
+  </style>
+  <defs>
+    <marker id="h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="head" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+
+  <!-- ============ A. documents, classified apart ============ -->
+  <text class="lbl" x="24" y="26">1 · PER DOCUMENT</text>
+  <rect class="box" x="24"  y="38" width="176" height="38" rx="6"/>
+  <rect class="box" x="228" y="38" width="176" height="38" rx="6"/>
+  <rect class="box" x="432" y="38" width="176" height="38" rx="6"/>
+  <text class="t" x="112" y="62" text-anchor="middle">document A</text>
+  <text class="t" x="316" y="62" text-anchor="middle">document B</text>
+  <text class="t" x="520" y="62" text-anchor="middle">document C</text>
+  <text class="mi" x="632" y="62">…one run, N documents</text>
+
+  <path class="a" d="M112,76 L112,104"/>
+  <path class="a" d="M316,76 L316,104"/>
+  <path class="a" d="M520,76 L520,104"/>
+
+  <rect class="acc" x="24"  y="106" width="176" height="40" rx="6"/>
+  <rect class="acc" x="228" y="106" width="176" height="40" rx="6"/>
+  <rect class="acc" x="432" y="106" width="176" height="40" rx="6"/>
+  <text class="t" x="112" y="124" text-anchor="middle">classify pages</text>
+  <text class="m" x="112" y="139" text-anchor="middle">+ finalizer</text>
+  <text class="t" x="316" y="124" text-anchor="middle">classify pages</text>
+  <text class="m" x="316" y="139" text-anchor="middle">+ finalizer</text>
+  <text class="t" x="520" y="124" text-anchor="middle">classify pages</text>
+  <text class="m" x="520" y="139" text-anchor="middle">+ finalizer</text>
+  <text class="mi" x="632" y="130">each document on its own</text>
+
+  <!-- ============ B. the union ============ -->
+  <path class="a" d="M112,146 L112,166 L316,166 L316,186"/>
+  <path class="a" d="M316,146 L316,186"/>
+  <path class="a" d="M520,146 L520,166 L316,166"/>
+
+  <text class="lbl" x="24" y="205">2 · ONE POOL</text>
+  <rect class="box" x="24" y="214" width="872" height="38" rx="6"/>
+  <text class="t" x="460" y="238" text-anchor="middle">every classified page of every document, in one pool</text>
+
+  <!-- ============ C. the schedule ============ -->
+  <path class="a" d="M460,252 L460,282"/>
+
+  <text class="lbl" x="24" y="300">3 · SCHEDULE</text>
+  <rect class="band" x="24" y="310" width="872" height="92" rx="8"/>
+  <rect class="box" x="52"  y="330" width="184" height="42" rx="6"/>
+  <rect class="box" x="292" y="330" width="184" height="42" rx="6"/>
+  <rect class="box" x="532" y="330" width="184" height="42" rx="6"/>
+  <text class="tb" x="144" y="356" text-anchor="middle">step[0]</text>
+  <text class="tb" x="384" y="356" text-anchor="middle">step[1]</text>
+  <text class="tb" x="624" y="356" text-anchor="middle">step[n]</text>
+  <text class="m" x="790" y="356">…</text>
+  <path class="a" d="M236,351 L286,351"/>
+  <path class="a" d="M476,351 L526,351"/>
+  <text class="mi" x="261" y="392" text-anchor="middle">a step's results filter the next</text>
+
+  <!-- ============ D. one step: page classes and bundles ============ -->
+  <path class="a" d="M144,402 L144,414 L232,414 L232,436"/>
+
+  <text class="lbl" x="24" y="428">4 · WITHIN A STEP</text>
+  <rect class="band" x="24" y="438" width="380" height="122" rx="8"/>
+  <text class="m" x="40" y="458">page class → bundle of pipelines</text>
+  <rect class="alt" x="44"  y="468" width="164" height="34" rx="6"/>
+  <rect class="alt" x="44"  y="510" width="164" height="34" rx="6"/>
+  <text class="t" x="126" y="490" text-anchor="middle">investments</text>
+  <text class="t" x="126" y="532" text-anchor="middle">sfdr_classification</text>
+  <rect class="box" x="228" y="468" width="156" height="34" rx="6"/>
+  <rect class="box" x="228" y="510" width="156" height="34" rx="6"/>
+  <text class="m" x="306" y="489" text-anchor="middle">pipeline, pipeline…</text>
+  <text class="m" x="306" y="531" text-anchor="middle">pipeline…</text>
+  <path class="a" d="M208,485 L222,485"/>
+  <path class="a" d="M208,527 L222,527"/>
+
+  <path class="a" d="M404,499 L444,499"/>
+  <text class="mi" x="424" y="490" text-anchor="middle">per page</text>
+
+  <!-- one pipeline, three segments -->
+  <rect class="band" x="452" y="438" width="444" height="122" rx="8"/>
+  <text class="m" x="468" y="458">one pipeline = three segments, fixed order</text>
+  <rect class="box" x="468" y="470" width="130" height="40" rx="6"/>
+  <rect class="box" x="616" y="470" width="130" height="40" rx="6"/>
+  <rect class="box" x="764" y="470" width="116" height="40" rx="6"/>
+  <text class="t" x="533" y="495" text-anchor="middle">pdf_extract</text>
+  <text class="t" x="681" y="495" text-anchor="middle">text_filter</text>
+  <text class="t" x="822" y="495" text-anchor="middle">deserialize</text>
+  <path class="a" d="M598,490 L610,490"/>
+  <path class="a" d="M746,490 L758,490"/>
+  <text class="m" x="533" y="530" text-anchor="middle">PdfBlocks</text>
+  <text class="m" x="681" y="530" text-anchor="middle">TextBlocks</text>
+  <text class="m" x="822" y="530" text-anchor="middle">Extracted</text>
+  <text class="mi" x="533" y="548" text-anchor="middle">what is here</text>
+  <text class="mi" x="681" y="548" text-anchor="middle">does it concern us</text>
+  <text class="mi" x="822" y="548" text-anchor="middle">what does it mean</text>
+
+  <!-- ============ E. entities, promises, tables ============ -->
+  <path class="a" d="M822,560 L822,586 L640,586 L640,610"/>
+  <path class="a" d="M822,560 L822,586 L268,586 L268,610"/>
+
+  <text class="lbl" x="24" y="604">5 · END OF THE RUN</text>
+  <rect class="box" x="176" y="612" width="184" height="40" rx="6"/>
+  <rect class="alt" x="548" y="612" width="184" height="40" rx="6"/>
+  <text class="t" x="268" y="637" text-anchor="middle">entities</text>
+  <text class="t" x="640" y="637" text-anchor="middle">promise entries</text>
+
+  <path class="ad" d="M548,632 L368,632"/>
+  <text class="mi" x="458" y="626" text-anchor="middle">resolved against</text>
+
+  <path class="a" d="M176,632 L128,632 L128,672 L176,672"/>
+  <rect class="acc" x="176" y="656" width="556" height="34" rx="6"/>
+  <text class="tb" x="454" y="678" text-anchor="middle">one set of tables, written once for the whole run</text>
+  <path class="a" d="M732,632 L780,632 L780,672 L738,672"/>
+</svg>

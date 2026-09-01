@@ -7,7 +7,18 @@ version = "0.0.1"
 authors = [
     {name = "Oreste Sciacqualegni", email = "orestesciacqualegni@tutanota.com"},
 ]
-dependencies = []
+# The command is a set of shell scripts, so its dependencies are programs rather than modules.
+# The two that can be declared are, because leaving them undeclared is what makes a fresh install
+# fail at the first subcommand with a bare "command not found".
+#
+# `yq` here is the **Python** one (kislyuk), a thin wrapper around jq: the expression language is
+# jq's, which is why this project standardises on it rather than on the unrelated Go program of the
+# same name. It shells out to the `jq` binary, which — like `gpg`, `sha256sum` and `realpath` —
+# cannot be expressed here and has to come from the system.
+dependencies = [
+    "yq",
+    "check-jsonschema",
+]
 
 [project.urls]
 github = "https://github.com/tvp-freeports/analysis_finance_reports"
