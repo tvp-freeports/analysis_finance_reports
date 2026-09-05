@@ -11,9 +11,9 @@
 ///
 /// Accented Latin letters collapse onto their ASCII equivalent, and a few of them expand into more
 /// than one character (`ß` → `ss`, `œ` → `oe`, `æ` → `ae`, `&` → `and`). Separating punctuation
-/// (`,-–+`) becomes a space; noise punctuation (`!?{}[]()"'’/.`) disappears; everything else
-/// passes through untouched.
-fn push_translated(out: &mut String, c: char) {
+/// (`,-–+`) becomes a space; noise punctuation (`!?{}[]()"'’/.`) disappears, or becomes a space
+/// when `punctuation_separates`; everything else passes through untouched.
+fn push_translated(out: &mut String, c: char, punctuation_separates: bool) {
     match c {
         'é' | 'è' | 'ê' | 'ë' => out.push('e'),
         'á' | 'à' | 'â' | 'ä' => out.push('a'),
@@ -29,7 +29,11 @@ fn push_translated(out: &mut String, c: char) {
         'æ' => out.push_str("ae"),
         '&' => out.push_str("and"),
         ',' | '-' | '–' | '+' => out.push(' '),
-        '!' | '?' | '{' | '}' | '[' | ']' | '(' | ')' | '"' | '\'' | '’' | '/' | '.' => {}
+        '!' | '?' | '{' | '}' | '[' | ']' | '(' | ')' | '"' | '\'' | '’' | '/' | '.' => {
+            if punctuation_separates {
+                out.push(' ');
+            }
+        }
         other => out.push(other),
     }
 }
@@ -52,10 +56,39 @@ fn push_translated(out: &mut String, c: char) {
 /// assert_eq!(deep_normalize_string("Alpha-Beta"), deep_normalize_string("Alpha Beta"));
 /// ```
 pub fn deep_normalize_string(input: &str) -> String {
+    normalize(input, false)
+}
+
+/// Deep normalisation reading the noise punctuation as a separator: `Amazon.com` becomes
+/// `amazon com` where [`deep_normalize_string`] makes it `amazoncom`.
+///
+/// The two differ on exactly one point, and it is a point about *word boundaries*. Erasing the
+/// punctuation is right for deciding whether two strings name the same thing — `Amazon.com` and
+/// `Amazon com` should compare equal — but it destroys the evidence that the writer separated two
+/// words, and a reader looking for `Amazon` in `AMAZON.COM INC` needs that evidence. So this is not
+/// a rival normalisation: it is the second reading of the same text, used alongside the first where
+/// the question is where a name ends
+/// ([`crate::formats_utils::text_filter::matcher`]).
+///
+/// # Examples
+///
+/// ```
+/// use freeports::core::normalization::{deep_normalize_string, deep_normalize_string_split_on_punctuation};
+///
+/// assert_eq!(deep_normalize_string("AMAZON.COM INC"), "amazoncom inc");
+/// assert_eq!(deep_normalize_string_split_on_punctuation("AMAZON.COM INC"), "amazon com inc");
+/// // Everything else is untouched, accents and separators included.
+/// assert_eq!(deep_normalize_string_split_on_punctuation("Éclair-Fund"), "eclair fund");
+/// ```
+pub fn deep_normalize_string_split_on_punctuation(input: &str) -> String {
+    normalize(input, true)
+}
+
+fn normalize(input: &str, punctuation_separates: bool) -> String {
     let lowered = input.to_lowercase();
     let mut translated = String::with_capacity(lowered.len());
     for c in lowered.chars() {
-        push_translated(&mut translated, c);
+        push_translated(&mut translated, c, punctuation_separates);
     }
     translated.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -141,6 +174,53 @@ mod tests {
                 let out = deep_normalize_string(input);
                 assert!(!out.contains("  "), "double spaces in {out:?} (input {input:?})");
                 assert_eq!(out.trim(), out, "unclean edges in {out:?}");
+            }
+        }
+    }
+
+    mod deep_split_on_punctuation {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
+
+        #[test_case("AMAZON.COM INC", "amazon com inc"; "a dot inside a word")]
+        #[test_case("{a}[b](c)?d/e.f", "a b c d e f"; "all noise punctuation")]
+        #[test_case("Don't say \"no\"!", "don t say no"; "apostrophe and quotes")]
+        #[test_case("It’s fine", "it s fine"; "typographic apostrophe")]
+        #[test_case("...", ""; "noise only, collapsing to nothing")]
+        fn splits_where_deep_normalization_erases(input: &str, expected: &str) {
+            assert_eq!(deep_normalize_string_split_on_punctuation(input), expected);
+        }
+
+        /// Only the erased punctuation behaves differently — every other rule is shared, which is
+        /// why the two are one function with a flag rather than two normalisations to keep in step.
+        #[test_case("Hello World"; "plain words")]
+        #[test_case("Café  Fund"; "accents and spacing")]
+        #[test_case("Straße"; "an expanding letter")]
+        #[test_case("Rock & Roll"; "an ampersand")]
+        #[test_case("A,B-C–D+E"; "separators, already spaces in both")]
+        #[test_case(""; "empty string")]
+        fn agrees_with_deep_normalization_where_no_noise_punctuation_occurs(input: &str) {
+            assert_eq!(
+                deep_normalize_string_split_on_punctuation(input),
+                deep_normalize_string(input)
+            );
+        }
+
+        #[test]
+        fn never_leaves_double_spaces_or_edges() {
+            for input in [".a.", "a..b", " (c) ", "AMAZON.COM  INC.", "  Café . Fund  "] {
+                let out = deep_normalize_string_split_on_punctuation(input);
+                assert!(!out.contains("  "), "double spaces in {out:?} (input {input:?})");
+                assert_eq!(out.trim(), out, "unclean edges in {out:?}");
+            }
+        }
+
+        #[test]
+        fn is_idempotent() {
+            for input in ["AMAZON.COM INC", "Café  Fund–A", "ØMEGA/AB", "  "] {
+                let once = deep_normalize_string_split_on_punctuation(input);
+                assert_eq!(deep_normalize_string_split_on_punctuation(&once), once, "input: {input:?}");
             }
         }
     }

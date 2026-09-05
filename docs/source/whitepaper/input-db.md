@@ -30,8 +30,8 @@ Airbnb,,\bairbnb\b
 Alphabet,alphabet,\balphabet\b
 ```
 
-Each company has a **name** — what ends up in the output — and up to three kinds of evidence for
-finding it in text that was typeset for humans:
+Each company has a **name** — what ends up in the output, and the first thing looked for — plus up
+to three kinds of evidence for finding it in text that was typeset for humans:
 
 **Buds** are verbatim fragments that gate the cheap pass. The matcher tries a company's regexes
 against a piece of text only if one of that company's buds occurs in it, which is what keeps a table
@@ -73,6 +73,37 @@ Matching runs on **normalised** forms — accents, case, punctuation and spacing
 increasing degrees — so that `Café Fund`, `CAFE  FUND` and `Cafe' Fund` are one name. The name is
 kept exactly as written alongside the normalised form, and it is the written one that reaches the
 output.
+
+### The name is tried first, and only where a name can end
+
+Before any bud or regex, the matcher asks the cheap question: does the text simply contain the
+company's name? It is a substring search and not a pattern, and that is the point — it is what makes
+the first pass survive hundreds of table rows against hundreds of companies.
+
+Containment alone, though, attributes holdings to the wrong company, and the two cases that prove it
+come from real reports:
+
+| The text | The company | Why bare containment matches |
+|---|---|---|
+| `Other Assets` | `SSE` | `other a·sse·ts` |
+| `Alphabeta Access Products Ltd.` | `Alphabet` | `alphabet·a access …` |
+
+So the occurrence has to be **delimited**: no letter immediately before it, and none immediately
+after. A digit is a perfectly good boundary, and so is punctuation — reports write `3M 2029`,
+`SSE 4.75% 2031`, `ENI-SPA`, and a rule demanding a space would lose all three. Only a letter
+touching the occurrence means the page is saying a longer word.
+
+One subtlety is worth knowing, because it decides whether a holding is found. Normalisation
+**erases** `.`, `/`, `'` and their kind rather than spacing them, so `AMAZON.COM INC` becomes
+`amazoncom inc` and `Amazon` would appear to run into a letter the report never wrote next to it.
+The text is therefore read **both ways** — as normalised, and with that punctuation restored as a
+separator — and a delimited occurrence in either reading is a match. `AMAZON.COM INC`,
+`BOOKING.COM` and `L'OREAL SA` are found; `Other Assets`, which has no punctuation to split on,
+stays rejected.
+
+This applies to the name only. Buds are gates for a regex that then decides, and the regexes
+themselves say where their own boundaries are — `\balphabet\b` in the table above is doing exactly
+that job by hand.
 
 ## Target lists, and their provenance
 A run does not search for the whole database; it searches for **lists**, named with `--target-list`

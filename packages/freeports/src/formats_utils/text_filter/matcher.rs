@@ -4,7 +4,8 @@
 //! A holding is written differently in every report — the full legal name, an abbreviation, a
 //! ticker, a name split across two table cells — so a company is described by four things at once:
 //!
-//! - its **name**, matched on the deeply normalised form, so accents, case and punctuation do not matter;
+//! - its **name**, matched on the deeply normalised form — so accents, case and punctuation do
+//!   not matter — and only where no letter touches it on either side;
 //! - **buds**, verbatim fragments that must occur in the text before its regexes are even tried;
 //! - **regexs**, patterns for the shapes its name takes;
 //! - **symbols**, tickers, matched as whole words.
@@ -15,9 +16,16 @@
 //! failing — falls back to `match_long`.
 //!
 //! `match_fast` tries the normalised name, then, for each bud actually present in the text, that
-//! company's regexes in order. It never looks at symbols. `match_long` drops the bud requirement:
-//! it tries every symbol, then every regex of every company. The split matters because the second
-//! pass is the expensive one, and on a table of hundreds of rows against hundreds of companies it
+//! company's regexes in order. It never looks at symbols.
+//!
+//! The name step is a substring search and not a regex — that is what makes the pass fast — but a
+//! bare substring search is not enough: `SSE` occurs inside `Other Assets`. So the occurrence has
+//! to be delimited by something that is not a letter, checked in one character on each side, which
+//! keeps the step as cheap as it was. [`text_names_the_company`] is that rule, and it also says why
+//! the text is read in two ways rather than one.
+//!
+//! `match_long` drops the bud requirement: it tries every symbol, then every regex of every
+//! company. The split matters because the second pass is the expensive one, and on a table of hundreds of rows against hundreds of companies it
 //! is the difference between a fast run and an unusable one.
 //!
 //! If two different companies both match by regex, that is [`MatcherError::AmbiguousRegex`] rather
@@ -38,7 +46,7 @@
 use onig::{Regex as OnigRegex, RegexOptions, Syntax};
 use std::sync::Arc;
 
-use crate::core::normalization::deep_normalize_string;
+use crate::core::normalization::{deep_normalize_string, deep_normalize_string_split_on_punctuation};
 
 #[derive(Debug, Clone)]
 struct Regex {
@@ -172,10 +180,62 @@ pub enum MatcherError<'a> {
 
 type MatchResult<'a> = Result<Option<&'a str>, MatcherError<'a>>;
 
-/// Tries the normalised name, then, for each bud present in the text, that company's regexes in the
-/// order given, stopping at the first that matches. Never looks at symbols.
+/// Whether `reading` contains `n_name` as a name of its own: present as a substring, and with no
+/// letter on either side of the occurrence.
+///
+/// **A letter, not a word character.** A digit is an acceptable boundary, and so is any punctuation
+/// the normalisation leaves behind: reports write `3M`, `SSE 4.75% 2031`, `EDP 20-30`, and a rule
+/// demanding whitespace would lose them. Only a letter touching the occurrence means the text is
+/// saying a longer word, which is the failure being ruled out.
+///
+/// **Still the shortcut.** [`str::match_indices`] uses the same substring search [`str::contains`]
+/// does, and the boundary test looks at one character on each side of an occurrence — of which
+/// there is normally none or one. That keeps the fast pass fast, which is the whole reason it is
+/// not a regex: on hundreds of table rows against hundreds of companies, compiling and running
+/// `\bname\b` for every pair is exactly the cost this pass exists to avoid.
+///
+/// An empty `n_name` never matches. Plain containment says every text contains the empty string,
+/// which would make a company whose name normalises away claim every row on the page.
+fn contains_delimited(reading: &str, n_name: &str) -> bool {
+    if n_name.is_empty() {
+        return false;
+    }
+    reading.match_indices(n_name).any(|(start, occurrence)| {
+        let before = reading[..start].chars().next_back();
+        let after = reading[start + occurrence.len()..].chars().next();
+        !before.is_some_and(char::is_alphabetic) && !after.is_some_and(char::is_alphabetic)
+    })
+}
+
+/// Whether the text names the company outright — the name shortcut of [`match_fast`], and the one
+/// step of the matcher that reaches a verdict without a regex.
+///
+/// Plain containment is not enough, and the case that made that clear is real: the company `SSE`
+/// occurs inside `Other Assets`, which normalises to `other a·sse·ts`, so every row of every report
+/// reading "Other Assets" was being booked as a holding of SSE. Hence [`contains_delimited`].
+///
+/// **Two readings of the same text**, because the boundary the report printed can be gone by the
+/// time the check runs. [`deep_normalize_string`] *erases* the noise punctuation — right for
+/// deciding that two strings name the same company, fatal here, since `AMAZON.COM INC` becomes
+/// `amazoncom inc` and `Amazon` is then followed by a letter the report never wrote next to it. So
+/// the occurrence is looked for both in the normalised text and in the reading where that
+/// punctuation separates instead of vanishing, and one delimited occurrence in either is a match.
+///
+/// The company's name is used in its ordinary normalised form against both, and deliberately so:
+/// the second reading is there to expose a boundary the erasure hid, not to respell the name.
+fn text_names_the_company(readings: (&str, &str), n_name: &str) -> bool {
+    let (normalized, split_on_punctuation) = readings;
+    contains_delimited(normalized, n_name) || contains_delimited(split_on_punctuation, n_name)
+}
+
+/// Tries the name as a delimited whole (see [`text_names_the_company`]), then, for each bud present
+/// in the text, that company's regexes in the order given, stopping at the first that matches.
+/// Never looks at symbols.
 fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> MatchResult<'a> {
     let txt = deep_normalize_string(text);
+    // The second reading the name shortcut needs, computed once for the text rather than once per
+    // company — the loop below runs it against every one of them.
+    let split_txt = deep_normalize_string_split_on_punctuation(text);
     let mut last_matching_regex: Option<(&str, &str)> = None;
     let mut res: MatchResult<'a> = Ok(None);
 
@@ -185,7 +245,7 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
         // nearly all of them saying "no", which is not information. The text in the clear is the
         // useful part — it can be found again with a search inside the PDF — which is why it is
         // the *first* anchor and the company only the second.
-        if txt.contains(&c.n_name) {
+        if text_names_the_company((&txt, &split_txt), &c.n_name) {
             tracing::trace!(coord_ref_1 = %text, coord_ref_2 = %c.name, "company matched by its name");
             return Ok(Some(&c.name));
         }
@@ -363,6 +423,98 @@ mod tests {
         }
     }
 
+    mod name_shortcut {
+        use super::*;
+        use test_case::test_case;
+
+        /// The two readings `match_fast` builds, from one piece of text.
+        fn names_the_company(text: &str, name: &str) -> bool {
+            let normalized = deep_normalize_string(text);
+            let split = deep_normalize_string_split_on_punctuation(text);
+            text_names_the_company((&normalized, &split), &deep_normalize_string(name))
+        }
+
+        #[test_case("SSE", "SSE"; "the whole text")]
+        #[test_case("SSE PLC 2031", "SSE"; "at the start")]
+        #[test_case("Scottish and Southern SSE", "SSE"; "at the end")]
+        #[test_case("Bond SSE 4.75%", "SSE"; "surrounded by spaces")]
+        #[test_case("Coca Cola Bottling", "Coca Cola"; "a name of several words")]
+        fn accepts_an_occurrence_no_letter_touches(text: &str, name: &str) {
+            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+        }
+
+        /// The failure this rule exists for: `Other Assets` normalises to `other assets`, which
+        /// contains `sse`, so every row reading "Other Assets" was attributed to SSE.
+        #[test_case("Other Assets", "SSE"; "the case that motivated the rule")]
+        #[test_case("Assets", "SSE"; "a letter on each side")]
+        #[test_case("SSEN Transmission", "SSE"; "a letter after")]
+        #[test_case("Classe A", "SSE"; "a letter before")]
+        #[test_case("Intesa Sanpaolo", "Sanpaol"; "a prefix of a longer word")]
+        fn rejects_an_occurrence_a_letter_touches(text: &str, name: &str) {
+            assert!(!names_the_company(text, name), "{name:?} should not name a company in {text:?}");
+        }
+
+        /// Digits and the punctuation the normalisation keeps are boundaries, because reports write
+        /// names against them.
+        #[test_case("3M 2029", "3M"; "a name that starts with a digit")]
+        #[test_case("SSE4.75% 2031", "SSE"; "a digit right after")]
+        #[test_case("Bond 5SSE", "SSE"; "a digit right before")]
+        #[test_case("SSE% of net assets", "SSE"; "a percent sign right after")]
+        #[test_case("ENI-SPA", "ENI"; "a dash, which normalisation turns into a space")]
+        fn treats_digits_and_kept_punctuation_as_boundaries(text: &str, name: &str) {
+            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+        }
+
+        /// The boundary the report printed survives the normalisation erasing it. Without the
+        /// second reading every one of these is lost, `AMAZON.COM INC` having become `amazoncom
+        /// inc` by the time the check runs.
+        #[test_case("AMAZON.COM INC", "Amazon"; "a dot inside the holding name")]
+        #[test_case("BOOKING.COM", "Booking"; "a dot at the end of the name")]
+        #[test_case("SSE(PLC)", "SSE"; "parentheses")]
+        #[test_case("L'OREAL SA", "L'Oreal"; "an apostrophe inside the name itself")]
+        #[test_case("VOLKSWAGEN/AUDI", "Volkswagen"; "a slash")]
+        fn treats_erased_punctuation_as_a_boundary_too(text: &str, name: &str) {
+            assert!(names_the_company(text, name), "{name:?} should name a company in {text:?}");
+        }
+
+        /// The second reading widens the boundaries, not the names: it must not let a name through
+        /// that no reading of the text delimits.
+        #[test_case("Other Assets", "SSE"; "no punctuation to split on")]
+        #[test_case("A.SSEMBLY", "SSE"; "split leaves a letter touching")]
+        fn the_second_reading_does_not_readmit_an_undelimited_name(text: &str, name: &str) {
+            assert!(!names_the_company(text, name), "{name:?} should not name a company in {text:?}");
+        }
+
+        /// One occurrence being delimited is enough, wherever the undelimited ones fall.
+        #[test]
+        fn one_delimited_occurrence_among_several_is_enough() {
+            assert!(names_the_company("Classe A SSE PLC", "SSE"));
+            assert!(names_the_company("SSE PLC Classe A", "SSE"));
+        }
+
+        #[test]
+        fn a_name_not_present_at_all_is_not_a_match() {
+            assert!(!names_the_company("Other Assets", "Eni"));
+        }
+
+        /// `str::contains` says every text contains the empty string; a company whose name
+        /// normalised away would then claim every row on the page.
+        #[test]
+        fn an_empty_name_never_matches() {
+            assert!(!contains_delimited("other assets", ""));
+            assert!(!contains_delimited("", ""));
+        }
+
+        /// The boundary test reads one character on each side, and a non-ASCII letter is one
+        /// character however many bytes it occupies. Normalisation folds the Latin accents but
+        /// passes other scripts through untouched.
+        #[test]
+        fn a_non_ascii_letter_is_a_letter_and_not_a_boundary() {
+            assert!(!names_the_company("привет", "иве"));
+            assert!(names_the_company("привет иве", "иве"));
+        }
+    }
+
     mod match_companies {
         use super::*;
         use pretty_assertions::assert_eq;
@@ -437,11 +589,18 @@ mod tests {
             use pretty_assertions::assert_eq;
             use test_case::test_case;
 
-            #[test_case(" The Pimpa CompanyMatchInfos", "pimpa Co."; "just name")]
+            #[test_case(" The Pimpa Co. 4.75% 2031", "pimpa Co."; "just name")]
             #[test_case("One BLACK ROCK'n ROLL", "BlackRock"; "regex reached through a bud")]
             fn matches(provided: &str, expected: &str) {
                 let res = match_fast(provided, &COMPANY_LIST).unwrap().unwrap();
                 assert_eq!(res, expected);
+            }
+
+            /// The name occurs, but as the head of a longer word, so neither the name shortcut nor
+            /// the company's own regexes accept it.
+            #[test]
+            fn a_name_running_into_a_longer_word_is_not_a_match() {
+                assert!(match_fast(" The Pimpa CompanyMatchInfos", &COMPANY_LIST).unwrap().is_none());
             }
 
             #[test]
