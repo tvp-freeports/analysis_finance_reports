@@ -61,5 +61,7 @@ place in the engine where reasoning across pages is available at all
 ## What happens when your pipe raises
 A Python exception raised by your pipe is logged **with its traceback** and converted to a typed
 error at the boundary. No Python exception travels further into the engine, so a format cannot crash
-a run in a way that loses the other formats' results — the job fails, and it fails with a message
-naming the format, the page and the pipe.
+a run: the page your pipe raised on is skipped, with an error row naming the format, the page and
+the pipe, and every other page of the document is extracted as usual. A pipe that raises on every
+page therefore yields an empty result and a log full of rows saying why, rather than a run that
+dies.

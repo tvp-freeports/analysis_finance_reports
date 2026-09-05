@@ -14,7 +14,7 @@ use crate::core::classes::{BlockValue, BlockValueError};
 use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
-use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
+use super::{OutputClassError, pending_of, promised_from_value};
 
 /// The fields a rename and a merge have in common: the name before and after the event, and the
 /// date it happened.
@@ -22,7 +22,6 @@ use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
 pub struct FundChangeNameData {
     pub old_name: String,
     pub current_name: String,
-    #[serde(with = "serde_promised")]
     pub date: Promised<Date>,
 }
 

@@ -20,6 +20,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rayon::prelude::*;
 
@@ -213,10 +214,27 @@ impl Algorithm {
 
         let mut raw = Vec::with_capacity(doc.pages.len());
         // Contributions are collected per page and validated **afterwards**, in page order: that is
-        // what makes the reported error identical to the sequential loop's even when several pages
+        // what makes what is reported identical to the sequential loop's even when several pages
         // fail together.
         for (page, contributions) in doc.pages.iter().zip(self.classify_each_page(&doc.pages, parallelism)) {
-            for result in contributions? {
+            // A page whose classification fails is left without a class: no step will name it, so
+            // nothing will be extracted from it, which is the right outcome — and the other pages
+            // of the document keep theirs. The `None` is not optional: the count check below reads
+            // one contribution per page.
+            let contributions = match contributions {
+                Ok(contributions) => contributions,
+                Err(error) => {
+                    tracing::error!(
+                        document = %doc.id,
+                        page = page.number,
+                        error = log_error(&error),
+                        "classification failed: {error} - page left unclassified"
+                    );
+                    raw.push(None);
+                    continue;
+                }
+            };
+            for result in contributions {
                 match result {
                     Extracted::PageClass(class) => raw.push(class),
                     other => {
@@ -349,6 +367,11 @@ impl Algorithm {
         let classifications = self.classify_pages_multidocument_with(docs, parallelism)?;
         let scheduled = self.schedule.assign(docs, &classifications)?;
 
+        // Pages left out of the results, counted across every step. Atomic because the per-page
+        // loop of a step runs on a rayon pool; `Relaxed` is enough, since nothing is ordered
+        // against it and it is read once, after every thread has joined.
+        let skipped = AtomicUsize::new(0);
+
         // `(document index, page number) -> (class, accumulated results)`. The key is the index
         // rather than the id because two documents may legitimately share an id.
         let mut per_page: BTreeMap<(usize, u32), (PageClass, Vec<Extracted>)> = BTreeMap::new();
@@ -383,7 +406,8 @@ impl Algorithm {
                     FilterData::Previous(&previous)
                 };
 
-                let results_per_page = self.apply_each_page(bundle, class_group, &data, parallelism);
+                let results_per_page =
+                    self.apply_each_page(bundle, class_group, &data, parallelism, &skipped);
                 // Recomposition is sequential and in page order, so `produced_in_this_step` and
                 // `per_page` come out **identical** to the sequential case, not merely equivalent.
                 for (scheduled_page, results) in class_group.iter().zip(results_per_page) {
@@ -397,6 +421,14 @@ impl Algorithm {
             }
             tracing::info!(produced = produced_in_this_step.len(), "step finished");
             previous.extend(produced_in_this_step);
+        }
+
+        // One event per run, not per page: each skipped page already said so where it happened.
+        // This exists so that whoever watches only stderr at the default verbosity cannot finish a
+        // run believing everything was read.
+        let skipped = skipped.into_inner();
+        if skipped > 0 {
+            tracing::warn!(skipped, "some pages could not be processed and were left out of the results");
         }
 
         let mut outcomes: Vec<DocumentOutcome> = docs
@@ -418,16 +450,23 @@ impl Algorithm {
     /// Applies the bundle to every scheduled page of the group, in parallel when it pays.
     ///
     /// Returns one result per page, in the same order: recomposition — and therefore the order of
-    /// the results and which error is reported first — stays with the caller, sequentially.
+    /// the results — stays with the caller, sequentially.
     ///
-    /// A **non-fatal** page failure stays an `Ok(vec![])` with its warning, as in the sequential
-    /// loop: it is a skipped page, not a failed job.
+    /// **Every** failure of a page stays an `Ok(vec![])` with its event and a tick of `skipped`: a
+    /// page is the largest thing a page's failure can cost. The severity still distinguishes the
+    /// two kinds — a page the pipes declare unreadable is a `warn`, anything else an `error` — but
+    /// neither reaches the job.
+    ///
+    /// The `Result` in the return type therefore has no way of being an `Err` today. It is kept
+    /// because the caller recomposes sequentially in page order, and because a genuinely fatal
+    /// per-page condition would have nowhere else to go.
     fn apply_each_page(
         &self,
         bundle: &PipelinesBundle,
         pages: &[ScheduledPage<'_>],
         data: &FilterData<'_>,
         parallelism: Parallelism,
+        skipped: &AtomicUsize,
     ) -> Vec<Result<Vec<Extracted>, AlgorithmError>> {
         let apply_one = |scheduled_page: &ScheduledPage<'_>| {
             // This span gives every event produced by this page's pipes the page number, which is
@@ -444,9 +483,22 @@ impl Algorithm {
                         error = log_error(&error),
                         "page skipped: {error}"
                     );
+                    skipped.fetch_add(1, Ordering::Relaxed);
                     Ok(Vec::new())
                 }
-                Err(error) => Err(error.into()),
+                Err(error) => {
+                    // `page` is spelled out although the span already carries it: a `.log.csv` row
+                    // exists only if the *event* names a page or a coordinate, and this is the one
+                    // event a reader will look for.
+                    tracing::error!(
+                        document = %scheduled_page.doc.id,
+                        page = scheduled_page.page.number,
+                        error = log_error(&error),
+                        "page failed: {error} - page skipped"
+                    );
+                    skipped.fetch_add(1, Ordering::Relaxed);
+                    Ok(Vec::new())
+                }
             })
         };
 
@@ -1223,22 +1275,145 @@ mod tests {
         }
 
         #[test]
-        fn any_other_failure_stops_the_run() {
+        fn a_failure_of_any_other_kind_costs_the_page_too() {
+            // The severity differs — this one is an `error`, the absorbed one a `warn` — but the
+            // cost is the same: a page. Only a configuration problem, which belongs to no page,
+            // stops the run.
             let algorithm = algorithm_whose_work_pipeline_fails(false);
-            let err = algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap_err();
-            assert!(matches!(err, AlgorithmError::Pipe(PipeError::Extraction { .. })));
+            let outcome = algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap();
+            assert_eq!(outcome.pages.len(), 1);
+            assert!(outcome.pages[0].results.is_empty());
+        }
+    }
+
+    /// A failure belongs to the smallest thing that contains it. A page that cannot be read costs
+    /// that page; the pages beside it, the document and the run are unaffected. What still stops a
+    /// run is configuration — a class nobody maps, a classifier returning the wrong kind of thing —
+    /// because containing that would produce an empty run full of warnings instead of one readable
+    /// error.
+    mod containment {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// A work pipeline that explodes — fatally, not absorbably — on the named pages only.
+        fn algorithm_failing_on_pages(pages: &'static [u32]) -> Algorithm {
+            let mut work = Pipeline::new("work");
+            work.pdf_extract.push(FailingOnPages::fatal("boom", pages));
+            work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (PipelineName::new("work"), work),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
+            )
+            .expect("fixture is consistent")
+        }
+
+        fn classifier_failing_on_pages(pages: &'static [u32]) -> Algorithm {
+            let mut classify = Pipeline::new("classify");
+            classify.pdf_extract.push(FailingOnPages::fatal("boom", pages));
+            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classify),
+                    (PipelineName::new("work"), promising_pipeline("work", "id")),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
+            )
+            .expect("fixture is consistent")
         }
 
         #[test]
-        fn a_page_failure_during_classification_is_not_absorbed() {
-            // A page failure is absorbed in the schedule loop but not during classification: the
-            // asymmetry is deliberate — a page that cannot even be classified has no class to be
-            // scheduled under.
-            let mut classify = Pipeline::new("classify");
-            classify.pdf_extract.push(FailingExtract::page_parse("skipper"));
-            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
-            classify.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+        fn one_doomed_page_does_not_stop_the_others_of_its_step() {
+            let algorithm = algorithm_failing_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            let outcome = algorithm.apply(&document, &companies()).unwrap();
 
+            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1)]);
+        }
+
+        #[test]
+        fn the_multidocument_entry_point_returns_ok_with_pages_missing() {
+            let algorithm = algorithm_failing_on_pages(&[1]);
+            let documents = [doc("d", vec![page(1, &["x"])])];
+            assert!(algorithm.apply_multidocument(&documents, &companies()).is_ok());
+        }
+
+        #[test]
+        fn a_document_whose_every_page_fails_still_produces_an_outcome() {
+            let algorithm = algorithm_failing_on_pages(&[1, 2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
+            let outcome = algorithm.apply(&document, &companies()).unwrap();
+            assert!(outcome.pages.iter().all(|p| p.results.is_empty()));
+        }
+
+        #[test]
+        fn a_classification_that_fails_leaves_that_page_without_a_class() {
+            let algorithm = classifier_failing_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            let classes = algorithm.classify_pages(&document).unwrap();
+
+            assert_eq!(classes, vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]);
+        }
+
+        #[test]
+        fn the_contribution_count_still_matches_the_page_count() {
+            // What makes the `None` mandatory: the check comparing classifications to pages runs
+            // on this vector, and a missing entry would turn a skipped page into a fatal mismatch.
+            let algorithm = classifier_failing_on_pages(&[1, 3]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            assert_eq!(algorithm.classify_pages(&document).unwrap().len(), document.pages.len());
+        }
+
+        #[test]
+        fn an_unclassified_page_is_simply_never_scheduled() {
+            let algorithm = classifier_failing_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
+            let outcome = algorithm.apply(&document, &companies()).unwrap();
+
+            assert_eq!(outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(), vec![1]);
+        }
+
+        #[test]
+        fn a_class_the_schedule_never_heard_of_still_stops_the_run() {
+            // Configuration, not data: it belongs to no page, so there is nothing to contain it in.
+            let algorithm = Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("b"))),
+                    (PipelineName::new("work"), promising_pipeline("work", "id")),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
+            )
+            .expect("fixture is consistent");
+
+            let err = algorithm.apply(&doc("d", vec![page(1, &["x"])]), &companies()).unwrap_err();
+            assert!(matches!(err, AlgorithmError::Schedule(_)), "{err:?}");
+        }
+
+        #[test]
+        fn a_classifier_returning_the_wrong_kind_of_thing_still_stops_the_run() {
+            // Also configuration: a classification pipeline that deserializes something which is
+            // not a page class is a format that cannot work on any page.
+            let mut classify = Pipeline::new("classify");
+            classify.pdf_extract.push(LinesToBlocks::pipe("lines"));
+            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify.deserialize.push(PromiseDepositor::pipe("promise", "id"));
             let algorithm = Algorithm::new(
                 "FMT",
                 BTreeMap::from([
@@ -1250,11 +1425,10 @@ mod tests {
                 Schedule::new(vec![step(&["a"])]),
                 BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
             )
-            .unwrap();
+            .expect("fixture is consistent");
 
-            let err =
-                algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
-            assert!(matches!(err, AlgorithmError::Pipe(PipeError::PageParse { .. })));
+            let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
+            assert!(matches!(err, AlgorithmError::NotAPageClassification { .. }), "{err:?}");
         }
     }
 
@@ -1587,10 +1761,11 @@ mod tests {
         mod failures {
             use super::*;
 
-            /// With several pages failing, the reported error is the lowest-numbered page's, as in
-            /// the sequential loop, which stopped at the first.
+            /// With several pages failing, the surviving pages and their order are the same
+            /// whether the step ran on one thread or on many: containment does not depend on how
+            /// the work was spread.
             #[test]
-            fn the_reported_error_is_the_one_of_the_lowest_numbered_page() {
+            fn the_pages_that_survive_are_the_same_either_way() {
                 let mut work = Pipeline::new("work");
                 work.pdf_extract.push(FailingOnPages::fatal("boom", &[7, 3, 9]));
                 work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
@@ -1609,11 +1784,13 @@ mod tests {
                 .expect("fixture is consistent");
                 let document = wide_document(12);
 
-                let sequential = algorithm.apply(&document, &companies()).unwrap_err().to_string();
-                let concurrent =
-                    algorithm.apply_with(&document, &companies(), parallel()).unwrap_err().to_string();
+                let sequential = algorithm.apply(&document, &companies()).unwrap();
+                let concurrent = algorithm.apply_with(&document, &companies(), parallel()).unwrap();
                 assert_eq!(sequential, concurrent);
-                assert!(concurrent.contains("page 3 is doomed"), "got: {concurrent}");
+
+                let empty: Vec<_> =
+                    concurrent.pages.iter().filter(|p| p.results.is_empty()).map(|p| p.page).collect();
+                assert_eq!(empty, vec![3, 7, 9]);
             }
 
             /// An **absorbable** failure is not a job error: the page comes out empty, and that

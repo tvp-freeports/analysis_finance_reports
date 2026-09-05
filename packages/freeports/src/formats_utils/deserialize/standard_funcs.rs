@@ -11,6 +11,20 @@
 //! empty, logs a warning, and the row survives. One unreadable cell should not cost the holding it
 //! belongs to.
 //!
+//! # A lost holding costs a holding
+//!
+//! Losing the entity is where it stops. [`DeserializerInvestmentStandard`] absorbs its own failures
+//! and returns "nothing to say" rather than propagating them, because one holding is the smallest
+//! thing that contains such a failure and a document of a thousand pages must not be thrown away
+//! over one cell. Two severities are kept apart: a report writing a dash where a number belongs is
+//! expected (`warn`), a value that is there and will not convert is not (`error`). What still
+//! propagates is a block of the **wrong type**, which is a mistake in the format rather than in the
+//! report.
+//!
+//! The events say *holding*, not *row*: by the time a block reaches a deserializer the table it may
+//! have come from is gone, and what is lost is a position in a portfolio. A row is a fact of the
+//! layout, and the word belongs upstream — in `text_filter`, where a `(row, column)` really exists.
+//!
 //! # Values may arrive already typed
 //!
 //! Currencies and amounts are accepted either as an already-typed [`BlockValue`] or as a string to
@@ -141,9 +155,10 @@ impl DeserializePipe for DeserializerFundStandard {
 /// block.
 ///
 /// The two error policies described in the module documentation meet here. Required — company,
-/// company match, fund, market value, currency — fails the row. Optional — quantity, percentage of
-/// net assets, acquisition cost and currency — leaves the field empty with a warning, so a single
-/// unreadable cell does not cost the whole position.
+/// company match, fund, market value, currency — fails the holding, which is skipped with one event
+/// naming the company and the field. Optional — quantity, percentage of net assets, acquisition
+/// cost and currency — leaves the field empty with a warning, so a single unreadable cell does not
+/// cost the whole position.
 pub struct DeserializerInvestmentStandard {
     cost_and_value_interpret_int: bool,
     quantity_interpret_float: bool,
@@ -244,10 +259,51 @@ impl DeserializerInvestmentStandard {
         // The `First coord ref` column of the `.log.csv` comes from here. It is set on a span
         // rather than on individual events because it has to hold for *everything* this row's
         // deserialization produces, including events born inside the conversion functions, which
-        // have no way of knowing it.
+        // have no way of knowing it — and including the two events below, which is why the guard
+        // must outlive them and the span is opened here rather than inside `build_row`.
         let row_span = tracing::info_span!("investment", coord_ref_1 = %company);
         let _row_guard = row_span.enter();
 
+        match self.build_row(txt_blk, is_equity, company, company_match) {
+            Ok(extracted) => Ok(extracted),
+            // A block whose *type* is not what this pipe expects is a broken format, not dirty
+            // data: nothing about the page would be salvaged by carrying on, so it keeps
+            // travelling. Page-level containment stops it one level up.
+            Err(err @ DeserializeStandardFuncsError::Value(_)) => Err(err),
+            // Expected: the report itself writes "no value here". The holding is lost, but
+            // nothing went wrong, hence `warn!` and the marker quoted as it was printed.
+            Err(DeserializeStandardFuncsError::LineParseFail {
+                field,
+                source: CastError::NoDigits { data },
+            }) => {
+                tracing::warn!(
+                    coord_ref_2 = field,
+                    "the report writes {data:?} where a number belongs - holding skipped"
+                );
+                Ok(None)
+            }
+            // Anomalous: there *is* a value and it cannot be made sense of. One holding is lost;
+            // the page and the run are not.
+            Err(err) => {
+                tracing::error!(error = log_error(&err), "could not build the investment: {err} - holding skipped");
+                Ok(None)
+            }
+        }
+    }
+
+    /// The body of [`Self::call`]: everything that can fail on account of what a row *contains*.
+    ///
+    /// Split out so that the failure is handled where the `investment` span is open — that span is
+    /// what carries the company into the `.log.csv`, and without it a skipped holding would be
+    /// impossible to find again in the PDF.
+    fn build_row(
+        &self,
+        txt_blk: &TextBlock,
+        is_equity: bool,
+        company: String,
+        company_match: String,
+    ) -> Result<Option<Extracted>, DeserializeStandardFuncsError> {
+        let md = &txt_blk.metadata;
         let fields = InvestmentFields {
             company,
             company_match,
@@ -703,16 +759,16 @@ mod tests {
             fn an_unreadable_market_value_loses_the_whole_line() {
                 let mut md = base_metadata();
                 md.insert("market value".to_string(), BlockValue::from("not a number"));
-                let err = DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap_err();
-                assert!(matches!(err, DeserializeStandardFuncsError::LineParseFail { field: "market value", .. }));
+                let out = DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap();
+                assert!(out.is_none());
             }
 
             #[test]
             fn a_missing_market_value_key_loses_the_whole_line() {
                 let mut md = base_metadata();
                 md.remove("market value");
-                let err = DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap_err();
-                assert!(matches!(err, DeserializeStandardFuncsError::MissingField { field: "market value" }));
+                let out = DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap();
+                assert!(out.is_none());
             }
 
             #[test]
@@ -727,7 +783,7 @@ mod tests {
             fn an_unknown_currency_loses_the_whole_line() {
                 let mut md = base_metadata();
                 md.insert("currency".to_string(), BlockValue::from("XYZ"));
-                assert!(DeserializerInvestmentStandard::default().call(&equity_block(md)).is_err());
+                assert!(DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap().is_none());
             }
 
             #[test]
@@ -742,7 +798,7 @@ mod tests {
             fn a_null_fund_loses_the_whole_line_like_in_the_reference() {
                 let mut md = base_metadata();
                 md.insert("fund".to_string(), BlockValue::Null);
-                assert!(DeserializerInvestmentStandard::default().call(&equity_block(md)).is_err());
+                assert!(DeserializerInvestmentStandard::default().call(&equity_block(md)).unwrap().is_none());
             }
         }
 
@@ -863,16 +919,158 @@ mod tests {
             fn an_unreadable_maturity_loses_the_whole_line_unlike_an_optional_field() {
                 let mut md = base_metadata();
                 md.insert("maturity".to_string(), BlockValue::from("not a date"));
-                let err = DeserializerInvestmentStandard::default().call(&block(BlockType::BOND_TARGET, md)).unwrap_err();
-                assert!(matches!(err, DeserializeStandardFuncsError::LineParseFail { field: "maturity", .. }));
+                let out =
+                    DeserializerInvestmentStandard::default().call(&block(BlockType::BOND_TARGET, md)).unwrap();
+                assert!(out.is_none());
             }
 
             #[test]
             fn an_out_of_range_interest_rate_is_rejected_by_the_entity() {
                 let mut md = base_metadata();
                 md.insert("interest rate".to_string(), BlockValue::from("150 %"));
-                let err = DeserializerInvestmentStandard::default().call(&block(BlockType::BOND_TARGET, md)).unwrap_err();
-                assert!(matches!(err, DeserializeStandardFuncsError::OutputClass(_)));
+                let out =
+                    DeserializerInvestmentStandard::default().call(&block(BlockType::BOND_TARGET, md)).unwrap();
+                assert!(out.is_none());
+            }
+
+            #[test]
+            fn a_maturity_of_the_wrong_type_still_fails_the_pipe() {
+                // Not dirty data but a block that is not shaped as this pipe's contract says: that
+                // is a bug in the format, and it keeps travelling.
+                let mut md = base_metadata();
+                md.insert("maturity".to_string(), BlockValue::from(1i64));
+                let err =
+                    DeserializerInvestmentStandard::default().call(&block(BlockType::BOND_TARGET, md)).unwrap_err();
+                assert!(matches!(err, DeserializeStandardFuncsError::Value(_)));
+            }
+        }
+
+        /// A holding that cannot be read costs that holding and nothing more. The severities
+        /// stay apart — a report writing "no value" is expected, a value that will not convert is
+        /// not — and both leave the page and the run alive. The word is *holding* and not *row*
+        /// because a table is not what a deserializer sees: it sees a block, and what it fails to
+        /// build from it is a position in a portfolio.
+        mod holding_containment {
+            use super::*;
+            use std::sync::{Arc, Mutex};
+            use test_case::test_case;
+            use tracing::Level;
+            use tracing::field::{Field, Visit};
+            use tracing_subscriber::Registry;
+            use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+
+            #[derive(Default)]
+            struct MessageVisitor(String);
+
+            impl Visit for MessageVisitor {
+                fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                    if field.name() == "message" {
+                        self.0 = format!("{value:?}");
+                    }
+                }
+            }
+
+            #[derive(Clone, Default)]
+            struct CapturingLayer {
+                events: Arc<Mutex<Vec<(Level, String)>>>,
+            }
+
+            impl<S: tracing::Subscriber> Layer<S> for CapturingLayer {
+                fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+                    let mut visitor = MessageVisitor::default();
+                    event.record(&mut visitor);
+                    self.events.lock().unwrap().push((*event.metadata().level(), visitor.0));
+                }
+            }
+
+            /// The level and message of every event emitted while `f` ran.
+            fn events_of(f: impl FnOnce()) -> Vec<(Level, String)> {
+                let layer = CapturingLayer::default();
+                let subscriber = Registry::default().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, f);
+                let events = layer.events.lock().unwrap();
+                events.clone()
+            }
+
+            fn with_market_value(value: &str) -> TextBlock {
+                let mut md = base_metadata();
+                md.insert("market value".to_string(), BlockValue::from(value));
+                equity_block(md)
+            }
+
+            #[test]
+            fn a_dash_instead_of_a_market_value_costs_the_holding_not_the_job() {
+                let out = DeserializerInvestmentStandard::default().deserialize(&with_market_value("-")).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn a_dash_is_expected_enough_to_be_a_warning_naming_what_the_report_wrote() {
+                let events = events_of(|| {
+                    let _ = DeserializerInvestmentStandard::default().deserialize(&with_market_value("-"));
+                });
+                let skipped: Vec<_> =
+                    events.iter().filter(|(_, message)| message.contains("holding skipped")).collect();
+                assert_eq!(skipped.len(), 1, "one holding, one event: {events:?}");
+                assert_eq!(skipped[0].0, Level::WARN, "{events:?}");
+                assert!(skipped[0].1.contains(r#""-""#), "the marker itself is quoted: {events:?}");
+            }
+
+            #[test_case("\u{2013}"; "en dash")]
+            #[test_case("n/a"; "not available")]
+            #[test_case(""; "empty cell")]
+            fn every_no_value_marker_behaves_like_the_dash(marker: &str) {
+                let out =
+                    DeserializerInvestmentStandard::default().deserialize(&with_market_value(marker)).unwrap();
+                assert!(out.is_empty(), "{marker:?}");
+            }
+
+            #[test]
+            fn garbage_carrying_digits_costs_the_holding_too() {
+                // A false positive of the company matcher anchors the row on the wrong column and
+                // every offset shifts: this is what a market value then looks like.
+                let out = DeserializerInvestmentStandard::default()
+                    .deserialize(&with_market_value("CALLEUROBUNDWEEKLY10012025135"))
+                    .unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn garbage_is_anomalous_enough_to_be_an_error() {
+                let events = events_of(|| {
+                    let _ = DeserializerInvestmentStandard::default()
+                        .deserialize(&with_market_value("CALLEUROBUNDWEEKLY10012025135"));
+                });
+                let skipped: Vec<_> =
+                    events.iter().filter(|(_, message)| message.contains("holding skipped")).collect();
+                assert_eq!(skipped.len(), 1, "one holding, one event: {events:?}");
+                assert_eq!(skipped[0].0, Level::ERROR, "{events:?}");
+            }
+
+            #[test]
+            fn a_market_value_of_zero_is_a_position_and_is_kept() {
+                let out =
+                    DeserializerInvestmentStandard::default().deserialize(&with_market_value("0,00")).unwrap();
+                assert_eq!(out.len(), 1);
+                let value = out[0].as_equity().unwrap().data.market_value.resolved().map(|v| v.into_inner());
+                assert_eq!(value, Some(0.0));
+            }
+
+            #[test]
+            fn a_percentage_outside_its_domain_costs_the_holding_not_the_job() {
+                let mut md = base_metadata();
+                md.insert("% net assets".to_string(), BlockValue::from(456622.96));
+                let out = DeserializerInvestmentStandard::default().deserialize(&equity_block(md)).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn a_skipped_holding_does_not_stop_the_blocks_after_it() {
+                let deserializer = DeserializerInvestmentStandard::default();
+                let good = deserializer.deserialize(&with_market_value("1.000")).unwrap();
+                let bad = deserializer.deserialize(&with_market_value("-")).unwrap();
+                let good_again = deserializer.deserialize(&with_market_value("2.000")).unwrap();
+                assert_eq!((good.len(), bad.len(), good_again.len()), (1, 0, 1));
             }
         }
 
@@ -885,11 +1083,21 @@ mod tests {
             }
 
             #[test]
-            fn a_line_parse_failure_is_a_fatal_pipe_error_not_a_skipped_page() {
+            fn a_line_parse_failure_costs_the_holding_and_nothing_else() {
                 let mut md = base_metadata();
                 md.insert("market value".to_string(), BlockValue::from("nope"));
-                let err = DeserializerInvestmentStandard::default().deserialize(&equity_block(md)).unwrap_err();
-                assert!(!err.is_page_failure());
+                let out = DeserializerInvestmentStandard::default().deserialize(&equity_block(md)).unwrap();
+                assert!(out.is_empty());
+            }
+
+            #[test]
+            fn a_wrongly_typed_block_is_still_a_value_error_of_the_pipe() {
+                let mut md = base_metadata();
+                md.insert("interest rate".to_string(), BlockValue::from(BTreeMap::new()));
+                let err = DeserializerInvestmentStandard::default()
+                    .deserialize(&block(BlockType::BOND_TARGET, md))
+                    .unwrap_err();
+                assert!(matches!(err, PipeError::Value { .. }), "{err:?}");
             }
         }
     }

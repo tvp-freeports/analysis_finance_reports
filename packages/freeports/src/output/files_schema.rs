@@ -24,8 +24,6 @@ pub enum SchemaError {
     NotGreaterOrEqual { field: &'static str, value: String, bound: String },
     #[error("{field} must be in range [{min}, {max}], got {value}")]
     OutOfRange { field: &'static str, value: String, min: String, max: String },
-    #[error("{table}: duplicate {field} value `{value}`")]
-    Duplicate { table: &'static str, field: &'static str, value: String },
 }
 
 fn positive_u32(field: &'static str, value: i64) -> Result<u32, SchemaError> {
@@ -87,8 +85,19 @@ fn in_range_half_open_f64(field: &'static str, value: f64, min: f64, max: f64) -
     }
 }
 
-/// A table refusing any row whose uniqueness key — formatted by the caller, from one column or
-/// several joined for a composite key — has already been seen.
+/// A table that keeps **one** row per uniqueness key — formatted by the caller, from one column or
+/// several joined for a composite key.
+///
+/// # A repeated key is the same fact, not a mistake
+///
+/// Every key here identifies something in the world rather than something in a file: a fund's
+/// merger, its assets on a date, its SFDR article, the manager that runs it. A run over several
+/// reports of the same house meets those facts more than once — the same merger is printed in
+/// every prospectus it concerns — and the second telling adds nothing but its own provenance.
+///
+/// So a repeated key is **idempotent**: the first row stays, the later ones are dropped, and the
+/// run carries on. Refusing them instead used to abort the writing of an entire batch over a
+/// merger reported twice, which is a real cost paid for no information.
 pub struct UniqueTable<Row> {
     table: &'static str,
     field: &'static str,
@@ -101,13 +110,23 @@ impl<Row> UniqueTable<Row> {
         Self { table, field, seen: HashSet::new(), rows: Vec::new() }
     }
 
-    pub fn push(&mut self, key: impl Into<String>, row: Row) -> Result<(), SchemaError> {
+    /// Adds `row` unless its key is already there, and says whether it was kept.
+    ///
+    /// `debug` rather than `warn`: nothing was lost — the fact is in the table, told by whichever
+    /// report reached it first — and a batch of related reports repeats its shared facts by the
+    /// hundred.
+    pub fn push(&mut self, key: impl Into<String>, row: Row) -> bool {
         let key = key.into();
         if !self.seen.insert(key.clone()) {
-            return Err(SchemaError::Duplicate { table: self.table, field: self.field, value: key });
+            tracing::debug!(
+                table = self.table,
+                "{} already told by another report ({key}) - counted once",
+                self.field
+            );
+            return false;
         }
         self.rows.push(row);
-        Ok(())
+        true
     }
 
     pub fn rows(&self) -> &[Row] {
@@ -172,8 +191,14 @@ impl InvestmentRow {
             triggering_text,
             investee,
             financial_instrument,
-            nominal_quantity: nominal_quantity.map(|v| positive_f32("Nominal/Quantity", v)).transpose()?,
-            market_value: positive_f32("Market value", market_value)?,
+            // Non-negative for the same reason as the market value: a report can carry a position
+            // whose quantity has been written down to nothing, and the product's invariant is that
+            // the number is not negative.
+            nominal_quantity: nominal_quantity.map(|v| non_negative_f32("Nominal/Quantity", v)).transpose()?,
+            // Zero is admissible here for the same reason as in
+            // `InvestmentData::validate_ranges`: a frozen holding is reported at zero, and the
+            // product's invariant is that the value is not negative, not that it is not zero.
+            market_value: non_negative_f32("Market value", market_value)?,
             currency,
             perc_net_assets: perc_net_assets
                 .map(|v| in_range_inclusive_f32("% net assets", v, 0.0, 1.0))
@@ -528,21 +553,29 @@ mod tests {
             ));
         }
 
-        #[test_case(0.0; "zero")]
-        #[test_case(-5.0; "negative")]
-        fn rejects_non_positive_nominal_quantity_when_present(bad: f32) {
+        #[test]
+        fn accepts_a_zero_nominal_quantity() {
+            assert!(valid_investment(|a| a.nominal_quantity = Some(0.0)).is_ok());
+        }
+
+        #[test]
+        fn rejects_a_negative_nominal_quantity() {
             assert!(matches!(
-                valid_investment(|a| a.nominal_quantity = Some(bad)),
-                Err(SchemaError::NotGreaterThan { field: "Nominal/Quantity", .. })
+                valid_investment(|a| a.nominal_quantity = Some(-5.0)),
+                Err(SchemaError::NotGreaterOrEqual { field: "Nominal/Quantity", .. })
             ));
         }
 
-        #[test_case(0.0; "zero")]
-        #[test_case(-1.0; "negative")]
-        fn rejects_non_positive_market_value(bad: f32) {
+        #[test]
+        fn accepts_a_zero_market_value() {
+            assert!(valid_investment(|a| a.market_value = 0.0).is_ok());
+        }
+
+        #[test]
+        fn rejects_a_negative_market_value() {
             assert!(matches!(
-                valid_investment(|a| a.market_value = bad),
-                Err(SchemaError::NotGreaterThan { field: "Market value", .. })
+                valid_investment(|a| a.market_value = -1.0),
+                Err(SchemaError::NotGreaterOrEqual { field: "Market value", .. })
             ));
         }
 
@@ -888,19 +921,28 @@ mod tests {
         #[test]
         fn accepts_first_occurrence_of_each_key() {
             let mut t: UniqueTable<u32> = UniqueTable::new("t", "k");
-            t.push("a", 1).unwrap();
-            t.push("b", 2).unwrap();
+            assert!(t.push("a", 1));
+            assert!(t.push("b", 2));
             assert_eq!(t.rows(), &[1, 2]);
         }
 
         #[test]
-        fn rejects_a_repeated_key_and_does_not_append_it() {
+        fn a_repeated_key_is_counted_once_instead_of_failing() {
             let mut t: UniqueTable<u32> = UniqueTable::new("investments", "ID");
-            t.push("1", 1).unwrap();
-            let err = t.push("1", 99).unwrap_err();
-            assert_eq!(err, SchemaError::Duplicate { table: "investments", field: "ID", value: "1".into() });
+            t.push("1", 1);
+            assert!(!t.push("1", 99), "the second telling of the same fact is dropped");
             assert_eq!(t.len(), 1);
             assert_eq!(t.rows(), &[1]);
+        }
+
+        #[test]
+        fn the_row_kept_is_the_one_that_arrived_first() {
+            // Two reports tell the same fact; the later one differs only in provenance, so which
+            // of the two is kept is arbitrary — but it must be *decided*, not left to chance.
+            let mut t: UniqueTable<&str> = UniqueTable::new("t", "k");
+            t.push("k", "from the first report");
+            t.push("k", "from the second report");
+            assert_eq!(t.rows(), &["from the first report"]);
         }
 
         #[test]
@@ -913,8 +955,8 @@ mod tests {
         #[test]
         fn into_rows_consumes_the_table() {
             let mut t: UniqueTable<u32> = UniqueTable::new("t", "k");
-            t.push("a", 1).unwrap();
-            t.push("b", 2).unwrap();
+            t.push("a", 1);
+            t.push("b", 2);
             assert_eq!(t.into_rows(), vec![1, 2]);
         }
 
@@ -923,27 +965,22 @@ mod tests {
             // The same fund on a different date is not a duplicate; the same fund on the same date
             // is.
             let mut t: UniqueTable<(u32, &str)> = UniqueTable::new("funds_assets", "Fund ID|Date");
-            t.push("1|2024-01-01", (1, "2024-01-01")).unwrap();
-            t.push("1|2024-02-01", (1, "2024-02-01")).unwrap();
-            t.push("2|2024-01-01", (2, "2024-01-01")).unwrap();
+            t.push("1|2024-01-01", (1, "2024-01-01"));
+            t.push("1|2024-02-01", (1, "2024-02-01"));
+            t.push("2|2024-01-01", (2, "2024-01-01"));
             assert_eq!(t.len(), 3);
-            assert!(t.push("1|2024-01-01", (1, "2024-01-01")).is_err());
+            assert!(!t.push("1|2024-01-01", (1, "2024-01-01")));
         }
 
         #[test]
-        fn stress_10k_unique_keys_all_accepted_then_every_key_rejected_on_replay() {
+        fn stress_10k_unique_keys_all_accepted_then_every_key_deduplicated_on_replay() {
             let mut t: UniqueTable<u32> = UniqueTable::new("stress", "ID");
             for i in 0..10_000u32 {
-                t.push(i.to_string(), i).unwrap();
+                assert!(t.push(i.to_string(), i));
             }
             assert_eq!(t.len(), 10_000);
-            let mut rejected = 0;
-            for i in 0..10_000u32 {
-                if t.push(i.to_string(), i).is_err() {
-                    rejected += 1;
-                }
-            }
-            assert_eq!(rejected, 10_000);
+            let deduplicated = (0..10_000u32).filter(|i| !t.push(i.to_string(), *i)).count();
+            assert_eq!(deduplicated, 10_000);
             assert_eq!(t.len(), 10_000);
         }
     }
@@ -974,14 +1011,6 @@ mod tests {
                 SchemaError::OutOfRange { field: "% net assets", value: "1.5".into(), min: "0".into(), max: "1".into() }
                     .to_string(),
                 "% net assets must be in range [0, 1], got 1.5"
-            );
-        }
-
-        #[test]
-        fn duplicate_message() {
-            assert_eq!(
-                SchemaError::Duplicate { table: "investments", field: "ID", value: "1".into() }.to_string(),
-                "investments: duplicate ID value `1`"
             );
         }
     }

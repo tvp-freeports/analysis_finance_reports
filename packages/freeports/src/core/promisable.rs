@@ -21,7 +21,7 @@
 //! The order matters for work, not just for semantics: the copies produced by phase 2 already
 //! carry the values resolved in phase 1, instead of resolving them once per copy.
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use super::classes::value::{BlockValue, BlockValueError};
 use super::promise::{Promise, PromiseError};
@@ -29,7 +29,22 @@ use super::promise_resolution::FlatPromiseMap;
 use crate::core::tracing_setup::log_error;
 
 /// A field that is either already resolved, or still a promise.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+///
+/// # The serde representation is tagged, and has to be
+///
+/// `{"resolved": …}` or `{"pending": "fund[]!"}`, for the same reason
+/// [`BlockValue`](crate::core::classes::value::BlockValue) is tagged: written flat, a pending
+/// promise is indistinguishable from a resolved value — literally so for `T = String`, where the
+/// promise's id and a legitimate name are both just text.
+///
+/// This is not a theoretical tidiness. A worker process serialises its results and the parent reads
+/// them back **before** the promises are fulfilled, since fulfilment happens once, in the parent,
+/// over every job. Every pending field of every entity therefore crosses that boundary. Untagged,
+/// the crossing either failed loudly — a promise id landing where an `SfdrArticle` was expected,
+/// which aborted whole batches — or, worse, succeeded quietly, giving a fund the name of the
+/// promise that should have filled it in.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Promised<T> {
     Resolved(T),
     Pending(Promise),
@@ -80,21 +95,6 @@ impl<T> Promised<T> {
 impl<T> From<Promise> for Promised<T> {
     fn from(p: Promise) -> Self {
         Promised::Pending(p)
-    }
-}
-
-/// Serialises as the resolved value, or as the promise's canonical form — the same form a formats
-/// repository writes in its CSV files.
-///
-/// The opposite direction is deliberately not implemented: from a string one cannot decide in
-/// general whether it is a `T` or a promise (for `T = String` they are the same thing), so the
-/// choice belongs to the entity that declares the field, type by type.
-impl<T: Serialize> Serialize for Promised<T> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Promised::Resolved(v) => v.serialize(serializer),
-            Promised::Pending(p) => p.serialize(serializer),
-        }
     }
 }
 
@@ -334,9 +334,52 @@ mod tests {
         }
 
         #[test]
-        fn serializes_as_value_or_as_promise() {
-            assert_eq!(serde_json::to_string(&Promised::Resolved(3_i64)).unwrap(), "3");
-            assert_eq!(serde_json::to_string(&pending_i64("fund[]!")).unwrap(), "\"fund[]!\"");
+        fn serializes_with_the_tag_that_says_which_of_the_two_it_is() {
+            assert_eq!(serde_json::to_string(&Promised::Resolved(3_i64)).unwrap(), r#"{"resolved":3}"#);
+            assert_eq!(
+                serde_json::to_string(&pending_i64("fund[]!")).unwrap(),
+                r#"{"pending":"fund[]!"}"#
+            );
+        }
+
+        #[test]
+        fn a_resolved_field_reads_back_as_the_same_value() {
+            let field = Promised::Resolved(3_i64);
+            let json = serde_json::to_string(&field).unwrap();
+            assert_eq!(serde_json::from_str::<Promised<i64>>(&json).unwrap(), field);
+        }
+
+        #[test]
+        fn a_pending_field_reads_back_as_the_same_promise() {
+            // The whole point of the tag. A worker process hands its results to the parent before
+            // any promise is fulfilled, so this is the ordinary crossing, not an edge case.
+            let field = pending_i64("fund[]!");
+            let json = serde_json::to_string(&field).unwrap();
+            assert_eq!(serde_json::from_str::<Promised<i64>>(&json).unwrap(), field);
+        }
+
+        #[test]
+        fn a_promised_string_does_not_read_a_promise_back_as_a_name() {
+            // The silent half of the bug the tag exists to prevent: for `T = String` a promise id
+            // and a real name are both text, so an untagged form gave a fund the name of the
+            // promise that was supposed to fill it in.
+            let field: Promised<String> = Promised::Pending(Promise::new("fund_name"));
+            let json = serde_json::to_string(&field).unwrap();
+            let back: Promised<String> = serde_json::from_str(&json).unwrap();
+            assert!(back.is_pending(), "read back as {back:?}");
+            assert_eq!(back, field);
+        }
+
+        #[test]
+        fn an_optional_promised_field_survives_in_all_three_states() {
+            for field in [
+                Some(Promised::Resolved(3_i64)),
+                Some(pending_i64("x")),
+                None,
+            ] {
+                let json = serde_json::to_string(&field).unwrap();
+                assert_eq!(serde_json::from_str::<Option<Promised<i64>>>(&json).unwrap(), field);
+            }
         }
     }
 

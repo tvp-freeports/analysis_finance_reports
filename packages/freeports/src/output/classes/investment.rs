@@ -17,7 +17,6 @@ use crate::core::promise::Promise;
 
 use super::{
     FloatConstraint, OutputClassError, optional_promised_from_value, pending_of, promised_from_value,
-    serde_optional_promised, serde_promised,
 };
 
 /// The fields an equity and a bond have in common.
@@ -28,18 +27,12 @@ use super::{
 pub struct InvestmentData {
     pub company: String,
     pub company_match: String,
-    #[serde(with = "serde_promised")]
     pub fund: Promised<String>,
     pub nominal_quantity: Option<OrderedFloat<f64>>,
-    #[serde(with = "serde_promised")]
     pub market_value: Promised<OrderedFloat<f64>>,
-    #[serde(with = "serde_promised")]
     pub currency: Promised<Currency>,
-    #[serde(with = "serde_optional_promised")]
     pub perc_net_assets: Option<Promised<OrderedFloat<f64>>>,
-    #[serde(with = "serde_optional_promised")]
     pub acquisition_cost: Option<Promised<OrderedFloat<f64>>>,
-    #[serde(with = "serde_optional_promised")]
     pub acquisition_currency: Option<Promised<Currency>>,
 }
 
@@ -114,7 +107,7 @@ impl InvestmentData {
             company_match,
             fund: promised_from_value("fund", &fund, |v| v.str_or_fail("fund").map(str::to_string))?,
             nominal_quantity: nominal_quantity
-                .map(|v| FloatConstraint::Positive.validate("nominal_quantity", v).map(OrderedFloat))
+                .map(|v| FloatConstraint::NonNegative.validate("nominal_quantity", v).map(OrderedFloat))
                 .transpose()?,
             market_value: promised_from_value(
                 "market_value",
@@ -141,15 +134,21 @@ impl InvestmentData {
     }
 
     /// Checks the numeric domains of the already-resolved fields only.
+    ///
+    /// Every amount here admits its edges, and says so with a warning rather than a refusal: a
+    /// holding frozen and written off is printed at `0,00`, a bond can be carried at no
+    /// acquisition cost, and a fund can hold one position worth its entire net assets. Those are
+    /// the positions worth finding, not the ones worth dropping. Outside the edges — a negative
+    /// amount, a share above the whole — it is still an error.
     fn validate_ranges(&self) -> Result<(), OutputClassError> {
         if let Some(v) = self.market_value.resolved() {
-            FloatConstraint::Positive.validate("market_value", v.into_inner())?;
+            FloatConstraint::NonNegative.validate("market_value", v.into_inner())?;
         }
         if let Some(Some(v)) = self.perc_net_assets.as_ref().map(Promised::resolved) {
-            FloatConstraint::UnitIntervalHalfOpen.validate("perc_net_assets", v.into_inner())?;
+            FloatConstraint::UnitIntervalClosed.validate("perc_net_assets", v.into_inner())?;
         }
         if let Some(Some(v)) = self.acquisition_cost.as_ref().map(Promised::resolved) {
-            FloatConstraint::Positive.validate("acquisition_cost", v.into_inner())?;
+            FloatConstraint::NonNegative.validate("acquisition_cost", v.into_inner())?;
         }
         Ok(())
     }
@@ -324,31 +323,16 @@ mod tests {
         use super::*;
 
         #[test]
-        fn a_zero_market_value_is_rejected_because_the_field_is_strictly_positive() {
-            let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
-            assert!(matches!(
-                Equity::build(f),
-                Err(OutputClassError::OutOfRange { field: "market_value", constraint: FloatConstraint::Positive, .. })
-            ));
-        }
-
-        #[test]
-        fn a_negative_market_value_is_rejected() {
-            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
-            assert!(Equity::build(f).is_err());
-        }
-
-        #[test]
-        fn a_zero_nominal_quantity_is_rejected() {
-            let f = InvestmentFields { nominal_quantity: Some(0.0), ..fields() };
+        fn a_negative_nominal_quantity_is_rejected() {
+            let f = InvestmentFields { nominal_quantity: Some(-1.0), ..fields() };
             assert!(matches!(Equity::build(f), Err(OutputClassError::OutOfRange { field: "nominal_quantity", .. })));
         }
 
         #[test]
-        fn perc_net_assets_accepts_zero_but_not_one() {
-            let ok = InvestmentFields { perc_net_assets: Some(BlockValue::from(0.0)), ..fields() };
-            assert!(Equity::build(ok).is_ok());
-            let ko = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+        fn perc_net_assets_accepts_the_whole_but_not_more() {
+            let ok = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            assert!(Equity::build(ok).is_ok(), "a fund may hold a single position worth all of it");
+            let ko = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0001)), ..fields() };
             assert!(matches!(Equity::build(ko), Err(OutputClassError::OutOfRange { field: "perc_net_assets", .. })));
         }
 
@@ -361,8 +345,8 @@ mod tests {
         }
 
         #[test]
-        fn a_zero_acquisition_cost_is_rejected() {
-            let f = InvestmentFields { acquisition_cost: Some(BlockValue::from(0.0)), ..fields() };
+        fn a_negative_acquisition_cost_is_rejected() {
+            let f = InvestmentFields { acquisition_cost: Some(BlockValue::from(-0.01)), ..fields() };
             assert!(matches!(Equity::build(f), Err(OutputClassError::OutOfRange { field: "acquisition_cost", .. })));
         }
 
@@ -376,10 +360,197 @@ mod tests {
 
         #[test]
         fn the_error_message_names_both_the_field_and_the_constraint() {
+            let f = InvestmentFields { nominal_quantity: Some(-1.0), ..fields() };
+            let message = Equity::build(f).unwrap_err().to_string();
+            assert!(message.contains("nominal_quantity"), "{message}");
+            assert!(message.contains("greater than or equal to 0"), "{message}");
+        }
+    }
+
+    /// Every amount of a holding admits its edge, and none of them passes it over in silence.
+    /// This is the policy the engine applies to real reports: a value on the boundary is data, and
+    /// data is kept — but it is rare enough to deserve one line naming it.
+    mod domain_edges {
+        use super::*;
+        use std::sync::{Arc, Mutex};
+        use tracing::Level;
+        use tracing::field::{Field, Visit};
+        use tracing_subscriber::Registry;
+        use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+
+        #[derive(Clone, Debug)]
+        struct Record {
+            level: Level,
+            message: String,
+            field: String,
+        }
+
+        impl Visit for Record {
+            fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                if field.name() == "message" {
+                    self.message = format!("{value:?}");
+                }
+            }
+
+            fn record_str(&mut self, field: &Field, value: &str) {
+                if field.name() == "coord_ref_2" {
+                    self.field = value.to_string();
+                }
+            }
+        }
+
+        #[derive(Clone, Default)]
+        struct CapturingLayer {
+            records: Arc<Mutex<Vec<Record>>>,
+        }
+
+        impl<S: tracing::Subscriber> Layer<S> for CapturingLayer {
+            fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+                let mut record = Record {
+                    level: *event.metadata().level(),
+                    message: String::new(),
+                    field: String::new(),
+                };
+                event.record(&mut record);
+                self.records.lock().unwrap().push(record);
+            }
+        }
+
+        /// The events emitted while building an entity from `fields`, and the entity itself.
+        fn build_and_capture(f: InvestmentFields) -> (Result<Equity, OutputClassError>, Vec<Record>) {
+            let layer = CapturingLayer::default();
+            let subscriber = Registry::default().with(layer.clone());
+            let built = tracing::subscriber::with_default(subscriber, || Equity::build(f));
+            let records = layer.records.lock().unwrap().clone();
+            (built, records)
+        }
+
+        fn edge_events(records: &[Record]) -> Vec<&Record> {
+            records.iter().filter(|r| r.message.contains("edge of the admissible range")).collect()
+        }
+
+        #[test]
+        fn a_zero_acquisition_cost_is_kept() {
+            let f = InvestmentFields { acquisition_cost: Some(BlockValue::from(0.0)), ..fields() };
+            let value = Equity::build(f).unwrap().data.acquisition_cost.and_then(|p| p.resolved().copied());
+            assert_eq!(value.map(|v| v.into_inner()), Some(0.0));
+        }
+
+        #[test]
+        fn a_zero_nominal_quantity_is_kept() {
+            let f = InvestmentFields { nominal_quantity: Some(0.0), ..fields() };
+            assert_eq!(Equity::build(f).unwrap().data.nominal_quantity.map(|v| v.into_inner()), Some(0.0));
+        }
+
+        #[test]
+        fn a_position_worth_the_whole_fund_is_kept() {
+            let f = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            let value = Equity::build(f).unwrap().data.perc_net_assets.and_then(|p| p.resolved().copied());
+            assert_eq!(value.map(|v| v.into_inner()), Some(1.0));
+        }
+
+        #[test]
+        fn a_value_on_the_edge_is_warned_about_once_and_names_its_field() {
             let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
+            let (built, records) = build_and_capture(f);
+            assert!(built.is_ok());
+
+            let edges = edge_events(&records);
+            assert_eq!(edges.len(), 1, "one value on an edge, one event: {records:?}");
+            assert_eq!(edges[0].level, Level::WARN);
+            assert_eq!(edges[0].field, "market_value");
+            assert!(edges[0].message.contains('0'), "{:?}", edges[0]);
+        }
+
+        #[test]
+        fn each_field_on_an_edge_gets_its_own_event() {
+            let f = InvestmentFields {
+                market_value: BlockValue::from(0.0),
+                nominal_quantity: Some(0.0),
+                perc_net_assets: Some(BlockValue::from(1.0)),
+                acquisition_cost: Some(BlockValue::from(0.0)),
+                ..fields()
+            };
+            let (built, records) = build_and_capture(f);
+            assert!(built.is_ok());
+
+            let mut named: Vec<&str> = edge_events(&records).iter().map(|r| r.field.as_str()).collect();
+            named.sort_unstable();
+            assert_eq!(named, ["acquisition_cost", "market_value", "nominal_quantity", "perc_net_assets"]);
+        }
+
+        #[test]
+        fn a_value_comfortably_inside_its_domain_says_nothing() {
+            let (built, records) = build_and_capture(fields());
+            assert!(built.is_ok());
+            assert!(edge_events(&records).is_empty(), "{records:?}");
+        }
+
+        #[test]
+        fn a_value_outside_the_domain_is_an_error_and_not_an_edge() {
+            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
+            let (built, records) = build_and_capture(f);
+            assert!(built.is_err());
+            assert!(edge_events(&records).is_empty(), "{records:?}");
+        }
+
+        #[test]
+        fn an_interest_rate_of_one_stays_out_of_range_because_its_bound_is_open() {
+            // The coupon keeps the half-open interval: unlike a share of net assets, a rate of one
+            // whole is not something a report legitimately prints.
+            assert!(matches!(
+                Bond::build(fields(), None, Some(1.0)),
+                Err(OutputClassError::OutOfRange { field: "interest_rate", .. })
+            ));
+        }
+    }
+
+    mod market_value_domain {
+        //! The market value is the one amount that admits zero: a holding frozen and written off
+        //! is printed at `0,00` in a real report, and dropping it would hide exactly the kind of
+        //! position this tool exists to find.
+        use super::*;
+
+        #[test]
+        fn a_zero_market_value_is_accepted() {
+            let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
+            let equity = Equity::build(f).unwrap();
+            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(0.0));
+        }
+
+        #[test]
+        fn a_zero_market_value_written_as_an_integer_is_accepted_too() {
+            let f = InvestmentFields { market_value: BlockValue::from(0i64), ..fields() };
+            assert!(Equity::build(f).is_ok());
+        }
+
+        #[test]
+        fn a_negative_market_value_is_still_rejected() {
+            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
+            assert!(matches!(
+                Equity::build(f),
+                Err(OutputClassError::OutOfRange {
+                    field: "market_value",
+                    constraint: FloatConstraint::NonNegative,
+                    ..
+                })
+            ));
+        }
+
+        #[test]
+        fn the_rejection_message_names_the_relaxed_constraint() {
+            let f = InvestmentFields { market_value: BlockValue::from(-1.0), ..fields() };
             let message = Equity::build(f).unwrap_err().to_string();
             assert!(message.contains("market_value"), "{message}");
-            assert!(message.contains("greater than 0"), "{message}");
+            assert!(message.contains("greater than or equal to 0"), "{message}");
+        }
+
+        #[test]
+        fn a_zero_market_value_resolved_from_a_promise_is_accepted() {
+            let f = InvestmentFields { market_value: BlockValue::Promise(Promise::new("mv")), ..fields() };
+            let mut equity = Equity::build(f).unwrap();
+            equity.resolve_field("market_value", BlockValue::from(0.0)).unwrap();
+            assert_eq!(equity.data.market_value.resolved().map(|v| v.into_inner()), Some(0.0));
         }
     }
 

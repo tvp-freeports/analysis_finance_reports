@@ -203,17 +203,21 @@ fn searchable_excerpt(value: &BlockValue) -> String {
     }
 }
 
-/// A segment's log line, emitted **only when there is really something to say**: at least one
-/// result *and* a non-empty excerpt to anchor it to the page.
+/// A segment's log line, emitted **whenever there is a place to anchor it to**: a non-empty
+/// excerpt, whether or not anything came out.
 ///
 /// The non-empty requirement is not fussiness. `PdfExtractPageClassifyStandard` always returns
 /// exactly one block, even when the page does not belong to its page class, and that block has
 /// empty content — counting blocks produced 11,259 identical, contentless rows on a single
-/// document, half of the whole `.log.csv` at `-vv`.
+/// document, half of the whole `.log.csv` at `-vv`. That case is still suppressed, by the excerpt
+/// and not by the count.
+///
+/// A count of zero, on the other hand, has to be said. `pdf_extract` and `text_filter` sample
+/// their own output, so an empty one has no excerpt and stays silent as before; `deserialize`
+/// samples its **input**, so a page that had blocks and yielded no entity now says so. Staying
+/// quiet there made a page that produced nothing indistinguishable from a page that failed, which
+/// is precisely the pair a reader of the log needs to tell apart.
 fn log_segment_output(message: &'static str, produced: usize, sample: Option<&BlockValue>) {
-    if produced == 0 {
-        return;
-    }
     let Some(excerpt) = sample.map(searchable_excerpt).filter(|text| !text.is_empty()) else {
         return;
     };
@@ -237,9 +241,9 @@ impl PdfExtractSegment {
             let pipe_span = tracing::info_span!("pipe", pipe = pipe.name());
             let _pipe_guard = pipe_span.enter();
             let blocks = pipe.extract(page)?;
-            // Only if the pipe really produced something. A pipe that does not apply to this page
-            // is the normal case — every page class is tried against every page — and its empty row
-            // was on its own half of the `.log.csv` at `-vv`.
+            // A pipe that does not apply to this page is the normal case — every page class is
+            // tried against every page — and it produces nothing to anchor a line to, so it says
+            // nothing: its empty row was on its own half of the `.log.csv` at `-vv`.
             log_segment_output("pdf blocks extracted", blocks.len(), blocks.first().map(|b| &b.content));
             out.extend(blocks);
         }
@@ -799,6 +803,137 @@ mod tests {
         fn an_empty_segment_filters_nothing() {
             let out = TextFilterSegment::new().apply(&[], &FilterData::EMPTY).unwrap();
             assert!(out.is_empty());
+        }
+    }
+
+    /// A segment says what it did with a page, and "nothing came out of it" is a thing it did.
+    /// Before, a page that produced no entity and a page whose pipe blew up looked exactly alike in
+    /// the log, which made a failure impossible to locate without re-running the job.
+    mod segment_logging {
+        use super::*;
+        use std::sync::{Arc as StdArc, Mutex};
+        use tracing::field::{Field, Visit};
+        use tracing_subscriber::Registry;
+        use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+
+        /// One captured event: its message and, when it carries them, the `found` excerpt and the
+        /// `produced` count.
+        #[derive(Default, Clone, Debug)]
+        struct Record {
+            message: String,
+            found: Option<String>,
+            produced: Option<u64>,
+        }
+
+        impl Visit for Record {
+            fn record_u64(&mut self, field: &Field, value: u64) {
+                if field.name() == "produced" {
+                    self.produced = Some(value);
+                }
+            }
+
+            fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                match field.name() {
+                    "message" => self.message = format!("{value:?}"),
+                    "found" => self.found = Some(format!("{value:?}")),
+                    _ => {}
+                }
+            }
+        }
+
+        #[derive(Clone, Default)]
+        struct CapturingLayer {
+            records: StdArc<Mutex<Vec<Record>>>,
+        }
+
+        impl<S: tracing::Subscriber> Layer<S> for CapturingLayer {
+            fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+                let mut record = Record::default();
+                event.record(&mut record);
+                self.records.lock().unwrap().push(record);
+            }
+        }
+
+        fn records_of(f: impl FnOnce()) -> Vec<Record> {
+            let layer = CapturingLayer::default();
+            let subscriber = Registry::default().with(layer.clone());
+            tracing::subscriber::with_default(subscriber, f);
+            let records = layer.records.lock().unwrap();
+            records.clone()
+        }
+
+        /// A deserializer with nothing to say about any block: the ordinary case of a pipe whose
+        /// block type is not the one on this page.
+        struct SaysNothing;
+
+        impl DeserializePipe for SaysNothing {
+            fn name(&self) -> &str {
+                "says-nothing"
+            }
+
+            fn deserialize(&self, _block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+                Ok(Vec::new())
+            }
+        }
+
+        fn text_block(content: &str) -> TextBlock {
+            TextBlock::from_content(BlockType::PAGE_CLASS, std::collections::BTreeMap::new(), content)
+        }
+
+        #[test]
+        fn a_page_that_yielded_no_entity_says_so() {
+            let mut segment = DeserializeSegment::new();
+            segment.push(Arc::new(SaysNothing) as Arc<dyn DeserializePipe>);
+
+            let records = records_of(|| {
+                let _ = segment.apply(&[text_block("ACME CORP 1.000 EUR")]);
+            });
+            let line = records
+                .iter()
+                .find(|r| r.message.contains("entities deserialized"))
+                .unwrap_or_else(|| panic!("no line about the segment's output: {records:?}"));
+            assert_eq!(line.produced, Some(0));
+            assert!(line.found.as_deref().unwrap_or_default().contains("ACME CORP"), "{line:?}");
+        }
+
+        #[test]
+        fn a_page_that_yielded_entities_still_says_how_many() {
+            let mut segment = DeserializeSegment::new();
+            segment.push(ConstantClassifier::pipe("a", Some("x")));
+
+            let records = records_of(|| {
+                let _ = segment.apply(&[text_block("ACME CORP")]);
+            });
+            let line = records.iter().find(|r| r.message.contains("entities deserialized")).unwrap();
+            assert_eq!(line.produced, Some(1));
+        }
+
+        #[test]
+        fn a_block_with_nothing_to_quote_is_still_not_worth_a_line() {
+            // The suppression that matters is the one on the excerpt, not the one on the count:
+            // the page-classify pipe returns one contentless block per page, and counting those
+            // once filled half the `.log.csv` of a single document.
+            let mut segment = DeserializeSegment::new();
+            segment.push(Arc::new(SaysNothing) as Arc<dyn DeserializePipe>);
+
+            let records = records_of(|| {
+                let _ = segment.apply(&[text_block("")]);
+            });
+            assert!(
+                !records.iter().any(|r| r.message.contains("entities deserialized")),
+                "{records:?}"
+            );
+        }
+
+        #[test]
+        fn a_segment_that_extracted_nothing_has_nothing_to_anchor_a_line_to() {
+            let mut segment = PdfExtractSegment::new();
+            segment.push(LinesToBlocks::pipe("lines"));
+
+            let records = records_of(|| {
+                let _ = segment.apply(&page_with(&[]));
+            });
+            assert!(!records.iter().any(|r| r.message.contains("pdf blocks extracted")), "{records:?}");
         }
     }
 

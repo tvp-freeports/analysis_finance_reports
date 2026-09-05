@@ -60,13 +60,26 @@ pub enum OutputClassError {
 }
 
 /// The numeric domains a field can be constrained to.
+///
+/// # The edges belong to the domain, and are worth saying out loud
+///
+/// A domain here is closed wherever a real report can land on its edge: a holding frozen and
+/// written off is worth exactly zero, a fund can hold a single position worth its whole net
+/// assets. Rejecting those would throw away the very positions this engine exists to surface.
+///
+/// Accepting them is not the same as passing them over in silence. A value sitting **exactly** on
+/// an edge is rare enough to be worth finding again in the report, so [`Self::validate`] lets it
+/// through and emits one `warn`. What stays rejected is what falls *outside*: a negative amount, a
+/// share above the whole.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FloatConstraint {
     /// Strictly greater than zero.
     Positive,
-    /// Greater than or equal to zero.
+    /// Greater than or equal to zero. Zero is admissible, and warned about.
     NonNegative,
-    /// A **fraction**, not a percentage: `0.05` means five per cent.
+    /// A **fraction**, not a percentage: `0.05` means five per cent. Both edges are admissible.
+    UnitIntervalClosed,
+    /// Like [`Self::UnitIntervalClosed`], but the whole is not admissible.
     UnitIntervalHalfOpen,
 }
 
@@ -75,6 +88,7 @@ impl std::fmt::Display for FloatConstraint {
         let text = match self {
             FloatConstraint::Positive => "input should be greater than 0",
             FloatConstraint::NonNegative => "input should be greater than or equal to 0",
+            FloatConstraint::UnitIntervalClosed => "input should be in the range [0.0, 1.0]",
             FloatConstraint::UnitIntervalHalfOpen => "input should be in the range [0.0, 1.0)",
         };
         f.write_str(text)
@@ -83,16 +97,36 @@ impl std::fmt::Display for FloatConstraint {
 
 impl FloatConstraint {
     /// Checks `value`, naming `field` in the error.
+    ///
+    /// A value on an admissible edge of the domain passes **and** is logged: see the type's
+    /// documentation for why the two are not in tension.
     pub fn validate(self, field: &'static str, value: f64) -> Result<f64, OutputClassError> {
         let ok = match self {
             FloatConstraint::Positive => value > 0.0,
             FloatConstraint::NonNegative => value >= 0.0,
+            FloatConstraint::UnitIntervalClosed => (0.0..=1.0).contains(&value),
             FloatConstraint::UnitIntervalHalfOpen => (0.0..1.0).contains(&value),
         };
-        if ok {
-            Ok(value)
-        } else {
-            Err(OutputClassError::OutOfRange { field, constraint: self, value: value.to_string() })
+        if !ok {
+            return Err(OutputClassError::OutOfRange { field, constraint: self, value: value.to_string() });
+        }
+        if self.is_on_an_edge(value) {
+            // `coord_ref_2` rather than a free field: it is the `.log.csv` column that says *which*
+            // field a row is about, and the enclosing span already carries the page and the
+            // company, which is what makes the value findable in the report.
+            tracing::warn!(coord_ref_2 = field, "{value} sits on the edge of the admissible range - kept");
+        }
+        Ok(value)
+    }
+
+    /// Whether `value` is exactly on an edge the domain **includes**. An open bound has no such
+    /// edge: nothing that passes is next to it.
+    fn is_on_an_edge(self, value: f64) -> bool {
+        match self {
+            FloatConstraint::Positive => false,
+            FloatConstraint::NonNegative => value == 0.0,
+            FloatConstraint::UnitIntervalClosed => value == 0.0 || value == 1.0,
+            FloatConstraint::UnitIntervalHalfOpen => value == 0.0,
         }
     }
 }
@@ -128,47 +162,4 @@ pub(crate) fn optional_promised_from_value<T>(
 /// The pending promise of a field, if there is one: a helper for the promisable implementations.
 pub(crate) fn pending_of<T>(field: &'static str, value: &Promised<T>) -> Option<(&'static str, Promise)> {
     value.pending().map(|promise| (field, promise.clone()))
-}
-
-/// Serde for a `Promised<T>` field.
-///
-/// A `Promised<T>` serializes on its own but does **not** deserialize: from a string one cannot
-/// decide in general whether it is a `T` or a promise, so each entity chooses. The choice here is
-/// that **on reading, a promise does not exist** — the value is always resolved.
-///
-/// That is correct for real use: promises are resolved *before* anything is written, so no file the
-/// system produces contains a pending entity, and the round trip is total over everything it does
-/// write.
-pub(crate) mod serde_promised {
-    use super::Promised;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<T: Serialize, S: Serializer>(value: &Promised<T>, serializer: S) -> Result<S::Ok, S::Error> {
-        value.serialize(serializer)
-    }
-
-    pub fn deserialize<'de, T: Deserialize<'de>, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Promised<T>, D::Error> {
-        T::deserialize(deserializer).map(Promised::Resolved)
-    }
-}
-
-/// Like [`serde_promised`], for an optional field.
-pub(crate) mod serde_optional_promised {
-    use super::Promised;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<T: Serialize, S: Serializer>(
-        value: &Option<Promised<T>>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        value.serialize(serializer)
-    }
-
-    pub fn deserialize<'de, T: Deserialize<'de>, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Promised<T>>, D::Error> {
-        Ok(Option::<T>::deserialize(deserializer)?.map(Promised::Resolved))
-    }
 }

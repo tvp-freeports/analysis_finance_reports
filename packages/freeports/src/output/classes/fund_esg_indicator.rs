@@ -11,12 +11,11 @@ use crate::core::classes::{BlockValue, BlockValueError};
 use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
-use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
+use super::{OutputClassError, pending_of, promised_from_value};
 
 /// An ESG indicator of a fund. The name and value are free strings, carried without interpretation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundEsgIndicator {
-    #[serde(with = "serde_promised")]
     pub fund: Promised<String>,
     pub name: String,
     pub value: String,

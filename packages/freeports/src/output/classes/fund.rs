@@ -16,7 +16,7 @@ use crate::core::normalization::deep_normalize_string;
 use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
-use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
+use super::{OutputClassError, pending_of, promised_from_value};
 
 /// A fund, identified by its name alone.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ pub struct Fund {
     /// those match the constructor's arguments. Without the rename this was the one exception, and
     /// a regenerated fixture could not be read back. Re-normalising is idempotent, so rebuilding
     /// from an already normalised value yields the same fund.
-    #[serde(with = "serde_promised", rename = "name")]
+    #[serde(rename = "name")]
     n_name: Promised<String>,
 }
 

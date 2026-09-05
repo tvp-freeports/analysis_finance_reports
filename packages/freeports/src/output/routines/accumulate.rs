@@ -149,27 +149,27 @@ impl Accumulator {
             UniqueTable::new("funds_change_name", "Fund ID|From|Type of event|Old name");
         for row in self.funds_change_name {
             let key = format!("{}|{:?}|{:?}|{}", row.fund_id, row.from_date, row.event_type, row.old_name);
-            fcn_table.push(key, row)?;
+            fcn_table.push(key, row);
         }
 
         let mut fa_table: UniqueTable<FundAssetsRow> = UniqueTable::new("funds_assets", "Fund ID|Date");
         for row in self.funds_assets {
             let key = format!("{}|{:?}", row.fund_id, row.date);
-            fa_table.push(key, row)?;
+            fa_table.push(key, row);
         }
 
         let mut sfdr_table: UniqueTable<FundSfdrClassificationRow> =
             UniqueTable::new("funds_sfdr_classification", "Fund ID");
         for row in self.funds_sfdr_classification {
             let key = row.fund_id.to_string();
-            sfdr_table.push(key, row)?;
+            sfdr_table.push(key, row);
         }
 
         let mut im_table: UniqueTable<InvestmentsManagerRow> =
             UniqueTable::new("investments_managers", "Investment manager ID|Fund ID");
         for row in self.investments_managers_to_funds {
             let key = format!("{}|{}", row.investment_manager_id, row.fund_id);
-            im_table.push(key, row)?;
+            im_table.push(key, row);
         }
 
         Ok(TransformedTables {
@@ -803,9 +803,11 @@ mod tests {
         use super::*;
 
         #[test]
-        fn two_sfdr_classifications_of_the_same_fund_are_rejected_as_duplicates() {
-            // The uniqueness key here is the fund alone: a second classification for the same fund,
-            // on a different page, is a duplicate even when the article declared differs.
+        fn two_sfdr_classifications_of_the_same_fund_are_counted_once() {
+            // The uniqueness key here is the fund alone, so the second classification is the same
+            // fact told again — even when the article declared differs, which is the case where
+            // keeping the first is a choice rather than an equivalence. It does not stop the run:
+            // a whole batch must not be lost over a fund classified twice.
             let outcomes = vec![doc(
                 "R",
                 "FMT",
@@ -814,7 +816,21 @@ mod tests {
                     page(2, "c", vec![fund_sfdr("Alpha Fund", SfdrArticle::Art9)]),
                 ],
             )];
-            assert!(accumulate(&outcomes).is_err());
+            let tables = accumulate(&outcomes).unwrap();
+            assert_eq!(tables.funds_sfdr_classification.len(), 1);
+            assert_eq!(tables.funds_sfdr_classification[0].sfdr_classification, SfdrArticle::Art8);
+        }
+
+        #[test]
+        fn the_same_fact_told_by_two_documents_is_counted_once() {
+            // The case that stopped a real batch: two reports of the same house both print the
+            // fund's merger, and the run must write its results all the same.
+            let outcomes = vec![
+                doc("R1", "FMT", vec![page(1, "c", vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)])]),
+                doc("R2", "FMT", vec![page(1, "c", vec![fund_sfdr("Alpha Fund", SfdrArticle::Art8)])]),
+            ];
+            let tables = accumulate(&outcomes).unwrap();
+            assert_eq!(tables.funds_sfdr_classification.len(), 1);
         }
 
         #[test]

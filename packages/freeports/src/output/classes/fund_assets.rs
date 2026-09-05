@@ -26,12 +26,10 @@ const BALANCE_TOLERANCE: f64 = 1e-4;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundAssets {
     pub fund: String,
-    #[serde(with = "super::serde_optional_promised")]
     pub date: Option<Promised<Date>>,
     pub tot_assets: OrderedFloat<f64>,
     pub liabilities: OrderedFloat<f64>,
     pub net_assets: OrderedFloat<f64>,
-    #[serde(with = "super::serde_promised")]
     pub currency: Promised<Currency>,
 }
 

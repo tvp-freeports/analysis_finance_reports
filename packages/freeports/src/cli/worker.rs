@@ -546,6 +546,52 @@ mod tests {
             }
         }
 
+        /// The state the report is really written in: promises are fulfilled by the parent, after
+        /// it has collected every job, so **every** pending field of a child's results crosses this
+        /// boundary. A report whose promises came back as resolved lookalikes cost a whole batch —
+        /// on a typed field it was a loud parse error, on a promised name a fund silently taking
+        /// the name of the promise meant to fill it in.
+        #[test]
+        fn an_entity_with_a_pending_promise_reads_back_still_pending() {
+            use crate::core::classes::BlockValue;
+            use crate::core::promisable::PromisableFields;
+            use crate::core::promise::Promise;
+            use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
+
+            let promised_fund = Fund::from_value(&BlockValue::Promise(Promise::new("fund_name")))
+                .expect("a promise is an admissible name");
+            let promised_article =
+                FundSfdrClassification::build("Alpha Fund", &BlockValue::Promise(Promise::new("article")))
+                    .expect("a promise is an admissible article");
+            let report = WorkerReport::Succeeded {
+                documents: vec![DocumentOutcome {
+                    id: DocumentId::new("a"),
+                    format: FormatName::new("FMT"),
+                    pages: vec![PageOutcome {
+                        page: 12,
+                        class: PageClass::new("investments"),
+                        results: vec![
+                            Extracted::Fund(promised_fund.clone()),
+                            Extracted::FundSfdrClassification(promised_article.clone()),
+                        ],
+                    }],
+                }],
+            };
+
+            let back = round_trip(&report);
+            assert_eq!(back, report);
+
+            let WorkerReport::Succeeded { documents } = &back else { panic!("expected a success") };
+            let results = &documents[0].pages[0].results;
+            let Extracted::Fund(fund) = &results[0] else { panic!("expected a fund") };
+            assert!(fund.pending_name().is_some(), "the fund came back as {fund:?}");
+            assert_eq!(fund.pending().len(), promised_fund.pending().len());
+            let Extracted::FundSfdrClassification(classification) = &results[1] else {
+                panic!("expected a classification")
+            };
+            assert_eq!(classification.pending().len(), promised_article.pending().len());
+        }
+
         #[test]
         fn a_failed_report_reads_back_identical() {
             let report = WorkerReport::Failed { error: ErrorRecord::from_error(&an_error_with_a_source()) };

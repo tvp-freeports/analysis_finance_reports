@@ -596,6 +596,7 @@ mod tests {
         use crate::output::classes::fund_change_name::{FundMerge, FundRename};
         use crate::output::classes::fund_esg_indicator::FundEsgIndicator;
         use crate::output::classes::fund_sfdr_classification::FundSfdrClassification;
+        use crate::core::promise::Promise;
         use crate::output::classes::investment::InvestmentFields;
         use std::collections::BTreeSet;
 
@@ -677,6 +678,66 @@ mod tests {
                 Extracted::InvestmentsManager(investments_manager()),
                 Extracted::Promises(PromiseEntries::new()),
                 Extracted::PageClass(None),
+            ]
+        }
+
+        /// The same twelve variants, but with **every promisable field still pending**.
+        ///
+        /// This is the state in which an [`Extracted`] really crosses a process boundary: a worker
+        /// serialises what it produced and the parent fulfils the promises afterwards, once, over
+        /// every job. Building the fixtures resolved — as `one_of_each` does — exercises the easy
+        /// half and let a pending promise go unread for a long time.
+        fn one_of_each_still_promised() -> Vec<Extracted> {
+            let promise = |id: &str| BlockValue::Promise(Promise::new(id));
+
+            let investment_fields = || {
+                let mut f = InvestmentFields::new(
+                    "Acme Corp",
+                    "Acme",
+                    promise("fund"),
+                    promise("market_value"),
+                    promise("currency"),
+                );
+                f.perc_net_assets = Some(promise("perc"));
+                f.acquisition_cost = Some(promise("cost"));
+                f.acquisition_currency = Some(promise("acq_currency"));
+                f
+            };
+
+            vec![
+                Extracted::Equity(Equity::build(investment_fields()).expect("promises are always admissible")),
+                Extracted::Bond(
+                    Bond::build(investment_fields(), None, None).expect("promises are always admissible"),
+                ),
+                Extracted::Fund(Fund::from_value(&promise("fund_name")).expect("a promise is a valid name")),
+                Extracted::FundAssets(
+                    FundAssets::build("Alpha Fund", 100.0, 40.0, 60.0, &promise("currency"), None)
+                        .expect("promises are always admissible"),
+                ),
+                Extracted::FundSfdrClassification(
+                    FundSfdrClassification::build("Alpha Fund", &promise("article"))
+                        .expect("promises are always admissible"),
+                ),
+                Extracted::FundEsgIndicator(
+                    FundEsgIndicator::build(&promise("fund"), "GHG intensity", "12.3")
+                        .expect("promises are always admissible"),
+                ),
+                Extracted::FundRename(
+                    FundRename::build("Old Fund", "New Fund", &promise("date"))
+                        .expect("promises are always admissible"),
+                ),
+                Extracted::FundMerge(
+                    FundMerge::build("Old Fund", "New Fund", &promise("date"))
+                        .expect("promises are always admissible"),
+                ),
+                // The two managers have no promisable field at all — their own documentation says
+                // so — hence they appear here as they do in `one_of_each`.
+                Extracted::ManagementCompany(management_company()),
+                Extracted::InvestmentsManager(investments_manager()),
+                Extracted::Promises(
+                    [("fund_name", promise("other")), ("isin", BlockValue::Int(1))].into_iter().collect(),
+                ),
+                Extracted::PageClass(Some(PageClass::new("investments"))),
             ]
         }
 
@@ -772,6 +833,56 @@ mod tests {
             fn every_variant_survives_a_json_round_trip() {
                 for e in one_of_each() {
                     assert_eq!(round_trip(&e), e, "variant did not survive: {e:?}");
+                }
+            }
+
+            /// The crossing as it really happens: nothing is fulfilled yet.
+            #[test]
+            fn every_variant_survives_it_with_its_fields_still_promised() {
+                for e in one_of_each_still_promised() {
+                    assert_eq!(round_trip(&e), e, "variant did not survive: {e:?}");
+                }
+            }
+
+            /// How many fields of an entity are still waiting for a promise. Written as an
+            /// exhaustive match so that a thirteenth variant has to be answered for here too.
+            fn pending_count(e: &Extracted) -> usize {
+                use crate::core::promisable::PromisableFields;
+                match e {
+                    Extracted::Equity(v) => v.pending().len(),
+                    Extracted::Bond(v) => v.pending().len(),
+                    Extracted::Fund(v) => v.pending().len(),
+                    Extracted::FundAssets(v) => v.pending().len(),
+                    Extracted::FundSfdrClassification(v) => v.pending().len(),
+                    Extracted::FundEsgIndicator(v) => v.pending().len(),
+                    Extracted::FundRename(v) => v.pending().len(),
+                    Extracted::FundMerge(v) => v.pending().len(),
+                    Extracted::ManagementCompany(v) => v.pending().len(),
+                    Extracted::InvestmentsManager(v) => v.pending().len(),
+                    Extracted::Promises(_) | Extracted::PageClass(_) => 0,
+                }
+            }
+
+            /// Surviving is not enough: a promise must not come back looking like a value. For a
+            /// promised **name** the two are both strings, so an untagged form read the promise id
+            /// back as the fund's name and no comparison of the entity would have noticed.
+            #[test]
+            fn a_pending_field_comes_back_pending_and_not_as_a_resolved_lookalike() {
+                for e in one_of_each_still_promised() {
+                    let before = pending_count(&e);
+                    assert!(
+                        before > 0
+                            || matches!(
+                                e,
+                                Extracted::Promises(_)
+                                    | Extracted::PageClass(_)
+                                    | Extracted::ManagementCompany(_)
+                                    | Extracted::InvestmentsManager(_)
+                            ),
+                        "the fixture must really be pending: {e:?}"
+                    );
+                    let back = round_trip(&e);
+                    assert_eq!(pending_count(&back), before, "{e:?} came back as {back:?}");
                 }
             }
 

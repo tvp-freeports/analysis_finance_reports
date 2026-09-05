@@ -45,6 +45,21 @@ fn open_error(path: &Path, message: impl std::fmt::Display) -> DocumentError {
 pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, DocumentError> {
     Python::attach(|py| {
         let fitz = PyModule::import(py, "fitz").map_err(|e| open_error(path, e))?;
+        // Whatever happens to the reading, MuPDF's own complaints are taken *here*: see
+        // `drain_pdf_reader_warnings` for why leaving them behind is not merely untidy.
+        let pages = read_pages(&fitz, path, auto_rotate);
+        drain_pdf_reader_warnings(&fitz);
+        pages
+    })
+}
+
+/// Everything [`load_document_pages`] does between importing PyMuPDF and handing the warnings back.
+fn read_pages(
+    fitz: &Bound<'_, PyModule>,
+    path: &Path,
+    auto_rotate: bool,
+) -> Result<Vec<Page>, DocumentError> {
+    {
         let path_str = path.to_string_lossy().to_string();
         let doc = fitz.call_method1("open", (path_str,)).map_err(|e| open_error(path, e))?;
         let page_count = doc.len().map_err(|e| open_error(path, e))?;
@@ -91,7 +106,36 @@ pub fn load_document_pages(path: &Path, auto_rotate: bool) -> Result<Vec<Page>, 
 
         tracing::info!(path = %path.display(), page_count = pages.len(), "document loaded");
         Ok(pages)
-    })
+    }
+}
+
+/// Takes the warnings MuPDF buffered while reading, and turns them into log events.
+///
+/// **This is not only diagnostics: without it the process crashes on exit.** MuPDF does not print
+/// its warnings as they happen; it collects them in its context and flushes them when the context
+/// is dropped. For the `freeports` binary that drop happens in a C++ static destructor of
+/// `libmupdfcpp`, which libc runs *after* `main` — and flushing calls the diagnostic callback
+/// PyMuPDF registered through SWIG, which calls back into the interpreter this binary embeds and
+/// which by then no longer has a usable thread state. The result is a `SIGSEGV` at exit, on
+/// documents that made MuPDF complain and only on those, after every result has already been
+/// written. Under a worker process it is worse: the child dies before writing its report, and the
+/// parent throws away the whole run.
+///
+/// Draining here empties that buffer while the interpreter is still alive, so the destructor finds
+/// nothing to flush. Plain CPython never showed the crash, which is why it survived so long: it is
+/// a property of embedding, not of PyMuPDF alone.
+///
+/// The warnings themselves are worth having. "bogus font ascent/descent values", "Actualtext with
+/// no position. Text may be lost or mispositioned." — a reader complaining about a document is
+/// exactly the kind of thing that explains, later, why a page was extracted oddly.
+fn drain_pdf_reader_warnings(fitz: &Bound<'_, PyModule>) {
+    let Ok(tools) = fitz.getattr("TOOLS") else { return };
+    // `reset` defaults to true: reading them is what empties the buffer.
+    let Ok(collected) = tools.call_method0("mupdf_warnings") else { return };
+    let Ok(text) = collected.extract::<String>() else { return };
+    for warning in text.lines().filter(|line| !line.trim().is_empty()) {
+        tracing::warn!("the pdf reader complains: {warning}");
+    }
 }
 
 /// Like [`load_document_pages`], but wrapped in a [`Document`]. The id and format are supplied by

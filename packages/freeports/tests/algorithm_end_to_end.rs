@@ -164,6 +164,28 @@ impl DeserializePipe for PromiseWordsAsOneList {
     }
 }
 
+/// Deserializza come [`PromiseFundName`], ma **esplode** sulle righe marcate `boom`.
+///
+/// Serve a esercitare il contenimento per pagina dall'esterno: una riga illeggibile in una pagina
+/// non deve costare né le altre pagine né la corsa.
+struct ExplodeOnBoom;
+
+impl DeserializePipe for ExplodeOnBoom {
+    fn name(&self) -> &str {
+        "explode-on-boom"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let content = block.content.as_str().unwrap_or_default();
+        if content.contains("boom") {
+            return Err(PipeError::extraction("explode-on-boom", format!("cannot read `{content}`")));
+        }
+        let mut entries = PromiseEntries::new();
+        entries.push("fund_name", block.content.clone());
+        Ok(vec![Extracted::Promises(entries)])
+    }
+}
+
 /// Registra quante target companies e quanti risultati precedenti ha visto, e non produce nulla:
 /// serve a verificare la semantica di `FilterData` attraverso il motore intero.
 struct CountingFilter {
@@ -354,10 +376,74 @@ mod single_document {
     }
 
     #[test]
-    fn a_pipe_that_cannot_read_a_line_fails_the_whole_run() {
+    fn a_pipe_that_cannot_read_a_line_costs_that_page_and_not_the_run() {
         let algorithm = algorithm(KeepType::pipe("keep-rows", BlockType::TABLE_BODY));
         let broken = Document::new("d", "TESTFMT-EN24", vec![page(1, &["no prefix here"])]);
-        assert!(algorithm.apply(&broken, &[]).is_err());
+        let outcome = algorithm.apply(&broken, &[]).unwrap();
+        // La pagina esplode già in classificazione, quindi resta senza classe e nessuno step la
+        // prende in carico: la corsa finisce bene, con niente da dire su quella pagina.
+        assert!(outcome.pages.is_empty());
+    }
+}
+
+/// Un guasto appartiene alla cosa più piccola che lo contiene. Visto da fuori: un documento con
+/// una pagina rotta produce lo stesso i risultati di quelle sane.
+mod page_containment {
+    use super::*;
+
+    /// Il documento del resto dei test, più una terza pagina che fa esplodere il deserializzatore.
+    fn document_with_a_doomed_page() -> Document {
+        Document::new(
+            "d",
+            "TESTFMT-EN24",
+            vec![
+                page(1, &["fund: Alpha Fund"]),
+                page(2, &["row: Acme Corp"]),
+                page(3, &["row: boom"]),
+            ],
+        )
+    }
+
+    fn exploding_algorithm() -> Algorithm {
+        algorithm_with(KeepType::pipe("keep-rows", BlockType::TABLE_BODY), Arc::new(ExplodeOnBoom))
+    }
+
+    #[test]
+    fn the_pages_that_can_be_read_are_read() {
+        let outcome = exploding_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+
+        let per_page: Vec<(u32, usize)> =
+            outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+        assert_eq!(per_page, vec![(1, 1), (2, 1), (3, 0)]);
+    }
+
+    #[test]
+    fn what_the_good_pages_promised_still_resolves() {
+        let outcome = exploding_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+
+        let mut promises = PromiseMap::new();
+        for page in &outcome.pages {
+            for result in &page.results {
+                if let Some(entries) = result.as_promises() {
+                    entries.merge_into(&mut promises);
+                }
+            }
+        }
+        let flattened = promises.flatten().unwrap();
+        assert_eq!(
+            flattened.get("fund_name"),
+            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+        );
+    }
+
+    #[test]
+    fn a_broken_page_of_one_document_does_not_touch_the_other_documents() {
+        let algorithm = exploding_algorithm();
+        let documents = [document_with_a_doomed_page(), document("clean", "Beta Fund")];
+        let outcomes = algorithm.apply_multidocument(&documents, &[]).unwrap();
+
+        assert_eq!(outcomes.len(), 2);
+        assert!(outcomes[1].pages.iter().all(|p| p.results.len() == 1));
     }
 }
 

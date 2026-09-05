@@ -12,11 +12,16 @@
 //! decimal, so `to_float` keeps it as one, while an integer cannot have a fractional part and
 //! `to_int` reads it as a thousands separator. The asymmetry is intentional and pinned by tests.
 //!
-//! # Forced casts are logged
+//! # Forced casts are logged, once, and only when they worked
 //!
-//! When the input is not already a clean numeric shape and has to be stripped of noise, a warning
-//! is emitted. A value that needed forcing is one worth being able to find again in the report,
-//! because that is where a silently wrong number would come from.
+//! When the input is not already a clean numeric shape, the noise is stripped from it and the
+//! number read from what is left. A **successful** forcing emits one warning naming both the text
+//! as written and the text it was reduced to: a value that needed forcing is one worth being able
+//! to find again in the report, because that is where a silently wrong number would come from.
+//!
+//! A forcing that then fails emits nothing here. The caller that drops the field or the row already
+//! writes one line saying what would not convert and what was done about it, and two rows for one
+//! fact is precisely what the logging contract forbids.
 //!
 //! # Signs
 //!
@@ -24,6 +29,13 @@
 //! input, immediately before the numeric content. Anywhere else — trailing, glued to other noise —
 //! it is noise and is stripped. With `keep_sign` false, every `-` is ignored and a successful parse
 //! is never negative; a lone `"-"` with no digits is an error either way.
+//!
+//! # Nil markers
+//!
+//! A text that has no digit left once the noise is stripped — `-`, `–`, `n/a`, an empty cell — is a
+//! [`CastError::NoDigits`], not a [`CastError::NotANumber`]. The report is saying there is no value
+//! here rather than writing one badly, and the two deserve different treatment: an absent value is
+//! expected, a corrupt one is not.
 //!
 //! # Dates
 //!
@@ -60,6 +72,11 @@ static INT_THOUSANDS_GROUPED: Lazy<Regex> = Lazy::new(|| {
 pub enum CastError {
     #[error("could not convert {data:?} to a number")]
     NotANumber { data: String },
+    /// The text carries no digit at all: it is a "no value" marker — `-`, `–`, `n/a`, an empty
+    /// cell — not a number written badly. Whoever receives it can tell an absent value from a
+    /// corrupt one, which is the difference between an expected event and an anomalous one.
+    #[error("{data:?} contains no digits")]
+    NoDigits { data: String },
     #[error("number {data:?} has a mantissa different from 0")]
     NonZeroMantissa { data: String },
     #[error("{data:?} is not a valid Currency")]
@@ -75,21 +92,50 @@ pub enum CastError {
 }
 
 /// Whether `data` already has the shape of a plain number (`123`, `1.234`, `1,234.567`, …), meaning
-/// the cast functions will use it as it is instead of stripping noise from it. It is also the
-/// predicate the forced-cast warning fires on.
+/// the cast functions will use it as it is instead of stripping noise from it. It is also what
+/// decides whether a successful cast is worth a forced-cast warning.
 pub fn is_numeric_shape(data: &str) -> bool {
     NUMERIC_SHAPE.is_match(data)
 }
 
+/// What [`force_numeric`] produced: the text a number is to be read from, and whether noise had to
+/// be stripped to get it.
+///
+/// The flag travels back to the caller instead of being logged here, because whether the forcing is
+/// worth an event depends on how it ends — and only the caller knows that.
+struct Forced {
+    cleaned: String,
+    was_forced: bool,
+}
+
 /// Strips non-numeric noise from an already word-normalised string, unless it already has the shape
-/// of a plain number. Logs a warning when it has to.
-fn force_numeric(data: &str) -> String {
+/// of a plain number.
+fn force_numeric(data: &str) -> Forced {
     if is_numeric_shape(data) {
-        data.to_string()
+        Forced { cleaned: data.to_string(), was_forced: false }
     } else {
-        tracing::warn!(data, "trying to cast to number but found a non-numeric shape - forcing cast");
-        NON_NUMERIC_CHARS.replace_all(data, "")
+        Forced { cleaned: NON_NUMERIC_CHARS.replace_all(data, ""), was_forced: true }
     }
+}
+
+/// The one event a forced cast is worth, emitted **after** the value has been read.
+///
+/// A forcing that worked is a mitigation that succeeded, and the documentation is explicit that
+/// such a thing deserves its own row: nothing was lost, and a number that had to be dug out of
+/// noise is one to be able to find again in the report. A forcing that then failed emits nothing
+/// here — the caller that drops the field or the row says so in a single line of its own, which
+/// also carries the consequence.
+fn log_forced_cast(original: &str, cleaned: &str) {
+    tracing::warn!("forced {original:?} to {cleaned:?} to read it as a number");
+}
+
+/// Whether there is still a digit to read after the noise has been stripped.
+///
+/// This is what tells a nil marker from a malformed number: `"-"`, `"n/a"` and an empty cell all
+/// reduce to something with no digit in it, and the report meant "no value", not a number it got
+/// wrong.
+fn has_digits(data: &str) -> bool {
+    data.bytes().any(|b| b.is_ascii_digit())
 }
 
 /// Disambiguates the thousands and decimal separators when both `.` and `,` are present: the
@@ -113,12 +159,21 @@ fn resolve_separators(data: &str) -> String {
 pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
     let data = normalization::normalize_word(data, false);
     let negate = keep_sign && data.starts_with('-');
-    let data = force_numeric(&data);
-    let mut data = resolve_separators(&data);
-    if FLOAT_THOUSANDS_GROUPED.is_match(&data) {
-        data = data.replace('.', "");
+    let Forced { cleaned, was_forced } = force_numeric(&data);
+    // Decided before the separators are resolved, and reported with the text as it arrived: once
+    // stripped, `"-"` and `"."` are both the empty string, and an error naming `""` says nothing
+    // about what the cell actually held.
+    if !has_digits(&cleaned) {
+        return Err(CastError::NoDigits { data });
     }
-    let value = data.parse::<f64>().map_err(|_| CastError::NotANumber { data })?;
+    let mut number = resolve_separators(&cleaned);
+    if FLOAT_THOUSANDS_GROUPED.is_match(&number) {
+        number = number.replace('.', "");
+    }
+    let value = number.parse::<f64>().map_err(|_| CastError::NotANumber { data: number })?;
+    if was_forced {
+        log_forced_cast(&data, &cleaned);
+    }
     Ok(if negate { -value } else { value })
 }
 
@@ -129,21 +184,27 @@ pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
 pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError> {
     let data = normalization::normalize_word(data, false);
     let negate = keep_sign && data.starts_with('-');
-    let data = force_numeric(&data);
-    let mut data = resolve_separators(&data);
-    if INT_THOUSANDS_GROUPED.is_match(&data) {
-        data = data.replace('.', "");
+    let Forced { cleaned, was_forced } = force_numeric(&data);
+    if !has_digits(&cleaned) {
+        return Err(CastError::NoDigits { data });
     }
-    if let Some(pos_dot) = data.find('.') {
-        let mantissa: i64 = data[pos_dot + 1..]
+    let mut number = resolve_separators(&cleaned);
+    if INT_THOUSANDS_GROUPED.is_match(&number) {
+        number = number.replace('.', "");
+    }
+    if let Some(pos_dot) = number.find('.') {
+        let mantissa: i64 = number[pos_dot + 1..]
             .parse()
-            .map_err(|_| CastError::NotANumber { data: data.clone() })?;
+            .map_err(|_| CastError::NotANumber { data: number.clone() })?;
         if mantissa != 0 {
-            return Err(CastError::NonZeroMantissa { data });
+            return Err(CastError::NonZeroMantissa { data: number });
         }
-        data.truncate(pos_dot);
+        number.truncate(pos_dot);
     }
-    let value = data.parse::<i64>().map_err(|_| CastError::NotANumber { data })?;
+    let value = number.parse::<i64>().map_err(|_| CastError::NotANumber { data: number })?;
+    if was_forced {
+        log_forced_cast(&data, &cleaned);
+    }
     Ok(if negate { -value } else { value })
 }
 
@@ -613,6 +674,76 @@ mod tests {
     /// Captures the `tracing` events emitted during `f`, whatever fields they carry: unlike the CSV
     /// layer, which writes a row only for events carrying one of its tagged fields, this test layer
     /// records the message of every warning without filtering.
+    /// A cell with no digit in it is a nil marker, not a broken number: the distinction is what
+    /// lets a caller treat "the report says there is nothing here" as expected and "the report
+    /// wrote something unreadable" as anomalous.
+    mod nil_markers {
+        use super::*;
+        use test_case::test_case;
+
+        #[test_case("-"; "ascii hyphen")]
+        #[test_case("\u{2013}"; "en dash")]
+        #[test_case("\u{2014}"; "em dash")]
+        #[test_case("--"; "double hyphen")]
+        #[test_case("n/a"; "lowercase n slash a")]
+        #[test_case("N.A."; "uppercase with dots")]
+        #[test_case(""; "empty cell")]
+        #[test_case("   "; "whitespace only")]
+        #[test_case("."; "lone dot")]
+        #[test_case(","; "lone comma")]
+        fn to_float_reads_a_digitless_text_as_a_nil_marker(text: &str) {
+            assert!(matches!(to_float(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+        }
+
+        #[test_case("-"; "ascii hyphen")]
+        #[test_case("\u{2013}"; "en dash")]
+        #[test_case("n/a"; "lowercase n slash a")]
+        #[test_case(""; "empty cell")]
+        #[test_case("."; "lone dot")]
+        #[test_case(","; "lone comma")]
+        fn to_int_reads_a_digitless_text_as_a_nil_marker(text: &str) {
+            assert!(matches!(to_int(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+        }
+
+        #[test_case("-", "-"; "the dash itself, not the empty string it strips to")]
+        #[test_case("  n/a  ", "n/a"; "surrounding whitespace only is dropped")]
+        #[test_case(".", "."; "a lone separator is reported as written")]
+        fn the_error_carries_the_original_text_rather_than_the_stripped_one(text: &str, expected: &str) {
+            let err = to_float(text, false).unwrap_err();
+            assert_eq!(err, CastError::NoDigits { data: expected.to_string() });
+        }
+
+        #[test_case("0"; "plain zero")]
+        #[test_case("0,00"; "zero with decimals")]
+        #[test_case("-5"; "a negative number")]
+        #[test_case("1.234abc"; "noise around real digits")]
+        fn a_text_with_digits_is_never_a_nil_marker(text: &str) {
+            assert!(!matches!(to_float(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+        }
+
+        #[test]
+        fn a_forced_cast_that_still_has_digits_succeeds() {
+            assert_eq!(to_float("\u{20ac}1.234", false).unwrap(), 1.234);
+        }
+
+        #[test]
+        fn text_glued_to_digits_stays_an_unreadable_number_rather_than_a_nil_marker() {
+            // The stripping keeps letters, so this one still has digits and fails to parse: it is
+            // an anomaly, not an absence, and the two must not be confused.
+            assert!(matches!(to_float("1.234abc", false), Err(CastError::NotANumber { .. })));
+        }
+
+        #[test]
+        fn a_percentage_inherits_the_nil_marker_through_to_float() {
+            assert!(matches!(perc_to_float("-", true, false), Err(CastError::NoDigits { data }) if data == "-"));
+        }
+
+        #[test]
+        fn a_digitless_text_keeps_its_marker_nature_with_the_sign_kept() {
+            assert!(matches!(to_float("-", true), Err(CastError::NoDigits { .. })));
+        }
+    }
+
     mod forced_cast_warnings {
         use super::*;
         use std::sync::{Arc, Mutex};
@@ -668,17 +799,46 @@ mod tests {
         #[test]
         fn to_int_warns_when_forced_to_strip_noise() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_int("EUR 1.234", false);
+                let _ = to_int("\u{20ac} 1.234", false);
             });
-            assert!(!warnings.is_empty(), "expected a forced-cast warning, got none");
+            assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
         }
 
         #[test]
         fn to_float_warns_when_forced_to_strip_noise() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_float("EUR 1.234", false);
+                let _ = to_float("\u{20ac} 1.234", false);
             });
-            assert!(!warnings.is_empty(), "expected a forced-cast warning, got none");
+            assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
+        }
+
+        #[test]
+        fn the_warning_names_the_text_as_written_and_the_text_it_was_reduced_to() {
+            let warnings = warnings_emitted_by(|| {
+                let _ = to_float("\u{20ac} 1.234", false);
+            });
+            assert!(warnings[0].contains("\"\u{20ac}1.234\""), "{warnings:?}");
+            assert!(warnings[0].contains(r#""1.234""#), "{warnings:?}");
+        }
+
+        #[test]
+        fn a_forcing_that_ends_in_a_failure_says_nothing_here() {
+            // The caller that drops the field or the row emits the one line that also carries the
+            // consequence; a second row about the attempt would say the same fact twice.
+            let warnings = warnings_emitted_by(|| {
+                let _ = to_int("EUR 1.234", false);
+                let _ = to_float("not a number", false);
+                let _ = to_float("-", false);
+            });
+            assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
+        }
+
+        #[test]
+        fn a_nil_marker_is_not_reported_as_a_forced_cast() {
+            let warnings = warnings_emitted_by(|| {
+                let _ = to_int("-", false);
+            });
+            assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
 
         #[test]

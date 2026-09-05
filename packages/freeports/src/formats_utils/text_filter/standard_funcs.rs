@@ -585,6 +585,20 @@ impl TextFilterInvestmentsStandard {
     ) -> Result<(), StandardFuncsError> {
         match self.extract_field(table, anchor) {
             Ok(mut txt_blk) => {
+                // Where the row hooked itself, in the grid's own coordinates. Every field of the
+                // row is read at a fixed offset from this cell, so an anchor that landed on a
+                // header, a total or a currency code shifts them all — and shows up here as a
+                // column different from every other row of the page.
+                //
+                // `debug`, because it is one line per position found: it lives in the JSONL and on
+                // stderr at `-vv`, never in the `.log.csv`, whose ceiling is `warn`.
+                tracing::debug!(
+                    coord_ref_1 = company,
+                    coord_ref_2 = %content,
+                    coord_1 = %format_args!("row {}", anchor.base.0),
+                    coord_2 = %format_args!("col {}", anchor.base.1),
+                    "investment row anchored on the matched company"
+                );
                 txt_blk.metadata.insert("company match".to_string(), BlockValue::from(content));
                 txt_blk.metadata.insert("company".to_string(), BlockValue::from(company));
                 out.push(txt_blk);
@@ -1288,6 +1302,115 @@ mod tests {
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("next row")));
+        }
+    }
+
+    /// Where a row hooked itself is the one thing a misread page never says on its own. Every
+    /// field is read at a fixed offset from the anchor cell, so an anchor on the wrong column
+    /// shifts them all — and the only way to see it without re-running the job is to have the
+    /// position in the log.
+    mod investments_anchor_logging {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use std::sync::{Arc, Mutex};
+        use tracing::field::{Field, Visit};
+        use tracing_subscriber::Registry;
+        use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+
+        #[derive(Default, Clone, Debug)]
+        struct Record {
+            level: String,
+            message: String,
+            fields: Vec<(String, String)>,
+        }
+
+        impl Visit for Record {
+            fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                if field.name() == "message" {
+                    self.message = format!("{value:?}");
+                } else {
+                    self.fields.push((field.name().to_string(), format!("{value:?}")));
+                }
+            }
+
+            fn record_str(&mut self, field: &Field, value: &str) {
+                self.fields.push((field.name().to_string(), value.to_string()));
+            }
+        }
+
+        #[derive(Clone, Default)]
+        struct CapturingLayer {
+            records: Arc<Mutex<Vec<Record>>>,
+        }
+
+        impl<S: tracing::Subscriber> Layer<S> for CapturingLayer {
+            fn on_event(&self, event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+                let mut record = Record { level: event.metadata().level().to_string(), ..Record::default() };
+                event.record(&mut record);
+                self.records.lock().unwrap().push(record);
+            }
+        }
+
+        fn anchor_records(f: impl FnOnce()) -> Vec<Record> {
+            let layer = CapturingLayer::default();
+            let subscriber = Registry::default().with(layer.clone());
+            tracing::subscriber::with_default(subscriber, f);
+            let records = layer.records.lock().unwrap();
+            records.iter().filter(|r| r.message.contains("anchored")).cloned().collect()
+        }
+
+        fn field_of<'a>(record: &'a Record, name: &str) -> Option<&'a str> {
+            record.fields.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
+        }
+
+        #[test]
+        fn a_matched_row_records_the_cell_it_hooked_itself_to() {
+            let blks = vec![
+                table_row(0, 0, "Country", false),
+                table_row(0, 1, "Market value", false),
+                table_row(1, 0, "Acme Corp", false),
+                table_row(1, 1, "1.000", false),
+            ];
+            let records = anchor_records(|| {
+                let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+            });
+
+            assert_eq!(records.len(), 1, "{records:?}");
+            assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp"));
+            assert_eq!(field_of(&records[0], "coord_ref_2"), Some("Acme Corp"));
+            assert_eq!(field_of(&records[0], "coord_1"), Some("row 1"));
+            assert_eq!(field_of(&records[0], "coord_2"), Some("col 0"));
+        }
+
+        #[test]
+        fn it_stays_at_debug_so_it_never_reaches_the_audit_trail() {
+            // `CSV_MAX_LEVEL` is a fixed ceiling at `warn`: one line per position found belongs in
+            // the JSONL and on stderr at `-vv`, not in the extraction's audit trail.
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let records = anchor_records(|| {
+                let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+            });
+            assert_eq!(records[0].level, "DEBUG");
+        }
+
+        #[test]
+        fn a_row_that_matched_nothing_records_no_anchor() {
+            let blks = vec![table_row(0, 0, "Nothing here", false), table_row(0, 1, "1.000", false)];
+            let records = anchor_records(|| {
+                let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+            });
+            assert!(records.is_empty(), "{records:?}");
+        }
+
+        #[test]
+        fn a_row_whose_fields_could_not_be_read_records_no_anchor_either() {
+            // The event says a row *was extracted* at this position; a row that was skipped has
+            // its own line, at `warn`, and two lines for one row is what the log must not do.
+            let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+            let records = anchor_records(|| {
+                let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
+            });
+            assert!(records.is_empty(), "{records:?}");
         }
     }
 

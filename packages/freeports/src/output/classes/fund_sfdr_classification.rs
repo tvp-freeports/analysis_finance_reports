@@ -9,13 +9,12 @@ use crate::core::classes::{BlockValue, BlockValueError};
 use crate::core::promisable::{PromisableFields, Promised};
 use crate::core::promise::Promise;
 
-use super::{OutputClassError, pending_of, promised_from_value, serde_promised};
+use super::{OutputClassError, pending_of, promised_from_value};
 
 /// A fund's declared SFDR classification. The fund is never promisable, only the article is.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FundSfdrClassification {
     pub fund: String,
-    #[serde(with = "serde_promised")]
     pub article: Promised<SfdrArticle>,
 }
 
@@ -136,6 +135,20 @@ mod tests {
         #[test]
         fn a_resolved_classification_survives_a_json_roundtrip() {
             let classification = FundSfdrClassification::build("X", &BlockValue::from(SfdrArticle::Art6)).unwrap();
+            let json = serde_json::to_string(&classification).unwrap();
+            assert_eq!(serde_json::from_str::<FundSfdrClassification>(&json).unwrap(), classification);
+        }
+
+        #[test]
+        fn a_pending_classification_survives_a_json_roundtrip_too() {
+            // The article is the field that made the flaw visible: an id where an enum was
+            // expected is a parse error the parent could not recover from, and it threw away every
+            // job of the batch that had already succeeded.
+            let classification = FundSfdrClassification::build(
+                "X",
+                &BlockValue::Promise(crate::core::promise::Promise::new("sfdr-article")),
+            )
+            .unwrap();
             let json = serde_json::to_string(&classification).unwrap();
             assert_eq!(serde_json::from_str::<FundSfdrClassification>(&json).unwrap(), classification);
         }
