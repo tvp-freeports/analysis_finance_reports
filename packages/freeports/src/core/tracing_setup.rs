@@ -36,6 +36,7 @@
 //!
 //! | tracing field | CSV column |
 //! |---|---|
+//! | `report` | `Report` |
 //! | `page` | `Page` |
 //! | *(computed from the active spans)* | `Activity` |
 //! | `coord_ref_1` | `First coord ref` |
@@ -44,11 +45,18 @@
 //! | `coord_2` | `Second coord` |
 //! | the event's `message` | `Message` |
 //!
-//! `Activity` is derived from the span stack and is never a tagged field, so it enriches a row but
-//! never justifies one on its own. The two `coord_ref_*` fields are textual anchors to a position —
-//! a matched company, a field name — and are set on a **span** wrapping the deserialization of a
-//! row rather than on each event, which is how `tracing` is meant to give context to everything
-//! beneath it.
+//! `report` is **not** one of the tagged five. A document's name is not a position, and a warning
+//! that names only a report is not an audit-trail entry — so it fills its column wherever a row
+//! exists and never writes one by itself. It comes from the `document` span, which is what lets an
+//! event born deep inside a pipe carry it without knowing it.
+//!
+//! `Activity`, like `Report`, enriches a row but never justifies one on its own — it is derived
+//! from the span stack rather than recorded at all. The two `coord_ref_*` fields are textual anchors to a position,
+//! and are set on a **span** wrapping the deserialization of a row rather than on each event, which
+//! is how `tracing` is meant to give context to everything beneath it. `coord_ref_1` is the
+//! **triggering text** — the report's own words, which a search inside the PDF can find again —
+//! while `coord_ref_2` is whichever second anchor the event has: the company that text matched, or
+//! the field the row is about.
 //!
 //! # One row per event, not three per failure
 //!
@@ -519,8 +527,20 @@ where
 }
 
 
+/// The `First coord` / `Second coord` pair naming a cell of a page's table, built from the grid's
+/// own **zero-based** indices.
+///
+/// The grid counts from zero, the log counts from one: someone matching a row against the page
+/// counts `1, 2, 3`, and a coordinate is written to be read by a person, not fed back into the
+/// grid. The `table row` / `table col` metadata a text filter passes to a deserializer stays
+/// zero-based, because that one *is* an index — which is exactly why the conversion lives here, in
+/// the one place both segments call, rather than being applied twice and drifting apart.
+pub fn table_coords(row: i64, col: i64) -> (String, String) {
+    (format!("row {}", row + 1), format!("col {}", col + 1))
+}
+
 pub const CSV_HEADER: &str =
-    "Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n";
+    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n";
 
 /// Tracing field names that select a `.log.csv` row when at least one of them is present, either
 /// directly on the event or inherited from an enclosing span. See the module documentation.
@@ -531,9 +551,17 @@ pub const CSV_HEADER: &str =
 /// `activity_path`.
 const TAGGED_FIELDS: [&str; 5] = ["page", "coord_ref_1", "coord_ref_2", "coord_1", "coord_2"];
 
+/// Fields that fill a `.log.csv` column but never select a row, the way `message` does not either.
+///
+/// `report` is here rather than in [`TAGGED_FIELDS`] because a document's name is not a position:
+/// the rule that keeps this file an audit trail of the *extraction* is that a row exists only where
+/// the event names a page or a coordinate, and a warning carrying nothing but a report name would
+/// break it.
+const COLUMN_ONLY_FIELDS: [&str; 1] = ["report"];
+
 /// Field values collected from a single event or span, restricted to the columns `CsvLogLayer`
-/// actually cares about (the five tagged fields above, plus the event's own `message`) — other
-/// fields are deliberately not stored, they never reach a CSV column.
+/// actually cares about (the five tagged fields, the column-only ones, and the event's own
+/// `message`) — other fields are deliberately not stored, they never reach a CSV column.
 #[derive(Debug, Default, Clone)]
 struct CapturedFields(HashMap<&'static str, String>);
 
@@ -563,10 +591,11 @@ impl FieldVisitor {
         Self(CapturedFields::default())
     }
 
-    /// The five tagged fields plus `message` are the only ones that ever reach a CSV column.
+    /// The five tagged fields, the column-only ones and `message` are the only fields that ever
+    /// reach a CSV column.
     fn keeps(field: &Field) -> bool {
         let name = field.name();
-        name == "message" || TAGGED_FIELDS.contains(&name)
+        name == "message" || TAGGED_FIELDS.contains(&name) || COLUMN_ONLY_FIELDS.contains(&name)
     }
 
     /// **Only ever called after `keeps` returned true.** Every `record_*` below tests the field
@@ -623,34 +652,51 @@ impl Visit for FieldVisitor {
 #[derive(Debug, Clone)]
 struct SpanLabel(String);
 
-/// Collects **every** field value of a span, in declaration order, to build `SpanLabel`.
-/// Deliberately distinct from `FieldVisitor` (which keeps only the tagged five) and from
-/// `ValueListVisitor` (which writes straight into a `fmt::Writer` for the stderr/file layers).
-struct SpanLabelVisitor(Vec<String>);
+/// Collects the **first non-empty** field value of a span, in declaration order, to build
+/// `SpanLabel`. Deliberately distinct from `FieldVisitor` (which keeps only the fields with a
+/// column) and from `ValueListVisitor` (which writes straight into a `fmt::Writer` for the
+/// stderr/file layers, and does show every field).
+struct SpanLabelVisitor(Option<String>);
+
+impl SpanLabelVisitor {
+    fn keep_first(&mut self, value: String) {
+        if self.0.is_none() && !value.is_empty() {
+            self.0 = Some(value);
+        }
+    }
+}
 
 impl Visit for SpanLabelVisitor {
     fn record_debug(&mut self, _field: &Field, value: &dyn std::fmt::Debug) {
-        self.0.push(format!("{value:?}"));
+        self.keep_first(format!("{value:?}"));
     }
 
     fn record_str(&mut self, _field: &Field, value: &str) {
-        self.0.push(value.to_string());
+        self.keep_first(value.to_string());
     }
 }
 
 impl SpanLabel {
-    /// `name` when the span has no fields, `name[v1,v2]` when it has some — the vocabulary of
-    /// `page[353]`, `class[investments]`, `format[EURIZON-EN23]`.
+    /// `name` when the span has no fields, `name[value]` when it has one — the vocabulary of
+    /// `page[353]`, `class[investments]`, `document[EURIZON 2023]`.
+    ///
+    /// # Only the first field, on purpose
+    ///
+    /// A span label names *what the span is about*, and a span is about one thing. The `investment`
+    /// span carries three fields — the triggering text and the row's two coordinates — but the
+    /// latter two are a position within the row, not its identity, and they have `First coord` and
+    /// `Second coord` of their own; repeating them here would only make `Activity` longer and force
+    /// the whole cell to be quoted, for no information. Nothing is hidden: stderr renders a span's
+    /// fields in full through `FormattedFields`, independently of this.
+    ///
+    /// An empty value produces no brackets either, so the unnamed page-classify pipeline renders as
+    /// `pipeline` and not `pipeline[]`.
     fn build(name: &str, attrs: &span::Attributes<'_>) -> Self {
-        let mut visitor = SpanLabelVisitor(Vec::new());
+        let mut visitor = SpanLabelVisitor(None);
         attrs.record(&mut visitor);
-        // An empty value produces no brackets: the unnamed page-classify pipeline renders as
-        // `pipeline`, not `pipeline[]`.
-        visitor.0.retain(|value| !value.is_empty());
-        if visitor.0.is_empty() {
-            Self(name.to_string())
-        } else {
-            Self(format!("{name}[{}]", visitor.0.join(",")))
+        match visitor.0 {
+            None => Self(name.to_string()),
+            Some(value) => Self(format!("{name}[{value}]")),
         }
     }
 }
@@ -716,7 +762,7 @@ enum PageKey {
 #[derive(Debug, Clone)]
 struct PendingRow {
     order_key: RowOrderKey,
-    cells: [String; 7],
+    cells: [String; 8],
 }
 
 #[derive(Debug, Clone)]
@@ -944,6 +990,7 @@ where
         let sequence = self.inner.sequence.fetch_add(1, Ordering::Relaxed);
 
         let cells = [
+            merged.get("report").to_string(),
             merged.get("page").to_string(),
             activity,
             merged.get("coord_ref_1").to_string(),
@@ -1186,10 +1233,12 @@ impl ErrorRecord {
     }
 }
 
-/// The page coordinates of a record, the same five tagged fields `.log.csv` puts in columns.
-/// Omitted entirely when the event carries none of them.
+/// Where a record happened: the same fields `.log.csv` puts in columns, so the two structured logs
+/// say the same thing. Omitted entirely when the event carries none of them.
 #[derive(Debug, Clone, Default, serde::Serialize)]
 struct CoordsRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    report: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1204,7 +1253,8 @@ struct CoordsRecord {
 
 impl CoordsRecord {
     fn is_empty(&self) -> bool {
-        self.page.is_none()
+        self.report.is_none()
+            && self.page.is_none()
             && self.first_ref.is_none()
             && self.second_ref.is_none()
             && self.first.is_none()
@@ -1236,9 +1286,9 @@ struct LogRecord {
 }
 
 /// Collects everything one event carries: the message, a real `&dyn Error` if the site recorded
-/// one, and every remaining field as a string. The five coordinates are *not* collected here —
-/// they can also be inherited from an enclosing span, which a visitor over the event alone cannot
-/// see, so `build_record` resolves them separately.
+/// one, and every remaining field as a string. The fields that have a column of their own are
+/// *not* collected here — they can also be inherited from an enclosing span, which a visitor over
+/// the event alone cannot see, so `build_record` resolves them separately.
 struct RecordVisitor {
     message: String,
     error: Option<ErrorRecord>,
@@ -1253,7 +1303,7 @@ impl RecordVisitor {
     fn put(&mut self, name: &str, value: String) {
         match name {
             "message" => self.message = value,
-            name if TAGGED_FIELDS.contains(&name) => {}
+            name if TAGGED_FIELDS.contains(&name) || COLUMN_ONLY_FIELDS.contains(&name) => {}
             other => {
                 self.fields.insert(other.to_string(), value);
             }
@@ -1322,6 +1372,7 @@ where
         (!value.is_empty()).then(|| value.to_string())
     };
     let coords = CoordsRecord {
+        report: coord("report"),
         page: coord("page"),
         first_ref: coord("coord_ref_1"),
         second_ref: coord("coord_ref_2"),
@@ -1436,10 +1487,10 @@ mod tests {
     /// rather than remove the race.
     static SERIAL: Mutex<()> = Mutex::new(());
 
-    /// Joins seven already-escaped cell values with commas and a trailing newline, in `.log.csv`
+    /// Joins eight already-escaped cell values with commas and a trailing newline, in `.log.csv`
     /// column order. Used everywhere below instead of hand-typed comma counts, which are hard to
     /// read and easy to miscount.
-    fn row(cells: [&str; 7]) -> String {
+    fn row(cells: [&str; 8]) -> String {
         format!("{}\n", cells.join(","))
     }
 
@@ -2039,7 +2090,7 @@ mod tests {
             fn header_matches_the_documented_column_order() {
                 assert_eq!(
                     CSV_HEADER,
-                    "Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n"
+                    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n"
                 );
             }
         }
@@ -2097,7 +2148,7 @@ mod tests {
                 // No active span: the `Activity` column (index 1) is empty.
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["3", "", "", "", "", "", "page-scoped message"])
+                    row(["", "3", "", "", "", "", "", "page-scoped message"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2121,6 +2172,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "7",
                         "page_processing[7]",
                         "",
@@ -2191,6 +2243,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "12",
                         "",
                         "Acme Corp",
@@ -2224,8 +2277,8 @@ mod tests {
                 let header_and_row: Vec<&str> = content.lines().collect();
                 assert_eq!(header_and_row.len(), 2, "expected exactly one data row");
                 let cells: Vec<&str> = header_and_row[1].split(',').collect();
-                assert_eq!(cells[2], "Acme Corp", "\"First coord ref\" comes from `coord_ref_1`");
-                assert_eq!(cells[3], "NAV", "\"Second coord ref\" comes from `coord_ref_2`");
+                assert_eq!(cells[3], "Acme Corp", "\"First coord ref\" comes from `coord_ref_1`");
+                assert_eq!(cells[4], "NAV", "\"Second coord ref\" comes from `coord_ref_2`");
             }
 
 
@@ -2247,6 +2300,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "9",
                         "page_processing[7]",
                         "",
@@ -2278,7 +2332,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "field[SPAN_VALUE]", "", "EVENT_VALUE", "", "", "event field wins over the span's"])
+                    row(["", "", "field[SPAN_VALUE]", "", "EVENT_VALUE", "", "", "event field wins over the span's"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2306,6 +2360,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "2",
                         "document_ingest[1]/page_classification[2]",
                         "",
@@ -2339,6 +2394,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "4",
                         "document_ingest[4]/field_extraction[ISIN]",
                         "",
@@ -2369,7 +2425,7 @@ mod tests {
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
-                    "{CSV_HEADER}1,,,,,,\"value, with a comma inside\"\n"
+                    "{CSV_HEADER},1,,,,,,\"value, with a comma inside\"\n"
                 );
                 assert_eq!(content, expected);
             }
@@ -2387,7 +2443,7 @@ mod tests {
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
-                    "{CSV_HEADER}1,,,,,,\"say \"\"hi\"\" to the user\"\n"
+                    "{CSV_HEADER},1,,,,,,\"say \"\"hi\"\" to the user\"\n"
                 );
                 assert_eq!(content, expected);
             }
@@ -2404,7 +2460,7 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!("{CSV_HEADER}1,,,,,,\"first line\nsecond line\"\n");
+                let expected = format!("{CSV_HEADER},1,,,,,,\"first line\nsecond line\"\n");
                 assert_eq!(content, expected);
             }
 
@@ -2420,8 +2476,76 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!("{CSV_HEADER}1,,\"Acme, Inc.\",,,,ok\n");
+                let expected = format!("{CSV_HEADER},1,,\"Acme, Inc.\",,,,ok\n");
                 assert_eq!(content, expected);
+            }
+        }
+
+        /// `Report`: a column that is filled wherever a row exists, and is never a reason for one.
+        mod report_column {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn a_report_alone_selects_no_row() {
+                // The rule that keeps the file an audit trail of the extraction: a document's name
+                // is not a position. A `document` span wraps a whole run, so if `report` selected
+                // rows, every warning of the program would become one.
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(".log.csv");
+                let layer = CsvLogLayer::create(&path).expect("csv layer construction");
+                let subscriber = tracing_subscriber::registry().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, || {
+                    let span = tracing::info_span!("document", report = "EURIZON 2023");
+                    span.in_scope(|| tracing::warn!("something happened, but nowhere in particular"));
+                });
+                layer.close().expect("close must succeed");
+                let content = std::fs::read_to_string(&path).expect("read .log.csv");
+                assert_eq!(content, CSV_HEADER);
+            }
+
+            #[test]
+            fn a_report_from_an_enclosing_span_fills_the_column_of_a_row_a_page_selected() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(".log.csv");
+                let layer = CsvLogLayer::create(&path).expect("csv layer construction");
+                let subscriber = tracing_subscriber::registry().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, || {
+                    let outer = tracing::info_span!("document", report = "EURIZON 2023");
+                    outer.in_scope(|| {
+                        tracing::warn!(page = 16u64, "a row of its own");
+                    });
+                });
+                layer.close().expect("close must succeed");
+                let content = std::fs::read_to_string(&path).expect("read .log.csv");
+                let expected = format!(
+                    "{CSV_HEADER}{}",
+                    row(["EURIZON 2023", "16", "document[EURIZON 2023]", "", "", "", "", "a row of its own"])
+                );
+                assert_eq!(content, expected);
+            }
+
+            #[test]
+            fn the_innermost_document_wins_as_every_other_field_does() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(".log.csv");
+                let layer = CsvLogLayer::create(&path).expect("csv layer construction");
+                let subscriber = tracing_subscriber::registry().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, || {
+                    let outer = tracing::info_span!("document", report = "OUTER");
+                    outer.in_scope(|| {
+                        let inner = tracing::info_span!("document", report = "INNER");
+                        inner.in_scope(|| tracing::warn!(page = 1u64, "nested"));
+                    });
+                });
+                layer.close().expect("close must succeed");
+                let content = std::fs::read_to_string(&path).expect("read .log.csv");
+                let cells: Vec<&str> =
+                    content.lines().nth(1).expect("one data row").split(',').collect();
+                assert_eq!(cells[0], "INNER");
             }
         }
 
@@ -2447,8 +2571,8 @@ mod tests {
                 // sorted sequence.
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["1", "", "", "", "", "", "first"]),
-                    row(["2", "", "", "", "", "", "second"])
+                    row(["", "1", "", "", "", "", "", "first"]),
+                    row(["", "2", "", "", "", "", "", "second"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2469,8 +2593,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["1", "", "", "", "", "", "first"]),
-                    row(["2", "", "", "", "", "", "second"])
+                    row(["", "1", "", "", "", "", "", "first"]),
+                    row(["", "2", "", "", "", "", "", "second"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2500,7 +2624,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["3", "", "", "", "", "", "logged before anyone knew where to put it"])
+                    row(["", "3", "", "", "", "", "", "logged before anyone knew where to put it"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2577,6 +2701,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "42",
                         "page[42]",
                         "",
@@ -2681,7 +2806,7 @@ mod tests {
                 // `csv_escaping::message_containing_a_comma_is_quoted`) -- irrelevant to what this
                 // test targets (an empty `Activity`), so it is avoided rather than escaped by hand.
                 let expected =
-                    format!("{CSV_HEADER}{}", row(["1", "", "", "", "", "", "top-level no span"]));
+                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "top-level no span"]));
                 assert_eq!(content, expected);
             }
 
@@ -2702,7 +2827,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["7", "page_processing[7]", "", "", "", "", "no fields of its own"])
+                    row(["", "7", "page_processing[7]", "", "", "", "", "no fields of its own"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2730,7 +2855,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["3", "run/job/document", "", "", "", "", "three levels deep"])
+                    row(["", "3", "run/job/document", "", "", "", "", "three levels deep"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2784,6 +2909,7 @@ mod tests {
                 let expected = format!(
                     "{CSV_HEADER}{}",
                     row([
+                        "",
                         "5",
                         "untagged_outer/tagged_inner[5]",
                         "",
@@ -2843,9 +2969,9 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}{}",
-                    row(["2", "", "", "", "", "", "at page two"]),
-                    row(["5", "", "", "", "", "", "at page five"]),
-                    row(["8", "", "", "", "", "", "at page eight"])
+                    row(["", "2", "", "", "", "", "", "at page two"]),
+                    row(["", "5", "", "", "", "", "", "at page five"]),
+                    row(["", "8", "", "", "", "", "", "at page eight"])
                 );
                 assert_eq!(content, expected, "rows must come out sorted by page, not by arrival order");
             }
@@ -2865,8 +2991,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["4", "", "", "", "", "", "first at page four"]),
-                    row(["4", "", "", "", "", "", "second at page four"])
+                    row(["", "4", "", "", "", "", "", "first at page four"]),
+                    row(["", "4", "", "", "", "", "", "second at page four"])
                 );
                 assert_eq!(
                     content, expected,
@@ -2892,8 +3018,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["3", "", "", "", "", "", "numbered"]),
-                    row(["", "", "no page here", "", "", "", "unnumbered"])
+                    row(["", "3", "", "", "", "", "", "numbered"]),
+                    row(["", "", "", "no page here", "", "", "", "unnumbered"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2938,7 +3064,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["9", "", "", "", "", "", "flushed only via Drop -- close() never called"])
+                    row(["", "9", "", "", "", "", "", "flushed only via Drop -- close() never called"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2970,7 +3096,7 @@ mod tests {
 
                 let after = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected =
-                    format!("{CSV_HEADER}{}", row(["1", "", "", "", "", "", "not yet flushed"]));
+                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "not yet flushed"]));
                 assert_eq!(after, expected, "dropping the last remaining clone must flush");
             }
 
@@ -3006,7 +3132,8 @@ mod tests {
                 let observed_pages: Vec<u64> = content
                     .lines()
                     .skip(1) // header
-                    .map(|line| line.split(',').next().expect("page cell").parse().expect("numeric page"))
+                    // Column 1: `Report` comes first, and is empty here.
+                    .map(|line| line.split(',').nth(1).expect("page cell").parse().expect("numeric page"))
                     .collect();
                 let expected_pages: Vec<u64> = (0..COUNT).collect();
                 assert_eq!(observed_pages, expected_pages, "all rows must be sorted by page after close()");

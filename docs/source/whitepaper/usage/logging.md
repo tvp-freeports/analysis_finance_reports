@@ -39,13 +39,14 @@ saying what the engine was doing when the line was emitted, coloured in four sha
 is visible without reading it word by word.
 
 ```text
- WARN run/job[EURIZON 2023]/step[0]/class[investments]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]:
-      expected text block not found near the matched company - row skipped coord_ref_1=Leonardo
+ WARN run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]:
+      expected text block not found near the matched company - row skipped coord_ref_1=Leonardo Spa Az Nom coord_ref_2=Leonardo coord_1=row 12 coord_2=col 1
 ```
 
-That path is the point. It says *what was happening* — job, step, page class, page, pipeline,
-segment, pipe — rather than which source file the line came from, which is what you want when a
-format misbehaves on one page of one report.
+That path is the point. It says *what was happening* — job, step, page class, document, page,
+pipeline, segment, pipe — rather than which source file the line came from, which is what you want
+when a format misbehaves on one page of one report. `job` is the **format**; `document` is the
+report, and it is what tells two documents of one run apart.
 
 ```{note}
 The colours are emitted even when stderr is not a terminal, so `2>file` collects the escape
@@ -60,7 +61,7 @@ that stderr omits, the message, any coordinates, and — where the event attache
 structured form, with its `Debug` shape, its message, and its whole `source()` chain.
 
 ```json
-{"time":"2026-08-31T09:14:02.118773Z","level":"WARN","activity":"run/job[EURIZON 2023]/step[0]/class[investments]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]","target":"freeports::formats_utils::text_filter","message":"expected text block not found near the matched company - row skipped","coords":{"page":"16","first_ref":"Leonardo"}}
+{"time":"2026-08-31T09:14:02.118773Z","level":"WARN","activity":"run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]","target":"freeports::formats_utils::text_filter","message":"expected text block not found near the matched company - row skipped","coords":{"report":"EURIZON 2023","page":"16","first_ref":"Leonardo Spa Az Nom","second_ref":"Leonardo","first":"row 12","second":"col 1"}}
 ```
 
 JSON Lines rather than one JSON or YAML document, for two reasons that both come from the volume
@@ -89,16 +90,55 @@ which page, at which position, and what was done about it.
 
 | Column | From |
 |---|---|
+| `Report` | the `report` field, from the `document` span |
 | `Page` | the `page` field |
 | `Activity` | computed from the span stack |
-| `First coord ref`, `Second coord ref` | textual anchors to a position — a matched company, a field name |
-| `First coord`, `Second coord` | the position itself, in units that depend on the context (`row 12`, `col 3`) |
+| `First coord ref` | the **triggering text**: the report's own words that matched a company |
+| `Second coord ref` | the second anchor — the company the triggering text matched, or the field a row is about |
+| `First coord`, `Second coord` | the position itself, in units that depend on the context (`row 12`, `col 1`) |
 | `Message` | the event's message |
 
-`Activity` enriches a row but never justifies one: an event carrying only an activity and no page or
-coordinate produces no row. The coordinate *refs* are deliberately not required to identify a point
-uniquely — `Leonardo` is not a position, but it is something you can search for in a PDF viewer,
-which is what someone checking a skipped row actually does.
+`Report` and `Activity` enrich a row but never justify one: an event carrying only those and no page
+or coordinate produces no row. A document's name is not a position, and a `document` span is open
+over a whole run — if it selected rows, every warning the program emits would become one.
+
+## `Report`
+
+Which of the run's documents the row is about, so that a run over a batch is one file you can filter
+rather than several you have to correlate. It comes from the `document` span, which is why an event
+born deep inside a pipe carries it without knowing it exists. Empty for the rare row emitted outside
+any document — a failure during configuration, before the first report is opened. The coordinate *refs* are deliberately not required to identify a point
+uniquely — `Leonardo Spa Az Nom` is not a position, but it is something you can search for in a PDF
+viewer, which is what someone checking a skipped row actually does.
+
+That is also why `First coord ref` holds the **triggering text** rather than the company's name.
+The two are not the same string: the triggering text is what the report wrote in the cell, and the
+company is what the input database calls that issuer — `ITALY BTPS` for a row the report prints as
+`Btps 1.3% 16-15.05.28 /Infl`. Only the first can be found again inside the document, and finding it
+again is the whole purpose of the column. The company is not lost: it travels in `Second coord ref`
+where the event has nothing more specific to say, it is the `Investee` column of `investments.csv`,
+and for rows the deserializer produced it is also visible in `Activity`, whose `investment[…]`
+segment carries the same anchor.
+
+## `First coord` and `Second coord`
+
+`row 12`, `col 1` — where in the page's table the row hooked itself. Every field of an investment
+row is read at a fixed offset from that cell, so an anchor that landed on a header, a total or a
+currency code shifts them all; the position is what shows it, as a column different from every other
+row of the page.
+
+Both count **from one**, because they are written to be read by a person matching a row against the
+page, not fed back into the engine. The grid's own indices, the ones a format's offsets are computed
+in, still count from zero.
+
+The two travel further than they look. The table exists only inside the text filter — by the time
+the deserializer sees the row it is a block, and the grid is gone — so the filter writes the position
+into the block's metadata and the deserializer puts it back on the span wrapping the row. That is
+what gives a coordinate to a failed cast or an out-of-range value, neither of which is emitted
+anywhere near a table.
+
+They are empty for anything that did not come from a table: a fund name, an SFDR article, a
+management company. Empty is the honest answer there, not a missing feature.
 
 **One row per event, not three per failure.** A lost field is a single row saying both what went
 wrong and what was done about it — `"Error casting, skipping field: …"` — not an error row plus two

@@ -592,15 +592,21 @@ impl TextFilterInvestmentsStandard {
                 //
                 // `debug`, because it is one line per position found: it lives in the JSONL and on
                 // stderr at `-vv`, never in the `.log.csv`, whose ceiling is `warn`.
+                let (row, col) = crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
                 tracing::debug!(
-                    coord_ref_1 = company,
-                    coord_ref_2 = %content,
-                    coord_1 = %format_args!("row {}", anchor.base.0),
-                    coord_2 = %format_args!("col {}", anchor.base.1),
+                    coord_ref_1 = %content,
+                    coord_ref_2 = company,
+                    coord_1 = %row,
+                    coord_2 = %col,
                     "investment row anchored on the matched company"
                 );
                 txt_blk.metadata.insert("company match".to_string(), BlockValue::from(content));
                 txt_blk.metadata.insert("company".to_string(), BlockValue::from(company));
+                // The position travels with the row, because the deserializer cannot recover it:
+                // by the time it sees this block the table it came from no longer exists, and the
+                // events it emits are the ones that end up in the `.log.csv` needing a coordinate.
+                txt_blk.metadata.insert("table row".to_string(), BlockValue::from(anchor.base.0));
+                txt_blk.metadata.insert("table col".to_string(), BlockValue::from(anchor.base.1));
                 out.push(txt_blk);
                 Ok(())
             }
@@ -609,8 +615,15 @@ impl TextFilterInvestmentsStandard {
                 // the `.log.csv` exists precisely for this, a piece of text with which the row can
                 // be found again inside the PDF. As a free field it fell outside the columns and
                 // was readable only on stderr.
+                //
+                // The triggering text and not the company, because only the former is written in
+                // the report: the company is the name the input database gives the issuer.
+                let (row, col) = crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
                 tracing::warn!(
-                    coord_ref_1 = company,
+                    coord_ref_1 = %content,
+                    coord_ref_2 = company,
+                    coord_1 = %row,
+                    coord_2 = %col,
                     "expected text block not found near the matched company - row skipped"
                 );
                 Ok(())
@@ -1351,12 +1364,16 @@ mod tests {
             }
         }
 
-        fn anchor_records(f: impl FnOnce()) -> Vec<Record> {
+        fn records_matching(f: impl FnOnce(), needle: &str) -> Vec<Record> {
             let layer = CapturingLayer::default();
             let subscriber = Registry::default().with(layer.clone());
             tracing::subscriber::with_default(subscriber, f);
             let records = layer.records.lock().unwrap();
-            records.iter().filter(|r| r.message.contains("anchored")).cloned().collect()
+            records.iter().filter(|r| r.message.contains(needle)).cloned().collect()
+        }
+
+        fn anchor_records(f: impl FnOnce()) -> Vec<Record> {
+            records_matching(f, "anchored")
         }
 
         fn field_of<'a>(record: &'a Record, name: &str) -> Option<&'a str> {
@@ -1378,8 +1395,79 @@ mod tests {
             assert_eq!(records.len(), 1, "{records:?}");
             assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp"));
             assert_eq!(field_of(&records[0], "coord_ref_2"), Some("Acme Corp"));
-            assert_eq!(field_of(&records[0], "coord_1"), Some("row 1"));
-            assert_eq!(field_of(&records[0], "coord_2"), Some("col 0"));
+            // One-based: the matched cell is the grid's `(1, 0)`, and a person counting rows down
+            // the page arrives at the second row, not the first.
+            assert_eq!(field_of(&records[0], "coord_1"), Some("row 2"));
+            assert_eq!(field_of(&records[0], "coord_2"), Some("col 1"));
+        }
+
+        /// The two anchors are **not** interchangeable, and this is the case that tells them apart:
+        /// the cell says more than the company's name. `coord_ref_1` is the text as the report
+        /// writes it, which is what a search inside the PDF can find; `coord_ref_2` is the name the
+        /// input database gives the company, which appears nowhere in the document.
+        #[test]
+        fn the_first_anchor_is_the_triggering_text_and_the_second_the_company() {
+            let blks = vec![
+                table_row(0, 0, "Acme Corp Reg Shs", false),
+                table_row(0, 1, "1.000", false),
+                table_row(1, 0, "filler", false),
+                table_row(1, 1, "2.000", false),
+            ];
+            let records = anchor_records(|| {
+                let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+            });
+
+            assert_eq!(records.len(), 1, "{records:?}");
+            assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp Reg Shs"));
+            assert_eq!(field_of(&records[0], "coord_ref_2"), Some("Acme Corp"));
+        }
+
+        /// The position has to survive the segment boundary: by the time the deserializer sees the
+        /// block, the table it was read from no longer exists, and the events that end up in the
+        /// `.log.csv` are all born there.
+        #[test]
+        fn the_row_carries_its_table_position_in_its_metadata() {
+            let blks = vec![
+                table_row(0, 0, "Country", false),
+                table_row(0, 1, "Market value", false),
+                table_row(1, 0, "Acme Corp", false),
+                table_row(1, 1, "1.000", false),
+            ];
+            let out = simple_investments(1).call(&blks, &targets(&["Acme Corp"])).unwrap();
+
+            assert_eq!(out.len(), 1, "{out:?}");
+            assert_eq!(out[0].metadata.get("table row"), Some(&BlockValue::from(1i64)));
+            assert_eq!(out[0].metadata.get("table col"), Some(&BlockValue::from(0i64)));
+        }
+
+        /// The skipped-row warning is the one event of this function that *does* reach the
+        /// `.log.csv`, so it is the one that most needs the position: the reader has nothing else
+        /// to go on, the row having produced no output at all.
+        #[test]
+        fn a_skipped_row_says_where_it_was_going_to_read_from() {
+            // The matched cell has no cell to its right, so the market value cannot be read and
+            // the row is skipped.
+            let blks = vec![
+                table_row(0, 0, "Country", false),
+                table_row(0, 1, "Market value", false),
+                table_row(1, 0, "Acme Corp", false),
+                table_row(2, 0, "zzz", false),
+                table_row(2, 1, "5", false),
+            ];
+            let records = records_matching(
+                || {
+                    let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+                },
+                "row skipped",
+            );
+
+            assert_eq!(records.len(), 1, "{records:?}");
+            assert_eq!(records[0].level, "WARN");
+            assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp"));
+            // One-based: the matched cell is the grid's `(1, 0)`, and a person counting rows down
+            // the page arrives at the second row, not the first.
+            assert_eq!(field_of(&records[0], "coord_1"), Some("row 2"));
+            assert_eq!(field_of(&records[0], "coord_2"), Some("col 1"));
         }
 
         #[test]

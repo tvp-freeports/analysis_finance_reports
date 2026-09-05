@@ -64,16 +64,16 @@ the same as `-o results -z`.
 
 ### `--separate-out`
 
-Splits the two tables that carry a report and a format per row — `investments` and `funds_assets` —
-into one file per `(report, format)` pair:
+Splits the two tables that carry a report per row — `investments` and `funds_assets` — into one
+file per report:
 
 ```text
-investments__EURIZON 2023__EURIZON-EN23.csv
-funds_assets__EURIZON 2023__EURIZON-EN23.csv
+investments__EURIZON 2023.csv
+funds_assets__EURIZON 2023.csv
 ```
 
-The other tables stay merged, because they do not carry those two columns and splitting them would
-mean inventing an attribution.
+The other tables stay merged, because they do not carry that column and splitting them would mean
+inventing an attribution.
 
 ```{warning}
 The document's **name** becomes part of the file name. A document left unnamed defaults to its whole

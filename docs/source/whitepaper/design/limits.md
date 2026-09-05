@@ -45,8 +45,8 @@ one run. Two fixes are possible — reload the layers after resolution, or drop 
 say verbosity is command-line only — and neither has been chosen.
 
 **`--separate-out` on an unnamed document produces an invalid path.**
-The file name is `{table}__{report}__{format}.csv`, and an unnamed document's name defaults to its
-whole absolute path, which contains separators. Naming the document works around it
+The file name is `{table}__{report}.csv`, and an unnamed document's name defaults to its whole
+absolute path, which contains separators. Naming the document works around it
 ({doc}`../usage/documents`).
 
 **`freeports.log.jsonl` is written in the working directory** while `.log.csv` was moved next to the

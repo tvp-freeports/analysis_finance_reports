@@ -209,6 +209,10 @@ impl Algorithm {
         doc: &Document,
         parallelism: Parallelism,
     ) -> Result<Vec<Option<PageClass>>, AlgorithmError> {
+        // The document is known here and nowhere below: it is what fills the `Report` column of
+        // the `.log.csv` for every classification event, none of which could name it on its own.
+        let document_span = tracing::info_span!("document", report = %doc.id);
+        let _document_guard = document_span.enter();
         let classify_span = tracing::info_span!("classify");
         let _classify_guard = classify_span.enter();
 
@@ -469,6 +473,11 @@ impl Algorithm {
         skipped: &AtomicUsize,
     ) -> Vec<Result<Vec<Extracted>, AlgorithmError>> {
         let apply_one = |scheduled_page: &ScheduledPage<'_>| {
+            // The document cannot be named any higher than this: a `class` group holds the pages of
+            // *every* document that has pages of that class, so which document a page belongs to is
+            // known one page at a time. It fills the `Report` column.
+            let document_span = tracing::info_span!("document", report = %scheduled_page.doc.id);
+            let _document_guard = document_span.enter();
             // This span gives every event produced by this page's pipes the page number, which is
             // the `Page` column of the `.log.csv`. No pipe knows it on its own, and threading it
             // through by hand would mean adding it to every signature.
@@ -476,9 +485,9 @@ impl Algorithm {
             page_span.in_scope(|| match bundle.apply(scheduled_page.page, data) {
                 Ok(results) => Ok(results),
                 Err(error) if error.is_page_failure() => {
-                    // Non-fatal: log and carry on.
+                    // Non-fatal: log and carry on. The document is not spelled out: the enclosing
+                    // span carries it, into the `Report` column and into `Activity` alike.
                     tracing::warn!(
-                        document = %scheduled_page.doc.id,
                         page = scheduled_page.page.number,
                         error = log_error(&error),
                         "page skipped: {error}"
@@ -491,7 +500,6 @@ impl Algorithm {
                     // exists only if the *event* names a page or a coordinate, and this is the one
                     // event a reader will look for.
                     tracing::error!(
-                        document = %scheduled_page.doc.id,
                         page = scheduled_page.page.number,
                         error = log_error(&error),
                         "page failed: {error} - page skipped"

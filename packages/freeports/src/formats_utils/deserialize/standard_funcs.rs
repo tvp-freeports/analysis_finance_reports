@@ -151,6 +151,18 @@ impl DeserializePipe for DeserializerFundStandard {
     }
 }
 
+/// Where in its table the row sat, if it came from one.
+///
+/// Written by the text filter, which is the only segment that ever sees the table; absent for a
+/// filter that is not table-based, which is why this is an `Option` and not an error. It becomes
+/// the `First coord` and `Second coord` columns of the `.log.csv`, the position a reader needs once
+/// the triggering text has taken them to the right page.
+fn table_position(metadata: &std::collections::BTreeMap<String, BlockValue>) -> Option<(i64, i64)> {
+    let row = metadata.get("table row")?.as_int()?;
+    let col = metadata.get("table col")?.as_int()?;
+    Some((row, col))
+}
+
 /// Builds an [`Equity`] or a [`Bond`] from the metadata of an `EQUITY_TARGET` or `BOND_TARGET`
 /// block.
 ///
@@ -261,7 +273,26 @@ impl DeserializerInvestmentStandard {
         // deserialization produces, including events born inside the conversion functions, which
         // have no way of knowing it — and including the two events below, which is why the guard
         // must outlive them and the span is opened here rather than inside `build_row`.
-        let row_span = tracing::info_span!("investment", coord_ref_1 = %company);
+        //
+        // The **triggering text**, not the company: the point of the column is to be pasted into a
+        // PDF viewer's search box, and only the triggering text is written in the report. The
+        // company is the input database's own name for the issuer, and lands in `Investee`.
+        //
+        // Two spellings of the same span rather than one with empty coordinates: a field that is
+        // present but blank still counts as present, and the fields of a span are what decide
+        // whether an event under it writes a `.log.csv` row at all.
+        let row_span = match table_position(md) {
+            Some((row, col)) => {
+                let (row, col) = crate::core::tracing_setup::table_coords(row, col);
+                tracing::info_span!(
+                    "investment",
+                    coord_ref_1 = %company_match,
+                    coord_1 = %row,
+                    coord_2 = %col,
+                )
+            }
+            None => tracing::info_span!("investment", coord_ref_1 = %company_match),
+        };
         let _row_guard = row_span.enter();
 
         match self.build_row(txt_blk, is_equity, company, company_match) {
@@ -294,8 +325,8 @@ impl DeserializerInvestmentStandard {
     /// The body of [`Self::call`]: everything that can fail on account of what a row *contains*.
     ///
     /// Split out so that the failure is handled where the `investment` span is open — that span is
-    /// what carries the company into the `.log.csv`, and without it a skipped holding would be
-    /// impossible to find again in the PDF.
+    /// what carries the triggering text into the `.log.csv`, and without it a skipped holding would
+    /// be impossible to find again in the PDF.
     fn build_row(
         &self,
         txt_blk: &TextBlock,
@@ -1071,6 +1102,118 @@ mod tests {
                 let bad = deserializer.deserialize(&with_market_value("-")).unwrap();
                 let good_again = deserializer.deserialize(&with_market_value("2.000")).unwrap();
                 assert_eq!((good.len(), bad.len(), good_again.len()), (1, 0, 1));
+            }
+        }
+
+        /// The anchor the whole row's deserialization hangs from: the `investment` span, whose
+        /// `coord_ref_1` becomes the `First coord ref` column of the `.log.csv` for every event
+        /// born beneath it.
+        mod row_anchor_span {
+            use super::*;
+            use std::sync::{Arc, Mutex};
+            use tracing::field::{Field, Visit};
+            use tracing::span;
+            use tracing_subscriber::Registry;
+            use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+
+            #[derive(Default)]
+            struct AnchorVisitor(BTreeMap<String, String>);
+
+            impl Visit for AnchorVisitor {
+                fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                    self.0.insert(field.name().to_string(), format!("{value:?}"));
+                }
+
+                fn record_str(&mut self, field: &Field, value: &str) {
+                    self.0.insert(field.name().to_string(), value.to_string());
+                }
+            }
+
+            #[derive(Clone, Default)]
+            struct SpanCapturingLayer {
+                spans: Arc<Mutex<Vec<BTreeMap<String, String>>>>,
+            }
+
+            impl<S: tracing::Subscriber> Layer<S> for SpanCapturingLayer {
+                fn on_new_span(&self, attrs: &span::Attributes<'_>, _id: &span::Id, _ctx: Context<'_, S>) {
+                    if attrs.metadata().name() != "investment" {
+                        return;
+                    }
+                    let mut visitor = AnchorVisitor::default();
+                    attrs.record(&mut visitor);
+                    self.spans.lock().unwrap().push(visitor.0);
+                }
+            }
+
+            /// The fields of every `investment` span opened while `f` ran.
+            fn spans_of(f: impl FnOnce()) -> Vec<BTreeMap<String, String>> {
+                let layer = SpanCapturingLayer::default();
+                let subscriber = Registry::default().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, f);
+                let spans = layer.spans.lock().unwrap();
+                spans.clone()
+            }
+
+            /// The `coord_ref_1` of every `investment` span opened while `f` ran.
+            fn anchors_of(f: impl FnOnce()) -> Vec<String> {
+                spans_of(f).into_iter().filter_map(|mut s| s.remove("coord_ref_1")).collect()
+            }
+
+            fn positioned_metadata() -> BTreeMap<String, BlockValue> {
+                let mut md = base_metadata();
+                md.insert("table row".to_string(), BlockValue::from(42i64));
+                md.insert("table col".to_string(), BlockValue::from(3i64));
+                md
+            }
+
+            /// `base_metadata` deliberately gives the two different values — the report writes
+            /// `Acme`, the input database calls the company `Acme Corp` — which is the whole point
+            /// of the column: only the former can be searched for inside the PDF.
+            #[test]
+            fn the_span_is_anchored_on_the_triggering_text_not_on_the_company() {
+                let anchors = anchors_of(|| {
+                    let _ = DeserializerInvestmentStandard::default().call(&equity_block(base_metadata()));
+                });
+                assert_eq!(anchors, vec!["Acme".to_string()]);
+            }
+
+            /// Where the row sat is written by the text filter into the block's metadata, because
+            /// nothing downstream can recover it: this is the span that turns it back into the
+            /// `First coord` and `Second coord` columns for every event of the row.
+            #[test]
+            fn the_table_position_becomes_the_two_coordinate_fields() {
+                let spans = spans_of(|| {
+                    let _ = DeserializerInvestmentStandard::default()
+                        .call(&equity_block(positioned_metadata()));
+                });
+                assert_eq!(spans.len(), 1, "{spans:?}");
+                // The metadata holds the grid's zero-based index; the column holds what a person
+                // counts.
+                assert_eq!(spans[0].get("coord_1").map(String::as_str), Some("row 43"));
+                assert_eq!(spans[0].get("coord_2").map(String::as_str), Some("col 4"));
+            }
+
+            /// A deserializer is reachable from a text filter that is not table-based, and a field
+            /// that is present but blank still counts as present when the `.log.csv` layer decides
+            /// whether to write a row — so the absent case must leave the fields off entirely.
+            #[test]
+            fn a_block_that_came_from_no_table_carries_no_coordinates_at_all() {
+                let spans = spans_of(|| {
+                    let _ = DeserializerInvestmentStandard::default().call(&equity_block(base_metadata()));
+                });
+                assert_eq!(spans.len(), 1, "{spans:?}");
+                assert!(!spans[0].contains_key("coord_1"), "{spans:?}");
+                assert!(!spans[0].contains_key("coord_2"), "{spans:?}");
+            }
+
+            #[test]
+            fn a_holding_skipped_mid_row_is_still_anchored_on_the_triggering_text() {
+                let mut md = base_metadata();
+                md.insert("market value".to_string(), BlockValue::from("-"));
+                let anchors = anchors_of(|| {
+                    let _ = DeserializerInvestmentStandard::default().call(&equity_block(md));
+                });
+                assert_eq!(anchors, vec!["Acme".to_string()]);
             }
         }
 

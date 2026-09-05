@@ -122,7 +122,9 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
         // `resolve_document_path`/`load_document`, which are leaves): a future instrumentation of
         // `input::document::load_document` inherits this span, giving its events the
         // `job/document` `Activity` context for free.
-        let doc_span = tracing::info_span!("document", id = %id);
+        // `report` and not `id`: the field name is what fills the `Report` column of the
+        // `.log.csv`, and it is the same document these events are about.
+        let doc_span = tracing::info_span!("document", report = %id);
         let _doc_guard = doc_span.enter();
 
         let (path, is_temp) = resolve_document_path(spec)?;

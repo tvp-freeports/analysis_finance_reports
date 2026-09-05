@@ -90,7 +90,6 @@ struct FundEntryBuilder {
     management_company_id: Option<u32>,
     report_page: Option<i32>,
     report: Option<String>,
-    format: Option<String>,
 }
 
 #[derive(Default)]
@@ -121,7 +120,6 @@ impl Accumulator {
                 management_company_id: None,
                 report_page: None,
                 report: None,
-                format: None,
             });
             let idx = self.funds.len() - 1;
             self.fund_index.insert(name.to_string(), idx);
@@ -140,7 +138,6 @@ impl Accumulator {
                     b.management_company_id.map(|v| v as i64),
                     b.report_page,
                     b.report,
-                    b.format,
                 )
             })
             .collect::<Result<_, _>>()?;
@@ -229,7 +226,6 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
     let mut acc = Accumulator::default();
     for doc in outcomes {
         let report = doc.id.as_str().to_string();
-        let format = doc.format.as_str().to_string();
         for page in &doc.pages {
             let page_n = page.page as i32;
             for result in &page.results {
@@ -243,14 +239,13 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                             if acc.funds[idx].report_page.is_none() {
                                 acc.funds[idx].report_page = Some(page_n);
                                 acc.funds[idx].report = Some(report.clone());
-                                acc.funds[idx].format = Some(format.clone());
                             }
                         }
                     }
 
                     Extracted::Equity(equity) => {
                         for equity in resolve(equity.clone(), &flat)? {
-                            push_investment(&mut acc, &equity.data, FinancialInstrument::EQUITY, None, None, page_n, &report, &format)?;
+                            push_investment(&mut acc, &equity.data, FinancialInstrument::EQUITY, None, None, page_n, &report)?;
                         }
                     }
 
@@ -264,7 +259,6 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                                 bond.interest_rate.map(|v| v.into_inner()),
                                 page_n,
                                 &report,
-                                &format,
                             )?;
                         }
                     }
@@ -280,7 +274,6 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                                 id,
                                 page_n,
                                 report.clone(),
-                                format.clone(),
                                 fund_id as i64,
                                 date,
                                 assets.tot_assets.into_inner() as f32,
@@ -301,7 +294,6 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                                 article,
                                 page_n,
                                 report.clone(),
-                                format.clone(),
                             )?);
                         }
                     }
@@ -317,26 +309,25 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
                                 fei.value.clone(),
                                 page_n,
                                 report.clone(),
-                                format.clone(),
                             )?);
                         }
                     }
 
                     Extracted::FundRename(rename) => {
                         for rename in resolve(rename.clone(), &flat)? {
-                            push_fund_change_name(&mut acc, &rename.data, ChangeNameEventType::Renaming, page_n, &report, &format)?;
+                            push_fund_change_name(&mut acc, &rename.data, ChangeNameEventType::Renaming, page_n, &report)?;
                         }
                     }
 
                     Extracted::FundMerge(merge) => {
                         for merge in resolve(merge.clone(), &flat)? {
-                            push_fund_change_name(&mut acc, &merge.data, ChangeNameEventType::Merging, page_n, &report, &format)?;
+                            push_fund_change_name(&mut acc, &merge.data, ChangeNameEventType::Merging, page_n, &report)?;
                         }
                     }
 
                     Extracted::ManagementCompany(mc) => {
                         for mc in resolve(mc.clone(), &flat)? {
-                            let am_id = get_or_create_manager(&mut acc, &mc.data.name, page_n, &report, &format)?;
+                            let am_id = get_or_create_manager(&mut acc, &mc.data.name, page_n, &report)?;
                             for fund_name in &mc.data.managed_funds {
                                 let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 acc.funds[fund_idx].management_company_id = Some(am_id);
@@ -346,7 +337,7 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
 
                     Extracted::InvestmentsManager(im) => {
                         for im in resolve(im.clone(), &flat)? {
-                            let am_id = get_or_create_manager(&mut acc, &im.data.name, page_n, &report, &format)?;
+                            let am_id = get_or_create_manager(&mut acc, &im.data.name, page_n, &report)?;
                             for fund_name in &im.data.managed_funds {
                                 let fund_idx = acc.get_or_create_fund(&canonical_fund_key(fund_name));
                                 let fund_id = acc.funds[fund_idx].id;
@@ -375,7 +366,6 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
 }
 
 /// The fields an equity and a bond have in common, with each one's specifics passed separately.
-#[allow(clippy::too_many_arguments)]
 fn push_investment(
     acc: &mut Accumulator,
     data: &crate::output::classes::investment::InvestmentData,
@@ -384,7 +374,6 @@ fn push_investment(
     interest_rate: Option<f64>,
     page_n: i32,
     report: &str,
-    format: &str,
 ) -> Result<(), AccumulateError> {
     let fund_raw = data.fund.resolved().expect("resolved after fulfill_promises");
     let idx = acc.get_or_create_fund(&canonical_fund_key(fund_raw));
@@ -397,7 +386,6 @@ fn push_investment(
         id,
         page_n,
         report.to_string(),
-        format.to_string(),
         data.company_match.clone(),
         data.company.clone(),
         financial_instrument,
@@ -424,7 +412,6 @@ fn push_fund_change_name(
     event_type: ChangeNameEventType,
     page_n: i32,
     report: &str,
-    format: &str,
 ) -> Result<(), AccumulateError> {
     let idx = acc.get_or_create_fund(&canonical_fund_key(&data.current_name));
     let fund_id = acc.funds[idx].id;
@@ -434,7 +421,6 @@ fn push_fund_change_name(
         id,
         page_n,
         report.to_string(),
-        format.to_string(),
         fund_id as i64,
         from_date,
         event_type,
@@ -450,13 +436,12 @@ fn get_or_create_manager(
     name: &str,
     page_n: i32,
     report: &str,
-    format: &str,
 ) -> Result<u32, AccumulateError> {
     if let Some(&idx) = acc.manager_index.get(name) {
         return Ok(acc.assets_managers[idx].id);
     }
     let id = acc.assets_managers.len() as i64 + 1;
-    let row = AssetsManagerRow::new(id, page_n, report.to_string(), format.to_string(), name.to_string())?;
+    let row = AssetsManagerRow::new(id, page_n, report.to_string(), name.to_string())?;
     acc.assets_managers.push(row);
     let idx = acc.assets_managers.len() - 1;
     acc.manager_index.insert(name.to_string(), idx);
@@ -546,13 +531,12 @@ mod tests {
         use super::*;
 
         #[test]
-        fn investment_rows_carry_report_format_and_page_from_the_outcome() {
+        fn investment_rows_carry_report_and_page_from_the_outcome() {
             let outcomes = vec![doc("Report A", "FMT", vec![page(3, "investments", vec![equity("Alpha Fund", 1000.0)])])];
             let tables = accumulate(&outcomes).unwrap();
             assert_eq!(tables.investments.len(), 1);
             let row = &tables.investments[0];
             assert_eq!(row.report, "Report A");
-            assert_eq!(row.format, "FMT");
             assert_eq!(row.report_page, 3);
         }
 
@@ -608,7 +592,6 @@ mod tests {
             assert_eq!(tables.funds.len(), 1);
             assert_eq!(tables.funds[0].report_page, None);
             assert_eq!(tables.funds[0].report, None);
-            assert_eq!(tables.funds[0].format, None);
         }
 
         #[test]

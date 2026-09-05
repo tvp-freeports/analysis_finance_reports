@@ -104,7 +104,7 @@ fn a_two_document_run_with_a_cross_page_promise_writes_the_expected_csvs() {
     let mut lines: Vec<&str> = investments_csv.lines().collect();
     assert_eq!(
         lines.remove(0),
-        "ID,Format,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency"
+        "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency"
     );
     assert_eq!(lines.len(), 2, "both investments must be written, promise already resolved");
     assert!(

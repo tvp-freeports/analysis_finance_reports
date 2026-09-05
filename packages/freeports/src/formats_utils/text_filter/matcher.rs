@@ -183,9 +183,10 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
         // Only the **positive** outcome is logged, with the text that produced it. Tracing every
         // comparison meant hundreds of companies against every fragment of text on every page,
         // nearly all of them saying "no", which is not information. The text in the clear is the
-        // useful part: it can be found again with a search inside the PDF.
+        // useful part — it can be found again with a search inside the PDF — which is why it is
+        // the *first* anchor and the company only the second.
         if txt.contains(&c.n_name) {
-            tracing::trace!(coord_ref_1 = %c.name, found = %text, "company matched by its name");
+            tracing::trace!(coord_ref_1 = %text, coord_ref_2 = %c.name, "company matched by its name");
             return Ok(Some(&c.name));
         }
         for b in &c.buds {
@@ -193,9 +194,9 @@ fn match_fast<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
                 for Regex { pattern, reference: r } in &c.regexs {
                     if r.is_match(&txt) {
                         tracing::trace!(
-                            coord_ref_1 = %c.name,
+                            coord_ref_1 = %text,
+                            coord_ref_2 = %c.name,
                             pattern,
-                            found = %text,
                             "company matched by one of its regexes"
                         );
                         match &last_matching_regex {
@@ -232,15 +233,15 @@ fn match_long<'a>(text: &'a str, target_companies: &'a [CompanyMatchInfos]) -> M
 
     for c in target_companies {
         if c.symbols.iter().any(|s| s.reference.is_match(text)) {
-            tracing::trace!(coord_ref_1 = %c.name, found = %text, "company matched by one of its symbols");
+            tracing::trace!(coord_ref_1 = %text, coord_ref_2 = %c.name, "company matched by one of its symbols");
             return Ok(Some(&c.name));
         }
         for Regex { pattern, reference: r } in &c.regexs {
             if r.is_match(&txt) {
                 tracing::trace!(
-                    coord_ref_1 = %c.name,
+                    coord_ref_1 = %text,
+                    coord_ref_2 = %c.name,
                     pattern,
-                    found = %text,
                     "company matched by one of its regexes"
                 );
                 match &last_matching_regex {

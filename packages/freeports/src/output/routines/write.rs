@@ -29,10 +29,10 @@
 //!
 //! # Splitting the output per report
 //!
-//! With `separate_out`, the tables carrying a report and a format per row — `investments` and
-//! `funds_assets` — are split by distinct `(report, format)` pair, one CSV per pair, named
-//! `{table}__{report}__{format}.csv`. The other tables are unaffected and stay merged. The default
-//! is off, so the ordinary behaviour is one file per table.
+//! With `separate_out`, the two tables carrying a report per row — `investments` and
+//! `funds_assets` — are split by distinct report, one CSV per report, named
+//! `{table}__{report}.csv`. The other tables are unaffected and stay merged. The default is off, so
+//! the ordinary behaviour is one file per table.
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
@@ -62,7 +62,7 @@ pub enum OutStructureMode {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OutFlags {
     pub compressed: bool,
-    /// One CSV per report and format instead of one merged file, for the tables that carry them.
+    /// One CSV per report instead of one merged file, for the tables that carry one.
     /// See the module documentation.
     pub separate_out: bool,
 }
@@ -139,8 +139,6 @@ fn event_type_label(event_type: ChangeNameEventType) -> &'static str {
 struct InvestmentCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
     #[serde(rename = "Report page")]
@@ -171,7 +169,6 @@ impl From<&InvestmentRow> for InvestmentCsvRow {
     fn from(r: &InvestmentRow) -> Self {
         Self {
             id: r.id,
-            format: r.format.clone(),
             report: r.report.clone(),
             report_page: r.report_page,
             triggering_text: r.triggering_text.clone(),
@@ -192,8 +189,6 @@ impl From<&InvestmentRow> for InvestmentCsvRow {
 struct FundAssetsCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
     #[serde(rename = "Report page")]
@@ -216,7 +211,6 @@ impl From<&FundAssetsRow> for FundAssetsCsvRow {
     fn from(r: &FundAssetsRow) -> Self {
         Self {
             id: r.id,
-            format: r.format.clone(),
             report: r.report.clone(),
             report_page: r.report_page,
             fund_id: r.fund_id,
@@ -233,8 +227,6 @@ impl From<&FundAssetsRow> for FundAssetsCsvRow {
 struct FundCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: Option<String>,
     #[serde(rename = "Report")]
     report: Option<String>,
     #[serde(rename = "Report page")]
@@ -249,7 +241,6 @@ impl From<&FundRow> for FundCsvRow {
     fn from(r: &FundRow) -> Self {
         Self {
             id: r.id,
-            format: r.format.clone(),
             report: r.report.clone(),
             report_page: r.report_page,
             name: r.name.clone(),
@@ -266,8 +257,6 @@ struct FundSfdrClassificationCsvRow {
     sfdr_classification: &'static str,
     #[serde(rename = "Report page")]
     report_page: u16,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
 }
@@ -278,7 +267,6 @@ impl From<&FundSfdrClassificationRow> for FundSfdrClassificationCsvRow {
             fund_id: r.fund_id,
             sfdr_classification: sfdr_label(r.sfdr_classification),
             report_page: r.report_page,
-            format: r.format.clone(),
             report: r.report.clone(),
         }
     }
@@ -294,8 +282,6 @@ struct FundEsgIndicatorCsvRow {
     value: String,
     #[serde(rename = "Report page")]
     report_page: u16,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
 }
@@ -307,7 +293,6 @@ impl From<&FundEsgIndicatorRow> for FundEsgIndicatorCsvRow {
             indicator: r.indicator.clone(),
             value: r.value.clone(),
             report_page: r.report_page,
-            format: r.format.clone(),
             report: r.report.clone(),
         }
     }
@@ -317,8 +302,6 @@ impl From<&FundEsgIndicatorRow> for FundEsgIndicatorCsvRow {
 struct AssetsManagerCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
     #[serde(rename = "Report page")]
@@ -329,7 +312,7 @@ struct AssetsManagerCsvRow {
 
 impl From<&AssetsManagerRow> for AssetsManagerCsvRow {
     fn from(r: &AssetsManagerRow) -> Self {
-        Self { id: r.id, format: r.format.clone(), report: r.report.clone(), report_page: r.report_page, name: r.name.clone() }
+        Self { id: r.id, report: r.report.clone(), report_page: r.report_page, name: r.name.clone() }
     }
 }
 
@@ -351,8 +334,6 @@ impl From<&InvestmentsManagerRow> for InvestmentsManagerCsvRow {
 struct FundChangeNameCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
     #[serde(rename = "Report page")]
@@ -371,7 +352,6 @@ impl From<&FundChangeNameRow> for FundChangeNameCsvRow {
     fn from(r: &FundChangeNameRow) -> Self {
         Self {
             id: r.id,
-            format: r.format.clone(),
             report: r.report.clone(),
             report_page: r.report_page,
             fund_id: r.fund_id,
@@ -382,14 +362,14 @@ impl From<&FundChangeNameRow> for FundChangeNameCsvRow {
     }
 }
 
-const INVESTMENTS_HEADER: [&str; 14] = [
-    "ID", "Format", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
+const INVESTMENTS_HEADER: [&str; 13] = [
+    "ID", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
     "Nominal/Quantity", "Market value", "Currency", "% net assets", "Fund ID", "Acquisition cost",
     "Acquisition currency",
 ];
 
-const FUNDS_ASSETS_HEADER: [&str; 10] = [
-    "ID", "Format", "Report", "Report page", "Fund ID", "Date", "Total assets", "Total liabilities",
+const FUNDS_ASSETS_HEADER: [&str; 9] = [
+    "ID", "Report", "Report page", "Fund ID", "Date", "Total assets", "Total liabilities",
     "Total net assets", "Currency",
 ];
 
@@ -403,16 +383,12 @@ fn write_funds_assets_csv(path: &Path, rows: &[FundAssetsRow]) -> Result<(), Wri
     write_csv_table(path, &FUNDS_ASSETS_HEADER, &rows)
 }
 
-/// Groups rows by `(report, format)`, preserving the order in which each pair is first met.
-fn split_by_report_and_format<'a, T>(
-    rows: &'a [T],
-    report: impl Fn(&T) -> &str,
-    format: impl Fn(&T) -> &str,
-) -> Vec<(String, String, Vec<&'a T>)> {
-    let mut order: Vec<(String, String)> = Vec::new();
-    let mut groups: HashMap<(String, String), Vec<&'a T>> = HashMap::new();
+/// Groups rows by report, preserving the order in which each report is first met.
+fn split_by_report<'a, T>(rows: &'a [T], report: impl Fn(&T) -> &str) -> Vec<(String, Vec<&'a T>)> {
+    let mut order: Vec<String> = Vec::new();
+    let mut groups: HashMap<String, Vec<&'a T>> = HashMap::new();
     for row in rows {
-        let key = (report(row).to_string(), format(row).to_string());
+        let key = report(row).to_string();
         if !groups.contains_key(&key) {
             order.push(key.clone());
         }
@@ -422,16 +398,16 @@ fn split_by_report_and_format<'a, T>(
         .into_iter()
         .map(|key| {
             let rows = groups.remove(&key).expect("key was just inserted into `groups` above, in the same loop");
-            (key.0, key.1, rows)
+            (key, rows)
         })
         .collect()
 }
 
 fn write_investments_csv_separate(out_dir: &Path, rows: &[InvestmentRow]) -> Result<(), WriteFilesError> {
-    let groups = split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str());
-    tracing::debug!(groups = groups.len(), "splitting investments by report and format for separate_out");
-    for (report, format, group) in groups {
-        let path = out_dir.join(format!("investments__{report}__{format}.csv"));
+    let groups = split_by_report(rows, |r| r.report.as_str());
+    tracing::debug!(groups = groups.len(), "splitting investments by report for separate_out");
+    for (report, group) in groups {
+        let path = out_dir.join(format!("investments__{report}.csv"));
         let csv_rows: Vec<InvestmentCsvRow> = group.into_iter().map(InvestmentCsvRow::from).collect();
         write_csv_table(&path, &INVESTMENTS_HEADER, &csv_rows)?;
     }
@@ -439,10 +415,10 @@ fn write_investments_csv_separate(out_dir: &Path, rows: &[InvestmentRow]) -> Res
 }
 
 fn write_funds_assets_csv_separate(out_dir: &Path, rows: &[FundAssetsRow]) -> Result<(), WriteFilesError> {
-    let groups = split_by_report_and_format(rows, |r| r.report.as_str(), |r| r.format.as_str());
-    tracing::debug!(groups = groups.len(), "splitting funds_assets by report and format for separate_out");
-    for (report, format, group) in groups {
-        let path = out_dir.join(format!("funds_assets__{report}__{format}.csv"));
+    let groups = split_by_report(rows, |r| r.report.as_str());
+    tracing::debug!(groups = groups.len(), "splitting funds_assets by report for separate_out");
+    for (report, group) in groups {
+        let path = out_dir.join(format!("funds_assets__{report}.csv"));
         let csv_rows: Vec<FundAssetsCsvRow> = group.into_iter().map(FundAssetsCsvRow::from).collect();
         write_csv_table(&path, &FUNDS_ASSETS_HEADER, &csv_rows)?;
     }
@@ -450,25 +426,25 @@ fn write_funds_assets_csv_separate(out_dir: &Path, rows: &[FundAssetsRow]) -> Re
 }
 
 fn write_funds_csv(path: &Path, rows: &[FundRow]) -> Result<(), WriteFilesError> {
-    let header = ["ID", "Format", "Report", "Report page", "Name", "Managment company ID"];
+    let header = ["ID", "Report", "Report page", "Name", "Managment company ID"];
     let rows: Vec<FundCsvRow> = rows.iter().map(FundCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
 fn write_funds_sfdr_classification_csv(path: &Path, rows: &[FundSfdrClassificationRow]) -> Result<(), WriteFilesError> {
-    let header = ["Fund ID", "SFDR classification", "Report page", "Format", "Report"];
+    let header = ["Fund ID", "SFDR classification", "Report page", "Report"];
     let rows: Vec<FundSfdrClassificationCsvRow> = rows.iter().map(FundSfdrClassificationCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
 fn write_funds_esg_indicators_csv(path: &Path, rows: &[FundEsgIndicatorRow]) -> Result<(), WriteFilesError> {
-    let header = ["Fund ID", "Indicator", "Value", "Report page", "Format", "Report"];
+    let header = ["Fund ID", "Indicator", "Value", "Report page", "Report"];
     let rows: Vec<FundEsgIndicatorCsvRow> = rows.iter().map(FundEsgIndicatorCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
 
 fn write_assets_managers_csv(path: &Path, rows: &[AssetsManagerRow]) -> Result<(), WriteFilesError> {
-    let header = ["ID", "Format", "Report", "Report page", "Name"];
+    let header = ["ID", "Report", "Report page", "Name"];
     let rows: Vec<AssetsManagerCsvRow> = rows.iter().map(AssetsManagerCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
@@ -480,7 +456,7 @@ fn write_investments_managers_csv(path: &Path, rows: &[InvestmentsManagerRow]) -
 }
 
 fn write_funds_change_name_csv(path: &Path, rows: &[FundChangeNameRow]) -> Result<(), WriteFilesError> {
-    let header = ["ID", "Format", "Report", "Report page", "Fund ID", "From", "Type of event", "Old name"];
+    let header = ["ID", "Report", "Report page", "Fund ID", "From", "Type of event", "Old name"];
     let rows: Vec<FundChangeNameCsvRow> = rows.iter().map(FundChangeNameCsvRow::from).collect();
     write_csv_table(path, &header, &rows)
 }
@@ -552,8 +528,6 @@ fn write_regular(tables: &TransformedTables, out_dir: &Path, separate_out: bool)
 struct InvestmentSingleFileCsvRow {
     #[serde(rename = "ID")]
     id: u32,
-    #[serde(rename = "Format")]
-    format: String,
     #[serde(rename = "Report")]
     report: String,
     #[serde(rename = "Report page")]
@@ -588,7 +562,7 @@ struct InvestmentSingleFileCsvRow {
 /// table, in one CSV. Only `investments` is written.
 fn write_single_file(tables: &TransformedTables, out_path: &Path) -> Result<(), WriteFilesError> {
     let header = [
-        "ID", "Format", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
+        "ID", "Report", "Report page", "Triggering text", "Investee", "Financial instrument",
         "Nominal/Quantity", "Market value", "Currency", "% net assets", "Fund ID", "Acquisition cost",
         "Acquisition currency", "Maturity", "Interest rate",
     ];
@@ -599,7 +573,6 @@ fn write_single_file(tables: &TransformedTables, out_path: &Path) -> Result<(), 
             let additional = tables.additional_infos.get(&r.id);
             InvestmentSingleFileCsvRow {
                 id: r.id,
-                format: r.format.clone(),
                 report: r.report.clone(),
                 report_page: r.report_page,
                 triggering_text: r.triggering_text.clone(),
@@ -770,7 +743,7 @@ mod tests {
             write_files(&empty_tables(), &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
             assert_eq!(
                 read(&out, "investments.csv"),
-                "ID,Format,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n"
+                "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n"
             );
         }
 
@@ -790,14 +763,13 @@ mod tests {
             let mut tables = empty_tables();
             tables.investments = vec![
                 InvestmentRow::new(
-                    1, 3, "Report A".into(), "FMT".into(), "Acme".into(), "Acme Corp".into(),
-                    FinancialInstrument::EQUITY, None, 1000.0, Currency::EUR, None, 1, None, None,
+                    1, 3, "Report A".into(), "Acme".into(), "Acme Corp".into(), FinancialInstrument::EQUITY,
+                    None, 1000.0, Currency::EUR, None, 1, None, None,
                 )
                 .unwrap(),
                 InvestmentRow::new(
-                    2, 4, "Report A".into(), "FMT".into(), "Bond Co".into(), "Bond Corp".into(),
-                    FinancialInstrument::BOND, Some(10.0), 2000.5, Currency::USD, Some(0.25), 2, Some(50.0),
-                    Some(Currency::GBP),
+                    2, 4, "Report A".into(), "Bond Co".into(), "Bond Corp".into(), FinancialInstrument::BOND,
+                    Some(10.0), 2000.5, Currency::USD, Some(0.25), 2, Some(50.0), Some(Currency::GBP),
                 )
                 .unwrap(),
             ];
@@ -806,9 +778,9 @@ mod tests {
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "ID,Format,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n\
-                 1,FMT,Report A,3,Acme,Acme Corp,EQUITY,,1000.0,EUR,,1,,\n\
-                 2,FMT,Report A,4,Bond Co,Bond Corp,BOND,10.0,2000.5,USD,0.25,2,50.0,GBP\n";
+            let expected = "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency\n\
+                 1,Report A,3,Acme,Acme Corp,EQUITY,,1000.0,EUR,,1,,\n\
+                 2,Report A,4,Bond Co,Bond Corp,BOND,10.0,2000.5,USD,0.25,2,50.0,GBP\n";
             assert_eq!(read(&out, "investments.csv"), expected);
         }
     }
@@ -820,18 +792,17 @@ mod tests {
         fn writes_both_a_directly_seen_fund_and_an_indirectly_seen_one() {
             let mut tables = empty_tables();
             tables.funds = vec![
-                FundRow::new(1, "ALPHA FUND".into(), Some(2), Some(3), Some("Report A".into()), Some("FMT".into()))
-                    .unwrap(),
-                FundRow::new(2, "BETA FUND".into(), None, None, None, None).unwrap(),
+                FundRow::new(1, "ALPHA FUND".into(), Some(2), Some(3), Some("Report A".into())).unwrap(),
+                FundRow::new(2, "BETA FUND".into(), None, None, None).unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "ID,Format,Report,Report page,Name,Managment company ID\n\
-                 1,FMT,Report A,3,ALPHA FUND,2\n\
-                 2,,,,BETA FUND,\n";
+            let expected = "ID,Report,Report page,Name,Managment company ID\n\
+                 1,Report A,3,ALPHA FUND,2\n\
+                 2,,,BETA FUND,\n";
             assert_eq!(read(&out, "funds.csv"), expected);
         }
     }
@@ -843,19 +814,19 @@ mod tests {
         fn every_article_is_rendered_with_its_reference_style_label() {
             let mut tables = empty_tables();
             tables.funds_sfdr_classification = vec![
-                FundSfdrClassificationRow::new(1, SfdrArticle::Art6, 1, "R".into(), "F".into()).unwrap(),
-                FundSfdrClassificationRow::new(2, SfdrArticle::Art8, 2, "R".into(), "F".into()).unwrap(),
-                FundSfdrClassificationRow::new(3, SfdrArticle::Art9, 3, "R".into(), "F".into()).unwrap(),
+                FundSfdrClassificationRow::new(1, SfdrArticle::Art6, 1, "R".into()).unwrap(),
+                FundSfdrClassificationRow::new(2, SfdrArticle::Art8, 2, "R".into()).unwrap(),
+                FundSfdrClassificationRow::new(3, SfdrArticle::Art9, 3, "R".into()).unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "Fund ID,SFDR classification,Report page,Format,Report\n\
-                 1,Art. 6,1,F,R\n\
-                 2,Art. 8,2,F,R\n\
-                 3,Art. 9,3,F,R\n";
+            let expected = "Fund ID,SFDR classification,Report page,Report\n\
+                 1,Art. 6,1,R\n\
+                 2,Art. 8,2,R\n\
+                 3,Art. 9,3,R\n";
             assert_eq!(read(&out, "funds_sfdr_classification.csv"), expected);
         }
     }
@@ -867,13 +838,13 @@ mod tests {
         fn writes_indicator_rows_byte_for_byte() {
             let mut tables = empty_tables();
             tables.funds_esg_indicators =
-                vec![FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 5, "R".into(), "F".into()).unwrap()];
+                vec![FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 5, "R".into()).unwrap()];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "Fund ID,Indicator,Value,Report page,Format,Report\n1,GHG intensity,12.3,5,F,R\n";
+            let expected = "Fund ID,Indicator,Value,Report page,Report\n1,GHG intensity,12.3,5,R\n";
             assert_eq!(read(&out, "funds_esg_indicators.csv"), expected);
         }
     }
@@ -884,13 +855,13 @@ mod tests {
         #[test]
         fn writes_manager_rows_byte_for_byte() {
             let mut tables = empty_tables();
-            tables.assets_managers = vec![AssetsManagerRow::new(1, 2, "R".into(), "F".into(), "Acme AM".into()).unwrap()];
+            tables.assets_managers = vec![AssetsManagerRow::new(1, 2, "R".into(), "Acme AM".into()).unwrap()];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "ID,Format,Report,Report page,Name\n1,F,R,2,Acme AM\n";
+            let expected = "ID,Report,Report page,Name\n1,R,2,Acme AM\n";
             assert_eq!(read(&out, "assets_managers.csv"), expected);
         }
     }
@@ -920,12 +891,12 @@ mod tests {
             let mut tables = empty_tables();
             tables.funds_change_name = vec![
                 FundChangeNameRow::new(
-                    1, 1, "R".into(), "F".into(), 1, Date::new(2024, 1, 1).unwrap(), ChangeNameEventType::Renaming,
+                    1, 1, "R".into(), 1, Date::new(2024, 1, 1).unwrap(), ChangeNameEventType::Renaming,
                     "Old Name".into(),
                 )
                 .unwrap(),
                 FundChangeNameRow::new(
-                    2, 2, "R".into(), "F".into(), 2, Date::new(2024, 2, 2).unwrap(), ChangeNameEventType::Merging,
+                    2, 2, "R".into(), 2, Date::new(2024, 2, 2).unwrap(), ChangeNameEventType::Merging,
                     "Other Old Name".into(),
                 )
                 .unwrap(),
@@ -935,9 +906,9 @@ mod tests {
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "ID,Format,Report,Report page,Fund ID,From,Type of event,Old name\n\
-                 1,F,R,1,1,2024-01-01,RENAMING,Old Name\n\
-                 2,F,R,2,2,2024-02-02,MERGING,Other Old Name\n";
+            let expected = "ID,Report,Report page,Fund ID,From,Type of event,Old name\n\
+                 1,R,1,1,2024-01-01,RENAMING,Old Name\n\
+                 2,R,2,2,2024-02-02,MERGING,Other Old Name\n";
             assert_eq!(read(&out, "funds_change_name.csv"), expected);
         }
     }
@@ -950,20 +921,19 @@ mod tests {
             let mut tables = empty_tables();
             tables.funds_assets = vec![
                 FundAssetsRow::new(
-                    1, 1, "R".into(), "F".into(), 1, Some(Date::new(2024, 12, 31).unwrap()), 100.0, 40.0, 60.0,
-                    Currency::EUR,
+                    1, 1, "R".into(), 1, Some(Date::new(2024, 12, 31).unwrap()), 100.0, 40.0, 60.0, Currency::EUR,
                 )
                 .unwrap(),
-                FundAssetsRow::new(2, 2, "R".into(), "F".into(), 2, None, 200.0, 80.0, 120.0, Currency::USD).unwrap(),
+                FundAssetsRow::new(2, 2, "R".into(), 2, None, 200.0, 80.0, 120.0, Currency::USD).unwrap(),
             ];
 
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
 
-            let expected = "ID,Format,Report,Report page,Fund ID,Date,Total assets,Total liabilities,Total net assets,Currency\n\
-                 1,F,R,1,1,2024-12-31,100.0,40.0,60.0,EUR\n\
-                 2,F,R,2,2,,200.0,80.0,120.0,USD\n";
+            let expected = "ID,Report,Report page,Fund ID,Date,Total assets,Total liabilities,Total net assets,Currency\n\
+                 1,R,1,1,2024-12-31,100.0,40.0,60.0,EUR\n\
+                 2,R,2,2,,200.0,80.0,120.0,USD\n";
             assert_eq!(read(&out, "funds_assets.csv"), expected);
         }
     }
@@ -1009,12 +979,12 @@ mod tests {
         }
     }
 
-    /// A minimal investments row with a parameterisable report and format, so the tests do not
-    /// repeat fourteen positional arguments per row.
-    fn investment(id: i64, report: &str, format: &str) -> InvestmentRow {
+    /// A minimal investments row with a parameterisable report, so the tests do not repeat
+    /// thirteen positional arguments per row.
+    fn investment(id: i64, report: &str) -> InvestmentRow {
         InvestmentRow::new(
-            id, 1, report.to_string(), format.to_string(), "Trigger".into(), "Investee".into(),
-            FinancialInstrument::EQUITY, None, 1000.0, Currency::EUR, None, 1, None, None,
+            id, 1, report.to_string(), "Trigger".into(), "Investee".into(), FinancialInstrument::EQUITY,
+            None, 1000.0, Currency::EUR, None, 1, None, None,
         )
         .unwrap()
     }
@@ -1026,7 +996,7 @@ mod tests {
         #[test]
         fn writes_a_single_csv_file_not_a_directory() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
             write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
@@ -1036,7 +1006,7 @@ mod tests {
         #[test]
         fn appends_maturity_and_interest_rate_columns_from_additional_infos() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             tables
                 .additional_infos
                 .insert(1, BondAdditionalInfoRow::new(Some(Date::new(2028, 3, 30).unwrap()), Some(0.035)).unwrap());
@@ -1049,7 +1019,7 @@ mod tests {
             let header = content.lines().next().unwrap();
             assert_eq!(
                 header,
-                "ID,Format,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency,Maturity,Interest rate"
+                "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency,Maturity,Interest rate"
             );
             let row = content.lines().nth(1).unwrap();
             assert!(row.ends_with("2028-03-30,0.035"), "expected Maturity/Interest rate at the end, got: {row}");
@@ -1058,7 +1028,7 @@ mod tests {
         #[test]
         fn an_investment_with_no_matching_additional_info_gets_empty_maturity_and_interest_rate() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
             write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
@@ -1070,8 +1040,8 @@ mod tests {
         #[test]
         fn only_the_investments_table_is_written_no_other_table_files_appear_alongside_it() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
-            tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None, None).unwrap()];
+            tables.investments = vec![investment(1, "R")];
+            tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None).unwrap()];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
             write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags::default()).unwrap();
@@ -1096,7 +1066,7 @@ mod tests {
         #[test]
         fn creates_an_investments_subdirectory_with_table_csv_and_dicts_yaml() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             tables.additional_infos.insert(1, BondAdditionalInfoRow::new(None, Some(0.05)).unwrap());
 
             let dir = tempfile::tempdir().unwrap();
@@ -1110,7 +1080,7 @@ mod tests {
         #[test]
         fn table_csv_has_the_same_columns_as_the_regular_investments_csv_no_extra_columns() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
@@ -1118,7 +1088,7 @@ mod tests {
             let header = content.lines().next().unwrap();
             assert_eq!(
                 header,
-                "ID,Format,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency"
+                "ID,Report,Report page,Triggering text,Investee,Financial instrument,Nominal/Quantity,Market value,Currency,% net assets,Fund ID,Acquisition cost,Acquisition currency"
             );
         }
 
@@ -1136,7 +1106,7 @@ mod tests {
         #[test]
         fn only_the_investments_table_is_written_no_funds_csv_at_the_top_level() {
             let mut tables = empty_tables();
-            tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None, None).unwrap()];
+            tables.funds = vec![FundRow::new(1, "ALPHA FUND".into(), None, None, None).unwrap()];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Structured, OutFlags::default()).unwrap();
@@ -1218,20 +1188,20 @@ mod tests {
         #[test]
         fn single_file_profile_compressed_content_gunzips_back_to_the_original_csv() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out.csv");
             write_files(&tables, &out, OutStructureMode::SingleFile, OutFlags { compressed: true, ..OutFlags::default() })
                 .unwrap();
             let content = String::from_utf8(gunzip(&dir.path().join("out.csv.gz"))).unwrap();
-            assert!(content.starts_with("ID,Format,Report"));
+            assert!(content.starts_with("ID,Report,"));
             assert!(content.contains(",R,"));
         }
 
         #[test]
         fn regular_profile_tar_gz_content_extracts_back_to_the_same_csv_files() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "R", "F")];
+            tables.investments = vec![investment(1, "R")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags { compressed: true, ..OutFlags::default() })
@@ -1250,14 +1220,14 @@ mod tests {
     ///
     /// The file-name format and the subset of tables involved are a decision made here rather than
     /// a requirement read off elsewhere: the tables split are `investments` and `funds_assets`, and
-    /// the name is `{table}__{report}__{format}.csv`.
+    /// the name is `{table}__{report}.csv`.
     mod separate_out_flag {
         use super::*;
 
         #[test]
         fn default_out_flags_keeps_the_single_merged_investments_csv() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "Report A", "F"), investment(2, "Report B", "F")];
+            tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             write_files(&tables, &out, OutStructureMode::Regular, OutFlags::default()).unwrap();
@@ -1267,30 +1237,30 @@ mod tests {
         }
 
         #[test]
-        fn separate_out_splits_investments_by_report_and_format_instead_of_merging() {
+        fn separate_out_splits_investments_by_report_instead_of_merging() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "Report A", "F"), investment(2, "Report B", "F")];
+            tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             let flags = OutFlags { separate_out: true, ..OutFlags::default() };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
             assert!(!out.join("investments.csv").exists(), "the merged file must not be produced");
-            assert!(out.join("investments__Report A__F.csv").is_file());
-            assert!(out.join("investments__Report B__F.csv").is_file());
+            assert!(out.join("investments__Report A.csv").is_file());
+            assert!(out.join("investments__Report B.csv").is_file());
         }
 
         #[test]
         fn each_split_file_contains_only_its_own_report_rows_with_the_full_header() {
             let mut tables = empty_tables();
-            tables.investments = vec![investment(1, "Report A", "F"), investment(2, "Report B", "F")];
+            tables.investments = vec![investment(1, "Report A"), investment(2, "Report B")];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
             let flags = OutFlags { separate_out: true, ..OutFlags::default() };
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
-            let content_a = std::fs::read_to_string(out.join("investments__Report A__F.csv")).unwrap();
-            assert!(content_a.starts_with("ID,Format,Report,Report page"));
+            let content_a = std::fs::read_to_string(out.join("investments__Report A.csv")).unwrap();
+            assert!(content_a.starts_with("ID,Report,Report page"));
             assert_eq!(content_a.lines().count(), 2, "header + exactly one row for Report A");
             assert!(content_a.contains(",Report A,"));
             assert!(!content_a.contains(",Report B,"));
@@ -1300,8 +1270,8 @@ mod tests {
         fn separate_out_also_splits_funds_assets() {
             let mut tables = empty_tables();
             tables.funds_assets = vec![
-                FundAssetsRow::new(1, 1, "Report A".into(), "F".into(), 1, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
-                FundAssetsRow::new(2, 2, "Report B".into(), "F".into(), 2, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
+                FundAssetsRow::new(1, 1, "Report A".into(), 1, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
+                FundAssetsRow::new(2, 2, "Report B".into(), 2, None, 100.0, 40.0, 60.0, Currency::EUR).unwrap(),
             ];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");
@@ -1309,8 +1279,8 @@ mod tests {
             write_files(&tables, &out, OutStructureMode::Regular, flags).unwrap();
 
             assert!(!out.join("funds_assets.csv").exists());
-            assert!(out.join("funds_assets__Report A__F.csv").is_file());
-            assert!(out.join("funds_assets__Report B__F.csv").is_file());
+            assert!(out.join("funds_assets__Report A.csv").is_file());
+            assert!(out.join("funds_assets__Report B.csv").is_file());
         }
 
         #[test]
@@ -1321,8 +1291,8 @@ mod tests {
             // judgment-call note).
             let mut tables = empty_tables();
             tables.funds = vec![
-                FundRow::new(1, "ALPHA FUND".into(), None, Some(1), Some("Report A".into()), Some("F".into())).unwrap(),
-                FundRow::new(2, "BETA FUND".into(), None, Some(2), Some("Report B".into()), Some("F".into())).unwrap(),
+                FundRow::new(1, "ALPHA FUND".into(), None, Some(1), Some("Report A".into())).unwrap(),
+                FundRow::new(2, "BETA FUND".into(), None, Some(2), Some("Report B".into())).unwrap(),
             ];
             let dir = tempfile::tempdir().unwrap();
             let out = dir.path().join("out");

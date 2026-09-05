@@ -173,16 +173,19 @@ fn the_span_path_survives_the_thread_boundary() {
     let paths = collector.paths();
     assert!(!paths.is_empty(), "the talkative pipe must have produced events");
 
-    // Classificazione: `run/classify/page/pipeline/text_filter/pipe`, con il prefisso `run` che
-    // esiste solo sul thread chiamante — se non fosse riagganciato, il percorso comincerebbe da
-    // `page`.
+    // Classificazione: `run/document/classify/page/pipeline/text_filter/pipe`, con il prefisso
+    // `run` che esiste solo sul thread chiamante — se non fosse riagganciato, il percorso
+    // comincerebbe da `page`. Lo span `document` porta il nome del report nella colonna `Report`
+    // del `.log.csv`.
     assert!(
-        paths.iter().any(|p| p.starts_with("run/classify/page/")),
+        paths.iter().any(|p| p.starts_with("run/document/classify/page/")),
         "no event kept the caller's span path through classification: {paths:?}"
     );
-    // Esecuzione: `run/step/class/page/...`, il ciclo che P2 parallelizza per primo.
+    // Esecuzione: `run/step/class/document/page/...`, il ciclo che P2 parallelizza per primo. Qui
+    // `document` sta *sotto* `class`, e non sopra: un gruppo di classe contiene le pagine di più
+    // documenti, quindi il documento si conosce una pagina alla volta.
     assert!(
-        paths.iter().any(|p| p.starts_with("run/step/class/page/")),
+        paths.iter().any(|p| p.starts_with("run/step/class/document/page/")),
         "no event kept the caller's span path through the step loop: {paths:?}"
     );
     // Nessun evento orfano: **ogni** evento deve stare sotto lo span del chiamante, non solo

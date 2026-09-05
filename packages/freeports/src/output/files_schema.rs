@@ -152,7 +152,6 @@ pub struct InvestmentRow {
     pub id: u32,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
     pub triggering_text: String,
     pub investee: String,
     pub financial_instrument: FinancialInstrument,
@@ -171,7 +170,6 @@ impl InvestmentRow {
         id: i64,
         report_page: i32,
         report: String,
-        format: String,
         triggering_text: String,
         investee: String,
         financial_instrument: FinancialInstrument,
@@ -187,7 +185,6 @@ impl InvestmentRow {
             id: positive_u32("ID", id)?,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
             triggering_text,
             investee,
             financial_instrument,
@@ -241,7 +238,6 @@ pub struct FundRow {
     pub management_company_id: Option<u32>,
     pub report_page: Option<u16>,
     pub report: Option<String>,
-    pub format: Option<String>,
 }
 
 impl FundRow {
@@ -251,7 +247,6 @@ impl FundRow {
         management_company_id: Option<i64>,
         report_page: Option<i32>,
         report: Option<String>,
-        format: Option<String>,
     ) -> Result<Self, SchemaError> {
         Ok(Self {
             id: positive_u32("ID", id)?,
@@ -261,7 +256,6 @@ impl FundRow {
                 .transpose()?,
             report_page: report_page.map(|v| positive_u16("Report page", v)).transpose()?,
             report,
-            format,
         })
     }
 }
@@ -278,7 +272,6 @@ pub struct FundChangeNameRow {
     pub id: u32,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
     pub fund_id: u32,
     pub from_date: Date,
     pub event_type: ChangeNameEventType,
@@ -286,12 +279,10 @@ pub struct FundChangeNameRow {
 }
 
 impl FundChangeNameRow {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: i64,
         report_page: i32,
         report: String,
-        format: String,
         fund_id: i64,
         from_date: Date,
         event_type: ChangeNameEventType,
@@ -301,7 +292,6 @@ impl FundChangeNameRow {
             id: positive_u32("ID", id)?,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
             fund_id: positive_u32("Fund ID", fund_id)?,
             from_date,
             event_type,
@@ -316,7 +306,6 @@ pub struct FundAssetsRow {
     pub id: u32,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
     pub fund_id: u32,
     pub date: Option<Date>,
     pub total_assets: f32,
@@ -331,7 +320,6 @@ impl FundAssetsRow {
         id: i64,
         report_page: i32,
         report: String,
-        format: String,
         fund_id: i64,
         date: Option<Date>,
         total_assets: f32,
@@ -343,7 +331,6 @@ impl FundAssetsRow {
             id: positive_u32("ID", id)?,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
             fund_id: positive_u32("Fund ID", fund_id)?,
             date,
             total_assets: positive_f32("Total assets", total_assets)?,
@@ -362,7 +349,6 @@ pub struct FundSfdrClassificationRow {
     pub sfdr_classification: SfdrArticle,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
 }
 
 impl FundSfdrClassificationRow {
@@ -371,14 +357,12 @@ impl FundSfdrClassificationRow {
         sfdr_classification: SfdrArticle,
         report_page: i32,
         report: String,
-        format: String,
     ) -> Result<Self, SchemaError> {
         Ok(Self {
             fund_id: positive_u32("Fund ID", fund_id)?,
             sfdr_classification,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
         })
     }
 }
@@ -391,7 +375,6 @@ pub struct FundEsgIndicatorRow {
     pub value: String,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
 }
 
 impl FundEsgIndicatorRow {
@@ -401,7 +384,6 @@ impl FundEsgIndicatorRow {
         value: String,
         report_page: i32,
         report: String,
-        format: String,
     ) -> Result<Self, SchemaError> {
         Ok(Self {
             fund_id: positive_u32("Fund ID", fund_id)?,
@@ -409,7 +391,6 @@ impl FundEsgIndicatorRow {
             value,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
         })
     }
 }
@@ -420,17 +401,15 @@ pub struct AssetsManagerRow {
     pub id: u32,
     pub report_page: u16,
     pub report: String,
-    pub format: String,
     pub name: String,
 }
 
 impl AssetsManagerRow {
-    pub fn new(id: i64, report_page: i32, report: String, format: String, name: String) -> Result<Self, SchemaError> {
+    pub fn new(id: i64, report_page: i32, report: String, name: String) -> Result<Self, SchemaError> {
         Ok(Self {
             id: positive_u32("ID", id)?,
             report_page: positive_u16("Report page", report_page)?,
             report,
-            format,
             name,
         })
     }
@@ -492,7 +471,6 @@ mod tests {
                 self.id,
                 self.report_page,
                 "R".into(),
-                "F".into(),
                 "trig".into(),
                 "Investee".into(),
                 FinancialInstrument::EQUITY,
@@ -620,8 +598,8 @@ mod tests {
         fn every_financial_instrument_variant_is_accepted() {
             for instrument in [FinancialInstrument::EQUITY, FinancialInstrument::BOND] {
                 let row = InvestmentRow::new(
-                    1, 1, "R".into(), "F".into(), "t".into(), "i".into(), instrument, None, 1.0, Currency::EUR,
-                    None, 1, None, None,
+                    1, 1, "R".into(), "t".into(), "i".into(), instrument, None, 1.0, Currency::EUR, None, 1,
+                    None, None,
                 )
                 .unwrap();
                 assert_eq!(row.financial_instrument, instrument);
@@ -675,8 +653,7 @@ mod tests {
 
         #[test]
         fn accepts_full_debug_info() {
-            let row = FundRow::new(1, "Fund A".into(), Some(2), Some(3), Some("R".into()), Some("F".into()))
-                .unwrap();
+            let row = FundRow::new(1, "Fund A".into(), Some(2), Some(3), Some("R".into())).unwrap();
             assert_eq!(row.report_page, Some(3));
         }
 
@@ -684,25 +661,24 @@ mod tests {
         fn accepts_no_debug_info_at_all() {
             // A fund seen only indirectly — as another entity's fund, never as an entity of its own
             // — carries no provenance.
-            let row = FundRow::new(1, "Fund A".into(), None, None, None, None).unwrap();
+            let row = FundRow::new(1, "Fund A".into(), None, None, None).unwrap();
             assert_eq!(row.report_page, None);
             assert_eq!(row.report, None);
-            assert_eq!(row.format, None);
         }
 
         #[test]
         fn rejects_non_positive_management_company_id_when_present() {
-            assert!(FundRow::new(1, "F".into(), Some(0), None, None, None).is_err());
+            assert!(FundRow::new(1, "F".into(), Some(0), None, None).is_err());
         }
 
         #[test]
         fn rejects_non_positive_report_page_when_present() {
-            assert!(FundRow::new(1, "F".into(), None, Some(0), None, None).is_err());
+            assert!(FundRow::new(1, "F".into(), None, Some(0), None).is_err());
         }
 
         #[test]
         fn rejects_non_positive_id() {
-            assert!(FundRow::new(0, "F".into(), None, None, None, None).is_err());
+            assert!(FundRow::new(0, "F".into(), None, None, None).is_err());
         }
     }
 
@@ -716,7 +692,7 @@ mod tests {
         #[test_case(ChangeNameEventType::Merging; "merging")]
         fn accepts_both_event_types(event_type: ChangeNameEventType) {
             let row =
-                FundChangeNameRow::new(1, 1, "R".into(), "F".into(), 1, date(2024, 1, 1), event_type, "Old".into())
+                FundChangeNameRow::new(1, 1, "R".into(), 1, date(2024, 1, 1), event_type, "Old".into())
                     .unwrap();
             assert_eq!(row.event_type, event_type);
         }
@@ -728,7 +704,6 @@ mod tests {
                     1,
                     1,
                     "R".into(),
-                    "F".into(),
                     0,
                     date(2024, 1, 1),
                     ChangeNameEventType::Renaming,
@@ -745,7 +720,6 @@ mod tests {
                     0,
                     1,
                     "R".into(),
-                    "F".into(),
                     1,
                     date(2024, 1, 1),
                     ChangeNameEventType::Renaming,
@@ -762,7 +736,6 @@ mod tests {
                     1,
                     0,
                     "R".into(),
-                    "F".into(),
                     1,
                     date(2024, 1, 1),
                     ChangeNameEventType::Renaming,
@@ -781,47 +754,37 @@ mod tests {
 
         #[test]
         fn accepts_null_date() {
-            let row = FundAssetsRow::new(1, 1, "R".into(), "F".into(), 1, None, 100.0, 50.0, 50.0, Currency::EUR)
+            let row = FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, 50.0, Currency::EUR)
                 .unwrap();
             assert_eq!(row.date, None);
         }
 
         #[test]
         fn accepts_a_resolved_date() {
-            let row = FundAssetsRow::new(
-                1,
-                1,
-                "R".into(),
-                "F".into(),
-                1,
-                Some(date(2024, 3, 1)),
-                100.0,
-                50.0,
-                50.0,
-                Currency::EUR,
-            )
-            .unwrap();
+            let row =
+                FundAssetsRow::new(1, 1, "R".into(), 1, Some(date(2024, 3, 1)), 100.0, 50.0, 50.0, Currency::EUR)
+                    .unwrap();
             assert_eq!(row.date, Some(date(2024, 3, 1)));
         }
 
         #[test_case(0.0; "total assets zero")]
         fn rejects_non_positive_total_assets(bad: f32) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), "F".into(), 1, None, bad, 50.0, 50.0, Currency::EUR).is_err());
+            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, bad, 50.0, 50.0, Currency::EUR).is_err());
         }
 
         #[test_case(0.0; "total liabilities zero")]
         fn rejects_non_positive_total_liabilities(bad: f32) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), "F".into(), 1, None, 100.0, bad, 50.0, Currency::EUR).is_err());
+            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, bad, 50.0, Currency::EUR).is_err());
         }
 
         #[test_case(0.0; "total net assets zero")]
         fn rejects_non_positive_total_net_assets(bad: f32) {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), "F".into(), 1, None, 100.0, 50.0, bad, Currency::EUR).is_err());
+            assert!(FundAssetsRow::new(1, 1, "R".into(), 1, None, 100.0, 50.0, bad, Currency::EUR).is_err());
         }
 
         #[test]
         fn rejects_non_positive_fund_id() {
-            assert!(FundAssetsRow::new(1, 1, "R".into(), "F".into(), 0, None, 100.0, 50.0, 50.0, Currency::EUR).is_err());
+            assert!(FundAssetsRow::new(1, 1, "R".into(), 0, None, 100.0, 50.0, 50.0, Currency::EUR).is_err());
         }
     }
 
@@ -835,18 +798,18 @@ mod tests {
         #[test_case(SfdrArticle::Art8; "article 8")]
         #[test_case(SfdrArticle::Art9; "article 9")]
         fn accepts_every_article(article: SfdrArticle) {
-            let row = FundSfdrClassificationRow::new(1, article, 1, "R".into(), "F".into()).unwrap();
+            let row = FundSfdrClassificationRow::new(1, article, 1, "R".into()).unwrap();
             assert_eq!(row.sfdr_classification, article);
         }
 
         #[test]
         fn rejects_non_positive_report_page() {
-            assert!(FundSfdrClassificationRow::new(1, SfdrArticle::Art6, 0, "R".into(), "F".into()).is_err());
+            assert!(FundSfdrClassificationRow::new(1, SfdrArticle::Art6, 0, "R".into()).is_err());
         }
 
         #[test]
         fn rejects_non_positive_fund_id() {
-            assert!(FundSfdrClassificationRow::new(0, SfdrArticle::Art6, 1, "R".into(), "F".into()).is_err());
+            assert!(FundSfdrClassificationRow::new(0, SfdrArticle::Art6, 1, "R".into()).is_err());
         }
     }
 
@@ -857,7 +820,7 @@ mod tests {
 
         #[test]
         fn allows_arbitrary_indicator_and_value_strings() {
-            let row = FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 1, "R".into(), "F".into())
+            let row = FundEsgIndicatorRow::new(1, "GHG intensity".into(), "12.3".into(), 1, "R".into())
                 .unwrap();
             assert_eq!(row.indicator, "GHG intensity");
             assert_eq!(row.value, "12.3");
@@ -865,12 +828,12 @@ mod tests {
 
         #[test]
         fn rejects_non_positive_fund_id() {
-            assert!(FundEsgIndicatorRow::new(0, "I".into(), "V".into(), 1, "R".into(), "F".into()).is_err());
+            assert!(FundEsgIndicatorRow::new(0, "I".into(), "V".into(), 1, "R".into()).is_err());
         }
 
         #[test]
         fn rejects_non_positive_report_page() {
-            assert!(FundEsgIndicatorRow::new(1, "I".into(), "V".into(), 0, "R".into(), "F".into()).is_err());
+            assert!(FundEsgIndicatorRow::new(1, "I".into(), "V".into(), 0, "R".into()).is_err());
         }
     }
 
@@ -881,17 +844,17 @@ mod tests {
 
         #[test]
         fn accepts_valid_values() {
-            assert!(AssetsManagerRow::new(1, 1, "R".into(), "F".into(), "BlackRock".into()).is_ok());
+            assert!(AssetsManagerRow::new(1, 1, "R".into(), "BlackRock".into()).is_ok());
         }
 
         #[test]
         fn rejects_non_positive_id() {
-            assert!(AssetsManagerRow::new(0, 1, "R".into(), "F".into(), "BlackRock".into()).is_err());
+            assert!(AssetsManagerRow::new(0, 1, "R".into(), "BlackRock".into()).is_err());
         }
 
         #[test]
         fn rejects_non_positive_report_page() {
-            assert!(AssetsManagerRow::new(1, 0, "R".into(), "F".into(), "BlackRock".into()).is_err());
+            assert!(AssetsManagerRow::new(1, 0, "R".into(), "BlackRock".into()).is_err());
         }
     }
 
