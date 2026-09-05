@@ -43,7 +43,15 @@
 //! | `coord_ref_2` | `Second coord ref` |
 //! | `coord_1` | `First coord` |
 //! | `coord_2` | `Second coord` |
+//! | *(the event's own level)* | `Level` |
 //! | the event's `message` | `Message` |
+//!
+//! `Level` is the one column that comes from neither a field nor the span stack: it is
+//! `event.metadata().level()`, read directly. That is not an implementation shortcut but the
+//! requirement — a level must **never** be inheritable, and a `warn!` under an `info_span` is a
+//! `warn`. Being metadata it also cannot select a row: every event has a level, so a level that
+//! counted as a tagged field would turn this file into a transcript of the program, which is
+//! exactly what the page-or-coordinate rule exists to prevent.
 //!
 //! `report` is **not** one of the tagged five. A document's name is not a position, and a warning
 //! that names only a report is not an audit-trail entry — so it fills its column wherever a row
@@ -214,60 +222,86 @@ impl<S> tracing_subscriber::layer::Filter<S> for EventLevelFilter {
     }
 }
 
-/// Renders a span's fields as **values only**, comma-separated, with no `key=` prefix and no
-/// `Debug` quoting — the half of [`SpanPathFormat`] that turns `class{class=investments}` into
-/// `class[investments]`. Only ever used to build the `FormattedFields` of a *span*:
-/// [`SpanPathFormat`] formats an event's own fields itself, where `key=value` is still the useful
-/// form.
+/// Renders a span's fields as **values only**, with no `key=` prefix — the half of
+/// [`SpanPathFormat`] that turns `class{class=investments}` into `class[investments]`. Only ever
+/// used to build the `FormattedFields` of a *span*: [`SpanPathFormat`] formats an event's own
+/// fields itself, where `key=value` is still the useful form.
 ///
 /// A span with no fields yields an empty string, which [`SpanPathFormat`] renders as the bare span
 /// name, with no empty `[]`.
+///
+/// # One field bare, several fields quoted
+///
+/// A span's value is very often **text copied out of the report** — a company as the document
+/// spells it, a fund's name. That text contains spaces, dashes and sometimes commas, which are
+/// exactly the characters a separator would be made of, so as soon as a second value stands beside
+/// it there is no way to see where it ends:
+///
+/// ```text
+/// investment[EXXON MOBIL CORP - 110.00 - 16.08.24 PUT,row 12,col 6]
+/// ```
+///
+/// Hence the rule: **one field renders bare, several render quoted**, comma-separated.
+///
+/// ```text
+/// investment["EXXON MOBIL CORP - 110.00 - 16.08.24 PUT","row 12","col 6"]
+/// job[AMUNDI-EN24]
+/// page[53]
+/// ```
+///
+/// It is structural rather than a guess about content, and it costs nothing where nothing is
+/// ambiguous: every span in the crate but `investment` carries exactly one field, so the noisy
+/// `pipe{pipe="PdfExtractInvestmentsStandard"}` this formatter was written to remove does not come
+/// back. Quoting is [`quote_value`]'s, not `Debug`'s, for the reason given there.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SpanValueFields;
 
+/// Wraps `value` in `"` and doubles any `"` inside it — CSV's convention, and deliberately not
+/// `{:?}`.
+///
+/// `Debug` escapes non-ASCII and backslashes, and the whole point of these values is that they can
+/// be pasted into a PDF viewer's search box: a company printed `Sté Générale` must not reach the
+/// terminal as `St\u{e9} G\u{e9}n\u{e9}rale`.
+fn quote_value(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
 /// Collects the values of every field it visits, in declaration order. `record_str` keeps the
-/// string raw (no surrounding quotes, unlike the default `Debug`-based field formatter, which is
-/// what produced the noisy `pipe{pipe="PdfExtractInvestmentsStandard"}`).
-struct ValueListVisitor<'a> {
-    writer: Writer<'a>,
-    written: bool,
-    result: fmt::Result,
+/// string raw; the decision to quote is taken afterwards, by [`SpanValueFields::format_fields`],
+/// because it depends on **how many** fields there turned out to be and a visitor cannot know that
+/// while it is still visiting. That is also why the values are buffered rather than written
+/// straight through.
+#[derive(Default)]
+struct ValueListVisitor {
+    values: Vec<String>,
 }
 
-impl ValueListVisitor<'_> {
-    fn write(&mut self, value: std::fmt::Arguments<'_>) {
-        if self.result.is_err() {
-            return;
-        }
-        if self.written {
-            self.result = write!(self.writer, ",");
-        }
-        self.written = true;
-        if self.result.is_ok() {
-            self.result = write!(self.writer, "{value}");
-        }
-    }
-}
-
-impl Visit for ValueListVisitor<'_> {
+impl Visit for ValueListVisitor {
     fn record_debug(&mut self, _field: &Field, value: &dyn fmt::Debug) {
-        self.write(format_args!("{value:?}"));
+        self.values.push(format!("{value:?}"));
     }
 
     fn record_str(&mut self, _field: &Field, value: &str) {
-        self.write(format_args!("{value}"));
+        self.values.push(value.to_string());
     }
 }
 
 impl<'writer> FormatFields<'writer> for SpanValueFields {
     fn format_fields<R: tracing_subscriber::field::RecordFields>(
         &self,
-        writer: Writer<'writer>,
+        mut writer: Writer<'writer>,
         fields: R,
     ) -> fmt::Result {
-        let mut visitor = ValueListVisitor { writer, written: false, result: Ok(()) };
+        let mut visitor = ValueListVisitor::default();
         fields.record(&mut visitor);
-        visitor.result
+        match visitor.values.as_slice() {
+            [] => Ok(()),
+            [only] => write!(writer, "{only}"),
+            several => {
+                let quoted: Vec<String> = several.iter().map(|v| quote_value(v)).collect();
+                write!(writer, "{}", quoted.join(","))
+            }
+        }
     }
 }
 
@@ -282,8 +316,13 @@ impl<'writer> FormatFields<'writer> for SpanValueFields {
 /// 1. spans are joined with `/` and carry their identifying value in brackets (`page[353]`),
 ///    instead of `:`-joined `name{field=value}` pairs that repeat the span name inside its own
 ///    braces (`page{page=353}`);
-/// 2. the resulting path is **the same string** the `.log.csv` `Activity` column carries (see
-///    `activity_path`), so a line on stderr and a row in the CSV name the same place identically;
+/// 2. the resulting path has the same **shape** as the `.log.csv` `Activity` column (see
+///    `activity_path`), so a line on stderr and a row in the CSV name the same place in the same
+///    vocabulary. The two are not the same string, and the difference is deliberate: `SpanLabel`
+///    renders a span's **first** field, because `Activity` sits beside columns that already hold
+///    the coordinates, while stderr renders **all** of them through [`SpanValueFields`], because
+///    there the coordinates have nowhere else to appear. A multi-field span therefore reads
+///    `investment["…","row 12","col 6"]` here and `investment[…]` there;
 /// 3. **no timestamp and no `target`**. The module path (`freeports::core::algorithm`) is the
 ///    longest token on the line and almost never what a person watching a live run is looking for,
 ///    while the wall clock is only useful afterwards. Neither is lost: `freeports.log.jsonl` carries
@@ -338,15 +377,24 @@ impl SpanPathFormat {
     }
 }
 
-/// Writes an event's own fields as `key=value`, skipping `message` (which the caller has already
+/// Writes an event's own fields as `key="value"`, skipping `message` (which the caller has already
 /// written as the line's text). The mirror image of `ValueListVisitor`, which drops the keys.
+///
+/// The tail carries the same ambiguity a span's brackets do — `coord_ref_1=Leonardo Spa Az Nom
+/// coord_ref_2=Leonardo` gives no clue where the first value ends — so a value **containing a
+/// space** is quoted. One that does not cannot bleed into the next pair: it ends at the space that
+/// precedes the next key, and `page=53` gains nothing from quotes.
+///
+/// The condition is on the space rather than on the field's type because the tail mixes the two
+/// freely: `coord_1=%row` renders `row 12` through `Debug`, and a `rows=17` renders a number
+/// through the same method.
 struct EventFieldVisitor<'a> {
     writer: Writer<'a>,
     result: fmt::Result,
 }
 
 impl EventFieldVisitor<'_> {
-    fn write(&mut self, field: &Field, value: std::fmt::Arguments<'_>) {
+    fn write(&mut self, field: &Field, value: &str) {
         // `message` is already the line's text. `error` is deliberately skipped too: by
         // convention every site that attaches one with `log_error` also interpolates it into its
         // message, so printing the field as well would say the same thing twice on the same line
@@ -355,17 +403,19 @@ impl EventFieldVisitor<'_> {
         if self.result.is_err() || field.name() == "message" || field.name() == "error" {
             return;
         }
-        self.result = write!(self.writer, " {}={}", field.name(), value);
+        let rendered =
+            if value.contains(' ') || value.contains('"') { quote_value(value) } else { value.to_string() };
+        self.result = write!(self.writer, " {}={}", field.name(), rendered);
     }
 }
 
 impl Visit for EventFieldVisitor<'_> {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
-        self.write(field, format_args!("{value:?}"));
+        self.write(field, &format!("{value:?}"));
     }
 
     fn record_str(&mut self, field: &Field, value: &str) {
-        self.write(field, format_args!("{value}"));
+        self.write(field, value);
     }
 }
 
@@ -540,7 +590,7 @@ pub fn table_coords(row: i64, col: i64) -> (String, String) {
 }
 
 pub const CSV_HEADER: &str =
-    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n";
+    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Level,Message\n";
 
 /// Tracing field names that select a `.log.csv` row when at least one of them is present, either
 /// directly on the event or inherited from an enclosing span. See the module documentation.
@@ -704,8 +754,9 @@ impl SpanLabel {
 /// `/`-separated path of the currently active spans, outermost to innermost, each rendered as
 /// `name[value]` through its `SpanLabel`. The empty string if no span is active.
 ///
-/// It is the same string the stderr line carries (see [`SpanPathFormat`]) and the `activity` key of
-/// the two structured logs (see `build_record`).
+/// It is the `activity` key of the two structured logs (see `build_record`), and the same path
+/// stderr prints — in the same vocabulary but not, for a multi-field span, the same string: see
+/// point 2 of [`SpanPathFormat`] for which half shows what, and why.
 ///
 /// **Calling this has a real cost**: it walks the whole span stack and allocates a `Vec` and a
 /// `String` every time. Callers must invoke it only once a row is known to be emitted
@@ -762,7 +813,7 @@ enum PageKey {
 #[derive(Debug, Clone)]
 struct PendingRow {
     order_key: RowOrderKey,
-    cells: [String; 8],
+    cells: [String; 9],
 }
 
 #[derive(Debug, Clone)]
@@ -997,6 +1048,9 @@ where
             merged.get("coord_ref_2").to_string(),
             merged.get("coord_1").to_string(),
             merged.get("coord_2").to_string(),
+            // Not a captured field: read straight off the event, like `activity`. See the module
+            // documentation for why it must not be one.
+            event.metadata().level().as_str().to_string(),
             merged.get("message").to_string(),
         ];
 
@@ -1487,10 +1541,14 @@ mod tests {
     /// rather than remove the race.
     static SERIAL: Mutex<()> = Mutex::new(());
 
-    /// Joins eight already-escaped cell values with commas and a trailing newline, in `.log.csv`
+    /// Joins nine already-escaped cell values with commas and a trailing newline, in `.log.csv`
     /// column order. Used everywhere below instead of hand-typed comma counts, which are hard to
     /// read and easy to miscount.
-    fn row(cells: [&str; 8]) -> String {
+    ///
+    /// The eighth cell is `Level`, which is why the tests below spell out `"INFO"` or `"WARN"`
+    /// rather than letting a default stand in: the column exists precisely so that severity is not
+    /// inferred from the message, and a helper that inferred it would be testing nothing.
+    fn row(cells: [&str; 9]) -> String {
         format!("{}\n", cells.join(","))
     }
 
@@ -1697,7 +1755,7 @@ mod tests {
         /// `MakeWriter::make_writer` clones the inner `Arc`, so every write by the layer lands in
         /// the same buffer the test observes.
         #[derive(Clone, Default, Debug)]
-        struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
+        pub(super) struct SharedBuffer(pub(super) Arc<Mutex<Vec<u8>>>);
 
         impl std::io::Write for SharedBuffer {
             fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
@@ -1774,6 +1832,139 @@ mod tests {
             assert!(output.contains("info-marker"), "missing info-marker in:\n{output}");
             assert!(output.contains("debug-marker"), "missing debug-marker in:\n{output}");
             assert!(output.contains("trace-marker"), "missing trace-marker in:\n{output}");
+        }
+    }
+
+    /// Where a value ends, on the one destination that renders several of them side by side.
+    ///
+    /// The `.log.csv` and the JSONL are unaffected by any of this: both go through `SpanLabel`,
+    /// which keeps a span's first field only. These tests are about stderr.
+    mod stderr_value_delimiting {
+        use super::*;
+        use stderr_layer_observable_filtering::SharedBuffer;
+
+        /// Runs `body` under a real `fmt_layer_with_writer`, ANSI off, and returns what it wrote.
+        fn rendered(body: impl FnOnce()) -> String {
+            let _guard = SERIAL.lock().unwrap();
+            let buffer = SharedBuffer::default();
+            let layer = fmt_layer_with_writer(buffer.clone(), LevelFilter::TRACE, false);
+            let subscriber = tracing_subscriber::registry().with(layer);
+            tracing::subscriber::with_default(subscriber, body);
+            String::from_utf8(buffer.0.lock().unwrap().clone()).expect("captured output is utf8")
+        }
+
+        mod span_brackets {
+            use super::*;
+
+            #[test]
+            fn a_single_field_span_renders_its_value_bare() {
+                let output = rendered(|| {
+                    let span = tracing::info_span!("job", format = "AMUNDI-EN24");
+                    let _guard = span.enter();
+                    tracing::warn!("marker");
+                });
+                assert!(output.contains("job[AMUNDI-EN24]"), "expected a bare value in:\n{output}");
+            }
+
+            /// The case that motivated the rule: the company's text is followed by two more
+            /// values, and without quotes there is no way to see where it ends.
+            #[test]
+            fn a_multi_field_span_quotes_every_value() {
+                let output = rendered(|| {
+                    let span = tracing::info_span!(
+                        "investment",
+                        coord_ref_1 = "EXXON MOBIL CORP - 110.00 - 16.08.24 PUT",
+                        coord_1 = "row 12",
+                        coord_2 = "col 6",
+                    );
+                    let _guard = span.enter();
+                    tracing::warn!("marker");
+                });
+                assert!(
+                    output.contains(
+                        "investment[\"EXXON MOBIL CORP - 110.00 - 16.08.24 PUT\",\"row 12\",\"col 6\"]"
+                    ),
+                    "expected every value quoted in:\n{output}"
+                );
+            }
+
+            #[test]
+            fn a_quote_inside_a_value_is_doubled() {
+                let output = rendered(|| {
+                    let span = tracing::info_span!(
+                        "investment",
+                        coord_ref_1 = "SOCIETE \"GENERALE\" SA",
+                        coord_1 = "row 3",
+                    );
+                    let _guard = span.enter();
+                    tracing::warn!("marker");
+                });
+                assert!(
+                    output.contains("investment[\"SOCIETE \"\"GENERALE\"\" SA\",\"row 3\"]"),
+                    "expected the inner quotes doubled in:\n{output}"
+                );
+            }
+
+            /// A `%`-recorded value reaches the visitor through `record_debug`, and must come out
+            /// as the text a person can search for rather than as an escaped `Debug` rendering.
+            #[test]
+            fn a_display_recorded_value_keeps_its_accents() {
+                let output = rendered(|| {
+                    let span = tracing::info_span!("document", report = %"Société Générale");
+                    let _guard = span.enter();
+                    tracing::warn!("marker");
+                });
+                assert!(
+                    output.contains("document[Société Générale]"),
+                    "expected the text unescaped in:\n{output}"
+                );
+            }
+
+            #[test]
+            fn a_span_with_no_fields_renders_no_brackets() {
+                let output = rendered(|| {
+                    let span = tracing::info_span!("deserialize");
+                    let _guard = span.enter();
+                    tracing::warn!("marker");
+                });
+                assert!(output.contains("deserialize:"), "expected a bare span name in:\n{output}");
+                assert!(!output.contains("deserialize["), "unexpected brackets in:\n{output}");
+            }
+        }
+
+        mod event_tail {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// Extracts the ` key=value` tail that follows the message.
+            fn tail(output: &str) -> String {
+                output.split_once("marker").expect("the message is on the line").1.trim_end().to_string()
+            }
+
+            #[test]
+            fn a_value_containing_spaces_is_quoted() {
+                let output = rendered(|| {
+                    tracing::warn!(coord_ref_1 = "Leonardo Spa Az Nom", coord_ref_2 = "Leonardo", "marker");
+                });
+                assert_eq!(tail(&output), " coord_ref_1=\"Leonardo Spa Az Nom\" coord_ref_2=Leonardo");
+            }
+
+            /// A value with no space ends at the space before the next key, so quoting it would be
+            /// noise — and a number is never quoted.
+            #[test]
+            fn a_value_without_spaces_stays_bare() {
+                let output = rendered(|| tracing::warn!(page = 53, "marker"));
+                assert_eq!(tail(&output), " page=53");
+            }
+
+            #[test]
+            fn message_and_error_never_reach_the_tail() {
+                let output = rendered(|| {
+                    let err = std::io::Error::other("boom");
+                    tracing::warn!(error = log_error(&err), page = 7, "marker");
+                });
+                assert_eq!(tail(&output), " page=7");
+            }
         }
     }
 
@@ -2090,7 +2281,7 @@ mod tests {
             fn header_matches_the_documented_column_order() {
                 assert_eq!(
                     CSV_HEADER,
-                    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Message\n"
+                    "Report,Page,Activity,First coord ref,Second coord ref,First coord,Second coord,Level,Message\n"
                 );
             }
         }
@@ -2148,7 +2339,7 @@ mod tests {
                 // No active span: the `Activity` column (index 1) is empty.
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "3", "", "", "", "", "", "page-scoped message"])
+                    row(["", "3", "", "", "", "", "", "INFO", "page-scoped message"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2179,6 +2370,7 @@ mod tests {
                         "",
                         "",
                         "",
+                        "WARN",
                         "\"no tags on the event itself, page comes from the span\""
                     ])
                 );
@@ -2250,6 +2442,7 @@ mod tests {
                         "NAV",
                         "row 3",
                         "col 2",
+                        "WARN",
                         "value out of expected range"
                     ])
                 );
@@ -2307,6 +2500,7 @@ mod tests {
                         "",
                         "",
                         "",
+                        "WARN",
                         "explicit page wins over the span's"
                     ])
                 );
@@ -2332,7 +2526,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "", "field[SPAN_VALUE]", "", "EVENT_VALUE", "", "", "event field wins over the span's"])
+                    row(["", "", "field[SPAN_VALUE]", "", "EVENT_VALUE", "", "", "WARN", "event field wins over the span's"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2367,6 +2561,7 @@ mod tests {
                         "",
                         "",
                         "",
+                        "INFO",
                         "nested inside two page-tagged spans"
                     ])
                 );
@@ -2401,6 +2596,7 @@ mod tests {
                         "ISIN",
                         "6",
                         "",
+                        "WARN",
                         "merged from event and two spans"
                     ])
                 );
@@ -2425,7 +2621,7 @@ mod tests {
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
-                    "{CSV_HEADER},1,,,,,,\"value, with a comma inside\"\n"
+                    "{CSV_HEADER},1,,,,,,INFO,\"value, with a comma inside\"\n"
                 );
                 assert_eq!(content, expected);
             }
@@ -2443,7 +2639,7 @@ mod tests {
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
-                    "{CSV_HEADER},1,,,,,,\"say \"\"hi\"\" to the user\"\n"
+                    "{CSV_HEADER},1,,,,,,INFO,\"say \"\"hi\"\" to the user\"\n"
                 );
                 assert_eq!(content, expected);
             }
@@ -2460,7 +2656,7 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!("{CSV_HEADER},1,,,,,,\"first line\nsecond line\"\n");
+                let expected = format!("{CSV_HEADER},1,,,,,,INFO,\"first line\nsecond line\"\n");
                 assert_eq!(content, expected);
             }
 
@@ -2476,12 +2672,87 @@ mod tests {
                 });
                 layer.close().expect("close must succeed");
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
-                let expected = format!("{CSV_HEADER},1,,\"Acme, Inc.\",,,,ok\n");
+                let expected = format!("{CSV_HEADER},1,,\"Acme, Inc.\",,,,INFO,ok\n");
                 assert_eq!(content, expected);
             }
         }
 
         /// `Report`: a column that is filled wherever a row exists, and is never a reason for one.
+        /// The `Level` column: the one value that comes from the event's metadata rather than
+        /// from a field, and therefore the one that must never be inherited or select a row.
+        mod level_column {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// Runs `body` under a `CsvLogLayer` with no level ceiling and returns the file.
+            fn written(body: impl FnOnce()) -> String {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(".log.csv");
+                let layer = CsvLogLayer::create(&path).expect("csv layer construction");
+                let subscriber = tracing_subscriber::registry().with(layer.clone());
+                tracing::subscriber::with_default(subscriber, body);
+                layer.close().expect("close must succeed");
+                std::fs::read_to_string(&path).expect("read .log.csv")
+            }
+
+            #[test]
+            fn a_warning_writes_warn() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let content = written(|| tracing::warn!(page = 3u64, "dropped a field"));
+                assert_eq!(
+                    content,
+                    format!("{CSV_HEADER}{}", row(["", "3", "", "", "", "", "", "WARN", "dropped a field"]))
+                );
+            }
+
+            #[test]
+            fn an_error_writes_error() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let content = written(|| tracing::error!(page = 3u64, "lost the holding"));
+                assert_eq!(
+                    content,
+                    format!("{CSV_HEADER}{}", row(["", "3", "", "", "", "", "", "ERROR", "lost the holding"]))
+                );
+            }
+
+            /// The level is metadata, not a field: it does not merge down the span stack the way
+            /// `page` and the coordinates do. A `warn` under an `info_span` is a `warn`.
+            #[test]
+            fn an_event_keeps_its_own_level_inside_a_span_of_another_level() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let content = written(|| {
+                    let span = tracing::info_span!("investment", coord_ref_1 = "ALROSA CJSC");
+                    span.in_scope(|| tracing::warn!(page = 12u64, "the report writes a dash here"));
+                });
+                assert_eq!(
+                    content,
+                    format!(
+                        "{CSV_HEADER}{}",
+                        row([
+                            "",
+                            "12",
+                            "investment[ALROSA CJSC]",
+                            "ALROSA CJSC",
+                            "",
+                            "",
+                            "",
+                            "WARN",
+                            "the report writes a dash here"
+                        ])
+                    )
+                );
+            }
+
+            /// Every event has a level, so a level alone must not write a row — otherwise the
+            /// page-or-coordinate rule that keeps this file an audit trail would be void.
+            #[test]
+            fn a_level_alone_selects_no_row() {
+                let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
+                let content = written(|| tracing::error!("no page, no coordinate, no row"));
+                assert_eq!(content, CSV_HEADER);
+            }
+        }
+
         mod report_column {
             use super::*;
             use pretty_assertions::assert_eq;
@@ -2522,7 +2793,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["EURIZON 2023", "16", "document[EURIZON 2023]", "", "", "", "", "a row of its own"])
+                    row(["EURIZON 2023", "16", "document[EURIZON 2023]", "", "", "", "", "WARN", "a row of its own"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2571,8 +2842,8 @@ mod tests {
                 // sorted sequence.
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["", "1", "", "", "", "", "", "first"]),
-                    row(["", "2", "", "", "", "", "", "second"])
+                    row(["", "1", "", "", "", "", "", "INFO", "first"]),
+                    row(["", "2", "", "", "", "", "", "INFO", "second"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2593,8 +2864,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["", "1", "", "", "", "", "", "first"]),
-                    row(["", "2", "", "", "", "", "", "second"])
+                    row(["", "1", "", "", "", "", "", "INFO", "first"]),
+                    row(["", "2", "", "", "", "", "", "INFO", "second"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2624,7 +2895,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "3", "", "", "", "", "", "logged before anyone knew where to put it"])
+                    row(["", "3", "", "", "", "", "", "WARN", "logged before anyone knew where to put it"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2708,6 +2979,7 @@ mod tests {
                         "",
                         "",
                         "",
+                        "WARN",
                         "something went wrong on this page"
                     ])
                 );
@@ -2806,7 +3078,7 @@ mod tests {
                 // `csv_escaping::message_containing_a_comma_is_quoted`) -- irrelevant to what this
                 // test targets (an empty `Activity`), so it is avoided rather than escaped by hand.
                 let expected =
-                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "top-level no span"]));
+                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "INFO", "top-level no span"]));
                 assert_eq!(content, expected);
             }
 
@@ -2827,7 +3099,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "7", "page_processing[7]", "", "", "", "", "no fields of its own"])
+                    row(["", "7", "page_processing[7]", "", "", "", "", "INFO", "no fields of its own"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2855,7 +3127,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "3", "run/job/document", "", "", "", "", "three levels deep"])
+                    row(["", "3", "run/job/document", "", "", "", "", "WARN", "three levels deep"])
                 );
                 assert_eq!(content, expected);
             }
@@ -2916,6 +3188,7 @@ mod tests {
                         "",
                         "",
                         "",
+                        "INFO",
                         "no fields of its own -- page comes from the inner span"
                     ])
                 );
@@ -2969,9 +3242,9 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}{}",
-                    row(["", "2", "", "", "", "", "", "at page two"]),
-                    row(["", "5", "", "", "", "", "", "at page five"]),
-                    row(["", "8", "", "", "", "", "", "at page eight"])
+                    row(["", "2", "", "", "", "", "", "INFO", "at page two"]),
+                    row(["", "5", "", "", "", "", "", "INFO", "at page five"]),
+                    row(["", "8", "", "", "", "", "", "INFO", "at page eight"])
                 );
                 assert_eq!(content, expected, "rows must come out sorted by page, not by arrival order");
             }
@@ -2991,8 +3264,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["", "4", "", "", "", "", "", "first at page four"]),
-                    row(["", "4", "", "", "", "", "", "second at page four"])
+                    row(["", "4", "", "", "", "", "", "INFO", "first at page four"]),
+                    row(["", "4", "", "", "", "", "", "INFO", "second at page four"])
                 );
                 assert_eq!(
                     content, expected,
@@ -3018,8 +3291,8 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}{}",
-                    row(["", "3", "", "", "", "", "", "numbered"]),
-                    row(["", "", "", "no page here", "", "", "", "unnumbered"])
+                    row(["", "3", "", "", "", "", "", "INFO", "numbered"]),
+                    row(["", "", "", "no page here", "", "", "", "INFO", "unnumbered"])
                 );
                 assert_eq!(content, expected);
             }
@@ -3064,7 +3337,7 @@ mod tests {
                 let content = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected = format!(
                     "{CSV_HEADER}{}",
-                    row(["", "9", "", "", "", "", "", "flushed only via Drop -- close() never called"])
+                    row(["", "9", "", "", "", "", "", "INFO", "flushed only via Drop -- close() never called"])
                 );
                 assert_eq!(content, expected);
             }
@@ -3096,7 +3369,7 @@ mod tests {
 
                 let after = std::fs::read_to_string(&path).expect("read .log.csv");
                 let expected =
-                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "not yet flushed"]));
+                    format!("{CSV_HEADER}{}", row(["", "1", "", "", "", "", "", "INFO", "not yet flushed"]));
                 assert_eq!(after, expected, "dropping the last remaining clone must flush");
             }
 

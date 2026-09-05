@@ -20,6 +20,7 @@ use crate::formats_utils::pdf_extract::standard_funcs::{
     InvestmentsStandardArgs, PdfExtractInvestmentsStandard, pdf_extract_currency_standard, pdf_extract_fund_standard,
 };
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
+use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::TextFilterInvestmentsStandard;
 use crate::input::document::selection::pdfline_selection_from_str;
 
@@ -33,6 +34,17 @@ fn parse_algorithm_flags(config: &InvestmentsConfig) -> Result<TablePosAlgorithm
     };
     TablePosAlgorithm::from_expression(expression)
         .map_err(|source| StructuredError::AlgorithmFlags { id: config.id.to_string(), source })
+}
+
+/// Parses the dash-as-zero column. An empty cell means no field substitutes anything, which is
+/// what every format that says nothing gets — and is exactly the behaviour there was before the
+/// column existed.
+fn parse_dash_as_zero(config: &InvestmentsConfig) -> Result<DashAsZero, StructuredError> {
+    let Some(expression) = config.additional.as_ref().and_then(|a| a.interpret_dash_as_zero.as_deref()) else {
+        return Ok(DashAsZero::empty());
+    };
+    DashAsZero::from_expression(expression)
+        .map_err(|source| StructuredError::DashAsZero { id: config.id.to_string(), source })
 }
 
 /// Parses a selection cell already validated by [`super::tables`], naming the column in the error.
@@ -90,6 +102,7 @@ fn add_text_filter(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
         // wrapped would shift the columns by one.
         additional.and_then(|a| a.geometrical_indexing).unwrap_or(true),
         additional.and_then(|a| a.merge_previous).unwrap_or(false),
+        parse_dash_as_zero(config)?,
     )
     .map_err(|source| StructuredError::TextFilter { id: config.id.to_string(), source })?;
     pipeline.text_filter.push(Arc::new(pipe));
@@ -139,12 +152,13 @@ mod tests {
     use crate::core::page::Page;
     use crate::core::pipeline::FilterData;
     use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
+    use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, TargetCompanyInput};
     use std::fs;
     use tempfile::TempDir;
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -375,7 +389,7 @@ mod tests {
         fn flags_of(expression: &str) -> Result<TablePosAlgorithm, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_algorithm_flags(&configs[0])
         }
@@ -409,6 +423,136 @@ mod tests {
             let err = flags_of("NOT_A_FLAG").unwrap_err();
             let StructuredError::AlgorithmFlags { id, .. } = err else { panic!("expected AlgorithmFlags") };
             assert_eq!(id, "A-EN24(investments)/0");
+        }
+    }
+
+    /// The `Interpret dash as zero` column, from the CSV cell to the built pipe.
+    mod dash_as_zero_column {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn dash_flags_of(cell: &str) -> Result<DashAsZero, StructuredError> {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell}\n"));
+            let configs = get_investments_configs(repo.path())?;
+            parse_dash_as_zero(&configs[0])
+        }
+
+        /// The default, and what every format that says nothing gets: the behaviour there was
+        /// before the column existed.
+        #[test]
+        fn an_empty_cell_substitutes_nothing() {
+            assert_eq!(dash_flags_of("").unwrap(), DashAsZero::empty());
+        }
+
+        /// A pipe with no row at all in `additional_args.csv` — the common case — must reach the
+        /// same place as an empty cell, not a missing-field error.
+        #[test]
+        fn a_pipe_with_no_additional_row_substitutes_nothing() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            let configs = get_investments_configs(repo.path()).expect("the repo loads");
+            assert_eq!(parse_dash_as_zero(&configs[0]).unwrap(), DashAsZero::empty());
+        }
+
+        #[test]
+        fn every_flag_name_is_known() {
+            for name in ["MARKET_VALUE", "QUANTITY", "PERC_NET_ASSETS", "ACQUISITION_COST", "ALL"] {
+                assert!(dash_flags_of(name).is_ok(), "{name} should be a known flag");
+            }
+        }
+
+        #[test]
+        fn several_flags_can_be_combined_in_one_cell() {
+            assert_eq!(
+                dash_flags_of("MARKET_VALUE | PERC_NET_ASSETS").unwrap(),
+                DashAsZero::MarketValue | DashAsZero::PercNetAssets
+            );
+        }
+
+        #[test]
+        fn an_unknown_flag_name_is_rejected_naming_the_pipe() {
+            let err = dash_flags_of("ACQUISITION_CURRENCY").unwrap_err();
+            let StructuredError::DashAsZero { id, .. } = err else { panic!("expected DashAsZero") };
+            assert_eq!(id, "A-EN24(investments)/0");
+        }
+
+        /// The column configures the `text_filter` segment, so declaring that segment off and then
+        /// filling the column in is the contradiction `DISABLED_SEGMENT_COLUMNS` exists to catch.
+        #[test]
+        fn a_disabled_text_filter_may_not_carry_the_column() {
+            let repo = Repo::new();
+            repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
+            repo.write(
+                "investments/additional_args.csv",
+                &format!("{ADD_HEADER}A-EN24,,,,,,,MARKET_VALUE\n"),
+            );
+            repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
+            assert!(get_investments_configs(repo.path()).is_err());
+        }
+
+        /// The same shape as `page()` above, but the row prints a dash where the market value
+        /// belongs and another where the percentage does.
+        fn page_with_a_dash() -> Page {
+            Page::new(
+                1,
+                (300.0, 300.0),
+                vec![
+                    PdfLine::new("ArialBold", 10.0, "Alpha Fund", (0.0, 0.0, 60.0, 10.0)),
+                    PdfLine::new("ArialItalic", 10.0, "Amounts in EUR", (0.0, 10.0, 60.0, 18.0)),
+                    PdfLine::new("Arial", 10.0, "Acme Corp", (0.0, 20.0, 40.0, 30.0)),
+                    PdfLine::new("Arial", 10.0, "-", (50.0, 20.0, 90.0, 30.0)),
+                    PdfLine::new("Arial", 10.0, "-", (100.0, 20.0, 140.0, 30.0)),
+                ],
+                Vec::new(),
+            )
+        }
+
+        fn market_value_and_perc(cell: &str) -> (BlockValue, BlockValue) {
+            let repo = Repo::new();
+            repo.write(
+                "investments/args.csv",
+                &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,2,,\n"),
+            );
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell}\n"));
+            let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
+            let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
+                name: "Acme Corp".to_string(),
+                regexs: vec![],
+                symbols: vec![],
+                buds: vec![],
+            }])
+            .expect("a name without patterns always compiles");
+            let blocks = pipeline
+                .apply_text_filter(&page_with_a_dash(), &FilterData::TargetCompanies(&companies))
+                .expect("the page filters");
+            let row = blocks
+                .iter()
+                .find(|b| b.metadata.contains_key("market value"))
+                .expect("one investment row");
+            (
+                row.metadata.get("market value").expect("market value").clone(),
+                row.metadata.get("% net assets").expect("% net assets").clone(),
+            )
+        }
+
+        /// The whole point of the column: the cell reaches the pipe the pipeline is built with, and
+        /// only the field it names is affected.
+        #[test]
+        fn the_flags_reach_the_built_pipe_and_only_the_named_field() {
+            assert_eq!(
+                market_value_and_perc("MARKET_VALUE"),
+                (BlockValue::from("0"), BlockValue::from("-"))
+            );
+        }
+
+        #[test]
+        fn without_the_column_the_same_page_keeps_both_dashes() {
+            assert_eq!(
+                market_value_and_perc(""),
+                (BlockValue::from("-"), BlockValue::from("-"))
+            );
         }
     }
 

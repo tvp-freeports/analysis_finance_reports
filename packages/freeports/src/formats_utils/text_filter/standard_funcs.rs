@@ -33,6 +33,7 @@ use crate::core::classes::{BlockType, PdfBlock, TextBlock};
 use crate::core::match_fund::MatchFund;
 use crate::core::page::PageError;
 use crate::core::pipeline::{Extracted, FilterData, PipeError, TextFilterPipe};
+use crate::formats_utils::text_filter::dash_as_zero::{DashAsZero, substituted};
 use crate::formats_utils::text_filter::matcher::{CompanyMatchInfos, match_company};
 use crate::formats_utils::text_filter::standard_txt_blk_builders::{
     standard_fund_txt_blk, standard_management_company_txt_blk,
@@ -371,10 +372,13 @@ pub struct TextFilterInvestmentsStandard {
     /// Whether a cell split across two blocks merges into the **preceding** block or the following
     /// one.
     pub merge_prev: bool,
+    /// Which numeric fields read a dash the report prints as the zero it means. Empty by default,
+    /// which is no change at all: see [`crate::formats_utils::text_filter::dash_as_zero`].
+    pub dash_as_zero: DashAsZero,
 }
 
 impl TextFilterInvestmentsStandard {
-    /// The seven parameters come from a formats repository's configuration columns, which is what
+    /// The eight parameters come from a formats repository's configuration columns, which is what
     /// builds this pipe.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -385,6 +389,7 @@ impl TextFilterInvestmentsStandard {
         acquisition_cost_pos: Option<i64>,
         geometrical_indexes: bool,
         merge_prev: bool,
+        dash_as_zero: DashAsZero,
     ) -> Result<Self, StandardFuncsError> {
         // The check fires **only** when both optional positions are present: with just one of them,
         // a value colliding with `market_value_pos` is not rejected.
@@ -401,6 +406,7 @@ impl TextFilterInvestmentsStandard {
             acquisition_cost_pos,
             geometrical_indexes,
             merge_prev,
+            dash_as_zero,
         })
     }
 
@@ -632,6 +638,29 @@ impl TextFilterInvestmentsStandard {
         }
     }
 
+    /// One field's text, with the report's dash turned into `"0"` where the format asked for it.
+    ///
+    /// The substitution puts back the **text** `"0"`, not a typed zero, so everything downstream —
+    /// the integer-or-float choice the deserializer makes, the percentage normalisation, the
+    /// domain validation — runs exactly as it would on a report that had printed `0` itself. There
+    /// is no second path through the deserializer to keep in step with the first.
+    ///
+    /// `debug`, not `warn`: this is a reading the format declared, not an anomaly, and
+    /// `.log.csv`'s ceiling is `warn`. What does reach the audit trail is the consequence — a
+    /// market value or a percentage of exactly zero sits on the edge of its domain, and the output
+    /// entity says so on its own.
+    fn read_dash_as_zero(&self, field: Option<DashAsZero>, name: &str, text: String) -> String {
+        let read = substituted(self.dash_as_zero, field, &text);
+        if read != text {
+            tracing::debug!(
+                coord_ref_2 = name,
+                "the report writes {text:?} for the {name} - read as 0, as the format declares"
+            );
+            return read.to_string();
+        }
+        text
+    }
+
     /// The fields of one investment row, read at the configured offsets from the anchor cell.
     ///
     /// In geometric mode an offset is a **linear distance** that wraps into the next row when it
@@ -680,19 +709,27 @@ impl TextFilterInvestmentsStandard {
 
         let market_value =
             resolve(self.market_value_pos).ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?;
-        metadata.insert("market value".to_string(), BlockValue::from(market_value));
+        metadata.insert(
+            "market value".to_string(),
+            BlockValue::from(self.read_dash_as_zero(Some(DashAsZero::MarketValue), "market value", market_value)),
+        );
 
-        for (pos, name) in [
-            (self.perc_net_assets_pos, "% net assets"),
-            (self.nominal_quantity_pos, "quantity"),
-            (self.acquisition_currency_pos, "acquisition currency"),
-            (self.acquisition_cost_pos, "acquisition cost"),
+        // `acquisition currency` is in the loop with **no** flag: a dash there says "no currency",
+        // and zero is not a currency. `None` and not `DashAsZero::empty()` — see `substituted`,
+        // where the difference between the two is the difference between never and always.
+        for (pos, name, field) in [
+            (self.perc_net_assets_pos, "% net assets", Some(DashAsZero::PercNetAssets)),
+            (self.nominal_quantity_pos, "quantity", Some(DashAsZero::Quantity)),
+            (self.acquisition_currency_pos, "acquisition currency", None),
+            (self.acquisition_cost_pos, "acquisition cost", Some(DashAsZero::AcquisitionCost)),
         ] {
             if let Some(pos) = pos {
                 // Unlike the market value, an optional field that is not found does not fail the
                 // extraction: it stays `Null`.
-                metadata
-                    .insert(name.to_string(), resolve(pos).map_or(BlockValue::Null, BlockValue::from));
+                let value = resolve(pos).map_or(BlockValue::Null, |text| {
+                    BlockValue::from(self.read_dash_as_zero(field, name, text))
+                });
+                metadata.insert(name.to_string(), value);
             }
         }
 
@@ -1122,7 +1159,7 @@ mod tests {
 
     /// The filter in its simplest configuration: only `market_value_pos`, geometric indices.
     fn simple_investments(market_value_pos: i64) -> TextFilterInvestmentsStandard {
-        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, false)
+        TextFilterInvestmentsStandard::new(market_value_pos, None, None, None, None, true, false, DashAsZero::empty())
             .expect("positions are consistent")
     }
 
@@ -1170,7 +1207,7 @@ mod tests {
         #[test]
         fn distinct_positions_are_accepted() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, false)
+                TextFilterInvestmentsStandard::new(0, Some(1), Some(2), None, None, true, false, DashAsZero::empty())
                     .is_ok()
             );
         }
@@ -1186,7 +1223,8 @@ mod tests {
                         None,
                         None,
                         true,
-                        false
+                        false,
+                        DashAsZero::empty()
                     )
                     .is_err(),
                     "({mv}, {nq}, {pna}) should be rejected"
@@ -1199,11 +1237,11 @@ mod tests {
             // The check fires only if *both* optional positions are present, so the collision with
             // `market_value_pos` goes unnoticed here.
             assert!(
-                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, false)
+                TextFilterInvestmentsStandard::new(0, Some(0), None, None, None, true, false, DashAsZero::empty())
                     .is_ok()
             );
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, false)
+                TextFilterInvestmentsStandard::new(0, None, Some(0), None, None, true, false, DashAsZero::empty())
                     .is_ok()
             );
         }
@@ -1211,8 +1249,125 @@ mod tests {
         #[test]
         fn the_optional_acquisition_positions_are_never_checked() {
             assert!(
-                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, false)
+                TextFilterInvestmentsStandard::new(0, None, None, Some(0), Some(0), true, false, DashAsZero::empty())
                     .is_ok()
+            );
+        }
+    }
+
+    /// Reading the report's dash as the zero it means, one field at a time.
+    ///
+    /// The unit of the recogniser and the parser is
+    /// [`crate::formats_utils::text_filter::dash_as_zero`]; what is tested here is the wiring —
+    /// that each flag reaches its own field and no other, and that the substitution happens where
+    /// the block is built rather than somewhere downstream.
+    mod dash_read_as_zero {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// A four-column row: company, market value, quantity, percentage of net assets.
+        fn row_of(company: &str, market_value: &str, quantity: &str, perc: &str) -> Vec<PdfBlock> {
+            vec![
+                table_row(0, 0, company, false),
+                table_row(0, 1, market_value, false),
+                table_row(0, 2, quantity, false),
+                table_row(0, 3, perc, false),
+            ]
+        }
+
+        fn pipe(flags: DashAsZero) -> TextFilterInvestmentsStandard {
+            TextFilterInvestmentsStandard::new(1, Some(2), Some(3), None, None, true, false, flags)
+                .expect("positions are consistent")
+        }
+
+        fn field(flags: DashAsZero, blks: &[PdfBlock], name: &str) -> BlockValue {
+            let out = pipe(flags).call(blks, &targets(&["Acme Corp"])).expect("the page parses");
+            assert_eq!(out.len(), 1, "expected exactly one row");
+            out[0].metadata.get(name).expect("the field is configured").clone()
+        }
+
+        #[test]
+        fn a_flagged_market_value_reads_its_dash_as_zero() {
+            let blks = row_of("Acme Corp", "-", "10", "0.5");
+            assert_eq!(field(DashAsZero::MarketValue, &blks, "market value"), BlockValue::from("0"));
+        }
+
+        /// Without the flag the dash travels on untouched, and the deserializer drops the holding
+        /// exactly as it did before this feature existed.
+        #[test]
+        fn an_unflagged_market_value_keeps_its_dash() {
+            let blks = row_of("Acme Corp", "-", "10", "0.5");
+            assert_eq!(field(DashAsZero::empty(), &blks, "market value"), BlockValue::from("-"));
+        }
+
+        #[test]
+        fn each_flag_reaches_its_own_field_and_no_other() {
+            let blks = row_of("Acme Corp", "-", "-", "-");
+            for (flag, substituted, untouched) in [
+                (DashAsZero::MarketValue, "market value", ["quantity", "% net assets"]),
+                (DashAsZero::Quantity, "quantity", ["market value", "% net assets"]),
+                (DashAsZero::PercNetAssets, "% net assets", ["market value", "quantity"]),
+            ] {
+                assert_eq!(field(flag, &blks, substituted), BlockValue::from("0"), "{substituted}");
+                for name in untouched {
+                    assert_eq!(field(flag, &blks, name), BlockValue::from("-"), "{name}");
+                }
+            }
+        }
+
+        #[test]
+        fn all_substitutes_every_numeric_field_at_once() {
+            let blks = row_of("Acme Corp", "-", "-", "-");
+            for name in ["market value", "quantity", "% net assets"] {
+                assert_eq!(field(DashAsZero::all(), &blks, name), BlockValue::from("0"), "{name}");
+            }
+        }
+
+        /// The misalignment case: a flagged field whose cell holds a currency code is a format bug,
+        /// and must reach the deserializer unchanged so that it still fails loudly.
+        #[test]
+        fn a_flagged_field_holding_something_other_than_a_dash_is_left_alone() {
+            for text in ["USD", "Assets", "", "n/a"] {
+                let blks = row_of("Acme Corp", text, "10", "0.5");
+                assert_eq!(
+                    field(DashAsZero::all(), &blks, "market value"),
+                    BlockValue::from(text),
+                    "{text:?} must not become a zero"
+                );
+            }
+        }
+
+        /// An en dash is what several reports actually print, and it is recognised like the ASCII
+        /// one.
+        #[test]
+        fn the_other_dashes_of_the_family_are_read_the_same_way() {
+            for text in ["\u{2013}", "--", " - "] {
+                let blks = row_of("Acme Corp", text, "10", "0.5");
+                assert_eq!(
+                    field(DashAsZero::MarketValue, &blks, "market value"),
+                    BlockValue::from("0"),
+                    "{text:?}"
+                );
+            }
+        }
+
+        /// `acquisition currency` has no flag of its own: zero is not a currency, and no
+        /// combination of flags — `ALL` included — may turn its dash into one.
+        #[test]
+        fn the_acquisition_currency_is_never_substituted() {
+            let blks = vec![
+                table_row(0, 0, "Acme Corp", false),
+                table_row(0, 1, "1.000", false),
+                table_row(0, 2, "-", false),
+            ];
+            let pipe =
+                TextFilterInvestmentsStandard::new(1, None, None, Some(2), None, true, false, DashAsZero::all())
+                    .expect("positions are consistent");
+            let out = pipe.call(&blks, &targets(&["Acme Corp"])).expect("the page parses");
+            assert_eq!(
+                out[0].metadata.get("acquisition currency"),
+                Some(&BlockValue::from("-")),
+                "a dash where a currency belongs is not a zero"
             );
         }
     }
@@ -1247,7 +1402,7 @@ mod tests {
                 table_row(0, 3, "42", false),
             ];
             let filter =
-                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, false)
+                TextFilterInvestmentsStandard::new(1, Some(3), Some(2), None, None, true, false, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
 
@@ -1260,7 +1415,7 @@ mod tests {
             let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
             // `% net assets` points at column 5, which does not exist.
             let filter =
-                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false)
+                TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
@@ -1311,7 +1466,7 @@ mod tests {
                 table_row(1, 0, "next row", false),
             ];
             let filter =
-                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, false)
+                TextFilterInvestmentsStandard::new(2, None, None, None, None, false, false, DashAsZero::empty())
                     .unwrap();
             let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
             assert_eq!(out[0].metadata.get("market value"), Some(&BlockValue::from("next row")));

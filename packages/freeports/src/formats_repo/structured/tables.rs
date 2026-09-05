@@ -144,6 +144,10 @@ pub struct AdditionalArgsRow {
     pub geometrical_indexing: Option<bool>,
     #[serde(rename = "Merge previous", deserialize_with = "optional_bool")]
     pub merge_previous: Option<bool>,
+    /// A flag expression naming the numeric fields that read the report's dash as zero — text
+    /// rather than a bool, like `Algorithm flags` and for the same reason: the cell names a set.
+    #[serde(rename = "Interpret dash as zero", deserialize_with = "optional_text")]
+    pub interpret_dash_as_zero: Option<String>,
 }
 
 /// A row of the deselection table.
@@ -319,7 +323,16 @@ const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
     ("pdf_extract", &["Subfund set", "Currency set", "Body set", "Deselection set", "Algorithm flags", "Tolerance"]),
     (
         "text_filter",
-        &["Market value", "Quantity", "% net assets", "Acquisition cost", "Acquisition currency", "Geometrical indexing", "Merge previous"],
+        &[
+            "Market value",
+            "Quantity",
+            "% net assets",
+            "Acquisition cost",
+            "Acquisition currency",
+            "Geometrical indexing",
+            "Merge previous",
+            "Interpret dash as zero",
+        ],
     ),
     ("deserialize", &["Interpret quantity as float", "Interpret cost and value as int"]),
 ];
@@ -344,6 +357,7 @@ impl InvestmentsConfig {
             "Merge previous" => additional.is_some_and(|a| a.merge_previous.is_some()),
             "Interpret quantity as float" => additional.is_some_and(|a| a.interpret_quantity_as_float.is_some()),
             "Interpret cost and value as int" => additional.is_some_and(|a| a.interpret_cost_and_value_as_int.is_some()),
+            "Interpret dash as zero" => additional.is_some_and(|a| a.interpret_dash_as_zero.is_some()),
             other => unreachable!("DISABLED_SEGMENT_COLUMNS names an unknown column {other:?}"),
         }
     }
@@ -505,7 +519,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -662,7 +676,7 @@ mod tests {
         #[test]
         fn additional_args_join_onto_the_matching_pipe() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,FALSE,,TRUE\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,FALSE,,TRUE,\n"));
             let config = &get_investments_configs(repo.path()).unwrap()[0];
             let additional = config.additional.as_ref().unwrap();
             assert_eq!(additional.interpret_quantity_as_float, Some(true));
@@ -682,7 +696,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,,\n"),
             );
             assert!(get_investments_configs(repo.path()).unwrap()[0].additional.is_some());
         }
@@ -690,7 +704,7 @@ mod tests {
         #[test]
         fn a_secondary_row_matching_no_pipe_is_rejected_with_its_line() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,TRUE,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             let TableError::UnmatchedRow { line, id, .. } = err else { panic!("expected UnmatchedRow, got {err}") };
             assert_eq!((line, id.as_str()), (1, "GHOST-EN24(investments)/0"));
@@ -701,7 +715,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,\nA-EN24(investments)/0,,,FALSE,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,,\nA-EN24(investments)/0,,,FALSE,,,,\n"),
             );
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(matches!(err, TableError::DuplicateRow { line: 2, .. }), "{err}");
@@ -798,7 +812,7 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,,,,,\n"));
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,TRUE,TRUE,FALSE\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
                 matches!(err, TableError::DisabledSegmentConfigured { segment: "deserialize", .. }),

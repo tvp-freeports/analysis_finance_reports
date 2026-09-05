@@ -47,7 +47,7 @@ impl RepoBuilder {
             )
             .write(
                 "content/algorithms/structured/investments/additional_args.csv",
-                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous\n",
+                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
             )
             .write("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n")
             .write("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n")
@@ -281,6 +281,49 @@ mod configuration_errors {
         );
         let err = repo.load().unwrap_err();
         assert!(err.to_string().contains("Body set"), "{err}");
+    }
+
+    /// The `Interpret dash as zero` column, from a whole repository rather than a hand-built
+    /// config: a repository that declares it loads, and one that misspells a flag does not.
+    #[test]
+    fn a_repository_declaring_dash_as_zero_loads() {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/additional_args.csv",
+            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,MARKET_VALUE | PERC_NET_ASSETS\n",
+        );
+        assert!(repo.load().is_ok(), "a repository declaring the column must load");
+    }
+
+    #[test]
+    fn a_misspelled_dash_as_zero_flag_is_rejected_naming_the_flag() {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/additional_args.csv",
+            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,MARKET_VALEU\n",
+        );
+        let err = repo.load().unwrap_err();
+        assert!(err.to_string().contains("MARKET_VALEU"), "{err}");
+    }
+
+    /// The column configures `text_filter`, so a repository that switches that segment off and
+    /// still fills the column in is contradicting itself.
+    #[test]
+    fn a_disabled_text_filter_carrying_dash_as_zero_is_rejected() {
+        let repo = RepoBuilder::minimal();
+        repo.write(
+            "content/algorithms/structured/investments/additional_args.csv",
+            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,MARKET_VALUE\n",
+        );
+        repo.write(
+            "content/algorithms/structured/investments/partial_pipes.csv",
+            "ID,pdf_extract,text_filter,deserialize\n\
+             A-EN24,,FALSE,\n",
+        );
+        assert!(repo.load().is_err(), "a disabled text_filter may not carry the column");
     }
 
     #[test]

@@ -36,4 +36,7 @@ build-backend = "setuptools.build_meta"
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
-freeports_dev = ["py.typed", "data/**/*"]
+# `lib/**/*` was missing: the JSON and template files `init-format-repo` and `setup-input-db`
+# read at runtime live under `lib/`, not `data/`, so a non-editable install shipped none of them
+# and both commands failed with "data file not found".
+freeports_dev = ["py.typed", "data/**/*", "lib/**/*"]

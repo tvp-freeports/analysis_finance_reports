@@ -80,7 +80,7 @@ impl Fixture {
             ),
             (
                 "content/algorithms/structured/investments/additional_args.csv",
-                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous\n",
+                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
             ),
             ("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n"),
             ("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n"),
@@ -272,6 +272,35 @@ mod artifacts_stay_where_they_belong {
 
         assert!(out_dir.join(".log.csv").is_file(), "the run log is not next to the output");
         assert!(!fixture.cwd().join(".log.csv").exists(), "a .log.csv was left in the working directory");
+    }
+
+    /// Il `.log.csv` del padre assorbe le righe dei figli: deve restare **un solo** header, e ogni
+    /// riga deve avere il numero di colonne dichiarato da quell'header. E' qui che si vedrebbe uno
+    /// scarto fra il padre e i figli dopo un cambio di colonne — un figlio che scrive otto celle
+    /// dove il padre ne dichiara nove passerebbe inosservato in ogni test a processo singolo.
+    #[test]
+    fn the_absorbed_child_rows_have_the_same_columns_as_the_header() {
+        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
+        let (output, out_dir) = fixture.run(2, "out");
+        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+
+        let content = std::fs::read_to_string(out_dir.join(".log.csv")).expect("read .log.csv");
+        let mut reader = csv::Reader::from_reader(content.as_bytes());
+        let columns = reader.headers().expect("the header row").len();
+        assert_eq!(
+            reader.headers().expect("the header row").iter().collect::<Vec<_>>().last(),
+            Some(&"Message"),
+            "the header is not the one the engine writes: {content}"
+        );
+        for (i, record) in reader.records().enumerate() {
+            let record = record.unwrap_or_else(|e| panic!("row {} is malformed: {e}", i + 1));
+            assert_eq!(record.len(), columns, "row {} has the wrong number of cells", i + 1);
+        }
+        assert_eq!(
+            content.matches("Report,Page,Activity").count(),
+            1,
+            "a child's header leaked into the middle of the file: {content}"
+        );
     }
 
     /// I file privati dei figli — richieste, referti, log — vivono in un'area temporanea che

@@ -45,6 +45,12 @@ pub enum StructuredError {
         #[source]
         source: FlagExprError,
     },
+    #[error("'{id}': invalid dash-as-zero flags: {source}")]
+    DashAsZero {
+        id: String,
+        #[source]
+        source: FlagExprError,
+    },
     /// The `text_filter` pipe rejected the parameters read from the CSV, typically two column
     /// positions that are equal to each other.
     #[error("'{id}': {source}")]

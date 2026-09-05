@@ -40,13 +40,34 @@ is visible without reading it word by word.
 
 ```text
  WARN run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]:
-      expected text block not found near the matched company - row skipped coord_ref_1=Leonardo Spa Az Nom coord_ref_2=Leonardo coord_1=row 12 coord_2=col 1
+      expected text block not found near the matched company - row skipped coord_ref_1="Leonardo Spa Az Nom" coord_ref_2=Leonardo coord_1="row 12" coord_2="col 1"
 ```
 
 That path is the point. It says *what was happening* — job, step, page class, document, page,
 pipeline, segment, pipe — rather than which source file the line came from, which is what you want
 when a format misbehaves on one page of one report. `job` is the **format**; `document` is the
 report, and it is what tells two documents of one run apart.
+
+### Where a value ends
+
+Most of what these lines carry is **text copied out of the report** — a company as the document
+spells it, a fund's name — and that text contains spaces, dashes and sometimes commas. So a value
+is quoted wherever something else stands beside it:
+
+```text
+investment["EXXON MOBIL CORP - 110.00 - 16.08.24 PUT","row 12","col 6"]
+job[AMUNDI-EN24]
+page[53]
+```
+
+A span carrying **one** field renders it bare, which is nearly all of them; a span carrying several
+quotes each. In the `key=value` tail after the message the rule is the same ambiguity seen from the
+other side: a value with a space in it is quoted, one without cannot run into the next key and is
+left alone.
+
+The quoting is CSV's — a `"` inside a value is doubled — and deliberately not Rust's `Debug`, which
+would escape the accents out of `Société Générale` and defeat the purpose of printing text you are
+meant to paste into a PDF viewer's search box.
 
 ```{note}
 The colours are emitted even when stderr is not a terminal, so `2>file` collects the escape
@@ -96,11 +117,23 @@ which page, at which position, and what was done about it.
 | `First coord ref` | the **triggering text**: the report's own words that matched a company |
 | `Second coord ref` | the second anchor — the company the triggering text matched, or the field a row is about |
 | `First coord`, `Second coord` | the position itself, in units that depend on the context (`row 12`, `col 1`) |
+| `Level` | the event's own severity — `WARN` or `ERROR` |
 | `Message` | the event's message |
 
 `Report` and `Activity` enrich a row but never justify one: an event carrying only those and no page
 or coordinate produces no row. A document's name is not a position, and a `document` span is open
 over a whole run — if it selected rows, every warning the program emits would become one.
+
+`Level` is the same distinction the JSONL has carried all along, and the one this file used to leave
+you to infer from the wording of the message. It separates the two severities the audit trail
+deliberately keeps apart: `WARN` is the report being awkward and the engine coping — a dash where a
+number belongs, a cast that had to be forced, a value sitting on the edge of its domain — while
+`ERROR` is something that should not have happened, a value that is there and will not convert.
+Only those two ever appear, because `warn` is this file's ceiling whatever `-v` you pass.
+
+It is metadata rather than a field, which has one visible consequence: it is never inherited. A
+warning raised inside an `info` span is a `WARN` row, not an `INFO` one. And since every event has a
+level, a level alone never writes a row — the page-or-coordinate rule still decides that.
 
 ## `Report`
 

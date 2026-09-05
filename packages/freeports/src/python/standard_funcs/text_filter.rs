@@ -6,6 +6,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
+use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
 use crate::formats_utils::text_filter::standard_funcs::{
     TextFilterAssetsStandard, TextFilterInvestmentsStandard, TextFilterManagmentCompanyStandard,
     TextFilterPageClassifyStandard, TextFilterSfdrArticleStandard,
@@ -51,6 +52,10 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
 }
 
 /// The pipe for the rows of an investments table.
+///
+/// `dash_as_zero` is the same flag expression the structured level writes in its
+/// `Interpret dash as zero` column — `"MARKET_VALUE | PERC_NET_ASSETS"`, `"ALL"` — and `None` is
+/// the empty set, so an unstructured format that says nothing behaves as it always has.
 #[pyfunction]
 #[pyo3(name = "TextFilterInvestmentsStandard")]
 #[pyo3(signature = (
@@ -61,6 +66,7 @@ pub fn py_text_filter_managment_company_standard() -> PyTextFilterPipe {
     acquisition_cost_pos=None,
     geometrical_indexes=true,
     merge_prev=false,
+    dash_as_zero=None,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_text_filter_investments_standard(
@@ -71,7 +77,15 @@ pub fn py_text_filter_investments_standard(
     acquisition_cost_pos: Option<i64>,
     geometrical_indexes: bool,
     merge_prev: bool,
+    dash_as_zero: Option<&str>,
 ) -> PyResult<PyTextFilterPipe> {
+    let dash_as_zero = match dash_as_zero {
+        None => DashAsZero::empty(),
+        Some(expression) => DashAsZero::from_expression(expression).map_err(|e| {
+            tracing::error!(error = log_error(&e), "invalid dash_as_zero expression {expression:?}: {e}");
+            PyValueError::new_err(e.to_string())
+        })?,
+    };
     let pipe = TextFilterInvestmentsStandard::new(
         market_value_pos,
         nominal_quantity_pos,
@@ -80,6 +94,7 @@ pub fn py_text_filter_investments_standard(
         acquisition_cost_pos,
         geometrical_indexes,
         merge_prev,
+        dash_as_zero,
     )
     .map_err(|e| {
         tracing::error!(error = log_error(&e), "TextFilterInvestmentsStandard construction failed: {e}");
