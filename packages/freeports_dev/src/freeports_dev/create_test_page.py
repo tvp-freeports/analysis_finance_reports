@@ -6,7 +6,17 @@ import dill
 from freeports.core import Algorithm, PdfBlock
 from freeports.formats_repo import get_formats
 
-extraction_flags = pypdf.TEXT_PRESERVE_IMAGES | pypdf.TEXT_COLLECT_VECTORS
+# No `flags=` anywhere below, and that is the point: the engine reads a page with
+# `page.get_text("dict")` (`input/document.rs`, `read_pages`), so anything the development tooling
+# loads differently is a page the engine never sees. This module used to pass
+# `TEXT_PRESERVE_IMAGES | TEXT_COLLECT_VECTORS`, which drops MuPDF's default whitespace and
+# mediabox handling: on MEDIOLANUM-EN24 page 124 that produced seven whitespace-only spans the
+# engine does not emit, one of them the sole occupant of a column — enough to give the page a
+# seventh column, shift every absolute field position by one, and make `inspect-page -m results`
+# return nothing where the engine extracts five correct rows.
+#
+# `TEXT_COLLECT_VECTORS` was dead weight besides: `PageDict::from_py` reads `width`, `height`,
+# `blocks`, `lines` and `spans`, and nothing else ever reaches the pipes.
 
 
 def get_page_xml(file_name: str, page: int):
@@ -35,7 +45,7 @@ def get_page_table(file_name: str, page: int):
 def get_page_dict(file_name: str, page: int):
     pdf_file = pypdf.Document(file_name)
     page_doc = pdf_file[page - 1]
-    page = page_doc.get_text("dict", flags=extraction_flags)
+    page = page_doc.get_text("dict")
     return page
 
 
@@ -44,7 +54,7 @@ get_page = get_page_dict
 
 def get_doc(file_path):
     pdf_file = pypdf.Document(file_path)
-    return [page.get_text("dict", flags=extraction_flags) for page in pdf_file]
+    return [page.get_text("dict") for page in pdf_file]
 
 
 def get_pdf_from_tests(fmt, document=None, base_path=None):

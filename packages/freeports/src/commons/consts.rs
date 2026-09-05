@@ -32,8 +32,19 @@ pub enum SfdrArticle {
     Art9,
 }
 
-/// ISO 3-letter currency codes, in the same order as the reference Python `Currency` enum
-/// (order matters: it's the iteration/`__members__` order).
+/// ISO 3-letter currency codes.
+///
+/// The **first 46** are in the same order as the reference Python `Currency` enum, and must stay
+/// that way: order matters, being the iteration/`__members__` order. Everything after them is the
+/// rest of the active ISO 4217 list, appended — new members go at the end, where they disturb no
+/// existing position.
+///
+/// The list is deliberately the whole of ISO 4217 and not a curated selection. A curated one was
+/// what existed before, and it dropped a real holding priced in Nigerian naira because nobody had
+/// foreseen a Nigerian issuer; the next gap would have been found the same way. What stays out is
+/// only what is not a currency: the precious metals (`XAU`, `XAG`, `XPT`, `XPD`), the accounting
+/// units (`XDR`, `XUA`, `XSU`, `XBA`–`XBD`), the fund-valuation codes (`CLF`, `USN`, `MXV`, …) and
+/// the reserved `XTS`/`XXX`. A report cannot quote a holding in those.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Currency {
     USD,
@@ -82,16 +93,136 @@ pub enum Currency {
     NZD,
     EGP,
     TWD,
+    AFN,
+    ALL,
+    AMD,
+    ANG,
+    AOA,
+    AWG,
+    AZN,
+    BAM,
+    BBD,
+    BDT,
+    BHD,
+    BIF,
+    BMD,
+    BND,
+    BOB,
+    BSD,
+    BTN,
+    BWP,
+    BYN,
+    BZD,
+    CDF,
+    CRC,
+    CUP,
+    CVE,
+    DJF,
+    DOP,
+    DZD,
+    ERN,
+    ETB,
+    FJD,
+    FKP,
+    GEL,
+    GHS,
+    GIP,
+    GMD,
+    GNF,
+    GTQ,
+    GYD,
+    HNL,
+    HTG,
+    IQD,
+    IRR,
+    JMD,
+    JOD,
+    KES,
+    KGS,
+    KHR,
+    KMF,
+    KPW,
+    KYD,
+    KZT,
+    LAK,
+    LBP,
+    LKR,
+    LRD,
+    LSL,
+    LYD,
+    MAD,
+    MDL,
+    MGA,
+    MKD,
+    MMK,
+    MNT,
+    MOP,
+    MRU,
+    MUR,
+    MVR,
+    MWK,
+    MZN,
+    NAD,
+    NGN,
+    NIO,
+    NPR,
+    OMR,
+    PAB,
+    PGK,
+    PKR,
+    PYG,
+    RSD,
+    RWF,
+    SBD,
+    SCR,
+    SDG,
+    SHP,
+    SLE,
+    SOS,
+    SRD,
+    SSP,
+    STN,
+    SVC,
+    SYP,
+    SZL,
+    TJS,
+    TMT,
+    TND,
+    TOP,
+    TTD,
+    TZS,
+    UGX,
+    UYU,
+    UZS,
+    VED,
+    VES,
+    VUV,
+    WST,
+    XAF,
+    XCD,
+    XCG,
+    XOF,
+    XPF,
+    YER,
+    ZMW,
+    ZWG,
 }
 
 impl Currency {
-    /// All 46 canonical members, in declaration order.
+    /// All 159 canonical members, in declaration order.
     pub fn variants() -> &'static [Currency] {
         use Currency::*;
         &[
             USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW, INR, BRL,
             MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR, KWD, CLP, COP, PEN,
             ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP, TWD,
+            AFN, ALL, AMD, ANG, AOA, AWG, AZN, BAM, BBD, BDT, BHD, BIF, BMD, BND, BOB, BSD, BTN, BWP,
+            BYN, BZD, CDF, CRC, CUP, CVE, DJF, DOP, DZD, ERN, ETB, FJD, FKP, GEL, GHS, GIP, GMD, GNF,
+            GTQ, GYD, HNL, HTG, IQD, IRR, JMD, JOD, KES, KGS, KHR, KMF, KPW, KYD, KZT, LAK, LBP, LKR,
+            LRD, LSL, LYD, MAD, MDL, MGA, MKD, MMK, MNT, MOP, MRU, MUR, MVR, MWK, MZN, NAD, NGN, NIO,
+            NPR, OMR, PAB, PGK, PKR, PYG, RSD, RWF, SBD, SCR, SDG, SHP, SLE, SOS, SRD, SSP, STN, SVC,
+            SYP, SZL, TJS, TMT, TND, TOP, TTD, TZS, UGX, UYU, UZS, VED, VES, VUV, WST, XAF, XCD, XCG,
+            XOF, XPF, YER, ZMW, ZWG,
         ]
     }
 
@@ -143,6 +274,119 @@ impl Currency {
             Currency::NZD => "NZD",
             Currency::EGP => "EGP",
             Currency::TWD => "TWD",
+            Currency::AFN => "AFN",
+            Currency::ALL => "ALL",
+            Currency::AMD => "AMD",
+            Currency::ANG => "ANG",
+            Currency::AOA => "AOA",
+            Currency::AWG => "AWG",
+            Currency::AZN => "AZN",
+            Currency::BAM => "BAM",
+            Currency::BBD => "BBD",
+            Currency::BDT => "BDT",
+            Currency::BHD => "BHD",
+            Currency::BIF => "BIF",
+            Currency::BMD => "BMD",
+            Currency::BND => "BND",
+            Currency::BOB => "BOB",
+            Currency::BSD => "BSD",
+            Currency::BTN => "BTN",
+            Currency::BWP => "BWP",
+            Currency::BYN => "BYN",
+            Currency::BZD => "BZD",
+            Currency::CDF => "CDF",
+            Currency::CRC => "CRC",
+            Currency::CUP => "CUP",
+            Currency::CVE => "CVE",
+            Currency::DJF => "DJF",
+            Currency::DOP => "DOP",
+            Currency::DZD => "DZD",
+            Currency::ERN => "ERN",
+            Currency::ETB => "ETB",
+            Currency::FJD => "FJD",
+            Currency::FKP => "FKP",
+            Currency::GEL => "GEL",
+            Currency::GHS => "GHS",
+            Currency::GIP => "GIP",
+            Currency::GMD => "GMD",
+            Currency::GNF => "GNF",
+            Currency::GTQ => "GTQ",
+            Currency::GYD => "GYD",
+            Currency::HNL => "HNL",
+            Currency::HTG => "HTG",
+            Currency::IQD => "IQD",
+            Currency::IRR => "IRR",
+            Currency::JMD => "JMD",
+            Currency::JOD => "JOD",
+            Currency::KES => "KES",
+            Currency::KGS => "KGS",
+            Currency::KHR => "KHR",
+            Currency::KMF => "KMF",
+            Currency::KPW => "KPW",
+            Currency::KYD => "KYD",
+            Currency::KZT => "KZT",
+            Currency::LAK => "LAK",
+            Currency::LBP => "LBP",
+            Currency::LKR => "LKR",
+            Currency::LRD => "LRD",
+            Currency::LSL => "LSL",
+            Currency::LYD => "LYD",
+            Currency::MAD => "MAD",
+            Currency::MDL => "MDL",
+            Currency::MGA => "MGA",
+            Currency::MKD => "MKD",
+            Currency::MMK => "MMK",
+            Currency::MNT => "MNT",
+            Currency::MOP => "MOP",
+            Currency::MRU => "MRU",
+            Currency::MUR => "MUR",
+            Currency::MVR => "MVR",
+            Currency::MWK => "MWK",
+            Currency::MZN => "MZN",
+            Currency::NAD => "NAD",
+            Currency::NGN => "NGN",
+            Currency::NIO => "NIO",
+            Currency::NPR => "NPR",
+            Currency::OMR => "OMR",
+            Currency::PAB => "PAB",
+            Currency::PGK => "PGK",
+            Currency::PKR => "PKR",
+            Currency::PYG => "PYG",
+            Currency::RSD => "RSD",
+            Currency::RWF => "RWF",
+            Currency::SBD => "SBD",
+            Currency::SCR => "SCR",
+            Currency::SDG => "SDG",
+            Currency::SHP => "SHP",
+            Currency::SLE => "SLE",
+            Currency::SOS => "SOS",
+            Currency::SRD => "SRD",
+            Currency::SSP => "SSP",
+            Currency::STN => "STN",
+            Currency::SVC => "SVC",
+            Currency::SYP => "SYP",
+            Currency::SZL => "SZL",
+            Currency::TJS => "TJS",
+            Currency::TMT => "TMT",
+            Currency::TND => "TND",
+            Currency::TOP => "TOP",
+            Currency::TTD => "TTD",
+            Currency::TZS => "TZS",
+            Currency::UGX => "UGX",
+            Currency::UYU => "UYU",
+            Currency::UZS => "UZS",
+            Currency::VED => "VED",
+            Currency::VES => "VES",
+            Currency::VUV => "VUV",
+            Currency::WST => "WST",
+            Currency::XAF => "XAF",
+            Currency::XCD => "XCD",
+            Currency::XCG => "XCG",
+            Currency::XOF => "XOF",
+            Currency::XPF => "XPF",
+            Currency::YER => "YER",
+            Currency::ZMW => "ZMW",
+            Currency::ZWG => "ZWG",
         }
     }
 
@@ -194,7 +438,143 @@ impl Currency {
             Currency::NZD => "$",
             Currency::EGP => "ج.م",
             Currency::TWD => "$",
+            Currency::AFN => "AFN",
+            Currency::ALL => "ALL",
+            Currency::AMD => "AMD",
+            Currency::ANG => "ANG",
+            Currency::AOA => "AOA",
+            Currency::AWG => "AWG",
+            Currency::AZN => "AZN",
+            Currency::BAM => "BAM",
+            Currency::BBD => "BBD",
+            Currency::BDT => "BDT",
+            Currency::BHD => "BHD",
+            Currency::BIF => "BIF",
+            Currency::BMD => "BMD",
+            Currency::BND => "BND",
+            Currency::BOB => "BOB",
+            Currency::BSD => "BSD",
+            Currency::BTN => "BTN",
+            Currency::BWP => "BWP",
+            Currency::BYN => "BYN",
+            Currency::BZD => "BZD",
+            Currency::CDF => "CDF",
+            Currency::CRC => "CRC",
+            Currency::CUP => "CUP",
+            Currency::CVE => "CVE",
+            Currency::DJF => "DJF",
+            Currency::DOP => "DOP",
+            Currency::DZD => "DZD",
+            Currency::ERN => "ERN",
+            Currency::ETB => "ETB",
+            Currency::FJD => "FJD",
+            Currency::FKP => "FKP",
+            Currency::GEL => "GEL",
+            Currency::GHS => "GHS",
+            Currency::GIP => "GIP",
+            Currency::GMD => "GMD",
+            Currency::GNF => "GNF",
+            Currency::GTQ => "GTQ",
+            Currency::GYD => "GYD",
+            Currency::HNL => "HNL",
+            Currency::HTG => "HTG",
+            Currency::IQD => "IQD",
+            Currency::IRR => "IRR",
+            Currency::JMD => "JMD",
+            Currency::JOD => "JOD",
+            Currency::KES => "KES",
+            Currency::KGS => "KGS",
+            Currency::KHR => "KHR",
+            Currency::KMF => "KMF",
+            Currency::KPW => "KPW",
+            Currency::KYD => "KYD",
+            Currency::KZT => "KZT",
+            Currency::LAK => "LAK",
+            Currency::LBP => "LBP",
+            Currency::LKR => "LKR",
+            Currency::LRD => "LRD",
+            Currency::LSL => "LSL",
+            Currency::LYD => "LYD",
+            Currency::MAD => "MAD",
+            Currency::MDL => "MDL",
+            Currency::MGA => "MGA",
+            Currency::MKD => "MKD",
+            Currency::MMK => "MMK",
+            Currency::MNT => "MNT",
+            Currency::MOP => "MOP",
+            Currency::MRU => "MRU",
+            Currency::MUR => "MUR",
+            Currency::MVR => "MVR",
+            Currency::MWK => "MWK",
+            Currency::MZN => "MZN",
+            Currency::NAD => "NAD",
+            Currency::NGN => "NGN",
+            Currency::NIO => "NIO",
+            Currency::NPR => "NPR",
+            Currency::OMR => "OMR",
+            Currency::PAB => "PAB",
+            Currency::PGK => "PGK",
+            Currency::PKR => "PKR",
+            Currency::PYG => "PYG",
+            Currency::RSD => "RSD",
+            Currency::RWF => "RWF",
+            Currency::SBD => "SBD",
+            Currency::SCR => "SCR",
+            Currency::SDG => "SDG",
+            Currency::SHP => "SHP",
+            Currency::SLE => "SLE",
+            Currency::SOS => "SOS",
+            Currency::SRD => "SRD",
+            Currency::SSP => "SSP",
+            Currency::STN => "STN",
+            Currency::SVC => "SVC",
+            Currency::SYP => "SYP",
+            Currency::SZL => "SZL",
+            Currency::TJS => "TJS",
+            Currency::TMT => "TMT",
+            Currency::TND => "TND",
+            Currency::TOP => "TOP",
+            Currency::TTD => "TTD",
+            Currency::TZS => "TZS",
+            Currency::UGX => "UGX",
+            Currency::UYU => "UYU",
+            Currency::UZS => "UZS",
+            Currency::VED => "VED",
+            Currency::VES => "VES",
+            Currency::VUV => "VUV",
+            Currency::WST => "WST",
+            Currency::XAF => "XAF",
+            Currency::XCD => "XCD",
+            Currency::XCG => "XCG",
+            Currency::XOF => "XOF",
+            Currency::XPF => "XPF",
+            Currency::YER => "YER",
+            Currency::ZMW => "ZMW",
+            Currency::ZWG => "ZWG",
         }
+    }
+
+    /// The currencies worth **guessing** from running prose, as opposed to reading from a field
+    /// that is declared to hold one.
+    ///
+    /// A three-letter uppercase word is thin evidence. Over the whole ISO 4217 list it is thinner
+    /// than it looks, because a great many codes are also ordinary words once the text has been
+    /// upper-cased: `ALL` in "at all", `TOP` in "top holdings", `CUP`, `BOB`, `SOS`, `GEL`, `MOP`.
+    /// Reading those as Albanian lek or Tongan paʻanga would be worse than reading nothing.
+    ///
+    /// So the two questions get two answers. *What currency is this field?* — anything in ISO 4217,
+    /// via [`Currency::from_code`], because the report says so. *What currency does this sentence
+    /// mention?* — only these, because here the engine is inferring rather than being told.
+    ///
+    /// **Adding a currency:** put it in the enum, always. Put it here only if a report writes that
+    /// currency's code inside a sentence, which in practice means the majors already listed.
+    pub fn prose_candidates() -> &'static [Currency] {
+        use Currency::*;
+        &[
+            USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW, INR, BRL,
+            MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR, KWD, CLP, COP, PEN,
+            ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP, TWD,
+        ]
     }
 
     /// Value-based lookup: exact ISO code match only, no aliases. Mirrors the reference's
@@ -386,8 +766,8 @@ mod tests {
             use super::*;
 
             #[test]
-            fn has_46_canonical_members() {
-                assert_eq!(Currency::variants().len(), 46);
+            fn has_every_canonical_member() {
+                assert_eq!(Currency::variants().len(), 159);
             }
 
             #[test]
@@ -406,18 +786,36 @@ mod tests {
                 }
             }
 
+            /// The 46 members that mirror the reference enum keep their order, and keep it as a
+            /// **prefix**: order is significant (see the module doc and the reference file's own
+            /// doc comment, `freeports_core`'s `Currency.__members__` iteration order), so those
+            /// may not be reordered — but the list has to be able to grow, and growth goes at the
+            /// end where it disturbs nothing.
             #[test]
-            fn declaration_order_matches_reference_enum() {
-                // Order is significant (see module doc + the reference file's own doc comment):
-                // it mirrors `freeports_core`'s `Currency.__members__` iteration order.
+            fn the_reference_members_keep_their_order_at_the_head_of_the_list() {
                 use Currency::*;
-                let expected = [
+                let reference = [
                     USD, EUR, GBP, JPY, CNY, AUD, CAD, CHF, CNH, SEK, NOK, DKK, SGD, HKD, KRW,
                     INR, BRL, MXN, RUB, ZAR, TRY, PLN, THB, IDR, MYR, PHP, ILS, AED, SAR, QAR,
                     KWD, CLP, COP, PEN, ARS, VND, UAH, CZK, HUF, RON, HRK, BGN, ISK, NZD, EGP,
                     TWD,
                 ];
-                assert_eq!(Currency::variants(), &expected[..]);
+                assert_eq!(&Currency::variants()[..reference.len()], &reference[..]);
+            }
+
+            /// Nigeria's naira is the member this list grew for: a report priced a real holding in
+            /// it and the engine dropped the field. The assertion is about the case, not the code —
+            /// any currency a report can quote has to be in here, and the ISO 4217 codes that are
+            /// not currencies at all (`XAU`, `XDR`, `XXX` and the fund-accounting units) still must
+            /// not be.
+            #[test]
+            fn the_list_covers_currencies_reports_actually_quote_and_nothing_else() {
+                for code in ["NGN", "KES", "MAD", "PKR", "BHD", "OMR", "JOD", "XOF", "GHS", "TND"] {
+                    assert!(Currency::from_code(code).is_some(), "{code} should be a currency");
+                }
+                for code in ["XAU", "XAG", "XDR", "XXX", "XTS", "USN", "CLF"] {
+                    assert!(Currency::from_code(code).is_none(), "{code} is not a currency");
+                }
             }
         }
 

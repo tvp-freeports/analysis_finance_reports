@@ -305,10 +305,17 @@ mod tests {
     mod consts_shim {
         use super::*;
 
+        /// The count is taken from the native list rather than written twice: a literal here would
+        /// have to be edited every time a currency is added, and would be wrong in the meantime.
         #[test]
         fn every_currency_is_reachable_as_a_class_attribute() {
             run("from freeports.consts import Currency; assert Currency.EUR.name == 'EUR'").unwrap();
-            run("from freeports.consts import Currency; assert len(Currency.__members__) == 46").unwrap();
+            run("from freeports.consts import Currency; assert Currency.NGN.name == 'NGN'").unwrap();
+            let expected = crate::commons::consts::Currency::variants().len();
+            run(&format!(
+                "from freeports.consts import Currency; assert len(Currency.__members__) == {expected}"
+            ))
+            .unwrap();
         }
 
         #[test]

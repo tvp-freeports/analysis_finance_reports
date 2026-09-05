@@ -11,8 +11,13 @@
 //!
 //! [`extract_currency_from_text`] makes two passes. First, every three-uppercase-letter word in the
 //! text **as written**, in the order it appears, and the first that is a valid code wins. Only if
-//! none is does it fall back to scanning the upper-cased text for each known ISO code in turn, then
-//! for the `EURO` alias.
+//! none is does it fall back to scanning the upper-cased text for each currency in
+//! [`Currency::prose_candidates`] in turn, then for the `EURO` alias.
+//!
+//! The second pass deliberately searches a **smaller** set than the first accepts. Upper-casing the
+//! text turns every three-letter word into a candidate code, and most of ISO 4217 is also an
+//! ordinary word — `ALL`, `TOP`, `CUP`, `SOS`. A field the report declares to be a currency may
+//! hold any of the 159; a currency merely mentioned in a sentence is only guessed for the majors.
 //!
 //! Order matters, and the first pass exists to get it right: scanning for known codes finds
 //! whichever code happens to come first in the *list of currencies*, not the one the document
@@ -52,8 +57,19 @@ pub enum StandardFuncsError {
     NoCurrencyFound,
     /// The block the pipe expected to find is not there. **Not fatal**: the row is skipped and the
     /// loop moves on.
-    #[error("matching text block not found")]
-    ExpectedTextBlockNotFound,
+    ///
+    /// It carries *which* field could not be read and *where* the pipe looked, because those two
+    /// answers are what separate the two ways a row goes missing: a page whose grid came out the
+    /// wrong width (every offset lands beyond the data), and a row whose description wrapped onto a
+    /// second line (the grid is normal, the neighbouring cell is empty). Without them the warning
+    /// says a row was skipped and leaves the PDF as the only way to find out why.
+    #[error("the {field} is missing: {probe}")]
+    ExpectedTextBlockNotFound { field: &'static str, probe: FieldProbe },
+    /// A pipe that searches a **flat list** of blocks for one of a given type found none. It has
+    /// nothing to do with the variant above — there is no table, no anchor and no offset here — and
+    /// sharing one error between the two only meant neither could say what it was looking for.
+    #[error("no {block_type} block on the page")]
+    ExpectedBlockTypeMissing { block_type: &'static str },
     /// The page cannot be interpreted: becomes a page failure, which the algorithm absorbs by
     /// skipping the page.
     #[error("{message}")]
@@ -141,8 +157,11 @@ pub fn extract_currency_from_text(text: &str) -> Result<Currency, StandardFuncsE
         }
     }
 
+    // `prose_candidates`, not `variants`: this pass upper-cases the text, so over the full ISO
+    // 4217 list it would read "at all" as Albanian lek and "top holdings" as Tongan paʻanga. See
+    // `Currency::prose_candidates` for why guessing and being told are two different questions.
     let upper = text.to_uppercase();
-    for currency in Currency::variants() {
+    for currency in Currency::prose_candidates() {
         if word_boundary_pattern(currency.code()).find(&upper).is_some() {
             return Ok(*currency);
         }
@@ -344,6 +363,47 @@ impl PdfBlocksTable {
 ///
 /// The three always travel together, so they live in a struct rather than as three repeated
 /// parameters.
+/// Where [`TextFilterInvestmentsStandard::extract_field`] looked for one field's cell.
+///
+/// The offset alone does not locate anything — it is a distance from an anchor the reader of a log
+/// cannot see — and the cell alone does not say why that cell was chosen. Both together do, which
+/// is why they travel as one value, computed once and used both to read the cell and to describe it
+/// afterwards. Computing them twice is exactly how a diagnostic starts lying.
+///
+/// Rendered **one-based**, like every other coordinate that reaches a log: see
+/// [`crate::core::tracing_setup::table_coords`] for why the grid's own indices stay zero-based and
+/// only the rendering shifts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FieldProbe {
+    /// Geometric mode: the offset from the anchor, the cell it resolved to, and the grid's width —
+    /// the width being the one number that tells a page whose columns came out wrong from a page
+    /// whose columns are fine.
+    Grid { offset: i64, row: i64, col: i64, n_cols: i64 },
+    /// Flat mode: the offset from the anchor and the position it resolved to in the block list.
+    Flat { offset: i64, index: i64 },
+}
+
+impl std::fmt::Display for FieldProbe {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Offset zero is the anchor itself, and "0 cells past the anchor" is not a sentence anyone
+        // wants to read: the clause is dropped rather than printed as a degenerate case.
+        match *self {
+            FieldProbe::Grid { offset: 0, row, col, n_cols } => {
+                let (row, col) = crate::core::tracing_setup::table_coords(row, col);
+                write!(f, "{row} {col} of a {n_cols}-column grid")
+            }
+            FieldProbe::Grid { offset, row, col, n_cols } => {
+                let (row, col) = crate::core::tracing_setup::table_coords(row, col);
+                write!(f, "{offset} cells past the anchor, {row} {col} of a {n_cols}-column grid")
+            }
+            FieldProbe::Flat { offset: 0, index } => write!(f, "block {}", index + 1),
+            FieldProbe::Flat { offset, index } => {
+                write!(f, "{offset} blocks past the anchor, block {}", index + 1)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct RowAnchor {
     /// The row's position in the flat list of blocks.
@@ -616,7 +676,7 @@ impl TextFilterInvestmentsStandard {
                 out.push(txt_blk);
                 Ok(())
             }
-            Err(StandardFuncsError::ExpectedTextBlockNotFound) => {
+            Err(StandardFuncsError::ExpectedTextBlockNotFound { field, probe }) => {
                 // `coord_ref_1`, rather than an arbitrary field name: the first anchor column of
                 // the `.log.csv` exists precisely for this, a piece of text with which the row can
                 // be found again inside the PDF. As a free field it fell outside the columns and
@@ -624,13 +684,19 @@ impl TextFilterInvestmentsStandard {
                 //
                 // The triggering text and not the company, because only the former is written in
                 // the report: the company is the name the input database gives the issuer.
+                //
+                // The coordinates stay the **anchor**: they are what locates the row on the page,
+                // which is what those two columns are for. The cell that was actually probed goes
+                // in the message, where it reads as a sentence and where it is not a coordinate
+                // competing with the one the reader needs. It is not repeated as a structured
+                // field: one statement of a fact per event.
                 let (row, col) = crate::core::tracing_setup::table_coords(anchor.base.0, anchor.base.1);
                 tracing::warn!(
                     coord_ref_1 = %content,
                     coord_ref_2 = company,
                     coord_1 = %row,
                     coord_2 = %col,
-                    "expected text block not found near the matched company - row skipped"
+                    "the {field} is missing: {probe} - row skipped"
                 );
                 Ok(())
             }
@@ -670,34 +736,51 @@ impl TextFilterInvestmentsStandard {
         table: &PdfBlocksTable,
         RowAnchor { flat_index, base, n_cols }: RowAnchor,
     ) -> Result<TextBlock, StandardFuncsError> {
-        let cell_content = |row: i64, col: i64| -> Option<String> {
-            match table.get_cell(row, col) {
-                Cell::One(b) => b.content.as_str().map(str::to_string),
-                _ => None,
-            }
-        };
-        let flat_content =
-            |idx: i64| -> Option<String> { table.get_flat(idx)?.content.as_str().map(str::to_string) };
-        let resolve = |offset: i64| -> Option<String> {
+        // Where an offset lands, without reading anything. Split out from the reading below so the
+        // cell a failure reports is, by construction, the cell the reading tried: the two cannot
+        // drift apart because there is only one of them.
+        let probe_of = |offset: i64| -> FieldProbe {
             if self.geometrical_indexes {
                 let (r, c) = base;
                 // The column count is never zero: the loop exits earlier if the table is empty, and
                 // every row of the grid has at least one column.
-                let col_offset = (c + offset).rem_euclid(n_cols) - c;
-                let row_offset = (c + offset).div_euclid(n_cols);
-                cell_content(r + row_offset, c + col_offset)
+                FieldProbe::Grid {
+                    offset,
+                    row: r + (c + offset).div_euclid(n_cols),
+                    col: (c + offset).rem_euclid(n_cols),
+                    n_cols,
+                }
             } else {
-                flat_content(flat_index + offset)
+                FieldProbe::Flat { offset, index: flat_index + offset }
             }
         };
+        // `Err` carries the probe rather than nothing, so both callers below — the required field
+        // that fails the row and the optional one that only logs — can say where they looked.
+        let resolve = |offset: i64| -> Result<String, FieldProbe> {
+            let probe = probe_of(offset);
+            let found = match probe {
+                FieldProbe::Grid { row, col, .. } => match table.get_cell(row, col) {
+                    Cell::One(b) => b.content.as_str().map(str::to_string),
+                    _ => None,
+                },
+                FieldProbe::Flat { index, .. } => {
+                    table.get_flat(index).and_then(|b| b.content.as_str().map(str::to_string))
+                }
+            };
+            found.ok_or(probe)
+        };
 
-        let anchor = if self.geometrical_indexes {
-            match table.get_cell(base.0, base.1) {
+        // The anchor is the field at offset zero: naming it that way rather than special-casing it
+        // means it reports its own absence in the same words as every other field.
+        let anchor_probe = probe_of(0);
+        let missing_anchor =
+            || StandardFuncsError::ExpectedTextBlockNotFound { field: "anchor cell", probe: anchor_probe };
+        let anchor = match anchor_probe {
+            FieldProbe::Grid { row, col, .. } => match table.get_cell(row, col) {
                 Cell::One(block) => block,
-                _ => return Err(StandardFuncsError::ExpectedTextBlockNotFound),
-            }
-        } else {
-            table.get_flat(flat_index).ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?
+                _ => return Err(missing_anchor()),
+            },
+            FieldProbe::Flat { index, .. } => table.get_flat(index).ok_or_else(missing_anchor)?,
         };
 
         let mut metadata = BTreeMap::new();
@@ -707,8 +790,8 @@ impl TextFilterInvestmentsStandard {
             anchor.metadata.get("manco").cloned().unwrap_or(BlockValue::Null),
         );
 
-        let market_value =
-            resolve(self.market_value_pos).ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?;
+        let market_value = resolve(self.market_value_pos)
+            .map_err(|probe| StandardFuncsError::ExpectedTextBlockNotFound { field: "market value", probe })?;
         metadata.insert(
             "market value".to_string(),
             BlockValue::from(self.read_dash_as_zero(Some(DashAsZero::MarketValue), "market value", market_value)),
@@ -726,9 +809,21 @@ impl TextFilterInvestmentsStandard {
             if let Some(pos) = pos {
                 // Unlike the market value, an optional field that is not found does not fail the
                 // extraction: it stays `Null`.
-                let value = resolve(pos).map_or(BlockValue::Null, |text| {
-                    BlockValue::from(self.read_dash_as_zero(field, name, text))
-                });
+                let value = match resolve(pos) {
+                    Ok(text) => BlockValue::from(self.read_dash_as_zero(field, name, text)),
+                    Err(probe) => {
+                        // The one event that makes a silent loss visible. A `Null` here has two
+                        // causes that look identical downstream — the report left the cell blank,
+                        // which is normal, or the offset landed on a cell that is not this row's,
+                        // which is a page read wrongly — and only the probe tells them apart: a
+                        // grid wider than the format expects is the second.
+                        //
+                        // `debug` and not `warn`: the first cause is ordinary, and `.log.csv` stops
+                        // at `warn`. At `-vv` it is there for whoever is looking.
+                        tracing::debug!("the {name} is missing: {probe} - field left empty");
+                        BlockValue::Null
+                    }
+                };
                 metadata.insert(name.to_string(), value);
             }
         }
@@ -898,7 +993,7 @@ impl TextFilterManagmentCompanyStandard {
         let block = pdf_blks
             .iter()
             .find(|b| b.type_block == BlockType::MANAGEMENT_COMPANY)
-            .ok_or(StandardFuncsError::ExpectedTextBlockNotFound)?;
+            .ok_or(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })?;
         let funds = resolved_funds(data);
         Ok(vec![standard_management_company_txt_blk(block.clone(), &funds)])
     }
@@ -1120,6 +1215,23 @@ mod tests {
         #[test]
         fn does_not_match_a_code_glued_to_a_digit() {
             assert!(extract_currency_from_text("100EUR").is_err());
+        }
+
+        /// The upper-casing pass would read these as Albanian lek, Tongan paʻanga and Cuban peso
+        /// if it searched the whole ISO 4217 list. Reading nothing is the right answer, and the
+        /// reason the pass searches `Currency::prose_candidates` instead.
+        #[test]
+        fn an_ordinary_word_that_happens_to_be_an_iso_code_is_not_a_currency() {
+            for text in ["nothing at all here", "the top ten holdings", "a cup of coffee"] {
+                assert!(extract_currency_from_text(text).is_err(), "{text:?} is not a currency");
+            }
+        }
+
+        /// The same three letters written **as a code** still are one: the first pass reads the
+        /// text as written, so an upper-case standalone token is taken at face value.
+        #[test]
+        fn the_same_letters_written_as_an_upper_case_code_still_are_one() {
+            assert_eq!(extract_currency_from_text("expressed in ALL").unwrap(), Currency::ALL);
         }
     }
 
@@ -1477,19 +1589,20 @@ mod tests {
     /// field is read at a fixed offset from the anchor cell, so an anchor on the wrong column
     /// shifts them all — and the only way to see it without re-running the job is to have the
     /// position in the log.
-    mod investments_anchor_logging {
-        use super::*;
-        use pretty_assertions::assert_eq;
+    /// The events this pipe emits are half its contract — the anchor it chose, the field it could
+    /// not read — so several submodules below need to read them back. The subscriber that captures
+    /// them lives here, once, rather than once per submodule that asserts on a log line.
+    mod tracing_capture {
         use std::sync::{Arc, Mutex};
         use tracing::field::{Field, Visit};
         use tracing_subscriber::Registry;
         use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
 
         #[derive(Default, Clone, Debug)]
-        struct Record {
-            level: String,
-            message: String,
-            fields: Vec<(String, String)>,
+        pub(super) struct Record {
+            pub(super) level: String,
+            pub(super) message: String,
+            pub(super) fields: Vec<(String, String)>,
         }
 
         impl Visit for Record {
@@ -1519,7 +1632,9 @@ mod tests {
             }
         }
 
-        fn records_matching(f: impl FnOnce(), needle: &str) -> Vec<Record> {
+        /// Runs `f` with a capturing subscriber installed and keeps the events whose message
+        /// contains `needle`.
+        pub(super) fn records_matching(f: impl FnOnce(), needle: &str) -> Vec<Record> {
             let layer = CapturingLayer::default();
             let subscriber = Registry::default().with(layer.clone());
             tracing::subscriber::with_default(subscriber, f);
@@ -1527,12 +1642,18 @@ mod tests {
             records.iter().filter(|r| r.message.contains(needle)).cloned().collect()
         }
 
+        pub(super) fn field_of<'a>(record: &'a Record, name: &str) -> Option<&'a str> {
+            record.fields.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
+        }
+    }
+
+    mod investments_anchor_logging {
+        use super::*;
+        use super::tracing_capture::{Record, field_of, records_matching};
+        use pretty_assertions::assert_eq;
+
         fn anchor_records(f: impl FnOnce()) -> Vec<Record> {
             records_matching(f, "anchored")
-        }
-
-        fn field_of<'a>(record: &'a Record, name: &str) -> Option<&'a str> {
-            record.fields.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
         }
 
         #[test]
@@ -1654,6 +1775,230 @@ mod tests {
                 let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
             });
             assert!(records.is_empty(), "{records:?}");
+        }
+    }
+
+    /// A skipped row used to say only that it had been skipped. What it now has to say is *which*
+    /// field could not be read and *where* the pipe looked for it, because those two answers are
+    /// the whole diagnosis: an offset that lands beyond the data on a grid wider than the format
+    /// expects is a page tabularised wrongly, while the same offset landing on an empty cell of a
+    /// normal grid is a description that wrapped onto a second line. The two need opposite fixes.
+    mod investments_missing_field_diagnostics {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        use super::tracing_capture::{Record, field_of, records_matching};
+
+        mod field_probe_rendering {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn a_grid_probe_names_the_cell_one_based_and_the_grid_width() {
+                let probe = FieldProbe::Grid { offset: 4, row: 16, col: 5, n_cols: 6 };
+                assert_eq!(probe.to_string(), "4 cells past the anchor, row 17 col 6 of a 6-column grid");
+            }
+
+            /// Offset zero *is* the anchor, and "0 cells past the anchor" is not a sentence.
+            #[test]
+            fn the_anchor_probe_drops_the_distance_clause() {
+                let probe = FieldProbe::Grid { offset: 0, row: 16, col: 0, n_cols: 6 };
+                assert_eq!(probe.to_string(), "row 17 col 1 of a 6-column grid");
+            }
+
+            #[test]
+            fn a_flat_probe_names_the_block_position_one_based() {
+                let probe = FieldProbe::Flat { offset: 2, index: 41 };
+                assert_eq!(probe.to_string(), "2 blocks past the anchor, block 42");
+            }
+
+            #[test]
+            fn the_flat_anchor_probe_also_drops_the_distance_clause() {
+                assert_eq!(FieldProbe::Flat { offset: 0, index: 0 }.to_string(), "block 1");
+            }
+
+            /// A negative offset is how `quantity: -1` and `acquisition currency: -2` are written in
+            /// a format's configuration, so it has to read as well as a positive one.
+            #[test]
+            fn a_negative_offset_is_rendered_as_written() {
+                let probe = FieldProbe::Grid { offset: -1, row: 3, col: 0, n_cols: 4 };
+                assert_eq!(probe.to_string(), "-1 cells past the anchor, row 4 col 1 of a 4-column grid");
+            }
+        }
+
+        mod market_value_missing {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn skip_records(f: impl FnOnce()) -> Vec<Record> {
+                records_matching(f, "row skipped")
+            }
+
+            #[test]
+            fn the_warning_names_the_field_the_offset_and_the_cell() {
+                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                // Offset 9 on a 2-column grid wraps: (0 + 9) / 2 = row 4, (0 + 9) % 2 = column 1.
+                let records = skip_records(|| {
+                    let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
+                });
+
+                assert_eq!(records.len(), 1, "{records:?}");
+                assert_eq!(
+                    records[0].message.trim_matches('"'),
+                    "the market value is missing: 9 cells past the anchor, row 5 col 2 of a 2-column grid - row skipped"
+                );
+            }
+
+            /// The coordinates keep pointing at the anchor even though the message talks about
+            /// another cell: they are what locates the row on the page, and the audit trail has two
+            /// coordinate columns, not four.
+            #[test]
+            fn the_coordinates_still_name_the_anchor_not_the_probe() {
+                let blks = vec![
+                    table_row(0, 0, "filler", false),
+                    table_row(0, 1, "0", false),
+                    table_row(1, 0, "Acme Corp", false),
+                    table_row(1, 1, "1.000", false),
+                ];
+                let records = skip_records(|| {
+                    let _ = simple_investments(9).call(&blks, &targets(&["Acme Corp"]));
+                });
+
+                assert_eq!(records.len(), 1, "{records:?}");
+                assert_eq!(field_of(&records[0], "coord_1"), Some("row 2"));
+                assert_eq!(field_of(&records[0], "coord_2"), Some("col 1"));
+                assert_eq!(field_of(&records[0], "coord_ref_1"), Some("Acme Corp"));
+            }
+
+            /// An empty cell inside the grid, not one beyond its edge: this is the shape a
+            /// description wrapped onto two lines produces, and it must be told apart from the one
+            /// above by the grid width in the message.
+            #[test]
+            fn an_empty_cell_within_the_grid_is_reported_at_its_own_coordinates() {
+                let blks = vec![
+                    table_row(0, 0, "Acme Corp", false),
+                    table_row(1, 0, "15/02/2030", false),
+                    table_row(1, 1, "1.000", false),
+                ];
+                let records = skip_records(|| {
+                    let _ = simple_investments(1).call(&blks, &targets(&["Acme Corp"]));
+                });
+
+                assert_eq!(records.len(), 1, "{records:?}");
+                assert!(
+                    records[0].message.contains("1 cells past the anchor, row 1 col 2 of a 2-column grid"),
+                    "{:?}",
+                    records[0].message
+                );
+            }
+
+            #[test]
+            fn a_flat_mode_miss_reports_a_block_position_instead_of_a_cell() {
+                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let filter =
+                    TextFilterInvestmentsStandard::new(9, None, None, None, None, false, false, DashAsZero::empty())
+                        .unwrap();
+                let records = skip_records(|| {
+                    let _ = filter.call(&blks, &targets(&["Acme Corp"]));
+                });
+
+                assert_eq!(records.len(), 1, "{records:?}");
+                assert!(
+                    records[0].message.contains("9 blocks past the anchor, block 10"),
+                    "{:?}",
+                    records[0].message
+                );
+            }
+        }
+
+        mod optional_field_missing {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn the_field_stays_null_and_the_row_survives() {
+                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let filter =
+                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
+                        .unwrap();
+                let out = filter.call(&blks, &targets(&["Acme Corp"])).unwrap();
+                assert_eq!(out.len(), 1);
+                assert_eq!(out[0].metadata.get("% net assets"), Some(&BlockValue::Null));
+            }
+
+            /// The event that makes a silent loss visible. It stays at `debug`, because a report
+            /// that simply left the cell blank produces the same `Null` and is not an anomaly.
+            #[test]
+            fn a_debug_event_says_which_field_and_where_it_looked() {
+                let blks = vec![table_row(0, 0, "Acme Corp", false), table_row(0, 1, "1.000", false)];
+                let filter =
+                    TextFilterInvestmentsStandard::new(1, None, Some(5), None, None, true, false, DashAsZero::empty())
+                        .unwrap();
+                let records = records_matching(
+                    || {
+                        let _ = filter.call(&blks, &targets(&["Acme Corp"]));
+                    },
+                    "field left empty",
+                );
+
+                assert_eq!(records.len(), 1, "{records:?}");
+                assert_eq!(records[0].level, "DEBUG");
+                assert_eq!(
+                    records[0].message.trim_matches('"'),
+                    "the % net assets is missing: 5 cells past the anchor, row 3 col 2 of a 2-column grid - field left empty"
+                );
+            }
+
+            #[test]
+            fn a_field_that_is_present_logs_nothing() {
+                let blks = vec![
+                    table_row(0, 0, "Acme Corp", false),
+                    table_row(0, 1, "1.000", false),
+                    table_row(0, 2, "12,5", false),
+                ];
+                let filter =
+                    TextFilterInvestmentsStandard::new(1, None, Some(2), None, None, true, false, DashAsZero::empty())
+                        .unwrap();
+                let records = records_matching(
+                    || {
+                        let _ = filter.call(&blks, &targets(&["Acme Corp"]));
+                    },
+                    "field left empty",
+                );
+                assert!(records.is_empty(), "{records:?}");
+            }
+        }
+
+        /// The one property that keeps the diagnostic honest: the cell a probe names is the cell the
+        /// value was read from. Two separate computations of the same offset is precisely how a log
+        /// starts pointing at the wrong place.
+        mod probe_matches_read {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            #[test]
+            fn every_offset_reads_the_cell_its_probe_names() {
+                // A 3-wide grid whose every cell says where it is, so a value identifies its own
+                // origin without ambiguity.
+                let mut blks = Vec::new();
+                for row in 0..3 {
+                    for col in 0..3 {
+                        let content = if (row, col) == (0, 0) { "Acme Corp".to_string() } else { format!("r{row}c{col}") };
+                        blks.push(table_row(row, col, &content, false));
+                    }
+                }
+
+                for offset in 1..9 {
+                    let out = simple_investments(offset).call(&blks, &targets(&["Acme Corp"])).unwrap();
+                    // The anchor is (0, 0), so the probe is a plain division of the offset.
+                    let (row, col) = (offset / 3, offset % 3);
+                    assert_eq!(
+                        out[0].metadata.get("market value"),
+                        Some(&BlockValue::from(format!("r{row}c{col}").as_str())),
+                        "offset {offset} should read the cell its probe names, ({row}, {col})"
+                    );
+                }
+            }
         }
     }
 
@@ -2162,21 +2507,21 @@ mod tests {
         }
 
         #[test]
-        fn no_management_company_block_is_an_expected_text_block_not_found_error() {
+        fn no_management_company_block_is_a_missing_block_type_error() {
             let previous: Vec<Extracted> = vec![];
             let blks = vec![PdfBlock::bare(BlockType::TABLE_BODY, "irrelevant")];
             assert!(matches!(
                 TextFilterManagmentCompanyStandard.call(&blks, &FilterData::Previous(&previous)),
-                Err(StandardFuncsError::ExpectedTextBlockNotFound)
+                Err(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })
             ));
         }
 
         #[test]
-        fn an_empty_list_of_pdf_blocks_is_also_an_expected_text_block_not_found_error() {
+        fn an_empty_list_of_pdf_blocks_is_also_a_missing_block_type_error() {
             let previous: Vec<Extracted> = vec![];
             assert!(matches!(
                 TextFilterManagmentCompanyStandard.call(&[], &FilterData::Previous(&previous)),
-                Err(StandardFuncsError::ExpectedTextBlockNotFound)
+                Err(StandardFuncsError::ExpectedBlockTypeMissing { block_type: "management company" })
             ));
         }
 
