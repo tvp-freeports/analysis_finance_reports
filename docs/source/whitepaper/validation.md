@@ -72,7 +72,9 @@ $ freeports-validate check-grants         # verify: signatures valid, hashes cur
 ```
 
 `check-grants` is the one to run before trusting a repository you did not write, and in continuous
-integration. It answers a narrow question — are these grants still about these files — and it is not
+integration — and, unlike the four that write your document, it needs **no key of your own**: asked
+without one it checks every document in the repository against your keyring, which is exactly the
+question an auditor and a CI job are asking. It answers a narrow question — are these grants still about these files — and it is not
 a substitute for the tests passing, any more than the tests are a substitute for it. One says the
 code does what it did yesterday; the other says a person put their name to the result.
 

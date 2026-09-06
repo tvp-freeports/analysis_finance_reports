@@ -125,6 +125,9 @@ def _usage():
     )
     print(
         "  --key-id, -k ID                            GPG key the grants are signed with\n"
+        "        Needed only by the subcommands that act in your name -- create-document, grant,\n"
+        "        ungrant, update, sign-document -- and by check-grants when asked about your own\n"
+        "        document. Reading somebody else's grants needs no key.\n"
         "        [default: $FREEPORTS_VALIDATE_KEY_ID, then `validate.key_id` in the configuration\n"
         "        file]"
     )

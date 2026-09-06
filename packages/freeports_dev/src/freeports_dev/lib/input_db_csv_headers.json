@@ -1,0 +1,9 @@
+{
+    "companies/companies.csv": "Name,Bud,Regex\n",
+    "companies/companies_additional_buds.csv": "Company name,Bud\n",
+    "companies/companies_additional_regexs.csv": "Company name,Regex\n",
+    "companies/markets.csv": "Name\n",
+    "companies/tickers.csv": "Company name,Symbol,Market name\n",
+    "lists/lists.csv": "Name,Institution,Date\n",
+    "lists/company_to_list.csv": "List name,Company name\n"
+}

@@ -178,6 +178,12 @@ def _cmd_init_repo(args):
     init_format_repo(target)
 
 
+def _cmd_init_input_db(args):
+    from freeports_dev.repo_init import init_input_db
+
+    init_input_db(Path(args.path).resolve(), sample=args.sample)
+
+
 def _cmd_setup_input_db(args):
     repo = DevConfig(args).formats_repo
     from freeports_dev.input_db import copy_default_input_db
@@ -362,6 +368,15 @@ def main():
     )
     p_init.add_argument("path", help="Path for the new repository")
 
+    p_init_db = sub.add_parser("init-input-db", help="Initialize a new input database")
+    p_init_db.add_argument("path", help="Path for the new input database")
+    p_init_db.add_argument(
+        "--sample",
+        action="store_true",
+        help="Fill the tables with the packaged example database (list TEST) instead of leaving "
+        "them empty",
+    )
+
     sub.add_parser(
         "setup-input-db",
         parents=[common],
@@ -380,6 +395,8 @@ def main():
         _cmd_inspect_document(args)
     elif args.command == "init-format-repo":
         _cmd_init_repo(args)
+    elif args.command == "init-input-db":
+        _cmd_init_input_db(args)
     elif args.command == "setup-input-db":
         _cmd_setup_input_db(args)
     else:

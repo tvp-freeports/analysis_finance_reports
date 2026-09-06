@@ -1,6 +1,8 @@
 #!/bin/bash
 source "${FREEPORTS_VALIDATE_LIB}/utils"
 
+require_key
+
 VERSION=$(get_version_methodology)
 if [ -f "${PERSONAL_DOC}" ]; then
     print_error "File \"${PERSONAL_DOC}\" already present, refuse to overwrite"

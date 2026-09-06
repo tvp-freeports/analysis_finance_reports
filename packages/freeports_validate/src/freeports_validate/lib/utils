@@ -2,16 +2,29 @@
 
 # Everything a script needs is decided by `cli.py` before it hands over, and arrives here already
 # resolved: the command line, the environment and the configuration file have been merged there, in
-# the one place that knows how. The two fallbacks below are the tool's own defaults, reached only
-# when nothing named a value at all.
+# the one place that knows how. What is left below is what this command decides for itself when
+# nothing named a value at all: that the repository is the enclosing Git checkout, and that a
+# missing key is a fact about the run rather than an error.
 
-if [ -z "$FREEPORTS_VALIDATE_KEY_ID" ]; then
-    echo "Specify the public key that identifies you as the signer."
-    echo "Give it as --key-id, as FREEPORTS_VALIDATE_KEY_ID, or as validate.key_id in the"
-    echo "freeports configuration file."
-    exit 1
-fi
+# The key is an *identity*, and only the subcommands that speak in your name need one: creating,
+# granting, signing, updating. Reading what other people have vouched for -- `who-grants`,
+# `granted-by`, `granted-with`, and `check-grants` on a document -- is a verification of signed
+# files against a keyring, and asks nothing of who you are. Demanding a key for those was a barrier
+# with nothing behind it: it kept the one command meant to be run in continuous integration, and by
+# anyone auditing a repository they did not write, from running there at all.
+#
+# So the key is resolved when something named it and simply absent when nothing did, and the
+# subcommands that cannot work without it say so themselves by calling `require_key`.
 export KEYID="$FREEPORTS_VALIDATE_KEY_ID"
+
+require_key(){
+    if [ -z "$KEYID" ]; then
+        echo "This subcommand acts in your name, so it needs the key that identifies you as the signer."
+        echo "Give it as --key-id, as FREEPORTS_VALIDATE_KEY_ID, or as validate.key_id in the"
+        echo "freeports configuration file."
+        exit 1
+    fi
+}
 
 if [ -n "$FREEPORTS_FORMATS_REPO_PATH" ]; then
     export REPO_ROOT="$FREEPORTS_FORMATS_REPO_PATH"
@@ -34,18 +47,26 @@ export DOCUMENT_DIR="${REPO_ROOT}/validation"
 source "${LIB_DIR}/validation_utils.sh"
 source "${LIB_DIR}/document_utils.sh"
 
-# Get UID information and parse it
-user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
-if [ -z "$user_id" ]; then
-    echo "Error: Key '$KEYID' not found or has no UID"
-    exit 1
-fi
+# Your name, your email and the path of your own document are read out of the key's UID rather than
+# typed in anywhere -- which is why they can only be known when a key was named. Without one they
+# stay empty, and `PERSONAL_DOC` being empty is the honest statement that this run has no "mine".
+export NAME=""
+export EMAIL=""
+export PERSONAL_DOC=""
 
-# Extract name and email
-export NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
-export EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
-out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-export PERSONAL_DOC="${DOCUMENT_DIR}/${out_file_name}.yaml"
+if [ -n "$KEYID" ]; then
+    user_id=$(gpg --list-keys --with-colons "$KEYID" 2>/dev/null | grep "^uid:" | head -n 1 | cut -d: -f10)
+    if [ -z "$user_id" ]; then
+        echo "Error: Key '$KEYID' not found or has no UID"
+        exit 1
+    fi
+
+    # Extract name and email
+    export NAME=$(echo "$user_id" | sed 's/ <.*//' | sed 's/ *(.*)//')
+    export EMAIL=$(echo "$user_id" | grep -o '<[^>]*>' | head -n 1 | sed 's/[<>]//g')
+    out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
+    export PERSONAL_DOC="${DOCUMENT_DIR}/${out_file_name}.yaml"
+fi
 
 get_version_methodology(){
     sha256sum "$METHODOLOGY_DIR/general_methodology.rst" | awk '{print $1}'

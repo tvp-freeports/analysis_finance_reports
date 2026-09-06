@@ -2,6 +2,8 @@
 
 source "${FREEPORTS_VALIDATE_LIB}/utils"
 
+require_key
+
 METHODOLOGY=""
 FILES=()
 ANY_METHODOLOGY=false

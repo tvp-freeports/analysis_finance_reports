@@ -50,6 +50,7 @@ configures nothing.
 |---|---|
 | `init-format-repo <path>` | writes an empty formats repository at `<path>` |
 | `setup-input-db` | writes `tests/input_db/` with a minimal `TEST` company list |
+| `init-input-db <path>` | writes an empty input database at `<path>`, to maintain as its own repository |
 | `inspect-document` | classifies the pages of a report: which page is what |
 | `inspect-page` | shows what one page looks like at a chosen stage of the pipeline |
 | `make-tests` | freezes one page's current behaviour as JSON fixtures |
@@ -75,6 +76,11 @@ skeleton, not a working repository: it supports no format until you add one. See
 `TEST`. It exists so that the tests of a repository do not depend on a database maintained
 elsewhere — a format's test must fail because the *format* broke, never because someone edited a
 company list. For real runs you want a real database; see {doc}`../input-db`.
+
+`init-input-db` is the other half of that sentence and is not part of this loop: it starts a
+database you intend to maintain, at a path of your choosing, as its own repository rather than
+inside a formats repository. `--sample` fills its tables with the same example data
+`setup-input-db` copies, as something to edit down. See {doc}`../input-db`.
 
 ### `inspect-document` — which page is what
 
@@ -236,11 +242,31 @@ recursive key sort — an implementation detail that has to be identical for eve
 signature cannot be verified by another.
 ```
 
-### The identity: your GPG key
+### Prerequisite: the OpenPGP key
 
 The tool has no user accounts. **Your key is your identity**, and the name and email written into
 your validation document are read out of the key's user ID — not typed in, and therefore not
 something you can get wrong in one place and right in another.
+
+That is also the limit of what a key is for here. It says who is *speaking*, so it is asked for by
+the subcommands that speak in your name, and by nothing else:
+
+| Subcommand | Needs a key | Because |
+|---|---|---|
+| `create-document`, `grant`, `ungrant`, `update`, `sign-document` | **yes** | each writes, or signs, the one document that belongs to you |
+| `check-grants` with no argument | optional | with a key it checks *your* document; without one there is nothing that is yours, so it checks **every** document in `validation/` |
+| `check-grants <document>`, `who-grants`, `granted-by`, `granted-with` | **no** | they verify signed files against your keyring — a question about other people, not about you |
+
+So reading what others have vouched for needs no key of your own. That is what lets `check-grants`
+run in continuous integration, and lets anyone audit a repository they did not write.
+
+```{note}
+**`gpg` or `gpg2`?** The scripts call `gpg`, and what they need is **GnuPG 2**. Since GnuPG 2.2 the
+`gpg` command *is* version 2 and `gpg2` survives as an alias for it, so on a current system
+`gpg --version` reporting `2.x` is all you have to check. Where `gpg` is still GnuPG 1.4, install
+GnuPG 2 and make `gpg` resolve to it — through your distribution's alternatives mechanism or a `PATH`
+entry. Pointing the tool at `gpg2` instead is not an option: the name is written into the scripts.
+```
 
 **1. Create a key**, if you do not already have one you want to use for this:
 
@@ -248,12 +274,38 @@ something you can get wrong in one place and right in another.
 $ gpg --full-generate-key
 ```
 
-Choose the defaults for the algorithm, give it an expiry you are willing to maintain, and enter a
-real name and a real email at the user-ID prompt. Both are required: the scripts split the UID on
-`<…>`, so a key with no email produces a document that fails schema validation, and a key with no
-name produces a document with nowhere to live.
+Take the algorithm GnuPG offers — on 2.4 that is **Ed25519**, which is what this project's own
+validation document is signed with. Give it an expiry you are willing to maintain; step 7 explains
+why that is close to free. At the user-ID prompt enter a real name and a real email. Both are
+required: the scripts split the UID on `<…>`, so a key with no email produces a document that fails
+schema validation, and a key with no name produces a document with nowhere to live.
 
-**2. Take the key's fingerprint** — the full 40 hex digits, not the short or long key ID:
+The same thing without prompts, for a container or a fresh machine:
+
+```console
+$ gpg --quick-generate-key "Ada Lovelace <ada@example.org>" default default 2y
+```
+
+**2. Keep the revocation certificate, and back up the secret key.** GnuPG writes a revocation
+certificate the moment the key is created and prints where it put it:
+
+```text
+gpg: revocation certificate stored as '/home/ada/.gnupg/openpgp-revocs.d/<FINGERPRINT>.rev'
+```
+
+That file is the only way to announce that a key must no longer be trusted — and the moment you need
+it is precisely the moment you can no longer produce one. Copy it somewhere that is not the machine
+holding the key, and back up the secret half while you are there:
+
+```console
+$ gpg --armor --export-secret-keys <FINGERPRINT> > secret-backup.asc   # guard like a password
+```
+
+Losing the key does **not** invalidate grants you have already issued: verification needs only the
+public half, which by then is in other people's keyrings. What it ends is your ability to issue or
+amend any, under a name that is already in the repository.
+
+**3. Take the key's fingerprint** — the full 40 hex digits, not the short or long key ID:
 
 ```console
 $ gpg --list-secret-keys --with-colons --fingerprint | awk -F: '/^fpr:/ {print $10; exit}'
@@ -267,12 +319,13 @@ most documentation reaches for, prints the 16-digit long ID, and a document buil
 rejected by `check-jsonschema` with a message about a pattern rather than about the key.
 ```
 
-**3. Tell the tool which key to use.** Every subcommand refuses to start without it, and there are
-three ways to say it — the same three every other setting has ({doc}`configuration`):
+**4. Tell the tool which key to use.** The subcommands in the first row of the table above refuse to
+start without it, and there are three ways to say it — the same three every other setting has
+({doc}`configuration`):
 
 ```console
-$ freeports-validate -k E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304 check-grants   # this once
-$ export FREEPORTS_VALIDATE_KEY_ID=E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304     # this shell
+$ freeports-validate -k E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304 grant <files…>   # this once
+$ export FREEPORTS_VALIDATE_KEY_ID=E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304       # this shell
 ```
 
 ```yaml
@@ -292,17 +345,82 @@ called freeports and the only setting anywhere that did not begin with `FREEPORT
 **no longer read**: a shell that exports only it gets the same refusal as one that sets nothing.
 ```
 
-**4. Publish the public half**, if anyone else will ever verify your grants. Verification is
-`gpg --verify` against the signer's public key: without it, `check-grants` can confirm that a
-document is well formed and that its hashes are current, but not that the signature is yours.
+**5. Publish the public half**, because a signature nobody can check is a signature nobody reads.
+Verification is `gpg --verify` against the signer's public key; without it, `check-grants` can
+confirm that a document is well formed and that its hashes are current, but not that the signature
+is yours.
 
 ```console
-$ gpg --armor --export E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304 > oreste.pub.asc
+$ gpg --armor --export E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304 > ada.pub.asc
 ```
 
+Three places to put it, in increasing order of how little they ask of the person checking:
+
+| Where | How | What it gives, and what it does not |
+|---|---|---|
+| the repository itself | commit `ada.pub.asc` beside your document | anyone with the checkout can verify, fetching nothing — but the key travels with the thing it authenticates, so on its own it attests to nothing |
+| `keys.openpgp.org` | `gpg --keyserver hkps://keys.openpgp.org --send-keys <FINGERPRINT>`, then follow the confirmation mail | the server verifies the address before the key becomes searchable by email; unconfirmed, it is retrievable by fingerprint only |
+| WKD, on a domain you control | publish under `.well-known/openpgpkey/` | `gpg --locate-keys ada@example.org` just finds it — the least ceremony for the person checking, and it ties the key to the domain |
+
 Symmetrically, to check someone else's grants you need *their* public key in your keyring —
-`gpg --import their.pub.asc`. A repository with several contributors is a repository where each of
-them has imported the others.
+`gpg --import their.pub.asc`, or `gpg --locate-keys their@email`. A repository with several
+contributors is a repository where each of them has imported the others.
+
+**6. Certifying a key** — signing somebody else's — states that *you* have satisfied yourself that
+the key belongs to the person named on it. Do it after confirming the fingerprint through some
+channel other than the one that handed you the key:
+
+```console
+$ gpg --sign-key <THEIR FINGERPRINT>    # a certification others can see, once exported and published
+$ gpg --lsign-key <THEIR FINGERPRINT>   # the same judgement, kept local to your keyring
+```
+
+```{warning}
+**`freeports-validate` does not consult trust.** `gpg --verify` succeeds for a good signature from a
+key you have never certified — it prints *"WARNING: This key is not certified with a trusted
+signature"* and exits zero — and `check-grants` duly reports the signature as valid.
+
+Certifying keys is therefore for **your** judgement about who a contributor is; it changes nothing
+the tool decides. The mechanism ties a claim to a key. Tying that key to a person is yours to do.
+```
+
+What the verification step actually distinguishes, then, is narrower than it looks:
+
+| Situation | `gpg --verify` | What `check-grants` reports |
+|---|---|---|
+| good signature, key certified or not | success | signature valid |
+| good signature, signer's key has **expired** | success | signature valid |
+| the document changed after it was signed | failure | invalid signature |
+| the signer's public key is **not in your keyring** | failure | invalid signature |
+
+The last row is the one that misleads, and it is worth knowing before you accuse anyone: a document
+reported as having an invalid signature is far more often a key you are missing than a document
+somebody tampered with.
+
+**7. Expiry, renewal and revocation.** An expiry date is a dead-man's switch rather than a deadline —
+it limits how long a key stands unattended, and extending it costs one command:
+
+```console
+$ gpg --quick-set-expire <FINGERPRINT> 2y
+```
+
+Then re-export and re-publish, since the new expiry is part of the public key. As the table above
+records, **expiry does not retract anything**: signatures made while the key was valid keep
+verifying afterwards, so letting a key lapse never silently invalidates grants you already issued.
+
+Revocation is the other case, and it is a real statement rather than a lapse: this key must not be
+trusted, because it was lost or compromised. Publish the certificate you saved in step 2 —
+
+```console
+$ gpg --import <FINGERPRINT>.rev
+$ gpg --keyserver hkps://keys.openpgp.org --send-keys <FINGERPRINT>
+```
+
+— and then re-key: your document records the old fingerprint in `who.pubkey_id` and carries a
+signature made with it. There is no subcommand for changing that, because it is not a routine
+operation: replace `who.pubkey_id` with the new fingerprint by hand and run
+`freeports-validate sign-document --update`. Grants signed by a compromised key should be
+reconsidered, not merely re-signed — the point of the mechanism is that a name stands behind them.
 
 ### Creating your validation document
 
@@ -373,11 +491,22 @@ It reports, item by item: the schema, the signature, the general-methodology ver
 every adopted methodology, and the hash of every granted file. The exit status is non-zero if any of
 them fails, which is what makes it a CI step rather than a report you read.
 
+With no argument, what it looks at depends on whether a key is configured — because that is what
+decides whether any document here is *yours*:
+
+| | Bare `check-grants` checks |
+|---|---|
+| a key is configured | **only your own** document, the one belonging to that key |
+| no key is configured | **every** `validation/*.yaml` in the repository |
+
 ```{warning}
-With no argument it checks **only your own** document — the one belonging to the key you configured. If you have none in this repository it says so and then reports *"All
-validation documents passed verification"*, having verified nothing. In continuous integration,
-name the documents to check, or iterate over `validation/*.yaml`; a green bare `check-grants` is not
-evidence that a repository's grants hold.
+The first row has a trap in it. If you have a key configured but no document of your own in this
+repository, `check-grants` says so and then reports *"All validation documents passed
+verification"* — having verified nothing, because there was nothing of yours to verify. A green bare
+`check-grants` from a contributor's own machine is not evidence that a repository's grants hold.
+
+The second row is the form to use in continuous integration, and it needs no key precisely because
+nothing there speaks in anyone's name: it verifies every document against the keyring it is given.
 ```
 
 A failing signature on a document that is not yours usually means its author's public key is not in

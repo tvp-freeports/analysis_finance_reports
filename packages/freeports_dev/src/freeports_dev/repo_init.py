@@ -1,7 +1,12 @@
-"""Initialize a new freeports format repository skeleton.
+"""Initialize a new freeports repository skeleton — a formats repository or an input database.
 
-Reads template files from the adjacent lib/ directory so content can be
-modified without touching Python code.
+The two are different things and are used by different people, but they are bootstrapped the same
+way: a list of directories, a set of files that are nothing but their header row, a manifest, and an
+optional git repository around them. So they share the readers below, and each entry point differs
+only in which data files under lib/ it names.
+
+Reads template files from the adjacent lib/ directory so content can be modified without touching
+Python code.
 """
 
 import json
@@ -84,8 +89,13 @@ def _user_confirm(question: str, default: bool = True) -> bool:
     return _user_confirm(question, default)
 
 
-def _setup_git(target: Path, quiet: bool = False) -> None:
-    """Configure git hooks for the target directory."""
+def _setup_git(target: Path, quiet: bool = False, hooks: bool = True) -> None:
+    """Initialize the target as a git repository, and point it at .githooks when asked.
+
+    `hooks` is False for an input database: it has no test suite of its own to run before a commit,
+    so there is no hook to install and pointing `core.hooksPath` at a directory that does not exist
+    would only be misleading.
+    """
     is_git_repo = (target / ".git").exists()
 
     if not is_git_repo:
@@ -99,6 +109,9 @@ def _setup_git(target: Path, quiet: bool = False) -> None:
         else:
             print("  skipping git setup (not a git repository)")
             return
+
+    if not hooks:
+        return
 
     subprocess.run(
         ["git", "-C", str(target), "config", "--local", "core.hooksPath", ".githooks"],
@@ -183,3 +196,61 @@ def init_format_repo(target: Path, quiet: bool = False) -> None:
     _setup_git(target, quiet=quiet)
 
     print(f"\nFormat repository created at {target}")
+
+
+def init_input_db(target: Path, sample: bool = False, quiet: bool = False) -> None:
+    """Create a new input database skeleton at `target`.
+
+    What comes out is an empty but *complete* database: all seven tables the engine reads exist and
+    carry their header row. That completeness is the point — the loader requires every one of them,
+    so a skeleton missing the file you have nothing to put in yet would fail on the first run for a
+    reason that has nothing to do with what you were doing.
+
+    Unlike a formats repository, there is no `.githooks` here: a database has no test suite of its
+    own to run before a commit.
+
+    Parameters
+    ----------
+    target : Path
+        Path to the new database directory. Must be empty or non-existent (a .git directory is
+        tolerated).
+    sample : bool
+        If True, overwrite the empty tables with the packaged example database — the single list
+        `TEST` and the few hundred companies in it — as a starting point to edit down.
+    quiet : bool
+        If True, skip interactive prompts (defaults to yes for git init).
+    """
+    if target.exists() and not _is_empty_dir(target):
+        print(f"Error: {target} is not empty")
+        sys.exit(1)
+
+    target.mkdir(parents=True, exist_ok=True)
+
+    dirs: list = _read_json("input_db_dirs.json")
+    csv_headers: dict = _read_json("input_db_csv_headers.json")
+
+    for d in dirs:
+        (target / d).mkdir(parents=True, exist_ok=True)
+    print(f"  created {len(dirs)} directories")
+
+    for rel_path, header in csv_headers.items():
+        (target / rel_path).write_text(header, encoding="utf-8")
+    print(f"  wrote {len(csv_headers)} CSV files")
+
+    (target / "metadata.yaml").write_text(
+        _read_template("input_db_metadata.template.yaml"), encoding="utf-8"
+    )
+    (target / ".gitignore").write_text(
+        _read_template("input_db_gitignore.template"), encoding="utf-8"
+    )
+    print("  wrote metadata.yaml, .gitignore")
+
+    if sample:
+        from freeports_dev.input_db import copy_default_input_db_into
+
+        copy_default_input_db_into(target)
+        print("  filled the tables with the packaged example database (list TEST)")
+
+    _setup_git(target, quiet=quiet, hooks=False)
+
+    print(f"\nInput database created at {target}")

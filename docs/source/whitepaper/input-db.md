@@ -154,9 +154,32 @@ The database is read before any PDF is opened, so a mistake in it is reported in
 after a long run produced a table with a company quietly missing from it.
 
 ## Getting an input database
-`freeports-dev setup-input-db` writes a minimal database with a single list called `TEST`, which is
-what a formats repository's own tests use. A real one is grown from it: the shape is small enough to
-edit in a spreadsheet, and the validation is strict enough to catch what a spreadsheet gets wrong.
+There are two commands, and which one you want depends on whether the database is a *dependency* of
+a formats repository or a thing you intend to maintain.
+
+`freeports-dev setup-input-db` writes a minimal database with a single list called `TEST` under a
+formats repository's `tests/input_db/`, which is what that repository's own tests use. It is a
+fixture, not a starting point.
+
+`freeports-dev init-input-db <path>` starts a **database of your own**, anywhere:
+
+```console
+$ freeports-dev init-input-db ~/work/my-db
+```
+
+It writes the two directories and all seven tables — empty, but every one of them present with its
+header row. That completeness is deliberate: the engine requires all seven, so a skeleton omitting
+the file you have nothing to put in yet would fail on your first run for a reason unrelated to what
+you were doing. Alongside them it writes `metadata.yaml` — the manifest naming the schema version
+and describing the database — and a `.gitignore`, and offers to `git init`, because which companies
+matter is a curated position that deserves a history.
+
+Pass `--sample` to have the tables filled with the packaged example database — the `TEST` list and
+the companies in it — when you would rather edit an example down than write the first row from
+nothing.
+
+Either way, the shape is small enough to edit in a spreadsheet, and the validation is strict enough
+to catch what a spreadsheet gets wrong.
 
 ## Working on a database
 There is nothing to build and no test suite of its own. A database is seven CSV files, and the loop

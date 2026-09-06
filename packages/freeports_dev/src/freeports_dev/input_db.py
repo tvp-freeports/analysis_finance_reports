@@ -73,3 +73,18 @@ def copy_default_input_db(target):
     if (target / "input_db").exists():
         return
     shutil.copytree(src, target / "input_db")
+
+
+def copy_default_input_db_into(target):
+    """Copy the packaged example database's files *into* `target`, which is the database itself.
+
+    `copy_default_input_db` puts the example one level down, as `input_db/`, because its caller owns
+    a formats repository and wants a database inside it. `init-input-db` builds the database
+    directory itself, so the example has to land in that directory rather than beside it — and it
+    lands on top of the header-only files already written there, which is what makes the seeded and
+    the empty database the same shape.
+    """
+    src = get_default_input_db_path()
+    if not src.exists():
+        raise FileNotFoundError(f"Default input DB not found at {src}")
+    shutil.copytree(src, target, dirs_exist_ok=True)

@@ -1,0 +1,7 @@
+# Per-repository scratch that freeports repositories keep untracked by convention:
+# agent instructions and the task/notes folders that go with them.
+AGENTS.md
+CLAUDE.md
+.claude/
+targets/
+agent-memory/
