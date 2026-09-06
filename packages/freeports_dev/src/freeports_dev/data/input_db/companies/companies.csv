@@ -1,0 +1,77 @@
+Name,Bud,Regex
+AP Møller Mærsk,maersk,\bmaersk
+Airbnb,,\babnb
+Alphabet,alphabet,\balphabet\b
+Altice International,altice,\baltice
+Amazon,amazon,\bamazon\b
+Apple Inc,apple,\bapple
+Ashtrom Group,ashtrom,ashtrom
+Ashtrom Industries,ashtrom industries,ashtrom.*industries
+Ashtrom Residential Development,ashtrom residential,ashtrom.*(residential|development)
+Blackrock,,
+Booking Holdings,booking,booking
+Booking.com,bookingcom,booking.*com
+BP Plc,,
+Bright Food Group,bright food,\bbright food\b
+Carlsberg Group,carlsberg,\bcarlsberg\b
+Carrefour,,
+Caterpillar,,
+Chevron,,
+Cisco Systems,cisco,\bcisco\b
+CNH Industrial,,
+Construcciones y Auxiliar de Ferrocarriles,construcciones,construcciones.*ferrocarriles
+Delek Group,delek,delek
+Drummond Company,drummond,\bdrummond\b
+eDreams ODIGEO,edreams,edreams
+Elbit Systems,elbit,\belbit\b
+Expedia,,
+FANUC Corp,fanuc,\bfanuc\b
+Glencore,,
+Hanson Israel Ltd,hanson,hanson.*israel
+HD Hyundai,hyundai,^(?!.*(heavy|indust)).*hyundai
+Heidelberg Materials,heidelberg,heidelberg
+Hewlett Packard Enterprise,hewlett packard,\bhewlett packard\b
+Hyundai Heavy Industries,hyundai heavy,hyundai.*(heavy|indust)
+International Business Machines,business machines,business.*machines
+Israel Aereospace Industries,aereospace industries,\baereospace industries\b
+Israel Government International,,
+Israel Government,,
+Italy btps,,
+Keller Williams Reality,keller williams,\bkeller williams\b
+Keren Kayemeth LeIsrael,keren kayemeth,\bkeren kayemeth\b
+KW Israel,kw israel,\bkw israel\b
+Leonardo,,
+Lockheed Martin,lockheed,\blockheed\b
+Mekorot Water Co,mekorot water,mekorot.*water
+Microsoft,,
+Motorola Solutions,motorola,motorola.*solut
+Netafim,,
+NewMedEnergy Limited Partnership,newmedenergy,\bnewmedenergy\b
+NSO Group Technologies,nso group,\bnso group\b
+NVIDIA,,
+Orbia Corp.,orbia,\borbia\b
+Palantir Technologies,palantir,\bpalantir\b
+Paz Retail and Energy,paz,\bpaz.*(retail|energy|oil|company|group)
+Petróleo Brasileiro,,
+Siemens,,\bsiemens\b
+The Caisse de dépôt et placement du Québec,caisse de,\bcaisse de\b
+Volvo Car Corp,volvo,\bvolvo\b
+ITALY BTPS,btps,\bbtps
+ITALY BOTS,,
+ICCREA,,
+INTESA SANPAOLO,,
+ISRAEL FIXED,,
+ALMAWAVE,,
+MONDADORI,,
+EF BOND US,,
+YOURINDEX SICAV,,
+EU EU BOND,,
+BOTS ZC,,
+AXA SA,axa,\baxa.*sa
+ENELIM,,
+TAIWAN SEMICONDUCTOR,,
+ROLLS,,
+YIS MSCI WORLD,,
+DANBNK,,
+NORDEA,,
+ISHARES,,

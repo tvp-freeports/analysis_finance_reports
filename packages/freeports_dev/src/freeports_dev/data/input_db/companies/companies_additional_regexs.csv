@@ -1,0 +1,27 @@
+Company name,Regex
+International Business Machines,\bibm corp\b
+AP Møller Mærsk,\bmoller
+Alphabet,google
+Ashtrom Residential Development,ashdar.*(building|company)
+Booking Holdings,\bbkng
+Construcciones y Auxiliar de Ferrocarriles,ferrocarrilles
+Construcciones y Auxiliar de Ferrocarriles,\bcaf
+Delek Group,\bdlekg
+Delek Group,\bdelky
+eDreams ODIGEO,\bedre
+eDreams ODIGEO,\bedemy
+eDreams ODIGEO,\beddrf
+Expedia,\bexgr
+Heidelberg Materials,hdlmy
+Israel Aereospace Industries,\bil aereospaces industries\b
+Keller Williams Reality,\bwilliams reality
+Keller Williams Reality,keller reality\b
+Keren Kayemeth LeIsrael,\bkeren leisrael
+Keren Kayemeth LeIsrael,kayemeth leisrael
+Keren Kayemeth LeIsrael,jewish national fund\b
+NSO Group Technologies,\bnso technolog\b
+Paz Retail and Energy,\bpzzpf
+Petróleo Brasileiro,\bpetrobras
+Petróleo Brasileiro,petroleo\b
+The Caisse de dépôt et placement du Québec,\bthe caisse de depot et placement du quebec
+The Caisse de dépôt et placement du Québec,caisse de depot\b
