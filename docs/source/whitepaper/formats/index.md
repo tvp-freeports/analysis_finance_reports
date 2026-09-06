@@ -15,6 +15,7 @@ what you put in one and how you work on it. Why they live outside is {doc}`../de
 :maxdepth: 1
 :hidden:
 
+tutorials/index
 writing-a-format
 levels/structured
 levels/semistructured
@@ -29,6 +30,7 @@ configuration
 ## What each formats page answers
 | Page | Answers |
 |---|---|
+| {doc}`tutorials/index` | walked-through examples: a first format, and diagnosing one that misbehaves |
 | {doc}`writing-a-format` | the whole path of adding support for a new report |
 | {doc}`levels/structured` | rows in a spreadsheet, no code |
 | {doc}`levels/semistructured` | a named algorithm plus YAML |
@@ -46,4 +48,7 @@ $ cd ~/work/my-formats
 $ freeports-dev setup-input-db
 ```
 
-Then {doc}`writing-a-format`.
+If you have never added a format, go to {doc}`tutorials/first-format`: it does one real report from
+an empty repository to a passing test suite, and a simple format turns out to be a single row in a
+spreadsheet. {doc}`writing-a-format` is the same path as a checklist, for when you have done it
+once.

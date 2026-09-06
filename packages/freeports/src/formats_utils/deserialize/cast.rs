@@ -25,10 +25,22 @@
 //!
 //! # Signs
 //!
-//! A `-` counts as a genuine sign only when it is the first non-whitespace character of the trimmed
-//! input, immediately before the numeric content. Anywhere else — trailing, glued to other noise —
-//! it is noise and is stripped. With `keep_sign` false, every `-` is ignored and a successful parse
-//! is never negative; a lone `"-"` with no digits is an error either way.
+//! A `-` counts as a genuine sign when it is the first character of the trimmed input, immediately
+//! before the numeric content. Anywhere else — trailing, glued to other noise — it is noise and is
+//! stripped. A lone `"-"` with no digits is a nil marker, not a sign.
+//!
+//! A leading sign is **data, and is always honoured**: `"-123"` is plainly minus one hundred and
+//! twenty-three, and reading it as a positive number would be inventing a value the report does
+//! not contain. It is therefore not counted as noise either, so a well-formed negative number
+//! produces no forced-cast warning — there was nothing to dig it out of.
+//!
+//! Most fields of the output schema are magnitudes that admit no negative value, and this module
+//! deliberately does **not** protect them by taking a modulus. A negative reaching such a field is
+//! rejected by `FloatConstraint` and the field or the row is skipped, which is the honest outcome:
+//! silently flipping the sign turned a short position into a holding the fund never had. A format
+//! whose report prints a magnitude with a minus — a `Total Liabilities` line laid out so that
+//! assets plus liabilities equal net assets — says so itself by wrapping the converter in `abs`,
+//! where the reader can see the convention being applied.
 //!
 //! # Nil markers
 //!
@@ -98,24 +110,39 @@ pub fn is_numeric_shape(data: &str) -> bool {
     NUMERIC_SHAPE.is_match(data)
 }
 
-/// What [`force_numeric`] produced: the text a number is to be read from, and whether noise had to
-/// be stripped to get it.
+/// What [`force_numeric`] produced: the unsigned text a number is to be read from, whether the
+/// input carried a leading sign, and whether noise had to be stripped to get there.
 ///
-/// The flag travels back to the caller instead of being logged here, because whether the forcing is
-/// worth an event depends on how it ends — and only the caller knows that.
+/// The forced flag travels back to the caller instead of being logged here, because whether the
+/// forcing is worth an event depends on how it ends — and only the caller knows that.
 struct Forced {
     cleaned: String,
+    negative: bool,
     was_forced: bool,
 }
 
-/// Strips non-numeric noise from an already word-normalised string, unless it already has the shape
-/// of a plain number.
+/// Splits off a leading sign and strips non-numeric noise from what remains, unless that already
+/// has the shape of a plain number.
+///
+/// The sign is taken off first and reported separately rather than being stripped as noise: a
+/// number written with a minus is a negative number, and a caller must be able to tell that apart
+/// from a number that had to be recovered from a cell full of rubbish. `"-"` on its own leaves
+/// nothing behind and stays a nil marker.
 fn force_numeric(data: &str) -> Forced {
-    if is_numeric_shape(data) {
-        Forced { cleaned: data.to_string(), was_forced: false }
+    let (negative, body) = match data.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, data),
+    };
+    if is_numeric_shape(body) {
+        Forced { cleaned: body.to_string(), negative, was_forced: false }
     } else {
-        Forced { cleaned: NON_NUMERIC_CHARS.replace_all(data, ""), was_forced: true }
+        Forced { cleaned: NON_NUMERIC_CHARS.replace_all(body, ""), negative, was_forced: true }
     }
+}
+
+/// Renders what the text was reduced to, sign included, for the forced-cast event.
+fn forced_as_read(cleaned: &str, negative: bool) -> String {
+    if negative { format!("-{cleaned}") } else { cleaned.to_string() }
 }
 
 /// The one event a forced cast is worth, emitted **after** the value has been read.
@@ -156,10 +183,9 @@ fn resolve_separators(data: &str) -> String {
 ///
 /// See the module documentation for how the separators are disambiguated and what counts as a
 /// genuine sign.
-pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
+pub fn to_float(data: &str) -> Result<f64, CastError> {
     let data = normalization::normalize_word(data, false);
-    let negate = keep_sign && data.starts_with('-');
-    let Forced { cleaned, was_forced } = force_numeric(&data);
+    let Forced { cleaned, negative, was_forced } = force_numeric(&data);
     // Decided before the separators are resolved, and reported with the text as it arrived: once
     // stripped, `"-"` and `"."` are both the empty string, and an error naming `""` says nothing
     // about what the cell actually held.
@@ -172,19 +198,18 @@ pub fn to_float(data: &str, keep_sign: bool) -> Result<f64, CastError> {
     }
     let value = number.parse::<f64>().map_err(|_| CastError::NotANumber { data: number })?;
     if was_forced {
-        log_forced_cast(&data, &cleaned);
+        log_forced_cast(&data, &forced_as_read(&cleaned, negative));
     }
-    Ok(if negate { -value } else { value })
+    Ok(if negative { -value } else { value })
 }
 
 /// Casts to `i64`, handling thousands separators and rejecting a non-zero fractional part.
 ///
 /// Note that a lone `.234` group is read as a thousands separator here, where [`to_float`] would
 /// read it as a decimal point.
-pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError> {
+pub fn to_int(data: &str) -> Result<i64, CastError> {
     let data = normalization::normalize_word(data, false);
-    let negate = keep_sign && data.starts_with('-');
-    let Forced { cleaned, was_forced } = force_numeric(&data);
+    let Forced { cleaned, negative, was_forced } = force_numeric(&data);
     if !has_digits(&cleaned) {
         return Err(CastError::NoDigits { data });
     }
@@ -203,16 +228,16 @@ pub fn to_int(data: &str, keep_sign: bool) -> Result<i64, CastError> {
     }
     let value = number.parse::<i64>().map_err(|_| CastError::NotANumber { data: number })?;
     if was_forced {
-        log_forced_cast(&data, &cleaned);
+        log_forced_cast(&data, &forced_as_read(&cleaned, negative));
     }
-    Ok(if negate { -value } else { value })
+    Ok(if negative { -value } else { value })
 }
 
 /// Casts a percentage string, with or without a trailing `%`, to a float.
 ///
 /// The result is divided by 100 when `norm` is set — and **always** when a literal `%` was present,
 /// whatever `norm` says: the sign is in the data, and honouring it beats honouring the argument.
-pub fn perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> Result<f64, CastError> {
+pub fn perc_to_float(perc: &str, norm: bool) -> Result<f64, CastError> {
     let mut perc = normalization::normalize_word(perc, false);
     let mut norm = norm;
     if perc.contains('%') {
@@ -225,7 +250,7 @@ pub fn perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> Result<f64, Cas
         perc = normalization::normalize_word(&perc.replace('%', ""), false);
         norm = true;
     }
-    let f = to_float(&perc, keep_sign)?;
+    let f = to_float(&perc)?;
     Ok(if norm { f / 100.0 } else { f })
 }
 
@@ -393,31 +418,31 @@ mod tests {
         #[test_case("  090.070,00 ", 90070.0; "dot thousands comma decimal with whitespace")]
         #[test_case("4,500", 4.5; "single grouped triple is ambiguous, treated as a decimal")]
         fn matches_the_expected_value(input: &str, expected: f64) {
-            assert_eq!(to_float(input, false).unwrap(), expected);
+            assert_eq!(to_float(input).unwrap(), expected);
         }
 
         #[test]
         fn single_grouped_triple_is_treated_as_decimal_not_thousands() {
             // Only one `.XXX` group is ambiguous for floats specifically, since it could be a
             // genuine decimal, so it is left as a decimal point rather than stripped.
-            assert_eq!(to_float("1.234", false).unwrap(), 1.234);
+            assert_eq!(to_float("1.234").unwrap(), 1.234);
         }
 
         #[test]
         fn two_grouped_triples_are_treated_as_thousands() {
-            assert_eq!(to_float("1.234.567", false).unwrap(), 1_234_567.0);
+            assert_eq!(to_float("1.234.567").unwrap(), 1_234_567.0);
         }
 
         #[test]
         fn strips_non_numeric_noise_but_keeps_letters() {
-            assert_eq!(to_float("€1.234", false).unwrap(), 1.234);
+            assert_eq!(to_float("€1.234").unwrap(), 1.234);
             // Letters survive stripping, so a unit suffix still breaks the subsequent parse.
-            assert!(to_float("EUR 1.234 approx", false).is_err());
+            assert!(to_float("EUR 1.234 approx").is_err());
         }
 
         #[test]
         fn rejects_a_string_with_no_digits_at_all() {
-            assert!(to_float("not a number", false).is_err());
+            assert!(to_float("not a number").is_err());
         }
     }
 
@@ -431,17 +456,17 @@ mod tests {
         #[test_case("  090.070,00 ", 90070; "dot thousands comma decimal with whitespace")]
         #[test_case("4,500", 4500; "comma as thousands separator")]
         fn matches_the_expected_value(input: &str, expected: i64) {
-            assert_eq!(to_int(input, false).unwrap(), expected);
+            assert_eq!(to_int(input).unwrap(), expected);
         }
 
         #[test]
         fn rejects_nonzero_mantissa() {
-            assert!(to_int("100.5", false).is_err());
+            assert!(to_int("100.5").is_err());
         }
 
         #[test]
         fn accepts_zero_mantissa() {
-            assert_eq!(to_int("100.0", false).unwrap(), 100);
+            assert_eq!(to_int("100.0").unwrap(), 100);
         }
 
         #[test]
@@ -449,14 +474,14 @@ mod tests {
             // Unlike `to_float`, `to_int` treats even a single `.XXX` group as a thousands
             // separator: the intentional asymmetry pinned by `4,500` above, which is 4.5 for
             // `to_float` and 4500 for `to_int`.
-            assert_eq!(to_int("1.234", false).unwrap(), 1234);
+            assert_eq!(to_int("1.234").unwrap(), 1234);
         }
 
         #[test]
         fn strips_non_numeric_noise_but_keeps_letters() {
-            assert_eq!(to_int("€1.234", false).unwrap(), 1234);
-            assert_eq!(to_int(" [1.234] ", false).unwrap(), 1234);
-            assert!(to_int("EUR 1.234 approx", false).is_err());
+            assert_eq!(to_int("€1.234").unwrap(), 1234);
+            assert_eq!(to_int(" [1.234] ").unwrap(), 1234);
+            assert!(to_int("EUR 1.234 approx").is_err());
         }
     }
 
@@ -486,12 +511,12 @@ mod tests {
         #[test_case("10 %", true, 0.1; "percent sign with space before it")]
         #[test_case("25,5", true, 0.255; "no percent sign, norm true divides by 100")]
         fn matches_the_expected_value(input: &str, norm: bool, expected: f64) {
-            assert!((perc_to_float(input, norm, false).unwrap() - expected).abs() < 1e-9);
+            assert!((perc_to_float(input, norm).unwrap() - expected).abs() < 1e-9);
         }
 
         #[test]
         fn percent_sign_forces_normalization_even_when_norm_is_false() {
-            assert_eq!(perc_to_float("10%", false, false).unwrap(), 0.1);
+            assert_eq!(perc_to_float("10%", false).unwrap(), 0.1);
         }
     }
 
@@ -692,7 +717,7 @@ mod tests {
         #[test_case("."; "lone dot")]
         #[test_case(","; "lone comma")]
         fn to_float_reads_a_digitless_text_as_a_nil_marker(text: &str) {
-            assert!(matches!(to_float(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(matches!(to_float(text), Err(CastError::NoDigits { .. })), "{text:?}");
         }
 
         #[test_case("-"; "ascii hyphen")]
@@ -702,14 +727,14 @@ mod tests {
         #[test_case("."; "lone dot")]
         #[test_case(","; "lone comma")]
         fn to_int_reads_a_digitless_text_as_a_nil_marker(text: &str) {
-            assert!(matches!(to_int(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(matches!(to_int(text), Err(CastError::NoDigits { .. })), "{text:?}");
         }
 
         #[test_case("-", "-"; "the dash itself, not the empty string it strips to")]
         #[test_case("  n/a  ", "n/a"; "surrounding whitespace only is dropped")]
         #[test_case(".", "."; "a lone separator is reported as written")]
         fn the_error_carries_the_original_text_rather_than_the_stripped_one(text: &str, expected: &str) {
-            let err = to_float(text, false).unwrap_err();
+            let err = to_float(text).unwrap_err();
             assert_eq!(err, CastError::NoDigits { data: expected.to_string() });
         }
 
@@ -718,33 +743,67 @@ mod tests {
         #[test_case("-5"; "a negative number")]
         #[test_case("1.234abc"; "noise around real digits")]
         fn a_text_with_digits_is_never_a_nil_marker(text: &str) {
-            assert!(!matches!(to_float(text, false), Err(CastError::NoDigits { .. })), "{text:?}");
+            assert!(!matches!(to_float(text), Err(CastError::NoDigits { .. })), "{text:?}");
         }
 
         #[test]
         fn a_forced_cast_that_still_has_digits_succeeds() {
-            assert_eq!(to_float("\u{20ac}1.234", false).unwrap(), 1.234);
+            assert_eq!(to_float("\u{20ac}1.234").unwrap(), 1.234);
         }
 
         #[test]
         fn text_glued_to_digits_stays_an_unreadable_number_rather_than_a_nil_marker() {
             // The stripping keeps letters, so this one still has digits and fails to parse: it is
             // an anomaly, not an absence, and the two must not be confused.
-            assert!(matches!(to_float("1.234abc", false), Err(CastError::NotANumber { .. })));
+            assert!(matches!(to_float("1.234abc"), Err(CastError::NotANumber { .. })));
         }
 
         #[test]
         fn a_percentage_inherits_the_nil_marker_through_to_float() {
-            assert!(matches!(perc_to_float("-", true, false), Err(CastError::NoDigits { data }) if data == "-"));
-        }
-
-        #[test]
-        fn a_digitless_text_keeps_its_marker_nature_with_the_sign_kept() {
-            assert!(matches!(to_float("-", true), Err(CastError::NoDigits { .. })));
+            assert!(matches!(perc_to_float("-", true), Err(CastError::NoDigits { data }) if data == "-"));
         }
     }
 
     mod forced_cast_warnings {
+        /// A sign is data, not noise, so reading one is not a forced cast and must stay silent.
+        mod signs {
+            use super::*;
+
+            #[test]
+            fn a_well_formed_negative_number_emits_no_forced_cast_warning() {
+                let warnings = warnings_emitted_by(|| {
+                    let _ = to_float("-365,138.81");
+                });
+                assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
+            }
+
+            #[test]
+            fn a_negative_number_buried_in_noise_still_emits_one() {
+                let warnings = warnings_emitted_by(|| {
+                    let _ = to_int("[-1.234]");
+                });
+                assert_eq!(warnings.len(), 1, "expected exactly one warning: {warnings:?}");
+            }
+
+            #[test]
+            fn a_minus_glued_to_noise_is_not_a_sign_and_the_value_stays_positive() {
+                // `-` counts only as the first character. Here it sits inside the brackets, so it
+                // is stripped with them and the row keeps a positive number.
+                assert_eq!(to_int("[-1.234]").unwrap(), 1234);
+            }
+
+            #[test]
+            fn the_forced_cast_event_reports_the_sign_it_read() {
+                let warnings = warnings_emitted_by(|| {
+                    let _ = to_int("-€1.234");
+                });
+                assert!(
+                    warnings.iter().any(|w: &String| w.contains("\"-1.234\"")),
+                    "the event must show the negative value it read: {warnings:?}"
+                );
+            }
+        }
+
         use super::*;
         use std::sync::{Arc, Mutex};
         use tracing::field::{Field, Visit};
@@ -791,7 +850,7 @@ mod tests {
         #[test]
         fn a_clean_cast_does_not_warn() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_int("200", false);
+                let _ = to_int("200");
             });
             assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
@@ -799,7 +858,7 @@ mod tests {
         #[test]
         fn to_int_warns_when_forced_to_strip_noise() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_int("\u{20ac} 1.234", false);
+                let _ = to_int("\u{20ac} 1.234");
             });
             assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
         }
@@ -807,7 +866,7 @@ mod tests {
         #[test]
         fn to_float_warns_when_forced_to_strip_noise() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_float("\u{20ac} 1.234", false);
+                let _ = to_float("\u{20ac} 1.234");
             });
             assert_eq!(warnings.len(), 1, "one forced cast, one warning: {warnings:?}");
         }
@@ -815,7 +874,7 @@ mod tests {
         #[test]
         fn the_warning_names_the_text_as_written_and_the_text_it_was_reduced_to() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_float("\u{20ac} 1.234", false);
+                let _ = to_float("\u{20ac} 1.234");
             });
             assert!(warnings[0].contains("\"\u{20ac}1.234\""), "{warnings:?}");
             assert!(warnings[0].contains(r#""1.234""#), "{warnings:?}");
@@ -826,9 +885,9 @@ mod tests {
             // The caller that drops the field or the row emits the one line that also carries the
             // consequence; a second row about the attempt would say the same fact twice.
             let warnings = warnings_emitted_by(|| {
-                let _ = to_int("EUR 1.234", false);
-                let _ = to_float("not a number", false);
-                let _ = to_float("-", false);
+                let _ = to_int("EUR 1.234");
+                let _ = to_float("not a number");
+                let _ = to_float("-");
             });
             assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
@@ -836,7 +895,7 @@ mod tests {
         #[test]
         fn a_nil_marker_is_not_reported_as_a_forced_cast() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_int("-", false);
+                let _ = to_int("-");
             });
             assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
@@ -844,7 +903,7 @@ mod tests {
         #[test]
         fn to_float_does_not_warn_for_an_already_numeric_shape() {
             let warnings = warnings_emitted_by(|| {
-                let _ = to_float("1,234.567", false);
+                let _ = to_float("1,234.567");
             });
             assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
@@ -852,7 +911,7 @@ mod tests {
         #[test]
         fn perc_to_float_warns_when_a_percent_sign_forces_normalization_despite_norm_false() {
             let warnings = warnings_emitted_by(|| {
-                let _ = perc_to_float("10%", false, false);
+                let _ = perc_to_float("10%", false);
             });
             assert!(!warnings.is_empty(), "expected a forced-normalization warning, got none");
         }
@@ -860,16 +919,21 @@ mod tests {
         #[test]
         fn perc_to_float_does_not_warn_without_a_percent_sign_and_a_clean_value() {
             let warnings = warnings_emitted_by(|| {
-                let _ = perc_to_float("25.5", false, false);
+                let _ = perc_to_float("25.5", false);
             });
             assert!(warnings.is_empty(), "unexpected warnings: {warnings:?}");
         }
     }
 
-    /// A `-` counts as a genuine sign only when it is the first non-whitespace character of the
-    /// trimmed input, directly preceding the numeric content. Anywhere else — trailing, standalone,
-    /// glued to other noise — it is stripped as noise, whatever `keep_sign` says. With `keep_sign`
-    /// false the sign is always ignored, genuine or not.
+    /// A `-` counts as a genuine sign when it is the first character of the trimmed input,
+    /// directly preceding the numeric content. Anywhere else — trailing, standalone, glued to
+    /// other noise — it is stripped as noise.
+    ///
+    /// A genuine sign is **always** honoured, and is never treated as noise: reading `"-200"` as
+    /// two hundred would invent a value the report does not contain. Protecting a field that
+    /// admits no negative is not this module's job — `FloatConstraint` rejects the value and the
+    /// caller skips the field or the row — and a format that really does read a magnitude written
+    /// with a minus says so by wrapping the converter in `abs`.
     mod sign_handling {
         use super::*;
 
@@ -882,43 +946,19 @@ mod tests {
             #[test_case("-309.00", -309.0; "decimal")]
             #[test_case("-1.234.567", -1_234_567.0; "dot thousands grouped")]
             #[test_case("- 3.5", -3.5; "leading minus separated by whitespace")]
-            fn genuine_leading_minus_negates_the_result_when_keep_sign_is_true(
-                input: &str,
-                expected: f64,
-            ) {
-                assert_eq!(to_float(input, true).unwrap(), expected);
-            }
-
-            #[test_case("-200", 200.0; "plain integer")]
-            #[test_case("-309.00", 309.0; "decimal")]
-            #[test_case("-1.234.567", 1_234_567.0; "dot thousands grouped")]
-            fn genuine_leading_minus_is_stripped_like_noise_when_keep_sign_is_false(
-                input: &str,
-                expected: f64,
-            ) {
-                assert_eq!(to_float(input, false).unwrap(), expected);
+            fn a_genuine_leading_minus_negates_the_result(input: &str, expected: f64) {
+                assert_eq!(to_float(input).unwrap(), expected);
             }
 
             #[test_case("3.0 -", 3.0; "trailing minus")]
             #[test_case("$100-", 100.0; "minus glued directly to noise, no leading sign")]
-            fn a_stray_minus_is_ignored_when_keep_sign_is_true(input: &str, expected: f64) {
-                assert_eq!(to_float(input, true).unwrap(), expected);
-            }
-
-            #[test_case("3.0 -", 3.0; "trailing minus")]
-            #[test_case("$100-", 100.0; "minus glued directly to noise, no leading sign")]
-            fn a_stray_minus_is_ignored_when_keep_sign_is_false(input: &str, expected: f64) {
-                assert_eq!(to_float(input, false).unwrap(), expected);
+            fn a_stray_minus_is_ignored(input: &str, expected: f64) {
+                assert_eq!(to_float(input).unwrap(), expected);
             }
 
             #[test]
-            fn a_lone_minus_with_no_digits_still_errors_when_keep_sign_is_true() {
-                assert!(to_float("-", true).is_err());
-            }
-
-            #[test]
-            fn a_lone_minus_with_no_digits_still_errors_when_keep_sign_is_false() {
-                assert!(to_float("-", false).is_err());
+            fn a_lone_minus_with_no_digits_is_still_a_nil_marker() {
+                assert!(matches!(to_float("-"), Err(CastError::NoDigits { .. })));
             }
         }
 
@@ -930,42 +970,19 @@ mod tests {
             #[test_case("-200", -200; "plain integer")]
             #[test_case("-1.234", -1234; "dot thousands grouped")]
             #[test_case("- 200", -200; "leading minus separated by whitespace")]
-            fn genuine_leading_minus_negates_the_result_when_keep_sign_is_true(
-                input: &str,
-                expected: i64,
-            ) {
-                assert_eq!(to_int(input, true).unwrap(), expected);
-            }
-
-            #[test_case("-200", 200; "plain integer")]
-            #[test_case("-1.234", 1234; "dot thousands grouped")]
-            fn genuine_leading_minus_is_stripped_like_noise_when_keep_sign_is_false(
-                input: &str,
-                expected: i64,
-            ) {
-                assert_eq!(to_int(input, false).unwrap(), expected);
+            fn a_genuine_leading_minus_negates_the_result(input: &str, expected: i64) {
+                assert_eq!(to_int(input).unwrap(), expected);
             }
 
             #[test_case("200 -", 200; "trailing minus")]
             #[test_case("$100-", 100; "minus glued directly to noise, no leading sign")]
-            fn a_stray_minus_is_ignored_when_keep_sign_is_true(input: &str, expected: i64) {
-                assert_eq!(to_int(input, true).unwrap(), expected);
-            }
-
-            #[test_case("200 -", 200; "trailing minus")]
-            #[test_case("$100-", 100; "minus glued directly to noise, no leading sign")]
-            fn a_stray_minus_is_ignored_when_keep_sign_is_false(input: &str, expected: i64) {
-                assert_eq!(to_int(input, false).unwrap(), expected);
+            fn a_stray_minus_is_ignored(input: &str, expected: i64) {
+                assert_eq!(to_int(input).unwrap(), expected);
             }
 
             #[test]
-            fn a_lone_minus_with_no_digits_still_errors_when_keep_sign_is_true() {
-                assert!(to_int("-", true).is_err());
-            }
-
-            #[test]
-            fn a_lone_minus_with_no_digits_still_errors_when_keep_sign_is_false() {
-                assert!(to_int("-", false).is_err());
+            fn a_lone_minus_with_no_digits_is_still_a_nil_marker() {
+                assert!(matches!(to_int("-"), Err(CastError::NoDigits { .. })));
             }
         }
 
@@ -973,49 +990,43 @@ mod tests {
             use super::*;
 
             #[test]
-            fn genuine_leading_minus_with_norm_true_negates_and_normalizes() {
+            fn a_genuine_leading_minus_with_norm_true_negates_and_normalizes() {
                 // `"-5%"`: the leading `-` is genuine and kept, and the `%` forces normalisation
                 // whatever `norm` says — so this must hold with `norm: true`…
-                assert!((to_float_eq(perc_to_float("-5%", true, true).unwrap(), -0.05)));
+                assert!(to_float_eq(perc_to_float("-5%", true).unwrap(), -0.05));
             }
 
             #[test]
-            fn genuine_leading_minus_with_norm_false_still_normalizes_because_of_percent_sign() {
+            fn a_genuine_leading_minus_with_norm_false_still_normalizes_because_of_percent_sign() {
                 // …and with `norm: false` too, since a literal `%` always forces normalisation. The
                 // sign handling composes with that rule rather than overriding it.
-                assert!((to_float_eq(perc_to_float("-5%", false, true).unwrap(), -0.05)));
+                assert!(to_float_eq(perc_to_float("-5%", false).unwrap(), -0.05));
             }
 
             #[test]
-            fn genuine_leading_minus_without_a_percent_sign_and_norm_false_keeps_the_raw_value() {
-                assert!((to_float_eq(perc_to_float("-25.5", false, true).unwrap(), -25.5)));
+            fn a_genuine_leading_minus_without_a_percent_sign_and_norm_false_keeps_the_raw_value() {
+                assert!(to_float_eq(perc_to_float("-25.5", false).unwrap(), -25.5));
             }
 
             #[test]
-            fn genuine_leading_minus_without_a_percent_sign_and_norm_true_divides_by_100() {
-                assert!((to_float_eq(perc_to_float("-25.5", true, true).unwrap(), -0.255)));
+            fn a_genuine_leading_minus_without_a_percent_sign_and_norm_true_divides_by_100() {
+                assert!(to_float_eq(perc_to_float("-25.5", true).unwrap(), -0.255));
             }
 
             #[test]
-            fn keep_sign_false_ignores_a_genuine_leading_minus_just_like_to_float() {
-                assert!((to_float_eq(perc_to_float("-5%", true, false).unwrap(), 0.05)));
-            }
-
-            #[test]
-            fn a_stray_minus_is_ignored_regardless_of_keep_sign() {
-                assert!((to_float_eq(perc_to_float("5% -", true, true).unwrap(), 0.05)));
-                assert!((to_float_eq(perc_to_float("5% -", true, false).unwrap(), 0.05)));
+            fn a_stray_minus_is_ignored() {
+                assert!(to_float_eq(perc_to_float("5% -", true).unwrap(), 0.05));
             }
 
             #[test]
             fn a_lone_minus_with_no_digits_still_errors() {
-                assert!(perc_to_float("-", true, true).is_err());
-                assert!(perc_to_float("-", true, false).is_err());
+                assert!(perc_to_float("-", true).is_err());
             }
 
             fn to_float_eq(actual: f64, expected: f64) -> bool {
                 (actual - expected).abs() < 1e-9
             }
         }
+
     }
 }

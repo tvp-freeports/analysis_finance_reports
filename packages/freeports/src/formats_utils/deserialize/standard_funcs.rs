@@ -190,12 +190,12 @@ impl DeserializerInvestmentStandard {
 
     /// Amounts and costs: integers or floats, depending on the format's configuration.
     fn cast_amount(&self, data: &str) -> Result<f64, CastError> {
-        if self.cost_and_value_interpret_int { cast::to_int(data, false).map(|v| v as f64) } else { cast::to_float(data, false) }
+        if self.cost_and_value_interpret_int { cast::to_int(data).map(|v| v as f64) } else { cast::to_float(data) }
     }
 
     /// Nominal quantity: float or integer, depending on the format's configuration.
     fn cast_quantity(&self, data: &str) -> Result<f64, CastError> {
-        if self.quantity_interpret_float { cast::to_float(data, false) } else { cast::to_int(data, false).map(|v| v as f64) }
+        if self.quantity_interpret_float { cast::to_float(data) } else { cast::to_int(data).map(|v| v as f64) }
     }
 
     /// Applies `cast` to a required value, letting a promise through untouched and accepting an
@@ -350,7 +350,7 @@ impl DeserializerInvestmentStandard {
             })?,
             currency: Self::required("currency", md.get("currency"), BlockValue::as_currency, cast::to_currency)?,
             perc_net_assets: Self::optional("% net assets", md.get("% net assets"), BlockValue::as_float, |t| {
-                cast::perc_to_float(t, true, false)
+                cast::perc_to_float(t, true)
             }),
             acquisition_cost: Self::optional("acquisition cost", md.get("acquisition cost"), BlockValue::as_float, |t| {
                 self.cast_amount(t)
@@ -379,7 +379,7 @@ impl DeserializerInvestmentStandard {
         let interest_rate = match md.get("interest rate") {
             None | Some(BlockValue::Null) => None,
             Some(BlockValue::Float(rate)) => Some(rate.into_inner()),
-            Some(value) => Some(cast::perc_to_float(value.str_or_fail("interest rate")?, true, false).map_err(
+            Some(value) => Some(cast::perc_to_float(value.str_or_fail("interest rate")?, true).map_err(
                 |source| DeserializeStandardFuncsError::LineParseFail { field: "interest rate", source },
             )?),
         };
@@ -553,9 +553,9 @@ impl DeserializerAssetsStandard {
     /// The built-in amount converter that `interpret_int` selects.
     pub fn builtin_num_converter(interpret_int: bool) -> NumConverter {
         if interpret_int {
-            std::sync::Arc::new(|text: &str| cast::to_int(text, false).map(|v| v as f64))
+            std::sync::Arc::new(|text: &str| cast::to_int(text).map(|v| v as f64))
         } else {
-            std::sync::Arc::new(|text: &str| cast::to_float(text, false))
+            std::sync::Arc::new(|text: &str| cast::to_float(text))
         }
     }
 

@@ -874,8 +874,18 @@ impl TextFilterPipe for TextFilterInvestmentsStandard {
 // pattern — which requires a leading letter — must not match at all. A free search would start
 // matching at `"ITALY"` and invent an interest rate. This is a real regression found on genuine
 // fixtures, not a hypothetical one.
+//
+// The first pattern's `.*?` is lazy where every other one here is greedy, and that is the whole
+// point: a greedy prefix eats as much as it can while still leaving a match, so on
+// `"PEMEX 10.00%"` it swallowed the `1` and captured `0.00%`. Every coupon with two digits before
+// the point lost all but the last one — `10.25%` became `0.25%`. Lazy takes the leftmost match,
+// which is the coupon as written.
+//
+// The decimal group is optional for a second reason: an integer coupon such as `2%` matched no
+// pattern here, fell through to the second one, and came back with a fragment of the maturity
+// date read as an interest rate.
 static PERC_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
-    [r"\A[a-zA-Z].*((\d+[.,]\d+)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
+    [r"\A[a-zA-Z].*?((\d+(?:[.,]\d+)?)\s*%).*", r"\A[a-zA-Z].*((\d+[.,]\d+)\s*).*"]
         .into_iter()
         .map(|p| Regex::new(p).expect("fixed, hand-written pattern, valid onig regex"))
         .collect()
@@ -2056,6 +2066,67 @@ mod tests {
         fn newlines_are_stripped_before_the_patterns_are_tried() {
             let blk = instrument_of("Acme\nCorp 3,5 % 2030");
             assert_eq!(blk.type_block, BlockType::BOND_TARGET);
+        }
+
+        mod coupon_reading {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            fn rate_of(text: &str) -> String {
+                instrument_of(text)
+                    .metadata
+                    .get("interest rate")
+                    .expect("the description carries a coupon")
+                    .str_or_fail("interest rate")
+                    .expect("the interest rate is text")
+                    .to_string()
+            }
+
+            #[test]
+            fn a_coupon_keeps_every_digit_before_the_point() {
+                // A greedy prefix used to swallow the leading digits and read `"0.25%"` here.
+                assert_eq!(rate_of("TULLOW OIL PLC 10.25% REGS 15/05/2026"), "10.25%");
+            }
+
+            #[test]
+            fn a_two_digit_coupon_ending_in_zero_is_not_read_as_zero() {
+                assert_eq!(rate_of("PETROLEOS MEXICANOS PEMEX 10.00% 07/02/2033"), "10.00%");
+            }
+
+            #[test]
+            fn a_three_digit_coupon_survives_too() {
+                assert_eq!(rate_of("Acme Corp 100.5% 2030"), "100.5%");
+            }
+
+            #[test]
+            fn an_integer_coupon_is_read_rather_than_falling_through() {
+                // Without the optional decimal group this reached the second pattern, which
+                // returned a fragment of the maturity date as the interest rate.
+                assert_eq!(rate_of("Enel Fin 1% 17-16.09.24"), "1%");
+            }
+
+            #[test]
+            fn a_date_before_the_coupon_does_not_steal_the_match() {
+                assert_eq!(rate_of("Acme Corp 15.05.2026 mat 3.4%"), "3.4%");
+            }
+
+            #[test]
+            fn a_single_digit_coupon_is_unchanged_by_the_lazy_prefix() {
+                assert_eq!(rate_of("VEOLIA ENVIRONNEMENT SA 'EMTN' 5.625% 09.06.26"), "5.625%");
+            }
+
+            #[test]
+            fn a_zero_coupon_is_still_read_as_zero() {
+                assert_eq!(rate_of("SNAM SPA 'EMTN' 0.00000% 07.12.28"), "0.00000%");
+            }
+
+            #[test]
+            fn a_two_digit_coupon_after_a_leading_digit_is_still_refused() {
+                // The leading-letter anchor outranks the coupon: a content starting with a digit
+                // must produce no interest rate at all, however plain the coupon looks.
+                let blk = instrument_of("1,300,000.00 TULLOW OIL PLC 10.25% 15/05/2026");
+                assert!(!blk.metadata.contains_key("interest rate"));
+            }
         }
     }
 

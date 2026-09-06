@@ -24,25 +24,26 @@ fn date_to_py<'py>(py: Python<'py>, date: Date) -> PyResult<Bound<'py, PyAny>> {
     py.import("datetime")?.getattr("date")?.call_method1("fromisoformat", (date.to_string(),))
 }
 
-/// A floating-point number from text. Keeping the sign preserves a leading minus.
+/// A floating-point number from text. A leading minus is a sign and is always honoured; wrap the
+/// call in `abs` where the report writes a magnitude with one.
 #[pyfunction]
-#[pyo3(name = "to_float", signature = (data, keep_sign=false))]
-pub fn py_to_float(data: &str, keep_sign: bool) -> PyResult<f64> {
-    cast::to_float(data, keep_sign).map_err(cast_error)
+#[pyo3(name = "to_float", signature = (data))]
+pub fn py_to_float(data: &str) -> PyResult<f64> {
+    cast::to_float(data).map_err(cast_error)
 }
 
 /// Un intero da testo.
 #[pyfunction]
-#[pyo3(name = "to_int", signature = (data, keep_sign=false))]
-pub fn py_to_int(data: &str, keep_sign: bool) -> PyResult<i64> {
-    cast::to_int(data, keep_sign).map_err(cast_error)
+#[pyo3(name = "to_int", signature = (data))]
+pub fn py_to_int(data: &str) -> PyResult<i64> {
+    cast::to_int(data).map_err(cast_error)
 }
 
 /// A percentage as a fraction, or as a plain number.
 #[pyfunction]
-#[pyo3(name = "perc_to_float", signature = (perc, norm=true, keep_sign=false))]
-pub fn py_perc_to_float(perc: &str, norm: bool, keep_sign: bool) -> PyResult<f64> {
-    cast::perc_to_float(perc, norm, keep_sign).map_err(cast_error)
+#[pyo3(name = "perc_to_float", signature = (perc, norm=true))]
+pub fn py_perc_to_float(perc: &str, norm: bool) -> PyResult<f64> {
+    cast::perc_to_float(perc, norm).map_err(cast_error)
 }
 
 /// Il testo ripulito.
