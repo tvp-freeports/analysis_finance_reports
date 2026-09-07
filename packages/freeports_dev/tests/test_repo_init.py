@@ -144,14 +144,36 @@ class TestTheHook:
 
     def test_it_walks_the_repository_once(self, hook):
         """Nine artefacts out of nine collections would resolve every page nine times."""
-        assert hook.count("freeports-validate collect") == 1
+        assert hook.count("collect >") == 1
         assert "--model" in hook
 
     def test_it_refreshes_the_badges_the_readme_and_every_page(self, hook):
         assert "--format badges" in hook
-        assert "--out README.md" in hook
+        assert "README.md" in hook
         for table in TABLES:
             assert table in hook
+
+    def test_it_names_the_repository_git_is_committing(self, hook):
+        """A hook has no business asking where it is: git already knows."""
+        assert "git rev-parse --show-toplevel" in hook
+
+    def test_and_hands_that_to_both_commands(self, hook):
+        """Left to resolve it themselves, either can be pointed elsewhere by a stray tier.
+
+        A relative `FREEPORTS_FORMATS_REPO_PATH` carried in from another directory, or a
+        `formats_repo:` line in a configuration file found from here, both name a different
+        repository than the one being committed — and the failure reads as the repository not
+        being a repository, with its last path segment doubled.
+        """
+        for command in ("freeports-dev test", "freeports-validate "):
+            for line in hook.splitlines():
+                # Comments name the commands to explain them, `command -v` only asks whether one
+                # exists, and `echo` says what happened -- none of the three is an invocation.
+                stripped = line.lstrip()
+                if stripped.startswith(("#", "echo ")) or "command -v" in line:
+                    continue
+                if command in line:
+                    assert "--repo" in line or "$repo_root" in line, line
 
     def test_it_stages_what_it_rewrote(self, hook):
         """Otherwise the refresh is a dirty working tree rather than part of the commit."""

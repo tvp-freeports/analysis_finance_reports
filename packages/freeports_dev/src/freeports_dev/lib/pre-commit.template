@@ -12,7 +12,18 @@ if [ "$(basename "${VIRTUAL_ENV:-}")" != "freeports-dev" ] && [ "${CONDA_DEFAULT
     exit 1
 fi
 
-freeports-dev test -- -m "not integration_tests"
+# The repository being committed, named outright rather than inherited.
+#
+# Everything below acts on *this* working tree, and git already knows which one it is. Left to
+# resolve it themselves, `freeports-dev` and `freeports-validate` would each consult their own
+# tiers -- `--repo`, then `FREEPORTS_FORMATS_REPO_PATH`, then `formats_repo` in whatever
+# configuration file is found from here -- and any of those can name a different repository than the
+# one you are committing to. A relative value carried in from another directory is the usual way it
+# happens, and it fails confusingly: the path comes out doubled, and the hook says the repository is
+# not a repository. A hook has no business asking where it is.
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+
+freeports-dev test --repo "$repo_root" -- -m "not integration_tests"
 
 
 # Keep the validation report current, and never refuse a commit over it.
@@ -29,28 +40,30 @@ freeports-dev test -- -m "not integration_tests"
 if command -v freeports-validate >/dev/null 2>&1; then
     report_model=$(mktemp "${TMPDIR:-/tmp}/freeports-report.XXXXXX" 2>/dev/null) || report_model=""
 
-    if [ -n "$report_model" ] && freeports-validate collect > "$report_model" 2>/dev/null; then
+    if [ -n "$report_model" ] &&
+        freeports-validate --repo "$repo_root" collect > "$report_model" 2>/dev/null; then
         # One walk of the repository, rendered nine times. Collecting once per artefact would
         # re-resolve every methodology page nine times for an answer that cannot have changed in
         # between.
         refresh() {
-            freeports-validate report --model "$report_model" "$@" >/dev/null 2>&1
+            freeports-validate --repo "$repo_root" report \
+                --model "$report_model" "$@" >/dev/null 2>&1
         }
 
         # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
         # pair they removed, is left alone rather than recreated behind their back.
         refreshed=""
-        if refresh --format badges --out validation/report/badges/; then
+        if refresh --format badges --out "$repo_root/validation/report/badges/"; then
             refreshed="$refreshed validation/report/badges"
         fi
-        if [ -f README.md ] && refresh --format markdown --out README.md; then
+        if [ -f "$repo_root/README.md" ] && refresh --format markdown --out "$repo_root/README.md"; then
             refreshed="$refreshed README.md"
         fi
         for table in file-contributor file-methodology contributor-methodology \
                      contributor-file methodology-file methodology-contributor; do
             page="validation/report/$table.md"
-            [ -f "$page" ] || continue
-            if refresh --format markdown --table "$table" --out "$page"; then
+            [ -f "$repo_root/$page" ] || continue
+            if refresh --format markdown --table "$table" --out "$repo_root/$page"; then
                 refreshed="$refreshed $page"
             fi
         done
@@ -58,7 +71,9 @@ if command -v freeports-validate >/dev/null 2>&1; then
         # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
         # space, and this is the one place the list has to be split back into arguments.
         if [ -n "$refreshed" ]; then
-            git add -- $refreshed
+            # Staged by path relative to the top level, which is what `git add --` wants and what
+            # `refreshed` holds -- the absolute forms above are only for `--out`.
+            git -C "$repo_root" add -- $refreshed
             echo "freeports-validate: report refreshed"
         fi
     else
