@@ -59,6 +59,25 @@ inconclusive=false
 contributors=()
 grants=()
 
+# Where every list that grows with the repository is built.
+#
+# Linux caps a *single* argument at 128 KiB (`MAX_ARG_STRLEN`), however much room the whole command
+# line has. A repository whose test suite has actually been vouched for holds several hundred
+# grants, which is past that limit once each grant is an object -- so `jq -n --argjson grants
+# "$(...)"` died with `Argument list too long`, and took the coverage report down with it: the
+# renderings are all functions of this model, and the pre-commit hook that refreshes them is
+# written never to fail a commit, so the repository quietly kept publishing figures from before.
+#
+# Everything of that shape therefore travels as a file read with `jq --slurpfile`, which has no
+# size limit. The rule to keep: a value whose size is a function of the repository is never an
+# argument.
+WORKSPACE=$(mktemp -d "${TMPDIR:-/tmp}/freeports-collect.XXXXXX") || exit 1
+trap 'rm -rf "$WORKSPACE"' EXIT
+
+#: Joins a methodology name to a path to make one key of an associative array. A unit separator,
+#: because the two halves are arbitrary text and this is the one byte neither of them can contain.
+US=$'\037'
+
 # Keyed by methodology name, and filled as the documents are read. A methodology is a thing several
 # contributors adopt, so it cannot be described from inside the loop over one document.
 declare -A method_seen=()
@@ -75,7 +94,11 @@ remember_methodology() {
         method_seen[$name]=1
         method_adoptions[$name]=""
         method_grants[$name]=0
-        method_granted[$name]="[]"
+        # The granted paths accumulate in a file, one per line, and are made a set once at the end.
+        # Keeping them as a JSON string meant a `jq` invocation per granted file over an array one
+        # element longer each time -- quadratic in the number of grants, for a `unique` that only
+        # has to be true when it is read.
+        method_granted[$name]=$(mktemp "$WORKSPACE/granted.XXXXXX")
         method_order+=("$name")
     fi
 }
@@ -159,64 +182,126 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
         method_adoptions[$name]="${method_adoptions[$name]:+${method_adoptions[$name]},}$adoption"
     done
 
-    grant_count=0
-    count=$(yq -r '.data | length' "$doc" 2>/dev/null)
-    for ((i = 0; i < count; i++)); do
-        method=$(yq -r ".data[$i].methodology // \"\"" "$doc" 2>/dev/null)
-        [ -n "$method" ] || continue
-        remember_methodology "$method"
+    # Every methodology this document has a `data` section for, whether or not anything is granted
+    # under it: an adopted methodology with an empty file list is still one this repository knows
+    # about, and dropping it here would make it disappear from the report.
+    while IFS= read -r method; do
+        [ -n "$method" ] && remember_methodology "$method"
+    done < <(yq -r '[.data[]? | .methodology // ""] | .[]' "$doc" 2>/dev/null)
 
-        files=$(yq -r ".data[$i].files | length" "$doc" 2>/dev/null)
-        for ((j = 0; j < files; j++)); do
-            file_path=$(yq -r ".data[$i].files[$j].path" "$doc" 2>/dev/null)
-            file_sha=$(yq -r ".data[$i].files[$j].sha256" "$doc" 2>/dev/null)
-            [ -n "$file_path" ] && [ "$file_path" != "null" ] || continue
+    # Everything the document grants, in one read: methodology, path and recorded hash, one JSON
+    # object per line. Asked entry by entry it was two `yq` invocations per granted file over a
+    # document that holds a line per grant, and `yq` is itself a Python process wrapping `jq` --
+    # a tenth of a second each, several hundred times.
+    document_grants="$WORKSPACE/document-grants.json"
+    yq -c '[.data[]? | (.methodology // "") as $methodology
+           | .files[]?
+           | select(.path != null and .path != "")
+           | {methodology: $methodology, path: .path, sha256: (.sha256 // "")}]
+           | .[] | select(.methodology != "")' \
+        "$doc" > "$document_grants" 2>/dev/null || : > "$document_grants"
 
-            full="$REPO_ROOT/$file_path"
-            if [ ! -f "$full" ]; then
+    mapfile -t doc_methods < <(jq -r '.methodology' "$document_grants")
+    mapfile -t doc_paths < <(jq -r '.path' "$document_grants")
+    mapfile -t doc_shas < <(jq -r '.sha256' "$document_grants")
+
+    grant_count=${#doc_paths[@]}
+
+    # The hashes of the granted files that are there, in one `sha256sum`. A grant is a claim about
+    # file contents, so reading them is work this cannot avoid; starting two processes per file to
+    # do it is work it can.
+    declare -A actual_hash=()
+    present_relative=()
+    present_absolute=()
+    for file_path in ${doc_paths[@]+"${doc_paths[@]}"}; do
+        if [ -f "$REPO_ROOT/$file_path" ]; then
+            present_relative+=("$file_path")
+            present_absolute+=("$REPO_ROOT/$file_path")
+        fi
+    done
+    if [ "${#present_absolute[@]}" -gt 0 ]; then
+        mapfile -t present_hashes < <(sha256sum -- "${present_absolute[@]}" | awk '{print $1}')
+        for index in "${!present_relative[@]}"; do
+            actual_hash["${present_relative[$index]}"]="${present_hashes[$index]}"
+        done
+    fi
+
+    # What each methodology declares, asked once per methodology rather than once per file. The
+    # answer is a fact about a page and a path, and the page is resolved once for the whole run, so
+    # asking per file only ever repeated the same question with a fresh interpreter behind it.
+    #
+    # `null` and not `false` when the page could not be resolved: the methodology is what says
+    # which paths it covers, so an unread page leaves the question unasked rather than answered in
+    # the negative.
+    declare -A scope_unknown=()
+    declare -A out_of_scope=()
+    for method in ${method_order[@]+"${method_order[@]}"}; do
+        method_paths=()
+        for index in ${doc_paths[@]+"${!doc_paths[@]}"}; do
+            [ "${doc_methods[$index]}" = "$method" ] && method_paths+=("${doc_paths[$index]}")
+        done
+        [ "${#method_paths[@]}" -gt 0 ] || continue
+
+        unsupported_paths "$method" "${method_paths[@]}"
+        if [ "$?" -eq "$PATH_UNDECIDABLE" ]; then
+            scope_unknown["$method"]=1
+            continue
+        fi
+        for file_path in ${UNSUPPORTED_PATHS[@]+"${UNSUPPORTED_PATHS[@]}"}; do
+            out_of_scope["$method$US$file_path"]=1
+        done
+    done
+
+    # The two per-grant findings, as two columns in the order the grants were read. They are joined
+    # back onto the objects below in a single `jq`; a `jq` per grant to build one small object was
+    # several hundred process starts for a shape that never varies.
+    findings="$WORKSPACE/findings.tsv"
+    {
+        for index in ${doc_paths[@]+"${!doc_paths[@]}"}; do
+            file_path="${doc_paths[$index]}"
+            method="${doc_methods[$index]}"
+
+            if [ -z "${actual_hash[$file_path]+set}" ]; then
                 state="missing"
                 failing=true
-            elif [ "$(sha256_of_file "$full")" = "$file_sha" ]; then
+            elif [ "${actual_hash[$file_path]}" = "${doc_shas[$index]}" ]; then
                 state="current"
             else
                 state="changed"
                 failing=true
             fi
 
-            # `null` and not `false` when the page could not be resolved: the methodology is what
-            # says which paths it covers, so an unread page leaves the question unasked rather
-            # than answered in the negative.
-            path_is_supported "$method" "$file_path"
-            case $? in
-                "$PATH_SUPPORTED")   in_scope="true" ;;
-                "$PATH_UNSUPPORTED") in_scope="false" ;;
-                *)                   in_scope="null" ;;
-            esac
+            if [ -n "${scope_unknown[$method]:-}" ]; then
+                in_scope="null"
+            elif [ -n "${out_of_scope[$method$US$file_path]:-}" ]; then
+                in_scope="false"
+            else
+                in_scope="true"
+            fi
 
-            grants+=("$(jq -nc \
-                --arg path "$file_path" \
-                --arg sha256 "$file_sha" \
-                --arg methodology "$method" \
-                --arg contributor "$who_name" \
-                --arg document "$document_path" \
-                --arg state "$state" \
-                --argjson in_scope "$in_scope" \
-                '{path: $path, sha256: $sha256, methodology: $methodology,
-                  contributor: $contributor, document: $document, state: $state,
-                  in_scope: $in_scope}')")
+            printf '%s\t%s\n' "$state" "$in_scope"
 
-            grant_count=$((grant_count + 1))
             method_grants[$method]=$((${method_grants[$method]} + 1))
             granted_files+=("$file_path")
-
-            if [ "$counted" = true ]; then
-                method_granted[$method]=$(jq -nc \
-                    --argjson granted "${method_granted[$method]}" \
-                    --arg path "$file_path" \
-                    '$granted + [$path] | unique')
-            fi
+            [ "$counted" = true ] && printf '%s\n' "$file_path" >> "${method_granted[$method]}"
         done
-    done
+    } > "$findings"
+
+    while IFS= read -r grant; do
+        grants+=("$grant")
+    done < <(jq -c \
+        --arg contributor "$who_name" \
+        --arg document "$document_path" \
+        --rawfile findings "$findings" \
+        --slurpfile entries "$document_grants" \
+        -n '
+        (if ($findings | length) == 0 then []
+         else ($findings | rtrimstr("\n") | split("\n") | map(split("\t"))) end) as $found
+        | $entries
+        | to_entries[]
+        | {path: .value.path, sha256: .value.sha256, methodology: .value.methodology,
+           contributor: $contributor, document: $document,
+           state: $found[.key][0], in_scope: ($found[.key][1] | fromjson)}')
 
     contributors+=("$(jq -nc \
         --arg name "$who_name" \
@@ -244,8 +329,10 @@ done
 # complete against, and inventing one would put a meaningless percentage on a badge.
 
 methodologies=()
-all_candidates="[]"
-all_covered="[]"
+all_candidates_file="$WORKSPACE/all-candidates"
+all_covered_file="$WORKSPACE/all-covered"
+: > "$all_candidates_file"
+: > "$all_covered_file"
 
 for name in "${method_order[@]}"; do
     load_page_report "$name"
@@ -270,27 +357,34 @@ for name in "${method_order[@]}"; do
         patterns=$(echo "$PAGE_REPORT_JSON" | jq -c '.supported_paths.patterns')
 
         if [ "$declares" = "true" ]; then
-            candidates="[]"
+            # The denominator and the numerator are both sets of repository paths, so both are of a
+            # size that grows with the repository: they are built in files for the same reason the
+            # model is assembled from files.
+            candidates_file="$WORKSPACE/candidates"
+            : > "$candidates_file"
             while IFS= read -r pattern; do
                 [ -n "$pattern" ] || continue
-                expanded=$(python3 "${LIB_DIR}/pathmatch.py" expand "$pattern" "$REPO_ROOT")
-                candidates=$(jq -nc --argjson a "$candidates" --argjson b "$expanded" \
-                    '$a + $b | unique')
+                python3 "${LIB_DIR}/pathmatch.py" expand "$pattern" "$REPO_ROOT" \
+                    | jq -r '.[]' >> "$candidates_file"
             done < <(echo "$patterns" | jq -r '.[].pattern')
+
+            sort -u "$candidates_file" | jq -Rn '[inputs]' > "$WORKSPACE/candidates.json"
+            sort -u "${method_granted[$name]}" | jq -Rn '[inputs]' > "$WORKSPACE/granted.json"
 
             # Intersection, written as jq writes it: everything in the candidate set that is not
             # outside the granted set. Only files the methodology declares count towards it, so a
             # forced grant of something out of scope raises no percentage.
-            covered=$(jq -nc --argjson c "$candidates" --argjson g "${method_granted[$name]}" \
-                '$c - ($c - $g)')
-            coverage=$(jq -nc --argjson c "$candidates" --argjson g "$covered" \
-                '{candidates: ($c | length), granted: ($g | length),
-                  ratio: (if ($c | length) == 0 then null
-                          else (($g | length) / ($c | length)) end)}')
-            all_candidates=$(jq -nc --argjson a "$all_candidates" --argjson b "$candidates" \
-                '$a + $b | unique')
-            all_covered=$(jq -nc --argjson a "$all_covered" --argjson b "$covered" \
-                '$a + $b | unique')
+            jq -nc --slurpfile c "$WORKSPACE/candidates.json" --slurpfile g "$WORKSPACE/granted.json" \
+                '$c[0] - ($c[0] - $g[0])' > "$WORKSPACE/covered.json"
+
+            coverage=$(jq -nc --slurpfile c "$WORKSPACE/candidates.json" \
+                --slurpfile g "$WORKSPACE/covered.json" \
+                '{candidates: ($c[0] | length), granted: ($g[0] | length),
+                  ratio: (if ($c[0] | length) == 0 then null
+                          else (($g[0] | length) / ($c[0] | length)) end)}')
+
+            jq -r '.[]' "$WORKSPACE/candidates.json" >> "$all_candidates_file"
+            jq -r '.[]' "$WORKSPACE/covered.json" >> "$all_covered_file"
         fi
     fi
 
@@ -323,26 +417,41 @@ status="passing"
 # be quoted as strings. Feeding the second to the first would be a parse error on any repository
 # that had a grant in it.
 #
-# Both guard the empty case explicitly. `printf '%s\n' "${array[@]}"` over an empty array prints one
-# blank line rather than nothing, which jq reads as an empty string rather than as no elements.
+# Both write a *file*, and both guard the empty case explicitly -- `printf '%s\n' "${array[@]}"`
+# over an empty array prints one blank line rather than nothing, which jq reads as an empty string
+# rather than as no elements. A file rather than standard output because these are the values that
+# grow with the repository, and the whole point is that they never become arguments: `printf` is a
+# shell builtin, so the array reaches it without passing through the kernel's argument limits at
+# all.
 as_json_array() {
+    local destination="$1"
+    shift
     if [ "$#" -eq 0 ]; then
-        echo "[]"
+        echo "[]" > "$destination"
     else
-        printf '%s\n' "$@" | jq -sc '.'
+        printf '%s\n' "$@" | jq -sc '.' > "$destination"
     fi
 }
 
 as_string_array() {
+    local destination="$1"
+    shift
     if [ "$#" -eq 0 ]; then
-        echo "[]"
+        echo "[]" > "$destination"
     else
-        printf '%s\n' "$@" | jq -Rsc 'split("\n")[:-1]'
+        printf '%s\n' "$@" | jq -Rsc 'split("\n")[:-1]' > "$destination"
     fi
 }
 
-distinct_files=$(as_string_array ${granted_files[@]+"${granted_files[@]}"} \
-    | jq -c 'unique | length')
+as_json_array "$WORKSPACE/contributors.json" ${contributors[@]+"${contributors[@]}"}
+as_json_array "$WORKSPACE/methodologies.json" ${methodologies[@]+"${methodologies[@]}"}
+as_json_array "$WORKSPACE/grants.json" ${grants[@]+"${grants[@]}"}
+as_string_array "$WORKSPACE/granted-files.json" ${granted_files[@]+"${granted_files[@]}"}
+
+sort -u "$all_candidates_file" | jq -Rn '[inputs]' > "$WORKSPACE/all-candidates.json"
+sort -u "$all_covered_file" | jq -Rn '[inputs]' > "$WORKSPACE/all-covered.json"
+
+distinct_files=$(jq -c 'unique | length' "$WORKSPACE/granted-files.json")
 
 jq -n \
     --arg root "$REPO_ROOT" \
@@ -357,25 +466,30 @@ jq -n \
           uri: (if $uri == "" then null else $uri end),
           sha256: (if $sha256 == "" then null else $sha256 end),
           origin: (if $origin == "" then null else $origin end)}')" \
-    --argjson contributors "$(as_json_array ${contributors[@]+"${contributors[@]}"})" \
-    --argjson methodologies "$(as_json_array ${methodologies[@]+"${methodologies[@]}"})" \
-    --argjson grants "$(as_json_array ${grants[@]+"${grants[@]}"})" \
-    --argjson candidates "$all_candidates" \
-    --argjson covered "$all_covered" \
+    --slurpfile contributors "$WORKSPACE/contributors.json" \
+    --slurpfile methodologies "$WORKSPACE/methodologies.json" \
+    --slurpfile grants "$WORKSPACE/grants.json" \
+    --slurpfile candidates "$WORKSPACE/all-candidates.json" \
+    --slurpfile covered "$WORKSPACE/all-covered.json" \
     --argjson files "$distinct_files" \
     --arg status "$status" \
-    '{repository: {root: $root, name: $name},
+    '$contributors[0] as $who
+     | $methodologies[0] as $methods
+     | $grants[0] as $vouched
+     | $candidates[0] as $could
+     | $covered[0] as $did
+     | {repository: {root: $root, name: $name},
       sources: $sources,
       general_methodology: $general,
-      contributors: $contributors,
-      methodologies: $methodologies,
-      grants: $grants,
-      coverage: {candidates: ($candidates | length),
-                 granted: ($covered | length),
-                 ratio: (if ($candidates | length) == 0 then null
-                         else (($covered | length) / ($candidates | length)) end)},
-      totals: {contributors: ($contributors | length),
-               methodologies: ($methodologies | length),
-               grants: ($grants | length),
+      contributors: $who,
+      methodologies: $methods,
+      grants: $vouched,
+      coverage: {candidates: ($could | length),
+                 granted: ($did | length),
+                 ratio: (if ($could | length) == 0 then null
+                         else (($did | length) / ($could | length)) end)},
+      totals: {contributors: ($who | length),
+               methodologies: ($methods | length),
+               grants: ($vouched | length),
                files: $files},
       status: $status}'

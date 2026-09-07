@@ -63,6 +63,44 @@ path_is_supported() {
     return $PATH_SUPPORTED
 }
 
+#: Filled by `unsupported_paths` with the paths the methodology does not cover, in the order they
+#: were asked about. Empty is the good answer, and the usual one.
+UNSUPPORTED_PATHS=()
+
+# The same question as `path_is_supported`, asked about many paths at once.
+#
+# `pathmatch.py filter` was written to take a whole list -- its own docstring says so, in as many
+# words: a document may grant hundreds of files under one methodology, and starting an interpreter
+# per file to answer a yes-or-no question is a cost with nothing behind it. Asking one path at a
+# time is what the caller above does, and what a caller holding the whole list must not do.
+#
+# Returns `PATH_UNDECIDABLE` when the page could not be resolved -- a fact about the methodology
+# and not about any one path, so it is reported once rather than repeated for every file -- and 0
+# otherwise, with the offending paths left in `UNSUPPORTED_PATHS`.
+unsupported_paths() {
+    local methodology="$1"
+    shift
+
+    UNSUPPORTED_PATHS=()
+    [ "$#" -gt 0 ] || return $PATH_SUPPORTED
+
+    local json
+    load_page_report "$methodology"
+    json="$PAGE_REPORT_JSON"
+    [ "$json" = "$PAGE_UNREADABLE" ] && return $PATH_UNDECIDABLE
+
+    local declared
+    declared=$(echo "$json" | jq -r '.supported_paths.declared')
+    [ "$declared" = "true" ] || return $PATH_SUPPORTED
+
+    mapfile -t UNSUPPORTED_PATHS < <(
+        echo "$json" | jq -r '.supported_paths.patterns[].pattern' \
+            | python3 "${LIB_DIR}/pathmatch.py" filter "$@" \
+            | jq -r '.[] | select(.matched == null) | .path'
+    )
+    return $PATH_SUPPORTED
+}
+
 # Every pattern the methodology declares, with the prose that says what vouching for it means.
 #
 # The prose is the whole point of printing this. "That path is not supported" tells a reader nothing

@@ -1154,3 +1154,89 @@ class TestTheReportSubcommand:
             sources=declared_pages.file_pattern,
         )
         assert answer.returncode != 0
+
+
+# ---------------------------------------------------------------------------
+# The size a real repository reaches
+# ---------------------------------------------------------------------------
+
+#: Linux caps a *single* argument at 32 pages, whatever room the whole command line has. It is not
+#: `ARG_MAX`, which is megabytes and about the command line as a whole, and that difference is the
+#: whole of the bug this section exists for: the model fitted comfortably in `ARG_MAX` and still
+#: could not be passed as one argument.
+MAX_ARG_STRLEN = 128 * 1024
+
+#: Enough granted files for the model's `grants` array to pass that limit when serialised. A
+#: formats repository reached it by vouching for one test suite -- 571 files -- so this is not a
+#: hypothetical size, and a test that stayed under it would guard nothing.
+AT_SCALE = 700
+
+
+@pytest.fixture
+def repo_granted_at_scale(tmp_repo, signer, run_validate, declared_pages):
+    """A repository whose whole test suite has been vouched for, in one grant.
+
+    Written as a single `grant` invocation because that is how it happens: a granter names a
+    directory's worth of output and signs once. It is also the shape that made both defects
+    visible -- the write that was quadratic in the number of files, and the model that could not be
+    assembled afterwards.
+    """
+    paths = []
+    for index in range(AT_SCALE):
+        relative = f"tests/formats/FOO-EN24/1/out/investments_{index:04d}.csv"
+        tmp_repo.write(relative, f"isin,value\nIT{index:08d},{index}\n")
+        paths.append(str(tmp_repo.root / relative))
+
+    common = {
+        "repo": tmp_repo,
+        "key_id": signer.fingerprint,
+        "sources": declared_pages.file_pattern,
+    }
+    for arguments in (
+        ("create-document",),
+        ("sign-document",),
+        ("grant", "with", "basic check"),
+    ):
+        answer = run_validate(*arguments, **common)
+        assert answer.returncode == 0, answer
+
+    granted = run_validate("grant", *paths, "with", "basic check", **common)
+    assert granted.returncode == 0, granted
+    return tmp_repo
+
+
+class TestARepositoryVouchedForAtScale:
+    """What `collect` does once the model is bigger than one argument may be.
+
+    Every assertion here holds trivially for the three-file repository the rest of this file uses.
+    They are worth writing only at a size the command actually meets, which is why the fixture
+    grants a whole suite rather than adding one file to the small one.
+    """
+
+    def test_the_grants_are_past_the_single_argument_limit(
+        self, repo_granted_at_scale, collect
+    ):
+        """The premise of the two tests below, asserted rather than assumed.
+
+        If a later change makes the fixture smaller, this fails and says so, instead of leaving two
+        tests that pass without exercising anything.
+        """
+        model = collect(repo=repo_granted_at_scale)
+        assert len(json.dumps(model["grants"])) > MAX_ARG_STRLEN
+
+    def test_the_model_is_still_emitted(self, repo_granted_at_scale, collect):
+        model = collect(repo=repo_granted_at_scale)
+        assert model["totals"]["grants"] == AT_SCALE
+        assert model["totals"]["files"] == AT_SCALE
+
+    def test_every_granted_file_is_current(self, repo_granted_at_scale, collect):
+        """The grants are read back as claims about the files, not merely counted."""
+        states = {
+            grant["state"] for grant in collect(repo=repo_granted_at_scale)["grants"]
+        }
+        assert states == {"current"}
+
+    def test_coverage_counts_them(self, repo_granted_at_scale, collect):
+        coverage = named(collect(repo=repo_granted_at_scale), "basic check")["coverage"]
+        assert coverage["granted"] == AT_SCALE
+        assert coverage["candidates"] >= AT_SCALE

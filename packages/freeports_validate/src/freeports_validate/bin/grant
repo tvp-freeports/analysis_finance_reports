@@ -104,43 +104,87 @@ fi
 # halfway would leave a document that had been changed and not signed -- the state `check-grants`
 # reports as "no signature found", reached by a command that was doing what it was told. Asking
 # every question first costs one extra pass over a handful of paths.
-RELATIVE_PATHS=()
 for file in "${FILES[@]}"; do
     if [ ! -f "$file" ]; then
         print_error "File '$file' does not exist"
         exit 1
     fi
-
-    rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
-    RELATIVE_PATHS+=("$rel_path")
-
-    # What the methodology says it covers, if it says anything at all. A page with no
-    # `Supported paths` section accepts whatever it is given, which is the behaviour from before
-    # the section existed.
-    require_supported_path "$METHODOLOGY" "$rel_path" "$FORCE" || exit 1
 done
 
-# Process each file
-for index in "${!FILES[@]}"; do
-    file="${FILES[$index]}"
+# One `realpath` for the whole list. It answers in the order it was asked, which is the order
+# everything below indexes the two lists by.
+mapfile -t RELATIVE_PATHS < <(realpath --relative-to="$REPO_ROOT" -- "${FILES[@]}")
+
+# What the methodology says it covers, if it says anything at all. A page with no
+# `Supported paths` section accepts whatever it is given, which is the behaviour from before
+# the section existed.
+#
+# Asked about every path in one question, and then explained one path at a time: the explanation is
+# a paragraph naming the file and printing every pattern with its prose, so it is worth printing
+# for the handful of paths that earned it and unbearable for the hundreds that did not.
+unsupported_paths "$METHODOLOGY" ${RELATIVE_PATHS[@]+"${RELATIVE_PATHS[@]}"}
+scope_status=$?
+if [ "$scope_status" -eq "$PATH_UNDECIDABLE" ]; then
+    # The page could not be read at all. That is one fact about the methodology rather than one per
+    # file, so it is put to the granter once, against the first path, and its answer settles them
+    # all -- the alternative being the same question several hundred times.
+    require_supported_path "$METHODOLOGY" "${RELATIVE_PATHS[0]}" "$FORCE" || exit 1
+else
+    for rel_path in ${UNSUPPORTED_PATHS[@]+"${UNSUPPORTED_PATHS[@]}"}; do
+        require_supported_path "$METHODOLOGY" "$rel_path" "$FORCE" || exit 1
+    done
+fi
+
+# Every hash in one `sha256sum`, which reads the files in the order it was given them. A grant is a
+# statement about file contents, so this is the one part of the work that is genuinely proportional
+# to what is being granted; what it must not also be is proportional in *processes*.
+mapfile -t FILE_HASHES < <(sha256sum -- "${FILES[@]}" | awk '{print $1}')
+
+# What the document already says, read once. Re-granting a file it already holds is not an error --
+# a granter naming a whole directory should not have to remember which of it they did last week --
+# so each one is reported and skipped.
+declare -A ALREADY_GRANTED=()
+while IFS= read -r granted_path; do
+    [ -n "$granted_path" ] && ALREADY_GRANTED["$granted_path"]=1
+done < <(granted_paths_under_methodology "$PERSONAL_DOC" "$METHODOLOGY")
+
+new_paths=()
+new_hashes=()
+for index in "${!RELATIVE_PATHS[@]}"; do
     rel_path="${RELATIVE_PATHS[$index]}"
 
-    # Calculate SHA256 hash
-    file_hash=$(sha256sum "$file" | awk '{print $1}')
-
-    print_info "Processing: $rel_path (SHA256: $file_hash)"
-    
-    # Check if file is already granted with this methodology
-    if file_granted_with_methodology "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path"; then
+    if [ -n "${ALREADY_GRANTED[$rel_path]:-}" ]; then
         print_warning "File '$rel_path' is already granted with methodology '$METHODOLOGY'"
         continue
     fi
-    
-    # Add file to the methodology section
-    add_file_grant_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$rel_path" "$file_hash"
 
+    new_paths+=("$rel_path")
+    new_hashes+=("${FILE_HASHES[$index]}")
     print_success "Granted '$rel_path' with methodology '$METHODOLOGY'"
 done
+
+if [ "${#new_paths[@]}" -eq 0 ]; then
+    print_info "Nothing to add: every file was already granted with methodology '$METHODOLOGY'"
+    exit 0
+fi
+
+# The entries, built in one pass and handed over in a file.
+#
+# `jq -Rn` with `inputs` reads the paths as raw lines, so no character in a path needs escaping
+# here and none is interpreted; the hashes are hexadecimal and go alongside by position. Doing this
+# per file instead would be one `jq` and two `yq` per file over a document that grows as the loop
+# runs, which is what made granting a test suite of several hundred files take minutes.
+entries_file=$(mktemp "${TMPDIR:-/tmp}/freeports-grant.XXXXXX") || exit 1
+hashes_file=$(mktemp "${TMPDIR:-/tmp}/freeports-grant.XXXXXX") || exit 1
+trap 'rm -f "$entries_file" "$hashes_file"' EXIT
+
+printf '%s\n' "${new_hashes[@]}" > "$hashes_file"
+printf '%s\n' "${new_paths[@]}" | jq -Rn --rawfile hashes "$hashes_file" '
+    [inputs] as $paths
+    | ($hashes | rtrimstr("\n") | split("\n")) as $sha
+    | [range(0; $paths | length) | {path: $paths[.], sha256: $sha[.]}]' > "$entries_file"
+
+add_file_grants_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$entries_file"
 
 print_success "Grant operation completed. Document updated: $PERSONAL_DOC"
 echo "Updating signature..."
