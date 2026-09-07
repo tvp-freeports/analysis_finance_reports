@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# What this repository has been vouched for, in whichever shape the answer has to go.
+#
+# One model and several renderings, which is why this script is barely more than a pipe: `collect`
+# establishes the facts and `report.py` draws them. Every rendering is a pure function of the same
+# JSON, so the four of them cannot drift into disagreeing about the repository, and the JSON itself
+# is one of them -- a question none of the others answers is a `jq` expression away rather than a
+# feature request.
+#
+#   freeports-validate report                              the model, on standard output
+#   freeports-validate report --format html --out c.html   a page to open
+#   freeports-validate report --format badges --out docs/badges/
+#   freeports-validate report --format markdown --out README.md
+#
+# The last one rewrites what is between two markers in a file somebody else wrote, and refuses to
+# guess where they should go -- see `report.py`.
+#
+# `--table` picks one of the seven arrangements the two text formats offer: the summary, and the
+# three lookup subcommands in both of each one's groupings. `report.py` lists them.
+#
+# `--model FILE` renders a model collected earlier instead of walking the repository again, and
+# `--model -` reads it from a pipe. A repository that keeps a README, six tables and three badges
+# up to date has nine artefacts to write out of one walk, and collecting nine times would be nine
+# resolutions of every methodology page over the network for one answer that cannot have changed
+# in between:
+#
+#   freeports-validate collect > model.json
+#   freeports-validate report --model model.json --format badges --out validation/report/badges/
+#   freeports-validate report --model model.json --format markdown --table methodology-file --out …
+#
+# Deliberately not a fallback: a `--model` naming a file that is not there is an error, not a
+# reason to walk the repository. A run that quietly answered a different question from the one
+# asked is the failure this whole command exists to avoid.
+#
+# It needs no signing key, for the same reason `check-grants` does not: the question is about the
+# repository, not about who is asking.
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+FORMAT="json"
+OUT=""
+TABLE=""
+MODEL=""
+
+usage="Usage: report [--format json|html|badges|markdown|rst] [--table NAME] [--model FILE] [--out PATH]"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --format | -f)
+            [ $# -ge 2 ] || { print_error "$1 needs a value"; exit 1; }
+            FORMAT="$2"
+            shift 2
+            ;;
+        --out | -o)
+            [ $# -ge 2 ] || { print_error "$1 needs a value"; exit 1; }
+            OUT="$2"
+            shift 2
+            ;;
+        --table | -t)
+            [ $# -ge 2 ] || { print_error "$1 needs a value"; exit 1; }
+            TABLE="$2"
+            shift 2
+            ;;
+        --model | -M)
+            [ $# -ge 2 ] || { print_error "$1 needs a value"; exit 1; }
+            MODEL="$2"
+            shift 2
+            ;;
+        *)
+            print_error "$usage"
+            exit 1
+            ;;
+    esac
+done
+
+# Collected first and kept, rather than piped straight through: a renderer that failed halfway
+# through a pipeline would leave the reader with the exit status of the renderer and no way to see
+# what the model said, and the model is the part that took the work to produce.
+model=$(mktemp "${TMPDIR:-/tmp}/freeports-validate-report.XXXXXX") || exit 1
+trap 'rm -f "$model"' EXIT
+
+case "$MODEL" in
+    "")
+        "$BIN_DIR/collect" > "$model" || exit 1
+        ;;
+    -)
+        cat > "$model" || exit 1
+        ;;
+    *)
+        # Copied rather than read in place, so everything below has one path to read from however
+        # the model arrived, and so a model on a filesystem that vanishes mid-run fails here --
+        # while there is still something to say about it -- rather than inside a renderer.
+        if [ ! -f "$MODEL" ]; then
+            print_error "No such model: $MODEL"
+            echo 'A --model is a file `freeports-validate collect` wrote, or - for standard input.'
+            exit 1
+        fi
+        cat -- "$MODEL" > "$model" || exit 1
+        ;;
+esac
+
+render=("$FORMAT")
+[ -n "$TABLE" ] && render+=(--table "$TABLE")
+
+if [ -n "$OUT" ]; then
+    python3 "${LIB_DIR}/report.py" "${render[@]}" --out "$OUT" < "$model" || exit 1
+    print_success "Wrote $FORMAT to $OUT"
+else
+    python3 "${LIB_DIR}/report.py" "${render[@]}" < "$model" || exit 1
+fi

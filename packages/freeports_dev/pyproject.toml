@@ -40,3 +40,10 @@ package-dir = {"" = "src"}
 # read at runtime live under `lib/`, not `data/`, so a non-editable install shipped none of them
 # and both commands failed with "data file not found".
 freeports_dev = ["py.typed", "data/**/*", "lib/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `src` first, so that what is tested is the working tree and not the copy `pip install` left in
+# the environment. Without it a change to `repo_init.py` would be checked against the previous
+# release of it, which is the one way a suite can pass while the code it names is broken.
+pythonpath = ["src"]

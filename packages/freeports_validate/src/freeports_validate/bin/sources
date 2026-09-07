@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# What your configuration actually resolves.
+#
+# A validation document records a methodology's *name* and its *hash*, and deliberately not the
+# source those came from: the source is a contract between the person who granted and the person who
+# verifies, and each of them writes it in their own configuration. The cost of that decision is that
+# a hash mismatch is ambiguous -- it may mean the page was rewritten, or merely that the two of you
+# read two publications of the same methodology -- and this subcommand is where the cost is paid
+# back. Two people can compare its output and see in one line which of the two it was.
+#
+# It needs no signing key. Reading what your own configuration resolves is not an act done in
+# anybody's name, and demanding a key for it would keep it out of exactly the situations it exists
+# for: continuous integration, and somebody auditing a repository they did not write.
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+require_sources || exit 1
+
+print_info "Methodology sources, in priority order"
+echo "=========================================="
+index=1
+for source in "${VALIDATE_SOURCES[@]}"; do
+    echo "  $index. $source"
+    index=$((index + 1))
+done
+echo ""
+echo "A name is resolved from the first source that offers it."
+echo ""
+
+# The names worth reporting, in the order a reader wants them: the general methodology first,
+# because every claim in every document is made under it; then whatever this repository's documents
+# actually adopted, which is the set a mismatch will be about; then anything named on the command
+# line.
+#
+# A *complete* list is not on offer, and pretending otherwise would be the wrong kind of helpful: a
+# remote source cannot be enumerated at all -- there is no way to ask a URL what else it serves --
+# so a listing would silently mean "the local ones" while looking like "all of them".
+# Two parallel arrays rather than one: a methodology has a *name*, which is what a person wrote in
+# a document and what they will type when they compare notes, and a *relative name*, which is what
+# a source pattern's `*` is replaced with. Reporting only the second would make this output
+# unsearchable against the document it is supposed to explain.
+labels=("the general methodology")
+relatives=("$(general_methodology_relative_name)")
+
+for doc in "$DOCUMENT_DIR"/*.yaml; do
+    [ -f "$doc" ] || continue
+    while IFS= read -r adopted; do
+        [ -n "$adopted" ] || continue
+        labels+=("$adopted")
+        relatives+=("$(methodology_relative_name "$adopted")")
+    done < <(yq -r '.methodologies[]?.name // empty' "$doc" 2>/dev/null)
+done
+
+for argument in "$@"; do
+    labels+=("$(normalize_methodology_name "$argument")")
+    relatives+=("$(methodology_relative_name "$argument")")
+done
+
+# Deduplicated while keeping the order, so a methodology adopted by three contributors is reported
+# once rather than three times.
+declare -A seen=()
+unique_labels=()
+unique_relatives=()
+for i in "${!relatives[@]}"; do
+    relative="${relatives[$i]}"
+    [ -n "${seen[$relative]:-}" ] && continue
+    seen[$relative]=1
+    unique_labels+=("${labels[$i]}")
+    unique_relatives+=("$relative")
+done
+
+print_info "What each name resolves to here"
+echo "=========================================="
+
+for i in "${!unique_relatives[@]}"; do
+    label="${unique_labels[$i]}"
+    name="${unique_relatives[$i]}"
+    echo ""
+    echo "$label"
+    echo "  as:     $name"
+
+    resolution=$(resolve_relative_name "$name")
+    status=$?
+
+    if [ "$status" -eq "$SOURCE_UNRESOLVED" ]; then
+        print_warning "  no configured source offers it"
+        continue
+    fi
+    if [ "$status" -ne 0 ]; then
+        print_warning "  could not be reached, so it could not be hashed"
+        continue
+    fi
+
+    { read -r uri; read -r path; read -r origin; } <<<"$resolution"
+    echo "  from:   $uri"
+    echo "  sha256: $(sha256_of_file "$path")"
+    case "$origin" in
+        cache) echo "  note:   answered from the cache; nothing was fetched" ;;
+    esac
+
+    # The failure this exists to prevent: you edit a methodology page, nothing changes, and there is
+    # nothing anywhere saying why. It happens as soon as two sources offer the same name, which is
+    # exactly the arrangement the list tier was added for -- the published documentation plus your
+    # own -- so it is not an exotic case.
+    shadowed=false
+    for candidate in $(candidate_uris "$name"); do
+        [ "$candidate" = "$uri" ] && continue
+        candidate_path=$(local_path_of "$candidate")
+        if [ -n "$candidate_path" ] && [ -f "$candidate_path" ]; then
+            [ "$shadowed" = false ] && echo "  shadows:"
+            shadowed=true
+            echo "            $candidate"
+        fi
+    done
+done
+
+echo ""

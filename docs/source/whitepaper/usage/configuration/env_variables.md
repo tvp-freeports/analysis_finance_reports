@@ -30,6 +30,18 @@ Two further prefixes exist and belong to the other two commands, not to the engi
 mirror the `dev:` and `validate:` sections of the configuration file one for one, and are documented
 in {doc}`../../formats/configuration`.
 
+| Variable | Setting |
+|---|---|
+| `FREEPORTS_DEV_TARGET_LIST` | `dev.target_lists` — **one** element, the whole raw value |
+| `FREEPORTS_DEV_NOCONFIRM`, `FREEPORTS_DEV_PAGE_TYPE` | `dev.noconfirm`, `dev.page_type` |
+| `FREEPORTS_VALIDATE_KEY_ID` | `validate.key_id` |
+| `FREEPORTS_VALIDATE_SOURCE` | `validate.sources` — **one** source, the whole raw value |
+| `FREEPORTS_VALIDATE_OFFLINE`, `FREEPORTS_VALIDATE_DEEP` | `validate.offline`, `validate.deep` |
+
+Note the two singulars. `FREEPORTS_DEV_TARGET_LIST` and `FREEPORTS_VALIDATE_SOURCE` feed settings
+that are lists, and neither is ever split — see the rule at the foot of this page, which they both
+follow for the same reason.
+
 ## Rules of the environment
 **An absent variable leaves its option unset**, and is never an error.
 
@@ -62,7 +74,12 @@ only in the name that appears in the error.
 **Several documents** in `FREEPORTS_REPORTS` are separated by a pipe, `|` — the same separator a
 batch cell uses, and one constant in the code rather than two literals that could drift apart.
 
-## `FREEPORTS_TARGET_LIST` is never split
+## A list variable is never split
 `FREEPORTS_TARGET_LIST` becomes a **one-element** list holding the whole raw value, whatever is in
 it. A name containing a comma, or a pipe, still names one list. To use several lists, use a source
 that has a list type — the command line, or the YAML file.
+
+`FREEPORTS_DEV_TARGET_LIST` and `FREEPORTS_VALIDATE_SOURCE` follow the same rule, and the second is
+the clearest case for it: every separator one might pick — comma, colon, space, semicolon — is a
+legal character in a URI or a path, so splitting would turn one source the user meant into two that
+do not exist.

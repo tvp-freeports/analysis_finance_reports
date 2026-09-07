@@ -42,6 +42,70 @@ pages in this documentation are not editable prose.** Correcting a typo in one o
 signed grants in repositories maintained by other people. Changing them is a deliberate operation —
 re-granting and re-signing — not an act of tidying.
 
+## A methodology is a document at a location you chose to trust
+
+A methodology page does not ship with the tool, and it does not live in the repository being
+vouched for. It is **published somewhere**, and each person who uses it configures where they read
+it from — one or more *sources*, patterns like
+`https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`, in which a `*` stands for the
+methodology's name.
+
+The pages used to travel inside the installed command, and the reason for moving them is worth
+following, because the same reasoning explains what a grant means now. When the text lived in the
+package, upgrading `freeports-validate` silently changed what every grant in every repository
+referred to: a claim you made in March could come to mean something else in April because your
+package manager updated something. The text a claim is about should not be chosen by a package
+manager.
+
+So it is chosen by you. And the consequence — the honest half of the trade — is that whoever
+publishes a methodology can now invalidate grants made under it, by editing the page. That is not a
+flaw that survived review; it is the correct shape of the thing. A methodology *is* a text, a grant
+*is* a claim about that text, and the person who controls the text therefore controls what the claim
+meant. Making that visible is better than hiding it inside a version number.
+
+### The source is a contract, and it is deliberately not recorded
+
+A validation document stores a methodology's **name** and its **sha256**. It stores nothing about
+where either came from.
+
+That looks like a missing field and is a decision. The source is an agreement between the person who
+granted and the person who verifies, and each of them writes it in their own configuration — the
+granter chose which publication of a methodology they were working under, and the verifier chooses
+which publication they are checking against. Recording the granter's source inside the document
+would make the document assert something about the verifier's setup that it has no standing to
+assert, and would quietly turn a shared name into a URL that has to keep working for ever.
+
+The price is that a hash mismatch is ambiguous. It may mean the page was rewritten; it may mean the
+two of you were reading two different publications of the same methodology. The tool pays that price
+in prose rather than in schema: a mismatch names a differently-configured source as the first likely
+cause, and prints the sources in use with the URI the name resolved to, so two people can compare
+one line and see which of the two it was.
+
+```console
+$ freeports-validate sources
+```
+
+### What a methodology may say about itself
+
+Two optional things on the page are read by the tool rather than only by people, and both exist to
+make a grant more legible rather than to constrain it.
+
+A **`Supported paths`** section declares which repository paths the methodology covers, each with a
+sentence saying what vouching for such a file claims. A page that has no such section covers any
+path, which is the honest answer for a methodology — `agreement and good faith` is the example —
+whose scope cannot be written as a set of paths. Where a section exists and a grant falls outside
+it, `grant` refuses while its author is still standing there, and `check-grants` only warns: a
+repository must not go red because somebody else edited a page it adopts.
+
+A page may also **pin what it cites** — a diagram, a specification, another document — by hash, in
+ordinary reStructuredText comments. Those lines are part of the page, so the page's own hash already
+commits to them; following them is a deepening, never a second thing to trust. A check does follow
+them by default, because "do the things this page relies on still say what its author read" is the
+question actually being asked; `--no-deep` turns that off where the fetch per pinned resource is
+what you cannot afford.
+
+{doc}`formats/writing-a-methodology` is the guide to writing one.
+
 ## The three published methodologies
 A methodology says what a person actually did before vouching. Three are published today, and they
 differ in how much verification they claim, not in how much they promise:
@@ -85,8 +149,14 @@ To find out who stands behind something: `who-grants <file>`, `granted-by <contr
 vouch, and it should be run by someone who has confirmed the change was expected — it is not the way
 to silence a `check-grants` failure.
 
-{doc}`formats/tooling` is the operating manual for all of this: what to install, how to generate and
-register the GPG key the whole mechanism hangs on, and what each subcommand does to the document.
+To see the state of a whole repository rather than of one file or one person: `report` renders the
+same three viewpoints as a page, as badges, or as a table it rewrites into a README, out of a model
+`collect` prints as JSON for anything the renderings did not anticipate.
+
+{doc}`formats/tooling` is the operating manual for all of this: what to install, where methodology
+pages are resolved from, how to generate and register the GPG key the whole mechanism hangs on, and
+what each subcommand does to the document. {doc}`formats/writing-a-methodology` is the other side of
+it — writing the text that grants are made under.
 
 ## What this does not give you
 

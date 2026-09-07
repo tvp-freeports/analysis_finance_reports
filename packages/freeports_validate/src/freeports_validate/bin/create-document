@@ -3,7 +3,17 @@ source "${FREEPORTS_VALIDATE_LIB}/utils"
 
 require_key
 
-VERSION=$(get_version_methodology)
+# Resolved before anything else, and fatal when it fails. A document whose `version` is empty is
+# not a document -- every claim it will ever hold is made under the general methodology, and there
+# is nothing to make them under until this succeeds.
+resolution=$(resolve_general_methodology) || resolution_status=$?
+if [ -n "${resolution_status:-}" ]; then
+    report_methodology_resolution "$resolution_status" "The general methodology" "true"
+    print_diagnoses
+    exit 1
+fi
+VERSION=$(sha256_of_file "$(echo "$resolution" | sed -n 2p)")
+
 if [ -f "${PERSONAL_DOC}" ]; then
     print_error "File \"${PERSONAL_DOC}\" already present, refuse to overwrite"
     echo "Delete the file before creating a new one"
@@ -18,12 +28,51 @@ concrete_yaml(){
 
 print_info "Creating validation document: $(basename "$PERSONAL_DOC")"
 
-# Create document with schema validation
-if (concrete_yaml | check-jsonschema --schemafile "${LIB_DIR}/document.schema.json" --default-filetype yaml - 1> /dev/null); then
-    concrete_yaml > "${PERSONAL_DOC}"
-    print_success "Validation document created successfully: $PERSONAL_DOC"
-    echo "Remember to sign the document with 'sign-document' to make it valid"
-else
+# Built once and held, rather than built twice -- once to check and once to write. Two runs of the
+# same generator are two chances to disagree, and the document that gets checked should be the one
+# that gets written.
+document=$(concrete_yaml)
+
+# Checked before it is written, so a document that would not pass the schema never reaches the
+# repository at all.
+if ! printf '%s\n' "$document" | check-jsonschema --schemafile "${LIB_DIR}/document.schema.json" --default-filetype yaml - 1> /dev/null; then
     print_error "Failed to create valid validation document"
     exit 1
 fi
+
+# `init-format-repo` lays down `validation/` with the rest of the skeleton, so it is normally here
+# already; a repository assembled by hand has no reason to be refused, since this directory is
+# exactly what the subcommand is about to put something in.
+#
+# But a *missing* `validation/` is also what a misresolved repository root looks like, and creating
+# one is how a wrong root gets written into the tree instead of reported. So the root has to look
+# like a formats repository first, by the same signal `freeports-dev` uses -- and a root that does
+# not is named and refused rather than populated. Creating the directory is announced even when it
+# is allowed, because it should happen once in a repository's life.
+if [ ! -d "$DOCUMENT_DIR" ]; then
+    if [ ! -f "$REPO_ROOT/metadata/formats.csv" ]; then
+        print_error "$REPO_ROOT does not appear to be a formats repository (missing metadata/formats.csv)"
+        echo "A validation document belongs at the root of a formats repository, and this run would"
+        echo "have created one at:"
+        echo "    $DOCUMENT_DIR"
+        echo "Name the right repository with --repo, or check the formats_repo setting in your"
+        echo "configuration file: a relative path there is read against the file's own directory."
+        exit 1
+    fi
+    print_info "Creating the validation directory, which this repository does not have yet: $DOCUMENT_DIR"
+    if ! mkdir -p "$DOCUMENT_DIR"; then
+        print_error "Cannot create the validation directory: $DOCUMENT_DIR"
+        exit 1
+    fi
+fi
+
+# The claim of success is made about the write. It used to be made about the schema check above it,
+# with the write in between and its result unexamined -- so a failed redirection printed the shell's
+# own error and then "created successfully" directly over the top of it, and exited zero.
+if ! printf '%s\n' "$document" > "$PERSONAL_DOC"; then
+    print_error "Failed to write the validation document: $PERSONAL_DOC"
+    exit 1
+fi
+
+print_success "Validation document created successfully: $PERSONAL_DOC"
+echo "Remember to sign the document with 'sign-document' to make it valid"

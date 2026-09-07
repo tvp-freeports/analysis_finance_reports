@@ -458,4 +458,28 @@ impl PyFreeportsFileConfig {
     fn validate_key_id(&self) -> Option<String> {
         self.1.validate.key_id.clone()
     }
+
+    /// `validate.sources` — where methodology pages are resolved from, in priority order.
+    ///
+    /// A list, and handed over as one: `freeports-validate` resolves a name from the first source
+    /// that offers it, so the order this arrives in is the order the file was written in.
+    #[getter]
+    #[pyo3(name = "VALIDATE_SOURCES")]
+    fn validate_sources(&self) -> Option<Vec<String>> {
+        self.1.validate.sources.clone()
+    }
+
+    /// `validate.offline` — never fetch a methodology page; answer from the cache.
+    #[getter]
+    #[pyo3(name = "VALIDATE_OFFLINE")]
+    fn validate_offline(&self) -> Option<bool> {
+        self.1.validate.offline
+    }
+
+    /// `validate.deep` — also verify the resources a methodology page pins by sub-hash.
+    #[getter]
+    #[pyo3(name = "VALIDATE_DEEP")]
+    fn validate_deep(&self) -> Option<bool> {
+        self.1.validate.deep
+    }
 }

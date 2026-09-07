@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# Re-pin the resources a local methodology page cites.
+#
+# This is the one command in the set whose job is to *change* what a methodology means, and it is a
+# separate command for exactly that reason. Rewriting a page's `.. sha256:` comments changes the
+# page, which changes the page's own hash, which invalidates every grant anybody has ever signed
+# under it. That is not a side effect to be folded into `update`; it is the whole event, and the
+# person running it should be looking at it.
+#
+# It refuses to touch a page it did not find on this machine as a file you can edit. A URI names
+# somebody else's page, and the cache holds a copy of one -- editing either would produce a text
+# whose hash matches nothing anybody published, which is the one artefact this mechanism must never
+# manufacture.
+#
+# It needs no signing key: it edits a document, it does not vouch for one.
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+if [ $# -ne 1 ]; then
+    print_error "Usage: $0 <page.rst>"
+    echo "  The page must be a local file: this command rewrites it in place." >&2
+    exit 1
+fi
+
+PAGE="$1"
+
+case "$PAGE" in
+    *://*)
+        print_error "Not a local page: $PAGE"
+        echo "This command rewrites a file, and a URI names a page published by somebody else." >&2
+        echo "Check theirs with \`freeports-validate check-methodology --deep\`; re-pin your own" >&2
+        echo "by giving the path of the source file you edit." >&2
+        exit 1
+        ;;
+esac
+
+if [ ! -f "$PAGE" ]; then
+    print_error "No such page: $PAGE"
+    exit 1
+fi
+
+PAGE_FILE=$(realpath "$PAGE")
+
+case "$PAGE_FILE/" in
+    "$(realpath -m "$SOURCE_CACHE")"/*)
+        print_error "That is a cached copy of somebody else's page: $PAGE"
+        echo "The cache holds what was fetched from a source, so that a hash can still be checked" >&2
+        echo "without a network. Editing it would produce a text whose hash matches nothing anyone" >&2
+        echo "published, and the next fetch would overwrite it anyway." >&2
+        exit 1
+        ;;
+esac
+
+PAGE_URI="file://${PAGE_FILE}"
+
+before=$(sha256_of_file "$PAGE_FILE")
+
+load_page_report_from_file "$PAGE_FILE"
+if [ "$PAGE_REPORT_JSON" = "$PAGE_UNREADABLE" ]; then
+    print_error "The page could not be read: $PAGE"
+    exit 1
+fi
+
+print_info "Re-pinning what \"$(basename "$PAGE_FILE")\" cites"
+echo "=========================================="
+
+hashes=$(mktemp "${TMPDIR:-/tmp}/freeports-validate-pins.XXXXXX") || exit 1
+trap 'rm -f "$hashes"' EXIT
+
+unreachable=0
+while IFS= read -r target; do
+    [ -n "$target" ] || continue
+    status=0
+    digest=$(link_target_sha256 "$target" "$PAGE_URI") || status=$?
+    if [ "$status" -ne 0 ]; then
+        # The pin it already has is kept, not dropped: turning a network failure into a withdrawn
+        # claim would be the quietest possible way to lose one.
+        print_warning "$target: could not be fetched, so its pin is left exactly as it was"
+        unreachable=$((unreachable + 1))
+        continue
+    fi
+    echo "  $target"
+    echo "    $digest"
+    printf '%s %s\n' "$target" "$digest" >> "$hashes"
+done < <(page_cited_targets "$PAGE_REPORT_JSON")
+
+rewritten=$(mktemp "${PAGE_FILE}.XXXXXX") || exit 1
+if ! python3 "${LIB_DIR}/rst_paths.py" pin "$hashes" < "$PAGE_FILE" > "$rewritten"; then
+    rm -f "$rewritten"
+    print_error "The page could not be rewritten: $PAGE"
+    exit 1
+fi
+
+# Compared rather than moved unconditionally, so that a page which needed nothing is left untouched
+# -- same bytes, same timestamp -- and "nothing changed" is a fact about the file and not just about
+# its contents.
+if cmp -s "$PAGE_FILE" "$rewritten"; then
+    rm -f "$rewritten"
+    print_success "Nothing changed: every pin was already current"
+    [ "$unreachable" -gt 0 ] && exit 0
+    exit 0
+fi
+
+mv "$rewritten" "$PAGE_FILE"
+after=$(sha256_of_file "$PAGE_FILE")
+
+echo ""
+print_success "Re-pinned: $PAGE"
+echo "  was: $before"
+echo "  now: $after"
+echo ""
+print_error "The page has changed, so every grant made under it is now invalid."
+echo "That is the mechanism working, not a bookkeeping nuisance: a grant is a claim about a" >&2
+echo "text, and this is a different text. Everyone who adopted this methodology will see a" >&2
+echo "hash mismatch until they have read what changed and run" >&2
+echo "    freeports-validate update methodology \"<name>\"" >&2
+echo "which drops every file they had granted under it. If that is not what you intended, the" >&2
+echo "old page is still in your version control." >&2

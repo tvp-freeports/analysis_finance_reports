@@ -37,7 +37,15 @@ tests/
   formats/<FORMAT>/out/…         the expected output tables
   input_db/                      the companies the tests look for
 validation/                      who vouches for what, and under which methodology
+  report/<table>.md              the same claims, one page per arrangement — generated
+  report/badges/                 the three badges the README shows — generated
+README.md                        the front page: badges, the summary table, links to the six pages
+.githooks/pre-commit             the tests, then a refresh of everything marked "generated" above
 ```
+
+Everything marked *generated* is rewritten by `freeports-validate report`, between two markers, and
+what is between them is replaced whole — see {ref}`what-init-format-repo-writes`. Text of your own
+outside the markers is kept.
 
 ## The `metadata/` tables
 `metadata/formats.csv` lists the formats by their **components**, not by their names:

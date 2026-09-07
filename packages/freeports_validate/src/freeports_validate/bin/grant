@@ -7,12 +7,22 @@ require_key
 METHODOLOGY=""
 FILES=()
 
+# Overrides the two refusals a methodology's `Supported paths` section can produce -- a path the
+# methodology does not declare, and a page that could not be resolved at all. Both are judgements
+# the person signing is entitled to make; what the flag cannot do is make them silently, since the
+# refusal is printed either way.
+FORCE=false
+
 # Parse arguments
 while [ $# -gt 0 ]; do
     case $1 in
         with)
             shift
             METHODOLOGY="$1"
+            shift
+            ;;
+        --force)
+            FORCE=true
             shift
             ;;
         *)
@@ -23,7 +33,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$METHODOLOGY" ]; then
-    print_error "Usage: $0 <files...> [with <methodology>]"
+    print_error "Usage: $0 [--force] <files...> [with <methodology>]"
     exit 1
 fi
 
@@ -55,17 +65,19 @@ if [ ${#FILES[@]} -eq 0 ]; then
         exit 0
     fi
     
-    # Get methodology file path and calculate hash
-    methodology_file=$(echo "$METHODOLOGY" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-    methodology_path="$METHODOLOGY_DIR/methodologies/${methodology_file}.rst"
-    
-    if [ ! -f "$methodology_path" ]; then
-        print_error "Methodology file '$methodology_path' does not exist"
-        echo "Please create the methodology documentation first"
+    # The hash is of the text a *source* offers, not of a file this command carries. Adopting a
+    # methodology is therefore a statement about a published document, and this is the moment the
+    # granter commits to which publication of it they mean.
+    resolution=$(resolve_methodology "$METHODOLOGY") || resolution_status=$?
+    if [ -n "${resolution_status:-}" ]; then
+        report_methodology_resolution "$resolution_status" "Methodology '$METHODOLOGY'" "true"
+        print_diagnoses
         exit 1
     fi
-    
-    methodology_hash=$(sha256sum "$methodology_path" | awk '{print $1}')
+    methodology_uri=$(echo "$resolution" | sed -n 1p)
+    methodology_hash=$(sha256_of_file "$(echo "$resolution" | sed -n 2p)")
+    print_info "Resolved from: $methodology_uri"
+
     
     # Add methodology to methodologies list
     add_methodology_to_document "$PERSONAL_DOC" "$METHODOLOGY" "$methodology_hash"
@@ -86,19 +98,36 @@ if ! methodology_exists "$PERSONAL_DOC" "$METHODOLOGY"; then
     exit 1
 fi
 
-# Process each file
+# Nothing is written until every file has passed.
+#
+# A grant is one act: the document is modified file by file and signed once at the end, so stopping
+# halfway would leave a document that had been changed and not signed -- the state `check-grants`
+# reports as "no signature found", reached by a command that was doing what it was told. Asking
+# every question first costs one extra pass over a handful of paths.
+RELATIVE_PATHS=()
 for file in "${FILES[@]}"; do
     if [ ! -f "$file" ]; then
         print_error "File '$file' does not exist"
         exit 1
     fi
-    
+
+    rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
+    RELATIVE_PATHS+=("$rel_path")
+
+    # What the methodology says it covers, if it says anything at all. A page with no
+    # `Supported paths` section accepts whatever it is given, which is the behaviour from before
+    # the section existed.
+    require_supported_path "$METHODOLOGY" "$rel_path" "$FORCE" || exit 1
+done
+
+# Process each file
+for index in "${!FILES[@]}"; do
+    file="${FILES[$index]}"
+    rel_path="${RELATIVE_PATHS[$index]}"
+
     # Calculate SHA256 hash
     file_hash=$(sha256sum "$file" | awk '{print $1}')
-    
-    # Get relative path from repo root
-    rel_path=$(realpath --relative-to="$REPO_ROOT" "$file")
-    
+
     print_info "Processing: $rel_path (SHA256: $file_hash)"
     
     # Check if file is already granted with this methodology

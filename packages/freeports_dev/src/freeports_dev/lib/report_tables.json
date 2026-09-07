@@ -1,0 +1,32 @@
+[
+    {
+        "table": "file-contributor",
+        "title": "By file — who vouched for it",
+        "mirrors": "freeports-validate who-grants <file>"
+    },
+    {
+        "table": "file-methodology",
+        "title": "By file — under which methodology",
+        "mirrors": "freeports-validate who-grants -m <file>"
+    },
+    {
+        "table": "contributor-methodology",
+        "title": "By contributor — the methodologies they used",
+        "mirrors": "freeports-validate granted-by <contributor>"
+    },
+    {
+        "table": "contributor-file",
+        "title": "By contributor — the files they vouched for",
+        "mirrors": "freeports-validate granted-by -f <contributor>"
+    },
+    {
+        "table": "methodology-file",
+        "title": "By methodology — the files it covers",
+        "mirrors": "freeports-validate granted-with <methodology>"
+    },
+    {
+        "table": "methodology-contributor",
+        "title": "By methodology — who adopted it",
+        "mirrors": "freeports-validate granted-with -c <methodology>"
+    }
+]

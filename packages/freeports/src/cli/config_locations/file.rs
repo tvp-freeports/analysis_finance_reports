@@ -61,6 +61,9 @@
 //! | `dev.noconfirm` | skip `make-tests` confirmation prompts |
 //! | `dev.page_type` | the default page type for `make-tests` and `inspect-page` |
 //! | `validate.key_id` | the GPG key identifying the person signing grants |
+//! | `validate.sources` | where methodology pages are resolved from, in priority order |
+//! | `validate.offline` | never fetch a methodology; use what has already been cached |
+//! | `validate.deep` | also verify the resources a methodology page pins by sub-hash (on unless set to false) |
 //!
 //! Everything shared between the three commands — `formats_repo` and `db_path` above all — stays at
 //! the **top level**, where all three read it. That is what makes the repository path something you
@@ -117,13 +120,40 @@ pub struct DevFileConfig {
 
 /// The `validate` section: what `freeports-validate` reads from the configuration file.
 ///
-/// One field today, and that is not an accident of scope: the key identifying the signer is the
-/// only thing the tool needs told and cannot work out, and it is the thing worth writing down once
-/// rather than exporting from a shell profile.
+/// Two fields, and they are the two things the tool has to be told and cannot work out: who is
+/// signing, and which texts the grants are made under. Both are worth writing down once rather than
+/// exporting from a shell profile, and the second is more than a convenience -- the pages no longer
+/// ship with the command, so a file that says nothing about `sources` is a file that accepts the
+/// published documentation as the text every hash in it refers to.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ValidateFileConfig {
     /// The GPG key the grants are signed with, in any form `gpg --list-keys` accepts.
     pub key_id: Option<String>,
+    /// Where methodology pages are resolved from: patterns containing exactly one `*`, which stands
+    /// for the methodology-relative name (`general_methodology`, `methodologies/basic_check`).
+    ///
+    /// **Order is priority** -- a name comes from the first source that offers it -- so this list is
+    /// reported exactly as written, neither sorted nor deduplicated: reordering it would change
+    /// which text a stored hash refers to, silently.
+    ///
+    /// A list even when it holds one entry. Accepting a bare scalar as a one-element list would make
+    /// the separator question ("is `a, b` one source or two?") a guess, and the answer this project
+    /// has already settled on for `dev.target_lists` is that a value is never split.
+    pub sources: Option<Vec<String>>,
+    /// Never fetch a methodology page: answer from the cache, and say so where a check depended on
+    /// it. A setting rather than only a flag because a machine can be permanently without the
+    /// network -- an air-gapped build, or a continuous-integration runner with no egress -- and
+    /// that is a property of the machine, written once, not something to remember on every run.
+    pub offline: Option<bool>,
+    /// Also follow a methodology page's own pinned links and images, and check each against the
+    /// `.. sha256:` comment that pins it.
+    ///
+    /// A setting rather than only a flag for the same reason `offline` is one: how thorough a check
+    /// should be is a standing preference of the person or the machine doing the checking -- an
+    /// auditor who wants every claim verified transitively wants it every time -- not a decision to
+    /// retake at each invocation. It costs a fetch per pinned resource, which is why it is off
+    /// unless something asks for it.
+    pub deep: Option<bool>,
 }
 
 /// The two tooling sections together, kept apart from [`PartialConfig`]; see the module
@@ -381,6 +411,9 @@ fn validate_section(path: &Path, value: &serde_yaml::Value) -> Result<ValidateFi
     for (key, entry) in mapping {
         match key.as_str().unwrap_or_default() {
             "key_id" => config.key_id = Some(value_as_string(path, "validate.key_id", entry)?),
+            "sources" => config.sources = Some(value_as_string_list(path, "validate.sources", entry)?),
+            "offline" => config.offline = Some(value_as_bool(path, "validate.offline", entry)?),
+            "deep" => config.deep = Some(value_as_bool(path, "validate.deep", entry)?),
             other => {
                 return Err(FileConfigError::UnknownKey { path: path.to_path_buf(), key: format!("validate.{other}") });
             }
@@ -1080,6 +1113,141 @@ mod tests {
             fn an_unquoted_all_digit_key_id_is_a_typed_error_rather_than_a_silent_misread() {
                 let dir = tempfile::tempdir().unwrap();
                 let path = write(dir.path(), "cfg.yaml", "validate:\n  key_id: 12345678\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+            #[test]
+            fn the_sources_are_read_as_a_list_in_the_order_written() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  sources:\n    - ../mine/*.rst\n    - https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt\n",
+                );
+                assert_eq!(
+                    load_tooling(Some(&path)).unwrap().validate.sources,
+                    Some(vec![
+                        "../mine/*.rst".to_string(),
+                        "https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt".to_string(),
+                    ])
+                );
+            }
+
+            /// Order is priority: a name is resolved from the first source that offers it, so a
+            /// reader that sorted or deduplicated the list would silently change which page a
+            /// hash was computed over.
+            #[test]
+            fn the_written_order_is_preserved_even_when_it_is_not_sorted() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [c/*.rst, a/*.rst, b/*.rst]\n");
+                assert_eq!(
+                    load_tooling(Some(&path)).unwrap().validate.sources,
+                    Some(vec!["c/*.rst".to_string(), "a/*.rst".to_string(), "b/*.rst".to_string()])
+                );
+            }
+
+            /// A single source is still a list. The alternative -- accepting a bare scalar as a
+            /// one-element list -- would make `sources: a, b` mean one source with a comma in it,
+            /// which is exactly the trap `FREEPORTS_TARGET_LIST` documents in the environment tier.
+            #[test]
+            fn a_scalar_is_a_typed_error_rather_than_a_one_element_list() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: ../mine/*.rst\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+
+            #[test]
+            fn a_non_string_entry_is_a_typed_error_not_a_panic() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [../mine/*.rst, 12]\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+
+            /// Reported faithfully rather than folded into `None`: "the file names no source" and
+            /// "the file has no `sources` key" are the same decision for the command, but it is the
+            /// command's decision to make, and this layer only says what the file says.
+            #[test]
+            fn an_empty_list_is_read_as_an_empty_list() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: []\n");
+                assert_eq!(load_tooling(Some(&path)).unwrap().validate.sources, Some(vec![]));
+            }
+
+            #[test]
+            fn the_two_validate_keys_are_read_from_the_same_section() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(
+                    dir.path(),
+                    "cfg.yaml",
+                    "validate:\n  key_id: DEADBEEF\n  sources: [../mine/*.rst]\n",
+                );
+                let validate = load_tooling(Some(&path)).unwrap().validate;
+                assert_eq!(validate.key_id, Some("DEADBEEF".to_string()));
+                assert_eq!(validate.sources, Some(vec!["../mine/*.rst".to_string()]));
+            }
+
+            #[test]
+            fn a_key_left_out_stays_unset_rather_than_taking_a_value() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  sources: [../mine/*.rst]\n");
+                let validate = load_tooling(Some(&path)).unwrap().validate;
+                assert_eq!(validate.key_id, None);
+                assert_eq!(validate.offline, None);
+            }
+
+            #[test]
+            fn deep_is_read_either_way_round() {
+                let dir = tempfile::tempdir().unwrap();
+                let yes = write(dir.path(), "yes.yaml", "validate:\n  deep: true\n");
+                let no = write(dir.path(), "no.yaml", "validate:\n  deep: false\n");
+                assert_eq!(load_tooling(Some(&yes)).unwrap().validate.deep, Some(true));
+                assert_eq!(load_tooling(Some(&no)).unwrap().validate.deep, Some(false));
+            }
+
+            /// The same distinction `offline` draws, and it matters for the same reason: a file
+            /// saying `deep: false` is overriding whatever a weaker tier said, while a file with no
+            /// `deep` key is declining to have an opinion about it at all.
+            #[test]
+            fn deep_written_false_is_not_the_same_as_deep_left_out() {
+                let dir = tempfile::tempdir().unwrap();
+                let written = write(dir.path(), "written.yaml", "validate:\n  deep: false\n");
+                let absent = write(dir.path(), "absent.yaml", "validate:\n  key_id: DEADBEEF\n");
+                assert_eq!(load_tooling(Some(&written)).unwrap().validate.deep, Some(false));
+                assert_eq!(load_tooling(Some(&absent)).unwrap().validate.deep, None);
+            }
+
+            #[test]
+            fn a_non_boolean_deep_is_a_typed_error() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  deep: sometimes\n");
+                assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
+            }
+
+            #[test]
+            fn offline_is_read_either_way_round() {
+                let dir = tempfile::tempdir().unwrap();
+                let yes = write(dir.path(), "yes.yaml", "validate:\n  offline: true\n");
+                let no = write(dir.path(), "no.yaml", "validate:\n  offline: false\n");
+                assert_eq!(load_tooling(Some(&yes)).unwrap().validate.offline, Some(true));
+                assert_eq!(load_tooling(Some(&no)).unwrap().validate.offline, Some(false));
+            }
+
+            /// `false` and "unset" are different answers: the first overrides nothing above it in
+            /// the merge, the second is a file that declines to have an opinion.
+            #[test]
+            fn offline_written_false_is_not_the_same_as_offline_left_out() {
+                let dir = tempfile::tempdir().unwrap();
+                let no = write(dir.path(), "no.yaml", "validate:\n  offline: false\n");
+                let silent = write(dir.path(), "silent.yaml", "validate:\n  key_id: DEADBEEF\n");
+                assert_ne!(
+                    load_tooling(Some(&no)).unwrap().validate.offline,
+                    load_tooling(Some(&silent)).unwrap().validate.offline
+                );
+            }
+
+            #[test]
+            fn a_non_boolean_offline_is_a_typed_error_not_a_panic() {
+                let dir = tempfile::tempdir().unwrap();
+                let path = write(dir.path(), "cfg.yaml", "validate:\n  offline: sometimes\n");
                 assert!(matches!(load_tooling(Some(&path)), Err(FileConfigError::InvalidValue { .. })));
             }
         }

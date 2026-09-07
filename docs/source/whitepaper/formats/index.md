@@ -17,6 +17,7 @@ what you put in one and how you work on it. Why they live outside is {doc}`../de
 
 tutorials/index
 writing-a-format
+writing-a-methodology
 levels/structured
 levels/semistructured
 levels/unstructured
@@ -32,6 +33,7 @@ configuration
 |---|---|
 | {doc}`tutorials/index` | walked-through examples: a first format, and diagnosing one that misbehaves |
 | {doc}`writing-a-format` | the whole path of adding support for a new report |
+| {doc}`writing-a-methodology` | writing the text a grant is made under, and publishing it |
 | {doc}`levels/structured` | rows in a spreadsheet, no code |
 | {doc}`levels/semistructured` | a named algorithm plus YAML |
 | {doc}`levels/unstructured` | a Python module, when a layout resists parameterisation |

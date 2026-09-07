@@ -41,11 +41,19 @@ if [ $# -eq 0 ]; then
         fi
     fi
 
+    # Once, for the whole run: the same stale methodology page fails in every contributor's
+    # document, and the reader needs to be told what that means one time, not once each.
+    #
+    # Printed whether or not the run failed, because not every diagnosis is a failure. A methodology
+    # that could not be reached is a warning, and a warning nobody explains is a warning nobody acts
+    # on -- which is precisely the state this run is in when it exits zero with a page unexamined.
     if [ $overall_errors -eq 0 ]; then
         print_success "All validation documents passed verification"
+        print_diagnoses
         exit 0
     else
         print_error "Some validation documents have errors"
+        print_diagnoses
         exit 1
     fi
 else
@@ -61,5 +69,7 @@ else
     fi
 
     validate_document_comprehensive "$doc_path"
-    exit $?
+    status=$?
+    print_diagnoses
+    exit $status
 fi

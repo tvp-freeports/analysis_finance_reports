@@ -58,6 +58,32 @@ def _first(*candidates):
     return None
 
 
+def _from_config_dir(value, config_path):
+    """A path the configuration file gave, made absolute against the file's own directory.
+
+    Each tier is resolved against the place it was written, and the three places differ. A path
+    typed as ``--repo`` or exported into the environment is relative to the shell you are standing
+    in: that is the only thing it can mean, and it is what you meant. A path in a configuration file
+    is not. The file is *searched for* -- the working directory, then the user's, then the system's
+    -- so one line in it is read from many different working directories and has to name the same
+    repository from all of them. Relative to the file that says it, it does.
+
+    Resolving it against the working directory instead is how ``formats_repo: my-formats``, in a
+    file sitting one level above the repository it names, became ``my-formats/my-formats`` as soon
+    as anybody ran a subcommand from inside that repository -- which is exactly where a
+    ``pre-commit`` hook runs, and where the error was first seen.
+
+    The same rule, and the same wording, as ``freeports_validate.cli._from_config_dir``. The two
+    commands read one file and have to agree about what a line in it means.
+    """
+    if not value:
+        return None
+    path = Path(str(value)).expanduser()
+    if path.is_absolute() or config_path is None:
+        return str(path)
+    return str(Path(config_path).expanduser().resolve().parent / path)
+
+
 class DevConfig:
     """The settings of one ``freeports-dev`` invocation, already resolved.
 
@@ -67,33 +93,41 @@ class DevConfig:
 
     def __init__(self, args=None):
         self._args = args
-        self._file = self._load_file(getattr(args, "config", None))
+        self._file, self._file_path = self._load_file(getattr(args, "config", None))
 
     # -- the configuration file -------------------------------------------------------------
 
     @staticmethod
     def _load_file(config_arg):
-        """The file the engine would read, or ``None`` if there is none.
+        """The file the engine would read and where it is, or ``(None, None)`` if there is none.
 
         A file named explicitly is loaded outright, so a mistake in its path is reported. One merely
         discovered by searching is not allowed to break the command: its absence is the normal case,
         and a stale file in a home directory should not make an unrelated run fail.
+
+        The path is returned alongside the settings because a *path inside* the file is meaningless
+        without knowing where the file is -- see :func:`_from_config_dir`.
         """
         from freeports.cli import FreeportsFileConfig
 
         if config_arg:
-            return FreeportsFileConfig(str(Path(config_arg).expanduser()))
+            path = Path(config_arg).expanduser()
+            return FreeportsFileConfig(str(path)), path
         path = _env("FREEPORTS_CONFIG_FILE") or FreeportsFileConfig.find_config()
         if not path:
-            return None
+            return None, None
         try:
-            return FreeportsFileConfig(str(path))
+            return FreeportsFileConfig(str(path)), Path(path)
         except Exception as exc:  # noqa: BLE001 -- a broken file must not stop an unrelated command
             warnings.warn(f"ignoring unusable configuration file {path}: {exc}")
-            return None
+            return None, None
 
     def _from_file(self, attribute):
         return getattr(self._file, attribute, None) if self._file is not None else None
+
+    def _path_from_file(self, attribute):
+        """A path setting from the file tier, already resolved against the file's own directory."""
+        return _from_config_dir(self._from_file(attribute), self._file_path)
 
     def _arg(self, name):
         return getattr(self._args, name, None) if self._args is not None else None
@@ -102,11 +136,16 @@ class DevConfig:
 
     @property
     def formats_repo(self):
-        """The formats repository. Defaults to the working directory, as every subcommand did."""
+        """The formats repository. Defaults to the working directory, as every subcommand did.
+
+        The first two tiers arrive relative to the shell they were written in and are resolved as
+        such; the third is resolved against the configuration file instead, which is what
+        :func:`_from_config_dir` exists for.
+        """
         resolved = _first(
             self._arg("repo"),
             _env("FREEPORTS_FORMATS_REPO_PATH"),
-            self._from_file("FORMATS_REPO_PATH"),
+            self._path_from_file("FORMATS_REPO_PATH"),
         )
         return Path(resolved).expanduser().resolve() if resolved else Path.cwd()
 
@@ -123,8 +162,12 @@ class DevConfig:
 
     @property
     def input_db_from_file(self):
-        """The `db_path` of the configuration file, consulted only after the repository's own."""
-        return self._from_file("INPUT_DB_PATH")
+        """The `db_path` of the configuration file, consulted only after the repository's own.
+
+        Resolved against the file, for the same reason `formats_repo` is: one `db_path:` line is
+        read from every directory anybody runs a subcommand in.
+        """
+        return self._path_from_file("INPUT_DB_PATH")
 
     # -- settings of this tool alone --------------------------------------------------------
 

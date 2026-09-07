@@ -59,3 +59,30 @@ Contributors should only use this methodology when they have genuinely:
 - Made reasonable efforts to understand the assertion
 - Applied their technical knowledge appropriately
 - Acted in good faith without conflicts of interest
+
+Supported paths
+===============
+
+What this methodology covers is not a file a program produced. It is an **assertion**: a statement
+about the software, published as prose, that a person can read, understand and agree with. So its
+declared path names documentation rather than test output, and a grant under it is a claim about a
+*statement*, not about any bytes an extraction wrote.
+
+``docs/source/validation/assertions/**``
+    An assertion published in the documentation of **the repository the granted file lives in** --
+    for the freeports engine, ``analysis_finance_reports``. Granting one means the protocol above
+    was applied to that text: it was read completely, judged within the granter's own technical
+    competence, and agreed with in good faith. It covers whatever form the assertion takes there,
+    prose or diagram alike.
+
+.. note::
+
+   Another project adopting this methodology would keep its assertions somewhere of its own, and
+   this pattern would not reach them. That is deliberate rather than an oversight: a path means
+   something only inside a repository, and the honest way to extend this methodology to a different
+   layout is to say so in a page of your own rather than to widen this pattern until it means
+   nothing.
+
+   This is also why the paths here look nothing like those of ``basic check`` and
+   ``golden standard``. Those methodologies vouch for what a program produced; this one vouches for
+   what a person wrote and another person read.

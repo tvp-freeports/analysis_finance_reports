@@ -54,6 +54,8 @@ dev:
   target_lists: [TEST]
 validate:
   key_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+  sources:
+    - https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt
 ```
 
 Both commands are only ever run by **format authors**. If you extract data, these sections do not
@@ -64,6 +66,34 @@ They live here rather than in two files of their own so that the settings genuin
 engine — `formats_repo`, `db_path` — stay at the top level and get written **once**, for all three
 commands. The engine parses the sections and then ignores them; parsing them at all is what extends
 the unknown-key refusal below into `dev.tagret_lists`.
+
+## Relative paths in this file
+
+A path written here is resolved against **the directory holding the file**, not against the working
+directory the command happens to be run from. That is the only reading that survives the way the
+file is found: it is searched for — the working directory, then the user's, then the system's — so
+one line is read from many different working directories and has to name the same repository from
+all of them.
+
+```yaml
+# ~/work/freeports-conf.yaml
+formats_repo: my-formats        # always ~/work/my-formats, run from wherever you like
+```
+
+Paths given the other two ways keep the meaning they obviously have: `--repo` on the command line
+and `FREEPORTS_FORMATS_REPO_PATH` in the environment are relative to the shell you are standing in,
+because that is where you typed them.
+
+The same rule reaches `validate.sources`, whose entries may be written as bare paths rather than as
+URIs. A relative one is resolved against this file's directory, for the same reason and with the
+same result — the pages it names are the same pages from every working directory. A URI, `file://`
+included, is left exactly as written.
+
+```{note}
+`freeports-validate` reads the file this way. The engine and `freeports-dev` still resolve a
+relative path here against the working directory — which is why a workspace configuration file
+tends to carry a comment saying the run must start from its directory.
+```
 
 ## The two grouped settings
 

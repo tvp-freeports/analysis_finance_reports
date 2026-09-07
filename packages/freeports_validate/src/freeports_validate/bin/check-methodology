@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# What a methodology page actually says, from where you actually resolve it.
+#
+# A validation document records a methodology's name and its hash and deliberately not its source,
+# so "the hash differs" is a sentence with two readings -- the page changed, or the two of you read
+# two publications of it. `sources` answers that for every name at once. This answers it for one
+# name in detail: the URI it came from, the hash of what arrived, and the resources the page itself
+# pins by sub-hash.
+#
+# With `--deep` it also fetches each of those pinned resources and compares. That is a *deepening*
+# and not a second check: the pins are lines of the page, so the page's own hash already commits to
+# them, and a page whose pins were never fetched is exactly as trustworthy as its hash says. What
+# `--deep` adds is the transitive part -- whether the things the page cites still say what its
+# author was looking at.
+#
+# It needs no signing key. Reading a methodology is not an act done in anybody's name.
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+if [ $# -eq 0 ]; then
+    print_error "Usage: $0 [--deep] <methodology>..."
+    echo "  --deep: also fetch every resource the page pins, and compare it" >&2
+    exit 1
+fi
+
+DEEP=false
+[ -n "$FREEPORTS_VALIDATE_DEEP" ] && DEEP=true
+
+require_sources || exit 1
+
+overall=0
+for argument in "$@"; do
+    methodology=$(normalize_methodology_name "$argument")
+
+    status=0
+    load_page_report "$methodology" || status=$?
+    if [ "$status" -ne 0 ]; then
+        report_methodology_resolution "$status" "Methodology \"$methodology\"" "true"
+        # Unresolved is a misconfiguration and fails; unreachable is the absence of an answer and
+        # must not, for the same reason it does not fail a `check-grants`.
+        [ "$status" -eq "$SOURCE_UNRESOLVED" ] && overall=1
+        continue
+    fi
+
+    echo ""
+    print_info "Methodology \"$methodology\""
+    echo "=========================================="
+    echo "  from:   $PAGE_URI"
+    echo "  sha256: $(sha256_of_file "$PAGE_PATH")$(origin_note "$PAGE_ORIGIN")"
+    note_resolved_uri "$methodology" "$PAGE_URI"
+
+    check_page_links "$PAGE_PATH" "$PAGE_URI" "$DEEP" || overall=1
+
+    if [ "$DEEP" = false ]; then
+        echo "  (nothing was fetched: pass --deep to check what the page pins)"
+    fi
+done
+
+echo ""
+print_diagnoses
+exit $overall

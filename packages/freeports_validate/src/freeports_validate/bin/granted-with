@@ -31,6 +31,7 @@ echo "=================================================================="
 
 # Arrays to store results for different grouping modes
 declare -A file_grants
+declare -A file_marks
 declare -A contributor_grants
 
 # Find all validation documents
@@ -85,6 +86,11 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
                 continue
             fi
             
+            # The methodology is fixed here -- it is what was asked about -- so what a mark says
+            # is that this *file* is outside the paths it declares. Listed all the same: somebody
+            # made the claim, and the legend at the end says what the mark means.
+            set_out_of_scope_mark "$METHODOLOGY" "$GRANTED_PATH"
+
             # Store results for different grouping modes without duplicates
             case $GROUP_BY in
                 "file")
@@ -92,11 +98,13 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
                     if [[ ! "${file_grants[$GRANTED_PATH]}" =~ "$CONTRIBUTOR_NAME" ]]; then
                         file_grants["$GRANTED_PATH"]+="$CONTRIBUTOR_NAME, "
                     fi
+                    # Kept beside the group rather than in its key, which is the path itself.
+                    file_marks["$GRANTED_PATH"]="$MARK"
                     ;;
                 "contributor")
                     # Check if file is already in the contributor's list
                     if [[ ! "${contributor_grants[$CONTRIBUTOR_NAME]}" =~ "$GRANTED_PATH" ]]; then
-                        contributor_grants["$CONTRIBUTOR_NAME"]+="$GRANTED_PATH, "
+                        contributor_grants["$CONTRIBUTOR_NAME"]+="$GRANTED_PATH$MARK, "
                     fi
                     ;;
             esac
@@ -115,7 +123,7 @@ case $GROUP_BY in
             echo "======================="
             for file in "${!file_grants[@]}"; do
                 contributors=$(echo "${file_grants[$file]}" | sed 's/, $//')
-                echo "File: $file"
+                echo "File: $file${file_marks[$file]}"
                 echo "  Contributors: $contributors"
                 echo ""
             done
@@ -143,3 +151,4 @@ case $GROUP_BY in
         ;;
 esac
 
+print_out_of_scope_legend

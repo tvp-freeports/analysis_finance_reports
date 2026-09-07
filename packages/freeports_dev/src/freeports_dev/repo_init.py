@@ -12,6 +12,7 @@ Python code.
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -121,6 +122,108 @@ def _setup_git(target: Path, quiet: bool = False, hooks: bool = True) -> None:
     print("  git hooks configured (core.hooksPath = .githooks)")
 
 
+def _write_validation_report(target: Path) -> list:
+    """Write the README and the six pages that host the validation report.
+
+    The report is a function of what `validation/` claims, and `freeports-validate report` writes it
+    between two markers rather than over a whole file — so the files have to exist, with their
+    markers in them, before anything can be written into them. Creating them here is what makes the
+    repository's `pre-commit` hook a refresh rather than a first draft.
+
+    Six pages because the repository has three dimensions — file, contributor, methodology — and
+    each of the three lookup subcommands groups by one and lists another, with and without its
+    flag. They are the same six the command offers as `--table`, and each page is named after the
+    value that fills it, so the hook line and the file it writes read the same.
+
+    Returns the paths written, relative to `target`, in the order they were written.
+    """
+    entries = _read_json("report_tables.json")
+    template = _read_template("report_table.template.md")
+
+    written = ["README.md"]
+    (target / "README.md").write_text(
+        _read_template("readme.template.md").replace("{name}", target.name),
+        encoding="utf-8",
+    )
+    for entry in entries:
+        page = f"validation/report/{entry['table']}.md"
+        body = template
+        for key in ("table", "title", "mirrors"):
+            body = body.replace("{" + key + "}", entry[key])
+        (target / page).write_text(body, encoding="utf-8")
+        written.append(page)
+    return written
+
+
+def _fill_validation_report(target: Path) -> bool:
+    """Run the command once so the badges exist and every marked block is filled.
+
+    Best-effort, and deliberately so. A skeleton whose creation needed a reachable documentation
+    server would be a worse tool than one that leaves nine files to fill: the failure here is a note
+    naming the command to run, never a half-created repository. What it costs when it does work is
+    one walk of an empty repository, which resolves the general methodology and nothing else.
+
+    One `collect`, rendered nine times, for the reason the hook does the same: nine collections
+    would re-resolve the same pages nine times for an answer that cannot have changed in between.
+    """
+    entries = _read_json("report_tables.json")
+
+    def validate(*arguments, **kwargs):
+        return subprocess.run(
+            ["freeports-validate", "--repo", str(target), *arguments],
+            check=True,
+            capture_output=True,
+            **kwargs,
+        )
+
+    with tempfile.NamedTemporaryFile("w+", suffix=".json") as model:
+        try:
+            collected = validate("collect")
+        except FileNotFoundError:
+            print("  note: freeports-validate is not installed, so the report is empty")
+            print(
+                "        install it, then run: freeports-validate report --format badges "
+                "--out validation/report/badges/"
+            )
+            return False
+        except subprocess.CalledProcessError:
+            print(
+                "  note: the methodologies could not be resolved, so the report is empty"
+            )
+            print(
+                "        run `freeports-validate sources` to see why, then re-run the hook"
+            )
+            return False
+
+        model.write(collected.stdout.decode("utf-8"))
+        model.flush()
+
+        renderings = [
+            ("--format", "badges", "--out", str(target / "validation/report/badges")),
+            ("--format", "markdown", "--out", str(target / "README.md")),
+        ]
+        renderings += [
+            (
+                "--format",
+                "markdown",
+                "--table",
+                entry["table"],
+                "--out",
+                str(target / f"validation/report/{entry['table']}.md"),
+            )
+            for entry in entries
+        ]
+        for rendering in renderings:
+            try:
+                validate("report", "--model", model.name, *rendering)
+            except subprocess.CalledProcessError:
+                print(f"  note: could not write {rendering[-1]}")
+                return False
+
+    print("  wrote the badges and filled the report")
+    return True
+
+
 def _is_empty_dir(target: Path) -> bool:
     """Check if a directory is empty, ignoring .git."""
     entries = [e for e in target.iterdir() if e.name != ".git"]
@@ -185,6 +288,13 @@ def init_format_repo(target: Path, quiet: bool = False) -> None:
     pre_commit.write_text(_read_template("pre-commit.template"), encoding="utf-8")
     pre_commit.chmod(0o755)
     print("  created .githooks/pre-commit")
+
+    # The README, the six report pages, and the first fill of all of them
+    written = _write_validation_report(target)
+    print(
+        f"  wrote README.md and {len(written) - 1} report pages under validation/report/"
+    )
+    _fill_validation_report(target)
 
     # Copy default input DB
     from freeports_dev.input_db import copy_default_input_db

@@ -43,11 +43,41 @@ build-backend = "setuptools.build_meta"
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
+# No `docs/**` any more. The methodology pages used to ship here, which coupled what a grant meant
+# to which version of the command you had installed, and duplicated `docs/source/validation/` in
+# this repository with nothing keeping the two in step. They are resolved from a configured source
+# now -- see `lib/sources.sh`.
 freeports_validate = [
     "bin/*",
     "lib/*",
     "lib/*.sh",
     "lib/*.json",
     "lib/*.yaml",
-    "docs/**/*.rst",
 ]
+
+# The suite lives here rather than at the repository root so that pytest's rootdir is this package:
+# run from anywhere, `pytest packages/freeports_validate` then finds this configuration and the
+# tests it names, and the crate's `cargo test` and this one stay two separate commands.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The suite imports the package to test the settings merge in process — `cli.py` is the one
+# part of this command that is Python all the way down. `src` first, so that what is tested is
+# the working tree and not the copy `pip install` left in the environment.
+pythonpath = ["src"]
+markers = [
+    "network: reaches the real internet; deselected by default",
+    "slow: starts the command as a process; deselected by default, run with `make test-tools-slow`",
+]
+# Deselected rather than absent, and for two different reasons.
+#
+# `network` exists so that a test which genuinely needs the public documentation site can be written
+# and run by hand (`pytest -m network`), while nothing in a normal run -- or in continuous
+# integration, or on a train -- depends on being online. The URL branch of the resolver is covered
+# without it, against a local `http.server`.
+#
+# `slow` is about cost rather than about the internet. It is applied automatically to every test
+# that starts the command as a process (see `SLOW_FIXTURES` in `conftest.py`), which is most of the
+# behaviour worth testing here and also several minutes of process starts. Those run on request --
+# `make test-tools-slow`, or `pytest -m slow` -- while the commit hook runs what is left, which is
+# fast enough that nobody is tempted to disable it. Both sets have to pass before work is done.
+addopts = "-m 'not network and not slow'"

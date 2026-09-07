@@ -1,59 +1,98 @@
 ..
     WARNING:
-    
-    This file is the main file that describe the methodology for validate
-    and check the validation of the tests. This file is identified by his
-    hash so every change to it will result of the invalitation of all the
-    parts referring to his hash, be careful with modifying this file, a 
-    incorrect update of this file can result in the impossibility for the
-    user to trust the output of the software and for the developers to
-    grant the correct functioning of it. So before modifying is appropriate
-    to understand the validation mechanism.
+
+    This file is the main file that describes the methodology for validating
+    and checking the validation of the tests. This file is identified by its
+    hash, so every change to it invalidates all the parts referring to that
+    hash. Be careful with modifying this file: an incorrect update can result
+    in the impossibility for the user to trust the output of the software and
+    for the developers to grant its correct functioning. So before modifying
+    it, it is appropriate to understand the validation mechanism.
 
 
 ===================
 General methodology
 ===================
 
-In the repository there is one directory dedicated to the tests, this directory is called ``tests``.
-Another directory is dedicated to the accountability and is the one that contain information on the
-protocols used to grant the functioning of the software and it is called ``validation```.
+A repository has one directory dedicated to the tests, called ``tests``, and one dedicated to
+accountability, called ``validation``. This page describes what the second one contains, what the
+entries in it mean, and how a reader can reconstruct any claim made there.
 
-We develop different tests for granting the accuracy of our program, but some of them require some kind
-of protocol in order to grant their trust.
+We develop tests to establish that the program does what we say it does. Some of what we want to
+say, though, is not a thing a test can establish — that a person looked at a result and found it
+reasonable, that somebody read a statement and agrees with it — and those claims need a protocol
+rather than an assertion. This page is the protocol for making such claims, and it is the text every
+one of them is made under.
 
-There are two different file types that we grant the content of:
+There are two kinds of thing we grant the content of:
 
-1. **test results**:
-   in the ``tests`` directory, files of type
+1. **test results** — under the ``tests`` directory: files of type
 
    * ``.csv``
    * ``.yaml``
-   * ``.pkl``
+   * ``.json``
    * ``.png``
    * ``.pdf``
 
-2. **assertions**
-   in the ``docs/source/validation/assertions``, directory files of type
+2. **assertions** — statements published as prose in the documentation, for the freeports engine
+   under ``docs/source/validation/assertions``: files of type
 
    * ``.rst``
    * ``.md``
    * ``.png``
    * ``.svg``
-   
-the files are granted through a certain specific ``methodology`` that imply a protocol.
-The different methodologies used are documented in the ``docs/source/validation/methodologies`` directory
-through ``.rst`` files.
+
+A file is granted through a specific **methodology**, which is a published document describing the
+protocol that was applied to it.
+
+*****************************
+Where methodologies come from
+*****************************
+
+A grant is a claim made **under a text**, so the text has to be something both the person granting
+and the person verifying can obtain. Methodology pages are therefore **published documents,
+resolved from a location each of them configures**, called a *source*.
+
+A source is a pattern containing exactly one ``*``, which stands for the methodology's relative
+name::
+
+    https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt
+    https://github.com/tvp-freeports/analysis_finance_reports/blob/main/docs/source/validation/*.rst
+    file:///home/me/my-methodologies/*.rst
+
+The general methodology — this page — is looked for at ``general_methodology``; a methodology named
+``basic check`` is looked for at ``methodologies/basic_check``, its name lowercased with spaces
+turned into underscores. Several sources may be configured, and their order is priority: a name is
+resolved from the first that offers it.
+
+.. important::
+
+   **A validation document records a methodology's name and its hash, and deliberately not the
+   source they came from.**
+
+   The source is a contract between the person who grants and the person who verifies, and each of
+   them writes it in their own configuration. Recording the granter's source inside the document
+   would make the document assert something about the verifier's setup that it has no standing to
+   assert, and would turn a shared name into a URL that has to keep working for ever.
+
+   The price of that decision is that a hash mismatch is ambiguous: the page may have been
+   rewritten, or the two of you may be reading two different publications of the same methodology.
+   ``freeports-validate sources`` prints what each name resolves to on the machine it is run on, so
+   two people can compare one line each and see which of the two it was.
+
+This also means the methodology pages do **not** travel inside the tool. They used to, and the
+consequence was that upgrading the tool silently changed what every grant in every repository
+referred to. The text a claim is about should not be chosen by a package manager. The mirror image
+of that fragility is the one we now have and state openly: whoever publishes a methodology can
+invalidate the grants made under it, by editing the page.
 
 ********************
 Validation documents
 ********************
 
-In the `validation <https://github.com>`_ directory are present some bash scripts used for help the user
-to check for accountability and a directory called `validation/documents <https://github.com>`_.
-Each ``.yaml`` file in this directory is a document used for grant the use of a certain protocol
-in some specific context. In particular each file is refears to one developer or contributor
-and it has a certain structure:
+The ``validation`` directory of a repository holds one ``.yaml`` document per contributor, named
+after them — ``validation/jane_doe.yaml``. Each is a record of what that person vouches for, and it
+is signed by them:
 
 .. code-block:: yaml
 
@@ -61,192 +100,256 @@ and it has a certain structure:
     who:
       name: <complete_name>
       email: <email>
-      pubkey-id: <id_public_key>
+      pubkey_id: <id_public_key>
     methodologies:
       - name: <name_methodology>
         sha256: <methodology_hash>
-          .
-          .
-          .
       - name: <name_methodology>
         sha256: <methodology_hash>
-      .
-      .
-      .
     data:
-      - methodology: <name_methodology>
-        files:
-          - path: <path_to_the file>
-            sha256: <file_hash>
-          - path: <path_to_the file>
-            sha256: <file_hash>
-          .
-          .
-          .
       - methodology: <name_methodology>
         files:
           - path: <path_to_the_file>
             sha256: <file_hash>
-        .
-        .
-        .
-    sign: <crittographic signature of the document>
+          - path: <path_to_the_file>
+            sha256: <file_hash>
+      - methodology: <name_methodology>
+        files:
+          - path: <path_to_the_file>
+            sha256: <file_hash>
+    sign: <cryptographic signature of the document>
 
-The first parameters its ``version`` and it rappresent to which version of the **general methodology**
-the file refears to. It is linked to a specific way of interpreting the entries and to their meaning.
-It is equal to the ``SHA256`` hash of the source file of the general methodology documentation page (the hash of 
-the ``.rst`` file that generated this page that you are reading). If the content of this page changes, the hash
-change accordingly and all the documents that were referring to that specific version of the general methodology
-get invalidated.
+``version``
+    Which version of the **general methodology** the document was written under — that is, of this
+    page. It fixes how the entries below are to be interpreted. It is the ``SHA256`` of the source
+    file of this page, resolved from the configured sources. If the content of this page changes,
+    the hash changes with it and every document referring to the old one is invalidated.
 
-The first informative section is the ``who`` section that contains information about the contributor
-that is accountable or responable of having followed a certain protocol. This section is composed by
+``who``
+    Who is accountable for the content of the document:
 
-* ``name``: is the complete name of who own the document and who is responable for its content;
-  in particular is the owner of the crittographic keys used to sign the file
-* ``email``: is the email of ``<complete_name>``, the user can be notified of incongruences through
-  that channel and it is the link to his physical person
-  (in particular the keys are stored on the `OpenPGP key server <https://keys.openpgp.org/>`_
-  that require email verification to search pub-keys by email)
-* ``pubkey-id``: is the unique identifier of the key pair used to sign the document
+    * ``name`` — the complete name of the person who owns the document and is responsible for what
+      it says; in particular, the owner of the cryptographic keys used to sign it;
+    * ``email`` — their email address. It is the channel through which they can be notified of an
+      inconsistency, and the link to a physical person: keys are published on the
+      `OpenPGP key server <https://keys.openpgp.org/>`_, which requires email verification before a
+      public key can be found by address;
+    * ``pubkey_id`` — the fingerprint of the key pair used to sign the document.
 
-The section ``methodologies`` contains the list of all specific methodologies used to grant some
-level of trust in some files, each entry has
+``methodologies``
+    Every methodology this document uses, each with:
 
-* ``name``: should be named as the corresponding documentation file, replacing the character ``_`` to a space, 
-  lower casing and removing the file exstension ``.rst`` 
-  (for example the file ``docs/source/validation/methodologies/basic_check.rst`` will be identified with ``basic check``).
-* ``sha256``: identify the precise content that the entry refears to; if the protocol for a methodology get updated the hash will
-  change and all the document referring to that version of the methodology get invalidated consequently.
+    * ``name`` — the methodology's name, which is its published file name with ``_`` replaced by a
+      space, lowercased, and without the ``.rst`` extension. The page published at
+      ``methodologies/basic_check.rst`` is named ``basic check``.
+    * ``sha256`` — the hash of the exact text the entry refers to. If the protocol described by that
+      page is updated, the hash changes and every document referring to the old text is invalidated
+      with it.
 
-The last section called ``data`` and is composed by a list of files cocovered by some kind of grant.
-Each entry is composed with sections dedicated to certify the application of a methodology to a list of files.
-The name of the methodology has to be the same that compose one of the different values ``name`` in the ``mathodologies`` section.
-For each methodologies are associated some files composed by a ``path`` that should be relative to the ``docs/source/validation/assertions``
-directory or the ``tests`` directory depending if the covered file is a **test result** or an **assertion**.
+``data``
+    What is actually vouched for: a list of methodologies, each with the files granted under it. The
+    methodology named here must be one of the names in the ``methodologies`` section above.
 
-.. danger::
+    Each ``path`` is **relative to the root of the repository the document lives in** — for example
+    ``tests/formats/ARCA-IT24/1/out/funds.csv``, or
+    ``docs/source/validation/assertions/validation_algorithm_trustworthiness.rst``. The
+    accompanying ``sha256`` is the hash of that file's content, which is what makes the grant a
+    claim about *bytes* rather than about a name: if the file changes, the grant visibly no longer
+    applies to what is on disk.
 
-  Naming a test result or an assertion in the same manner would conduct to ambiguity so it is not considered valid,
-  the user that write the methodology should be responable for checking that this possibility never happens.
-  If it will happens the hope is that from the methodology used is clear the class of the file cocovered.
-
-These section are the one che compose the content of the inner part of the document. In addition to that there is a last entry
-that is the ``sig`` entry. This entry is generated using the private part of the key pair identified in the ``who`` section
-to sign the output of the remaining part of the document (the other sections). In particular the signed version is
-the ``.yaml`` file stripped from meaningless white spaces and with the mapping entry reordered in alphabetic order.
+``sign``
+    The signature, produced with the private half of the key pair identified in ``who`` over the
+    rest of the document. What is signed is the document with the ``sign`` field removed and every
+    mapping key sorted recursively, so that two people writing the same content produce the same
+    bytes to sign.
 
 .. tip::
 
-  You can get the precise version that is signed (normalized and without signature) launching on linux:
-  
-  .. code:: console
+    You can produce the exact bytes that are signed — normalised, and without the signature —
+    with:
 
-    yq 'del(.sign) | sortKeys(..)' <yaml-document-path>
+    .. code-block:: console
+
+        $ yq -y -S 'del(.sign)' <yaml-document-path>
+
+    ``-S`` is **jq's** own recursive key sort. This project uses the Python ``yq`` (kislyuk), which
+    is a thin wrapper around ``jq``; the unrelated Go program of the same name has its own
+    expression language and does not emit identical bytes.
+
+*******************************************
+What a methodology may declare about itself
+*******************************************
+
+Two things on a methodology page are read by the tool rather than only by people. Both are optional,
+and both exist to make a grant more legible rather than to constrain it.
+
+Which paths it covers
+=====================
+
+A methodology page may carry an ordinary, visible section whose title is ``Supported paths``,
+declaring the repository paths that methodology applies to. Each entry is a single inline literal
+with a prose gloss underneath:
+
+.. code-block:: rst
+
+    Supported paths
+    ===============
+
+    ``tests/formats/**/out/*.csv``
+        The reference output of a format's test suite in a formats repository. A basic check here
+        means the run completed, the columns are the expected ones, and a human has looked at the
+        values for obvious nonsense.
+
+The gloss is the substance. The same path can mean different things in two repositories — a
+``tests/formats/`` directory exists both in a formats repository and in the extraction engine's own
+— and that ambiguity is resolved by an author writing down which one they mean, never by the tool
+guessing.
+
+The pattern grammar is four tokens, and everything else is literal:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Token
+     - Matches
+   * - ``*``
+     - any part of one path segment; never crosses a ``/``
+   * - ``**``
+     - zero or more whole segments
+   * - a trailing ``/``
+     - the directory and everything under it — the same as appending ``**``
+   * - anything else
+     - itself
+
+There are no character classes, braces, negation or ``?``. Patterns are always relative to the
+repository root.
+
+**A page with no such section covers any path.** That is the behaviour from before this convention
+existed, and it remains the honest answer for a methodology whose scope cannot be written as a set
+of paths.
+
+Where a grant names a path outside the declared set, the consequence differs by moment, and the
+asymmetry is deliberate:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Moment
+     - What happens
+   * - granting
+     - refused, showing every declared pattern with its gloss; overridable by the person granting
+   * - checking
+     - a warning, never a failure
+   * - the lookups
+     - the grant is listed, and marked as outside the declared set
+
+Refusing at grant time is cheap and catches the mistake while its author is present. Failing at
+check time would break a repository because somebody else edited a page it adopts, and no
+methodology author should have that power over other people's repositories.
+
+What it pins
+============
+
+A methodology page is prose, and prose cites things — a diagram, a specification, another document.
+A grant made under the page is in part a claim about what those things said, so the page may pin
+each of them by hash, in an ordinary reStructuredText comment:
+
+.. code-block:: rst
+
+    .. image:: assets/pipeline.svg
+
+    .. sha256: assets/pipeline.svg 3f2a1b...c9
+
+``..`` followed by text that is not a directive is a comment in every reStructuredText parser: it
+renders as nothing and breaks no build. The target is either an absolute URI or a path relative to
+the page itself.
+
+**These pins are not a second thing to trust.** They are lines of the page, so the page's own
+``sha256`` — the one a validation document records — already commits to every one of them. Following
+them is a *deepening* of a check, answering the transitive question of whether the things a page
+relies on still say what its author read.
 
 ***********************
 Utilities for the users
 ***********************
 
-In the validation directory are present three different useful scripts:
+Three commands answer the same question from the three directions it can be asked:
 
-* ``who-grants``
-* ``granted-by`` 
-* ``granted-with``
+* ``freeports-validate who-grants <file>`` — who vouches for this file
+* ``freeports-validate granted-by <contributor>`` — what this person vouches for, named by their
+  complete name, their email or their key fingerprint
+* ``freeports-validate granted-with <methodology>`` — what has been vouched for under this
+  methodology, named as the ``name`` entries in a document's ``methodologies`` section are
 
-that are complementary and respectively they take in input:
+They output, respectively:
 
-* a file in the assertions or test results directory
-* a complete name, email or pubkey-id of a specific contributor
-* a specific methodology present in the ``docs/source/validation/methodologies/``,
-  lowered, with the ``_`` characters replaced with spaces, without the ``.rst``
-  file exstension (like the entries ``name`` of the ``methodologies`` section in
-  the validation documents)
+* the contributors that grant that file — grouped by contributor *(default)*, or by methodology
+* the files granted by that contributor — grouped by methodology *(default)*, or by file
+* the files covered by that methodology — grouped by file *(default)*, or by contributor
 
-they output respectively:
+The grouping is chosen with ``-f`` by file, ``-c`` by contributor, ``-m`` by methodology.
 
-* the list of the the contributors that grants that file
+**How they work.** Each reads every validation document in the repository's ``validation``
+directory, and for each one:
 
-  * grouped by the different methodologies
-  * grouped by the different contributors *(default)*
+1. validates the document against its schema, and its signature against your keyring;
+2. resolves every adopted methodology from your configured sources and compares hashes;
+3. compares the recorded hash of each granted file against the file as it is now;
+4. reports only what survived all three, annotating any grant that lies outside the paths its
+   methodology declares.
 
-* the list of the files granted by the contributor
-
-  * grouped by the different files
-  * grouped by the different methodologies *(default)*
-
-* the list of the files covered by a certain methodology
-
-  * grouped by the contributor that covered the files
-  * grouped by the different files *(default)*
-
-for selecting a specific grouping output it can be specified respectively:
-
-* ``-f`` for grouping by file
-* ``-c`` for grouping by contributor
-* ``-m`` for grouping by methodology
-
-**Internal Working:**
-
-These scripts parse all validation documents in the ``validation/documents/`` directory and:
-
-1. Validate document schema and signatures before processing
-2. Cross-reference file paths with actual SHA256 hashes to ensure integrity
-3. Filter results based on the input criteria (file, contributor, or methodology)
-4. Output formatted results showing the trust relationships
-
-**Example Usage:**
+None of the three needs a signing key of your own. Reading what other people have vouched for is not
+an act done in anybody's name.
 
 .. code-block:: console
 
-    # Find who grants a specific test file
-    $ ./who-grants tests/results/accuracy_analysis.csv
-    
-    # Find all files granted by a specific contributor
-    $ ./granted-by "John Doe"
-    
-    # Find files covered by a specific methodology, grouped by contributor
-    $ ./granted-with "basic check" -c
+    $ freeports-validate who-grants tests/formats/ARCA-IT24/1/out/funds.csv
+    $ freeports-validate granted-by "Jane Doe"
+    $ freeports-validate granted-with "basic check" -c
 
 ****************************
 Utilities for the developers
 ****************************
 
-* ``grant <files> [with <methodology>]``
-* ``ungrant <files> [with {any|<methodology>}]``
-* ``check-grants {<files> | with <methodology>}``
+* ``create-document`` — first-time setup: creates your personal validation document
+* ``grant <files> [with <methodology>]`` — vouch for files under a methodology
+* ``ungrant <files> [with {any|<methodology>}]`` — withdraw
+* ``check-grants [<document>]`` — verify: schema, signature, version, methodology hashes, file
+  hashes
 * ``update <subcommand>``
-  
-  * ``files | file`` - Update SHA256 hashes for files in your document
-  * ``version`` - Update general methodology version hash
-  * ``methodology`` - Update methodology hashes when protocols change
 
-* ``sign-document``
-* ``create-document``
+  * ``file`` — restate an existing grant after the file legitimately changed
+  * ``version`` — after this page changed
+  * ``methodology`` — after a methodology page changed
 
-**Developer Workflow:**
+* ``sign-document`` — sign the document after changes
+* ``sources`` — what your configuration resolves, and where from
+* ``check-methodology <name>`` — one page in detail: where it came from, and what it pins
+* ``report`` — what the repository as a whole has been vouched for
 
-1. **Create Document**: First-time setup creates your personal validation document
-2. **Grant Files**: Add files to your document with specific methodologies
-3. **Update Hashes**: Keep file and methodology hashes current
-4. **Sign Document**: Cryptographically sign your document after changes
+**Signing.** ``sign-document`` validates the document against its schema, refuses to overwrite an
+existing signature without ``--update``, normalises the document as described above, produces a GPG
+detached signature with your private key, and embeds it in the ``sign`` field.
 
-**Document Signing Process:**
+**Verification.** Every command that reads a document verifies its signature against your keyring
+before believing anything in it. A signature that fails to verify is far more often a public key
+missing from your keyring than a document somebody tampered with — import it and try again before
+concluding anything.
 
-The ``sign-document`` script:
+.. caution::
 
-1. Validates document schema using JSON Schema validation
-2. Checks for existing signatures (requires ``--update`` flag to overwrite)
-3. Normalizes the YAML document (removes whitespace, sorts keys alphabetically)
-4. Creates GPG detached signature using your private key
-5. Embeds the armored signature in the document
+   ``update`` is not the way to silence a failing check. It restates an intention to vouch, and it
+   should be run by the person who has confirmed that the change was expected. Running it because a
+   check went red converts a real signal into a signature.
 
-**Signature Validation:**
+*******************************
+What this mechanism does not do
+*******************************
 
-All utility scripts automatically validate document signatures using the ``validate_document_signature`` function, which:
-
-* Extracts the GPG signature from the document
-* Verifies it against the signer's public key (fetched from OpenPGP keyservers)
-* Ensures the signature matches the normalized document content
-
-This ensures that only properly signed and validated documents are considered when determining trust relationships.
+It does not establish that the extraction is correct. It establishes that a claim was made: by a
+named person, under a published protocol, about an exact sequence of bytes, and that the claim can
+still be checked. Where that is not enough for your purpose, the honest answer is that it is not
+enough — and the methodology pages are written to let you determine that for yourself rather than to
+reassure you.

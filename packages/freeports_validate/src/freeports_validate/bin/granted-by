@@ -99,18 +99,24 @@ for doc in "$DOCUMENT_DIR"/*.yaml; do
                 continue
             fi
             
+            # A grant outside the paths its methodology declares is still a grant -- somebody
+            # made that claim. It is listed, and marked; the legend at the end says what the mark
+            # means. The mark goes on whichever of the two the grouping puts in the list, since
+            # what is out of scope is the *pair* and not either half of it.
+            set_out_of_scope_mark "$METHODOLOGY" "$GRANTED_PATH"
+
             # Store results for different grouping modes without duplicates
             case $GROUP_BY in
                 "methodology")
                     # Check if file is already in the methodology's list
                     if [[ ! "${methodology_grants[$METHODOLOGY]}" =~ "$GRANTED_PATH" ]]; then
-                        methodology_grants["$METHODOLOGY"]+="$GRANTED_PATH, "
+                        methodology_grants["$METHODOLOGY"]+="$GRANTED_PATH$MARK, "
                     fi
                     ;;
                 "file")
                     # Check if methodology is already in the file's list
                     if [[ ! "${file_grants[$GRANTED_PATH]}" =~ "$METHODOLOGY" ]]; then
-                        file_grants["$GRANTED_PATH"]+="$METHODOLOGY, "
+                        file_grants["$GRANTED_PATH"]+="$METHODOLOGY$MARK, "
                     fi
                     ;;
             esac
@@ -159,3 +165,5 @@ case $GROUP_BY in
         fi
         ;;
 esac
+
+print_out_of_scope_legend

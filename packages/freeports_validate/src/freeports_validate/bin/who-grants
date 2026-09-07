@@ -45,6 +45,7 @@ for FILE_PATH in "$@"; do
     # Arrays to store results for different grouping modes
     declare -A contributor_grants
     declare -A methodology_grants
+    declare -A methodology_marks
     
     # Find all validation documents
     for doc in "$DOCUMENT_DIR"/*.yaml; do
@@ -100,12 +101,18 @@ for FILE_PATH in "$@"; do
                         continue
                     fi
                     
+                    # A grant outside the paths its methodology declares is still a grant --
+                    # somebody made that claim, and hiding it would answer a different question
+                    # than the one asked. It is listed, and marked; the legend at the end says
+                    # what the mark means.
+                    set_out_of_scope_mark "$METHODOLOGY" "$REL_PATH"
+
                     # Store results for different grouping modes without duplicates
                     case $GROUP_BY in
                         "contributor")
                             # Check if methodology is already in the contributor's list
                             if [[ ! "${contributor_grants[$CONTRIBUTOR_NAME]}" =~ "$METHODOLOGY" ]]; then
-                                contributor_grants["$CONTRIBUTOR_NAME"]+="$METHODOLOGY, "
+                                contributor_grants["$CONTRIBUTOR_NAME"]+="$METHODOLOGY$MARK, "
                             fi
                             ;;
                         "methodology")
@@ -113,6 +120,10 @@ for FILE_PATH in "$@"; do
                             if [[ ! "${methodology_grants[$METHODOLOGY]}" =~ "$CONTRIBUTOR_NAME" ]]; then
                                 methodology_grants["$METHODOLOGY"]+="$CONTRIBUTOR_NAME, "
                             fi
+                            # Kept beside the group rather than in its key: the key is what the
+                            # grouping is by, and appending to it would split one methodology into
+                            # two headings the moment one of its grants went out of scope.
+                            methodology_marks["$METHODOLOGY"]="$MARK"
                             ;;
                     esac
                 fi
@@ -145,7 +156,7 @@ for FILE_PATH in "$@"; do
                 echo "=============================="
                 for methodology in "${!methodology_grants[@]}"; do
                     contributors=$(echo "${methodology_grants[$methodology]}" | sed 's/, $//')
-                    echo "Methodology: $methodology"
+                    echo "Methodology: $methodology${methodology_marks[$methodology]}"
                     echo "  Contributors: $contributors"
                     echo ""
                 done
@@ -154,3 +165,7 @@ for FILE_PATH in "$@"; do
     esac
     echo ""
 done
+
+# Once for the whole run, not once per file: a mark repeated on every line explains itself the
+# first time and is noise afterwards.
+print_out_of_scope_legend

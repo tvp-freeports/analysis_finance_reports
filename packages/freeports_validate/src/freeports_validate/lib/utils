@@ -39,12 +39,19 @@ fi
 
 export LIB_DIR="${FREEPORTS_VALIDATE_LIB}"
 export BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd ../bin && pwd)"
-export METHODOLOGY_DIR="${FREEPORTS_VALIDATE_DOCS}/validation"
-export ASSERT_DIR="${METHODOLOGY_DIR}/assertions"
 export TEST_DIR="${REPO_ROOT}/tests"
 export DOCUMENT_DIR="${REPO_ROOT}/validation"
 
+# There is no METHODOLOGY_DIR any more. The pages used to ship inside the package, so a grant meant
+# whatever the installed copy said and upgrading the command silently changed it. They are resolved
+# from configured sources now -- `lib/sources.sh` -- which makes the text a grant refers to
+# something the granter and the verifier each chose, rather than something their package manager
+# chose for them.
 source "${LIB_DIR}/validation_utils.sh"
+source "${LIB_DIR}/sources.sh"
+source "${LIB_DIR}/page.sh"
+source "${LIB_DIR}/paths.sh"
+source "${LIB_DIR}/links.sh"
 source "${LIB_DIR}/document_utils.sh"
 
 # Your name, your email and the path of your own document are read out of the key's UID rather than
@@ -67,7 +74,3 @@ if [ -n "$KEYID" ]; then
     out_file_name=$(echo "$NAME" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
     export PERSONAL_DOC="${DOCUMENT_DIR}/${out_file_name}.yaml"
 fi
-
-get_version_methodology(){
-    sha256sum "$METHODOLOGY_DIR/general_methodology.rst" | awk '{print $1}'
-}

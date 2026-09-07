@@ -15,6 +15,60 @@ fi
 freeports-dev test -- -m "not integration_tests"
 
 
+# Keep the validation report current, and never refuse a commit over it.
+#
+# The badges, the block in README.md and the six pages under validation/report/ are all functions
+# of this repository's validation documents, so a commit that changes a granted file and leaves
+# them alone publishes figures that are already wrong. Regenerating them here, and `git add`ing
+# what was rewritten, puts the refresh in the same commit as the change that caused it.
+#
+# Nothing below can fail the hook, on purpose. The figures depend on resolving each methodology
+# page from wherever this machine is configured to fetch it, and a committer on a train, behind a
+# proxy, or working in a repository whose documentation server is down still has to be able to
+# commit. A report one run out of date is a smaller problem than a commit that cannot be made.
+if command -v freeports-validate >/dev/null 2>&1; then
+    report_model=$(mktemp "${TMPDIR:-/tmp}/freeports-report.XXXXXX" 2>/dev/null) || report_model=""
+
+    if [ -n "$report_model" ] && freeports-validate collect > "$report_model" 2>/dev/null; then
+        # One walk of the repository, rendered nine times. Collecting once per artefact would
+        # re-resolve every methodology page nine times for an answer that cannot have changed in
+        # between.
+        refresh() {
+            freeports-validate report --model "$report_model" "$@" >/dev/null 2>&1
+        }
+
+        # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
+        # pair they removed, is left alone rather than recreated behind their back.
+        refreshed=""
+        if refresh --format badges --out validation/report/badges/; then
+            refreshed="$refreshed validation/report/badges"
+        fi
+        if [ -f README.md ] && refresh --format markdown --out README.md; then
+            refreshed="$refreshed README.md"
+        fi
+        for table in file-contributor file-methodology contributor-methodology \
+                     contributor-file methodology-file methodology-contributor; do
+            page="validation/report/$table.md"
+            [ -f "$page" ] || continue
+            if refresh --format markdown --table "$table" --out "$page"; then
+                refreshed="$refreshed $page"
+            fi
+        done
+
+        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
+        # space, and this is the one place the list has to be split back into arguments.
+        if [ -n "$refreshed" ]; then
+            git add -- $refreshed
+            echo "freeports-validate: report refreshed"
+        fi
+    else
+        echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
+    fi
+
+    rm -f "$report_model"
+fi
+
+
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD

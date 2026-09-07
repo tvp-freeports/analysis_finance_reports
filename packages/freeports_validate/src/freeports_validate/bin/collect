@@ -1,0 +1,381 @@
+#!/bin/bash
+
+# The model: one walk of the repository's validation documents, as JSON on standard output.
+#
+# Everything the report shows is decided here, and nothing about how it looks is. That is not
+# tidiness -- it is what makes `report --format json | jq ...` a first-class way to use this
+# command rather than a debugging aid: a question none of the renderings anticipated is answerable
+# from the same output they are drawn from, by a reader who never opens `lib/report.py`.
+#
+# It is bash for the same reason the rest of the command is: every fact in the model is established
+# by a command a user can retype -- `sha256sum` on a granted file, `gpg --verify` on a document,
+# `resolve_methodology` on a name -- and a model assembled by an interpreter nobody can watch would
+# be a set of claims about the repository rather than a reading of it.
+#
+# It needs no signing key. A report is the answer to "what has this repository been vouched for",
+# which is a question asked most often by somebody who did not write it: continuous integration, or
+# a person deciding whether to trust the outputs.
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+require_sources || exit 1
+
+# Every diagnostic goes to standard error, because standard output is the model and a warning
+# printed into it would break every consumer at once. The checks below are therefore run in their
+# quiet mode -- what they *found* is in the model; what it *means* is `check-grants`' job.
+
+# ---------------------------------------------------------------------------
+# The general methodology, which every document's `version` field is a claim about
+# ---------------------------------------------------------------------------
+
+general_state="resolved"
+general_uri=""
+general_sha=""
+general_origin=""
+
+resolution=$(resolve_general_methodology)
+case $? in
+    0)
+        { read -r general_uri; read -r path; read -r general_origin; } <<<"$resolution"
+        general_sha=$(sha256_of_file "$path")
+        ;;
+    "$SOURCE_UNRESOLVED") general_state="unresolved" ;;
+    *)                    general_state="unreachable" ;;
+esac
+
+# The two words the run as a whole is summed up in. They are accumulated rather than computed at
+# the end because the distinction only exists per finding: a claim disproved is a failure, a claim
+# that could not be checked is not -- and a run must never go red because a source was unreachable.
+failing=false
+inconclusive=false
+
+[ "$general_state" = "unresolved" ] && failing=true
+[ "$general_state" = "unreachable" ] && inconclusive=true
+
+# ---------------------------------------------------------------------------
+# Walking the documents
+# ---------------------------------------------------------------------------
+
+contributors=()
+grants=()
+
+# Keyed by methodology name, and filled as the documents are read. A methodology is a thing several
+# contributors adopt, so it cannot be described from inside the loop over one document.
+declare -A method_seen=()
+declare -A method_adoptions=()
+declare -A method_grants=()
+declare -A method_granted=()
+method_order=()
+
+granted_files=()
+
+remember_methodology() {
+    local name="$1"
+    if [ -z "${method_seen[$name]:-}" ]; then
+        method_seen[$name]=1
+        method_adoptions[$name]=""
+        method_grants[$name]=0
+        method_granted[$name]="[]"
+        method_order+=("$name")
+    fi
+}
+
+for doc in "$DOCUMENT_DIR"/*.yaml; do
+    [ -f "$doc" ] || continue
+
+    who_name=$(yq -r '.who.name // ""' "$doc" 2>/dev/null)
+    who_email=$(yq -r '.who.email // ""' "$doc" 2>/dev/null)
+    who_key=$(yq -r '.who.pubkey_id // ""' "$doc" 2>/dev/null)
+    document_path=$(realpath --relative-to="$REPO_ROOT" "$doc")
+
+    schema="valid"
+    validate_document_schema "$doc" >/dev/null 2>&1 || schema="invalid"
+
+    validate_document_signature "$doc" >/dev/null 2>&1
+    case $? in
+        0) signature="valid" ;;
+        2) signature="missing" ;;
+        *) signature="invalid" ;;
+    esac
+
+    # A version is a claim about a text, so when the text could not be read the claim is neither
+    # kept nor broken. `unknown` is that third answer, and it is why an unreachable source does not
+    # quietly disqualify every document in the repository from being counted.
+    stored_version=$(yq -r '.version // ""' "$doc" 2>/dev/null)
+    if [ "$general_state" != "resolved" ]; then
+        version="unknown"
+    elif [ "$stored_version" = "$general_sha" ]; then
+        version="current"
+    else
+        version="stale"
+    fi
+
+    # What "counted" means, and why it is not the same as "valid": coverage is a statement about
+    # assurance, and a document that is unsigned or wrongly signed asserts nothing, so its grants
+    # cannot raise a percentage. They are still listed -- an uncounted grant that were also
+    # invisible would be a report quietly disagreeing with the repository it describes.
+    counted=true
+    [ "$schema" = "valid" ] || counted=false
+    [ "$signature" = "valid" ] || counted=false
+    [ "$version" = "stale" ] && counted=false
+
+    [ "$schema" = "invalid" ] && failing=true
+    [ "$signature" = "valid" ] || failing=true
+    [ "$version" = "stale" ] && failing=true
+    [ "$version" = "unknown" ] && inconclusive=true
+
+    adopted=()
+    count=$(yq -r '.methodologies | length' "$doc" 2>/dev/null)
+    for ((i = 0; i < count; i++)); do
+        name=$(yq -r ".methodologies[$i].name // \"\"" "$doc" 2>/dev/null)
+        [ -n "$name" ] || continue
+        stored=$(yq -r ".methodologies[$i].sha256 // \"\"" "$doc" 2>/dev/null)
+        remember_methodology "$name"
+        adopted+=("$name")
+
+        # Resolved once per run however many documents adopt it: `load_page_report` caches, which
+        # is what keeps a repository with ten contributors from fetching the same page ten times.
+        load_page_report "$name"
+        resolved_status=$?
+        if [ "$resolved_status" -eq 0 ]; then
+            current=$(sha256_of_file "$PAGE_PATH")
+            if [ "$stored" = "$current" ]; then
+                adoption_state="current"
+            else
+                adoption_state="changed"
+                failing=true
+            fi
+        else
+            adoption_state="unknown"
+            inconclusive=true
+        fi
+
+        adoption=$(jq -nc \
+            --arg contributor "$who_name" \
+            --arg document "$document_path" \
+            --arg sha256 "$stored" \
+            --arg state "$adoption_state" \
+            '{contributor: $contributor, document: $document, sha256: $sha256, state: $state}')
+        method_adoptions[$name]="${method_adoptions[$name]:+${method_adoptions[$name]},}$adoption"
+    done
+
+    grant_count=0
+    count=$(yq -r '.data | length' "$doc" 2>/dev/null)
+    for ((i = 0; i < count; i++)); do
+        method=$(yq -r ".data[$i].methodology // \"\"" "$doc" 2>/dev/null)
+        [ -n "$method" ] || continue
+        remember_methodology "$method"
+
+        files=$(yq -r ".data[$i].files | length" "$doc" 2>/dev/null)
+        for ((j = 0; j < files; j++)); do
+            file_path=$(yq -r ".data[$i].files[$j].path" "$doc" 2>/dev/null)
+            file_sha=$(yq -r ".data[$i].files[$j].sha256" "$doc" 2>/dev/null)
+            [ -n "$file_path" ] && [ "$file_path" != "null" ] || continue
+
+            full="$REPO_ROOT/$file_path"
+            if [ ! -f "$full" ]; then
+                state="missing"
+                failing=true
+            elif [ "$(sha256_of_file "$full")" = "$file_sha" ]; then
+                state="current"
+            else
+                state="changed"
+                failing=true
+            fi
+
+            # `null` and not `false` when the page could not be resolved: the methodology is what
+            # says which paths it covers, so an unread page leaves the question unasked rather
+            # than answered in the negative.
+            path_is_supported "$method" "$file_path"
+            case $? in
+                "$PATH_SUPPORTED")   in_scope="true" ;;
+                "$PATH_UNSUPPORTED") in_scope="false" ;;
+                *)                   in_scope="null" ;;
+            esac
+
+            grants+=("$(jq -nc \
+                --arg path "$file_path" \
+                --arg sha256 "$file_sha" \
+                --arg methodology "$method" \
+                --arg contributor "$who_name" \
+                --arg document "$document_path" \
+                --arg state "$state" \
+                --argjson in_scope "$in_scope" \
+                '{path: $path, sha256: $sha256, methodology: $methodology,
+                  contributor: $contributor, document: $document, state: $state,
+                  in_scope: $in_scope}')")
+
+            grant_count=$((grant_count + 1))
+            method_grants[$method]=$((${method_grants[$method]} + 1))
+            granted_files+=("$file_path")
+
+            if [ "$counted" = true ]; then
+                method_granted[$method]=$(jq -nc \
+                    --argjson granted "${method_granted[$method]}" \
+                    --arg path "$file_path" \
+                    '$granted + [$path] | unique')
+            fi
+        done
+    done
+
+    contributors+=("$(jq -nc \
+        --arg name "$who_name" \
+        --arg email "$who_email" \
+        --arg pubkey_id "$who_key" \
+        --arg document "$document_path" \
+        --arg schema "$schema" \
+        --arg signature "$signature" \
+        --arg version "$version" \
+        --argjson counted "$counted" \
+        --argjson grants "$grant_count" \
+        --args '{name: $name, email: $email, pubkey_id: $pubkey_id, document: $document,
+                 schema: $schema, signature: $signature, version: $version,
+                 counted: $counted, grants: $grants, methodologies: $ARGS.positional}' \
+        "${adopted[@]}")")
+done
+
+# ---------------------------------------------------------------------------
+# What each methodology declares, and what it could therefore be complete against
+# ---------------------------------------------------------------------------
+#
+# The denominator is the set of files in the working tree the methodology's own patterns match --
+# what it *could* cover -- and the numerator is how many of those somebody has actually vouched
+# for. A methodology that declares no paths has no denominator at all: there is nothing it could be
+# complete against, and inventing one would put a meaningless percentage on a badge.
+
+methodologies=()
+all_candidates="[]"
+all_covered="[]"
+
+for name in "${method_order[@]}"; do
+    load_page_report "$name"
+    case $? in
+        0)                    state="resolved" ;;
+        "$SOURCE_UNRESOLVED") state="unresolved"; failing=true ;;
+        *)                    state="unreachable"; inconclusive=true ;;
+    esac
+
+    uri="null"
+    sha="null"
+    origin="null"
+    declares="null"
+    patterns="[]"
+    coverage="null"
+
+    if [ "$state" = "resolved" ]; then
+        uri=$(jq -nc --arg value "$PAGE_URI" '$value')
+        sha=$(jq -nc --arg value "$(sha256_of_file "$PAGE_PATH")" '$value')
+        origin=$(jq -nc --arg value "$PAGE_ORIGIN" '$value')
+        declares=$(echo "$PAGE_REPORT_JSON" | jq -c '.supported_paths.declared')
+        patterns=$(echo "$PAGE_REPORT_JSON" | jq -c '.supported_paths.patterns')
+
+        if [ "$declares" = "true" ]; then
+            candidates="[]"
+            while IFS= read -r pattern; do
+                [ -n "$pattern" ] || continue
+                expanded=$(python3 "${LIB_DIR}/pathmatch.py" expand "$pattern" "$REPO_ROOT")
+                candidates=$(jq -nc --argjson a "$candidates" --argjson b "$expanded" \
+                    '$a + $b | unique')
+            done < <(echo "$patterns" | jq -r '.[].pattern')
+
+            # Intersection, written as jq writes it: everything in the candidate set that is not
+            # outside the granted set. Only files the methodology declares count towards it, so a
+            # forced grant of something out of scope raises no percentage.
+            covered=$(jq -nc --argjson c "$candidates" --argjson g "${method_granted[$name]}" \
+                '$c - ($c - $g)')
+            coverage=$(jq -nc --argjson c "$candidates" --argjson g "$covered" \
+                '{candidates: ($c | length), granted: ($g | length),
+                  ratio: (if ($c | length) == 0 then null
+                          else (($g | length) / ($c | length)) end)}')
+            all_candidates=$(jq -nc --argjson a "$all_candidates" --argjson b "$candidates" \
+                '$a + $b | unique')
+            all_covered=$(jq -nc --argjson a "$all_covered" --argjson b "$covered" \
+                '$a + $b | unique')
+        fi
+    fi
+
+    methodologies+=("$(jq -nc \
+        --arg name "$name" \
+        --arg state "$state" \
+        --argjson uri "$uri" \
+        --argjson sha256 "$sha" \
+        --argjson origin "$origin" \
+        --argjson declares_paths "$declares" \
+        --argjson patterns "$patterns" \
+        --argjson adoptions "[${method_adoptions[$name]}]" \
+        --argjson grants "${method_grants[$name]}" \
+        --argjson coverage "$coverage" \
+        '{name: $name, state: $state, uri: $uri, sha256: $sha256, origin: $origin,
+          declares_paths: $declares_paths, patterns: $patterns, adoptions: $adoptions,
+          grants: $grants, coverage: $coverage}')")
+done
+
+# ---------------------------------------------------------------------------
+# The model
+# ---------------------------------------------------------------------------
+
+status="passing"
+[ "$inconclusive" = true ] && status="inconclusive"
+[ "$failing" = true ] && status="failing"
+
+# Two arrays, because the two things being gathered are not the same kind of thing: one is a stream
+# of JSON objects already built by `jq -nc`, the other is a list of plain paths that still have to
+# be quoted as strings. Feeding the second to the first would be a parse error on any repository
+# that had a grant in it.
+#
+# Both guard the empty case explicitly. `printf '%s\n' "${array[@]}"` over an empty array prints one
+# blank line rather than nothing, which jq reads as an empty string rather than as no elements.
+as_json_array() {
+    if [ "$#" -eq 0 ]; then
+        echo "[]"
+    else
+        printf '%s\n' "$@" | jq -sc '.'
+    fi
+}
+
+as_string_array() {
+    if [ "$#" -eq 0 ]; then
+        echo "[]"
+    else
+        printf '%s\n' "$@" | jq -Rsc 'split("\n")[:-1]'
+    fi
+}
+
+distinct_files=$(as_string_array ${granted_files[@]+"${granted_files[@]}"} \
+    | jq -c 'unique | length')
+
+jq -n \
+    --arg root "$REPO_ROOT" \
+    --arg name "$(basename "$REPO_ROOT")" \
+    --argjson sources "$(printf '%s\n' "${VALIDATE_SOURCES[@]}" | jq -Rsc 'split("\n")[:-1]')" \
+    --argjson general "$(jq -nc \
+        --arg state "$general_state" \
+        --arg uri "$general_uri" \
+        --arg sha256 "$general_sha" \
+        --arg origin "$general_origin" \
+        '{state: $state,
+          uri: (if $uri == "" then null else $uri end),
+          sha256: (if $sha256 == "" then null else $sha256 end),
+          origin: (if $origin == "" then null else $origin end)}')" \
+    --argjson contributors "$(as_json_array ${contributors[@]+"${contributors[@]}"})" \
+    --argjson methodologies "$(as_json_array ${methodologies[@]+"${methodologies[@]}"})" \
+    --argjson grants "$(as_json_array ${grants[@]+"${grants[@]}"})" \
+    --argjson candidates "$all_candidates" \
+    --argjson covered "$all_covered" \
+    --argjson files "$distinct_files" \
+    --arg status "$status" \
+    '{repository: {root: $root, name: $name},
+      sources: $sources,
+      general_methodology: $general,
+      contributors: $contributors,
+      methodologies: $methodologies,
+      grants: $grants,
+      coverage: {candidates: ($candidates | length),
+                 granted: ($covered | length),
+                 ratio: (if ($candidates | length) == 0 then null
+                         else (($covered | length) / ($candidates | length)) end)},
+      totals: {contributors: ($contributors | length),
+               methodologies: ($methodologies | length),
+               grants: ($grants | length),
+               files: $files},
+      status: $status}'

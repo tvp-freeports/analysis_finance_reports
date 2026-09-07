@@ -83,14 +83,63 @@ repository's own `freeports-config.yaml`, next to the tests it governs.
 ```yaml
 validate:
   key_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+  sources:
+    - https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt
+    - ~/my-methodologies/*.rst
+  offline: false
+  deep: false
 ```
 
 | Key | Environment | Flag | Default | Means |
 |---|---|---|---|---|
-| `validate.key_id` | `FREEPORTS_VALIDATE_KEY_ID` | `--key-id` / `-k` | none — required | the GPG key that is your identity |
+| `validate.key_id` | `FREEPORTS_VALIDATE_KEY_ID` | `--key-id` / `-k` | none | the GPG key that is your identity |
+| `validate.sources` | `FREEPORTS_VALIDATE_SOURCE` | `--source` / `-s` | the published documentation | where methodology pages are resolved from |
+| `validate.offline` | `FREEPORTS_VALIDATE_OFFLINE` | `--offline` / `--no-offline` | `false` | never fetch a page; answer from the cache |
+| `validate.deep` | `FREEPORTS_VALIDATE_DEEP` | `--deep` / `--no-deep` | **`true`** | also follow what a methodology page pins |
 
-One key, and it is the one worth writing down: it is required by every subcommand, it never changes,
-and it is the difference between the tool knowing who you are and refusing to start.
+**The key is not required by every subcommand.** It says who is *speaking*, so it is asked for by
+the ones that speak in your name — `create-document`, `grant`, `ungrant`, `update`,
+`sign-document` — and by nothing else. Reading what other people have vouched for needs no identity
+of your own, which is what lets `check-grants`, the three lookups, `sources` and `report` run in
+continuous integration and on the machine of somebody auditing a repository they did not write.
+
+**`validate.sources` is the one setting whose tiers do not merge.** Every other setting in this
+project is resolved per setting, so naming one on the command line leaves the others to the file.
+Sources are a *list*, and the strongest tier that names any source provides the whole of it: a
+command line with `-s` ignores the file's list entirely. Merging would make the question *which text
+did this hash come from* unanswerable from any one place, since the answer would be a set assembled
+out of three places nobody reads together. The case that wants two sources at once — the published
+documentation plus your own methodologies — is served by listing both in the same tier, which is why
+the file tier takes a list and the environment does not.
+
+And as with `dev.target_lists`, `FREEPORTS_VALIDATE_SOURCE` is **one** source, the whole raw value,
+never split: every separator one might pick is a legal character in a URI or a path.
+
+A source is a pattern with exactly one `*`, standing for the methodology's relative name.
+{doc}`tooling` has the grammar, the resolution order and the cache; what belongs here is that a
+**relative** source written in a configuration file is resolved against that file's own directory,
+not against your working directory — the file is searched for, so one line in it is read from many
+different working directories and has to name the same pages from all of them. A `file://` URI, like
+every other URI, is left exactly as written.
+
+An empty list falls through to the next tier. `sources: []` is a tier declining to have an opinion,
+not a decision to have no methodologies at all — the latter would leave every check unresolvable.
+
+`validate.offline` and `validate.deep` are settings rather than one-off flags because each is a
+standing property of a machine or of a person: an air-gapped runner is permanently without egress,
+and how thorough a check should be is a standing preference of whoever is doing the checking.
+`grant --force` is deliberately **not** here: it overrides a refusal for one invocation, and written
+into a file it would silently disable that check for every future grant.
+
+**`validate.deep` is on unless something turns it off**, which is why it is the one flag in this
+project that has a negative form. A flag can otherwise only ever switch a setting *on*, and a
+setting that defaults to on would then have no command-line spelling for "no" — leaving the
+strongest tier unable to express half the answers. Hence `--no-deep` and its synonym `--shallow`,
+and `--no-offline` for symmetry.
+
+Both booleans distinguish **no** from **silence** at every tier. `FREEPORTS_VALIDATE_DEEP=0` beats
+a configuration file that says `true`: a tier that says no has said something, and only a tier that
+says nothing falls through to the next.
 
 ## Finding the repository
 
@@ -142,6 +191,8 @@ dev:
 
 validate:
   key_id: E61BCDC8F81AD6CB553ED5801E7C5644FDF4E304
+  sources:
+    - https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt
 ```
 
 Note the two `target_lists`. The top-level one is what a **real extraction** searches for; `dev`'s is

@@ -106,7 +106,14 @@ remove_associated_files() {
 case "$SUBCOMMAND" in
     version)
         print_info "Updating general methodology version..."
-        new_version=$(get_version_methodology)
+        version_resolution=$(resolve_general_methodology) || version_status=$?
+        if [ -n "${version_status:-}" ]; then
+            report_methodology_resolution "$version_status" "The general methodology" "true"
+            print_diagnoses
+            exit 1
+        fi
+        print_info "Resolved from: $(echo "$version_resolution" | sed -n 1p)"
+        new_version=$(sha256_of_file "$(echo "$version_resolution" | sed -n 2p)")
         yq -y -i ".version = \"$new_version\"" "$PERSONAL_DOC"
         print_success "Updated general methodology version to: $new_version"
         ;;
@@ -145,16 +152,14 @@ case "$SUBCOMMAND" in
             remove_associated_files "$method_name"
         fi
         
-        # Get methodology file path and calculate new hash
-        method_file=$(echo "$method_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-        method_path="$METHODOLOGY_DIR/methodologies/${method_file}.rst"
-        
-        if [ ! -f "$method_path" ]; then
-            print_error "Methodology file '$method_path' does not exist"
+        method_resolution=$(resolve_methodology "$method_name") || method_status=$?
+        if [ -n "${method_status:-}" ]; then
+            report_methodology_resolution "$method_status" "Methodology '$method_name'" "true"
+            print_diagnoses
             exit 1
         fi
-        
-        new_hash=$(sha256sum "$method_path" | awk '{print $1}')
+        print_info "Resolved from: $(echo "$method_resolution" | sed -n 1p)"
+        new_hash=$(sha256_of_file "$(echo "$method_resolution" | sed -n 2p)")
         
         # Update methodology hash
         yq -y -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\""  "$PERSONAL_DOC"
@@ -176,16 +181,14 @@ case "$SUBCOMMAND" in
             exit 1
         fi
         
-        # Get methodology file path and calculate new hash
-        method_file=$(echo "$method_name" | tr ' ' '_' | tr '[:upper:]' '[:lower:]')
-        method_path="$METHODOLOGY_DIR/methodologies/${method_file}.rst"
-        
-        if [ ! -f "$method_path" ]; then
-            print_error "Methodology file '$method_path' does not exist"
+        method_resolution=$(resolve_methodology "$method_name") || method_status=$?
+        if [ -n "${method_status:-}" ]; then
+            report_methodology_resolution "$method_status" "Methodology '$method_name'" "true"
+            print_diagnoses
             exit 1
         fi
-        
-        new_hash=$(sha256sum "$method_path" | awk '{print $1}')
+        print_info "Resolved from: $(echo "$method_resolution" | sed -n 1p)"
+        new_hash=$(sha256_of_file "$(echo "$method_resolution" | sed -n 2p)")
         
         # Update methodology hash (without removing associated files)
         yq -y -i "(.methodologies[] | select(.name == \"$method_name\")).sha256 = \"$new_hash\"" "$PERSONAL_DOC"
