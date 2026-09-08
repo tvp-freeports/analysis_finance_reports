@@ -123,7 +123,8 @@ DOCS_PORT ?= 8000
         check test test-all test-unit test-full test-doc test-integration test-formats \
         test-tools test-tools-slow test-tools-all \
         lint fmt fmt-check pre-commit \
-        docs docs-html docs-rustdoc docs-coverage docs-serve docs-lang \
+        validation-report check-grants \
+        docs docs-html docs-rustdoc docs-validation docs-coverage docs-serve docs-lang \
         i18n i18n-extract i18n-update i18n-build \
         clean clean-docs clean-rust distclean
 
@@ -387,9 +388,79 @@ fmt-check: ## Verify formatting without rewriting anything
 # make after a deliberate pass of `make fmt`.
 pre-commit: lint test ## The commit gate: lint + the full suite
 
+##@ Validation
+
+# What `validation/` claims, written down wherever a reader meets it.
+#
+# The three badges in README.md, the summary block in it, the seven pages under
+# `docs/source/validation/report/` and the single-page HTML rendering are all functions of the same
+# thing: the signed documents in `validation/`. A commit that changes a granted file and leaves them
+# alone publishes figures that are already wrong, which is why `.githooks/pre-commit` runs this and
+# stages what it rewrote.
+#
+# **One walk of the repository, rendered ten times.** `collect` resolves every methodology page from
+# the configured sources; doing it once per artefact would fetch each page ten times over for an
+# answer that cannot have changed in between. So the model is collected into a temporary file and
+# every rendering is `--model` against it.
+#
+# The paths below are literal, as they are in a formats repository's hook: where a table belongs in
+# a documentation tree is a judgement about that tree, not a setting.
+# `--repo` is given outright rather than left to be resolved. A `formats_repo:` line in whatever
+# configuration file is found from here outranks "the enclosing Git repository", so a machine
+# configured for a formats repository would otherwise have `make validation-report` write this
+# repository's README out of somebody else's grants.
+#
+# The sources are named here for a sharper reason. The grants in `validation/` are made under the
+# methodology pages **of this repository**, and the two documentation channels do not carry the same
+# text: `latest` is built from this branch and matches `docs/source/validation/` byte for byte,
+# `stable` is the last release and lags behind it. `freeports-validate`'s own default is `stable`
+# alone, so a run that said nothing would report every grant here as a hash mismatch — an accusation
+# produced entirely by reading a different publication of the same page.
+#
+# Two sources are needed, in this order, and only the command line and a configuration file can
+# carry two (`FREEPORTS_VALIDATE_SOURCE` holds exactly one and is never split). A configuration file
+# cannot be committed here — every name the engine recognises is gitignored — so the command line it
+# is. Override the pair with `make validation-report VALIDATE_SOURCES="<pattern> <pattern>"`; giving
+# it empty falls back to whatever your own tiers say.
+VALIDATE_SOURCES ?= https://docs.freeports.org/en/latest/_sources/validation/*.rst.txt \
+                    https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt
+VALIDATE_SOURCE_ARGS = $(foreach source,$(VALIDATE_SOURCES),--source "$(source)")
+
+VALIDATE      = $(ENV_BIN)/freeports-validate$(EXE) --repo "$(CURDIR)" $(VALIDATE_SOURCE_ARGS)
+BADGES_DIR    = validation/report/badges
+REPORT_DIR    = docs/source/validation/report
+# Generated into `_extra/`, which is gitignored and copied verbatim into the root of the site by
+# `html_extra_path` — the same arrangement as rustdoc. So it belongs to the *build* and not to the
+# commit, and Read the Docs regenerates it in its `pre_build` job.
+COVERAGE_HTML = docs/source/_extra/validation/coverage.html
+REPORT_TABLES = file-contributor file-methodology contributor-methodology \
+                contributor-file methodology-file methodology-contributor
+
+validation-report: ## Refresh the badges, the README block, the seven doc pages and the HTML
+	@model=$$(mktemp) || exit 1; \
+	 trap 'rm -f "$$model"' EXIT; \
+	 $(VALIDATE) collect > "$$model" || { \
+	     echo "freeports-validate: the grants could not be read — nothing was rewritten" >&2; \
+	     exit 1; }; \
+	 $(VALIDATE) report --model "$$model" --format badges --out $(BADGES_DIR)/; \
+	 $(VALIDATE) report --model "$$model" --format markdown --out README.md; \
+	 $(VALIDATE) report --model "$$model" --format rst --out $(REPORT_DIR)/index.rst; \
+	 for table in $(REPORT_TABLES); do \
+	     $(VALIDATE) report --model "$$model" --format rst --table "$$table" \
+	         --out "$(REPORT_DIR)/$$table.rst" || exit 1; \
+	 done; \
+	 mkdir -p $(dir $(COVERAGE_HTML)); \
+	 $(VALIDATE) report --model "$$model" --format html --out $(COVERAGE_HTML)
+
+# The integrity check itself: signatures verify, hashes still match, methodology pages still say
+# what they said. It is *not* a lint — a passing run says the claims in `validation/` hold, not that
+# the software is correct — and it needs no signing key to check somebody else's document.
+check-grants: ## Verify every claim made in validation/
+	$(VALIDATE) check-grants
+
 ##@ Documentation
 
-docs: docs-rustdoc docs-html ## The whole site, rustdoc included
+docs: docs-rustdoc docs-validation docs-html ## The whole site, rustdoc and coverage page included
 	@echo "Site at docs/build/html/index.html"
 
 docs-html: ## Sphinx only — what you want while writing prose
@@ -397,6 +468,13 @@ docs-html: ## Sphinx only — what you want while writing prose
 
 docs-rustdoc: ## cargo doc only, deposited in docs/source/_extra/rustdoc/
 	$(MAKE) -C docs rustdoc CARGO="$(CARGO)"
+
+# The one artefact of `validation-report` that belongs to the build rather than to the commit, so it
+# is also reachable on its own: Read the Docs runs exactly this in its `pre_build` job, and a local
+# `make docs` has to produce the same site.
+docs-validation: ## The validation coverage page only, into docs/source/_extra/validation/
+	$(MAKE) -C docs validation-coverage \
+	    VALIDATE="$(ENV_BIN)/freeports-validate$(EXE)" VALIDATE_SOURCES="$(VALIDATE_SOURCES)"
 
 # `sphinx.ext.coverage` measures how much of the installed packages' API is actually documented.
 # The report ends up in docs/build/coverage/python.txt.

@@ -108,6 +108,7 @@ check_page_links() {
     local json="$PAGE_REPORT_JSON"
     if [ "$json" = "$PAGE_UNREADABLE" ]; then
         print_warning "  The page could not be read, so what it cites is unknown"
+        note_unverified
         return 0
     fi
 
@@ -139,6 +140,10 @@ check_page_links() {
         if [ "$status" -ne 0 ]; then
             print_warning "  $target: could not be reached, so nothing was compared"
             note_diagnosis subhash-unreachable
+            # Nothing was compared, so the page's claim about this resource is neither confirmed
+            # nor refuted -- and the run as a whole can no longer report that everything checked
+            # out, because this did not get checked.
+            note_unverified
             continue
         fi
 

@@ -367,9 +367,45 @@ class TestTheNewDiagnoses:
             sources=pattern,
             env={"XDG_CACHE_HOME": "/nonexistent-cache-for-this-test"},
         )
-        assert run.returncode == 0, run
         assert "could not be reached" in run.output.lower()
         assert "mismatch" not in run.output.lower()
+
+    def test_and_it_does_not_pass_either(
+        self, run_validate, tmp_repo, signer, http_source, adopted_over_http
+    ):
+        """The third status, and the reason it exists.
+
+        Not counting an unmade check as an error is right; reporting the run as a pass because
+        the count stayed at zero is not. A grant nobody compared against anything has not been
+        verified, and saying so is the whole job.
+        """
+        pattern = http_source.pattern
+        http_source.stop()
+        run = run_validate(
+            "check-grants",
+            repo=tmp_repo,
+            key_id=signer.fingerprint,
+            sources=pattern,
+            env={"XDG_CACHE_HOME": "/nonexistent-cache-for-this-test"},
+        )
+        assert run.returncode == 3, run
+        assert "passed verification" not in run.output.lower()
+
+    def test_and_it_says_the_grants_are_not_vouched_for(
+        self, run_validate, tmp_repo, signer, http_source, adopted_over_http
+    ):
+        """An exit status nobody reads is not an answer: the words have to be there too."""
+        pattern = http_source.pattern
+        http_source.stop()
+        run = run_validate(
+            "check-grants",
+            repo=tmp_repo,
+            key_id=signer.fingerprint,
+            sources=pattern,
+            env={"XDG_CACHE_HOME": "/nonexistent-cache-for-this-test"},
+        )
+        assert "not vouched for" in run.output.lower(), run
+        assert "ungranted" in run.output.lower(), run
 
     def test_offline_answers_from_the_cache_and_says_that_is_what_it_did(
         self, run_validate, tmp_repo, signer, http_source, adopted_over_http
@@ -385,6 +421,9 @@ class TestTheNewDiagnoses:
         )
         assert run.returncode == 0, run
         assert "cache" in run.output.lower()
+        # Answered, not skipped: `--offline` that found what it needed is a conclusive run, and
+        # must not be tarred with the status of one that found nothing.
+        assert "passed verification" in run.output.lower(), run
 
 
 class TestTheShippedPagesAreGone:

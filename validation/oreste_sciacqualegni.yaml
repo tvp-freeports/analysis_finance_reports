@@ -1,0 +1,28 @@
+version: 06fd3756bf2640655303997f64a5a89fb4b0110c76308a645fcc43a2361af4a8
+who:
+  name: Oreste Sciacqualegni
+  email: orestesciacqualegni@tutanota.com
+  pubkey_id: 09E506DD865A64A364B9F55610FF6836D9E35209
+methodologies:
+  - name: agreement and good faith
+    sha256: f35ea805b0721971d8aef1ccf5e0fbe919de127a808ee05b0448e76999d4ab2b
+data:
+  - methodology: agreement and good faith
+    files:
+      - path: docs/source/validation/assertions/validation_algorithm_trustworthiness.rst
+        sha256: bb5f563f34f20e28b7a5827c5896d114539aaffd238a0de6d7ca33ba84a0951f
+sign: |-
+  -----BEGIN PGP SIGNATURE-----
+
+  iQGzBAABCgAdFiEECeUG3YZaZKNkufVWEP9oNtnjUgkFAmqfrD4ACgkQEP9oNtnj
+  Ugk/2wv/diyee5orPlfO0zmz8bVXFpFOqM2l4YOZESYQyofdYrhyRQ7TEv6fYfli
+  zyskfdxZ4TIXbjHG+PQO+VX8pZosWFsT5ba1sydX5zaYJot7ykSQiFNUyMcdLLqv
+  bs+FROb/peYgD0go8t0KTlG86MKV1IMJOSb7SoOjr+7NyHMu6qtt7Ls2TJQ5K30G
+  +qRA+vy/7pmaJYQGScecBjNDfqCWAiv/uuKlCAuI3GDDo65sZki01/wjV5EX/IMd
+  vCoL7Z9RQmU1Z1Pw/rdVSoP1kg40mQ8VTrhK8FVmVdsD0FVvUY/+NvZRxmUU76Wp
+  FvWUOIOLLS1OB7xQ27mpCu9H8o4K0Q3zuObKYghBUiAla/IBjbpjGLxUxV9fxJ2u
+  2uXWcgDrLhpIYJseAFajE6UzE7IMG3zhKYu5uBmx+jLmiNxMJy0JVv89ugMGIN3R
+  49dWAMlZiQXmebSzNIDrL+ENQxZEm9s4e7N/IIoxaFU696Vn3Z+qsBfaDaYDPOOq
+  o1IMTVdZ
+  =cMKX
+  -----END PGP SIGNATURE-----

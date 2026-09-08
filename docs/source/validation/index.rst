@@ -79,3 +79,4 @@ through his *hash* or with the beginning part of it (enough to distinguish it fr
    methodologies/golden_standard
    methodologies/agreement_and_good_faith
    assertions/validation_algorithm_trustworthiness
+   report/index

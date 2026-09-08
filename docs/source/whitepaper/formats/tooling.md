@@ -543,7 +543,7 @@ it — and the published text changing is precisely the event this whole mechani
 | Situation | What happens |
 |---|---|
 | the fetch succeeds | the fetched body is hashed, and cached |
-| the fetch fails, no `--offline` | the check is **inconclusive** — not matching and not mismatched. A warning, and a non-zero exit only if something else failed |
+| the fetch fails, no `--offline` | the check is **inconclusive** — not matching and not mismatched. `check-grants` exits `3` over it: nothing failed, and not everything was checked |
 | the fetch fails, `--offline` given | the newest cached body is used, and every line that depended on it says so |
 | `--offline`, nothing cached | reported as unreachable |
 
@@ -780,19 +780,36 @@ $ freeports-validate check-grants someone_else.yaml  # another contributor's
 ```
 
 It reports, item by item: the schema, the signature, the general-methodology version, the hash of
-every adopted methodology, and the hash of every granted file. The exit status is non-zero if any of
-them fails, which is what makes it a CI step rather than a report you read.
+every adopted methodology, and the hash of every granted file.
 
-Two of the things it says are **not** failures, and neither one can turn the run red:
+A run ends in one of **three** states, and the exit status distinguishes all three. Two would not
+be enough, because "everything I checked was fine" and "I checked everything and it was fine" are
+different sentences, and only the second is a grant verified:
+
+| Exit | What it means |
+|---|---|
+| `0` | every claim was compared against what it names, and every comparison held |
+| `1` | something was compared and did not hold: a signature, a version, a methodology hash, a file hash |
+| `3` | nothing was found wrong, and not everything was looked at |
+
+The third is the one worth dwelling on. A methodology page that could not be fetched leaves every
+grant made under it **uncompared** — neither confirmed nor disproved. Counting that as a failure
+would accuse a granter over a network outage, so it is not counted; reporting it as a pass would
+launder "I could not look" into "I looked and it was fine", which is the one sentence a validation
+tool must never say. So the run says, in as many words, that those grants are *not vouched for by
+this run* and should be treated as ungranted until a run that could read the pages says otherwise.
+
+`--offline` makes that state deliberate rather than accidental: it answers from the cache where it
+can, and only what it could not answer leaves the run inconclusive.
+
+One thing it says is a warning and never any of the three:
 
 | | |
 |---|---|
-| a page that could not be reached | the check is *inconclusive*. It was neither confirmed nor disproved, and a repository must not go red because somebody ran the check on a train. `--offline` makes that state deliberate rather than accidental |
 | a file granted outside the paths its methodology declares | a warning. Failing here would break a repository over a page somebody else edited |
 
-Because of the first of those, the explanations below are printed on a **green** run too: a warning
-nobody explains is a warning nobody acts on, which is exactly the state a passing run with an
-unexamined page is in.
+The explanations below are printed on a **green** run too: a warning nobody explains is a warning
+nobody acts on.
 
 Those lines name a discrepancy rather than explain one, so a failing run closes with a short section
 saying what each *kind* of failure it hit can mean — that an invalid signature is far more often a

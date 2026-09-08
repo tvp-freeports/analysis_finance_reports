@@ -33,7 +33,29 @@ VALIDATION_DIAGNOSES=""
 # all the way to the exit status. A methodology page that cannot be fetched is the case that made
 # this necessary: reporting it as a mismatch would accuse a granter of nothing, and reporting it as
 # a match would vouch for a text nobody has seen.
+#
+# It is also the exit status of a whole run that ended that way -- see `bin/check-grants`. Three
+# outcomes, three statuses: 0 the claims hold, 1 some of them do not, 3 some of them were not
+# looked at.
 readonly CHECK_INCONCLUSIVE=3
+
+# Did this run leave anything unchecked?
+#
+# An unmade check is not an error, and it is not a pass either, and for a long time only the first
+# half of that was implemented: the count of errors stayed at zero, so the run ended by announcing
+# that every document had passed verification -- of grants it had in fact compared against nothing.
+# That is the one reading a validation tool must never offer, because the whole value of a grant is
+# that somebody checked it, and "I could not look" reported as "I looked and it was fine" destroys
+# exactly that.
+#
+# So the two are tracked separately. The count decides between passing and failing; this flag says
+# whether the question was fully asked, and a run where it was not says so and exits non-zero
+# without calling anything wrong.
+VALIDATION_UNVERIFIED=false
+
+note_unverified() {
+    VALIDATION_UNVERIFIED=true
+}
 
 # What each name actually resolved to during this run, so that the explanation at the end can show
 # it. A hash mismatch is ambiguous by design -- the document records a name and a hash and
@@ -606,16 +628,23 @@ normalize_methodology_name() {
 # shipped with the package. `resolve_methodology` and `methodology_sha256` in `lib/sources.sh`
 # replace them: same questions, asked of the sources the user configured.
 
-# Run a check and translate "could not be made" into success, for the purpose of counting only.
+# Run a check and translate "could not be made" into success, **for the purpose of counting only**.
 #
-# The line the reader saw was a warning, and the paragraph at the end says what it means; what must
-# not happen is a repository going red because somebody ran the check on a train. `--offline` makes
-# that state deliberate rather than accidental, and a run in it still reports every hash it *could*
-# compare.
+# Not counting it is what keeps a repository from going red because somebody ran the check on a
+# train: nothing was compared, so nothing was found wrong, and calling it a failure would accuse a
+# granter over a network. `--offline` makes that state deliberate rather than accidental, and a run
+# in it still reports every hash it *could* compare.
+#
+# But not counting it is not the same as passing it, which is why the flag is raised here as well.
+# The caller needs both facts -- how many checks failed, and whether every check was actually made
+# -- and it has them only because this function records the second one on its way past.
 count_unless_inconclusive() {
     local status=0
     "$@" || status=$?
-    [ "$status" -eq "$CHECK_INCONCLUSIVE" ] && return 0
+    if [ "$status" -eq "$CHECK_INCONCLUSIVE" ]; then
+        note_unverified
+        return 0
+    fi
     return $status
 }
 

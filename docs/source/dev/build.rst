@@ -110,6 +110,15 @@ runs ``ruff format`` on Python sources as they enter the index, so an unformatte
 a normal condition rather than an error. ``make fmt`` formats both languages on demand, and
 ``make fmt-check`` verifies without rewriting.
 
+Neither is the validation report, which the same hook also runs — ``make validation-report`` to
+regenerate the badges, the block in ``README.md``, the seven pages under
+``docs/source/validation/report/`` and the coverage page, and ``make check-grants`` to say whether
+the claims in ``validation/`` still hold. Both are reports and neither is a gate: they depend on
+fetching methodology pages over the network, and a commit that cannot be made offline is a worse
+problem than a report one run out of date. What the grant check says is still worth reading — an
+exit status of 3 means it could not check everything, and the grants it could not compare are not
+vouched for by that run.
+
 Why not the Autotools
 =====================
 

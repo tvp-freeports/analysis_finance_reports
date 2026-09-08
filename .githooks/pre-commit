@@ -12,6 +12,10 @@
 # Makefile at the repository root, so it can grow without this file being touched. Today it is
 # lint plus the full test suite.
 #
+# Between the second and the third sits something that is not a gate at all: the validation report
+# is refreshed and staged, and the grants are checked. Neither can refuse a commit — see the
+# section itself for why.
+#
 # Note that it sees the *working tree*, not the staged snapshot: a commit of a subset of your
 # changes is checked against everything you have on disk.
 
@@ -58,6 +62,66 @@ If you know what you are doing you can disable this check using:
 MSG
 	exit 1
 fi
+
+# The repository being committed, named outright rather than inherited.
+#
+# Everything below acts on *this* working tree, and git already knows which one it is. Left to
+# resolve it themselves, the commands would each consult their own tiers — `--repo`, then
+# `FREEPORTS_FORMATS_REPO_PATH`, then `formats_repo` in whatever configuration file is found from
+# here — and any of those can name a different repository than the one you are committing to.
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+
+
+# Keep the validation report current, and never refuse a commit over it.
+#
+# The three badges in README.md, the summary block in it, the seven pages under
+# `docs/source/validation/report/` and the coverage page generated into `docs/source/_extra/` are
+# all functions of what `validation/` claims. A commit that changes a granted assertion and leaves
+# them alone publishes figures that are already wrong, so they are regenerated here and what was
+# rewritten is added to the commit being made.
+#
+# What this consists of is decided in the Makefile, like the gate at the bottom of this file:
+# `make validation-report` is one walk of the repository rendered ten times, and it is also the
+# command to run by hand. The list of files to stage is here rather than there because staging is
+# git's business and the Makefile has none.
+#
+# Nothing in this section can fail the hook, on purpose. The figures depend on fetching every
+# methodology page from the configured sources, and a committer on a train, behind a proxy, or
+# working while the documentation server is down still has to be able to commit. A report one run
+# out of date is a smaller problem than a commit that cannot be made.
+if command -v freeports-validate >/dev/null 2>&1; then
+    if make -C "$repo_root" -s validation-report >/dev/null 2>&1; then
+        # `docs/source/_extra/` is gitignored — it is a product of the documentation build, not a
+        # file in the tree — so it is refreshed above and deliberately not staged here.
+        refreshed="README.md validation/report/badges"
+        for page in index file-contributor file-methodology contributor-methodology \
+                    contributor-file methodology-file methodology-contributor; do
+            refreshed="$refreshed docs/source/validation/report/$page.rst"
+        done
+
+        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
+        # space, and this is the one place the list has to be split back into arguments.
+        git -C "$repo_root" add -- $refreshed
+        echo "freeports-validate: report refreshed"
+    else
+        echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
+    fi
+
+    # The integrity check itself, and it warns rather than refuses.
+    #
+    # It is loud when it has something to say, and what it has to say is never nothing: a page that
+    # could not be fetched exits non-zero here too, because a grant nobody could verify is a grant
+    # this run does not vouch for — see `freeports-validate check-grants`, which distinguishes the
+    # two cases in its own output. Neither stops the commit: deciding what a broken or unverified
+    # grant means is the granter's, and the badge, the report and this message all record it.
+    if ! make -C "$repo_root" -s check-grants; then
+        echo 1>&2
+        echo "freeports-validate: the grants above are not all vouched for by this run." 1>&2
+        echo "The commit is not being refused. Re-grant with \`freeports-validate grant\`, or" 1>&2
+        echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
+    fi
+fi
+
 
 # Last, because it is the slow one. The `|| exit 1` is not decoration: without it a failing gate
 # only prints its errors and the commit goes through anyway.

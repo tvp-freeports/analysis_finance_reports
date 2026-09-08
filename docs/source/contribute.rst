@@ -153,6 +153,27 @@ Mostly in a formats repository, with ``freeports-validate``. A grant is a signed
 named methodology was applied to a specific file, recorded against that file's hash — so it is
 invalidated by any change to the file, deliberately.
 
+It happens here too, over a different kind of file. The **assertions** under
+``docs/source/validation/assertions/`` are statements about this software written as prose, and
+vouching for one is agreeing with what it says — the :doc:`agreement and good faith
+<validation/methodologies/agreement_and_good_faith>` methodology, whose protocol is read it
+completely, judge it inside your own competence, and say so in good faith. Having done that:
+
+.. code-block:: sh
+
+   freeports-validate create-document      # once, if you have never granted anything here
+   freeports-validate sign-document
+   freeports-validate grant with "agreement and good faith"          # adopt it, once
+   freeports-validate grant docs/source/validation/assertions/<file> with "agreement and good faith"
+
+Give ``--source`` the two channels the ``Makefile`` uses, ``latest`` before ``stable``: the pages
+you are granting under are the ones in this branch, and the command's own default reads the last
+release instead, which would make every grant here look like a hash mismatch.
+
+What those grants add up to is written down by ``make validation-report`` — the badges in the
+README, the block under them, and the seven pages of :doc:`validation/report/index` — and checked
+by ``make check-grants``. The commit hook runs both and can refuse a commit over neither.
+
 :doc:`whitepaper/validation` explains what the system claims and refuses to claim;
 :doc:`validation/index` holds the published methodologies themselves; and
 :doc:`whitepaper/formats/tooling` documents the commands, from creating your validation document to

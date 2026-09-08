@@ -2,6 +2,45 @@
 
 source "${FREEPORTS_VALIDATE_LIB}/utils"
 
+# How a run ends, and why there are three ways rather than two.
+#
+# Counting errors answers "did anything fail?". It does not answer "was everything looked at?", and
+# a run that reports a pass for grants it never compared against anything is worse than useless: it
+# launders "I could not reach the page" into "the claim holds", which is the one sentence this
+# command exists to be able to say honestly.
+#
+# So an unmade check is neither. It does not make the run fail -- nothing was found wrong, and a
+# repository must not go red because its author was offline -- and it does not let the run pass
+# either. It exits `CHECK_INCONCLUSIVE`, and says in as many words that the grants resting on what
+# could not be read are not vouched for here. `print_diagnoses` then explains each kind that
+# actually occurred, including how to make the run conclusive.
+report_outcome() {
+    local errors="$1"
+
+    if [ "$errors" -ne 0 ]; then
+        print_error "Some validation documents have errors"
+        print_diagnoses
+        exit 1
+    fi
+
+    if [ "$VALIDATION_UNVERIFIED" = true ]; then
+        print_warning "Nothing failed, and not everything was checked"
+        echo "" >&2
+        echo "Some of what was needed above could not be read, so it was not compared against" >&2
+        echo "anything. The grants resting on it are NOT vouched for by this run: they are" >&2
+        echo "unverified, which is a different answer from valid and a different answer from" >&2
+        echo "broken. Nothing here says they are wrong -- it says nobody has checked them." >&2
+        echo "" >&2
+        echo "Treat them as ungranted until a run that could read those pages says otherwise." >&2
+        print_diagnoses
+        exit $CHECK_INCONCLUSIVE
+    fi
+
+    print_success "All validation documents passed verification"
+    print_diagnoses
+    exit 0
+}
+
 # Main execution
 if [ $# -eq 0 ]; then
     overall_errors=0
@@ -44,18 +83,9 @@ if [ $# -eq 0 ]; then
     # Once, for the whole run: the same stale methodology page fails in every contributor's
     # document, and the reader needs to be told what that means one time, not once each.
     #
-    # Printed whether or not the run failed, because not every diagnosis is a failure. A methodology
-    # that could not be reached is a warning, and a warning nobody explains is a warning nobody acts
-    # on -- which is precisely the state this run is in when it exits zero with a page unexamined.
-    if [ $overall_errors -eq 0 ]; then
-        print_success "All validation documents passed verification"
-        print_diagnoses
-        exit 0
-    else
-        print_error "Some validation documents have errors"
-        print_diagnoses
-        exit 1
-    fi
+    # Printed whatever the outcome, because not every diagnosis is a failure. A methodology that
+    # could not be reached is a warning, and a warning nobody explains is a warning nobody acts on.
+    report_outcome $overall_errors
 else
     # Check specific document
     doc_path="$1"
@@ -70,6 +100,5 @@ else
 
     validate_document_comprehensive "$doc_path"
     status=$?
-    print_diagnoses
-    exit $status
+    report_outcome "$status"
 fi

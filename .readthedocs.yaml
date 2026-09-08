@@ -16,6 +16,10 @@ build:
       # writer's screen do not diverge. It deposits `cargo doc` into
       # `docs/source/_extra/rustdoc/`, from where `html_extra_path` copies it into the site.
       - make -C docs rustdoc
+      # The validation coverage page, generated from the signed documents in `validation/` into
+      # the same `_extra/` directory. It is never fatal: a build whose sources could not be
+      # fetched writes a page saying so rather than failing the site.
+      - make -C docs validation-coverage
 
 sphinx:
   configuration: docs/source/conf.py
