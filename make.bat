@@ -1,0 +1,26 @@
+@echo off
+rem Windows entry point: `make.bat <target>` from cmd or PowerShell, e.g. `make.bat dev-all`.
+rem
+rem It is a shim on purpose. The build itself is described once, in `Makefile`, whose recipes are
+rem POSIX shell; this file holds no target and no path of its own, it only starts a POSIX shell -
+rem Git Bash or MSYS2, both of which come with Windows installations of Git - and runs `make`
+rem there, in this directory, with the arguments you gave. Everything else, `Scripts/` and `.exe`
+rem included, the Makefile works out by itself.
+
+setlocal
+set "SH="
+if exist "%ProgramFiles%\Git\bin\bash.exe"      set "SH=%ProgramFiles%\Git\bin\bash.exe"
+if not defined SH if exist "%ProgramFiles(x86)%\Git\bin\bash.exe" set "SH=%ProgramFiles(x86)%\Git\bin\bash.exe"
+if not defined SH if exist "%LocalAppData%\Programs\Git\bin\bash.exe" set "SH=%LocalAppData%\Programs\Git\bin\bash.exe"
+if not defined SH if exist "C:\msys64\usr\bin\bash.exe" set "SH=C:\msys64\usr\bin\bash.exe"
+if not defined SH (
+    echo No POSIX shell found. Install Git for Windows ^(https://git-scm.com/download/win^) 1>&2
+    echo or MSYS2, then run this file again. 1>&2
+    exit /b 127
+)
+
+pushd "%~dp0"
+"%SH%" -c "command -v make >/dev/null || { echo 'make is not installed in this shell: pacman -S make (MSYS2), or winget install ezwinports.make' >&2; exit 127; }; exec make %*"
+set "RC=%ERRORLEVEL%"
+popd
+exit /b %RC%

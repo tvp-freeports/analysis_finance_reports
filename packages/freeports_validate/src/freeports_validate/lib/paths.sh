@@ -194,10 +194,17 @@ require_supported_path() {
 # the reason is in the plan: a repository failing its own checks because somebody else edited a
 # methodology page would make adopting anybody's methodology a liability.
 report_granted_path() {
-    local methodology="$1" relative="$2"
+    local methodology="$1" relative="$2" known_status="${3:-}"
 
+    # The third argument is the answer, when the caller asked it for many paths at once. The
+    # question is the same one; what changes is that a document granting several hundred files asks
+    # it once rather than once per file. A caller with nothing to pass asks here, as before.
     local status=0
-    path_is_supported "$methodology" "$relative" || status=$?
+    if [ -n "$known_status" ]; then
+        status="$known_status"
+    else
+        path_is_supported "$methodology" "$relative" || status=$?
+    fi
     [ "$status" -eq "$PATH_UNSUPPORTED" ] || return 0
 
     print_warning "File \"$relative\" is outside the paths methodology \"$methodology\" declares"

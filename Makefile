@@ -13,6 +13,10 @@
 #     make dev-all        maintainer          everything
 #     make doctor         anyone              what is installed, what is missing, which target helps
 #
+# On Windows the same commands are typed `make.bat <target>` from `cmd` or PowerShell, or `make
+# <target>` from Git Bash. `make.bat` is a shim of a dozen lines that starts a POSIX shell and
+# calls this file: there is one build system here, not one per platform.
+#
 # `make help` lists the rest, and it is generated from the `##` comments below: a new target
 # documents itself, a removed one disappears from the help. That is the only arrangement under
 # which this file does not end up like the `contrib/requirements.*.txt` it replaced.
@@ -38,7 +42,21 @@
 #
 #     make install ENV_PREFIX=/opt/pythons/3.12
 #
+# The one platform difference this file has to know: a virtualenv keeps its programs in `bin/` on
+# Unix and in `Scripts/` on Windows, where they also carry a `.exe` suffix. Every path below is
+# built out of `BIN` and `EXE`, so no target has to know which of the two it is running on, and
+# there is no second copy of this file to keep in step. `make.bat` is the entry point from `cmd`
+# or PowerShell: it starts a POSIX shell (Git Bash, MSYS2) and hands it this very Makefile.
+ifeq ($(OS),Windows_NT)
+BIN = Scripts
+EXE = .exe
+PY      ?= python
+else
+BIN = bin
+EXE =
 PY      ?= python3
+endif
+
 CARGO   ?= cargo
 VENV    ?= venv/freeports-dev
 
@@ -54,8 +72,8 @@ else
 ENV_PREFIX ?= $(REPO_VENV)
 endif
 
-ENV_BIN  = $(ENV_PREFIX)/bin
-PYTHON   = $(ENV_BIN)/python
+ENV_BIN  = $(ENV_PREFIX)/$(BIN)
+PYTHON   = $(ENV_BIN)/python$(EXE)
 PIP      = $(PYTHON) -m pip
 
 # GNU conventions. By default the binary goes into the active environment, so that `make uninstall`
@@ -64,7 +82,7 @@ PIP      = $(PYTHON) -m pip
 # `make install-binary PREFIX=/usr/local`, and a packager has `DESTDIR` for the staging directory.
 PREFIX  ?= $(ENV_PREFIX)
 DESTDIR ?=
-bindir  ?= $(PREFIX)/bin
+bindir  ?= $(PREFIX)/$(BIN)
 
 # ---------------------------------------------------------------------------
 # Tree
@@ -85,12 +103,12 @@ DISTDIR    = dist
 PY_SOURCES = $(PKG_DEV)/src $(PKG_DEV)/tests $(PKG_VALID)/src $(PKG_VALID)/tests \
              docs/source/conf.py
 
-MATURIN       = $(ENV_BIN)/maturin
-RUFF          = $(ENV_BIN)/ruff
-PYTEST        = $(ENV_BIN)/pytest
-SPHINXBUILD   = $(ENV_BIN)/sphinx-build
-SPHINXINTL    = $(ENV_BIN)/sphinx-intl
-FREEPORTS_DEV = $(ENV_BIN)/freeports-dev
+MATURIN       = $(ENV_BIN)/maturin$(EXE)
+RUFF          = $(ENV_BIN)/ruff$(EXE)
+PYTEST        = $(ENV_BIN)/pytest$(EXE)
+SPHINXBUILD   = $(ENV_BIN)/sphinx-build$(EXE)
+SPHINXINTL    = $(ENV_BIN)/sphinx-intl$(EXE)
+FREEPORTS_DEV = $(ENV_BIN)/freeports-dev$(EXE)
 
 # Not `LANG`: that is a standard environment variable, and make would silently import it,
 # inheriting the terminal's locale instead of the language actually asked for.
@@ -144,8 +162,8 @@ doctor: ## Diagnosis: what is installed, what is missing, which target supplies 
 	@echo
 	@echo "Commands"
 	@for cmd in freeports freeports-dev freeports-validate; do \
-	    if [ -x "$(ENV_BIN)/$$cmd" ]; then \
-	        echo "  $$cmd: $(ENV_BIN)/$$cmd"; \
+	    if [ -x "$(ENV_BIN)/$$cmd$(EXE)" ]; then \
+	        echo "  $$cmd: $(ENV_BIN)/$$cmd$(EXE)"; \
 	    elif command -v "$$cmd" >/dev/null 2>&1; then \
 	        echo "  $$cmd: $$(command -v $$cmd)  (outside the environment)"; \
 	    else \
@@ -164,7 +182,7 @@ doctor: ## Diagnosis: what is installed, what is missing, which target supplies 
 	@echo
 	@echo "Consistency"
 	@if [ -x "$(PYTHON)" ] && $(PYTHON) -m pip show freeports >/dev/null 2>&1 \
-	    && [ ! -x "$(ENV_BIN)/freeports" ]; then \
+	    && [ ! -x "$(ENV_BIN)/freeports$(EXE)" ]; then \
 	    echo "  module present but command missing  ->  make install-binary"; \
 	 fi
 	@if [ -x "$(PYTHON)" ] && $(PYTHON) -m pip show freeports_analysis >/dev/null 2>&1; then \
@@ -174,7 +192,7 @@ doctor: ## Diagnosis: what is installed, what is missing, which target supplies 
 	@echo "  (no line above means nothing was found out of place)"
 
 installcheck: ## Verify that the installation actually answers
-	$(ENV_BIN)/freeports --help >/dev/null
+	$(ENV_BIN)/freeports$(EXE) --help >/dev/null
 	$(PYTHON) -c "import freeports; print(freeports.__doc__.splitlines()[0])"
 	@echo "Installation verified."
 
@@ -186,7 +204,7 @@ venv: ## Create venv/freeports-dev, unless another environment is already in use
 	 elif [ -x "$(PYTHON)" ]; then \
 	    echo "venv already present: $(REPO_VENV)"; \
 	 else \
-	    $(PY) -m venv "$(REPO_VENV)" && "$(REPO_VENV)/bin/python" -m pip install --upgrade pip; \
+	    $(PY) -m venv "$(REPO_VENV)" && "$(REPO_VENV)/$(BIN)/python$(EXE)" -m pip install --upgrade pip; \
 	 fi
 
 githooks: ## Wire up the repository's git hooks (.githooks/ and .gitconfig)
@@ -195,7 +213,7 @@ githooks: ## Wire up the repository's git hooks (.githooks/ and .gitconfig)
 
 init: dev-all ## First-time setup from a fresh clone: environment, hooks, everything installed
 	@echo
-	@echo "Ready. Activate the environment with:  source $(REPO_VENV)/bin/activate"
+	@echo "Ready. Activate the environment with:  source $(REPO_VENV)/$(BIN)/activate"
 
 install: install-engine install-binary ## End user: the Python module and the freeports command
 	@echo "Engine installed. Verify with: make installcheck"
@@ -206,10 +224,14 @@ install-engine: venv ## Only the Python extension (maturin, through pip)
 # The binary and the extension are two separate products of the same crate, and neither implies the
 # other: `pip install` builds only the extension. That is why this target exists and why `install`
 # includes it — without it you install the package and the command is nowhere.
+#
+# `cp` plus `chmod` and not `install -m 755`: the latter is a coreutils program that a Windows
+# shell does not necessarily carry, and the two are the same thing here.
 install-binary: build ## Only the freeports command, compiled and placed in bindir
 	@mkdir -p "$(DESTDIR)$(bindir)"
-	install -m 755 "$(CRATEDIR)/target/release/freeports" "$(DESTDIR)$(bindir)/freeports"
-	@echo "freeports installed in $(DESTDIR)$(bindir)/freeports"
+	cp "$(CRATEDIR)/target/release/freeports$(EXE)" "$(DESTDIR)$(bindir)/freeports$(EXE)"
+	chmod 755 "$(DESTDIR)$(bindir)/freeports$(EXE)"
+	@echo "freeports installed in $(DESTDIR)$(bindir)/freeports$(EXE)"
 
 install-tools: venv ## freeports-dev and freeports-validate
 	$(PIP) install $(PKG_DEV) $(PKG_VALID)
@@ -237,7 +259,7 @@ dev-all: install-dev-deps develop install-binary install-tools install-docs-deps
 uninstall: ## Remove the distributions and the command from the active environment
 	-$(PIP) uninstall -y freeports freeports-dev freeports-validate
 	-$(PIP) uninstall -y freeports_analysis
-	rm -f "$(DESTDIR)$(bindir)/freeports"
+	rm -f "$(DESTDIR)$(bindir)/freeports$(EXE)"
 
 reinstall: uninstall dev-all ## Uninstall and reinstall everything
 

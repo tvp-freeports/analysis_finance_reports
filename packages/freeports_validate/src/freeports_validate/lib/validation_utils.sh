@@ -506,18 +506,26 @@ validate_methodology_hash() {
 }
 
 # Validate file hash
+# The fourth argument is the file's hash, when the caller has already read it.
+#
+# A caller checking one file has no reason to pass it -- `sha256sum` on that file is the whole of
+# what this function claims, and it stays a command the reader can retype. A caller checking several
+# hundred does: reading them all in one `sha256sum` is the same work, and starting two processes per
+# file to do it is not. What must not change either way is which hash is compared with which, so the
+# argument is a value the caller has, never a promise the caller makes.
 validate_file_hash() {
     local file_path="$1"
     local stored_hash="$2"
     local verbose="${3:-false}"
+    local known_hash="${4:-}"
 
     if [ ! -f "$file_path" ]; then
         [ "$verbose" = "true" ] && { print_error "File not found: $file_path"; note_diagnosis file-missing; }
         return 1
     fi
 
-    local current_hash
-    current_hash=$(sha256sum "$file_path" | awk '{print $1}')
+    local current_hash="$known_hash"
+    [ -n "$current_hash" ] || current_hash=$(sha256sum "$file_path" | awk '{print $1}')
     local file_relative=$(realpath --relative-to="$REPO_ROOT" "$file_path")
     if [ "$stored_hash" = "$current_hash" ]; then
         [ "$verbose" = "true" ] && print_success "File \"$file_relative\" hash matches"
@@ -649,23 +657,61 @@ validate_document_comprehensive() {
     for ((i=0; i<count; i++)); do
         local method
         method=$(yq -r ".data[$i].methodology // \"\"" "$doc_path")
-        
-        local file_count
-        file_count=$(yq -r ".data[$i].files | length" "$doc_path")
         print_info "Methodology: $method"
 
-        for ((j=0; j<file_count; j++)); do
-            local file_path doc_hash full_path
-            file_path=$(yq -r ".data[$i].files[$j].path" "$doc_path")
-            doc_hash=$(yq -r ".data[$i].files[$j].sha256" "$doc_path")
-            full_path="$REPO_ROOT/$file_path"
-            ! validate_file_hash "$full_path" "$doc_hash" "true" && ((errors++))
+        # The whole entry in two reads rather than two per file. Both questions below -- what the
+        # files hash to now, and which of them the methodology declares -- are then asked once for
+        # all of them. Asked file by file, a document vouching for a test suite spent minutes
+        # starting `yq`, `sha256sum` and a Python interpreter several thousand times over, for
+        # answers that come back in one call each.
+        local entry_paths=() entry_hashes=()
+        mapfile -t entry_paths < <(yq -r "[.data[$i].files[]?.path // \"\"] | .[]" "$doc_path")
+        mapfile -t entry_hashes < <(yq -r "[.data[$i].files[]?.sha256 // \"\"] | .[]" "$doc_path")
+        [ "${#entry_paths[@]}" -gt 0 ] || continue
+
+        local present_relative=() present_absolute=() present_hashes=()
+        local file_path index
+        for file_path in "${entry_paths[@]}"; do
+            if [ -f "$REPO_ROOT/$file_path" ]; then
+                present_relative+=("$file_path")
+                present_absolute+=("$REPO_ROOT/$file_path")
+            fi
+        done
+
+        declare -A current_hash_of=()
+        if [ "${#present_absolute[@]}" -gt 0 ]; then
+            mapfile -t present_hashes < <(sha256sum -- "${present_absolute[@]}" | awk '{print $1}')
+            for index in "${!present_relative[@]}"; do
+                current_hash_of["${present_relative[$index]}"]="${present_hashes[$index]}"
+            done
+        fi
+
+        declare -A out_of_scope=()
+        local scope_status=0
+        unsupported_paths "$method" "${entry_paths[@]}" || scope_status=$?
+        if [ "$scope_status" -ne "$PATH_UNDECIDABLE" ]; then
+            for file_path in ${UNSUPPORTED_PATHS[@]+"${UNSUPPORTED_PATHS[@]}"}; do
+                out_of_scope["$file_path"]=1
+            done
+        fi
+
+        for index in "${!entry_paths[@]}"; do
+            file_path="${entry_paths[$index]}"
+            ! validate_file_hash "$REPO_ROOT/$file_path" "${entry_hashes[$index]}" "true" \
+                "${current_hash_of[$file_path]:-}" && ((errors++))
 
             # Deliberately not counted, and deliberately asked even when the hash above failed:
             # the two say different things about the same grant, and a reader deciding what to do
             # about a changed file is better off knowing it was out of scope to begin with.
-            report_granted_path "$method" "$file_path"
+            if [ "$scope_status" -eq "$PATH_UNDECIDABLE" ]; then
+                report_granted_path "$method" "$file_path" "$PATH_UNDECIDABLE"
+            elif [ -n "${out_of_scope[$file_path]:-}" ]; then
+                report_granted_path "$method" "$file_path" "$PATH_UNSUPPORTED"
+            else
+                report_granted_path "$method" "$file_path" "$PATH_SUPPORTED"
+            fi
         done
+        unset current_hash_of out_of_scope
     done
 
     echo "=========================================="
