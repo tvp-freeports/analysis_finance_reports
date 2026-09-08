@@ -41,6 +41,7 @@ all of it.
    :caption: Trust and provenance
 
    validation/index
+   validation/report/index
 
 .. toctree::
    :maxdepth: 2

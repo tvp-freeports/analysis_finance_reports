@@ -18,6 +18,17 @@ understood and agreed with, recorded under :doc:`agreement and good faith
 not about any bytes a program wrote, which is what separates it from the methodologies a formats
 repository uses.
 
+`Open the coverage page: the three viewpoints as tabs <../coverage.html>`_
+
+.. note::
+
+   That page is a single generated HTML file published beside this site, the same arrangement the
+   :doc:`Rust API <../../rustdoc>` uses. It is **not** rebuilt with the site: whether a signature
+   is valid is computed from the keyring of whoever runs the command, and a documentation builder
+   has no public keys in it — so a page generated there would announce that every grant in the
+   repository is invalid. It is written by the commit hook, on a machine that holds the keys, and
+   committed under ``docs/source/_extra/validation/``. Building the site only copies it.
+
 .. freeports-validate:begin
 .. Written by `freeports-validate report`. Anything between the markers is replaced.
 
@@ -51,9 +62,6 @@ once. The name of a table reads as *grouped by the first, listing the second*.
    contributor-file
    methodology-file
    methodology-contributor
-
-There is also a single-page rendering with the three viewpoints as tabs, generated into the site
-beside these pages: `validation coverage, as one page <../coverage.html>`_.
 
 Keeping all of it current
 =========================

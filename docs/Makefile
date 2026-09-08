@@ -51,28 +51,41 @@ clean-rustdoc:
 	rm -rf "$(SOURCEDIR)/_extra"
 
 # The grants, as one page with the three viewpoints as tabs, deposited in `_extra/` for
-# `html_extra_path` to copy into the site — the same arrangement as rustdoc, and for the same
-# reason: it is generated, so it is a product of the build rather than a file in the tree.
+# `html_extra_path` to copy into the site.
 #
-# Never fatal. The figures depend on fetching every methodology page from the configured sources,
-# and a documentation build must not fail because a documentation server was down. What it must not
-# do either is leave the link from `validation/report/index.rst` pointing at nothing, so a build
-# that could not collect writes a page saying exactly that instead of no page at all.
+# Unlike rustdoc beside it, this page is **committed** rather than rebuilt with the site, and the
+# reason is that not every machine can compute it correctly. Signature validity comes from the
+# keyring of whoever runs the command, so a builder with no public keys -- a Read the Docs runner,
+# a fresh container, a contributor who has never imported anybody's key -- produces a page saying
+# every grant in the repository is invalid. That is a false statement about real people, and the
+# site must not publish it. So the page is written where the keys are, by the commit hook, and
+# every build after that only copies it.
+#
+# Which leaves this target for the person deliberately regenerating it. It never fails a build, and
+# it never overwrites a page that is already there: a run that could not resolve the methodologies
+# leaves the committed page alone, because one run out of date is a better page than no page. The
+# placeholder is written only when there is nothing to keep.
 validation-coverage:
 	@mkdir -p "$(dir $(COVERAGEHTML))"
 	@$(VALIDATE) --repo "$(REPO)" $(VALIDATE_SOURCE_ARGS) \
-	    report --format html --out "$(COVERAGEHTML)" || { \
-	    echo "freeports-validate: the report could not be generated for this build" >&2; \
-	    printf '%s\n' \
-	        '<!doctype html><meta charset="utf-8">' \
-	        '<title>Validation coverage — unavailable</title>' \
-	        '<h1>Validation coverage</h1>' \
-	        '<p>This page is generated at build time from the signed documents in' \
-	        '<code>validation/</code>, and this build could not read them — most often because' \
-	        'the methodology pages could not be fetched from their configured sources.</p>' \
-	        '<p>The claims themselves are unaffected. To see them, run' \
-	        '<code>freeports-validate check-grants</code> in a clone of the repository.</p>' \
-	        > "$(COVERAGEHTML)"; }
+	    report --format html --out "$(COVERAGEHTML).new" \
+	    && mv -f "$(COVERAGEHTML).new" "$(COVERAGEHTML)" \
+	    || { rm -f "$(COVERAGEHTML).new"; \
+	        echo "freeports-validate: the report could not be generated" >&2; \
+	        if [ -f "$(COVERAGEHTML)" ]; then \
+	            echo "  the committed page is left as it is" >&2; \
+	        else \
+	            printf '%s\n' \
+	                '<!doctype html><meta charset="utf-8">' \
+	                '<title>Validation coverage — unavailable</title>' \
+	                '<h1>Validation coverage</h1>' \
+	                '<p>This page is generated from the signed documents in <code>validation/</code>' \
+	                'by whoever holds the contributors public keys, and no such rendering was' \
+	                'available when this site was built.</p>' \
+	                '<p>The claims themselves are unaffected. To see them, run' \
+	                '<code>freeports-validate check-grants</code> in a clone of the repository.</p>' \
+	                > "$(COVERAGEHTML)"; \
+	        fi; }
 
 clean-validation-coverage:
 	rm -f "$(COVERAGEHTML)"

@@ -91,9 +91,12 @@ repo_root=$(git rev-parse --show-toplevel) || exit 1
 # out of date is a smaller problem than a commit that cannot be made.
 if command -v freeports-validate >/dev/null 2>&1; then
     if make -C "$repo_root" -s validation-report >/dev/null 2>&1; then
-        # `docs/source/_extra/` is gitignored — it is a product of the documentation build, not a
-        # file in the tree — so it is refreshed above and deliberately not staged here.
-        refreshed="README.md validation/report/badges"
+        # The coverage page is staged with the rest. It is the one artefact here that a
+        # documentation build cannot produce for itself: signature validity is computed from the
+        # keyring of the machine computing it, and a Read the Docs builder has none, so a page
+        # generated there would announce that every grant in the repository is invalid. It is
+        # written where the keys are — here — and merely copied into the site afterwards.
+        refreshed="README.md validation/report/badges docs/source/_extra/validation/coverage.html"
         for page in index file-contributor file-methodology contributor-methodology \
                     contributor-file methodology-file methodology-contributor; do
             refreshed="$refreshed docs/source/validation/report/$page.rst"

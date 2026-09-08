@@ -38,7 +38,12 @@ docs/build/
 # Autosummary generates the API .rst files from the installed packages, on every build.
 docs/source/_generated/
 # rustdoc, copied here by `make rustdoc` and published as a sub-path of the site.
-docs/source/_extra/
+#
+# Only rustdoc. `_extra/` is `html_extra_path`, and not everything in it is a build product:
+# `_extra/validation/coverage.html` is generated where the signing keys are and committed, because
+# a machine without them computes every signature as invalid. Ignoring the whole directory is what
+# forced Read the Docs to try to regenerate that page for itself.
+docs/source/_extra/rustdoc/
 # Working areas of the Jenkins pipeline (stopped, but the names stay reserved).
 /reports/
 /trend_data/
