@@ -90,13 +90,35 @@ def _user_confirm(question: str, default: bool = True) -> bool:
     return _user_confirm(question, default)
 
 
-def _setup_git(target: Path, quiet: bool = False, hooks: bool = True) -> None:
-    """Initialize the target as a git repository, and point it at .githooks when asked.
+def _write_hook(target: Path, template: str) -> None:
+    """Write `.githooks/pre-commit` from a template, executable.
 
-    `hooks` is False for an input database: it has no test suite of its own to run before a commit,
-    so there is no hook to install and pointing `core.hooksPath` at a directory that does not exist
-    would only be misleading.
+    One helper for both repository kinds, because the two hooks differ only in what they check.
     """
+    githooks = target / ".githooks"
+    githooks.mkdir(exist_ok=True)
+    hook = githooks / "pre-commit"
+    hook.write_text(_read_template(template), encoding="utf-8")
+    hook.chmod(0o755)
+    print("  created .githooks/pre-commit")
+
+
+def _write_ci_yaml(target: Path) -> None:
+    """Write `ci.yaml`, which says how this repository is gated.
+
+    The same file, the same name and the same syntax in every freeports repository, so that the
+    roles of the branches read the same everywhere. `package.yaml` and `metadata.yaml` say what a
+    repository *is*; this says how it is *gated*, which is a different question with a different
+    audience.
+    """
+    (target / "ci.yaml").write_text(
+        _read_template("ci.template.yaml"), encoding="utf-8"
+    )
+    print("  wrote ci.yaml")
+
+
+def _setup_git(target: Path, quiet: bool = False, hooks: bool = True) -> None:
+    """Initialize the target as a git repository, and point it at .githooks when asked."""
     is_git_repo = (target / ".git").exists()
 
     if not is_git_repo:
@@ -281,13 +303,8 @@ def init_format_repo(target: Path, quiet: bool = False) -> None:
     # Validate package.yaml
     _validate_package_yaml(target)
 
-    # Create .githooks directory and pre-commit hook
-    githooks_dir = target / ".githooks"
-    githooks_dir.mkdir(exist_ok=True)
-    pre_commit = githooks_dir / "pre-commit"
-    pre_commit.write_text(_read_template("pre-commit.template"), encoding="utf-8")
-    pre_commit.chmod(0o755)
-    print("  created .githooks/pre-commit")
+    _write_hook(target, "pre-commit.template")
+    _write_ci_yaml(target)
 
     # The README, the six report pages, and the first fill of all of them
     written = _write_validation_report(target)
@@ -316,8 +333,9 @@ def init_input_db(target: Path, sample: bool = False, quiet: bool = False) -> No
     so a skeleton missing the file you have nothing to put in yet would fail on the first run for a
     reason that has nothing to do with what you were doing.
 
-    Unlike a formats repository, there is no `.githooks` here: a database has no test suite of its
-    own to run before a commit.
+    It gets a `.githooks/pre-commit` of its own, which it did not use to. A database has no test
+    suite, so the hook checks the one thing a database can be wrong about on its own terms: that
+    the fingerprints in `metadata.yaml` and the version it declares moved together.
 
     Parameters
     ----------
@@ -361,6 +379,16 @@ def init_input_db(target: Path, sample: bool = False, quiet: bool = False) -> No
         copy_default_input_db_into(target)
         print("  filled the tables with the packaged example database (list TEST)")
 
-    _setup_git(target, quiet=quiet, hooks=False)
+    # An input database now gets a hook, where it used to get none.
+    #
+    # The old reasoning was that a database has no test suite of its own, so there was nothing for a
+    # hook to run. That was true and it was not the whole question: `metadata.yaml` declares a
+    # fingerprint of `companies/` and of `lists/`, and when the contents move the version has to
+    # move with them or the manifest holds a false statement about itself. Nothing computed those
+    # fingerprints, so nothing noticed. That is what this hook is for, and it is all it does.
+    _write_hook(target, "input_db_pre-commit.template")
+    _write_ci_yaml(target)
+
+    _setup_git(target, quiet=quiet, hooks=True)
 
     print(f"\nInput database created at {target}")

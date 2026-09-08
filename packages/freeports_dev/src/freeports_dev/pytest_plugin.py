@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -12,6 +11,7 @@ from freeports.core import Algorithm
 from freeports.cli import run_job
 from freeports.formats_repo import get_formats
 
+from freeports_dev.format_inventory import InventoryError, scan_variant, variant_paths
 from freeports_dev.serialization import load as json_load
 import _pytest.fixtures as fixtures
 
@@ -487,76 +487,23 @@ class ReportVariant(Collector):
         return self.cache.doc.get_page(self.path / "report.pdf", page_n, self.cache.pdf)
 
     def collect(self):
-        directory = self.path
-        pdf_blks = set()
-        txt_blks = set()
-        results = set()
-        pages_by_type = {}
-        all_pages = set()
+        # The walk itself lives in `freeports_dev.format_inventory`, because
+        # `freeports-dev coverage` reports on exactly this: what fraction of the repository's
+        # documents pytest collects a test for. Two implementations of that question would rot
+        # apart, and the day they disagreed the report would be claiming a document is covered
+        # while nothing here collects anything for it.
+        try:
+            inventory = scan_variant(
+                self.path, self.format_name, self.document_variant, strict=True
+            )
+        except InventoryError as exc:
+            raise self.CollectError(str(exc)) from exc
 
-        has_report = (directory / "report.pdf").exists()
-        has_out = (directory / "out").exists()
-
-        if not has_report:
-            raise self.CollectError(f"Missing report.pdf in {directory}")
-
-        pages_dir = directory / "pages"
-        if not pages_dir.exists():
-            raise self.CollectError(f"Missing pages directory in {directory}")
-
-        for page_type in os.listdir(pages_dir):
-            type_dir = pages_dir / page_type
-            if not type_dir.is_dir():
-                continue
-
-            pages_by_type[page_type] = set()
-
-            for f in os.listdir(type_dir):
-                if "-" not in f:
-                    continue
-
-                parts = f.split("-", 1)
-                if len(parts) != 2:
-                    continue
-                page_num_str, file_type = parts
-                try:
-                    page_num = int(page_num_str)
-                except ValueError:
-                    continue
-
-                pages_by_type[page_type].add(page_num)
-                all_pages.add(page_num)
-
-                if file_type == "pdf_blks.json":
-                    pdf_blks.add(page_num)
-                elif file_type == "txt_blks.json":
-                    txt_blks.add(page_num)
-                elif file_type == "results.json":
-                    results.add(page_num)
-                elif file_type in ("filter_data.json"):
-                    pass
-                else:
-                    raise Exception(f"Unknown file in pages folder: {f}")
-
-        total_pages = []
-        for pages in pages_by_type.values():
-            total_pages.extend(list(pages))
-        if len(total_pages) != len(set(total_pages)):
-            raise Exception("Found pages classified in multiple ways")
-
-        pdf_extract_enabled = set()
-        text_filter_enabled = set()
-        deserialize_enabled = set()
-
-        for page in all_pages:
-            if has_report and page in pdf_blks:
-                pdf_extract_enabled.add(page)
-            if page in pdf_blks and page in txt_blks:
-                text_filter_enabled.add(page)
-            if page in txt_blks and page in results:
-                deserialize_enabled.add(page)
-
-        pipeline_enabled = has_report and has_out
+        pages_by_type = inventory.pages_by_type
+        pdf_extract_enabled = inventory.pdf_extract_pages
+        text_filter_enabled = inventory.text_filter_pages
+        deserialize_enabled = inventory.deserialize_pages
+        pipeline_enabled = inventory.has_integration
 
         for page_type, pages in pages_by_type.items():
             for page in pages:
@@ -611,32 +558,14 @@ class FreeportsFormat(Directory):
         return self.cache.doc.get_page(self.path / "report.pdf", page_n, self.cache.pdf)
 
     def collect(self):
-        directory = self.path
-        multiple_documents = True
-        documents = []
-        for document in os.listdir(directory):
-            if os.path.isdir(directory / document) and document not in (
-                "pages",
-                "out",
-            ):
-                documents.append(document)
-            else:
-                if os.path.isfile(directory / document) and document == "report.pdf":
-                    multiple_documents = False
-        if multiple_documents:
-            for document in documents:
-                yield ReportVariant.from_parent(
-                    parent=self,
-                    name=f"report[{document}]" if document is not None else None,
-                    path=self.path / document,
-                    document_variant=document,
-                )
-        else:
+        # Which documents this format holds is the same question `freeports-dev coverage` counts
+        # the answer to, so it is asked in one place — see `freeports_dev.format_inventory`.
+        for variant, path in variant_paths(self.path):
             yield ReportVariant.from_parent(
                 parent=self,
-                name="report",
-                path=self.path,
-                document_variant=None,
+                name=f"report[{variant}]" if variant is not None else "report",
+                path=path,
+                document_variant=variant,
             )
 
 

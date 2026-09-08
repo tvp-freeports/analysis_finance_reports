@@ -62,8 +62,15 @@ Building
 The result is ``docs/build/html/index.html``. ``make docs-html`` skips regenerating rustdoc, which
 is what you want while editing prose; ``make docs-rustdoc`` puts ``cargo doc`` output into
 ``docs/source/_extra/rustdoc/``, from where Sphinx copies it into the site verbatim.
-``make docs-serve`` serves the result locally, and ``make docs-coverage`` reports how much of the
-API is actually documented.
+``make docs-serve`` serves the result locally.
+
+``make docs-site-coverage`` reports how much of the API **appears in the built site**, which is not
+the same question as how much of it is documented — it is a fact about how ``autosummary`` is
+configured. It was called ``docs-coverage`` and was renamed for exactly that reason: every module
+of the compiled ``freeports`` extension reports 100 % there because ``inspect.getmembers``
+attributes nothing to it. The figure that is actually *gated* is docstring coverage, measured by
+``make doc-coverage-python``; :doc:`ci` explains the difference and why a threshold on the first
+one would be a threshold on a template.
 
 Building the site installs the three packages because autodoc imports them for real — which is
 also why ``make dev-docs`` is not just the Sphinx dependencies.

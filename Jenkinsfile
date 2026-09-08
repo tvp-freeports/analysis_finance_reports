@@ -115,7 +115,7 @@ pipeline {
                     // on the documented API.
                     sh '''
                         make docs
-                        make docs-coverage
+                        make docs-site-coverage
                     '''
 
                     docsCoverage = sh(

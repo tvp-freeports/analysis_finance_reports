@@ -47,7 +47,7 @@ no way around it.
 
 ```bash
 make develop        # rebuild the extension in place after a Rust change
-make test-unit      # the bulk of the coverage; fast
+make test-rust-unit      # the bulk of the coverage; fast
 make check          # the full suite: unit, integration, doctests
 make lint           # clippy on the crate, ruff on the Python sources
 make docs           # the documentation site, rustdoc included

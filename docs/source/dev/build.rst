@@ -101,9 +101,16 @@ says nothing if both work.
 The commit gate
 ===============
 
-``.githooks/pre-commit`` runs ``make pre-commit``, which is lint plus the full test suite. The gate
-is a *name*, not a list: what it consists of is decided in the ``Makefile``, so it can grow without
-the hook being edited.
+``.githooks/pre-commit`` runs ``make pre-commit``, which is an alias of ``make ci-fast``: lint, the
+fast suites, the fast measurements, and ``ci-check``, which is the step that decides. The gate is a
+*name*, not a list: what it consists of is decided in the ``Makefile``, so it can grow without the
+hook being edited.
+
+**Whether a failure refuses the commit depends on the branch.** ``ci.yaml`` at the repository root
+puts every branch in one of three classes, and only ``prod`` refuses; ``dev`` — the default —
+measures and reports. ``make branch-class`` says which class you are on and the rule that put you
+there. :doc:`ci` is the whole of it: every metric, what it measures and what it does not, why an
+unmeasured figure refuses on a production branch, and the fingerprint rule.
 
 Formatting is not part of it, deliberately. The git ``clean`` filter configured in ``.gitconfig``
 runs ``ruff format`` on Python sources as they enter the index, so an unformatted working tree is

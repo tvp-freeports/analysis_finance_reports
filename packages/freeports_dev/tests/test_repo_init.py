@@ -292,3 +292,142 @@ class TestWhatWasAlreadyThere:
         (occupied / "something.txt").write_text("mine")
         with pytest.raises(SystemExit):
             init_format_repo(occupied, quiet=True)
+
+
+@pytest.fixture(scope="module")
+def database(tmp_path_factory):
+    """One initialised input database, built once — nothing below writes to it."""
+    from freeports_dev.repo_init import init_input_db
+
+    target = tmp_path_factory.mktemp("workspace") / "acme-db"
+    init_input_db(target, quiet=True)
+    return target
+
+
+class TestAnInputDatabaseNowGetsACommitHook:
+    """It used to get none, and the reasoning was sound as far as it went.
+
+    A database has no test suite, so there was nothing for a hook to run. What that missed is that
+    `metadata.yaml` declares a fingerprint of `companies/` and of `lists/`, and when the contents
+    move the version has to move with them or the manifest holds a false statement about itself.
+    Nothing computed those fingerprints, so nothing noticed. That is what the hook is for, and it
+    is all it does.
+    """
+
+    @pytest.fixture
+    def hook(self, database):
+        return (database / ".githooks" / "pre-commit").read_text()
+
+    def test_the_hook_exists(self, database):
+        assert (database / ".githooks" / "pre-commit").is_file()
+
+    def test_it_is_executable(self, database):
+        assert (database / ".githooks" / "pre-commit").stat().st_mode & 0o111
+
+    def test_it_is_a_valid_shell_script(self, database):
+        """A hook with a syntax error fails every commit and says nothing useful about why."""
+        checked = subprocess.run(
+            ["sh", "-n", str(database / ".githooks" / "pre-commit")],
+            capture_output=True,
+        )
+        assert checked.returncode == 0, checked.stderr
+
+    def test_git_is_pointed_at_it(self, database):
+        configured = subprocess.run(
+            ["git", "-C", str(database), "config", "--local", "core.hooksPath"],
+            capture_output=True,
+            text=True,
+        )
+        assert configured.stdout.strip() == ".githooks"
+
+    def test_it_checks_the_fingerprint_rule_and_nothing_else(self, hook):
+        """Asserted over what the hook *runs*, not over its prose.
+
+        The essay at the top says the words "no linted source" and "no test suite" precisely
+        because those are the things it does not do, so matching the whole file would fail on the
+        sentence explaining why it passes.
+        """
+        commands = "\n".join(
+            line
+            for line in hook.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        )
+        assert "freeports-dev fingerprint" in commands
+        assert "pytest" not in commands
+        assert "lint-score" not in commands
+        assert "coverage" not in commands
+
+    def test_it_does_not_demand_an_environment(self, hook):
+        """Computing sha256 sums needs no virtualenv, and refusing a CSV edit over one is a
+        nuisance with nothing behind it."""
+        assert "VIRTUAL_ENV" not in hook
+
+    def test_without_freeports_dev_it_states_the_rule_and_lets_the_commit_through(
+        self, hook
+    ):
+        """A database is edited by people who may have no Python environment at all."""
+        assert "not on the PATH" in hook
+        assert "exit 0" in hook
+
+    def test_it_says_which_bump_each_directory_implies(self, hook):
+        assert "minor" in hook and "major" in hook
+
+    def test_it_prints_the_recipe_a_person_can_retype(self, hook):
+        """A refusal nobody can check by hand is a refusal nobody believes."""
+        assert "sha256sum" in hook
+        assert "LC_ALL=C sort" in hook
+
+    def test_an_off_branch_is_honoured_here_too(self, hook):
+        assert "branch-class" in hook
+
+
+class TestEveryRepositoryKindIsGatedByTheSameFile:
+    """One name and one syntax in all three kinds, so the roles of the branches read the same."""
+
+    def test_a_formats_repository_gets_a_ci_yaml(self, repo):
+        assert (repo / "ci.yaml").is_file()
+
+    def test_an_input_database_gets_the_same_one(self, database):
+        assert (database / "ci.yaml").is_file()
+
+    def test_it_parses(self, database):
+        import yaml
+
+        assert isinstance(yaml.safe_load((database / "ci.yaml").read_text()), dict)
+
+    def test_it_declares_the_three_classes_and_a_default(self, database):
+        import yaml
+
+        branches = yaml.safe_load((database / "ci.yaml").read_text())["branches"]
+        # `off` arrives as the boolean False: it is one of the ten words YAML 1.1 spells a boolean
+        # with. The reader maps it back rather than making every repository quote it.
+        assert {"prod", "dev", False, "default"} <= set(branches)
+        assert branches["default"] == "dev"
+
+    def test_a_branch_nobody_classified_is_dev_and_never_off(self, database):
+        """The quiet answer must never be the default one."""
+        import yaml
+
+        assert (
+            yaml.safe_load((database / "ci.yaml").read_text())["branches"]["default"]
+            == "dev"
+        )
+
+    def test_it_seeds_no_threshold_at_all(self, database):
+        """A minimum belongs at a figure somebody measured, and nobody has measured this yet."""
+        import yaml
+
+        assert yaml.safe_load((database / "ci.yaml").read_text())["thresholds"] == {}
+
+    def test_the_gate_can_actually_read_what_was_written(self, database):
+        """The template and the reader agreeing is the whole point of shipping the template."""
+        from argparse import Namespace
+
+        from freeports_dev.ci.config import CiConfig
+
+        config = CiConfig(
+            database,
+            Namespace(repo=None, branch_class=None, min=None, keyserver=None),
+        )
+        assert config.branch_class().name in ("prod", "dev", "off")
+        assert config.thresholds() == {}

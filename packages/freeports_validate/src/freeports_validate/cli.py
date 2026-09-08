@@ -53,6 +53,7 @@ SUBCOMMANDS = [
     "sign-document",
     "create-document",
     "check-grants",
+    "check-keys",
     "update",
     "sources",
     "check-methodology",
@@ -67,6 +68,7 @@ SUBCOMMAND_SUMMARIES = {
     "sources": "   Where methodology pages resolve from, and what each name resolves to",
     "check-methodology": " One page in detail: where it came from, and what it pins",
     "refresh-links": "     Re-pin what a local methodology page cites (changes its hash)",
+    "check-keys": "        Whether the granters' keys are published where a stranger can fetch them",
     "collect": "           The coverage model as JSON: who vouched for what, and whether it holds",
     "report": "            The same model rendered -- a page, badges, or one of seven tables",
 }
@@ -85,6 +87,14 @@ DEFAULT_SOURCE = "https://docs.freeports.org/en/stable/_sources/validation/*.rst
 #: per pinned resource; `--no-deep` turns it off, as does `validate.deep: false`.
 DEFAULT_DEEP = True
 
+#: Where a granter's fingerprint is looked up when no tier names a server.
+#:
+#: A setting rather than a constant. `keys.openpgp.org` is what this project uses and is what the
+#: default should be, but a repository may publish elsewhere, and one host this project was pointed
+#: at could not be confirmed to be a live key server at all. Hard-coding it would make that
+#: somebody else's problem with no way out of it.
+DEFAULT_KEYSERVER = "https://keys.openpgp.org"
+
 #: The global options taking one value, recognised anywhere on the command line and removed before
 #: the subcommand script sees its own arguments. A repeated one is the last one: these name a single
 #: thing, and two answers to "which key" is a mistake rather than a list.
@@ -96,6 +106,7 @@ GLOBAL_OPTIONS = {
     "--key-id": "key_id",
     "-k": "key_id",
     "--config": "config",
+    "--keyserver": "keyserver",
 }
 
 #: The global options that accumulate. ``-s`` is repeatable because the setting it feeds *is* a
@@ -325,6 +336,11 @@ def _usage():
         "        say what its author read. That is ON by default, because it is the question you\n"
         "        are really asking. It costs one fetch per pinned resource, so turn it off where\n"
         "        that matters. Understood by check-methodology and check-grants.\n"
+        "\n"
+        "    --keyserver URL\n"
+        "        Where check-keys looks a granter's fingerprint up\n"
+        "        [default: $FREEPORTS_VALIDATE_KEYSERVER, then `validate.keyserver` in the\n"
+        "        configuration file, then " + DEFAULT_KEYSERVER + "].\n"
         "        [default: $FREEPORTS_VALIDATE_DEEP, then `validate.deep` in the configuration\n"
         "        file, then ON]"
     )
@@ -433,6 +449,14 @@ def main():
         env["FREEPORTS_VALIDATE_DEEP"] = "1"
     else:
         env.pop("FREEPORTS_VALIDATE_DEEP", None)
+
+    keyserver = _first(
+        options.get("keyserver"),
+        os.environ.get("FREEPORTS_VALIDATE_KEYSERVER"),
+        from_file("VALIDATE_KEYSERVER"),
+        DEFAULT_KEYSERVER,
+    )
+    env["FREEPORTS_VALIDATE_KEYSERVER"] = keyserver
 
     env["FREEPORTS_VALIDATE_LIB"] = str(lib_dir)
 

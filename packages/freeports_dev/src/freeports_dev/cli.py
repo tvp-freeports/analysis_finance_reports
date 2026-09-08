@@ -175,13 +175,13 @@ def _cmd_init_repo(args):
     from freeports_dev.repo_init import init_format_repo
 
     target = Path(args.path).resolve()
-    init_format_repo(target)
+    init_format_repo(target, quiet=args.quiet)
 
 
 def _cmd_init_input_db(args):
     from freeports_dev.repo_init import init_input_db
 
-    init_input_db(Path(args.path).resolve(), sample=args.sample)
+    init_input_db(Path(args.path).resolve(), sample=args.sample, quiet=args.quiet)
 
 
 def _cmd_setup_input_db(args):
@@ -190,6 +190,597 @@ def _cmd_setup_input_db(args):
 
     copy_default_input_db(repo / "tests")
     print(f"Input DB created at {repo / 'tests' / 'input_db'}")
+
+
+def _env_flag(name):
+    """A switch read from the environment, using the same words the engine's config accepts."""
+    import os
+
+    return (os.environ.get(name) or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "y",
+        "t",
+        "on",
+    )
+
+
+def _ci_root(args):
+    """The repository being gated: ``--repo`` if given, otherwise the working directory.
+
+    Deliberately *not* :attr:`DevConfig.formats_repo`. That setting answers "which formats
+    repository do the development commands work on", and a configuration file naming one is exactly
+    what an input database's commit hook must not pick up: it would gate one repository using
+    another repository's root. The gate runs where the commit is being made, and that is the
+    working directory unless somebody says otherwise on the command line.
+    """
+    return (
+        Path(args.repo).expanduser().resolve()
+        if getattr(args, "repo", None)
+        else Path.cwd()
+    )
+
+
+#: What each class does at commit time, said in the place a person goes when a hook surprises them.
+_CLASS_MEANING = {
+    "prod": "a missed threshold, a failing suite or an unmeasured figure refuses the commit",
+    "dev": "everything is measured and reported; nothing refuses the commit",
+    "off": "the hook does nothing at all here",
+}
+
+
+def _cmd_branch_class(args):
+    from freeports_dev.ci.config import CiConfig, ConfigError
+
+    try:
+        config = CiConfig(_ci_root(args), args)
+        resolved = config.branch_class()
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    if args.format == "json":
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "branch": resolved.branch,
+                    "class": resolved.name,
+                    "reason": resolved.reason,
+                    "repo_kind": config.repo_kind,
+                    "ci_file": str(config.path) if config.exists else None,
+                },
+                indent=2,
+            )
+        )
+        return
+
+    where = f"branch {resolved.branch}" if resolved.branch else "no branch checked out"
+    print(f"{where} -> {resolved.name}")
+    print(f"  because {resolved.reason}")
+    if not config.exists:
+        print(f"  ({config.path.name} is absent, so every default applies)")
+    print(f"  {_CLASS_MEANING[resolved.name]}")
+
+
+def _cmd_coverage(args):
+    from freeports_dev.ci import formats as formats_coverage
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci.config import CiConfig, ConfigError
+
+    root = _ci_root(args)
+    if not (root / "metadata" / "formats.csv").exists():
+        print(
+            f"Error: {root} does not appear to be a formats repository "
+            f"(missing metadata/formats.csv)"
+        )
+        sys.exit(1)
+
+    try:
+        CiConfig(root, args)
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    coverage = formats_coverage.measure(root)
+    head = ci_report.head_commit(root)
+
+    if args.out is not None:
+        # The measurements go where the run's output goes, never into the working directory.
+        out = Path(args.out) if args.out else root / ci_report.REPORTS_DIR
+        written = [
+            measurement.write(
+                (out / ci_report.file_name(measurement.metric))
+                if out.is_dir() or not out.suffix
+                else out
+            )
+            for measurement in coverage.measurements(head)
+        ]
+        for path in written:
+            print(f"wrote {path}")
+        if args.format == "none":
+            return
+
+    if args.format == "json":
+        print(formats_coverage.render_json(coverage, head))
+    elif args.format == "markdown":
+        print(formats_coverage.render_markdown(coverage))
+    elif args.format == "badges":
+        print(formats_coverage.render_badges(coverage))
+    elif args.format != "none":
+        print(formats_coverage.render_text(coverage))
+
+
+def _write_measurements(args, root, measurements):
+    """Write each measurement into `reports/`, and say where it went.
+
+    The output goes under the repository being measured, never into the working directory: a file
+    a run produced belongs with the run's output, and a stray file in the directory somebody
+    happened to be standing in is a bug, not a convenience.
+    """
+    from freeports_dev.ci import report as ci_report
+
+    out = Path(args.out) if args.out else root / ci_report.REPORTS_DIR
+    for measurement in measurements:
+        path = measurement.write(out / ci_report.file_name(measurement.metric))
+        print(f"wrote {path}")
+
+
+def _python_roots(root):
+    """Where a repository keeps the Python whose docstrings are being counted.
+
+    The engine keeps it in `packages/<name>/src/<name>`; a formats repository keeps it in
+    `content/`. Both are returned as `(metric, path)` so the aggregate and the per-package figures
+    come out of one walk rather than one walk per name.
+    """
+    packages = root / "packages"
+    if packages.is_dir():
+        found = []
+        for package in sorted(packages.iterdir()):
+            source = package / "src" / package.name
+            if source.is_dir():
+                found.append((f"docs.python.{package.name}", source))
+        return found
+    if (root / "content").is_dir():
+        return [("docs.python", root / "content")]
+    return [("docs.python", root)]
+
+
+def _cmd_doc_coverage(args):
+    from freeports_dev.ci import docstrings
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci.config import CiConfig, ConfigError
+
+    root = _ci_root(args)
+    try:
+        CiConfig(root, args)
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    head = ci_report.head_commit(root)
+    measurements = []
+    objects = []
+    for metric, source in _python_roots(root):
+        coverage, measurement = docstrings.measure(source, metric, head)
+        measurements.append(measurement)
+        objects.extend(coverage.objects)
+
+    if len(measurements) > 1:
+        # The aggregate is recomputed over every object rather than averaged over the packages:
+        # averaging would give a fifty-line package the same weight as a five-thousand-line one.
+        whole = docstrings.DocstringCoverage(objects)
+        measurements.insert(
+            0,
+            ci_report.Measurement(
+                "docs.python",
+                value=whole.ratio,
+                unit="percent",
+                head=head,
+                breakdown={m.metric: m.value for m in measurements},
+                detail={"documented": whole.documented, "total": whole.total},
+            ),
+        )
+
+    if args.out is not None:
+        _write_measurements(args, root, measurements)
+
+    if args.format == "json":
+        import json
+
+        print(
+            json.dumps(
+                {m.metric: m.to_dict() for m in measurements}, indent=2, sort_keys=True
+            )
+        )
+    elif args.format != "none":
+        for measurement in measurements:
+            detail = measurement.detail
+            print(
+                f"{measurement.metric:<34} {measurement.value:6.2f} %   "
+                f"{detail.get('documented')}/{detail.get('total')}"
+            )
+
+
+def _cmd_lint_score(args):
+    from freeports_dev.ci import lint
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci.config import CiConfig, ConfigError
+
+    root = _ci_root(args)
+    try:
+        config = CiConfig(root, args)
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    head = ci_report.head_commit(root)
+    measurements = []
+
+    if args.language in ("python", "both"):
+        targets = args.paths or _default_python_lint_paths(root, config.repo_kind)
+        result, why = lint.run_ruff(root, targets)
+        measurements.append(
+            result.measurement("lint.python", head)
+            if result is not None
+            else ci_report.Measurement.unmeasured("lint.python", why, "score", head)
+        )
+
+    if args.language in ("rust", "both"):
+        crate = root / "packages" / "freeports"
+        if not crate.is_dir():
+            if args.language == "rust":
+                print(f"Error: no crate at {crate}")
+                sys.exit(1)
+        else:
+            result, why = lint.run_clippy(crate)
+            measurements.append(
+                result.measurement("lint.rust", head)
+                if result is not None
+                else ci_report.Measurement.unmeasured("lint.rust", why, "score", head)
+            )
+
+    if args.out is not None:
+        _write_measurements(args, root, measurements)
+
+    if args.format == "json":
+        import json
+
+        print(
+            json.dumps(
+                {m.metric: m.to_dict() for m in measurements}, indent=2, sort_keys=True
+            )
+        )
+    elif args.format != "none":
+        for measurement in measurements:
+            if not measurement.is_measured:
+                print(f"{measurement.metric:<14} NOT MEASURED   {measurement.reason}")
+                continue
+            detail = measurement.detail
+            # The count prints beside the score, always: a score is what a threshold compares, a
+            # count is what a person fixes.
+            print(
+                f"{measurement.metric:<14} {measurement.value:7.3f} / 10   "
+                f"{detail.get('errors')} errors, {detail.get('warnings')} warnings "
+                f"in {detail.get('statements')} lines"
+            )
+
+
+def _default_python_lint_paths(root, repo_kind):
+    """What ruff is given when nobody says otherwise, per repository kind.
+
+    The engine's own `Makefile` already decided this and wrote down why -- the test suites are
+    linted too, because leaving them out is how a suite becomes the only unlinted code in a
+    repository. This mirrors that list rather than inventing a second one.
+    """
+    from freeports_dev.ci import metrics
+
+    if repo_kind == metrics.FORMATS:
+        return ["content"]
+    packages = root / "packages"
+    if packages.is_dir():
+        found = []
+        for package in sorted(packages.iterdir()):
+            for part in ("src", "tests"):
+                if (package / part).is_dir():
+                    found.append(str((package / part).relative_to(root)))
+        return found or [str(root)]
+    return None
+
+
+def _cmd_ci_record(args):
+    from freeports_dev.ci import readers
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci.readers import ReaderError
+
+    root = _ci_root(args)
+    reader = readers.READERS[args.source]
+    inputs = [Path(item).read_text(encoding="utf-8") for item in args.input]
+    if len(inputs) > 1 and args.source != "coverage-py":
+        print(
+            f"Error: --input is repeatable only with --from coverage-py, not {args.source}"
+        )
+        sys.exit(2)
+    payload = inputs if len(inputs) > 1 else inputs[0]
+    try:
+        measurement = reader(
+            payload, metric=args.metric, head=ci_report.head_commit(root)
+        )
+    except ReaderError as exc:
+        print(f"Error: {', '.join(args.input)} is not a {args.source} report: {exc}")
+        sys.exit(2)
+
+    out = Path(args.out) if args.out else root / ci_report.REPORTS_DIR
+    path = measurement.write(
+        out if out.suffix == ".json" else out / ci_report.file_name(measurement.metric)
+    )
+    print(
+        f"{measurement.metric} = {measurement.value:.2f} {measurement.unit or ''} -> {path}"
+    )
+
+
+def _cmd_ci_check(args):
+    from freeports_dev.ci import gate as ci_gate
+    from freeports_dev.ci import metrics
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci.config import CiConfig, ConfigError
+
+    root = _ci_root(args)
+    try:
+        config = CiConfig(root, args)
+        measurements = ci_report.read_all(
+            Path(args.reports) if args.reports else root / ci_report.REPORTS_DIR
+        )
+
+        skipped = []
+        if args.skip_slow:
+            # Loud, never the default, and it prints what it skipped: a figure that was not
+            # checked must not be mistaken afterwards for one that passed.
+            for metric in metrics.REGISTRY:
+                if metric.cost == metrics.SLOW and not metric.is_family:
+                    skipped.append(metric.pattern)
+                    measurements.pop(metric.pattern, None)
+
+        conditions = [ci_gate.parse_suite(item) for item in (args.suite or [])]
+        gate = ci_gate.evaluate(
+            config,
+            measurements,
+            conditions,
+            head=ci_report.head_commit(root),
+            skipped_slow=skipped,
+        )
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    if args.skip_slow:
+        for name in skipped:
+            for verdict in gate.verdicts:
+                if verdict.metric == name and verdict.state == ci_gate.UNMEASURED:
+                    verdict.state = ci_gate.NO_THRESHOLD
+                    verdict.reason = None
+
+    print(
+        ci_gate.render_json(gate)
+        if args.format == "json"
+        else ci_gate.render_text(gate)
+    )
+    sys.exit(gate.exit_status)
+
+
+def _ask(question, default_yes=True):
+    """Ask on the terminal, reopening it when stdin is a hook's pipe rather than a person.
+
+    **A prompt nobody can answer must never be read as a yes.** A rebase, a script, an editor's
+    commit button and a CI runner all reach this with no terminal at all, and in each of those the
+    honest answer is no -- the person who would have said yes is not there. Declined and
+    unanswerable are the same answer, and the caller treats them the same way.
+    """
+    import io
+    import os
+
+    try:
+        terminal = (
+            io.open(os.dup(sys.stdin.fileno()), "r")
+            if sys.stdin.isatty()
+            else open("/dev/tty")
+        )
+    except (OSError, ValueError, io.UnsupportedOperation):
+        return None
+    try:
+        suffix = "[Y/n]" if default_yes else "[y/N]"
+        print(f"{question} {suffix} ", end="", flush=True)
+        answer = terminal.readline().strip().lower()
+    except (OSError, KeyboardInterrupt):
+        return None
+    finally:
+        terminal.close()
+    if not answer:
+        return default_yes
+    return answer in ("y", "yes")
+
+
+def _cmd_fingerprint(args):
+    from freeports_dev.ci import fingerprint as fp
+    from freeports_dev.ci.config import CiConfig, ConfigError
+    from freeports_dev.ci.manifest import ManifestError
+
+    root = _ci_root(args)
+    try:
+        config = CiConfig(root, args)
+        branch_class = config.branch_class()
+    except ConfigError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    try:
+        manifest, check = fp.check(root, config.repo_kind)
+    except ManifestError as exc:
+        print(f"Error: {exc}")
+        sys.exit(2)
+
+    if check is None:
+        print(
+            f"{root} declares no fingerprint of its own, so there is nothing to check here."
+        )
+        return
+
+    if args.format == "json":
+        import json
+
+        proposal = check.proposal()
+        print(
+            json.dumps(
+                {
+                    "repo_kind": config.repo_kind,
+                    "ok": check.ok,
+                    "version": check.version_now,
+                    "version_committed": check.version_committed,
+                    "version_moved": check.version_moved,
+                    "proposal": proposal[1] if proposal else None,
+                    "proposal_kind": proposal[0] if proposal else None,
+                    "fingerprints": [
+                        {
+                            "name": entry["name"],
+                            "computed": entry["computed"],
+                            "declared": entry["declared"],
+                            "committed": entry["committed"],
+                            "moved": entry["computed"] != entry["committed"],
+                        }
+                        for entry in check.entries
+                    ],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        sys.exit(0 if check.ok else 1)
+
+    for entry in check.entries:
+        moved = entry["computed"] != entry["committed"]
+        print(f"{entry['name']:<12} {'CHANGED' if moved else 'unchanged'}")
+        if moved:
+            print(f"  committed  {entry['committed'] or '(nothing at HEAD)'}")
+            print(f"  computed   {entry['computed']}")
+
+    if not check.moved:
+        print(
+            f"\nNothing a fingerprint covers has moved. {'.'.join(check.version_field)} stands."
+        )
+        _maybe_write(args, manifest, check)
+        return
+
+    print(
+        f"\nversion     {check.version_now}   (at HEAD: {check.version_committed or 'nothing'})"
+    )
+
+    if check.version_moved:
+        print(
+            "The version has moved too, so the manifest's claim about its contents is true."
+        )
+        _maybe_write(args, manifest, check)
+        return
+
+    # The fingerprint moved and the version did not. The manifest would otherwise claim that this
+    # version covers content it does not, which is a false statement, and the point of the field is
+    # that it is not one.
+    proposal = check.proposal()
+    accepted = False
+    if proposal and (args.update or args.propose):
+        kind, next_version = proposal
+        print(
+            f"\n{', '.join(sorted(check.changed_directories))} moved, so this is a {kind} bump: "
+            f"{check.version_now} -> {next_version}"
+        )
+        answer = True if args.noconfirm else _ask(f"Set the version to {next_version}?")
+        if answer:
+            manifest.set(check.version_field, next_version)
+            for entry in check.entries:
+                manifest.set(entry["keys"], entry["computed"])
+            manifest.write()
+            print(f"wrote {manifest.path}")
+            accepted = True
+        elif answer is None:
+            print(
+                "No terminal to ask on, so the answer is no — a prompt nobody can answer is not a yes."
+            )
+        else:
+            print("Declined.")
+    elif not proposal:
+        print(
+            f"\nBump {'.'.join(check.version_field)} by hand: only you know whether this is a "
+            f"correction or a new format."
+        )
+
+    if accepted:
+        return
+
+    if branch_class.refuses:
+        print(
+            f"\nRefused: on a {branch_class.name} branch the version must move with the content it "
+            f"covers."
+        )
+        sys.exit(1)
+    print(
+        f"\nOn a {branch_class.name} branch this is a warning. The new fingerprint is NOT written: "
+        f"writing it would leave the manifest claiming that {check.version_now} covers content it "
+        f"does not."
+    )
+
+
+def _maybe_write(args, manifest, check):
+    """Write the computed fingerprints when the manifest is already entitled to hold them."""
+    if not args.update:
+        return
+    changed = False
+    for entry in check.entries:
+        if entry["declared"] != entry["computed"]:
+            manifest.set(entry["keys"], entry["computed"])
+            changed = True
+    if changed:
+        manifest.write()
+        print(f"wrote {manifest.path}")
+
+
+def _ci_parser():
+    """The options every gating subcommand accepts, in the three tiers the engine already uses.
+
+    ``--min metric=value`` rather than one flag per metric: the set of metrics grows, and the
+    per-package minima make it combinatorial -- there is no finite list of flags to write.
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--repo",
+        "-r",
+        dest="repo",
+        metavar="PATH",
+        help="Repository to gate [default: the working directory]",
+    )
+    parser.add_argument(
+        "--branch-class",
+        dest="branch_class",
+        choices=["prod", "dev", "off"],
+        help="Force the branch class [default: $FREEPORTS_CI_BRANCH_CLASS, then the `branches` "
+        "map in ci.yaml, then dev]",
+    )
+    parser.add_argument(
+        "--min",
+        dest="min",
+        action="append",
+        metavar="METRIC=VALUE",
+        help="Override one minimum, repeatable [default: $FREEPORTS_CI_MIN_<METRIC>, then the "
+        "`thresholds` map in ci.yaml, then none -- an unconfigured metric is reported, never gated]",
+    )
+    parser.add_argument(
+        "--keyserver",
+        dest="keyserver",
+        metavar="URL",
+        help="Key server for the granters' fingerprints [default: $FREEPORTS_VALIDATE_KEYSERVER, "
+        "then `keyserver` in ci.yaml, then https://keys.openpgp.org]",
+    )
+    return parser
 
 
 def _common_parser():
@@ -367,6 +958,15 @@ def main():
         "init-format-repo", help="Initialize a new format repository"
     )
     p_init.add_argument("path", help="Path for the new repository")
+    # Without this the command can only be run by a person sitting at a terminal, which also means
+    # it can never be checked by anything: `make distcheck` installs the built wheel and asks it to
+    # create a repository, and an `input()` with nothing on stdin ends that in an EOFError.
+    p_init.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Ask nothing and take the default answer (yes) to every prompt",
+    )
 
     p_init_db = sub.add_parser("init-input-db", help="Initialize a new input database")
     p_init_db.add_argument("path", help="Path for the new input database")
@@ -376,6 +976,12 @@ def main():
         help="Fill the tables with the packaged example database (list TEST) instead of leaving "
         "them empty",
     )
+    p_init_db.add_argument(
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="Ask nothing and take the default answer (yes) to every prompt",
+    )
 
     sub.add_parser(
         "setup-input-db",
@@ -383,7 +989,197 @@ def main():
         help="Create tests/input_db/ with default TEST list",
     )
 
+    ci = _ci_parser()
+
+    p_branch = sub.add_parser(
+        "branch-class",
+        parents=[ci],
+        help="Print the class of the current branch and the rule that produced it",
+    )
+    p_branch.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+
+    p_coverage = sub.add_parser(
+        "coverage",
+        parents=[ci],
+        help="Measure how much of a formats repository is tested, by document",
+    )
+    p_coverage.add_argument(
+        "--format",
+        choices=["text", "json", "markdown", "badges", "none"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+    p_coverage.add_argument(
+        "--out",
+        nargs="?",
+        const="",
+        metavar="PATH",
+        help="Also write the measurements as JSON [default: reports/ under the repository]",
+    )
+
+    p_docs = sub.add_parser(
+        "doc-coverage",
+        parents=[ci],
+        help="Measure what fraction of the public Python objects carry a docstring",
+    )
+    p_docs.add_argument(
+        "--format",
+        choices=["text", "json", "none"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+    p_docs.add_argument(
+        "--out",
+        nargs="?",
+        const="",
+        metavar="PATH",
+        help="Also write the measurements as JSON [default: reports/ under the repository]",
+    )
+
+    p_lint = sub.add_parser(
+        "lint-score",
+        parents=[ci],
+        help="Score a linter's findings out of ten, with pylint's formula",
+    )
+    p_lint.add_argument(
+        "--language",
+        choices=["python", "rust", "both"],
+        default="python",
+        help="Which linter to run [default: python]",
+    )
+    p_lint.add_argument(
+        "paths",
+        nargs="*",
+        help="Paths to lint [default: the repository's own source and test directories]",
+    )
+    p_lint.add_argument(
+        "--format",
+        choices=["text", "json", "none"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+    p_lint.add_argument(
+        "--out",
+        nargs="?",
+        const="",
+        metavar="PATH",
+        help="Also write the measurements as JSON [default: reports/ under the repository]",
+    )
+
+    p_record = sub.add_parser(
+        "ci-record",
+        parents=[ci],
+        help="Normalise a measurement tool's own JSON into a reports/ file",
+    )
+    p_record.add_argument(
+        "--metric", required=True, help="The metric this report answers for"
+    )
+    p_record.add_argument(
+        "--from",
+        dest="source",
+        required=True,
+        choices=sorted(
+            [
+                "llvm-cov",
+                "coverage-py",
+                "rustdoc",
+                "ruff",
+                "clippy",
+                "validate",
+                "check-keys",
+            ]
+        ),
+        help="Which tool produced the input",
+    )
+    p_record.add_argument(
+        "--input",
+        required=True,
+        action="append",
+        metavar="PATH",
+        help="The tool's own report. Repeatable for coverage-py, whose reports are then combined "
+        "over their counts rather than averaged over the packages",
+    )
+    p_record.add_argument(
+        "--out",
+        metavar="PATH",
+        help="Where to write it [default: reports/ under the repository]",
+    )
+
+    p_check = sub.add_parser(
+        "ci-check",
+        parents=[ci],
+        help="The verdict: read reports/, apply ci.yaml, and choose an exit status",
+    )
+    p_check.add_argument(
+        "--reports",
+        metavar="PATH",
+        help="Where the measurements are [default: reports/ under the repository]",
+    )
+    p_check.add_argument(
+        "--suite",
+        action="append",
+        metavar="NAME:OUTCOME",
+        help="A test suite's outcome, repeatable, e.g. --suite fast:passed",
+    )
+    p_check.add_argument(
+        "--skip-slow",
+        action="store_true",
+        help="Do not check the slow metrics at all. Loud, never the default, and it prints what "
+        "it skipped [also $FREEPORTS_CI_SKIP_SLOW]",
+    )
+    p_check.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+
+    p_fingerprint = sub.add_parser(
+        "fingerprint",
+        parents=[ci],
+        help="Check that the manifest's hash of its own contents moved with its version",
+    )
+    p_fingerprint.add_argument(
+        "--check",
+        action="store_true",
+        help="Compare and report, changing nothing [the default]",
+    )
+    p_fingerprint.add_argument(
+        "--update",
+        action="store_true",
+        help="Rewrite the manifest when it is entitled to hold the new value",
+    )
+    p_fingerprint.add_argument(
+        "--propose",
+        action="store_true",
+        help="Offer the mechanical version bump interactively, without writing anything else",
+    )
+    p_fingerprint.add_argument(
+        "--noconfirm",
+        action="store_true",
+        help="Accept the proposal without asking. Never use this in a hook",
+    )
+    p_fingerprint.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Rendering [default: text]",
+    )
+
     args = parser.parse_args()
+
+    # The third tier for the one flag that is a switch rather than a value. `--skip-slow` can only
+    # ever turn the setting on, so a command line that does not mention it leaves an environment
+    # that did alone.
+    if getattr(args, "skip_slow", False) is False and _env_flag(
+        "FREEPORTS_CI_SKIP_SLOW"
+    ):
+        args.skip_slow = True
 
     if args.command == "test":
         _cmd_test(args)
@@ -399,6 +1195,20 @@ def main():
         _cmd_init_input_db(args)
     elif args.command == "setup-input-db":
         _cmd_setup_input_db(args)
+    elif args.command == "branch-class":
+        _cmd_branch_class(args)
+    elif args.command == "coverage":
+        _cmd_coverage(args)
+    elif args.command == "doc-coverage":
+        _cmd_doc_coverage(args)
+    elif args.command == "lint-score":
+        _cmd_lint_score(args)
+    elif args.command == "ci-record":
+        _cmd_ci_record(args)
+    elif args.command == "ci-check":
+        _cmd_ci_check(args)
+    elif args.command == "fingerprint":
+        _cmd_fingerprint(args)
     else:
         parser.print_help()
         sys.exit(1)

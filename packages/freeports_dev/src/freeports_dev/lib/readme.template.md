@@ -33,6 +33,54 @@ once, rather than for the one file, contributor or methodology you would name on
 | [By methodology — the files it covers](validation/report/methodology-file.md) | `freeports-validate granted-with <methodology>` |
 | [By methodology — who adopted it](validation/report/methodology-contributor.md) | `freeports-validate granted-with -c <methodology>` |
 
+## What a commit here has to clear
+
+`ci.yaml` at the root says how this repository is gated, and it is the only file to open to answer
+that. `freeports-dev branch-class` says which class the branch you are on is in and the rule that
+put it there — run it first whenever the hook does something you did not expect.
+
+| Branch class | What happens |
+|---|---|
+| `prod` — `main`, `release/*` | a missed threshold, a failing suite, or a `validation_sha256` that moved without `info.version` **refuses the commit** |
+| `dev` — the default | everything is measured and reported; nothing is refused |
+| `off` — `experimental`, `wip/*` | the hook does nothing at all |
+
+The hook runs the fast tests, measures four things, refreshes the report, and asks
+`freeports-dev ci-check` for a verdict. The measurements are:
+
+```sh
+freeports-dev coverage       # how many documents are tested, and how
+freeports-dev lint-score     # ruff's findings on content/, as a score out of ten
+freeports-dev doc-coverage   # public objects carrying a docstring
+freeports-dev ci-check       # the verdict table, and the exit status
+```
+
+`freeports-dev coverage` counts **documents**, not formats: a format with one `report.pdf` is one
+document, and a format with several subdirectories is one document each. A document counts for
+*integration* when it has an `out/` — that is, when a whole-document test exists at all — and for
+*single page* when at least one of its pages carries all three of `<n>-pdf_blks.json`,
+`<n>-txt_blks.json` and `<n>-results.json`. The two are kept apart because a repository can be
+strong in one and weak in the other, and one number would hide it.
+
+Seed a threshold in `ci.yaml` only at a figure you have measured. One set above the baseline
+refuses the first commit made under it, and then it is the gate somebody switches off rather than
+the code somebody fixes.
+
+### The fingerprint, and the version
+
+`info.validation_sha256` in `package.yaml` is the hash of the hashes of **every file a grant
+covers**, in `LC_ALL=C` order, with the path inside each hashed line — so moving a file counts as
+much as editing it. You can check it by hand:
+
+```sh
+printf '%s\n' <the granted paths> | LC_ALL=C sort | xargs sha256sum | sha256sum
+```
+
+When it moves, `info.version` must move too. Which component is your choice: the change may be a
+correction or a whole new format, and only you know which. On a `dev` branch the hook warns and
+does **not** write the new fingerprint — writing it would leave the manifest claiming that version
+X covers content Y, which is a false statement, and the point of the field is that it is not one.
+
 ### Keeping all of it current
 
 The `pre-commit` hook in `.githooks/` regenerates the badges, the block above and the six pages,

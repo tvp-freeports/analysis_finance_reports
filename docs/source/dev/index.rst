@@ -18,6 +18,7 @@ repository.
    build
    implementation-notes
    tests
+   ci
    docs
    i18n
 
@@ -57,7 +58,7 @@ Then, for the day-to-day loop:
 
     make develop                   # rebuild the extension in place
     make build                     # the command-line binary
-    make test-unit                 # unit tests: the bulk of the coverage
+    make test-rust-unit                 # unit tests: the bulk of the coverage
     make check                     # the full suite: unit, integration, doctest
     make lint                      # clippy on the crate, ruff on the Python sources
 

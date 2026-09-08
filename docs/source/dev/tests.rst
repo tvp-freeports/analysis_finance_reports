@@ -12,9 +12,14 @@ The bulk of the coverage is in the Rust crate, as unit tests inside the module t
 .. code-block:: console
 
     make check            # all of it — what the commit hook runs
-    make test-unit        # unit tests
-    make test-integration # integration tests
-    make test-doc         # the examples in the doc-comments
+    make test-rust-unit        # unit tests
+    make test-rust-integration # integration tests
+    make test-rust-doc         # the examples in the doc-comments
+
+How much of it is covered is a *gated* figure, not a matter of taste: ``make coverage-rust`` and
+``make coverage-python`` measure it and ``make ci-check`` compares it against the minimum this
+repository sets for itself. :doc:`ci` says where those minima live and what happens when one is
+missed.
 
 Two conventions are not optional:
 

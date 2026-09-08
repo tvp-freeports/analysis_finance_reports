@@ -83,7 +83,7 @@ other**, so a change to Rust that the Python side uses needs the extension rebui
 .. code-block:: console
 
     make develop        # rebuild the extension in place
-    make test-unit      # the bulk of the coverage; fast
+    make test-rust-unit      # the bulk of the coverage; fast
     make check          # the full suite: unit, integration, doctests
     make lint           # clippy on the crate, ruff on the Python sources
 

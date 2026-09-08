@@ -6,7 +6,7 @@
 # (strategy D1). For the complete site: `make rustdoc html`.
 #
 # The root Makefile delegates here — `make docs`, `make docs-html`, `make docs-rustdoc`,
-# `make docs-coverage`, `make i18n-extract` — passing the `SPHINXBUILD` and `CARGO` of the
+# `make docs-site-coverage`, `make i18n-extract` — passing the `SPHINXBUILD` and `CARGO` of the
 # environment in use.
 
 SPHINXOPTS    ?=

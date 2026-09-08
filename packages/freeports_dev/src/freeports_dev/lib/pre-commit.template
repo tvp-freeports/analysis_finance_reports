@@ -2,10 +2,22 @@
 #
 # Pre-commit hook for freeports format repositories.
 #
-# One gate and two reports. The gate is the format test suite, which refuses the commit when it
-# fails. The reports are the validation report -- badges, README block, the six pages -- which is
-# regenerated and staged, and `check-grants`, which says whether the claims in `validation/` still
-# hold. Neither report can refuse a commit; the sections below say why.
+# One gate and two reports. The gate is `freeports-dev ci-check`, which reads the measurements
+# taken below, the thresholds in `ci.yaml`, and the class of the branch you are on, and is the only
+# step here that can refuse. The reports are the validation report -- badges, README block, the six
+# pages -- which is regenerated and staged, and `check-grants`, which says whether the claims in
+# `validation/` still hold. Neither report can refuse a commit; the sections below say why.
+#
+# **What refuses, and on which branch.** `ci.yaml` at the root of this repository puts every branch
+# in one of three classes. On `prod` a missed threshold, a failing suite, a figure nobody could
+# measure, or a `validation_sha256` that moved without `info.version` moving refuses the commit. On
+# `dev` -- the default -- all of that is measured and reported and nothing is refused. On `off` this
+# hook returns immediately. `freeports-dev branch-class` prints the class you are on and the rule
+# that put you there; run it first when this hook does something you did not expect.
+#
+# Note that the test suite's outcome is *recorded and passed on* rather than acted on here: whether
+# a failing suite stops the commit is `ci-check`'s decision, because it is the one thing that knows
+# which branch you are on.
 #
 
 if [ "$(basename "${VIRTUAL_ENV:-}")" != "freeports-dev" ] && [ "${CONDA_DEFAULT_ENV:-}" != "freeports-dev" ]; then
@@ -27,7 +39,36 @@ fi
 # not a repository. A hook has no business asking where it is.
 repo_root=$(git rev-parse --show-toplevel) || exit 1
 
-freeports-dev test --repo "$repo_root" -- -m "not integration_tests"
+# An `off` branch -- `experimental`, `wip/*` -- and this hook has nothing to say. Before anything
+# that costs time. A branch nobody classified is `dev`, never `off`: the quiet answer is never the
+# default one.
+if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
+        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "off" ]; then
+    echo "$(git rev-parse --abbrev-ref HEAD) is an 'off' branch in ci.yaml: nothing is checked."
+    exit 0
+fi
+
+# The fast half of the suite. Its outcome is recorded and handed to `ci-check`, not acted on here:
+# on a dev branch a failing suite is reported and the commit stands, and only `ci-check` knows
+# which branch this is.
+if freeports-dev test --repo "$repo_root" -- -m "not integration_tests"; then
+    suite_outcome=passed
+else
+    suite_outcome=failed
+fi
+
+# The fast measurements. Each writes one small JSON file into `reports/`, which is gitignored:
+# these are facts about one commit on one machine, not something to carry in the history. None of
+# them decides anything.
+freeports-dev coverage --repo "$repo_root" --out --format none
+freeports-dev lint-score --repo "$repo_root" --out --format none
+
+# Only when a threshold names it. A format author need not document their algorithms to commit, and
+# running a measurement nobody has asked for a minimum on would be spending time to produce a
+# number nothing reads.
+if grep -q '^[[:space:]]*docs\.python[[:space:]]*:' "$repo_root/ci.yaml" 2>/dev/null; then
+    freeports-dev doc-coverage --repo "$repo_root" --out --format none
+fi
 
 
 # Keep the validation report current, and never refuse a commit over it.
@@ -103,6 +144,13 @@ if command -v freeports-validate >/dev/null 2>&1; then
         echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
     fi
 
+    # The coverage figure the gate compares against `grants.coverage`, read out of the same model
+    # that was just collected rather than by collecting a second time.
+    if [ -s "$report_model" ]; then
+        freeports-dev ci-record --repo "$repo_root" --metric grants.coverage \
+            --from validate --input "$report_model" >/dev/null 2>&1
+    fi
+
     rm -f "$report_model"
 fi
 
@@ -134,4 +182,43 @@ If you know what you are doing you can disable this check using:
   git config hooks.allownonascii true
 EOF
 	exit 1
+fi
+
+
+# The granters' keys, on a prod branch only. It reaches the network, and a dev commit must not
+# depend on a key server being up.
+if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
+        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "prod" ] &&
+   command -v freeports-validate >/dev/null 2>&1; then
+    keys_report=$(mktemp "${TMPDIR:-/tmp}/freeports-keys.XXXXXX" 2>/dev/null) || keys_report=""
+    if [ -n "$keys_report" ]; then
+        freeports-validate --repo "$repo_root" check-keys > "$keys_report" 2>/dev/null
+        freeports-dev ci-record --repo "$repo_root" --metric grants.keys_online \
+            --from check-keys --input "$keys_report" >/dev/null 2>&1
+        rm -f "$keys_report"
+    fi
+fi
+
+
+# The fingerprint rule: `info.validation_sha256` is the hash of the hashes of every file a grant
+# covers, and when it moves `info.version` must move with it. Otherwise the manifest claims that
+# version X covers content Y, which is false, and the point of the field is that it is not.
+#
+# On a dev branch this warns and does **not** write the new fingerprint -- writing it is exactly
+# how the manifest would come to hold that false statement. On prod it refuses.
+freeports-dev fingerprint --repo "$repo_root" --update || fingerprint_failed=1
+
+
+# The verdict. The only step here that can refuse, and whether it does depends on the class of the
+# branch rather than on anything written in this file.
+freeports-dev ci-check --repo "$repo_root" --suite "fast:$suite_outcome" || {
+    echo "" 1>&2
+    echo "Commit gate failed -- commit refused. \`freeports-dev ci-check\` shows it again," 1>&2
+    echo "and \`freeports-dev branch-class\` says why this branch enforces rather than reports." 1>&2
+    echo "Commit with --no-verify if you know better." 1>&2
+    exit 1
+}
+
+if [ -n "${fingerprint_failed:-}" ]; then
+    exit 1
 fi

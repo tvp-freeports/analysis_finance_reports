@@ -1,0 +1,34 @@
+# How this repository is gated. The same file, the same name and the same syntax in every
+# freeports repository, so that the roles of the branches read the same everywhere.
+#
+# `package.yaml` / `metadata.yaml` say what this repository *is*. This file says how it is *gated*,
+# which is a different question with a different audience.
+#
+# `freeports-dev branch-class` prints the class of the branch you are on and the rule that produced
+# it. It is the first thing to run when the commit hook does something you did not expect.
+
+branches:
+  # A missed threshold, a failing suite, a figure nobody could measure, or a fingerprint that moved
+  # without a version bump refuses the commit.
+  prod: [main, master, "release/*"]
+  # Everything is measured and reported; nothing refuses the commit. Day-to-day work happens here.
+  dev: [dev]
+  # The hook does nothing at all.
+  off: [experimental, "wip/*", "spike/*"]
+  # Anything unlisted. `dev` unless said otherwise: a branch nobody classified is not production.
+  default: dev
+
+keyserver: https://keys.openpgp.org
+
+# Seed a minimum only at a figure you have actually measured, never at one you would like to reach.
+# A threshold above the baseline refuses the first commit made under it, and then it is the gate
+# somebody switches off rather than the code somebody fixes.
+#
+# Measure first:
+#     freeports-dev coverage        the two test-coverage figures, by document
+#     freeports-dev lint-score      ruff's findings as a score out of ten
+#     freeports-dev doc-coverage    public objects carrying a docstring
+#
+# A metric named nowhere here is reported and gates nothing, which is the right state for one
+# nobody has decided about yet.
+thresholds: {}

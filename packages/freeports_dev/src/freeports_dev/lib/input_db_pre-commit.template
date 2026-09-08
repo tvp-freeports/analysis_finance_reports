@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# Pre-commit hook for a freeports input database.
+#
+# Short, because a database has almost nothing a commit hook can check. There is no test suite, no
+# linted source and no methodology grants — so there is no figure here to hold to a minimum. What
+# there is, and what this enforces, is the **fingerprint rule**.
+#
+# `metadata.yaml` declares `sha256.companies` and `sha256.lists`: the hash of the hashes of every
+# file under each directory, in `LC_ALL=C` order, with the path inside each hashed line so that
+# moving a file counts as much as editing it. You can reproduce either by hand:
+#
+#     cd companies && find . -type f | sed 's|^\./||' | LC_ALL=C sort | xargs sha256sum | sha256sum
+#
+# When one of those moves, `info.version` must move with it. Otherwise the manifest says version X
+# covers content Y, which is false, and the whole point of the field is that it is not.
+#
+# The bump is **mechanical**, so this proposes it rather than making you work it out:
+#
+#     lists changed                  minor + 1, patch reset
+#     companies changed (± lists)    major + 1, minor and patch reset
+#
+# because `companies/` decides what *matches* while `lists/` only decides the *association*. A
+# companies change therefore subsumes a lists one rather than being a second change beside it.
+#
+# **What refuses, and on which branch.** `ci.yaml` at the root puts every branch in one of three
+# classes. On `prod` a fingerprint that moved without a version bump refuses the commit. On `dev` —
+# the default — it is a loud warning and the commit stands. On `off` this hook does nothing.
+# `freeports-dev branch-class` says which you are on and why.
+#
+# **There is no environment check here**, unlike the other two hooks, and that is deliberate:
+# computing sha256 sums needs no virtualenv, and a hook that refuses a commit to a CSV file because
+# an environment is not active would be a nuisance with nothing behind it.
+
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+
+# Without `freeports-dev` on the PATH there is no proposal to make. Say what the rule is and let
+# the commit through: a database is edited by people who may have no Python environment at all, and
+# refusing them over a missing tool would make the rule the reason nobody uses the repository.
+if ! command -v freeports-dev >/dev/null 2>&1; then
+    echo "freeports-dev is not on the PATH, so the fingerprint rule was not checked." 1>&2
+    echo "When companies/ or lists/ changes, bump info.version in metadata.yaml:" 1>&2
+    echo "  lists changed      -> minor + 1        companies changed -> major + 1" 1>&2
+    exit 0
+fi
+
+if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
+        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "off" ]; then
+    echo "$(git rev-parse --abbrev-ref HEAD) is an 'off' branch in ci.yaml: nothing is checked."
+    exit 0
+fi
+
+# `--propose` asks, on the terminal, reopening it because stdin here is git's. Declined — or
+# unanswerable, which is what a rebase, a script or a CI runner gives — is *no*: a prompt nobody
+# can answer must never be read as a yes. `--update` writes the manifest once the version has
+# moved, and stages nothing this hook did not change.
+if freeports-dev fingerprint --repo "$repo_root" --update --propose; then
+    git -C "$repo_root" add -- metadata.yaml 2>/dev/null || true
+    exit 0
+fi
+
+git -C "$repo_root" add -- metadata.yaml 2>/dev/null || true
+echo "" 1>&2
+echo "Commit refused: the contents changed and info.version did not." 1>&2
+echo "\`freeports-dev fingerprint --propose\` offers the bump again, and" 1>&2
+echo "\`freeports-dev branch-class\` says why this branch refuses rather than warns." 1>&2
+echo "Commit with --no-verify if you know better." 1>&2
+exit 1

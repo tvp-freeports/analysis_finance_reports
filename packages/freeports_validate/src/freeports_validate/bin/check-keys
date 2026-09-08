@@ -1,0 +1,148 @@
+#!/bin/bash
+
+source "${FREEPORTS_VALIDATE_LIB}/utils"
+
+# Whether the keys behind this repository's grants are published where anybody can find them.
+#
+# A signature checks out against a keyring. That answers "was this document signed by the key it
+# names", and it is the question `check-grants` asks. It does not answer "can a stranger get that
+# key at all" -- and if they cannot, the signature is only checkable by people who already have it,
+# which is everybody except the person a published grant exists to convince.
+#
+# So this asks the other half: for every granter named in this repository, is their fingerprint
+# resolvable on the configured key server?
+#
+# Three answers, not two, for the same reason `check-grants` has three. A 200 carrying an armoured
+# block is *published*. A 404 is *not published*. A network failure is **unknown** -- which is
+# neither, and reporting it as either would be a lie: as a pass it launders "I could not reach the
+# server" into "the key is there", and as a failure it turns somebody's train journey into a broken
+# repository. `grants.keys_online` treats a key that could not be checked as making the whole metric
+# unmeasured rather than lowering it, which is the same distinction drawn one level up.
+#
+#   0  every key is published
+#   1  at least one is not
+#   3  at least one could not be checked (CHECK_INCONCLUSIVE)
+
+KEYSERVER="${FREEPORTS_VALIDATE_KEYSERVER:-https://keys.openpgp.org}"
+
+published=0
+missing=0
+unknown=0
+declare -a missing_names=()
+declare -a unknown_names=()
+
+# `hkp`-style lookup, which every modern key server speaks over plain HTTPS. `0x` before the
+# fingerprint because that is how the protocol distinguishes a key id from a search string: without
+# it a 40-character hex string is a full-text query and a server may well answer 200 to it with a
+# page that is not a key.
+lookup_key() {
+    local fingerprint="$1"
+    curl -fsS --max-time 15 \
+        "${KEYSERVER}/pks/lookup?op=get&search=0x${fingerprint}" 2>/dev/null
+}
+
+check_one_key() {
+    local fingerprint="$1"
+    local who="$2"
+
+    if [ -n "$FREEPORTS_VALIDATE_OFFLINE" ]; then
+        unknown=$((unknown + 1))
+        unknown_names+=("$who ($fingerprint) — offline, so nobody looked")
+        return
+    fi
+
+    local body
+    body=$(lookup_key "$fingerprint")
+    local status=$?
+
+    if [ $status -eq 0 ] && [ -n "$body" ]; then
+        # A 200 is not enough on its own: a server that answers a search with a "no results" page
+        # answers it with a 200 too. What settles it is the armour header, which only a key has.
+        if echo "$body" | grep -q "BEGIN PGP PUBLIC KEY BLOCK"; then
+            published=$((published + 1))
+            print_success "$who — published"
+            return
+        fi
+        missing=$((missing + 1))
+        missing_names+=("$who ($fingerprint) — the server answered, and not with a key")
+        return
+    fi
+
+    # curl's exit status tells a refusal apart from a failure to ask. 22 is `--fail` on an HTTP
+    # error, which for this endpoint means the key is not there; anything else is the request never
+    # having been answered, which is the third state and not the second.
+    if [ $status -eq 22 ]; then
+        missing=$((missing + 1))
+        missing_names+=("$who ($fingerprint) — not on ${KEYSERVER}")
+    else
+        unknown=$((unknown + 1))
+        unknown_names+=("$who ($fingerprint) — ${KEYSERVER} could not be reached")
+    fi
+}
+
+if [ ! -d "$DOCUMENT_DIR" ]; then
+    print_error "No validation/ directory in ${REPO_ROOT}"
+    exit 1
+fi
+
+shopt -s nullglob
+documents=("$DOCUMENT_DIR"/*.yaml)
+shopt -u nullglob
+
+if [ ${#documents[@]} -eq 0 ]; then
+    print_warning "No validation documents in ${DOCUMENT_DIR}, so there is no key to check"
+    exit 0
+fi
+
+print_info "Looking up ${#documents[@]} granter(s) on ${KEYSERVER}"
+
+for document in "${documents[@]}"; do
+    # `tr -d` would eat the spaces inside a person's name along with the quotes around it, which
+    # is how "Oreste Sciacqualegni" first came out as "OresteSciacqualegni". Only the quoting and
+    # the carriage return are stripped; the name is left as its owner wrote it.
+    fingerprint=$(grep -A5 '^who:' "$document" | grep 'pubkey_id:' | head -1 \
+        | sed -e 's/.*pubkey_id:[[:space:]]*//' -e 's/[["'"'"'"]]//g' -e 's/[[:space:]]*$//' -e $'s/\r//g')
+    name=$(grep -A5 '^who:' "$document" | grep '^[[:space:]]*name:' | head -1 \
+        | sed -e 's/.*name:[[:space:]]*//' -e 's/^["'"'"']//' -e 's/["'"'"']$//' -e 's/[[:space:]]*$//' -e $'s/\r//g')
+    [ -z "$name" ] && name=$(basename "$document" .yaml)
+
+    if [ -z "$fingerprint" ]; then
+        unknown=$((unknown + 1))
+        unknown_names+=("$name — the document names no pubkey_id")
+        continue
+    fi
+    check_one_key "$fingerprint" "$name"
+done
+
+total=$((published + missing + unknown))
+echo ""
+echo "published ${published}/${total}, not published ${missing}, could not be checked ${unknown}"
+
+if [ ${#missing_names[@]} -gt 0 ]; then
+    echo "" >&2
+    print_error "Some granters' keys are not published"
+    for entry in "${missing_names[@]}"; do echo "  $entry" >&2; done
+    echo "" >&2
+    echo "A grant whose key nobody can fetch is only checkable by people who already have it," >&2
+    echo "which is everybody except the person a published grant exists to convince. Publish" >&2
+    echo "the key:  gpg --keyserver ${KEYSERVER} --send-keys <fingerprint>" >&2
+fi
+
+if [ ${#unknown_names[@]} -gt 0 ]; then
+    echo "" >&2
+    print_warning "Some keys could not be checked at all"
+    for entry in "${unknown_names[@]}"; do echo "  $entry" >&2; done
+    echo "" >&2
+    echo "This is not a pass and it is not a failure. Nothing here says those keys are missing —" >&2
+    echo "it says nobody looked. Treat them as unknown until a run that could reach the server" >&2
+    echo "says otherwise." >&2
+fi
+
+if [ $missing -gt 0 ]; then
+    exit 1
+fi
+if [ $unknown -gt 0 ]; then
+    exit $CHECK_INCONCLUSIVE
+fi
+print_success "Every granter's key is published on ${KEYSERVER}"
+exit 0
