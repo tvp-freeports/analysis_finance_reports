@@ -558,6 +558,11 @@ figures and the commit that changed them arrive together.
      - One self-contained page: the three arrangements as tabs, and a filter box.
      - ``docs/source/_extra/ci/report.html``, copied into the site root by ``html_extra_path``
 
+All of it is published under :doc:`the continuous-integration report <ci-report/index>`, beside the
+validation coverage in *Trust and provenance* — because what the last run measured is a report about
+this repository rather than a page about contributing to it. The single-page rendering is
+`here <../ci/report.html>`_.
+
 **This command never refuses anything.** Its exit status says whether it could write what it was
 asked to write, and nothing about what it found — a hook that could be stopped by its own report is
 a hook people remove. That is the rule the grants report already follows, and the reasons are the

@@ -42,6 +42,7 @@ all of it.
 
    validation/index
    validation/report/index
+   dev/ci-report/index
 
 .. toctree::
    :maxdepth: 2

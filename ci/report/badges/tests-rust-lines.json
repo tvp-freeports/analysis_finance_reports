@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "tests.rust.lines",
-  "message": "91.2%",
-  "color": "brightgreen"
+  "message": "stale",
+  "color": "grey"
 }

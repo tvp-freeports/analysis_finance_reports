@@ -19,9 +19,14 @@ repository.
    implementation-notes
    tests
    ci
-   ci-report/index
    docs
    i18n
+
+What the gate found on the last run is a *report about this repository* rather than a page about
+contributing to it, so it is published beside the validation coverage under :doc:`Trust and
+provenance <../dev/ci-report/index>` — figures, thresholds, and the breakdown behind each one. Two
+toctrees may not both claim a page, which is why it is not in the list above; :doc:`ci` is the page
+that explains the mechanism those figures come out of.
 
 What is in this repository
 ==========================
