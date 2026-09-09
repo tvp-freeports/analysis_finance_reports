@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "tests.python.freeports_dev.lines",
-  "message": "49.7%",
-  "color": "orange"
+  "message": "stale",
+  "color": "grey"
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "docs.python.freeports_validate",
-  "message": "64.0%",
-  "color": "yellow"
+  "message": "stale",
+  "color": "grey"
 }
