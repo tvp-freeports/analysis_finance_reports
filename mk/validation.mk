@@ -70,7 +70,18 @@ validation-report: ## Refresh the badges, the README block, the seven doc pages 
 	 mkdir -p $(dir $(COVERAGE_HTML)); \
 	 $(VALIDATE) report --model "$$model" --format html --out $(COVERAGE_HTML).new \
 	     && mv -f $(COVERAGE_HTML).new $(COVERAGE_HTML) \
-	     || { rm -f $(COVERAGE_HTML).new; exit 1; }
+	     || { rm -f $(COVERAGE_HTML).new; exit 1; }; \
+	 $(FREEPORTS_DEV) ci-record --metric grants.coverage --from validate --input "$$model"
+
+# `grants.coverage` is measured out of that same model, as one more rendering of the walk that has
+# already happened. It is the last line of the recipe rather than a target of its own for exactly
+# that reason: collecting a second time would re-resolve every methodology page over the network
+# for an answer that cannot have changed in between.
+#
+# It also has to happen *here*, in the recipe that runs at every commit. A figure recorded by a
+# command nobody runs regularly goes stale, and `ci-check` then refuses on a production branch for
+# a reason that has nothing to do with the commit being made — which is precisely what happened the
+# first time this was wired, when nothing in the Makefile re-measured it at all.
 
 # The integrity check itself: signatures verify, hashes still match, methodology pages still say
 # what they said. It is *not* a lint — a passing run says the claims in `validation/` hold, not that
@@ -78,3 +89,23 @@ validation-report: ## Refresh the badges, the README block, the seven doc pages 
 check-grants: ## Verify every claim made in validation/
 	$(VALIDATE) check-grants
 
+
+# Whether the granters' keys are published where a stranger can fetch them.
+#
+# A signature checks out against a keyring, which answers "was this signed by the key it names". It
+# does not answer "can anybody else get that key" — and if they cannot, the signature is checkable
+# only by people who already have it, which is everybody except the person a published grant exists
+# to convince.
+#
+# Its own target, and **not** part of `ci-fast`: it reaches a key server over the network, and a
+# commit on a dev branch must not depend on somebody else's host being up. `make ci` runs it, and
+# each repository's hook runs it on a prod branch only.
+#
+# A key that could not be looked up makes the metric *unmeasured* rather than lowering it. Reporting
+# "I could not reach the server" as a number would turn a fact about the network into a fact about
+# the repository.
+check-keys: ## Whether the granters' keys are published on the configured key server
+	@keys=$$(mktemp) || exit 1; \
+	 trap 'rm -f "$$keys"' EXIT; \
+	 $(VALIDATE) check-keys | tee "$$keys"; \
+	 $(FREEPORTS_DEV) ci-record --metric grants.keys_online --from check-keys --input "$$keys"

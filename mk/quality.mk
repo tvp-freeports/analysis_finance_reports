@@ -17,11 +17,24 @@
 
 lint: lint-rust lint-python ## clippy on the crate, ruff on the Python sources
 
+# Each of these runs its linter twice, and the second run is not waste. The first prints the
+# diagnostics, which is what a person running `make lint` came for; the second is
+# `freeports-dev lint-score`, which parses the machine-readable form and records the score into
+# `reports/` for `ci-check` to judge. Both are cheap the second time round — clippy reads its own
+# cache and ruff is sub-second over this tree.
+#
+# The alternative was to record nothing here and leave the measuring to a separate target. That is
+# what this file did at first, and it was wrong in a way the gate caught within a day: `ci-fast`
+# ran `lint`, nothing wrote a figure, and `ci-check` reported `lint.rust` as measured at whatever
+# commit somebody had last run the recorder by hand. A metric that is only ever measured on purpose
+# goes stale, and then it refuses a production commit for a reason unrelated to that commit.
 lint-rust: ## clippy on the crate
 	$(CARGO) clippy --manifest-path $(MANIFEST) --all-targets
+	@$(FREEPORTS_DEV) lint-score --language rust --out --format none
 
 lint-python: ## ruff on the Python sources
 	$(RUFF) check $(PY_SOURCES)
+	@$(FREEPORTS_DEV) lint-score --language python --out --format none
 
 # A formats repository's `content/` is Python nobody has ever linted. REPO says which one.
 lint-formats: ## ruff on a formats repository's content/: make lint-formats REPO=<path>
@@ -58,8 +71,13 @@ coverage: coverage-python coverage-rust ## Line coverage of both languages (slow
 # llvm-cov writes *no report at all* — which `ci-check` then reports as unmeasured rather than as a
 # pass, because a figure nobody could compute is not a figure above the threshold.
 coverage-rust: ## Line coverage of the crate (cargo llvm-cov) — minutes, needs the venv active
-	@command -v cargo-llvm-cov >/dev/null 2>&1 || { \
-	    echo "cargo-llvm-cov is not installed. Run: make dev-ci" >&2; exit 1; }
+	# Asked of cargo, not of `PATH`. The recipe below invokes `cargo llvm-cov`, so what has to be
+	# true is that *cargo* can find the subcommand — and testing `command -v cargo-llvm-cov`
+	# instead is a different question with a different answer. On this machine `PATH` contains a
+	# literal `~/.cargo/bin`: bash resolves the tilde when it searches, `sh` does not, and make
+	# uses `sh`. The guard therefore refused a target whose tool was installed and working.
+	@$(CARGO) llvm-cov --version >/dev/null 2>&1 || { \
+	    echo "cargo llvm-cov is not available. Run: make dev-ci" >&2; exit 1; }
 	mkdir -p $(REPORTS)
 	$(CARGO) llvm-cov --manifest-path $(MANIFEST) --lib --json --summary-only \
 	    --output-path $(REPORTS)/llvm-cov.json

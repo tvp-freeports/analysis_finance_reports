@@ -157,7 +157,7 @@ DOCS_PORT ?= 8000
         coverage coverage-rust coverage-python coverage-formats \
         doc-coverage doc-coverage-rust doc-coverage-python \
         ci ci-fast ci-rust ci-python ci-check branch-class release pre-commit \
-        validation-report check-grants \
+        validation-report check-grants check-keys \
         docs html docs-html docs-rustdoc docs-validation docs-site-coverage docs-serve docs-lang \
         i18n i18n-extract i18n-update i18n-build \
         clean mostlyclean clean-docs clean-rust distclean maintainer-clean
@@ -216,8 +216,8 @@ doctor: ## Diagnosis: what is installed, what is missing, which target supplies 
 	 done
 	@echo
 	@echo "Measurement tools (make dev-ci supplies them)"
-	@if command -v cargo-llvm-cov >/dev/null 2>&1; then \
-	    echo "  cargo-llvm-cov: $$(cargo llvm-cov --version 2>&1 | head -1)"; \
+	@if $(CARGO) llvm-cov --version >/dev/null 2>&1; then \
+	    echo "  cargo-llvm-cov: $$($(CARGO) llvm-cov --version 2>&1 | head -1)"; \
 	 else \
 	    echo "  cargo-llvm-cov: MISSING  ->  make dev-ci   (tests.rust.lines is unmeasured without it)"; \
 	 fi

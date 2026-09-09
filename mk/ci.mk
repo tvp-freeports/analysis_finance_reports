@@ -32,7 +32,7 @@ ci-fast: lint test coverage-python doc-coverage validation-report check-grants c
 # Kept as a name people already type, and as the name `.githooks/pre-commit` calls.
 pre-commit: ci-fast ## The commit gate (alias of ci-fast)
 
-ci: ci-fast coverage-rust docs docs-site-coverage ## Everything runnable locally — what a pipeline would run
+ci: ci-fast coverage-rust check-keys docs docs-site-coverage ## Everything runnable locally — what a pipeline would run
 
 ci-rust: lint-rust test-rust coverage-rust doc-coverage-rust ## The whole Rust column
 

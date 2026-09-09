@@ -43,3 +43,4 @@ thresholds:
   lint.rust: 9.9                                  # measured 9.998 (8 clippy warnings / 44617 lines)
   lint.python: 10                                 # measured 10.00 (0 ruff violations / 8606 lines)
   grants.coverage: 100                            # measured 100 % (1/1)
+  grants.keys_online: 100                         # measured 100 % (1/1) — key published 2026-09-09
