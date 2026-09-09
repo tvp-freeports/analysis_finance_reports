@@ -311,9 +311,33 @@ class TestWhatNoRenderingSays:
             engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
         )
         for style in ("markdown", "rst", "html"):
-            text = render.render(model, style)
-            assert "demonstrative" in text
-            assert render.GATE_DOC_URL in text
+            assert "demonstrative" in render.render(model, style)
+
+    def test_a_readme_and_a_standalone_page_link_out_by_url(self, engine):
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        for style in ("markdown", "html"):
+            assert render.GATE_DOC_URL in render.render(model, style)
+
+    def test_a_page_inside_the_documentation_refers_to_it_without_leaving_the_build(
+        self, engine
+    ):
+        """An absolute URL sends a reader of one version of the site into another version of it.
+
+        Which 404s outright for a page that is new on this branch — reached, when it happened, from
+        a link in the documentation itself.
+        """
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        rendered = render.render(model, "rst")
+        assert f"<{render.GATE_DOC_LABEL}>" in rendered
+        assert "https://" not in rendered
+
+    def test_the_url_names_the_branch_the_figures_were_measured_on(self, engine):
+        """`stable` is the last release, and the gate a report describes is the one running now."""
+        assert "/en/latest/" in render.GATE_DOC_URL
 
 
 class TestTheTables:

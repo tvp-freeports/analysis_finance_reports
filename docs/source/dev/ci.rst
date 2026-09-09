@@ -1,3 +1,5 @@
+.. _commit-gate:
+
 ==========================================
 Continuous integration and the commit gate
 ==========================================

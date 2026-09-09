@@ -52,7 +52,23 @@ MARKERS = {
 
 #: Where a reader goes to find out what any of this is worth: the page that explains the gate, not
 #: the table that ran it.
-GATE_DOC_URL = "https://docs.freeports.org/en/stable/dev/ci.html"
+#:
+#: ``latest`` and not ``stable``, which is the one difference from the grants report's link and is
+#: not a preference. ``stable`` is the last *release*; this page describes the gate as it is now, and
+#: a repository whose gate changed since its last release would link its README at a page that
+#: either does not exist yet — which is what happened, a 404 reached from the documentation itself —
+#: or describes rules nobody is being held to. ``latest`` tracks the branch the figures were measured
+#: on, which is the same thing the report is about.
+GATE_DOC_URL = "https://docs.freeports.org/en/latest/dev/ci.html"
+
+#: The same page, referred to the way one page of a Sphinx site refers to another.
+#:
+#: An absolute URL is right in a README and on a standalone page, and wrong inside the documentation:
+#: a reader on ``/en/latest/…`` who follows one lands in a *different version* of the site, and a
+#: page that is new on this branch has no other version to land in at all. A ``:ref:`` resolves
+#: inside whatever build it is in — every version, every translation, and an offline build with no
+#: network — and cannot 404. The label is defined at the top of ``docs/source/dev/ci.rst``.
+GATE_DOC_LABEL = "commit-gate"
 
 #: The sentence every rendering carries, and the reason it is not optional.
 #:
@@ -1126,7 +1142,7 @@ def render_rst(model, table=DEFAULT_TABLE):
             summary(model),
             "",
             f"*{NOTICE}*",
-            f"`{NOTICE_LINK_TEXT} <{GATE_DOC_URL}>`_.",
+            f":ref:`{NOTICE_LINK_TEXT} <{GATE_DOC_LABEL}>`.",
             "",
         ]
     )
