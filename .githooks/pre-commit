@@ -193,7 +193,6 @@ if command -v freeports-dev >/dev/null 2>&1; then
         || echo "freeports-dev: the CI report could not be staged" 1>&2
 fi
 
-
 # The verdict, and the only thing in this file that refuses.
 #
 # Whether it refuses is `ci-check`'s decision and depends on the class of the branch, not on
