@@ -101,19 +101,31 @@ class TestAdoptingAMethodology:
         assert "no such methodology" in run.output
 
 
+def build_adopted(repo, pages, run, signer):
+    """A signed document that has adopted `basic check` -- what a file grant starts from.
+
+    Three invocations of the command, and two classes below want exactly this state, so it is built
+    once for the session and each test gets a copy. See `Prototypes` in `conftest.py`.
+    """
+    from conftest import build_signed_document
+
+    build_signed_document(repo, pages, run, signer)
+    answer = run(
+        "grant",
+        "with",
+        "basic check",
+        repo=repo,
+        key_id=signer.fingerprint,
+        sources=pages.file_pattern,
+    )
+    assert answer.returncode == 0, answer
+
+
 class TestGrantingAFile:
     @pytest.fixture
-    def adopted(self, run_validate, tmp_repo, signer, local_source, signed_document):
-        run = run_validate(
-            "grant",
-            "with",
-            "basic check",
-            repo=tmp_repo,
-            key_id=signer.fingerprint,
-            sources=local_source,
-        )
-        assert run.returncode == 0, run
-        return signed_document
+    def adopted(self, prototypes, tmp_path, tmp_repo, signer):
+        prototypes.restore(build_adopted, tmp_path)
+        return tmp_repo.document(signer)
 
     def test_a_file_is_granted_at_its_own_hash(
         self, run_validate, tmp_repo, signer, local_source, adopted
@@ -187,16 +199,9 @@ class TestWhatAChangedPageDoes:
     """The mechanism working: a published text changing invalidates the grants made under it."""
 
     @pytest.fixture
-    def adopted(self, run_validate, tmp_repo, signer, local_source, signed_document):
-        run_validate(
-            "grant",
-            "with",
-            "basic check",
-            repo=tmp_repo,
-            key_id=signer.fingerprint,
-            sources=local_source,
-        )
-        return signed_document
+    def adopted(self, prototypes, tmp_path, tmp_repo, signer):
+        prototypes.restore(build_adopted, tmp_path)
+        return tmp_repo.document(signer)
 
     def test_editing_the_page_makes_the_check_fail(
         self, run_validate, tmp_repo, signer, local_source, methodology_pages, adopted

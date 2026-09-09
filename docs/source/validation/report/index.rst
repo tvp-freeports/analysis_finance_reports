@@ -23,7 +23,7 @@ repository uses.
 .. note::
 
    That page is a single generated HTML file published beside this site, the same arrangement the
-   :doc:`Rust API <../../rustdoc>` uses. It is **not** rebuilt with the site: whether a signature
+   :doc:`Rust API <../../generated/rust-api>` uses. It is **not** rebuilt with the site: whether a signature
    is valid is computed from the keyring of whoever runs the command, and a documentation builder
    has no public keys in it — so a page generated there would announce that every grant in the
    repository is invalid. It is written by the commit hook, on a machine that holds the keys, and

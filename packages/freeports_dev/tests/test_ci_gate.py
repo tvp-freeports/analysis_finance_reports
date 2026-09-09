@@ -656,3 +656,78 @@ class TestTheRenderings:
         rendered = ci_gate.render_text(gate)
         assert "tests.rust.lines" in rendered
         assert "not checked at all" in rendered
+
+
+class TestRecordingASuiteFromTheCommandLine:
+    """`freeports-dev ci-record --suite <name>:<outcome>` — the half of the hook that writes down
+    what it just ran, so that `ci-check` can say what nobody ran."""
+
+    def record(self, root, *specifications):
+        from argparse import Namespace
+
+        from freeports_dev import cli
+
+        cli._cmd_ci_record(
+            Namespace(
+                repo=str(root),
+                suite=list(specifications),
+                metric=None,
+                source=None,
+                input=None,
+                out=None,
+            )
+        )
+
+    def test_it_writes_one_file_per_suite(self, engine, capsys):
+        self.record(engine, "rust.unit:passed", "python.fast:failed")
+        capsys.readouterr()
+        found = report.read_suites(engine / "reports")
+        assert found["rust.unit"].passed
+        assert not found["python.fast"].passed
+
+    def test_the_commit_is_recorded_beside_the_outcome(self, engine, capsys):
+        """Without it there is no telling a suite that passed on this code from one that passed a
+        fortnight ago, and the fast/slow split would be a way of never running the slow half."""
+        subprocess.run(
+            ["git", "-C", str(engine), "commit", "-q", "--allow-empty", "-m", "x"],
+            check=True,
+        )
+        self.record(engine, "rust.unit:passed")
+        capsys.readouterr()
+        head = report.head_commit(engine)
+        assert report.read_suites(engine / "reports")["rust.unit"].head == head
+
+    def test_a_word_nobody_intended_is_recorded_as_a_failure(self, engine, capsys):
+        self.record(engine, "rust.unit:probably")
+        capsys.readouterr()
+        assert not report.read_suites(engine / "reports")["rust.unit"].passed
+
+    def test_recording_nothing_at_all_is_refused_rather_than_ignored(
+        self, engine, capsys
+    ):
+        from argparse import Namespace
+
+        from freeports_dev import cli
+
+        with pytest.raises(SystemExit) as raised:
+            cli._cmd_ci_record(
+                Namespace(
+                    repo=str(engine),
+                    suite=None,
+                    metric=None,
+                    source=None,
+                    input=None,
+                    out=None,
+                )
+            )
+        assert raised.value.code == 2
+        assert "--metric" in capsys.readouterr().out
+
+    def test_and_a_recorded_suite_is_what_ci_check_then_reads(self, engine, capsys):
+        self.record(engine, "rust.unit:passed")
+        capsys.readouterr()
+        gate = judge(
+            engine, "", {}, suite_outcomes=report.read_suites(engine / "reports")
+        )
+        assert condition_for(gate, "rust.unit").state == ci_gate.RAN
+        assert condition_for(gate, "rust.doc").state == ci_gate.NOT_RUN

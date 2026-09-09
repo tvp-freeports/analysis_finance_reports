@@ -707,3 +707,132 @@ class TestTheThreeTiers:
         (engine / "ci.yaml").write_text("report:\n  breakdown_limit: many\n")
         with pytest.raises(ConfigError):
             CiConfig(engine, args()).breakdown_limit
+
+
+class TestRenderingSeveralThingsInOneProcess:
+    """`--render`, which is what a commit hook wants and why the gate stopped costing a second.
+
+    Six renderings used to be six invocations of the command, and six interpreter starts is most of
+    a second — two thirds of the cost of publishing the report was `fork`. They also needed a
+    temporary model file passed to each one, because six evaluations of `reports/` could disagree
+    with each other if a measurement landed in between. One process rendering six times cannot
+    disagree with itself and needs no file to prove it.
+    """
+
+    def specification(self, style, path, table=None):
+        return f"{style}@{table}:{path}" if table else f"{style}:{path}"
+
+    def run(self, engine, model, *specifications):
+        from freeports_dev import cli
+
+        cli._render_many(model, list(specifications))
+
+    def test_several_destinations_are_written_from_one_model(
+        self, engine, tmp_path, capsys
+    ):
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        page = tmp_path / "index.rst"
+        page.write_text("before\n.. freeports-dev:begin\n.. freeports-dev:end\nafter\n")
+        self.run(
+            engine,
+            model,
+            self.specification("badges", tmp_path / "badges/"),
+            self.specification("html", tmp_path / "report.html"),
+            self.specification("rst", page),
+        )
+        assert (tmp_path / "badges" / "ci-status.svg").exists()
+        assert (tmp_path / "report.html").exists()
+        assert "docs.rust" in page.read_text()
+
+    def test_a_table_is_named_after_the_format(self, engine, tmp_path):
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        page = tmp_path / "thresholds.md"
+        page.write_text("<!-- freeports-dev:begin -->\n<!-- freeports-dev:end -->\n")
+        self.run(engine, model, self.specification("markdown", page, "thresholds"))
+        assert "minimum" in page.read_text().lower()
+
+    def test_a_specification_with_no_destination_is_refused(self, engine, tmp_path):
+        """Refused rather than skipped: a hook that wrote five of the six things it was asked for
+        would publish a report half of which describes an older run."""
+        model = model_of(engine, ONE_THRESHOLD, {})
+        with pytest.raises(SystemExit) as raised:
+            self.run(engine, model, "badges")
+        assert raised.value.code == 2
+
+    def test_a_format_nobody_offers_is_refused(self, engine, tmp_path):
+        model = model_of(engine, ONE_THRESHOLD, {})
+        with pytest.raises(SystemExit) as raised:
+            self.run(engine, model, self.specification("postscript", tmp_path / "x"))
+        assert raised.value.code == 2
+
+    def test_a_table_nobody_offers_is_refused(self, engine, tmp_path):
+        model = model_of(engine, ONE_THRESHOLD, {})
+        with pytest.raises(SystemExit) as raised:
+            self.run(
+                engine,
+                model,
+                self.specification("markdown", tmp_path / "x.md", "invented"),
+            )
+        assert raised.value.code == 2
+
+
+class TestTheSuitesBadge:
+    """The badge the fast/slow split makes necessary.
+
+    A gate that runs the cheap suites at every commit publishes a tick a reader will take to mean
+    "the tests pass", when it means "the tests we could afford pass". This says which, in the
+    README, without anybody having to open the report.
+    """
+
+    def test_every_suite_current_reads_as_all_of_them(self, engine):
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        _label, message, color = render.suites_badge(model)
+        assert "all" in message
+        assert color == "brightgreen"
+
+    def test_a_broken_suite_is_red_and_counted(self, engine):
+        broke = all_suites_ran()
+        broke["rust.unit"] = report.SuiteOutcome("rust.unit", ci_suites.FAILED)
+        model = model_of(engine, ONE_THRESHOLD, {}, suite_outcomes=broke)
+        _label, message, color = render.suites_badge(model)
+        assert message.startswith("1 of")
+        assert color == "red"
+
+    def test_suites_nobody_ran_are_grey_and_not_current(self, engine):
+        """Grey and not red: nothing is known to be wrong, and nothing is known to be right."""
+        model = model_of(engine, ONE_THRESHOLD, {}, suite_outcomes={})
+        _label, message, color = render.suites_badge(model)
+        assert "not current" in message
+        assert color == "grey"
+
+    def test_a_break_outranks_a_suite_nobody_ran(self, engine):
+        broke = {"rust.unit": report.SuiteOutcome("rust.unit", ci_suites.FAILED)}
+        model = model_of(engine, ONE_THRESHOLD, {}, suite_outcomes=broke)
+        assert render.suites_badge(model)[2] == "red"
+
+    def test_it_is_written_beside_the_status_badge(self, engine):
+        model = model_of(
+            engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
+        )
+        written = render.render_badges(model)
+        assert "ci-suites.svg" in written and "ci-suites.json" in written
+
+    def test_a_stale_suite_makes_the_whole_run_inconclusive_rather_than_failing(
+        self, engine
+    ):
+        """`failing` says something is wrong with the code. Sending somebody to look for a broken
+        test that does not exist is how a status word stops being read."""
+        model = model_of(
+            engine,
+            ONE_THRESHOLD,
+            {"docs.rust": measured("docs.rust", 39.4)},
+            head="b" * 40,
+            suite_outcomes=all_suites_ran(head="a" * 40),
+        )
+        assert model["status"] == render.INCONCLUSIVE

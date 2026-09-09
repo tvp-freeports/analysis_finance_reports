@@ -82,7 +82,9 @@ RUN_TIMEOUT = 60.0
 # What is expensive, and how it gets marked
 # ---------------------------------------------------------------------------
 
-#: Requesting any of these makes a test `slow`, because each one starts a *process* or a *server*.
+#: Requesting any of these makes a test `slow`, because each one starts a *process* or a *server* --
+#: or, in `prototypes`' case, because the first test to ask for one pays for the build the rest are
+#: copies of.
 #:
 #: The marking is derived rather than written on each test, so that it cannot go stale: a test added
 #: next year that invokes the command is marked by the act of asking for the fixture that invokes
@@ -107,6 +109,7 @@ RUN_TIMEOUT = 60.0
 #: of the gate is visible; a suite quietly not run is what this workspace refuses.
 SLOW_FIXTURES = frozenset(
     {
+        "prototypes",
         "run_validate",
         "signed_document",
         "pathmatch_script",
@@ -272,20 +275,150 @@ class Repo:
         return self.validation / signer.document_name
 
 
-@pytest.fixture
-def tmp_repo(tmp_path):
-    """A repository shaped like a real formats repository, with files worth granting.
+#: The two directories a test's state lives in, under its own `tmp_path`. Named once because the
+#: prototype machinery below has to put a copy back at exactly the paths the fixtures hand out.
+REPO_DIR = "repo"
+PAGES_DIR = "methodologies-source"
 
-    ``metadata/formats.csv`` is what both `freeports-dev` and `create-document` look for to decide a
-    directory is a formats repository, so it is not decoration -- without it the command refuses to
-    create `validation/`.
 
-    The files under ``tests/formats/`` follow the real layout, which has a *variant* level between
-    the format and its outputs (``tests/formats/FOO-EN24/1/out/...``). That level is easy to forget
-    when writing a path pattern from memory, and a fixture that flattened it would let a wrong
-    pattern pass.
+class Prototypes:
+    """States built once and copied into each test, instead of rebuilt for each test.
+
+    **The reason this exists is a measurement.** Most of the expensive fixtures here raise their
+    state by running the command three to five times -- `create-document`, `sign-document`, a couple
+    of `grant`s -- and they were function-scoped, so every test in a class of five paid for all of
+    it again. That was seven tenths of the whole slow suite: 327 of its 470 seconds were `setup`,
+    and not one of those seconds was a test.
+
+    What the four and a half seconds produce is **seven files and one kilobyte**. Copying that
+    costs 0.42 ms. So the state is built once per session, under this fixture's own directory, and
+    each test gets `copytree` of it -- four orders of magnitude cheaper for a result that is
+    byte-identical.
+
+    **Isolation is unchanged**, which is the property that mattered while doing this. Every test
+    still gets its own repository and its own page tree, at its own paths, and may edit both
+    freely: it is holding a copy, and the prototype it came from is never handed to anybody.
+
+    **Why a copy is faithful.** A validation document records a methodology by *name and content
+    hash*, never by the URI it was resolved from, and it records granted files by repository-relative
+    path and hash. None of that mentions where the tree happens to sit, so a document built under
+    the prototype's directory means exactly the same thing under the test's. The URI is resolved
+    afresh at check time from whatever `--source` the test passes.
+
+    A recipe is a callable ``(repo, pages, run, signer) -> None`` that raises the state, and **the
+    recipe itself is the cache key** -- its module and its qualified name. That is deliberate rather
+    than convenient: a hand-written key is a second name for the same thing, and two modules had
+    already chosen `adopted` for two *different* states within an hour of this being written. Keyed
+    by name, whichever ran first would have won, and the other module's tests would have quietly
+    asserted against a repository nobody built for them. Keyed by the function, they cannot collide,
+    and two fixtures that genuinely want the same state share it by calling the same recipe.
+
+    **Write recipes at module level and take what they need as arguments.** A recipe closed over a
+    fixture value would be built with whatever that value happened to be the first time it ran, and
+    the closure is invisible to the key.
     """
-    root = tmp_path / "repo"
+
+    def __init__(self, base, sealed, signer):
+        self._base = base
+        self._sealed = sealed
+        self._signer = signer
+        self._built = {}
+
+    @staticmethod
+    def _key(recipe):
+        """A recipe's identity: its module and qualified name, which cannot collide by accident."""
+        return f"{recipe.__module__}.{recipe.__qualname__}"
+
+    def _build(self, recipe):
+        key = self._key(recipe)
+        if key not in self._built:
+            area = self._base / key
+            repo = build_repo(area / REPO_DIR)
+            pages = build_pages(area / PAGES_DIR)
+            recipe(repo, pages, Runner(self._sealed), self._signer)
+            self._built[key] = (
+                area,
+                _fingerprint(pages.root) != _pristine_pages(self._base),
+            )
+        return self._built[key]
+
+    def restore(self, recipe, tmp_path):
+        """Put a copy of the recipe's state into this test's `tmp_path`, and return its repository.
+
+        The repository is always replaced: a fixture that asked for a prototype has said what state
+        it wants to start from, and merging it with whatever `tmp_repo` had already written would be
+        a state nobody described.
+
+        **The page tree is replaced only if the recipe changed it**, and that condition is the whole
+        subtlety here. A recipe that adopts a methodology has to bring its page with it -- the
+        document records that text's hash, so the two are one state and copying half of it makes a
+        document that vouches for a page nobody has. But a recipe that only creates and signs a
+        document says nothing about any page, and a test that had already written pins, assets or a
+        rewritten page into its own tree would have them deleted underneath it. That is not
+        hypothetical: it broke three tests in `test_subhashes.py` within a minute of being written,
+        and the failure -- a missing `assets/pipeline.svg` -- pointed at the tree rather than at the
+        fixture that had emptied it.
+
+        So whether a recipe touches the pages is *measured*, once, by comparing what it left against
+        a pristine tree. Nothing has to be declared, and a recipe that starts writing pages next year
+        starts bringing them along on its own.
+        """
+        area, touches_pages = self._build(recipe)
+        children = (REPO_DIR, PAGES_DIR) if touches_pages else (REPO_DIR,)
+        for child in children:
+            target = tmp_path / child
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(area / child, target)
+        return Repo(root=tmp_path / REPO_DIR)
+
+
+def _fingerprint(root):
+    """What a directory holds, as one hashable value: every relative path and its bytes."""
+    return tuple(
+        (str(path.relative_to(root)), path.read_bytes())
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    )
+
+
+def _pristine_pages(base, _cache={}):
+    """The fingerprint of a page tree nobody has touched, built once and kept."""
+    if base not in _cache:
+        area = base / "_pristine"
+        _cache[base] = _fingerprint(build_pages(area / PAGES_DIR).root)
+    return _cache[base]
+
+
+@pytest.fixture(scope="session")
+def prototypes(tmp_path_factory, gpg_home, signer):
+    """The session's prototype builder.
+
+    Its own sealed environment, outside any test's `tmp_path`, because a build that ran inside one
+    test's directory would tie every later copy to a directory pytest is entitled to delete. It
+    shares `gpg_home` with the tests, which is what lets a document the prototype signed verify
+    under the key a test checks it with.
+    """
+    base = tmp_path_factory.mktemp("prototypes")
+    sealed = Sealed(
+        home=_made(base / "home"),
+        cache_home=_made(base / "cache"),
+        config_home=_made(base / "config"),
+        gnupghome=gpg_home,
+    )
+    return Prototypes(base, sealed, signer)
+
+
+def _made(path):
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def build_repo(root):
+    """The skeleton, as a plain function so that both a fixture and a prototype can raise one.
+
+    See :func:`tmp_repo` for what is in it and why.
+    """
     repo = Repo(root=root)
     repo.write(
         "metadata/formats.csv", "Name,Locale,Year,Country,Version\nFOO,EN,24,,\n"
@@ -299,6 +432,22 @@ def tmp_repo(tmp_path):
     repo.write("content/FOO/EN24.py", "# a format module\n")
     repo.write("README.md", "# A formats repository\n")
     return repo
+
+
+@pytest.fixture
+def tmp_repo(tmp_path):
+    """A repository shaped like a real formats repository, with files worth granting.
+
+    ``metadata/formats.csv`` is what both `freeports-dev` and `create-document` look for to decide a
+    directory is a formats repository, so it is not decoration -- without it the command refuses to
+    create `validation/`.
+
+    The files under ``tests/formats/`` follow the real layout, which has a *variant* level between
+    the format and its outputs (``tests/formats/FOO-EN24/1/out/...``). That level is easy to forget
+    when writing a path pattern from memory, and a fixture that flattened it would let a wrong
+    pattern pass.
+    """
+    return build_repo(tmp_path / REPO_DIR)
 
 
 # ---------------------------------------------------------------------------
@@ -381,14 +530,19 @@ class PageTree:
         return f"{self.root}/*.rst"
 
 
-@pytest.fixture
-def methodology_pages(tmp_path):
-    """The three pages every test needs present before it writes any of its own."""
-    tree = PageTree(root=tmp_path / "methodologies-source")
+def build_pages(root):
+    """The three pages, as a plain function, for the same reason :func:`build_repo` is one."""
+    tree = PageTree(root=root)
     tree.write("general_methodology", GENERAL_METHODOLOGY)
     tree.write("methodologies/basic_check", BASIC_CHECK)
     tree.write("methodologies/golden_standard", GOLDEN_STANDARD)
     return tree
+
+
+@pytest.fixture
+def methodology_pages(tmp_path):
+    """The three pages every test needs present before it writes any of its own."""
+    return build_pages(tmp_path / PAGES_DIR)
 
 
 @pytest.fixture
@@ -884,26 +1038,21 @@ def source_cache(sealed):
     return sealed.cache_home / "freeports-validate"
 
 
-@pytest.fixture
-def signed_document(tmp_repo, signer, run_validate, local_source):
-    """A created and signed validation document, which is the starting point of most flows.
+def build_signed_document(repo, pages, run, signer):
+    """Create a validation document and sign it -- the starting point of most flows.
 
-    Returns its path. Written through the command rather than assembled here on purpose: a fixture
-    that wrote the YAML itself would let `create-document` and `sign-document` break without a
-    single test noticing, since every later test would still find the file it expected.
+    Written through the command rather than assembled here on purpose: a recipe that wrote the YAML
+    itself would let `create-document` and `sign-document` break without a single test noticing,
+    since every later test would still find the file it expected.
     """
-    created = run_validate(
-        "create-document",
-        repo=tmp_repo,
-        key_id=signer.fingerprint,
-        sources=local_source,
-    )
-    assert created.returncode == 0, created
-    signed = run_validate(
-        "sign-document",
-        repo=tmp_repo,
-        key_id=signer.fingerprint,
-        sources=local_source,
-    )
-    assert signed.returncode == 0, signed
+    common = {"repo": repo, "key_id": signer.fingerprint, "sources": pages.file_pattern}
+    for subcommand in ("create-document", "sign-document"):
+        answer = run(subcommand, **common)
+        assert answer.returncode == 0, answer
+
+
+@pytest.fixture
+def signed_document(prototypes, tmp_path, tmp_repo, signer, local_source):
+    """That state, built once for the session and copied here. Returns the document's path."""
+    prototypes.restore(build_signed_document, tmp_path)
     return tmp_repo.document(signer)

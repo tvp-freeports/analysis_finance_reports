@@ -1,0 +1,69 @@
+============================
+Contributing a translation
+============================
+
+This section is for translating the documentation and the engine's user-facing messages. It needs
+no Rust and no Python: the unit of work is a ``.po`` file and a language you know well.
+
+.. note::
+
+   The catalogues currently in ``docs/source/locales/`` are **stale**. They were written against
+   the pre-Rust layout of the site — their message ids refer to pages and modules that two rewrites
+   ago ceased to exist — and the reorganisation of these pages has not brought them forward. Italian
+   holds a few hundred translated strings that no longer attach to anything; French and Portuguese
+   are empty scaffolding. Re-extracting is therefore the first step of any translation work now, not
+   an occasional chore.
+
+Both the documentation and the engine's user-facing messages use `GNU gettext
+<https://en.wikipedia.org/wiki/Gettext>`_. Translators work on ``.po`` files, which are compiled
+into the binary ``.mo`` catalogues that are actually read at run time.
+
+Translating the documentation
+=============================
+
+The catalogues live in ``docs/source/locales/<lang>/LC_MESSAGES/``, one ``.po`` per source page,
+where ``<lang>`` is an `ISO 639 <https://en.wikipedia.org/wiki/ISO_639>`_ code. Edit them with a
+text editor or a dedicated tool such as `Poedit <https://poedit.net/>`_.
+
+The three steps, from the repository root:
+
+.. code-block:: console
+
+    make i18n-extract   # extract the translatable strings from the current sources
+    make i18n-update    # merge them into the existing .po files
+    make i18n-build     # compile .po into .mo
+
+``make i18n`` runs all three. Then build one language:
+
+.. code-block:: console
+
+    make docs-lang DOCLANG=it
+
+.. warning::
+
+   ``make i18n-update`` rewrites every catalogue against the *current* sources. After the prose was
+   rewritten it touches several hundred files at once — new ``.po`` for pages that never had one,
+   and obsolete entries marked in the rest. That is the correct outcome, but it is a large,
+   deliberate commit of its own, not something to let ride along with an unrelated change.
+
+.. note::
+
+   The current state, measured rather than assumed: ``en`` is the source language, ``it`` covers
+   part of the live prose, and ``fr`` and ``pt`` are empty stubs. The scaffolding is maintained;
+   which languages are actually carried forward has not been decided. A large part of the previous
+   catalogues described a package that no longer exists and does not carry over.
+
+Translating the engine's messages
+=================================
+
+The engine looks up its user-facing strings through a gettext catalogue at run time, falling back
+to the message id itself when there is no translation — a missing translation is a cosmetic
+problem, and it must never be able to stop a run.
+
+.. warning::
+
+   The catalogue tree the engine reads is **not currently in this repository**. The Python-era
+   ``src/freeports_analysis/locales/`` tree, and the ``pybabel`` workflow that maintained it, went
+   away with the Python engine; what remains in the crate is the lookup code and one ``.mo``
+   fixture used by its tests. Packaging and shipping catalogues for the Rust engine is unfinished
+   work, and this page will describe the workflow once there is one to describe.

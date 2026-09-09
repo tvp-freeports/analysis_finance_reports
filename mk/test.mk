@@ -24,7 +24,10 @@
 # message saying so. That is also why `make coverage-rust` needs the environment active — without
 # it those six tests panic and llvm-cov writes no report at all.
 
-check: test ## Run the test suite (canonical GNU name, alias of test)
+# The canonical GNU name means *the* test suite — all of it — and that is what it stays. `test` is
+# the everyday one, and the everyday one is now the fast half; letting `check` follow it would have
+# quietly redefined a name with forty years of meaning to cover a third of the tests.
+check: test-all ## Run the whole test suite (canonical GNU name, alias of test-all)
 
 # ---------------------------------------------------------------------------
 # Fast and slow, and why the line is where it is

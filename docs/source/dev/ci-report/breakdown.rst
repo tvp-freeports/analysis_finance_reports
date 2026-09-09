@@ -55,11 +55,11 @@ Metric                                     Item                                 
 ``tests.rust.lines``                       ``packages/freeports/src/python/output.rs``                         62.5 %
 ``tests.rust.lines``                       ``packages/freeports/src/formats_repo.rs``                          67.4 %
 ``tests.rust.lines``                       ``packages/freeports/src/python/convert.rs``                        71.1 %
-``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/cli.py``                 0.0 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/create_test_page.py``    0.0 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/make_tests.py``          0.0 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/serialization.py``       0.0 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/pytest_plugin.py``       5.6 %
+``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/cli.py``                 15.2 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/input_db.py``            31.8 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/format_inventory.py``    60.0 %
 ``tests.python.lines``                     ``packages/freeports_dev/src/freeports_dev/repo_init.py``           61.8 %
@@ -92,11 +92,11 @@ Metric                                     Item                                 
 ``lint.rust``                              ``clippy::useless_conversion``                                      1
 ``lint.rust``                              ``unused_imports``                                                  1
 ``grants.coverage``                        ``agreement and good faith``                                        1.0 %
-``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/cli.py``                 0.0 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/create_test_page.py``    0.0 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/make_tests.py``          0.0 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/serialization.py``       0.0 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/pytest_plugin.py``       5.6 %
+``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/cli.py``                 15.2 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/input_db.py``            31.8 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/format_inventory.py``    60.0 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/repo_init.py``           61.8 %
@@ -106,7 +106,7 @@ Metric                                     Item                                 
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/ci/fingerprint.py``      88.1 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/ci/manifest.py``         91.8 %
 ``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/ci/formats.py``          92.8 %
-``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/ci/render.py``           93.8 %
+``tests.python.freeports_dev.lines``       ``packages/freeports_dev/src/freeports_dev/ci/metrics.py``          93.9 %
 ``tests.python.freeports_validate.lines``  ``packages/freeports_validate/src/freeports_validate/cli.py``       89.4 %
 ``tests.python.freeports_validate.lines``  ``packages/freeports_validate/src/freeports_validate/__init__.py``  100.0 %
 ``docs.python.freeports_dev``              ``ci.docstrings.DocumentableObject``                                0.0 %

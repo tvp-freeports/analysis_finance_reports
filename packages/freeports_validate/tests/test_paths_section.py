@@ -551,19 +551,38 @@ def declared(methodology_pages):
     return methodology_pages
 
 
+def build_adopted(repo, pages, run, signer):
+    """A signed document that has adopted `basic check` -- the state a file grant starts from.
+
+    Three invocations of the command: create, sign, adopt. The page it adopts is written here
+    because the document records that text's hash, so the page and the adoption have to be raised
+    together or the state is one no repository could be in.
+    """
+    pages.write("methodologies/basic_check", DECLARING_BOTH)
+    common = {
+        "repo": repo,
+        "key_id": signer.fingerprint,
+        "sources": pages.file_pattern,
+    }
+    for arguments in (
+        ("create-document",),
+        ("sign-document",),
+        ("grant", "with", "basic check"),
+    ):
+        answer = run(*arguments, **common)
+        assert answer.returncode == 0, answer
+
+
 @pytest.fixture
-def adopted(run_validate, tmp_repo, signer, local_source, signed_document, declared):
-    """That methodology, adopted by a signed document -- the state a file grant starts from."""
-    run = run_validate(
-        "grant",
-        "with",
-        "basic check",
-        repo=tmp_repo,
-        key_id=signer.fingerprint,
-        sources=local_source,
-    )
-    assert run.returncode == 0, run
-    return signed_document
+def adopted(prototypes, tmp_path, tmp_repo, signer, declared):
+    """The state above, built once for the session and copied here.
+
+    It cost 4.3 s and was rebuilt by every test that asked for it -- five of them in
+    `TestCheckGrantsOnAnOutOfScopeGrant` alone, all asserting different things about one state.
+    See `Prototypes` in `conftest.py`.
+    """
+    prototypes.restore(build_adopted, tmp_path)
+    return tmp_repo.document(signer)
 
 
 @pytest.fixture
@@ -767,27 +786,33 @@ class TestGrantingUnderAPageThatCannotBeRead:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def granted_outside(run_validate, tmp_repo, signer, local_source, adopted, declared):
+def build_granted_outside(repo, pages, run, signer):
     """A document holding a grant on a path its methodology does not declare.
 
     Made with `--force`, which is the only honest way to reach this state through the command --
     and is exactly how a repository reaches it in life, since the other way is a page that gained a
     `Supported paths` section after the grant was signed.
     """
-    run = run_validate(
+    build_adopted(repo, pages, run, signer)
+    answer = run(
         "grant",
         "--force",
-        str(tmp_repo.root / OUTSIDE_FILE),
+        str(repo.root / OUTSIDE_FILE),
         "with",
         "basic check",
-        repo=tmp_repo,
+        repo=repo,
         key_id=signer.fingerprint,
-        sources=local_source,
-        cwd=tmp_repo.root,
+        sources=pages.file_pattern,
+        cwd=repo.root,
     )
-    assert run.returncode == 0, run
-    return adopted
+    assert answer.returncode == 0, answer
+
+
+@pytest.fixture
+def granted_outside(prototypes, tmp_path, tmp_repo, signer, declared):
+    """The state above, built once and copied -- five tests in one class wanted it."""
+    prototypes.restore(build_granted_outside, tmp_path)
+    return tmp_repo.document(signer)
 
 
 class TestCheckGrantsOnAnOutOfScopeGrant:

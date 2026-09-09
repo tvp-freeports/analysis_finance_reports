@@ -11,7 +11,9 @@
 # public keys would rewrite it to say every signature is invalid, which is exactly what it must
 # never say on somebody else's behalf.
 docs: docs-rustdoc docs-html ## The whole site, rustdoc included
-	@echo "Site at docs/build/html/index.html"
+	@echo "Built. Read it with 'make docs-serve' — http://localhost:$(DOCS_PORT)"
+	@echo "(opening docs/build/html/index.html as a file:// path leaves the search box"
+	@echo " stuck on \"Searching\": a file origin may not fetch the search index.)"
 
 docs-html: ## Sphinx only — what you want while writing prose
 	$(MAKE) -C docs html SPHINXBUILD="$(SPHINXBUILD)"

@@ -79,11 +79,16 @@ fi
 # Its outcome is written into `reports/` with the commit it ran at, not acted on here: on a dev
 # branch a failing suite is reported and the commit stands, and only `ci-check` knows which branch
 # this is.
-if freeports-dev test --repo "$repo_root" -- -m "not integration_tests"; then
-    single_page=passed
-else
-    single_page=failed
-fi
+# **Exit 5 is pytest for "nothing was collected", and it is not a failure here.** A repository this
+# command has just created has no formats in it yet, and a suite with no tests in it has not failed
+# -- it has passed vacuously, the way an empty directory of tests passes. Reading 5 as a failure
+# made every freshly bootstrapped repository report a broken suite until somebody wrote a format,
+# which is exactly the moment a new user is deciding whether to trust this hook at all.
+freeports-dev test --repo "$repo_root" -- -m "not integration_tests"
+case $? in
+    0|5) single_page=passed ;;
+    *)   single_page=failed ;;
+esac
 freeports-dev ci-record --repo "$repo_root" --suite "formats.single_page:$single_page" >/dev/null
 
 # The whole-document suite, on a prod branch only. Each test is a full extraction run of a whole
@@ -96,11 +101,11 @@ freeports-dev ci-record --repo "$repo_root" --suite "formats.single_page:$single
 # `freeports-dev test --repo . -- -m integration_tests`.
 if [ "$branch_class" = "prod" ]; then
     echo "prod branch: running the whole-document suite. This takes minutes."
-    if freeports-dev test --repo "$repo_root" -- -m "integration_tests"; then
-        integration=passed
-    else
-        integration=failed
-    fi
+    freeports-dev test --repo "$repo_root" -- -m "integration_tests"
+    case $? in
+        0|5) integration=passed ;;
+        *)   integration=failed ;;
+    esac
     freeports-dev ci-record --repo "$repo_root" \
         --suite "formats.integration:$integration" >/dev/null
 fi
@@ -152,8 +157,41 @@ if [ "$branch_class" = "prod" ]; then
     if command -v freeports-validate >/dev/null 2>&1; then
         report_model=$(mktemp "${TMPDIR:-/tmp}/freeports-report.XXXXXX" 2>/dev/null) || report_model=""
 
+        # A walk that resolved nothing is not a walk whose answer may be published.
+        #
+        # `collect` exits 0 whether or not the methodology pages came back: it establishes what it
+        # could establish, and saying so is its whole job. But every rendering below is *committed*,
+        # so writing one out of a walk that resolved no page at all replaces a report saying
+        # "coverage 100%, check-grants passing" with one saying "coverage --, failing" — and the
+        # difference is a fact about somebody's web server, not about this repository. That is the
+        # rule this project already holds for a page it could not reach: unverifiable is not
+        # granted, and it must not be published as ungranted either.
+        #
+        # So the coverage figure is recorded first and read back. `unmeasured` means nothing could
+        # be resolved, and then nothing is rewritten and the reason is printed loudly. The metric
+        # stays unmeasured, `ci-check` reports it as such, and on this branch it refuses — which is
+        # the correct outcome: a production commit whose grants nobody could check is not a
+        # production commit that may be made.
+        resolvable=no
         if [ -n "$report_model" ] &&
-            freeports-validate --repo "$repo_root" collect > "$report_model" 2>/dev/null; then
+            freeports-validate --repo "$repo_root" collect > "$report_model" 2>/dev/null &&
+            [ -s "$report_model" ]; then
+            freeports-dev ci-record --repo "$repo_root" --metric grants.coverage \
+                --from validate --input "$report_model" >/dev/null 2>&1
+            if ! grep -q '"state": *"unmeasured"' \
+                "$repo_root/reports/grants-coverage.json" 2>/dev/null; then
+                resolvable=yes
+            fi
+        fi
+
+        if [ "$resolvable" = no ]; then
+            echo "freeports-validate: no methodology page could be resolved, so the report is" 1>&2
+            echo "unchanged. It is not being rewritten to say the grants failed: that would be a" 1>&2
+            echo "claim about the network. \`freeports-validate sources\` says where pages are" 1>&2
+            echo "fetched from and what each name resolves to." 1>&2
+        fi
+
+        if [ "$resolvable" = yes ]; then
             # One walk of the repository, rendered nine times. Collecting once per artefact would
             # re-resolve every methodology page nine times for an answer that cannot have changed in
             # between.
@@ -188,8 +226,6 @@ if [ "$branch_class" = "prod" ]; then
                 git -C "$repo_root" add -- $refreshed
                 echo "freeports-validate: report refreshed"
             fi
-        else
-            echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
         fi
 
         # The integrity check itself, and it warns rather than refuses.
@@ -211,12 +247,10 @@ if [ "$branch_class" = "prod" ]; then
             echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
         fi
 
-        # The coverage figure the gate compares against `grants.coverage`, read out of the same model
-        # that was just collected rather than by collecting a second time.
-        if [ -s "$report_model" ]; then
-            freeports-dev ci-record --repo "$repo_root" --metric grants.coverage \
-                --from validate --input "$report_model" >/dev/null 2>&1
-        fi
+        # `grants.coverage` was recorded above, out of the same model, *before* anything was
+        # rendered — the figure is what decides whether the renderings may be published at all, so
+        # it has to exist first. Collecting a second time here would re-resolve every methodology
+        # page over the network for an answer that cannot have changed in between.
 
         rm -f "$report_model"
     fi

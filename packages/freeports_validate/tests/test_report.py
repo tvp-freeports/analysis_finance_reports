@@ -67,16 +67,24 @@ def declared_pages(methodology_pages):
     return methodology_pages
 
 
-@pytest.fixture
-def granted_repo(tmp_repo, signer, run_validate, declared_pages):
+def build_granted_repo(repo, pages, run, signer):
     """A repository holding one signed document that grants two files under `basic check`.
 
-    Built through the command rather than by writing YAML here: a fixture that assembled the
+    Built through the command rather than by writing YAML here: a recipe that assembled the
     document itself would let `create-document`, `grant` and `sign-document` break without a test
     noticing, since `collect` would still find a file shaped the way it expected.
+
+    The pages are declared here rather than left to :func:`declared_pages`, because the recipe has
+    to raise the *whole* state it is a prototype of: a document adopting `basic check` records the
+    hash of the page as it stood when the grant was made, so a page written afterwards would be a
+    different text from the one the document vouches for.
     """
-    source = declared_pages.file_pattern
-    common = {"repo": tmp_repo, "key_id": signer.fingerprint, "sources": source}
+    pages.write(
+        "methodologies/basic_check",
+        with_supported_paths(BASIC_CHECK, (OUT_PATTERN, OUT_PROSE)),
+    )
+    pages.write("methodologies/golden_standard", GOLDEN_STANDARD)
+    common = {"repo": repo, "key_id": signer.fingerprint, "sources": pages.file_pattern}
 
     for arguments in (
         ("create-document",),
@@ -85,11 +93,21 @@ def granted_repo(tmp_repo, signer, run_validate, declared_pages):
         # text's hash once, and the grants underneath are claims made under that text.
         ("grant", "with", "basic check"),
         ("grant", "with", "golden standard"),
-        ("grant", str(tmp_repo.root / FUNDS), "with", "basic check"),
+        ("grant", str(repo.root / FUNDS), "with", "basic check"),
     ):
-        answer = run_validate(*arguments, **common)
+        answer = run(*arguments, **common)
         assert answer.returncode == 0, answer
-    return tmp_repo
+
+
+@pytest.fixture
+def granted_repo(prototypes, tmp_path, tmp_repo, declared_pages):
+    """The state :func:`build_granted_repo` raises, built once for the session and copied here.
+
+    Five invocations of the command, four and a half seconds, to produce seven files and one
+    kilobyte -- and forty-nine tests in this module wanted the same seven files. The copy costs
+    0.42 ms and every test still gets its own repository to edit. See `Prototypes` in `conftest.py`.
+    """
+    return prototypes.restore(build_granted_repo, tmp_path)
 
 
 @pytest.fixture
@@ -1172,8 +1190,7 @@ MAX_ARG_STRLEN = 128 * 1024
 AT_SCALE = 700
 
 
-@pytest.fixture
-def repo_granted_at_scale(tmp_repo, signer, run_validate, declared_pages):
+def build_repo_granted_at_scale(repo, pages, run, signer):
     """A repository whose whole test suite has been vouched for, in one grant.
 
     Written as a single `grant` invocation because that is how it happens: a granter names a
@@ -1181,28 +1198,39 @@ def repo_granted_at_scale(tmp_repo, signer, run_validate, declared_pages):
     visible -- the write that was quadratic in the number of files, and the model that could not be
     assembled afterwards.
     """
+    pages.write(
+        "methodologies/basic_check",
+        with_supported_paths(BASIC_CHECK, (OUT_PATTERN, OUT_PROSE)),
+    )
+    pages.write("methodologies/golden_standard", GOLDEN_STANDARD)
+
     paths = []
     for index in range(AT_SCALE):
         relative = f"tests/formats/FOO-EN24/1/out/investments_{index:04d}.csv"
-        tmp_repo.write(relative, f"isin,value\nIT{index:08d},{index}\n")
-        paths.append(str(tmp_repo.root / relative))
+        repo.write(relative, f"isin,value\nIT{index:08d},{index}\n")
+        paths.append(str(repo.root / relative))
 
     common = {
-        "repo": tmp_repo,
+        "repo": repo,
         "key_id": signer.fingerprint,
-        "sources": declared_pages.file_pattern,
+        "sources": pages.file_pattern,
     }
     for arguments in (
         ("create-document",),
         ("sign-document",),
         ("grant", "with", "basic check"),
     ):
-        answer = run_validate(*arguments, **common)
+        answer = run(*arguments, **common)
         assert answer.returncode == 0, answer
 
-    granted = run_validate("grant", *paths, "with", "basic check", **common)
+    granted = run("grant", *paths, "with", "basic check", **common)
     assert granted.returncode == 0, granted
-    return tmp_repo
+
+
+@pytest.fixture
+def repo_granted_at_scale(prototypes, tmp_path, tmp_repo, declared_pages):
+    """The state above, built once and copied -- four tests wanted the same one."""
+    return prototypes.restore(build_repo_granted_at_scale, tmp_path)
 
 
 class TestARepositoryVouchedForAtScale:

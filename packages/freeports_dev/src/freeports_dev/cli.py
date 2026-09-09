@@ -540,9 +540,22 @@ def _cmd_ci_record(args):
     path = measurement.write(
         out if out.suffix == ".json" else out / ci_report.file_name(measurement.metric)
     )
-    print(
-        f"{measurement.metric} = {measurement.value:.2f} {measurement.unit or ''} -> {path}"
-    )
+    _say_recorded(measurement, path)
+
+
+def _say_recorded(measurement, path):
+    """One line saying what was written, whether or not there was a figure to write.
+
+    A figure nobody could compute has no value to format, and printing it used to crash with a
+    `TypeError` from `None.__format__` — the one moment this command most needed to say something a
+    person could act on, it produced a traceback instead. The reason the reader gave is printed in
+    its place; the record itself is written either way, and says `unmeasured`.
+    """
+    if measurement.is_measured:
+        told = f"{measurement.value:.2f} {measurement.unit or ''}"
+    else:
+        told = f"not measured — {measurement.reason}"
+    print(f"{measurement.metric} = {told} -> {path}")
 
 
 def _record_suites(args, root):

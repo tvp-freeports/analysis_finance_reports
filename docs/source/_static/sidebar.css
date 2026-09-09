@@ -1,0 +1,23 @@
+/* ---------------------------------------------------------------------------
+ * The side panel: no expand crosses.
+ *
+ * Everything else about the panel is the Read the Docs theme's own behaviour,
+ * deliberately left alone -- a branch opens when you are inside it, the current
+ * branch keeps the theme's shading, and the section headings of every page are
+ * listed. Only the crosses go.
+ *
+ * They are injected by JavaScript, which is why they appear in no `.html` file:
+ * `_static/js/theme.js` prepends `<button class="toctree-expand">` to every
+ * sidebar link that has a sibling `<ul>`. Nothing is lost by hiding them --
+ * clicking the parent link still opens its branch, because arriving at a page
+ * is what marks it current.
+ *
+ * `!important` rather than tidy: the rule this overrides is itself
+ * `display: block` on a more specific selector.
+ * ------------------------------------------------------------------------- */
+
+.wy-menu-vertical li button.toctree-expand,
+.wy-menu-vertical li.current > a button.toctree-expand,
+.wy-menu-vertical li.on a button.toctree-expand {
+    display: none !important;
+}

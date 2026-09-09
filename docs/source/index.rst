@@ -13,43 +13,87 @@ without touching the engine.
 .. important::
 
    Before relying on the output, read :doc:`what the project does and does not claim
-   <whitepaper/validation>`, and the :doc:`validation section <validation/index>` it summarises.
+   <overview/trust>`, and the :doc:`validation section <validation/index>` it summarises.
+
+How this documentation is arranged
+==================================
+
+These pages are organised on **three axes at once**, because "where is that written down" has three
+different answers depending on why you are asking.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 34 46
+
+   * - Axis
+     - Where it lives
+     - What it is for
+   * - **Who you are**
+     - :doc:`guides/index`
+     - one section per figure — user, engine developer, format author, input-database
+       maintainer, granter, documentation writer, translator, DevOps, and the institutional
+       reader who wants to know whether to believe any of it
+   * - **What you must do or know**
+     - inside each guide
+     - a guide opens with its loop and keeps the deep material in its own ``advanced`` pages, so
+       the first read is not the hardest one
+   * - **What it is about**
+     - :doc:`reference/index`
+     - audience-independent: every option, every setting, the algorithm chapter by chapter. This
+       is where the cross-references point, so nothing is written down twice
+
+Above those sit two short sections everyone reads, and below them one that no human writes.
 
 Start here
 ==========
 
-The :doc:`whitepaper <whitepaper/index>` is the main document: it opens with the problem and the
-project's position on being trusted with data — readable without a technical background — and then
-covers installation, use, the execution model, writing a format, and the design decisions behind
-all of it.
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - If you want
+     - Read
+   * - to install it and see it run
+     - :doc:`start/index` — installation, one real run, and the developer tools
+   * - to understand what it is and why it exists
+     - :doc:`overview/index` — the problem, how the engine works, the repositories, and what
+       being trusted with the numbers means here
+   * - to do a particular job
+     - :doc:`guides/index` — pick the figure that is you
+   * - to look one thing up
+     - :doc:`reference/index` — options, settings, and the design of the algorithm
+   * - to see what the machine says about this repository
+     - :doc:`generated/index` — the two API references, the coverage of the grants, and the last
+       gate run
 
 .. toctree::
    :maxdepth: 2
-   :caption: The whitepaper
+   :caption: Getting started
+   :hidden:
 
-   whitepaper/index
+   start/index
+   overview/index
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Guides
+   :hidden:
+
+   guides/index
 
 .. toctree::
    :maxdepth: 2
    :caption: Reference
+   :hidden:
 
-   API
-   rustdoc
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Trust and provenance
-
-   validation/index
-   validation/report/index
-   dev/ci-report/index
+   reference/index
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contributing
+   :caption: Generated
+   :hidden:
 
-   contribute
-   dev/index
+   generated/index
 
 .. note::
 

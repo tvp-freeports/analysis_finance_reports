@@ -3,7 +3,7 @@ What a commit has to clear
 ==========================
 
 Every minimum this repository declares, taken from ``ci.yaml`` at its root. It is the same table
-:doc:`the commit gate <../ci>` applies, and the same one ``freeports-dev ci-report --table
+:doc:`the commit gate <../../guides/devops/the-gate>` applies, and the same one ``freeports-dev ci-report --table
 thresholds`` prints.
 
 Two columns are worth reading before the numbers:
@@ -11,7 +11,7 @@ Two columns are worth reading before the numbers:
 **Cost** says when the figure is taken. A ``fast`` metric is measured at every commit; a ``slow``
 one is measured by ``make ci`` and *read* at commit time from that last full run. On a production
 branch a slow figure taken at another commit refuses the commit rather than gating it — see the
-*Staleness* section of :doc:`../ci`.
+*Staleness* section of :doc:`../../guides/devops/suites-and-verdicts`.
 
 **What it measures** is the one sentence that keeps a percentage from being read as a different
 percentage. ``docs.python`` counts public objects carrying a docstring; it says nothing about
@@ -40,14 +40,14 @@ Every minimum this repository declares, what it is a minimum *of*, and whether i
 Metric                                     Minimum  Measured  Cost  What it measures
 =========================================  =======  ========  ====  ============================================================
 ``tests.rust.lines``                       91.0 %   91.2 %    slow  Line coverage of the crate, from cargo llvm-cov.
-``tests.python.lines``                     32.0 %   51.2 %    slow  Line coverage of the Python packages, from pytest --cov.
+``tests.python.lines``                     32.0 %   54.0 %    slow  Line coverage of the Python packages, from pytest --cov.
 ``docs.rust``                              39.0 %   39.4 %    slow  Documented items of the crate, from rustdoc --show-coverage.
 ``docs.python``                            49.0 %   55.9 %    fast  Public Python objects carrying a docstring.
 ``lint.rust``                              9.900    9.998     fast  Clippy diagnostics scored out of ten.
 ``lint.python``                            10.000   10.000    fast  Ruff violations scored out of ten.
 ``grants.coverage``                        100.0 %  100.0 %   slow  Files covered by a methodology grant.
 ``grants.keys_online``                     100.0 %  100.0 %   slow  Granters' keys published on the configured key server.
-``tests.python.freeports_dev.lines``       27.0 %   49.6 %    slow  Line coverage of one named Python package.
+``tests.python.freeports_dev.lines``       27.0 %   52.5 %    slow  Line coverage of one named Python package.
 ``tests.python.freeports_validate.lines``  89.0 %   89.4 %    slow  Line coverage of one named Python package.
 ``docs.python.freeports_dev``              47.0 %   55.2 %    fast  Public objects carrying a docstring, in one named package.
 ``docs.python.freeports_validate``         64.0 %   64.0 %    fast  Public objects carrying a docstring, in one named package.

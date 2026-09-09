@@ -148,17 +148,17 @@ intersphinx_mapping = {
 
 html_theme = "sphinx_rtd_theme"
 
-# The side panel must be **the complete index of the site**, not a list of pages alone.
+# The side panel is the Read the Docs theme's, with one change: the expand crosses are hidden in
+# `_static/sidebar.css`. They are injected by `theme.js` at run time, so no setting here controls
+# them, and hiding them costs nothing -- clicking a parent link still opens its branch.
+#
+# The theme collapses any branch that does not contain the current page, whatever
+# `collapse_navigation` says: its own stylesheet carries `.wy-menu-vertical li ul { display: none }`
+# with `li.current ul { display: block }`. That is accepted rather than fought.
 #
 # `navigation_depth` counts levels from the root, and a page's sections are a level like any other:
-# `whitepaper` -> `usage` -> `configuration` -> `options` already consumes four levels, which is
-# the theme's default, so the sixteen options inside `options.md` did not appear at all. Six levels
-# cover the deepest branch of the site plus its subsections.
-#
-# `collapse_navigation: False` removes the other half of the problem: with the default, branches
-# that do not contain the current page are not expanded, so to *see* a section you had to have
-# arrived at its page already — and getting there needed the in-text links. Now every branch can be
-# opened from anywhere on the site.
+# `guides` -> `user` -> `advanced` -> `batch` already consumes four, so six covers the deepest branch
+# plus its subsections.
 html_theme_options = {
     "collapse_navigation": False,
     "navigation_depth": 6,
@@ -168,7 +168,7 @@ html_theme_options = {
 
 html_logo = "https://www.freeports.org/assets/logo/square.svg"
 html_static_path = ["_static"]
-html_css_files = ["colors.css"]
+html_css_files = ["colors.css", "sidebar.css"]
 
 # rustdoc is neither integrated nor duplicated: `make rustdoc` (or Read the Docs' build job)
 # deposits `cargo doc --no-deps` into `_extra/rustdoc/`, and Sphinx copies it verbatim into the

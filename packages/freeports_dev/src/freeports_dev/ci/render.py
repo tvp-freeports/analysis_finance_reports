@@ -59,7 +59,7 @@ MARKERS = {
 #: either does not exist yet — which is what happened, a 404 reached from the documentation itself —
 #: or describes rules nobody is being held to. ``latest`` tracks the branch the figures were measured
 #: on, which is the same thing the report is about.
-GATE_DOC_URL = "https://docs.freeports.org/en/latest/dev/ci.html"
+GATE_DOC_URL = "https://docs.freeports.org/en/latest/guides/devops/the-gate.html"
 
 #: The same page, referred to the way one page of a Sphinx site refers to another.
 #:
@@ -67,7 +67,8 @@ GATE_DOC_URL = "https://docs.freeports.org/en/latest/dev/ci.html"
 #: a reader on ``/en/latest/…`` who follows one lands in a *different version* of the site, and a
 #: page that is new on this branch has no other version to land in at all. A ``:ref:`` resolves
 #: inside whatever build it is in — every version, every translation, and an offline build with no
-#: network — and cannot 404. The label is defined at the top of ``docs/source/dev/ci.rst``.
+#: network — and cannot 404. The label is defined at the top of
+#: ``docs/source/guides/devops/the-gate.rst``.
 GATE_DOC_LABEL = "commit-gate"
 
 #: The sentence every rendering carries, and the reason it is not optional.

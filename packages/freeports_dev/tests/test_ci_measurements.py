@@ -610,3 +610,31 @@ class TestReadingCheckKeys:
     def test_something_that_is_not_a_summary_says_so(self):
         with pytest.raises(ReaderError):
             readers.from_check_keys("all fine")
+
+
+class TestWhatRecordingSays:
+    """What `ci-record` prints, which is what somebody sees at the moment a figure goes wrong."""
+
+    def test_a_figure_nobody_could_compute_is_reported_rather_than_crashed_on(
+        self, capsys
+    ):
+        """It used to raise `TypeError` from `None.__format__` here — a traceback at exactly the
+        moment the command most needed to say something a person could act on."""
+        from freeports_dev import cli
+
+        unmeasured = report.Measurement.unmeasured(
+            "grants.coverage", "no file a grant could cover", unit="percent"
+        )
+        cli._say_recorded(unmeasured, "reports/grants-coverage.json")
+        said = capsys.readouterr().out
+        assert "not measured" in said
+        assert "no file a grant could cover" in said
+
+    def test_a_measured_one_prints_its_value_and_unit(self, capsys):
+        from freeports_dev import cli
+
+        cli._say_recorded(
+            report.Measurement("docs.rust", 39.4, "percent"), "reports/docs-rust.json"
+        )
+        said = capsys.readouterr().out
+        assert "39.40" in said and "percent" in said

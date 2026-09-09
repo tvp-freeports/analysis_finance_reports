@@ -3,7 +3,7 @@ The continuous-integration report
 =================================
 
 What the last gate run found, written down. The figures are the ones
-:doc:`the commit gate <../ci>` compares against ``ci.yaml``; this section is the same run rendered
+:doc:`the commit gate <../../guides/devops/index>` compares against ``ci.yaml``; this section is the same run rendered
 into shapes a reader meets outside a terminal.
 
 .. contents::
@@ -39,7 +39,7 @@ The three arrangements
 .. note::
 
    That page is a single generated HTML file published beside this site, the same arrangement the
-   :doc:`Rust API <../../rustdoc>` and the :doc:`validation coverage <../../validation/report/index>`
+   :doc:`Rust API <../../generated/rust-api>` and the :doc:`validation coverage <../../validation/report/index>`
    page use. It is **not** rebuilt with the site: the measurements live in ``reports/``, which is
    gitignored, so a documentation builder has no figures at all and a page generated there would be
    a page of dashes. It is written where the measurements are — by the commit hook, on a developer's
@@ -58,7 +58,7 @@ Every rendering below is a pure function of one model, and the model is a comman
    make ci-report                                 # every artefact, refreshed
 
 A figure you disagree with is a file in ``reports/`` written by a command you can re-run — which is
-the whole point of the split described in :doc:`../ci`. Nothing here measures anything.
+the whole point of the split described in :doc:`../../guides/devops/index`. Nothing here measures anything.
 
 
 What this run found
@@ -76,14 +76,14 @@ What this run found
 Metric                                     Measured  Minimum  Verdict
 =========================================  ========  =======  =======
 ``tests.rust.lines``                       91.2 %    91.0 %   pass
-``tests.python.lines``                     51.2 %    32.0 %   pass
+``tests.python.lines``                     54.0 %    32.0 %   pass
 ``docs.rust``                              39.4 %    39.0 %   pass
 ``docs.python``                            55.9 %    49.0 %   pass
 ``lint.rust``                              9.998     9.900    pass
 ``lint.python``                            10.000    10.000   pass
 ``grants.coverage``                        100.0 %   100.0 %  pass
 ``grants.keys_online``                     100.0 %   100.0 %  pass
-``tests.python.freeports_dev.lines``       49.6 %    27.0 %   pass
+``tests.python.freeports_dev.lines``       52.5 %    27.0 %   pass
 ``tests.python.freeports_validate.lines``  89.4 %    89.0 %   pass
 ``docs.python.freeports_dev``              55.2 %    47.0 %   pass
 ``docs.python.freeports_validate``         64.0 %    64.0 %   pass

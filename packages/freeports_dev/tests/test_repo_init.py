@@ -158,6 +158,72 @@ class TestTheHook:
     def test_it_refreshes_the_badges_the_readme_and_every_page(self, hook):
         assert "--format badges" in hook
         assert "README.md" in hook
+
+
+class TestWhichHalfOfTheHookRunsOnWhichBranch:
+    """The fast/slow split, as the generated hook implements it.
+
+    These read the script as text, which is the right level for exactly this file: it is a shell
+    program shipped as a data file, and what has to hold about it are properties of its source —
+    that a name matches the registry, that a branch guard is present. Running it end to end is a
+    different test with a different cost, and it would need a repository with formats in it, a
+    keyring and a network.
+    """
+
+    @pytest.fixture
+    def hook(self, repo):
+        return (repo / ".githooks" / "pre-commit").read_text()
+
+    def test_the_names_it_records_are_the_ones_the_registry_knows(self, hook):
+        """A typo here would create a suite nothing has a policy for, reported under a name the
+        gate has never heard of — which is the one failure a registry exists to prevent."""
+        from freeports_dev.ci import metrics, suites
+
+        for suite in suites.known_in(metrics.FORMATS):
+            assert f'--suite "{suite.name}:' in hook
+
+    def test_the_per_page_suite_runs_unconditionally(self, hook):
+        assert '-m "not integration_tests"' in hook
+
+    def test_the_whole_document_suite_runs_only_on_a_prod_branch(self, hook):
+        """Ninety-five seconds of full extraction runs, which is not a per-commit cost."""
+        before, _, after = hook.partition('-m "integration_tests"')
+        assert (
+            'if [ "$branch_class" = "prod" ]; then'
+            in before.split('-m "not integration_tests"')[-1]
+        )
+        assert after
+
+    def test_nothing_that_reaches_the_network_runs_on_a_dev_branch(self, hook):
+        """A commit has to be possible on a train, and six seconds of somebody else's server is
+        the single most expensive thing this hook could do at every commit."""
+        for command in ("collect >", "check-grants", "check-keys"):
+            index = hook.index(command)
+            assert 'if [ "$branch_class" = "prod" ]; then' in hook[:index]
+
+    def test_an_empty_suite_is_passed_rather_than_failed(self, hook):
+        """pytest exits 5 when it collects nothing, and a repository this command has just created
+        has no formats yet. Read as a failure it would make every freshly bootstrapped repository
+        report a broken suite — at the moment a new user decides whether to trust the hook."""
+        assert hook.count("0|5)") == 2
+
+    def test_the_report_is_not_rewritten_from_a_walk_that_resolved_nothing(self, hook):
+        """Otherwise a network outage is committed as `coverage --, check-grants failing`, which is
+        a claim about somebody's web server written into tracked files."""
+        assert '"state": *"unmeasured"' in hook
+        assert "no methodology page could be resolved" in hook
+
+    def test_every_rendering_is_asked_for_in_one_invocation(self, hook):
+        """Five invocations are five interpreter starts, and five evaluations that could disagree
+        with one another about the same run."""
+        assert hook.count("freeports-dev ci-report") == 1
+        assert "--render badges:" in hook
+
+    def test_the_verdict_makes_no_claim_of_its_own_about_a_suite(self, hook):
+        """`ci-check --suite ...` was a claim typed on a command line about a run that may never
+        have happened, and silent about every suite that did not."""
+        assert "freeports-dev ci-check --repo" in hook
+        assert 'ci-check --repo "$repo_root" --suite' not in hook
         for table in TABLES:
             assert table in hook
 

@@ -1,15 +1,24 @@
 # Contributing
 
 Everyone interested in contributing is encouraged to do so. This file is the short version; the
-full guide, with one section per kind of contribution, is
-[How to contribute](https://docs.freeports.org/contribute.html) in the documentation.
+full guide is
+[How to contribute](https://docs.freeports.org/en/latest/start/ways-to-contribute.html), and the
+documentation beyond it is arranged as one section per contributor figure.
+
+**Those figures are an organising device, not a description of who may do what.** A project is
+shaped by the people who turn up, not the other way round: the sections exist because somebody has
+already done that kind of work, and they are expected to grow to fit whoever arrives next. The list
+is not exhaustive and its boundaries are soft. Contribute wherever you feel expert, or simply
+wherever you want to — take part of one row below and part of another, or do something none of them
+mentions. A contribution the documentation has no section for is a good sign about the project and
+a gap in the documentation, not a reason to hold back.
 
 > **Please read the [code of conduct](CODE_OF_CONDUCT.md) before any contribution.**
 
 ## Find your repository first
 
 The project is not a monorepo. What you want to change decides where you work, and only the first
-row is this repository:
+row is this repository. The table is a map, not a menu:
 
 | To change | Work in | Needs a Rust toolchain |
 |---|---|---|
@@ -74,6 +83,10 @@ There is no CI building this repository at the moment, so this local gate is the
 
 ## A few guidelines
 
+These are conventions rather than rules, and their purpose is consistency: they are what this
+codebase settled on, written down so nobody has to guess. Where one makes your change worse, say
+so — a convention with a missing exception is more useful pointed out than complied with.
+
 - **Tests first**, written to exhaust branches rather than sample them, grouped by topic in nested
   modules inside `mod tests`.
 - **Errors are typed**, one enum per module; a user path does not panic.
@@ -86,8 +99,8 @@ There is no CI building this repository at the moment, so this local gate is the
   signed documents; editing one invalidates every grant that cites it, so it is a deliberate
   operation, never tidying.
 
-The full list, with the reasoning, is in
-[How to contribute](https://docs.freeports.org/contribute.html).
+The full list, with the reasoning — and the house style for Rust, Python and tests — is in
+[Conventions and house style](https://docs.freeports.org/en/latest/guides/engine/conventions/index.html).
 
 All of this is our current workflow rather than a settled rulebook — feedback on what to improve or
 change is itself a contribution.
