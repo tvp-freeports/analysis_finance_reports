@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "lint.rust",
-  "message": "stale",
-  "color": "grey"
+  "message": "9.998",
+  "color": "brightgreen"
 }

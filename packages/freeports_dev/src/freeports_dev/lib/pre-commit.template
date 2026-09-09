@@ -209,9 +209,15 @@ fi
 # pages beside it and the single-page HTML rendering are all functions of what is in `reports/`, so
 # a commit that moves a figure and leaves them alone publishes numbers that are already wrong.
 #
-# Placed after the measurements and after `ci-record` above, so that it renders the figures this
-# run took rather than the previous one's -- which is the one thing this half can do that the
-# validation half cannot, because measuring is cheap and collecting grants is not.
+# **Placed after every measurement this hook takes, and that placement is the whole point.** The
+# report is a function of what is in `reports/`, so anything rendered and staged before a
+# measurement lands describes the previous commit and gets rewritten a moment later -- into the
+# working tree, not into the commit, leaving the branch dirty after every commit and the same files
+# modified in the next `git status`. `check-keys` above writes `grants.keys_online` on a prod
+# branch, so this waits for it.
+#
+# `ci-check` still comes last, because it is the only step here that may refuse: a run refused
+# before the report was written would leave the badges describing the previous commit.
 #
 # One evaluation rendered several times, for the same reason as above: five renderings that each
 # re-read `reports/` could disagree with each other about the same run.

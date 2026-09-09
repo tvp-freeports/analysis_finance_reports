@@ -166,6 +166,32 @@ def _description_of(name):
     return metric.description if metric is not None else None
 
 
+def _stale_reason(verdict):
+    """Why a stale figure is stale, said without naming the commit it is being compared *to*.
+
+    The gate's own sentence names both: "measured at 8ef6daa2, not at HEAD (b9464518). Run `make
+    ci`." On a terminal, at the moment a commit is refused, both are what a person wants.
+
+    In a *committed* document only one of them may appear. The other is the commit being made, so it
+    changes every time anything is committed — and a figure that has been stale for a week would
+    then rewrite four committed files at every commit to say the same thing about itself. Which end
+    of the comparison is the news decides it: the commit the figure was taken at is a fact about the
+    figure, and "not at this commit" is all the rest of it says.
+    """
+    measurement = verdict.measurement
+    head = measurement.head if measurement is not None else None
+    taken = f"measured at {head[:8]}" if head else "measured at another commit"
+    sentence = f"{taken}, not at this one. Run `make ci` to take it again."
+
+    # The gate appends a note to an aggregate whose denominator lost a package to a minimum of its
+    # own. It is a fact about the metric and not about the comparison, so it survives the rewrite --
+    # dropping it would make an aggregate look like it covers packages it does not.
+    note = (verdict.reason or "").partition(" (packages with their own minimum:")
+    return sentence + (
+        " (packages with their own minimum:" + note[2] if note[1] else ""
+    )
+
+
 def _within(root, item):
     """A breakdown key with the machine taken out of it.
 
@@ -231,7 +257,11 @@ def build(gate, config=None, name=None):
                 "unit": verdict.unit,
                 "minimum": verdict.minimum,
                 "verdict": verdict.state,
-                "reason": verdict.reason,
+                "reason": (
+                    _stale_reason(verdict)
+                    if verdict.state == ci_gate.STALE
+                    else verdict.reason
+                ),
                 "cost": _cost_of(verdict.metric),
                 "description": _description_of(verdict.metric),
                 "head": measurement.head if measurement is not None else None,

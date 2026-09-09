@@ -257,6 +257,44 @@ class TestWhatNoRenderingSays:
         )
         assert "aaaaaaaa" in render.render(model, "markdown")
 
+    def test_a_stale_figure_does_not_name_the_commit_it_is_compared_to(self, engine):
+        """The commit being made changes every time, and this text is in four committed files.
+
+        The gate's terminal message names both ends of the comparison, which is right on a console.
+        A committed document may name only the end that is a fact about the figure -- otherwise a
+        metric that has been stale for a week rewrites those four files at every commit to say the
+        same thing about itself, and the branch is never clean.
+        """
+        taken_at, first, second = "a" * 40, "b" * 40, "c" * 40
+        rendered = [
+            render.render(
+                model_of(
+                    engine,
+                    ONE_THRESHOLD,
+                    {"docs.rust": measured("docs.rust", 39.4, head=taken_at)},
+                    head=head,
+                ),
+                "rst",
+            )
+            for head in (first, second)
+        ]
+        assert rendered[0] == rendered[1]
+        assert "aaaaaaaa" in rendered[0]
+        assert "bbbbbbbb" not in rendered[0] and "cccccccc" not in rendered[1]
+
+    def test_a_stale_aggregate_keeps_the_note_about_its_own_packages(self, engine):
+        """Dropping it would make an aggregate look like it covers packages it does not."""
+        model = model_of(
+            engine,
+            "thresholds:\n  tests.python.lines: 30\n  tests.python.freeports_dev.lines: 20\n",
+            {"tests.python.lines": measured("tests.python.lines", 51.4, head="a" * 40)},
+            head="b" * 40,
+        )
+        assert (
+            "packages with their own minimum"
+            in entry_for(model, "tests.python.lines")["reason"]
+        )
+
     def test_nothing_carries_a_date(self, engine):
         import datetime
 
