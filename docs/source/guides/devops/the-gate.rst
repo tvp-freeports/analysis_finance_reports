@@ -47,10 +47,11 @@ by exactly the line drawn above.
      - anything slow, and it says which
      - **nothing**
 
-The figures are from this repository on 2026-09-09, with warm caches. The same gate used to take
-**66 seconds**: the whole crate suite, both Python suites twice over — once as tests, once again
-under coverage — a second rustdoc toolchain, and two commands that fetched every methodology page
-over the network.
+The figures are from this repository on 2026-09-09, with warm caches. What keeps them there is what
+the fast gate refuses to do: it does not run the whole crate suite, nor both Python suites twice over
+— once as tests, once again under coverage — nor a second rustdoc toolchain, nor any command that
+fetches a methodology page over the network. Every one of those is in ``ci-full``, where a wait is
+something you chose.
 
 The gate is a **name, not a list**. What ``ci-fast`` and ``ci-full`` consist of is decided in
 ``mk/ci.mk``, so either can grow without a hook being edited again.
@@ -64,6 +65,75 @@ The gate is a **name, not a list**. What ``ci-fast`` and ``ci-full`` consist of 
    without ``-j`` the same line still runs them in that order. ``MAKEFLAGS += -Otarget`` in the
    ``Makefile`` keeps each recipe's output whole rather than interleaved.
 
+
+The same gate in a format repository
+------------------------------------
+
+**Every freeports repository has a** ``Makefile`` **and a hook that names a target in it.** The
+arrangement above is not the engine's arrangement; it is the workspace's, and a format repository
+runs the same three layers under the same names — measure, report, judge — with a smaller surface
+because it has a smaller thing to measure.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 37 37
+
+   * -
+     - ``make ci-fast`` (dev)
+     - ``make ci-full`` (prod)
+   * - Linter
+     - ruff over ``content/``
+     - ruff over ``content/``
+   * - Test suites
+     - ``formats.single_page``
+     - both, whole documents included
+   * - Coverage
+     - the document inventory
+     - the document inventory
+   * - Documentation
+     - the docstring walk
+     - the docstring walk
+   * - Grants
+     - —
+     - the report, ``check-grants``, ``check-keys``
+   * - Fingerprint
+     - checked; warns
+     - checked; **refuses**
+   * - Cost
+     - **6 s** in ``analysis_finance_reports_formats``
+     - minutes
+   * - What may be stale
+     - anything slow, and it says which
+     - **nothing**
+
+The target names are the engine's names — ``test-fast``, ``test-slow``, ``lint``, ``coverage``,
+``ci-fast``, ``ci-full``, ``ci-check`` — and each is one ``freeports-dev`` or ``freeports-validate``
+invocation you could type by hand. What is *missing* is the second axis: the engine's surface is
+laid out as ``test``/``lint``/``coverage`` × ``rust``/``python``, and a format repository has one
+test command whose two halves are told apart by a marker rather than by a language. So there are
+twenty-seven targets there against ninety-four here, in one file rather than eight.
+
+.. note::
+
+   **Two command surfaces, and the division is what each one acts on.** ``make`` changes the
+   repository you are standing in — it writes the measurements, refreshes the committed reports, and
+   rewrites the manifest when it is entitled to. ``freeports-dev`` answers questions *about* a
+   repository, including one that is not yours, and writes only where you point it with ``--out``.
+   ``make test-fast`` is ``freeports-dev test --fast`` with ``--repo`` pointed here; ``make
+   ci-check`` is ``freeports-dev ci-check``. Someone who has learnt one can use the other.
+
+**What may refuse there is narrower than here.** In a format repository only ``ci-check`` and the
+fingerprint rule refuse — the suites and the grant checks record their outcome and leave the verdict
+to the one step that can see which branch you are on. The Makefile expresses that with a
+target-specific variable the two gates set and every prerequisite inherits: reached from ``ci-fast``
+a failing suite is recorded, and ``make test-fast`` typed on its own still fails. Here the same
+narrowing is done by the branch class rather than by the target, which is a difference of mechanism
+between two repositories rather than of policy.
+
+``GATE`` exists here too, and one recipe reads it: ``check-grants``, so that grant integrity cannot
+refuse a commit through a failing ``make``. That is the note below, and it is the one thing on which
+the target has to do the narrowing in both repositories — a branch class cannot, because the
+narrowing is not "on this branch" but "never".
 
 The three branch classes
 ------------------------
@@ -107,10 +177,21 @@ the class, which is the whole answer; "prod" on its own is not.
 
 .. note::
 
-   **This changed the behaviour of the engine's hook.** It used to refuse a failing ``make
-   pre-commit`` on every branch. It now refuses only on ``prod``.
+   **The branch class is what decides whether a hook refuses.** A failing ``make pre-commit``
+   refuses the commit on ``prod`` and only there; on a development branch the same failure is
+   reported and the commit stands.
 
-   What did *not* change is grant integrity: a broken, stale or unverifiable grant is reported
-   loudly and **never refuses**, on any branch. A granted reference output regenerated by
-   ``make-tests`` is ordinary work, and a contributor who does not hold the granting key could not
-   clear such a gate at all. What may refuse is a *threshold* and the *fingerprint rule*.
+   Grant integrity is not subject to that rule at all: a broken, stale or unverifiable grant is
+   reported loudly and **never refuses**, on any branch, **in any repository — this one included**.
+   A granted reference output regenerated by ``make-tests`` is ordinary work, and a contributor who
+   does not hold the granting key could not clear such a gate at all. This repository used to be the
+   exception by accident: ``ci-full`` depends on ``validation``, a failing recipe fails the make, and
+   a failing make refuses the commit — so a merge here *was* refused over a grant. ``check-grants``
+   now reports inside the gate and fails only when run on its own.
+
+   What may refuse is a *threshold* and the *fingerprint rule*. For the grants that means two
+   numbers and nothing else: ``grants.coverage``, so that enough of the repository is vouched for,
+   and ``grants.keys_online``, so that a reader can actually fetch the keys those signatures name.
+   Files being vouched for is not the gate; **enough** of them being vouched for, by keys somebody
+   else can download, is — a signature nobody outside can check convinces nobody, which is the whole
+   purpose of publishing one.

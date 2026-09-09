@@ -1,0 +1,112 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/input-db/index.md:1
+msgid "The input database"
+msgstr "Il database di ingresso"
+
+#: ../../source/guides/input-db/index.md:3
+msgid ""
+"A run needs to know **which companies it is looking for** and **how to recognise each"
+" of them in a report**. That is the input database: a directory, separate from the "
+"engine and from any formats repository, pointed at with `--db-directory` / `-I`."
+msgstr ""
+"Un'esecuzione ha bisogno di sapere **quali società sta cercando** e **come "
+"riconoscere ciascuna di esse in una relazione**. È il database di ingresso: una "
+"cartella, separata dal motore e da qualsiasi repository di formati, indicata con "
+"`--db-directory` / `-I`."
+
+#: ../../source/guides/input-db/index.md:7
+msgid ""
+"Keeping it separate is the same decision as keeping formats separate. Which companies"
+" matter is a question about your work, not about PDF parsing, and two people using "
+"the same formats repository will disagree about it — legitimately."
+msgstr ""
+"Tenerlo separato è la stessa decisione del tenere separati i formati. Quali società "
+"contino è una domanda sul tuo lavoro, non sull'analisi dei PDF, e due persone che "
+"usano lo stesso repository di formati non saranno d'accordo in proposito — "
+"legittimamente."
+
+#: ../../source/guides/input-db/index.md:20
+msgid "What each page here answers"
+msgstr "A che cosa risponde ciascuna pagina qui"
+
+#: ../../source/guides/input-db/index.md:11
+msgid "Page"
+msgstr "Pagina"
+
+#: ../../source/guides/input-db/index.md:11
+msgid "Answers"
+msgstr "Risponde a"
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`recognising-companies`"
+msgstr "{doc}`recognising-companies`"
+
+#: ../../source/guides/input-db/index.md:11
+msgid ""
+"how a company is matched in a report: buds, regexes, and which file is checked "
+"against what"
+msgstr ""
+"come una società viene riconosciuta in una relazione: gemme, espressioni regolari, e "
+"quale file è controllato contro che cosa"
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`target-lists`"
+msgstr "{doc}`target-lists`"
+
+#: ../../source/guides/input-db/index.md:11
+msgid "which companies a run actually looks for, and where a list came from"
+msgstr "quali società un'esecuzione cerca davvero, e da dove viene una lista"
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`working-on-a-database`"
+msgstr "{doc}`working-on-a-database`"
+
+#: ../../source/guides/input-db/index.md:11
+msgid "getting one, changing one, and what is validated on load"
+msgstr "come procurarsene uno, come modificarlo, e che cosa viene validato al caricamento"
+
+#: ../../source/guides/input-db/index.md:27
+msgid "The layout of a database"
+msgstr "La disposizione di un database"
+
+#: ../../source/guides/input-db/index.md:40
+msgid "What is not here"
+msgstr "Che cosa non sta qui"
+
+#: ../../source/guides/input-db/index.md:41
+#, python-brace-format
+msgid ""
+"`--db-directory` and `--target-list` as options, with their defaults and validation, "
+"are {doc}`../../reference/cli/freeports`. There is no build and no test suite in an "
+"input database: the loop is the engine's own validation, which runs **before any PDF "
+"is opened** and therefore answers in seconds."
+msgstr ""
+"`--db-directory` e `--target-list` come opzioni, con i loro valori predefiniti e la "
+"loro validazione, stanno in {doc}`../../reference/cli/freeports`. In un database di "
+"ingresso non c'è alcuna compilazione né alcuna suite di test: il ciclo di lavoro è la"
+" validazione del motore stesso, che gira **prima che sia aperto qualsiasi PDF** e "
+"perciò risponde in pochi secondi."
+

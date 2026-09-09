@@ -134,10 +134,15 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
     let _guard = span.enter();
 
     let configs = resolve_configs(args)?;
-    // The first moment at which it is known where the outputs go, and therefore where the log goes:
-    // until this line the log has no destination and the rows already produced by resolving the
-    // configuration are held in memory.
+    // The first moment at which the whole configuration is known, and therefore the first at which
+    // either log can be settled. Both were deliberately left open until here: until this line the
+    // `.log.csv` has no destination, `freeports.log.jsonl` does not know whether it exists, and
+    // everything produced by resolving the configuration is held in memory.
     if let Some(first) = configs.first() {
+        // Before the CSV destination, and before any job: it is what raises the two level filters
+        // to the resolved verbosity, and the sooner it runs the fewer records are lost to a filter
+        // the configuration file has already contradicted.
+        log_handle.settle_verbosity(first.verbosity).map_err(CliError::from)?;
         log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
     }
     let outcomes = run_jobs(&configs, log_handle)?;

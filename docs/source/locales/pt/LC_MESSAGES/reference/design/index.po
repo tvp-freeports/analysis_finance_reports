@@ -1,0 +1,249 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/index.md:1
+msgid "The design of the algorithm"
+msgstr ""
+
+#: ../../source/reference/design/index.md:3
+#, python-brace-format
+msgid ""
+"Why the engine has the shape it has. Not *how to run it* — that is "
+"{doc}`../../guides/user/index` — and not which libraries it is built "
+"from, which is a question for contributors and lives in {doc}`the "
+"implementation notes <../../guides/engine/advanced/implementation-"
+"notes>`."
+msgstr ""
+
+#: ../../source/reference/design/index.md:7
+msgid ""
+"Every page here states what it describes and whether that thing "
+"**exists**:"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "Marker"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "Means"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "*implemented*"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "it is in the engine today, and the tests defend it"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "*planned*"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "designed, argued for, not built. The page says what would change"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "*accepted limit*"
+msgstr ""
+
+#: ../../source/reference/design/index.md
+msgid "a known edge deliberately left as it is, with the reason"
+msgstr ""
+
+#: ../../source/reference/design/index.md:37
+msgid "The whole algorithm at a glance"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid ""
+"Documents are classified per document, the union is scheduled into steps,"
+" each step runs page classes through pipeline bundles, and the results "
+"resolve against the promise map before the tables are written"
+msgstr ""
+
+#: ../../source/reference/design/index.md:43
+msgid ""
+"**One run, end to end.** Each document is opened and classified **on its "
+"own**, so that a format's page-class finalizer sees one document's pages."
+" The classified pages of every document are then poured into **one** "
+"schedule, which processes them in steps; a step's results become the next"
+" step's filter. Every page of a class goes through that class's **bundle "
+"of pipelines**, each three segments long, and what comes out is either an"
+" entity or a promise. Entities resolve against the accumulated promise "
+"map at the end, and the whole run writes **one** set of tables."
+msgstr ""
+
+#: ../../source/reference/design/index.md:51
+msgid ""
+"The two halves of that picture are the two halves of this section. "
+"Everything up to the schedule is about *which pages get processed and in "
+"what order*; everything after it is about *what a page becomes*."
+msgstr ""
+
+#: ../../source/reference/design/index.md:55
+msgid "What each design page answers"
+msgstr ""
+
+#: ../../source/reference/design/index.md:56
+msgid ""
+"**The foundations** — the one assumption everything else rests on, and "
+"what it costs."
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "Page"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "Says"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`pages`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid ""
+"the page is the unit of work: the assumption, what follows from it, where"
+" it cedes"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`promises`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "what to do when a page genuinely cannot know something"
+msgstr ""
+
+#: ../../source/reference/design/index.md:63
+msgid ""
+"**Deciding what to process** — from a pile of PDFs to an ordered list of "
+"work."
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`classification`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "what kind of page is this, and why classifying is itself a pipeline"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`schedule`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "steps, and why a step's output is the next step's filter"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`multidocument`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "several documents in one run: classified apart, scheduled together"
+msgstr ""
+
+#: ../../source/reference/design/index.md:71
+msgid ""
+"**Processing a page** — the pipeline and the values that travel through "
+"it."
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`segments`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "three segments, why three, and the fourth that is designed but not built"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`blocks`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "`PdfBlock` and `TextBlock`: an open type, a typed value"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`entities-and-output`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "what the project models, and the schema as an invariant of the product"
+msgstr ""
+
+#: ../../source/reference/design/index.md:79
+msgid ""
+"**Properties of the whole** — things that are true of the engine rather "
+"than of any one part."
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`formats-as-plugins`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "why the recipes live outside the engine, and how three levels merge"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`determinism`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "what order is guaranteed, and what is not"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`parallelism`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "parallelism as a consequence of the page assumption, not an addition"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+#, python-brace-format
+msgid "{doc}`limits`"
+msgstr ""
+
+#: ../../source/reference/design/index.md:39
+msgid "the accepted limits, stated rather than hidden"
+msgstr ""
+

@@ -1,0 +1,195 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/first-run.md:1
+msgid "A first run, argument by argument"
+msgstr ""
+
+#: ../../source/start/first-run.md:3
+#, python-brace-format
+msgid ""
+"Assuming {doc}`install` is done and the two {doc}`../guides/user/inputs` "
+"exist."
+msgstr ""
+
+#: ../../source/start/first-run.md:15
+msgid "Line by line:"
+msgstr ""
+
+#: ../../source/start/first-run.md:17
+msgid "`--input report.pdf`"
+msgstr ""
+
+#: ../../source/start/first-run.md:18
+#, python-brace-format
+msgid ""
+"the document. A bare path here means *this local file*, made absolute, "
+"and its own text becomes the document's **name** — the value that will "
+"appear in the `Report` column of the output. Give it a shorter one with "
+"`report.pdf:EURIZON 2023`, which you will want as soon as there are two "
+"documents. The full grammar is in {doc}`../guides/user/documents`."
+msgstr ""
+
+#: ../../source/start/first-run.md:23
+msgid "`--format EURIZON-EN23`"
+msgstr ""
+
+#: ../../source/start/first-run.md:24
+msgid ""
+"which recipe to read it with. Omissible **only** when the document came "
+"from a URL the formats repository's mapping recognises; a local path "
+"carries no evidence of who published it. Naming a format the repository "
+"does not have is an error naming the format."
+msgstr ""
+
+#: ../../source/start/first-run.md:28
+msgid "`--repo ~/work/formats-repo`"
+msgstr ""
+
+#: ../../source/start/first-run.md:29
+msgid ""
+"the formats repository. Also `--formats-directory`, `-F`, `-r`, or "
+"`FREEPORTS_FORMATS_REPO_PATH`."
+msgstr ""
+
+#: ../../source/start/first-run.md:31
+msgid "`--db-directory ~/work/input-db`"
+msgstr ""
+
+#: ../../source/start/first-run.md:32
+msgid "the input database. Also `-I`, or `FREEPORTS_INPUT_DB_PATH`."
+msgstr ""
+
+#: ../../source/start/first-run.md:34
+msgid "`--target-list controversial_weapons`"
+msgstr ""
+
+#: ../../source/start/first-run.md:35
+msgid ""
+"which list of companies to look for. Repeatable. **Without it the run "
+"stops immediately**, before opening the PDF — the presence check runs "
+"first on purpose, so a missing input fails in a second rather than after "
+"four minutes of PDF."
+msgstr ""
+
+#: ../../source/start/first-run.md:39
+msgid "`--out ./results`"
+msgstr ""
+
+#: ../../source/start/first-run.md:40
+msgid ""
+"where the tables go. A directory for the default profile. Defaults to the"
+" working directory, so omitting it is legal and rarely what you want."
+msgstr ""
+
+#: ../../source/start/first-run.md:43
+msgid "What the run produced"
+msgstr ""
+
+#: ../../source/start/first-run.md:52
+#, python-brace-format
+msgid ""
+"Nine tables and an audit trail. Most runs care about `investments.csv` — "
+"one row per holding — and the rest describe the funds those holdings "
+"belong to. Every CSV has its header even when it has no rows, so "
+"*\"nothing found\"* and *\"no such table\"* stay distinguishable. "
+"{doc}`../guides/user/output` is the full list and the rules."
+msgstr ""
+
+#: ../../source/start/first-run.md:57
+#, python-brace-format
+msgid ""
+"`.log.csv` is not an output table: it is the extraction's own record of "
+"what it skipped and where. It lands **next to the output** because it is "
+"a product of the run. {doc}`../guides/user/logging` explains how to read "
+"it."
+msgstr ""
+
+#: ../../source/start/first-run.md:61
+msgid "Adding a second document"
+msgstr ""
+
+#: ../../source/start/first-run.md:67
+#, python-brace-format
+msgid ""
+"Two jobs, one run, **one** set of tables, with the `Report` column "
+"telling the rows apart. This is not the same as two separate runs "
+"concatenated: in one invocation the two documents share promise "
+"resolution and fund deduplication. See "
+"{doc}`../reference/design/multidocument`."
+msgstr ""
+
+#: ../../source/start/first-run.md:71
+msgid "When the first run does not work"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "Symptom"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "Usually"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "stops at once, says a target list is missing"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "`--target-list` not given — the first check"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "runs, finds nothing, writes header-only tables"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid ""
+"the format is right but the companies are not in the named list, or the "
+"list is empty"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "a format error naming a format"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "the name is not in the repository's `metadata/formats.csv`"
+msgstr ""
+
+#: ../../source/start/first-run.md
+msgid "holdings attributed to the wrong company"
+msgstr ""
+
+#: ../../source/start/first-run.md
+#, python-brace-format
+msgid ""
+"the input database's order, not the extraction — see "
+"{doc}`../guides/user/inputs`"
+msgstr ""
+
+#: ../../source/start/first-run.md:79
+#, python-brace-format
+msgid ""
+"Raise the verbosity before guessing: `-v` narrates the run, `-vv` and "
+"`-vvv` more. {doc}`../guides/user/logging`."
+msgstr ""
+

@@ -39,13 +39,38 @@ tests/
 validation/                      who vouches for what, and under which methodology
   report/<table>.md              the same claims, one page per arrangement — generated
   report/badges/                 the three badges the README shows — generated
-README.md                        the front page: badges, the summary table, links to the six pages
-.githooks/pre-commit             the tests, then a refresh of everything marked "generated" above
+ci/report/                       what the last run measured: two pages, badges, one HTML — generated
+ci.yaml                          how this repository is gated: branch classes, thresholds, key server
+Makefile                         the single entry point — `make help` lists every target
+make.bat                         the same on Windows: a shim that starts a POSIX shell and calls it
+README.md                        the front page: badges, both summary tables, links to the pages
+.githooks/pre-commit             names the Makefile target that is the commit gate
 ```
 
-Everything marked *generated* is rewritten by `freeports-validate report`, between two markers, and
-what is between them is replaced whole — see {ref}`what-init-format-repo-writes`. Text of your own
-outside the markers is kept.
+Everything marked *generated* is rewritten between two markers — by `freeports-validate report` for
+the grants and `freeports-dev ci-report` for the figures — and what is between them is replaced
+whole; see {ref}`what-init-format-repo-writes`. Text of your own outside the markers is kept.
+
+## Working on it: `make`, and asking about it: `freeports-dev`
+
+The repository is worked on with `make` and interrogated with `freeports-dev`, and the two are the
+same vocabulary rather than two ways of doing the same thing:
+
+```console
+$ make test          # the per-page suite — freeports-dev test --fast, pointed here
+$ make lint          # ruff over content/, and the score the gate reads
+$ make ci-fast       # what the commit hook runs on a dev branch
+$ make validation    # the grant report, check-grants and check-keys
+$ make help          # all of it, one line each
+```
+
+`make` acts on *this* repository: it writes the measurements into `reports/`, refreshes the
+committed reports, and rewrites `package.yaml`'s fingerprint when it is entitled to.
+`freeports-dev` and `freeports-validate` act on *any* repository — `--repo ~/their-formats` — and
+write only where you point them. That is why the same figure has two commands: one to keep yours
+current, one to ask about somebody else's.
+
+{doc}`../devops/the-gate` says which targets may refuse a commit, and on which branch.
 
 ## The `metadata/` tables
 `metadata/formats.csv` lists the formats by their **components**, not by their names:

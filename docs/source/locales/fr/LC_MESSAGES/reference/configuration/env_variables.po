@@ -1,0 +1,346 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/configuration/env_variables.md:1
+msgid "Environment variables"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:3
+#, python-brace-format
+msgid ""
+"Stronger than the configuration file, weaker than the command line. Per-"
+"option detail is in {doc}`options`."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:6
+msgid "Variable to option"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "Variable"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "Option"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_URL`, `FREEPORTS_PDF`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`reports`, in two halves"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_REPORTS`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`reports`, several specifiers separated by `|`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_TARGET_LIST`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`target_lists` — **one** element, the whole raw value"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_FORMAT`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`format`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_FORMATS_REPO_PATH`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`formats_repo_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_INPUT_DB_PATH`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`input_db_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_OUT_PATH`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`out_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_OUT_PROFILE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`out_profile`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_SEPARATE_OUT`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`separate_out`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_ARCHIVE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`compressed`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_SAVE_PDF`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`save_pdf`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_N_WORKERS`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`n_workers`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_PARALLELISM_JOBS`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`parallelism_jobs`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_PARALLELISM_PAGES`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`parallelism_pages`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_BATCH_FILE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`batch_file`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_CONFIG_FILE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`config_file`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_VERBOSITY`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+#, python-brace-format
+msgid "`verbosity` — applied once the configuration resolves; see {doc}`index`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:28
+#, python-brace-format
+msgid ""
+"Two further prefixes exist and belong to the other two commands, not to "
+"the engine: `FREEPORTS_DEV_…` for `freeports-dev` and "
+"`FREEPORTS_VALIDATE_…` for `freeports-validate`. They mirror the `dev:` "
+"and `validate:` sections of the configuration file one for one, and are "
+"documented in {doc}`dev-and-validate`."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "Setting"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_DEV_TARGET_LIST`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`dev.target_lists` — **one** element, the whole raw value"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_DEV_NOCONFIRM`, `FREEPORTS_DEV_PAGE_TYPE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`dev.noconfirm`, `dev.page_type`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_VALIDATE_KEY_ID`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`validate.key_id`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_VALIDATE_SOURCE`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`validate.sources` — **one** source, the whole raw value"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`FREEPORTS_VALIDATE_OFFLINE`, `FREEPORTS_VALIDATE_DEEP`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`validate.offline`, `validate.deep`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:41
+msgid ""
+"Note the two singulars. `FREEPORTS_DEV_TARGET_LIST` and "
+"`FREEPORTS_VALIDATE_SOURCE` feed settings that are lists, and neither is "
+"ever split — see the rule at the foot of this page, which they both "
+"follow for the same reason."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:45
+msgid "Rules of the environment"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:46
+msgid "**An absent variable leaves its option unset**, and is never an error."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:48
+msgid ""
+"**Setting both `FREEPORTS_REPORTS` and one of the singular variables is "
+"an error.** One of the two would have to win silently, and an override "
+"nobody can see is worse than a refusal."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:51
+msgid ""
+"**A variable whose value is not valid UTF-8 is ignored with a warning**, "
+"rather than failing the run — it is almost always an accident of the "
+"shell rather than an intention."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:54
+msgid "The grammars the variables accept"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:55
+msgid ""
+"**Booleans** — `FREEPORTS_SEPARATE_OUT`, `FREEPORTS_ARCHIVE`, "
+"`FREEPORTS_SAVE_PDF` — accept, case insensitively:"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "True"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "False"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`true`, `yes`, `1`, `y`, `t`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md
+msgid "`false`, `no`, `0`, `n`, `f`"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:62
+msgid ""
+"Anything else is a typed error naming the variable. This is deliberately "
+"more permissive than YAML's own booleans: an environment variable is "
+"often set by a shell script from a value that came from somewhere else, "
+"and `1` is a perfectly ordinary way to write true there."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:66
+msgid ""
+"**Parallelism** — the three variables share one grammar, a positive "
+"integer or `auto`, and differ only in the name that appears in the error."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:69
+msgid ""
+"**Verbosity** — the variant name, case-insensitively: `silent`, `error`, "
+"`warn`, `info`, `debug`, `trace`."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:72
+msgid "**Profile** — `regular`, `single_file`, `structured`, case-insensitively."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:74
+msgid ""
+"**Several documents** in `FREEPORTS_REPORTS` are separated by a pipe, `|`"
+" — the same separator a batch cell uses, and one constant in the code "
+"rather than two literals that could drift apart."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:77
+msgid "A list variable is never split"
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:78
+msgid ""
+"`FREEPORTS_TARGET_LIST` becomes a **one-element** list holding the whole "
+"raw value, whatever is in it. A name containing a comma, or a pipe, still"
+" names one list. To use several lists, use a source that has a list type "
+"— the command line, or the YAML file."
+msgstr ""
+
+#: ../../source/reference/configuration/env_variables.md:82
+msgid ""
+"`FREEPORTS_DEV_TARGET_LIST` and `FREEPORTS_VALIDATE_SOURCE` follow the "
+"same rule, and the second is the clearest case for it: every separator "
+"one might pick — comma, colon, space, semicolon — is a legal character in"
+" a URI or a path, so splitting would turn one source the user meant into "
+"two that do not exist."
+msgstr ""
+
+#~ msgid "`verbosity` — *parsed and merged, but not applied; see* {doc}`index`"
+#~ msgstr ""
+

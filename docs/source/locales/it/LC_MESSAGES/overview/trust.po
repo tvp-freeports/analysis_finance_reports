@@ -1,0 +1,178 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/trust.md:1
+msgid "Being trusted with the numbers"
+msgstr "La responsabilità dei numeri"
+
+#: ../../source/overview/trust.md:3
+msgid ""
+"Extracting data from documents designed for human eyes is not exact. Any tool that "
+"says otherwise is misrepresenting itself, and a tool whose output feeds decisions "
+"about money owes its users something better than either a disclaimer or a boast."
+msgstr ""
+"Estrarre dati da documenti pensati per occhi umani non è esatto. Ogni strumento che "
+"dica il contrario sta travisando sé stesso, e uno strumento i cui risultati "
+"alimentano decisioni sul denaro deve ai propri utenti qualcosa di meglio sia di una "
+"liberatoria sia di un vanto."
+
+#: ../../source/overview/trust.md:7
+msgid "The two easy answers, and why neither is taken"
+msgstr "Le due risposte facili, e perché non se ne prende nessuna"
+
+#: ../../source/overview/trust.md:9
+msgid ""
+"**Take no responsibility.** Ship a licence that makes checking the output entirely "
+"the user's problem. Cheap, fast, and it moves the whole burden onto the person least "
+"able to carry it — someone who would have to re-read the PDFs to check, which is what"
+" they came here to avoid."
+msgstr ""
+"**Non prendersi alcuna responsabilità.** Distribuire una licenza che faccia della "
+"verifica dei risultati un problema interamente dell'utente. Costa poco, è rapido, e "
+"sposta tutto il peso sulla persona meno in grado di portarlo — una che per "
+"controllare dovrebbe rileggere i PDF, che è proprio ciò che era venuta qui a evitare."
+
+#: ../../source/overview/trust.md:13
+msgid ""
+"**Take total responsibility.** Publish only what has been verified to a standard "
+"nobody can dispute. Also unworkable: it slows the work to the speed of manual review "
+"and ends up reproducing data that commercial databases already sell, months later."
+msgstr ""
+"**Prendersi la responsabilità totale.** Pubblicare solo ciò che è stato verificato "
+"secondo uno standard incontestabile. Anch'essa impraticabile: rallenta il lavoro alla"
+" velocità della revisione manuale e finisce per riprodurre, mesi dopo, dati che i "
+"database commerciali già vendono."
+
+#: ../../source/overview/trust.md:17
+msgid ""
+"This project sits near the second end without pretending to reach it. The commitment "
+"is not \"the output is correct\" but: **the method is published, the claims are "
+"attributable, and the limits are stated**. A user who wants to rely on a number can "
+"find out how it was produced, who vouched for it, and under which protocol — and can "
+"then decide, which is a decision they can only make if the information exists."
+msgstr ""
+"Questo progetto sta vicino al secondo estremo senza pretendere di raggiungerlo. "
+"L'impegno non è \"i risultati sono corretti\" ma: **il metodo è pubblicato, le "
+"affermazioni sono attribuibili, e i limiti sono dichiarati**. Chi voglia fare "
+"affidamento su un numero può scoprire come è stato prodotto, chi ne ha risposto e "
+"secondo quale protocollo — e a quel punto decidere, che è una decisione che può "
+"prendere solo se l'informazione esiste."
+
+#: ../../source/overview/trust.md:23
+msgid "How a claim is recorded"
+msgstr "Come si registra un'affermazione"
+
+#: ../../source/overview/trust.md:25
+msgid ""
+"The mechanism is deliberately small. It is a **grant**: a record that a named "
+"contributor vouches for specific files, under a specific published methodology, at a "
+"specific content hash."
+msgstr ""
+"Il meccanismo è volutamente piccolo. È **un'attestazione**: la registrazione del "
+"fatto che un contributore, con nome e cognome, risponde di certi file, secondo una "
+"certa metodologia pubblicata, a un certo hash del contenuto."
+
+#: ../../source/overview/trust.md:28
+msgid ""
+"A contributor has one **validation document**, a YAML file in the repository's "
+"`validation/` directory, holding: who they are and their public key; which "
+"methodologies they are using, each pinned by the hash of the page describing it; the "
+"files granted under each, each pinned by the hash of its own content; and a "
+"cryptographic signature over the whole thing."
+msgstr ""
+"Un contributore ha un solo **documento di validazione**, un file YAML nella cartella "
+"`validation/` del repository, che contiene: chi è e la sua chiave pubblica; quali "
+"metodologie sta usando, ciascuna fissata dall'hash della pagina che la descrive; i "
+"file attestati sotto ciascuna, ciascuno fissato dall'hash del proprio contenuto; e "
+"una firma crittografica sul tutto."
+
+#: ../../source/overview/trust.md:33
+msgid ""
+"Everything in that structure is content-addressed, and that is the whole idea. If a "
+"granted file changes, its hash no longer matches and the grant visibly no longer "
+"applies to what is on disk. If a *methodology page* changes, every grant that cited "
+"it is invalidated, because the claim was made about that text and the text is now "
+"different. The document itself names the version of the general methodology it was "
+"written under, by the hash of that page — so the meaning of the entries cannot drift "
+"out from under them either."
+msgstr ""
+"Tutto in quella struttura è indirizzato dal contenuto, ed è tutta qui l'idea. Se un "
+"file attestato cambia, il suo hash non corrisponde più e l'attestazione visibilmente "
+"non si applica più a ciò che sta sul disco. Se cambia una *pagina di metodologia*, "
+"ogni attestazione che la citava è invalidata, perché l'affermazione era fatta su quel"
+" testo e il testo adesso è diverso. Il documento stesso nomina la versione della "
+"metodologia generale sotto cui è stato scritto, tramite l'hash di quella pagina — "
+"così nemmeno il significato delle voci può scivolare via da sotto di esse."
+
+#: ../../source/overview/trust.md:40
+msgid ""
+"This has a practical consequence worth stating plainly, since it catches people: "
+"**the validation pages in this documentation are not editable prose.** Correcting a "
+"typo in one of them invalidates signed grants in repositories maintained by other "
+"people. Changing them is a deliberate operation — re-granting and re-signing — not an"
+" act of tidying."
+msgstr ""
+"Ne discende una conseguenza pratica che vale la pena di dire chiaramente, perché "
+"coglie di sorpresa: **le pagine di validazione di questa documentazione non sono "
+"prosa modificabile.** Correggere un refuso in una di esse invalida attestazioni "
+"firmate in repository mantenuti da altre persone. Modificarle è un'operazione "
+"deliberata — riattestare e rifirmare — non un atto di riordino."
+
+#: ../../source/overview/trust.md:45
+msgid "Where the rest of this lives"
+msgstr "Dove sta il resto"
+
+#: ../../source/overview/trust.md:46
+#, python-brace-format
+msgid ""
+"This page is the position, in brief. The argument behind it — why a methodology is a "
+"document at an address you chose to trust, and what each published methodology claims"
+" — is {doc}`../guides/institutional/why-trust-a-grant`. Making a grant yourself is "
+"{doc}`../guides/grants/index`. The methodologies themselves, which are hashed "
+"artefacts rather than ordinary prose, are {doc}`../validation/index`."
+msgstr ""
+"Questa pagina è la posizione, in breve. L'argomentazione che vi sta dietro — perché "
+"una metodologia è un documento a un indirizzo che hai scelto di ritenere affidabile, "
+"e che cosa afferma ciascuna metodologia pubblicata — è {doc}`../guides/institutional"
+"/why-trust-a-grant`. Fare un'attestazione tu stesso è {doc}`../guides/grants/index`. "
+"Le metodologie stesse, che sono artefatti sottoposti a hash anziché prosa ordinaria, "
+"sono {doc}`../validation/index`."
+
+#: ../../source/overview/trust.md:52
+msgid "What this does not give you"
+msgstr "Che cosa questo non ti dà"
+
+#: ../../source/overview/trust.md:54
+#, python-brace-format
+msgid ""
+"It does not make the extraction correct. It makes the extraction **accountable**, "
+"which is a different and smaller thing: you can find out what was claimed, by whom, "
+"on what basis, and about exactly which bytes. Where that is not enough for your "
+"purpose, the honest answer is that it is not enough, and the {doc}`validation section"
+" <../validation/index>` is written to let you determine that for yourself rather than"
+" to reassure you."
+msgstr ""
+"Non rende corretta l'estrazione. La rende **rendicontabile**, che è una cosa diversa "
+"e più piccola: puoi scoprire che cosa è stato affermato, da chi, su quale base, e su "
+"quali byte esattamente. Dove questo non basta al tuo scopo, la risposta onesta è che "
+"non basta, e la {doc}`sezione sulla validazione <../validation/index>` è scritta per "
+"permetterti di stabilirlo da te anziché per rassicurarti."
+

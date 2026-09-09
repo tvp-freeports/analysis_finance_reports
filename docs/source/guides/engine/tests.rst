@@ -101,11 +101,21 @@ run. So they are two suites, gated the way the engine's are:
 
 .. code-block:: console
 
-    freeports-dev test --repo . -- -m 'not integration_tests'   # formats.single_page, at every commit
-    freeports-dev test --repo . -- -m integration_tests         # formats.integration, deliberately
-    freeports-dev test --repo .                                 # both
+    make test-fast     # formats.single_page, at every commit
+    make test-slow     # formats.integration, deliberately
+    make test-all      # both
 
-Run the per-page ones constantly — that is the loop format development actually happens in, and it
-is the one that tells you *which segment* broke rather than that the document did. The formats
-repository's commit hook runs them at every commit and the whole-document ones on a production
-branch, and ``freeports-dev ci-check`` says which of the two describes the commit in front of you.
+in that repository, or from anywhere against a repository that is not yours:
+
+.. code-block:: console
+
+    freeports-dev test --repo <path> --fast
+    freeports-dev test --repo <path> --slow
+    freeports-dev test --repo <path> --all
+
+The targets and the flags are the same three selections — a format repository's ``Makefile`` is the
+engine's, with the axes it has no use for taken out. Run the per-page ones constantly: that is the
+loop format development actually happens in, and it is the one that tells you *which segment* broke
+rather than that the document did. That repository's commit hook runs them at every commit and the
+whole-document ones on a production branch, and ``make ci-check`` says which of the two describes
+the commit in front of you.

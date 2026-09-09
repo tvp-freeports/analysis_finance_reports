@@ -21,7 +21,7 @@ command line only has to say what is different this time.
 | `n_workers` | `n_workers` | a positive integer or `auto` |
 | `parallelism` | `parallelism_jobs`, `parallelism_pages` | a map, only `jobs` and `pages` |
 | `batch_file` | `batch_file` | |
-| `verbosity` | `verbosity` | *parsed and merged, but not applied; see* {doc}`index` |
+| `verbosity` | `verbosity` | applied once the configuration resolves; see {doc}`index` |
 | `dev`, `validate` | — | sections read by the two tooling commands, never by the engine; see below |
 
 There is no key for `config_file`: a configuration file naming the configuration file to read would

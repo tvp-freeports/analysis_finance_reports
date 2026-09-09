@@ -23,7 +23,7 @@ Stronger than the configuration file, weaker than the command line. Per-option d
 | `FREEPORTS_PARALLELISM_PAGES` | `parallelism_pages` |
 | `FREEPORTS_BATCH_FILE` | `batch_file` |
 | `FREEPORTS_CONFIG_FILE` | `config_file` |
-| `FREEPORTS_VERBOSITY` | `verbosity` — *parsed and merged, but not applied; see* {doc}`index` |
+| `FREEPORTS_VERBOSITY` | `verbosity` — applied once the configuration resolves; see {doc}`index` |
 
 Two further prefixes exist and belong to the other two commands, not to the engine:
 `FREEPORTS_DEV_…` for `freeports-dev` and `FREEPORTS_VALIDATE_…` for `freeports-validate`. They

@@ -1,0 +1,90 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/index.md:1
+msgid "The three levels of a format"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:3
+msgid ""
+"Most formats never leave the first level. These pages are the other two, "
+"and the rule for choosing between them: **go up a level only when the "
+"level below genuinely cannot express the layout.**"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "Level"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "Is"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "Reach for it when"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`structured`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "rows in a spreadsheet, no code"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "the layout is a table the engine can already read"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`semistructured`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "a named algorithm plus YAML"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "the shape is regular but needs parameters"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`unstructured`"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "a Python module"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:6
+msgid "the layout resists parameterisation altogether"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/index.md:21
+#, python-brace-format
+msgid ""
+"How the three merge, and why they are outside the engine at all, is "
+"{doc}`../../../reference/design/formats-as-plugins`."
+msgstr ""
+

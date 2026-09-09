@@ -53,11 +53,18 @@ docs-site-coverage: ## What fraction of the API appears in the built site (not d
 
 html: docs-html ## The HTML site (canonical GNU name, alias of docs-html)
 
-docs-lang: ## Build a single language: make docs-lang DOCLANG=it
+# Depends on `i18n-build`, and that dependency is the whole reason this line is not one command.
+# Sphinx reads the compiled `.mo` files, never the `.po` a translator edits, so building a language
+# without recompiling first silently produces the *English* page for every string touched since the
+# last compile -- a failure with no error message, which is the worst kind to leave lying around.
+docs-lang: i18n-build ## Build a single language: make docs-lang DOCLANG=it
 	$(SPHINXBUILD) -b html -D language=$(DOCLANG) docs/source docs/build/$(DOCLANG)
 
-docs-serve: ## Serve docs/build/html locally (DOCS_PORT=8000)
-	$(PYTHON) -m http.server $(DOCS_PORT) --directory docs/build/html
+# `DOCLANG=` (empty) serves the English site in docs/build/html; any other value serves the
+# language built by `docs-lang`, so reading a translation is the same command as reading the
+# original rather than a path to remember.
+docs-serve: ## Serve the built site locally (DOCS_PORT=8000, DOCLANG=it for a translation)
+	$(PYTHON) -m http.server $(DOCS_PORT) --directory docs/build/$(if $(DOCLANG),$(DOCLANG),html)
 
 ##@ Documentation internationalisation
 
@@ -73,4 +80,28 @@ i18n-update: ## Merge the extracted strings into the .po files under docs/source
 
 i18n-build: ## Compile the .po files into .mo
 	$(SPHINXINTL) build -d docs/source/locales
+
+i18n-stat: ## How far each language has got: translated / fuzzy / untranslated per page
+	$(SPHINXINTL) stat -d docs/source/locales
+
+# The step `sphinx-intl update` cannot take. It merges the current strings into the catalogues and
+# marks what has gone stale *inside* a file, but a `.po` belonging to a page that no longer exists
+# is not stale, it is orphaned: nothing points at it, `stat` still counts it, and a translator can
+# spend an afternoon on a page nobody will ever build. Reorganising the site produces these by the
+# dozen, so removing them is a step rather than a chore.
+#
+# Deliberately compared against `docs/build/gettext`, which is what `i18n-extract` has just
+# written: a catalogue is orphaned when there is no `.pot` for it, and only an extraction from the
+# current sources can say that.
+i18n-prune: ## Delete catalogues whose page no longer exists (run after i18n-extract)
+	@if [ ! -d docs/build/gettext ]; then \
+	    echo "docs/build/gettext is missing -- run 'make i18n-extract' first." >&2; exit 1; \
+	 fi
+	@find docs/source/locales -name '*.po' | while read -r po; do \
+	    page=$${po#docs/source/locales/}; page=$${page#*/LC_MESSAGES/}; \
+	    if [ ! -f "docs/build/gettext/$${page%.po}.pot" ]; then \
+	        echo "orphaned, removing: $$po"; rm -f "$$po" "$${po%.po}.mo"; \
+	    fi; \
+	 done
+	@find docs/source/locales -type d -empty -delete 2>/dev/null || true
 

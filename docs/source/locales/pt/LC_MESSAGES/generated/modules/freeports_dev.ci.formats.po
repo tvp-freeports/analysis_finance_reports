@@ -1,0 +1,183 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:2
+msgid "freeports\\_dev.ci.formats"
+msgstr ""
+
+#: freeports_dev.ci.formats:1 of
+msgid ""
+"``freeports-dev coverage`` for a formats repository: how much of it is "
+"actually tested."
+msgstr ""
+
+#: freeports_dev.ci.formats:3 of
+msgid ""
+"Two figures, both over the same unit — the **document**, which is a "
+"format holding one ``report.pdf`` or one subdirectory of a format holding"
+" several:"
+msgstr ""
+
+#: freeports_dev.ci.formats:6 of
+msgid ""
+"``tests.formats.integration`` — documents whose whole-document test "
+"exists at all, which is to say documents with an ``out/`` for the run to "
+"be checked against;"
+msgstr ""
+
+#: freeports_dev.ci.formats:8 of
+msgid ""
+"``tests.formats.single_page`` — documents carrying at least one page with"
+" the whole fixture triple, so that every stage of the pipeline is pinned "
+"somewhere in that document."
+msgstr ""
+
+#: freeports_dev.ci.formats:11 of
+#, python-format
+msgid ""
+"They answer different questions and a repository can be strong in one and"
+" weak in the other, which is exactly why they are two thresholds and not "
+"an average. A repository at 100 % single-page and 86 % integration — "
+"which is this workspace's formats repository today — has every format's "
+"stages pinned page by page and five documents nobody has ever run end to "
+"end. One number would hide that."
+msgstr ""
+
+#: freeports_dev.ci.formats:16 of
+msgid ""
+"The walk is :mod:`freeports_dev.format_inventory`, shared with the pytest"
+" plugin so that the report cannot claim a coverage the suite does not "
+"collect. It reads file names and nothing else: no PDF is opened, no "
+"algorithm is loaded, so this is a **fast** metric and belongs in the "
+"commit hook."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:13:<autosummary>:1
+msgid ":py:obj:`INTEGRATION <freeports_dev.ci.formats.INTEGRATION>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:13:<autosummary>:1
+#: freeports_dev.ci.formats.INTEGRATION:1 of
+msgid "The two metrics this command answers for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:15
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+msgid ":py:obj:`measure <freeports_dev.ci.formats.measure>`\\ \\(repo\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+#: freeports_dev.ci.formats.measure:1 of
+msgid "Walk a formats repository and read both figures off it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`render_badges <freeports_dev.ci.formats.render_badges>`\\ "
+"\\(coverage\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+#: freeports_dev.ci.formats.render_badges:1 of
+msgid ""
+"Two shields.io endpoints, coloured on the same scale the grant badges "
+"already use."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`render_json <freeports_dev.ci.formats.render_json>`\\ "
+"\\(coverage\\[\\, head\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`render_markdown <freeports_dev.ci.formats.render_markdown>`\\ "
+"\\(coverage\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`render_text <freeports_dev.ci.formats.render_text>`\\ "
+"\\(coverage\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:25
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:28:<autosummary>:1
+msgid ""
+":py:obj:`FormatsCoverage <freeports_dev.ci.formats.FormatsCoverage>`\\ "
+"\\(documents\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.formats.rst:28:<autosummary>:1
+#: freeports_dev.ci.formats.FormatsCoverage:1 of
+msgid "The inventory of a formats repository, and the two ratios read off it."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.measurements:1 of
+msgid "Both metrics, in the normalised shape the gate reads."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.missing_integration:1 of
+msgid "The documents holding the integration figure down, by name, in order."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.missing_integration:3 of
+msgid ""
+"Named rather than counted because a percentage is what a threshold "
+"compares and a list of names is what somebody acts on. Every rendering "
+"prints both."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.problems:1 of
+msgid "Malformed documents, as ``(name, message)``, from the same walk."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.problems:3 of
+msgid ""
+"A repository with one broken document is still measured and the breakage "
+"is named. A report that refuses to print because one document is "
+"malformed tells you less than one that prints and says which."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.ratio:1 of
+msgid ""
+"A percentage, with an empty repository reading 100 rather than dividing "
+"by zero."
+msgstr ""
+
+#: freeports_dev.ci.formats.FormatsCoverage.ratio:3 of
+msgid ""
+"An empty repository has no untested document in it. Calling that 0 % "
+"would refuse the first commit to a repository that has nothing wrong with"
+" it, which is how a gate teaches people to turn it off."
+msgstr ""
+

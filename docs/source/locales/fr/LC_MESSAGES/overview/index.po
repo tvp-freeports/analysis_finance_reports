@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/index.md:1
+msgid "What freeports is"
+msgstr ""
+
+#: ../../source/overview/index.md:3
+msgid ""
+"`freeports` turns financial reports published as PDF into tables you can "
+"compute on."
+msgstr ""
+
+#: ../../source/overview/index.md:5
+msgid ""
+"Funds, and the companies that manage them, are required to disclose what "
+"they hold, what their assets are worth, who manages them and how they "
+"classify themselves under sustainability regulation. They do disclose it "
+"— as an annual report, in PDF, laid out however the issuer's typesetter "
+"chose. The obligation is on the *publication*, not on the *shape*, so the"
+" same fact is printed in several hundred mutually incompatible ways. "
+"Anyone who wants to compare across issuers has to read them by hand, buy "
+"the data back from a vendor who read them by hand, or write a program per"
+" issuer."
+msgstr ""
+
+#: ../../source/overview/index.md:13
+msgid ""
+"This project is the third option, made maintainable: an engine that knows"
+" nothing about any particular report, plus **formats** — small, "
+"separately maintained recipes, one per report layout — that tell it where"
+" to look. The engine is the part that does not change; the formats are "
+"the part the community grows."
+msgstr ""
+
+#: ../../source/overview/index.md:32
+msgid "This section is the fast pass"
+msgstr ""
+
+#: ../../source/overview/index.md:33
+msgid ""
+"Four short chapters, no technical background needed for two of them, and "
+"each one names the place where the same subject is treated properly."
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "Page"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "Is"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "Goes deeper in"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`problem`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "what is being extracted, and why it is harder than scraping"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "—"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`how-it-works`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "one run, end to end, in a diagram and a paragraph"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../reference/design/index`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`the-repositories`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "the map: engine, formats, input databases, the site"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../start/ways-to-contribute`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`trust`"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+msgid "what the project claims about its own output, and what it refuses to claim"
+msgstr ""
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../guides/institutional/why-trust-a-grant`"
+msgstr ""
+
+#: ../../source/overview/index.md:43
+msgid "Reading paths, by what you need"
+msgstr ""
+
+#: ../../source/overview/index.md:44
+#, python-brace-format
+msgid ""
+"**Assessing whether to rely on this.** {doc}`problem`, then {doc}`trust`,"
+" then {doc}`../guides/institutional/index` — which is written for exactly"
+" that question and is honest about the limits rather than reassuring."
+msgstr ""
+
+#: ../../source/overview/index.md:48
+#, python-brace-format
+msgid ""
+"**Getting results out of it.** {doc}`../start/install`, {doc}`../start"
+"/first-run`, then {doc}`../guides/user/index` in order, and "
+"{doc}`../reference/configuration/index` when you tire of long command "
+"lines."
+msgstr ""
+
+#: ../../source/overview/index.md:52
+#, python-brace-format
+msgid ""
+"**Supporting a report nobody supports yet.** "
+"{doc}`../guides/formats/tutorials/first-format` end to end, with "
+"{doc}`../guides/formats/dev-loop` open beside it."
+msgstr ""
+
+#: ../../source/overview/index.md:55
+#, python-brace-format
+msgid ""
+"**Arguing with a decision.** {doc}`../reference/design/index`, and in "
+"particular {doc}`../reference/design/limits`, which lists what is "
+"accepted, what is broken, and what is designed and not built. The choices"
+" about *technology* rather than *algorithm* are in "
+"{doc}`../guides/engine/advanced/implementation-notes`."
+msgstr ""
+

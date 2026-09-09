@@ -1,0 +1,155 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:2
+msgid "freeports.standard\\_funcs.pdf\\_extract"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractAssetsStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractAssetsStandard>`\\ "
+"\\(fund\\_set\\, ...\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractAssetsStandard:1
+msgid "The pipe for the fund-assets blocks."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractCurrencyConstant "
+"<freeports.standard_funcs.pdf_extract.PdfExtractCurrencyConstant>`\\ "
+"\\(currency\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractCurrencyConstant:1
+msgid "A currency known in advance, without looking at the page at all."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractCurrencyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractCurrencyStandard>`\\ "
+"\\(selection\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractCurrencyStandard:1
+msgid "The pipe extracting the currency statement."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractFundStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractFundStandard>`\\ "
+"\\(selection\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractFundStandard:1
+msgid "The pipe extracting the fund name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractInvestmentsStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractInvestmentsStandard>`\\ "
+"\\(body\\_set\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractInvestmentsStandard:1
+msgid "The pipe for the investments table."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractManagmentCompanyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractManagmentCompanyStandard>`\\"
+" \\(selection\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractManagmentCompanyStandard:1
+msgid "`PdfExtractManagmentCompanyStandard(selection)` — la società di gestione."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractPageClassifyStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractPageClassifyStandard>`\\ "
+"\\(header\\_sets\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractPageClassifyStandard:1
+msgid ""
+"The page classifier: classifies the page if **every** header selection "
+"finds something."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`PdfExtractSfdrArticleStandard "
+"<freeports.standard_funcs.pdf_extract.PdfExtractSfdrArticleStandard>`\\ "
+"\\(...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.PdfExtractSfdrArticleStandard:1
+msgid ""
+"`PdfExtractSfdrArticleStandard(art9_selection, art8_selection, "
+"fund_selection)`."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractAssetsStandard:3
+msgid ""
+"**A divergence absorbed here:** the Python signature takes fourteen flat "
+"keywords, three per numeric column, while the native type groups each "
+"triple into one column. The flat signature is kept, and the grouping "
+"happens in `assets_column`."
+msgstr ""
+
+#: ../../docstring of pdf_extract.PdfExtractInvestmentsStandard:3
+msgid ""
+"**A divergence absorbed here:** two of the selections are accepted and "
+"ignored. That is not an oversight — they were never used on this side "
+"either, the currency and the management company arriving from sibling "
+"pipes. The native type, having no compatibility constraint, does not have"
+" them at all, but author modules still pass them, so the Python signature"
+" must still accept them."
+msgstr ""
+

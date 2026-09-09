@@ -1,0 +1,164 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:11
+msgid "Agreement and Good Faith Methodology"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:13
+msgid ""
+"**Purpose** The agreement_and_good_faith methodology certifies that a "
+"contributor has read, understood, and agrees with the content of an "
+"assertion based on their technical capabilities and in good faith."
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:16
+msgid ""
+"**Scope** This methodology covers assertion files in the "
+"``docs/source/validation/assertions/`` directory, including:"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:19
+msgid "``.rst`` files (documentation assertions)"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:20
+msgid "``.md`` files (markdown assertions)"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:21
+msgid "``.png`` files (visual assertions)"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:22
+msgid "``.svg`` files (diagram assertions)"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:24
+msgid "**Protocol Steps**"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:26
+msgid ""
+"**Thorough Reading/Review**: - Completely read the assertion content "
+"(text, diagrams, or visual elements) - Ensure understanding of all "
+"technical concepts and claims presented"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:29
+msgid ""
+"**Technical Capability Assessment**: - Evaluate the assertion within the "
+"scope of your technical expertise - Identify any areas beyond your "
+"current understanding - Seek clarification if any aspect is unclear"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:33
+msgid ""
+"**Good Faith Agreement**: - Confirm agreement with the assertion content "
+"to the best of your understanding - Acknowledge any limitations in your "
+"technical knowledge - Document any reservations or qualifications if "
+"applicable"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:37
+msgid ""
+"**Responsibility Acceptance**: - Accept responsibility for the "
+"consequences of agreeing with the assertion - Commit to updating your "
+"position if new information emerges"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:41
+msgid ""
+"**Trust Level** This methodology provides **personal certification** - it"
+" represents an individual's good-faith agreement based on their current "
+"technical understanding, but does not guarantee objective truth or "
+"comprehensive verification."
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:44
+msgid ""
+"**Applicable Context** Use this methodology for: - Assertions about "
+"software behavior or capabilities - Documentation accuracy claims - "
+"Architectural or design principle assertions - Best practice "
+"recommendations - Compliance or standard adherence statements"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:52
+msgid ""
+"**Limitations** - Agreement is subjective and based on individual "
+"technical capabilities - Does not replace empirical testing or formal "
+"verification - Should be used alongside other validation methodologies "
+"for critical assertions"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:57
+msgid ""
+"**Ethical Considerations** Contributors should only use this methodology "
+"when they have genuinely: - Made reasonable efforts to understand the "
+"assertion - Applied their technical knowledge appropriately - Acted in "
+"good faith without conflicts of interest"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:64
+msgid "Supported paths"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:66
+msgid ""
+"What this methodology covers is not a file a program produced. It is an "
+"**assertion**: a statement about the software, published as prose, that a"
+" person can read, understand and agree with. So its declared path names "
+"documentation rather than test output, and a grant under it is a claim "
+"about a *statement*, not about any bytes an extraction wrote."
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:71
+msgid "``docs/source/validation/assertions/**``"
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:72
+msgid ""
+"An assertion published in the documentation of **the repository the "
+"granted file lives in** -- for the freeports engine, "
+"``analysis_finance_reports``. Granting one means the protocol above was "
+"applied to that text: it was read completely, judged within the granter's"
+" own technical competence, and agreed with in good faith. It covers "
+"whatever form the assertion takes there, prose or diagram alike."
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:80
+msgid ""
+"Another project adopting this methodology would keep its assertions "
+"somewhere of its own, and this pattern would not reach them. That is "
+"deliberate rather than an oversight: a path means something only inside a"
+" repository, and the honest way to extend this methodology to a different"
+" layout is to say so in a page of your own rather than to widen this "
+"pattern until it means nothing."
+msgstr ""
+
+#: ../../source/validation/methodologies/agreement_and_good_faith.rst:86
+msgid ""
+"This is also why the paths here look nothing like those of ``basic "
+"check`` and ``golden standard``. Those methodologies vouch for what a "
+"program produced; this one vouches for what a person wrote and another "
+"person read."
+msgstr ""
+

@@ -1,0 +1,405 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/documents.md:1
+msgid "Naming a document"
+msgstr "Dare un nome a un documento"
+
+#: ../../source/guides/user/documents.md:3
+msgid ""
+"A **document specifier** says up to three things at once: where the report comes "
+"from, where it should live on disk, and what to call it in the output."
+msgstr ""
+"Uno **specificatore di documento** dice fino a tre cose insieme: da dove viene la "
+"relazione, dove deve stare sul disco, e come chiamarla nei risultati."
+
+#: ../../source/guides/user/documents.md:10
+msgid ""
+"Any of the three may be absent, and the shape is **inferred rather than declared** — "
+"there is no flag saying \"this one is a URL\". A `http://` or `https://` scheme at "
+"the head is what makes a segment a URL; everything else is a path."
+msgstr ""
+"Ciascuna delle tre può mancare, e la forma è **dedotta anziché dichiarata** — non c'è"
+" alcuna opzione che dica \"questo è un URL\". A rendere URL un segmento è uno schema "
+"`http://` o `https://` in testa; tutto il resto è un percorso."
+
+#: ../../source/guides/user/documents.md:14
+msgid "The forms a specifier can take"
+msgstr "Le forme che può prendere uno specificatore"
+
+#: ../../source/guides/user/documents.md
+msgid "You write"
+msgstr "Scrivi"
+
+#: ../../source/guides/user/documents.md
+msgid "url"
+msgstr "url"
+
+#: ../../source/guides/user/documents.md
+msgid "path"
+msgstr "percorso"
+
+#: ../../source/guides/user/documents.md
+msgid "name"
+msgstr "nome"
+
+#: ../../source/guides/user/documents.md
+msgid "`report.pdf`"
+msgstr "`report.pdf`"
+
+#: ../../source/guides/user/documents.md
+msgid "—"
+msgstr "—"
+
+#: ../../source/guides/user/documents.md
+msgid "that path, made absolute"
+msgstr "quel percorso, reso assoluto"
+
+#: ../../source/guides/user/documents.md
+msgid "its own text"
+msgstr "il suo stesso testo"
+
+#: ../../source/guides/user/documents.md
+msgid "`https://…/r.pdf`"
+msgstr "`https://…/r.pdf`"
+
+#: ../../source/guides/user/documents.md
+msgid "that URL"
+msgstr "quell'URL"
+
+#: ../../source/guides/user/documents.md
+msgid "the URL"
+msgstr "l'URL"
+
+#: ../../source/guides/user/documents.md
+msgid "`report.pdf:EURIZON 2023`"
+msgstr "`report.pdf:EURIZON 2023`"
+
+#: ../../source/guides/user/documents.md
+msgid "that path"
+msgstr "quel percorso"
+
+#: ../../source/guides/user/documents.md
+msgid "`EURIZON 2023`"
+msgstr "`EURIZON 2023`"
+
+#: ../../source/guides/user/documents.md
+msgid "`https://…/r.pdf:EURIZON 2023`"
+msgstr "`https://…/r.pdf:EURIZON 2023`"
+
+#: ../../source/guides/user/documents.md
+msgid "`https://…/r.pdf:local.pdf:`"
+msgstr "`https://…/r.pdf:local.pdf:`"
+
+#: ../../source/guides/user/documents.md
+msgid "`local.pdf`"
+msgstr "`local.pdf`"
+
+#: ../../source/guides/user/documents.md
+msgid "`https://…/r.pdf:local.pdf:EURIZON 2023`"
+msgstr "`https://…/r.pdf:local.pdf:EURIZON 2023`"
+
+#: ../../source/guides/user/documents.md:24
+msgid ""
+"The two-segment form is ambiguous on its face — `a:b` could be url+name or path+name "
+"— and the scheme resolves it. The last two forms **require** the scheme: without it, "
+"a missing URL would otherwise become a value assembled from nothing, and it is an "
+"error instead."
+msgstr ""
+"La forma a due segmenti è ambigua a prima vista — `a:b` potrebbe essere url+nome "
+"oppure percorso+nome — ed è lo schema a scioglierla. Le ultime due forme "
+"**pretendono** lo schema: senza, un URL mancante diventerebbe un valore messo insieme"
+" dal nulla, e invece è un errore."
+
+#: ../../source/guides/user/documents.md:28
+msgid ""
+"Note the trailing colon in `<url>:<path>:`. It is what distinguishes that form from "
+"`<url>:<name>`, and it is not optional."
+msgstr ""
+"Fa' caso ai due punti finali in `<url>:<path>:`. Sono ciò che distingue quella forma "
+"da `<url>:<name>`, e non sono facoltativi."
+
+#: ../../source/guides/user/documents.md:31
+msgid ""
+"Zero segments, or four and more, is an error naming the count. An empty string parses"
+" into a specifier with nothing set — not an error at parse time, only when it is "
+"validated as an actual input."
+msgstr ""
+"Zero segmenti, o quattro e più, è un errore che nomina il conteggio. Una stringa "
+"vuota si analizza in uno specificatore senza niente impostato — non è un errore in "
+"fase di analisi, ma solo quando lo si valida come ingresso vero e proprio."
+
+#: ../../source/guides/user/documents.md:35
+msgid "Colons inside a value"
+msgstr "Due punti dentro un valore"
+
+#: ../../source/guides/user/documents.md:37
+msgid ""
+"Wrap the segment in quotes. A URL port, a Windows drive letter, a name containing a "
+"colon:"
+msgstr ""
+"Metti il segmento fra virgolette. Una porta di URL, una lettera di unità Windows, un "
+"nome che contiene i due punti:"
+
+#: ../../source/guides/user/documents.md:43
+msgid ""
+"A quote only opens a quoted region at the **start** of a segment; anywhere else it "
+"stays a literal character. The whole specifier may also be wrapped in quotes, and the"
+" scheme is still detected underneath."
+msgstr ""
+"Una virgoletta apre una regione quotata solo **all'inizio** di un segmento; altrove "
+"resta un carattere letterale. Anche l'intero specificatore può essere messo fra "
+"virgolette, e lo schema viene comunque riconosciuto sotto di esse."
+
+#: ../../source/guides/user/documents.md:47
+msgid "Several documents at once"
+msgstr "Più documenti in una volta"
+
+#: ../../source/guides/user/documents.md:49
+msgid "On the command line, repeat `-i` or give several values after one:"
+msgstr "Sulla riga di comando, ripeti `-i` oppure dai più valori dopo uno solo:"
+
+#: ../../source/guides/user/documents.md:55
+msgid ""
+"Several documents in one invocation are **one job over a bundle**, not a loop of "
+"separate runs. That distinction is the reason the feature exists, and it matters most"
+" when the files are pieces of *one* report: publishers routinely split a report "
+"across files aimed at different audiences, so the holdings are in one file and the "
+"managers of those funds in another, and neither file on its own contains enough to "
+"extract the holdings with their managers attached."
+msgstr ""
+"Più documenti in una sola invocazione sono **un job su un fascio**, non un ciclo di "
+"esecuzioni separate. È per quella distinzione che la funzionalità esiste, e conta "
+"soprattutto quando i file sono pezzi di *una sola* relazione: gli editori dividono "
+"abitualmente una relazione su più file rivolti a pubblici diversi, così le posizioni "
+"stanno in un file e i gestori di quei fondi in un altro, e nessuno dei due file da "
+"solo contiene abbastanza per estrarre le posizioni con i loro gestori attaccati."
+
+#: ../../source/guides/user/documents.md:61
+#, python-brace-format
+msgid ""
+"Passed together, the pages of every file are classified per file and then **scheduled"
+" as one pool**, so a step reading one document produces the filter data a later step "
+"over another document is given. The bundle yields what no member of it yields alone. "
+"{doc}`../../reference/design/multidocument` is the full account."
+msgstr ""
+"Passati insieme, le pagine di ogni file sono classificate file per file e poi "
+"**pianificate come un'unica riserva**, così che un passo che legge un documento "
+"produca i dati di filtro che vengono dati a un passo successivo su un altro "
+"documento. Il fascio rende ciò che nessuno dei suoi membri rende da solo. "
+"{doc}`../../reference/design/multidocument` ne è il resoconto completo."
+
+#: ../../source/guides/user/documents.md:66
+msgid ""
+"From the environment and from a batch cell, where there is only one string to work "
+"with, the specifiers are separated by a **pipe**:"
+msgstr ""
+"Dall'ambiente e da una cella di lotto, dove c'è una stringa sola su cui lavorare, gli"
+" specificatori sono separati da una **barra verticale**:"
+
+#: ../../source/guides/user/documents.md:73
+msgid "Directories"
+msgstr "Cartelle"
+
+#: ../../source/guides/user/documents.md:75
+msgid ""
+"A path that is a directory **expands to every PDF in it**, and each expanded document"
+" is named `<name>/<file name>` — so one specifier can name a whole folder and still "
+"produce distinguishable rows:"
+msgstr ""
+"Un percorso che sia una cartella **si espande a ogni PDF che vi si trova**, e ogni "
+"documento espanso si chiama `<nome>/<nome del file>` — così un solo specificatore può"
+" nominare un'intera cartella e produrre comunque righe distinguibili:"
+
+#: ../../source/guides/user/documents.md:83
+msgid "gives documents called `2024/eurizon.pdf`, `2024/amundi.pdf`, and so on."
+msgstr "dà documenti chiamati `2024/eurizon.pdf`, `2024/amundi.pdf`, e così via."
+
+#: ../../source/guides/user/documents.md:85
+msgid "The name is not decoration"
+msgstr "Il nome non è un ornamento"
+
+#: ../../source/guides/user/documents.md:87
+msgid ""
+"It is the value that appears in the **`Report` column** of every output table, and it"
+" is how rows from two documents are told apart afterwards. Left to default, it is the"
+" whole absolute path — which works, and is unpleasant to read in a spreadsheet, and "
+"will bite you the first time you use `--separate-out`, since the name becomes part of"
+" the file name."
+msgstr ""
+"È il valore che compare nella **colonna `Report`** di ogni tabella di risultato, ed è"
+" il modo in cui poi si distinguono le righe di due documenti. Lasciato al valore "
+"predefinito, è l'intero percorso assoluto — cosa che funziona, è sgradevole da "
+"leggere in un foglio di calcolo, e ti si ritorcerà contro la prima volta che userai "
+"`--separate-out`, dato che il nome entra a far parte del nome del file."
+
+#: ../../source/guides/user/documents.md:92
+msgid "Downloading, and `save_pdf`"
+msgstr "Lo scaricamento, e `save_pdf`"
+
+#: ../../source/guides/user/documents.md:94
+msgid ""
+"Downloaded documents are **kept** by default. `--no-download` does not suppress the "
+"download; it suppresses keeping the file. The behaviour is a small matrix, and it is "
+"worth reading because the two halves genuinely differ in intent — with saving on, a "
+"path is *where to put it*; with saving off, a path is *where to look first*."
+msgstr ""
+"I documenti scaricati sono **conservati** per impostazione predefinita. `--no-"
+"download` non impedisce lo scaricamento; impedisce di tenere il file. Il "
+"comportamento è una piccola matrice, e vale la pena di leggerla perché le due metà "
+"differiscono davvero nell'intento — con la conservazione accesa, un percorso è *dove "
+"metterlo*; con la conservazione spenta, un percorso è *dove guardare per primo*."
+
+#: ../../source/guides/user/documents.md:99
+msgid "With `save_pdf` on (the default)"
+msgstr "Con `save_pdf` acceso (il predefinito)"
+
+#: ../../source/guides/user/documents.md
+msgid "You gave"
+msgstr "Hai dato"
+
+#: ../../source/guides/user/documents.md
+msgid "What happens"
+msgstr "Che cosa succede"
+
+#: ../../source/guides/user/documents.md
+msgid "url only"
+msgstr "solo un url"
+
+#: ../../source/guides/user/documents.md
+msgid "downloaded and written to `report.pdf` **in the working directory**"
+msgstr "scaricato e scritto in `report.pdf` **nella cartella di lavoro**"
+
+#: ../../source/guides/user/documents.md
+msgid "url + an existing directory"
+msgstr "url + una cartella esistente"
+
+#: ../../source/guides/user/documents.md
+msgid "downloaded to `<dir>/report.pdf`"
+msgstr "scaricato in `<cartella>/report.pdf`"
+
+#: ../../source/guides/user/documents.md
+msgid "url + an existing file"
+msgstr "url + un file esistente"
+
+#: ../../source/guides/user/documents.md
+msgid "downloaded to that file"
+msgstr "scaricato in quel file"
+
+#: ../../source/guides/user/documents.md
+msgid "url + a non-existent file whose parent exists"
+msgstr "url + un file inesistente il cui genitore esiste"
+
+#: ../../source/guides/user/documents.md
+msgid "downloaded there"
+msgstr "scaricato lì"
+
+#: ../../source/guides/user/documents.md
+msgid "url + a non-existent file whose parent does **not** exist"
+msgstr "url + un file inesistente il cui genitore **non** esiste"
+
+#: ../../source/guides/user/documents.md
+msgid "**error**, naming the parent"
+msgstr "**errore**, che nomina il genitore"
+
+#: ../../source/guides/user/documents.md
+msgid "url + a non-existent path with no extension"
+msgstr "url + un percorso inesistente senza estensione"
+
+#: ../../source/guides/user/documents.md
+msgid "**error**: treated as a directory that should have existed"
+msgstr "**errore**: trattato come una cartella che sarebbe dovuta esistere"
+
+#: ../../source/guides/user/documents.md
+msgid "path only, existing file"
+msgstr "solo un percorso, file esistente"
+
+#: ../../source/guides/user/documents.md
+msgid "used as is, nothing downloaded"
+msgstr "usato com'è, non si scarica niente"
+
+#: ../../source/guides/user/documents.md
+msgid "path only, existing directory"
+msgstr "solo un percorso, cartella esistente"
+
+#: ../../source/guides/user/documents.md
+msgid "expands to the PDFs in it"
+msgstr "si espande ai PDF che contiene"
+
+#: ../../source/guides/user/documents.md
+msgid "path only, non-existent"
+msgstr "solo un percorso, inesistente"
+
+#: ../../source/guides/user/documents.md
+msgid "**error**, naming the path"
+msgstr "**errore**, che nomina il percorso"
+
+#: ../../source/guides/user/documents.md:113
+msgid ""
+"A path with no extension that has never been seen on disk is treated as a "
+"*directory*, not as a file to download. That is what lets \"you named a missing "
+"directory\" be told apart from \"you named a missing file in a directory that "
+"exists\"."
+msgstr ""
+"Un percorso senza estensione mai visto sul disco è trattato come una *cartella*, non "
+"come un file da scaricare. È ciò che permette di distinguere \"hai nominato una "
+"cartella che manca\" da \"hai nominato un file che manca in una cartella che "
+"esiste\"."
+
+#: ../../source/guides/user/documents.md:117
+msgid "With `save_pdf` off"
+msgstr "Con `save_pdf` spento"
+
+#: ../../source/guides/user/documents.md
+msgid "downloaded, kept nowhere"
+msgstr "scaricato, non conservato da nessuna parte"
+
+#: ../../source/guides/user/documents.md
+msgid "url + a valid PDF path"
+msgstr "url + un percorso di PDF valido"
+
+#: ../../source/guides/user/documents.md
+msgid "that file is used"
+msgstr "si usa quel file"
+
+#: ../../source/guides/user/documents.md
+msgid "url + a directory"
+msgstr "url + una cartella"
+
+#: ../../source/guides/user/documents.md
+msgid "url + an invalid path"
+msgstr "url + un percorso non valido"
+
+#: ../../source/guides/user/documents.md
+msgid "**warning**, and the run falls back to the URL"
+msgstr "**avviso**, e l'esecuzione ripiega sull'URL"
+
+#: ../../source/guides/user/documents.md:126
+msgid ""
+"With saving off, an unusable path is never fatal: there is a URL to fall back to, and"
+" falling back with a warning is more useful than refusing. With saving on there is "
+"nothing to fall back to, so the same situation is an error."
+msgstr ""
+"Con la conservazione spenta, un percorso inutilizzabile non è mai fatale: c'è un URL "
+"su cui ripiegare, e ripiegare con un avviso è più utile che rifiutare. Con la "
+"conservazione accesa non c'è niente su cui ripiegare, quindi la stessa situazione è "
+"un errore."
+

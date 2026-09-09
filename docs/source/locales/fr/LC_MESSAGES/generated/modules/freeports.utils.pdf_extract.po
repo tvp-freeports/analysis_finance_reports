@@ -1,0 +1,337 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:2
+msgid "freeports.utils.pdf\\_extract"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`ExtractTextPdfBlockOrFailPage "
+"<freeports.utils.pdf_extract.ExtractTextPdfBlockOrFailPage>`\\ "
+"\\(selection\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.ExtractTextPdfBlockOrFailPage:1
+msgid ""
+"Builds the pipe that extracts an expected text and fails the page if it "
+"is not there."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`get_groups <freeports.utils.pdf_extract.get_groups>`\\ "
+"\\(lines\\, treshold\\[\\, vertical\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.get_groups:1
+msgid "Groups lines by proximity along one axis."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`get_table_coordinates "
+"<freeports.utils.pdf_extract.get_table_coordinates>`\\ \\(lines\\[\\, "
+"table\\_cfg\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.get_table_coordinates:1
+msgid "The `(row, column)` coordinates of every PDF line of a table."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`pdfimages_from_pagedict "
+"<freeports.utils.pdf_extract.pdfimages_from_pagedict>`\\ \\(page\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.pdfimages_from_pagedict:1
+msgid "The raster images of a page, from the same dict."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`pdfline_selection_from_dict "
+"<freeports.utils.pdf_extract.pdfline_selection_from_dict>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.pdfline_selection_from_dict:1
+msgid ""
+"A selection written as a mapping — the extended form of the same "
+"configuration."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`pdfline_selection_from_str "
+"<freeports.utils.pdf_extract.pdfline_selection_from_str>`\\ \\(input\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.pdfline_selection_from_str:1
+msgid ""
+"A selection written in the compact textual syntax formats repositories "
+"use in their configuration files."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`pdflines_from_pagedict "
+"<freeports.utils.pdf_extract.pdflines_from_pagedict>`\\ \\(page\\[\\, "
+"auto\\_rotate\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:19:<autosummary>:1
+#: of pdf_extract.pdflines_from_pagedict:1
+msgid "The text lines of a page, from the dict PyMuPDF returns."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:21
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`CollapseAlgorithm "
+"<freeports.utils.pdf_extract.CollapseAlgorithm>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.CollapseAlgorithm:1 of
+msgid "Shim Python di [`CollapseAlgorithm`]."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`ColumnConfig <freeports.utils.pdf_extract.ColumnConfig>`\\ "
+"\\(\\[limits\\, nullable\\, splitting\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.ColumnConfig:1 of
+msgid "The Python shim of a column configuration."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ":py:obj:`Limits <freeports.utils.pdf_extract.Limits>`\\ \\(a\\, b\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.Limits:1 of
+msgid "Shim Python di [`Limits`], l'intervallo `(a, b)` con `a < b`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ":py:obj:`PageImage <freeports.utils.pdf_extract.PageImage>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.PageImage:1 of
+msgid "Shim Python di [`PageImage`]."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`PdfLine <freeports.utils.pdf_extract.PdfLine>`\\ \\(font\\, "
+"font\\_size\\, text\\, bbox\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.PdfLine:1 of
+msgid "The Python shim of a page line: text with its font, size and bounding box."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`PdfLineSelection "
+"<freeports.utils.pdf_extract.PdfLineSelection>`\\ \\(\\[font\\, "
+"font\\_size\\, text\\, area\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.PdfLineSelection:1 of
+msgid "The Python shim of a line selection."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ":py:obj:`PdfLineSet <freeports.utils.pdf_extract.PdfLineSet>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.PdfLineSet:1 of
+msgid ""
+"The Python shim of a line set: a selection already resolved against a "
+"page."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`RowConfig <freeports.utils.pdf_extract.RowConfig>`\\ "
+"\\(\\[limits\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.RowConfig:1 of
+msgid "Shim Python di [`RowConfig`]."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`SplittingState <freeports.utils.pdf_extract.SplittingState>`\\ "
+"\\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.SplittingState:1 of
+msgid "Shim Python di [`SplittingState`]."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`TableConfig <freeports.utils.pdf_extract.TableConfig>`\\ "
+"\\(\\[cols\\, rows\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.TableConfig:1 of
+msgid "The Python shim of a table configuration."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`TablePosAlgorithm "
+"<freeports.utils.pdf_extract.TablePosAlgorithm>`\\ \\(\\[bits\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.TablePosAlgorithm:1 of
+msgid "The Python shim of the table-recognition flags."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+msgid ""
+":py:obj:`TablePosMeasureUnit "
+"<freeports.utils.pdf_extract.TablePosMeasureUnit>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.pdf_extract.rst:35:<autosummary>:1
+#: freeports.utils.pdf_extract.TablePosMeasureUnit:1 of
+msgid "Shim Python di [`TablePosMeasureUnit`]."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.ColumnConfig:3 of
+msgid ""
+"Unlike the row one it is not frozen: a formats repository sets the "
+"splitting **after** construction, and without a setter that line would "
+"stop working."
+msgstr ""
+
+#: ../../docstring of pdf_extract.ExtractTextPdfBlockOrFailPage:3
+msgid ""
+"The only pipe of this module also exposed directly among the utilities, "
+"because author modules use it for blocks that are none of the three "
+"standard cases below."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.PdfLineSelection:3 of
+msgid ""
+"It wraps the *relative* form rather than the either-or one, because the "
+"relative branch is a superset of the absolute one — an absolute selection"
+" is an absolute leaf inside a relative tree — and keeping only one makes "
+"the operators definable once instead of over four combinations."
+msgstr ""
+
+#: ../../docstring
+#: freeports.utils.pdf_extract.PdfLineSelection.area_from_bounds:1 of
+msgid ""
+"Each edge is either a number, an absolute coordinate, **or** another "
+"selection, whose corresponding edge is taken. The form a formats "
+"repository uses most after matching by text."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.PdfLineSelection.contextualize:1
+#: of
+msgid "The selection resolved against a set of lines, without applying it."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.PdfLineSelection.select:1 of
+msgid "The lines satisfying the selection, in the order they appear."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.PdfLineSelection.select:3 of
+msgid ""
+"The selection is *contextualised* first: its relative parts need the "
+"page's lines to know what they refer to."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.TableConfig:3 of
+msgid ""
+"The rows and columns accept a single configuration or an iterable: "
+"passing one directly is the form a formats repository uses most often."
+msgstr ""
+
+#: ../../docstring freeports.utils.pdf_extract.TablePosAlgorithm:3 of
+msgid ""
+"Not a catalogue of names like the block-type ones: these flags "
+"**combine** with `|`, and that is how a formats repository writes them."
+msgstr ""
+
+#: ../../docstring
+#: freeports.utils.pdf_extract.TablePosAlgorithm.from_expression:1 of
+msgid ""
+"The textual expression formats repositories write in their configuration "
+"files."
+msgstr ""
+
+#: ../../docstring of pdf_extract.get_table_coordinates:3
+msgid ""
+"The signature is the established one, keyword arguments included: that is"
+" how a formats repository calls it."
+msgstr ""
+

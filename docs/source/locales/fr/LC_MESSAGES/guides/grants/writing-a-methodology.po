@@ -1,0 +1,655 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/grants/writing-a-methodology.md:1
+msgid "Writing a methodology"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:3
+msgid ""
+"A methodology is a page of prose. Nothing about it is executable, nothing"
+" about it is checked by a program, and the tool that uses it never reads "
+"a word of it except to find one optional section."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:6
+msgid ""
+"That is not a limitation to work around. It is the whole idea, and this "
+"chapter is about writing one well."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:9
+msgid "What a methodology is for"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:11
+msgid ""
+"When somebody grants a file, what they sign is roughly: *I applied the "
+"protocol described in this text to this file, and I stand behind the "
+"result.* The methodology is that text. So the question a methodology page"
+" has to answer is not \"what should the tool check?\" — the tool checks "
+"hashes and signatures and nothing else — but:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:16
+msgid ""
+"**What is the person who grants a file under this methodology claiming, "
+"and what are they not claiming?**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:19
+msgid ""
+"A reader downstream will one day look at a `.csv` in a formats "
+"repository, see that three people vouched for it under *basic check*, and"
+" decide how much that is worth. What decides that is your page. If it "
+"says something a careful person can honestly do and honestly report, the "
+"grant means something. If it is a checklist nobody could truthfully "
+"complete, the grant is theatre, and the mechanism around it — hashes, "
+"signatures, sources — is theatre too."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "The one test that matters"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:28
+msgid ""
+"Read your protocol steps and ask: *could a competent, honest person do "
+"exactly this, in an afternoon, and know whether they had done it?* A step"
+" that cannot be honestly completed does not raise the trust level of the "
+"methodology. It lowers it, because the grants made under it were made by "
+"people who ticked it anyway."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:34
+msgid ""
+"Two consequences follow, and both are worth saying out loud on the page "
+"itself:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:36
+msgid ""
+"**A methodology is not a quality gate.** It does not say the data is "
+"right. It says what a person did and what they concluded. `basic check` "
+"says somebody ran the thing and looked at the output; `golden standard` "
+"says somebody checked every value against the source document. Neither "
+"says the extraction is correct, because no human procedure says that."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:41
+msgid ""
+"**Weak methodologies are useful.** The temptation, writing a first "
+"methodology, is to make it demanding so that the grant sounds impressive."
+" Resist it. A weak claim that is true is worth more than a strong claim "
+"that is aspirational, and a repository is far better served by a hundred "
+"honest `basic check` grants than by three `golden standard` grants nobody"
+" could really have earned."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:46
+msgid "The anatomy of a page"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:48
+msgid ""
+"The three published methodologies share a shape, and a new one should "
+"follow it. Only the last row is read by a program; every other section "
+"exists for the person deciding whether to grant, and for the person "
+"downstream deciding what the grant is worth."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "Section"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Purpose**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "in one or two sentences, what a grant under this methodology asserts"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Scope**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "what kinds of thing it applies to, in prose"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Protocol steps**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "what the granter actually does, in order, concretely enough to follow"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Trust level**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "how strong the resulting claim is, said plainly and without flattering it"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Applicable context**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "when to reach for this one rather than another"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Limitations**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "what a grant under it does **not** establish"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "**Supported paths**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid ""
+"*optional, and machine-read* — the repository paths it covers, each with "
+"a gloss"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:62
+msgid ""
+"The order is a reading order, not a rule. What matters is that "
+"**Limitations** is there and is honest: it is the section a downstream "
+"reader trusts you for, and a page without one reads like marketing."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:66
+msgid ""
+"Here is the skeleton, in reStructuredText, which is the format a "
+"methodology page is written in:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:96
+msgid "Declaring the paths it covers"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:98
+msgid ""
+"Everything above is prose for people. `Supported paths` is the one "
+"section a program reads — and even there, what it reads is only the "
+"patterns; the prose under each of them is shown to the reader untouched, "
+"never interpreted."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:119
+msgid ""
+"It is an ordinary, **visible** section, and each entry is a definition-"
+"list term that is a single inline literal with an indented gloss under "
+"it. Anything else in the section is prose and is ignored. Two deliberate "
+"non-choices are worth knowing: it is not a hidden comment block, because "
+"that would put the declaration where a reader of the published page could"
+" not see it; and it is not a custom Sphinx directive, because that would "
+"break every plain-reStructuredText consumer — including the tool itself, "
+"which fetches the page as text from wherever you published it."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:126
+msgid "The grammar"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:128
+msgid "Four tokens, and everything else is literal:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "Token"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "Matches"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "`*`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "any part of **one** path segment; never crosses a `/`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "`**`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "zero or more whole segments"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "a trailing `/`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "the directory and everything under it — the same as appending `**`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "anything else"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "itself"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:137
+msgid ""
+"No character classes, no braces, no negation, no `?`. Patterns are always"
+" relative to the repository root, and a leading `/` is ignored rather "
+"than refused."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:140
+msgid ""
+"The grammar is this small on purpose. These patterns are read by people "
+"deciding whether to trust a grant, and a pattern language that *looked* "
+"like a shell glob without being one would be worse than having none: the "
+"reader would believe something the tool does not do."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:144
+msgid ""
+"`**` is not decoration, and the commonest mistake is reaching for `*` "
+"where the real tree needs it. A formats repository may nest a **variant**"
+" between the format and its outputs, and may equally not — both layouts "
+"are ordinary, and a real repository contains a mixture:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:155
+msgid ""
+"`*` matches exactly one segment, so `tests/formats/*/out/*.csv` covers "
+"the first and misses the second, and `tests/formats/*/*/out/*.csv` does "
+"precisely the reverse. Neither is what you meant. "
+"`tests/formats/**/out/*.csv` covers both, because `**` is *zero or more* "
+"segments — which is the whole reason the grammar has a token for that and"
+" not merely for \"one\"."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:160
+msgid ""
+"Check yours against real paths before publishing, from the repository the"
+" patterns are about:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:169
+msgid ""
+"It prints nothing and answers in its exit status, like `test`. To see "
+"everything a pattern would cover in a repository as it stands — which is "
+"also the denominator of its coverage figure:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:176
+msgid "What follows from declaring, and from not declaring"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:178
+msgid ""
+"**A page with no `Supported paths` section supports any path.** That is "
+"the behaviour from before the section existed, and it is the honest "
+"answer for a methodology whose scope genuinely cannot be written as a set"
+" of paths. Leaving the section out is a legitimate choice, not an "
+"omission."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:182
+msgid ""
+"A section that exists and declares *nothing* is read the other way — as a"
+" page whose author opened the subject in order to constrain it and then "
+"named none — and `grant` says so, because that is almost certainly a "
+"mistake in the page rather than a methodology that covers nothing."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:186
+msgid ""
+"Where a grant names a path outside the declared set, the three moments "
+"behave differently on purpose:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "Moment"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "What happens"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "`grant`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid ""
+"**refused**, printing every pattern with its gloss. Overridable with "
+"`--force`, or by answering the question it asks at a terminal"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "`check-grants`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "a **warning**, never a failure"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "the three lookups"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:25
+msgid "listed, and marked `(!)`"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:195
+msgid ""
+"Refusing at grant time is cheap and catches the mistake while its author "
+"is standing there. Failing at check time would break somebody's "
+"repository because *you* edited your page, which is not a power a "
+"methodology author should have."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:199
+msgid "The same path in two repositories"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:201
+msgid ""
+"`tests/formats/` exists in a formats repository and in the engine's own "
+"repository, and it means different things in the two. A pattern cannot "
+"tell them apart, and the tool does not try."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:204
+msgid ""
+"**Resolve it in the gloss.** This is the reason the prose under each "
+"pattern is required reading rather than decoration:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:215
+msgid ""
+"A reader who is about to grant sees that sentence in the refusal message "
+"if their path does not match, and sees it on the published page if it "
+"does. That is where the ambiguity gets resolved: by a person having "
+"written down which one they meant."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:219
+msgid "A worked example: a methodology for assertions"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:221
+msgid ""
+"The three published methodologies do not all look alike, and the "
+"interesting one is **`agreement and good faith`**, because what it grants"
+" is not a test output at all."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:224
+msgid ""
+"Its subject is an **assertion**: a statement in the documentation. "
+"Something like *\"the extraction algorithm does not silently drop rows it"
+" cannot parse\"* — a claim about the software, written as prose, which "
+"somebody can read, understand and agree with. Granting it does not mean "
+"you ran anything. It means you read the statement, you understood it "
+"within your own technical competence, and you are willing to put your "
+"name to agreeing with it."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:230
+msgid "Read its trust level as its author wrote it:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:232
+msgid ""
+"This methodology provides **personal certification** — it represents an "
+"individual's good-faith agreement based on their current technical "
+"understanding, but does not guarantee objective truth or comprehensive "
+"verification."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:236
+msgid ""
+"That sentence is the whole methodology in miniature, and it is a model of"
+" the kind of honesty the section asks for. It does not say the assertion "
+"is true. It says a named person, with stated limitations, agreed with it."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:240
+msgid ""
+"Its `Supported paths` therefore look nothing like the other two. There "
+"are no test outputs to name:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:253
+msgid "Three things in that gloss are worth copying:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:255
+msgid ""
+"it says which repository the path is in, because the same path elsewhere "
+"is not the same thing;"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:256
+msgid ""
+"it says what the grant is a claim **about** — the statement, not an "
+"output — which is the distinction that makes this methodology different "
+"from the other two;"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:258
+msgid ""
+"it says what it does **not** reach, so a reader who came looking for "
+"their own assertions is told why they are not covered rather than left to"
+" guess."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:261
+msgid ""
+"Compare with `basic check`, whose patterns name test outputs and whose "
+"gloss talks about a program having run. Same section, same grammar, and "
+"two completely different kinds of claim — which is exactly what a "
+"methodology is for."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:265
+msgid "Pinning what the page cites"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:267
+msgid ""
+"A methodology page is prose, and prose cites things: a diagram, a "
+"specification, another document. A grant made under the page is in part a"
+" claim about what those things said. So the page can pin each of them by "
+"hash, in an ordinary reStructuredText comment:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:281
+msgid ""
+"`..` followed by text that is not a directive is a comment in every "
+"reStructuredText parser: it renders as nothing, breaks no build, and "
+"reads plainly in the source. The target is either an absolute URI or a "
+"path relative to the page itself."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:285
+msgid ""
+"**These are not a second thing to trust.** They are lines of the page, so"
+" the page's own `sha256` — the one every validation document records — "
+"already commits to every one of them. Following them is a deepening, and "
+"it happens by default:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:294
+msgid ""
+"You do not write those lines by hand. Let the tool fetch and hash "
+"everything the page cites:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:300
+msgid ""
+"It is idempotent, it refuses to touch a page it did not fetch from your "
+"own filesystem, and when it does write it tells you loudly that the "
+"page's hash has changed — which is the next section."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:303
+msgid "Publishing it, and what publishing commits you to"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:305
+msgid ""
+"A methodology becomes usable the moment somebody's `validate.sources` can"
+" resolve it. A source is a pattern with exactly one `*`, standing for the"
+" methodology's relative name:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:315
+msgid ""
+"The name `my methodology` is looked for at `methodologies/my_methodology`"
+" under each source in turn, so a published tree looks like this:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:324
+msgid ""
+"Order is priority, and the arrangement above is the common one: the "
+"published documentation for the methodologies everybody shares, plus your"
+" own for the ones you wrote. `freeports-validate sources` shows what each"
+" name resolves to and warns where one source shadows another."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:328
+#, python-brace-format
+msgid ""
+"{doc}`../../reference/cli/index` has the mechanics — the grammar in full,"
+" the GitHub rewrite, the cache, offline behaviour. What belongs here is "
+"the obligation that publishing creates:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:332
+msgid ""
+"**Editing a published methodology invalidates every grant made under it —"
+" everywhere.**"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:334
+msgid ""
+"A validation document records the `sha256` of the text its grants were "
+"made under. Change one character of the page and that hash changes, so "
+"every document that adopted it now points at a text that no longer "
+"exists, in every repository you have never heard of. `check-grants` "
+"reports it, and the only honest remedies are `update methodology` — which"
+" **drops** every file granted under it, because those claims were about "
+"the old text — or reverting your edit."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:340
+msgid ""
+"That is the mechanism working, not breaking. But it means a published "
+"methodology is a commitment, and the time to get the wording right is "
+"before anybody adopts it."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:344
+msgid "Two practical consequences:"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:346
+msgid ""
+"**Version by name, not by edit.** If a methodology needs to change "
+"substantively, publish `my_methodology_2` beside the first and let people"
+" adopt it deliberately. Editing in place asks everyone who trusted you to"
+" re-do work they already did."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:350
+msgid ""
+"**Typos are not free.** There is no such thing as a cosmetic change to a "
+"hashed artefact. Proof-read before publishing, and expect to fix mistakes"
+" by publishing a new name rather than by correcting the old one."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:354
+msgid "A checklist"
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:356
+msgid ""
+"Write **Purpose**, **Scope**, **Protocol steps**, **Trust level**, "
+"**Applicable context** and **Limitations**, in prose, for a person."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:358
+msgid ""
+"Read the protocol steps back and ask whether an honest person could "
+"complete them and know they had."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:360
+msgid ""
+"Decide whether the scope is a set of paths. If it is not, leave "
+"`Supported paths` out."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:361
+msgid ""
+"If it is, write each pattern with a gloss that says which repository it "
+"means and what vouching for such a file claims."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:363
+msgid "Check every pattern against a real path with `pathmatch.py match`."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:364
+msgid "Run `refresh-links` if the page cites anything."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:365
+msgid "Publish it, and point a source at it."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:366
+msgid ""
+"Check it resolves, before telling anyone: `freeports-validate check-"
+"methodology \"my methodology\"`."
+msgstr ""
+
+#: ../../source/guides/grants/writing-a-methodology.md:367
+msgid "Treat it as frozen from the first grant made under it."
+msgstr ""
+

@@ -1,0 +1,181 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/engine/conventions/index.rst:3
+msgid "Conventions and house style"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:7
+msgid ""
+"**These are conventions, not rules, and their only purpose is "
+"consistency.** They are what this codebase happens to have settled on, "
+"written down so that a reader can predict the next file before opening it"
+" and a contributor does not have to guess. Almost every one of them is "
+"*arbitrary* — a coin-toss between defensible options that was worth "
+"deciding once so nobody has to decide it again."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:13
+msgid ""
+"So: follow them where they help, and say so where they do not. A "
+"convention that makes your change worse is a convention with a missing "
+"exception, and pointing that out is more useful than complying. What "
+"genuinely matters is much shorter than what follows — that the tests are "
+"honest, that errors are not silently swallowed, and that the next person "
+"can read what you wrote. The rest is house style, and house style is "
+"negotiable."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:31
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:32
+msgid "Covers"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:33
+msgid ":doc:`rust`"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:34
+msgid ""
+"the crate: module layout, doc-comments, error enums, the public surface, "
+"dependencies"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:35
+msgid ":doc:`python`"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:36
+msgid ""
+"``freeports_dev`` and ``freeports_validate``: layout, docstrings, ruff, "
+"the shell half"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:37
+msgid ":doc:`testing`"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:38
+msgid ""
+"test-driven development where it fits, how tests are organised, and what "
+"\"fast\" means"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:41
+msgid "What a change to the engine must do"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:43
+msgid "The short list, in rough order of how much anyone will mind:"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:45
+msgid ""
+"**Write the tests first**, and write them to exhaust the branches rather "
+"than to sample them. :doc:`testing` is what that means in practice."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:47
+msgid ""
+"**Let the code document itself**, and use doc-comments for what the code "
+"cannot say: what a module guarantees, why it is built this way where the "
+"choice is not obvious, what its known limits are."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:49
+msgid "**Errors are typed**, one enum per module. A user path does not panic."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:50
+msgid ""
+"**Do not widen the public API by accident.** ``api`` is the promise; the "
+"rest of the tree is internal and free to move."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:52
+msgid ""
+"**Do not change a formats repository to accommodate an engine change.** "
+"Propose it instead: those repositories have other maintainers, and their "
+"reference output is a specification."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:54
+msgid ""
+"**Fix inherited bugs at the root, but ask first.** Where the old "
+"behaviour may be depended on, an opt-in parameter that defaults to the "
+"old behaviour is usually the right shape."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:56
+msgid ""
+"**A build product does not go into version control**, and neither does a "
+"run's output. ``make clean`` sweeps what a build leaves behind; if "
+"something keeps reappearing in your working copy that neither you nor "
+"``clean`` put there, that is a bug worth reporting."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:59
+msgid "Meaningful commit messages, with the issue id when there is one."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:61
+msgid ""
+"Only the third, fourth and fifth of those are about *correctness*. The "
+"others are consistency, and they are here because deciding them once is "
+"cheaper than deciding them per pull request."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:65
+msgid "Before opening a pull request"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:71
+msgid ""
+"That is the same gate the commit hook fires — lint plus the full test "
+"suite — so if your commits went through, it has already passed. Run it "
+"once more before the pull request anyway: the hook sees the working tree "
+"rather than the staged snapshot, and a rebase can produce a commit nobody"
+" tested."
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:75
+msgid ""
+"If you touched anything the formats side depends on, add the tests of a "
+"real formats repository:"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:81
+msgid ""
+"And if you touched the documentation, build it — a broken cross-reference"
+" is a warning, not an error, and it is easy to miss:"
+msgstr ""
+
+#: ../../source/guides/engine/conventions/index.rst:90
+msgid ""
+"No CI currently builds this repository; the pipeline in ``Jenkinsfile`` "
+"is stopped and waiting to be turned back on. Until then ``make pre-"
+"commit`` is the only gate there is, which is a reason to run it rather "
+"than to skip it."
+msgstr ""
+

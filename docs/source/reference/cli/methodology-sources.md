@@ -4,15 +4,15 @@ A grant names a methodology, and a methodology is a **document at an address**. 
 
 ## What a source is
 
-A grant is a claim made **under a text**, so the tool has to be able to read that text. It no longer
-carries one. Methodology pages are resolved from **sources** you configure, and the hash your
+A grant is a claim made **under a text**, so the tool has to be able to read that text, and it does
+not carry one. Methodology pages are resolved from **sources** you configure, and the hash your
 document records is the hash of whatever your sources gave you.
 
-That is a deliberate trade, and it is worth stating both halves. The pages used to travel inside the
-installed package, which meant upgrading `freeports-validate` silently changed what every grant in
-every repository referred to. Now the text is a document at an address you chose — and the mirror
-image of the old fragility is that whoever publishes that address can invalidate your grants by
-editing the page. {doc}`../../guides/institutional/why-trust-a-grant` says why that is the right way round.
+That is a deliberate trade, and it is worth stating both halves. Were the pages to travel inside the
+installed package, upgrading `freeports-validate` would silently change what every grant in every
+repository referred to. Instead the text is a document at an address you chose — and the mirror
+image of that freedom is that whoever publishes the address can invalidate your grants by editing
+the page. {doc}`../../guides/institutional/why-trust-a-grant` says why that is the right way round.
 
 **The source is not recorded in your document.** A validation document stores a methodology's *name*
 and its *sha256*, and nothing about where either came from. The source is a contract between the

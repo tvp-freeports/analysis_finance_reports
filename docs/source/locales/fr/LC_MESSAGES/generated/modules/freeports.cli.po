@@ -1,0 +1,146 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.cli.rst:2
+msgid "freeports.cli"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.cli.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.cli.rst:13:<autosummary>:1
+msgid ""
+":py:obj:`run_job <freeports.cli.run_job>`\\ \\(input\\_reports\\, "
+"format\\, target\\_lists\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.cli.rst:13:<autosummary>:1
+#: cli.run_job:1 of
+msgid ""
+"Runs **one** job and writes its results, like a single command-line "
+"invocation."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.cli.rst:15
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.cli.rst:18:<autosummary>:1
+msgid ""
+":py:obj:`FreeportsFileConfig <freeports.cli.FreeportsFileConfig>`\\ "
+"\\(path\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.cli.rst:18:<autosummary>:1
+#: freeports.cli.FreeportsFileConfig:1 of
+msgid "The Python shim of the configuration file."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig:3 of
+msgid ""
+"It exposes only what callers really read from it: where to find it, which"
+" input database and formats repository it declares, and the two tooling "
+"sections that `freeports-dev` and `freeports-validate` are configured "
+"through. It is not the complete resolved configuration, which is the "
+"result of merging every source and makes no sense to build from Python."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig:8 of
+msgid ""
+"This class is the whole reason the two tooling commands need no "
+"configuration machinery of their own: finding the file, deciding which "
+"tier wins and refusing an unknown key all happen once, in Rust, and both "
+"commands read the answer from here."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig:12 of
+msgid ""
+"Every getter is upper-case and flat, so the three names for one setting "
+"differ only in punctuation: `dev.page_type` in the file, "
+"`FREEPORTS_DEV_PAGE_TYPE` in the environment, `DEV_PAGE_TYPE` here."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.DEV_NOCONFIRM:1 of
+msgid "`dev.noconfirm` — skip the `make-tests` confirmation prompts."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.DEV_PAGE_TYPE:1 of
+msgid ""
+"`dev.page_type` — the default page type for `make-tests` and `inspect-"
+"page`."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.DEV_TARGET_LISTS:1 of
+msgid "`dev.target_lists` — the lists a format repository's own tests search for."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.INPUT_DB_PATH:1 of
+msgid ""
+"The name is upper-cased, as configuration keys were exposed as upper-case"
+" attributes."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.VALIDATE_DEEP:1 of
+msgid ""
+"`validate.deep` — also verify the resources a methodology page pins by "
+"sub-hash."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.VALIDATE_KEY_ID:1 of
+msgid "`validate.key_id` — the GPG key grants are signed with."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.VALIDATE_OFFLINE:1 of
+msgid ""
+"`validate.offline` — never fetch a methodology page; answer from the "
+"cache."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.VALIDATE_SOURCES:1 of
+msgid ""
+"`validate.sources` — where methodology pages are resolved from, in "
+"priority order."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.VALIDATE_SOURCES:3 of
+msgid ""
+"A list, and handed over as one: `freeports-validate` resolves a name from"
+" the first source that offers it, so the order this arrives in is the "
+"order the file was written in."
+msgstr ""
+
+#: ../../docstring freeports.cli.FreeportsFileConfig.find_config:1 of
+msgid ""
+"The configuration file to read: working directory, then user tier, then "
+"system tier."
+msgstr ""
+
+#: ../../docstring cli.run_job:3 of
+msgid ""
+"The entry point of the development tooling's integration tests: it takes "
+"primitive arguments instead of parsed command-line ones, skips the merge "
+"of the configuration sources — there are none here — and calls the same "
+"job run and result write the command line does."
+msgstr ""
+

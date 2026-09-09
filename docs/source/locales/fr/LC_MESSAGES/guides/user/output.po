@@ -1,0 +1,262 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/output.md:1
+msgid "Output"
+msgstr ""
+
+#: ../../source/guides/user/output.md:3
+#, python-brace-format
+msgid ""
+"`--out` / `-o` says where. What lands there depends on the **profile**, "
+"and two independent flags modify it. All three are settable from any "
+"configuration source, not only from the command line — "
+"{doc}`../../reference/configuration/options`."
+msgstr ""
+
+#: ../../source/guides/user/output.md:7
+msgid "The three profiles"
+msgstr ""
+
+#: ../../source/guides/user/output.md:9
+msgid "`regular`"
+msgstr ""
+
+#: ../../source/guides/user/output.md:10
+msgid ""
+"the default. A directory, one CSV per table, plus "
+"`investments_add_infos.yaml` for the details that belong only to bonds."
+msgstr ""
+
+#: ../../source/guides/user/output.md:13
+msgid "`single_file`"
+msgstr ""
+
+#: ../../source/guides/user/output.md:14
+msgid ""
+"the path is a *file*, not a directory: one CSV with the investment "
+"columns plus `Maturity` and `Interest rate` folded in. Only investments "
+"are written; the other tables have nowhere to go. If the path does not "
+"end in `.csv`, `out.csv` is appended to it."
+msgstr ""
+
+#: ../../source/guides/user/output.md:18
+msgid "`structured`"
+msgstr ""
+
+#: ../../source/guides/user/output.md:19
+msgid ""
+"a directory holding `investments/table.csv` and `investments/dicts.yaml`."
+" Only investments, for the same reason."
+msgstr ""
+
+#: ../../source/guides/user/output.md:22
+msgid ""
+"Two of the three write only investments. That is not a limitation of "
+"those profiles so much as what they are *for*: they exist for consumers "
+"who want one artefact per run, and a fund table has nowhere to go in one "
+"file without inventing a join."
+msgstr ""
+
+#: ../../source/guides/user/output.md:26
+msgid "The tables of the regular profile"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "File"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "Holds"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`investments.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "one row per holding"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`investments_add_infos.yaml`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "maturity and interest rate, keyed by investment"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`funds.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "the funds encountered"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`funds_assets.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "total assets, liabilities, net assets"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`funds_sfdr_classification.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "SFDR article per fund"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`funds_esg_indicators.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "ESG indicators per fund"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`assets_managers.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "management companies"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`investments_managers_to_funds.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "which manager runs which fund"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "`funds_change_name.csv`"
+msgstr ""
+
+#: ../../source/guides/user/output.md
+msgid "renamings and mergers"
+msgstr ""
+
+#: ../../source/guides/user/output.md:40
+#, python-brace-format
+msgid "Plus `.log.csv`, which is not a table — see {doc}`logging`."
+msgstr ""
+
+#: ../../source/guides/user/output.md:42
+msgid "Three rules across every profile"
+msgstr ""
+
+#: ../../source/guides/user/output.md:44
+#, python-brace-format
+msgid ""
+"They exist so a consumer never has to guess, and they are invariants of "
+"the *product*: an output file that violates one is wrong even if every "
+"step that produced it was right ({doc}`../../reference/design/entities-"
+"and-output`)."
+msgstr ""
+
+#: ../../source/guides/user/output.md:48
+msgid ""
+"**every CSV always has its header**, even with no rows. A table with "
+"nothing in it is a header-only file, never a missing one, so \"no rows\" "
+"and \"no file\" stay distinguishable;"
+msgstr ""
+
+#: ../../source/guides/user/output.md:50
+msgid "**headers are exact**, in text and in order;"
+msgstr ""
+
+#: ../../source/guides/user/output.md:51
+msgid ""
+"**an absent optional value is an empty cell** — never `None`, never "
+"`null` — and a floating-point number always carries at least one decimal."
+msgstr ""
+
+#: ../../source/guides/user/output.md:54
+msgid "The two output flags"
+msgstr ""
+
+#: ../../source/guides/user/output.md:55
+msgid "`--archive` / `-z`"
+msgstr ""
+
+#: ../../source/guides/user/output.md:57
+msgid ""
+"Additionally writes a compressed **sibling** of the output: `.tar.gz` for"
+" the directory profiles, `.gz` for `single_file`."
+msgstr ""
+
+#: ../../source/guides/user/output.md:60
+msgid ""
+"Whether the uncompressed output is then removed depends on whether it "
+"**already existed before the run**, checked before anything is written: a"
+" directory you already had is never deleted. A path given as `-o "
+"results.tar.gz` switches the flag on by itself and the suffix is "
+"stripped, so it means the same as `-o results -z`."
+msgstr ""
+
+#: ../../source/guides/user/output.md:65
+msgid "`--separate-out`"
+msgstr ""
+
+#: ../../source/guides/user/output.md:67
+msgid ""
+"Splits the two tables that carry a report per row — `investments` and "
+"`funds_assets` — into one file per report:"
+msgstr ""
+
+#: ../../source/guides/user/output.md:75
+msgid ""
+"The other tables stay merged, because they do not carry that column and "
+"splitting them would mean inventing an attribution."
+msgstr ""
+
+#: ../../source/guides/user/output.md:79
+#, python-brace-format
+msgid ""
+"The document's **name** becomes part of the file name. A document left "
+"unnamed defaults to its whole absolute path, and a path contains "
+"separators, so `--separate-out` on an unnamed document tries to write a "
+"file whose name is a path and fails. Name your documents — `-i "
+"report.pdf:EURIZON 2023` — whenever this flag is on. See "
+"{doc}`documents`."
+msgstr ""
+
+#: ../../source/guides/user/output.md:85
+msgid "One run, one set of tables"
+msgstr ""
+
+#: ../../source/guides/user/output.md:87
+#, python-brace-format
+msgid ""
+"Results from every page, every document and every job of the run "
+"accumulate and are written **once**, at the end. Two documents in one "
+"invocation share promise resolution and fund deduplication; the same two "
+"documents in two invocations do not, and concatenating the results "
+"afterwards is not equivalent. "
+"{doc}`../../reference/design/multidocument`."
+msgstr ""
+

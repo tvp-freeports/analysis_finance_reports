@@ -1,0 +1,276 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/advanced/batch.md:1
+msgid "Batch mode"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:3
+msgid ""
+"`--batch` / `-b` takes a CSV, **one job per row**. It is the way to "
+"describe many extractions once and run them as a unit, and it is also "
+"where the highest-precedence configuration source lives."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:6
+msgid "The batch columns"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:7
+msgid ""
+"Recognised case-insensitively, with spaces and underscores equivalent — "
+"`save pdf`, `Save_PDF` and `SAVE PDF` are one column."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "Column"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "Sets"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "`url`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the report's URL"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "`pdf`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one or more document specifiers, pipe-separated"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "`format`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the format for this row"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "`save pdf`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "whether to keep a downloaded PDF: `true` or `false`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "`target list`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the target lists for this row, taken **whole**"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:25
+msgid ""
+"An **unrecognised column is an error**, not something ignored. A "
+"misspelled column that is silently dropped configures nothing and says "
+"nothing about it, and the user is left believing a setting took effect — "
+"the same principle as the configuration file's unknown keys."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:29
+msgid "A header with no data rows produces **no jobs**, which is not an error."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:31
+msgid "How `url` and `pdf` combine"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:33
+msgid ""
+"The `pdf` cell is always split on the pipe, even when it holds a single "
+"element, and what happens next depends on how many elements come out:"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:36
+msgid ""
+"**one element** is treated as the *singular* specifier, and a `url` in "
+"the same row overrides its URL field. The two can therefore never "
+"conflict — a common row is a URL in one column and a destination path in "
+"the other;"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:39
+msgid ""
+"**several elements** are a genuine plural, and a `url` alongside them "
+"**is a conflict**, exactly as in the other configuration sources: one of "
+"the two would have to win silently."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:42
+msgid ""
+"Rows are numbered from one, the header not counting, and every error "
+"names its row."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:44
+msgid "Precedence: the row wins"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:46
+msgid ""
+"A batch row has the **highest precedence of any configuration source** — "
+"above the command line, above the environment, above the file."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:49
+msgid ""
+"That inversion is deliberate. In batch mode the command line describes "
+"the *run* and the row describes *this job*, and the more specific "
+"statement should be the one that holds. It is what lets a single "
+"invocation set the output path, the repository and the parallelism once, "
+"while each row says only what makes it different."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:58
+msgid "One run, still one set of tables"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:60
+msgid ""
+"Batch mode does not change what is produced. Every job's results "
+"accumulate and are written once, at the end, by the parent process — a "
+"batch of ten reports gives one `investments.csv` with a `Report` column, "
+"not ten directories."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:64
+#, python-brace-format
+msgid ""
+"This is also why job-level parallelism uses child processes that **send "
+"their results back** rather than each writing its own output: writing per"
+" child would have changed the meaning of batch mode. See "
+"{doc}`parallelism` and {doc}`../../../reference/design/parallelism`."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:68
+msgid "Batch mode versus several `-i`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:70
+msgid ""
+"Both run several documents in one invocation, and they are not the same "
+"thing:"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "several `-i`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "batch"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "documents"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one job, several documents"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one job **per row**"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "format"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one, for all of them"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "per row"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "target lists"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one set, for all of them"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the pages"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one pool: every step sees them all"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "one pool per row, isolated from the others"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "filter data, promises, deduplication"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "shared across the documents"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "use it when"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the files are **pieces of one report**"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md
+msgid "the files are **separate reports**"
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:81
+#, python-brace-format
+msgid ""
+"The last two rows are the whole difference. Several `-i` is the multi-"
+"document case ({doc}`../../../reference/design/multidocument`): the pages"
+" of all the documents are classified per document and then scheduled "
+"**together**, so a step reading one file produces the filter data a later"
+" step over another file receives. That is what lets a report published as"
+" several files — holdings in one, the managers of those funds in another "
+"— be extracted as the single report it is. Batch is genuinely separate "
+"jobs that happen to be run together and reported together; nothing "
+"crosses between rows."
+msgstr ""
+
+#: ../../source/guides/user/advanced/batch.md:88
+msgid ""
+"Reaching for batch where a bundle was meant produces output that looks "
+"right and is incomplete: each row extracts what its own file contains, "
+"and the information that only exists across the files is simply absent."
+msgstr ""
+

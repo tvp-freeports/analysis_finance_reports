@@ -82,9 +82,9 @@ version = release
 
 # -- Internationalisation ----------------------------------------------------
 #
-# gettext scaffolding kept by explicit decision of the user (Q-D2): which languages are really
-# maintained is an open question, but the mechanism stays wired up so that the answer does not
-# require reassembling it. `docs/source/locales/` is untouched by D1.
+# The gettext scaffolding stays wired up by explicit decision: which languages are really
+# maintained is an open question, and the mechanism is kept working so that the answer does not
+# require reassembling it. See `guides/i18n/index` for the loop and for where each language stands.
 
 locale_dirs = ["locales/"]
 language = "en"
@@ -92,9 +92,8 @@ gettext_compact = False
 
 # The `.mo` files are compiled and **versioned**. With automatic recompilation, every `make html`
 # rewrites them and dirties the working copy with a couple of dozen modified binary files nobody
-# asked to change — and those of `en` at that, which is the source language and translates nothing.
-# Compiling the catalogues stays a deliberate act (`sphinx-intl build`, or this line set to `True`)
-# rather than a side effect of building the site.
+# asked to change. Compiling the catalogues stays a deliberate act (`make i18n-build`, which
+# `make docs-lang` depends on) rather than a side effect of building the site.
 gettext_auto_build = False
 
 # -- General configuration ---------------------------------------------------

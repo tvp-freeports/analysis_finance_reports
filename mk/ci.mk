@@ -72,6 +72,13 @@
 # everything in sequence.
 .WAIT:
 
+# **`GATE` marks a run whose verdict is `ci-check`'s to give.** GNU make hands a target-specific
+# variable down to every prerequisite, so a recipe reached from one of these two aggregates can tell
+# that it is a step of the gate rather than a question somebody asked. Only `check-grants` reads it
+# today, and it reads it for one reason: grant integrity must never refuse a commit, on any branch,
+# and a recipe that failed inside the gate would refuse one through the hook. Typed on its own,
+# `make check-grants` still fails when the grants do not hold.
+ci-fast: GATE := 1
 ci-fast: lint test-fast doc-coverage-python .WAIT ci-report .WAIT ci-check ## The commit gate: lint, the fast suites, the fast measurements, the report, the verdict
 
 # Kept as a name people already type, and as the name `.githooks/pre-commit` calls.
@@ -91,6 +98,7 @@ pre-commit: ci-fast ## The commit gate (alias of ci-fast)
 #
 # `.WAIT` for the same reason `ci-fast` uses it: under `-j` the measurements overlap, the report
 # waits for all of them, and the verdict waits for the report.
+ci-full: GATE := 1
 ci-full: lint test-all coverage doc-coverage validation .WAIT ci-report .WAIT ci-check ## The prod commit gate: everything gated, measured at this commit
 
 # What a pipeline would run: the prod gate, plus the documentation build, which is gated on nothing

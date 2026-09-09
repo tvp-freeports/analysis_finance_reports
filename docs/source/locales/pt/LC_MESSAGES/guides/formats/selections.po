@@ -1,0 +1,160 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/selections.md:1
+msgid "Selections: saying where to look"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:3
+msgid ""
+"Most of what a format author writes is a **selection** over the lines of "
+"a page: a predicate combining font, size, position, and text anchors."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:6
+msgid "What a selection is"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:8
+msgid "A conjunction of conditions, any of which may be omitted:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "Condition"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "Says"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "font"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "the line is set in this face"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "font size"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "exactly, or within a range"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "area"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "the line falls within these coordinates"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "text anchor"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md
+msgid "the line's text matches this, with `^` and `$` as anchors"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:23
+msgid ""
+"The size range is not fussiness: a PDF's nominal 7-point body text is "
+"rarely exactly 7.0, and a range is how you say \"the body face\" rather "
+"than \"this one line\"."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:26
+msgid "Composing selections, and building one relative to another"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:27
+msgid ""
+"Selections compose with `&`, which is ordinary conjunction. The useful "
+"part is that they can also be built **relative to another selection**:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:34
+msgid ""
+"*\"the region displaced from wherever **that** is\"*. This is how a "
+"layout is described without hard-coding coordinates that change on the "
+"next page — the header moves, and the window moves with it."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:38
+msgid ""
+"Reaching for absolute coordinates is almost always the wrong first move. "
+"They work on the page you are looking at and fail on the page after it, "
+"and the failure is a silently empty extraction rather than an error."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:42
+msgid "The compact textual form"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:44
+msgid ""
+"The same selections appear in the structured CSVs, where there is no "
+"Python to write them in, and are available from Python through "
+"`pdfline_selection_from_str`:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:52
+msgid "Anchors are not regular expressions"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:54
+msgid ""
+"Text anchors are matched **verbatim**, with `^` and `$` meaning start and"
+" end — so prefix, suffix, substring and exact are all expressible, and "
+"nothing else is."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:57
+#, python-brace-format
+msgid ""
+"That is a deliberate restriction, not a missing feature. Regular "
+"expressions appear in `text_filter`, where **meaning** is being read out "
+"of a block; a layout predicate does not need them and is faster without. "
+"Keeping the two apart is the same separation the segments themselves are "
+"built on: `pdf_extract` looks at graphical evidence, `text_filter` at "
+"meaning ({doc}`../../reference/design/segments`)."
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:63
+msgid "Finding out which selection to write"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:64
+msgid ""
+"The line-set modes of `inspect-page` exist for exactly this, and are the "
+"fastest way to learn what font and size a value is actually set in:"
+msgstr ""
+
+#: ../../source/guides/formats/selections.md:71
+#, python-brace-format
+msgid ""
+"It searches the page for those strings and prints the lines that match, "
+"as that level's selection machinery sees them. {doc}`dev-loop`."
+msgstr ""
+

@@ -1,0 +1,122 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/index.md:1
+msgid "Running the engine"
+msgstr ""
+
+#: ../../source/guides/user/index.md:3
+msgid ""
+"You have `freeports` installed and you want tables out of a report. This "
+"section is the loop: what must exist before a run can work, how to name a"
+" document, what comes out, and how to read the logs when it does not do "
+"what you expected."
+msgstr ""
+
+#: ../../source/guides/user/index.md:18
+msgid "What each page answers"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`inputs`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "what must exist before a first run can work at all"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`documents`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "how to name a document: the `<url>:<path>:<name>` grammar, and `save_pdf`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`output`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "the profiles, the tables produced, the rules that hold across all of them"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`logging`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "the three destinations, where each lands, how to read them"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`advanced/index`"
+msgstr ""
+
+#: ../../source/guides/user/index.md:7
+msgid "one job per CSV row, and driving the two levels of parallelism"
+msgstr ""
+
+#: ../../source/guides/user/index.md:27
+#, python-brace-format
+msgid ""
+"If you have not run it once yet, {doc}`../../start/first-run` is a single"
+" real invocation commented argument by argument, and "
+"{doc}`../../start/install` is what to install first."
+msgstr ""
+
+#: ../../source/guides/user/index.md:30
+msgid "What is not on this axis"
+msgstr ""
+
+#: ../../source/guides/user/index.md:31
+#, python-brace-format
+msgid ""
+"Every **option** of the command, with its type, default and validation, "
+"is {doc}`../../reference/cli/freeports` — a reference page, because the "
+"answer does not depend on who is asking. The four places a setting can "
+"come from and how they merge is "
+"{doc}`../../reference/configuration/index`, which is what you want as "
+"soon as your command lines get long."
+msgstr ""
+
+#: ../../source/guides/user/index.md:37
+#, python-brace-format
+msgid ""
+"*Why* a run behaves the way it does — why two reports in one invocation "
+"is not the same as two invocations, why the order of the output is "
+"guaranteed in some respects and not others — is {doc}`../../overview/how-"
+"it-works` briefly and {doc}`../../reference/design/index` properly."
+msgstr ""
+

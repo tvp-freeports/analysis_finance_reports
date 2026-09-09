@@ -1,0 +1,207 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.config.rst:2
+msgid "freeports\\_dev.config"
+msgstr ""
+
+#: freeports_dev.config:1 of
+msgid "Where ``freeports-dev`` gets its settings, and in what order."
+msgstr ""
+
+#: freeports_dev.config:3 of
+msgid ""
+"The order is the engine's own, minus the tiers that make no sense here: "
+"**command line, then environment, then configuration file, then the "
+"tool's default**. A setting given twice is resolved per setting, never "
+"per source, so naming the repository on the command line does not discard"
+" the target lists the file declares."
+msgstr ""
+
+#: freeports_dev.config:8 of
+msgid ""
+"Nothing in this module knows where a configuration file lives, what it "
+"may be called or which of the working-directory, user and system tiers "
+"wins. That is the engine's answer and there is exactly one of it, reached"
+" through :class:`freeports.cli.FreeportsFileConfig`. Duplicating it here "
+"is how two programs started from the same directory end up reading "
+"different files."
+msgstr ""
+
+#: freeports_dev.config:13 of
+msgid ""
+"The names line up on purpose, so that one setting has one name written "
+"three ways::"
+msgstr ""
+
+#: freeports_dev.config:19 of
+msgid ""
+"Settings shared with the engine -- the formats repository, the input "
+"database -- keep their engine names and live at the **top level** of the "
+"configuration file, which is what lets a format author write the "
+"repository path once and have all three commands find it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:14:<autosummary>:1
+msgid ":py:obj:`DEFAULT_PAGE_TYPE <freeports_dev.config.DEFAULT_PAGE_TYPE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:14:<autosummary>:1
+#: freeports_dev.config.DEFAULT_PAGE_TYPE:1 of
+msgid "What ``--page-type`` means when nobody says otherwise."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:14:<autosummary>:1
+msgid ":py:obj:`DEFAULT_TARGET_LISTS <freeports_dev.config.DEFAULT_TARGET_LISTS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:14:<autosummary>:1
+#: freeports_dev.config.DEFAULT_TARGET_LISTS:1 of
+msgid ""
+"The single list ``freeports-dev setup-input-db`` writes, and what a "
+"format repository's tests search for unless the repository says "
+"otherwise."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:16
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:21:<autosummary>:1
+msgid ":py:obj:`active <freeports_dev.config.active>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:21:<autosummary>:1
+#: freeports_dev.config.active:1 of
+msgid ""
+"The recorded configuration, or a freshly resolved one when pytest was run"
+" directly."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:21:<autosummary>:1
+msgid ":py:obj:`set_active <freeports_dev.config.set_active>`\\ \\(config\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:21:<autosummary>:1
+#: freeports_dev.config.set_active:1 of
+msgid "Record the configuration this process resolved from its command line."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:23
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:26:<autosummary>:1
+msgid ":py:obj:`DevConfig <freeports_dev.config.DevConfig>`\\ \\(\\[args\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.config.rst:26:<autosummary>:1
+#: freeports_dev.config.DevConfig:1 of
+msgid "The settings of one ``freeports-dev`` invocation, already resolved."
+msgstr ""
+
+#: freeports_dev.config.DevConfig:3 of
+msgid ""
+"Built from the parsed arguments, so every subcommand reads its settings "
+"the same way instead of each one inventing its own fallbacks."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.formats_repo:1 of
+msgid ""
+"The formats repository. Defaults to the working directory, as every "
+"subcommand did."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.formats_repo:3 of
+msgid ""
+"The first two tiers arrive relative to the shell they were written in and"
+" are resolved as such; the third is resolved against the configuration "
+"file instead, which is what :func:`_from_config_dir` exists for."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.input_db_from_file:1 of
+msgid ""
+"The `db_path` of the configuration file, consulted only after the "
+"repository's own."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.input_db_from_file:3 of
+msgid ""
+"Resolved against the file, for the same reason `formats_repo` is: one "
+"`db_path:` line is read from every directory anybody runs a subcommand "
+"in."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.input_db_override:1 of
+msgid ""
+"An input database named outright, or ``None`` to let the search in "
+":mod:`input_db` run."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.input_db_override:3 of
+msgid ""
+"Deliberately not resolved to a default here: the search that follows "
+"prefers a format repository's **own** ``tests/input_db`` over anything "
+"the configuration file says, so that running a repository's tests does "
+"not silently pick up whatever real database happens to be configured on "
+"the machine. Only an explicit flag or variable overrides that."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.noconfirm:1 of
+msgid "Skip the ``make-tests`` prompts."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.noconfirm:3 of
+msgid ""
+"An absent flag is *unset*, not false: ``--noconfirm`` can only ever turn "
+"the setting on, so that a command line which does not mention it leaves "
+"alone a file or environment that did."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.page_type:1 of
+msgid "The page type, for the subcommands that take one."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.target_lists:1 of
+msgid "The lists the tests search for."
+msgstr ""
+
+#: freeports_dev.config.DevConfig.target_lists:3 of
+msgid ""
+"The environment variable holds **one** list, the whole raw value, never "
+"split -- the same rule as the engine's ``FREEPORTS_TARGET_LIST``, so that"
+" a list name containing a comma or a space means the same thing to both "
+"commands."
+msgstr ""
+
+#: freeports_dev.config.set_active:3 of
+msgid ""
+"The pytest plugin runs in the same process as ``freeports-dev test`` but "
+"is reached *through* pytest, which knows nothing of our parsed arguments."
+" Rather than smuggle the answers back out through the environment -- "
+"which cannot even express a list of target lists -- the command line "
+"leaves the resolved object here and the plugin picks it up."
+msgstr ""
+

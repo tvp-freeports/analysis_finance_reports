@@ -1,0 +1,118 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:2
+msgid "freeports.standard\\_funcs.text\\_filter"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`TextFilterAssetsStandard "
+"<freeports.standard_funcs.text_filter.TextFilterAssetsStandard>`\\ "
+"\\(\\[date\\_regex\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+#: of text_filter.TextFilterAssetsStandard:1
+msgid "The pipe for a fund's assets."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`TextFilterInvestmentsStandard "
+"<freeports.standard_funcs.text_filter.TextFilterInvestmentsStandard>`\\ "
+"\\(market\\_value\\_pos\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+#: of text_filter.TextFilterInvestmentsStandard:1
+msgid "The pipe for the rows of an investments table."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`TextFilterManagmentCompanyStandard "
+"<freeports.standard_funcs.text_filter.TextFilterManagmentCompanyStandard>`\\"
+" \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+#: of text_filter.TextFilterManagmentCompanyStandard:1
+msgid "`TextFilterManagmentCompanyStandard()`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`TextFilterPageClassifyStandard "
+"<freeports.standard_funcs.text_filter.TextFilterPageClassifyStandard>`\\ "
+"\\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+#: of text_filter.TextFilterPageClassifyStandard:1
+msgid "`TextFilterPageClassifyStandard()`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`TextFilterSfdrArticleStandard "
+"<freeports.standard_funcs.text_filter.TextFilterSfdrArticleStandard>`\\ "
+"\\(\\[fund\\_prefix\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.standard_funcs.text_filter.rst:16:<autosummary>:1
+#: of text_filter.TextFilterSfdrArticleStandard:1
+msgid "The pipe for a fund's SFDR classification."
+msgstr ""
+
+#: ../../docstring of text_filter.TextFilterAssetsStandard:3
+msgid ""
+"Both arguments accept either an already-compiled regex or its source as a"
+" string: the real compilation happens inside the native type, so from a "
+"compiled pattern only its source is taken."
+msgstr ""
+
+#: ../../docstring of text_filter.TextFilterInvestmentsStandard:3
+msgid ""
+"`dash_as_zero` is the same flag expression the structured level writes in"
+" its `Interpret dash as zero` column — `\"MARKET_VALUE | "
+"PERC_NET_ASSETS\"`, `\"ALL\"` — and `None` is the empty set, so an "
+"unstructured format that says nothing behaves as it always has."
+msgstr ""
+
+#: ../../docstring of text_filter.TextFilterSfdrArticleStandard:3
+msgid ""
+"**A divergence absorbed here:** a single argument mixes literal strings "
+"and already-compiled patterns, while the native type wants them "
+"separated, the first going through a plain substring replacement and the "
+"second through the regex engine. The sorting happens here, and the "
+"relative order within each of the two groups is preserved."
+msgstr ""
+

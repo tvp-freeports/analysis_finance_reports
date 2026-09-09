@@ -1,0 +1,125 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:2
+msgid "freeports.utils.text\\_filter"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`deep_normalize_string "
+"<freeports.utils.text_filter.deep_normalize_string>`\\ \\(input\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+#: of text_filter.deep_normalize_string:1
+msgid "Deep normalisation, the form fund names are compared on."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`extract_currency_from_text "
+"<freeports.utils.text_filter.extract_currency_from_text>`\\ \\(text\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+#: of text_filter.extract_currency_from_text:1
+msgid "The first currency named in a text."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`normalize_string "
+"<freeports.utils.text_filter.normalize_string>`\\ \\(input\\[\\, "
+"lower\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+#: of text_filter.normalize_string:1
+msgid ""
+"Light normalisation of a string: whitespace runs collapsed, optionally "
+"lower-cased."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+msgid ""
+":py:obj:`normalize_word <freeports.utils.text_filter.normalize_word>`\\ "
+"\\(input\\[\\, lower\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:16:<autosummary>:1
+#: of text_filter.normalize_word:1
+msgid "Normalisation of a single word."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:18
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`fund_filter_data "
+"<freeports.utils.text_filter.fund_filter_data>`\\ \\(wrapped\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+#: freeports.utils.text_filter.fund_filter_data:1 of
+msgid ""
+"Decoratore: `filter_data` diventa l'insieme dei `MatchFund` dei risultati"
+" `Fund`."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`investment_fund_filter_data "
+"<freeports.utils.text_filter.investment_fund_filter_data>`\\ "
+"\\(wrapped\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+#: freeports.utils.text_filter.investment_fund_filter_data:1 of
+msgid ""
+"Decoratore: `filter_data` diventa l'insieme dei `MatchFund` dei fondi "
+"citati dagli investimenti."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+msgid ":py:obj:`MatchFund <freeports.utils.text_filter.MatchFund>`\\ \\(name\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.text_filter.rst:23:<autosummary>:1
+#: freeports.utils.text_filter.MatchFund:1 of
+msgid ""
+"The Python shim of a fund identity: a name that knows how to compare "
+"itself with another after deep normalisation."
+msgstr ""
+

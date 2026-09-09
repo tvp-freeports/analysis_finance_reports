@@ -180,7 +180,7 @@ Cleaning
     make distclean    # all of the above, and the repository's venv
 
 ``clean`` deliberately does not call ``cargo clean``: deleting ``target/`` costs a full
-recompilation, which is not what should happen when a target is run out of habit. It does know
-about this repository's historical debris — the setuptools ``build/`` tree left by the retired
-Python engine, and stray ``freeports.log`` files — so that a run that writes where it should not is
-at least easy to sweep up.
+recompilation, which is not what should happen when a target is run out of habit. It does know about
+the debris a working session leaves around the tree — ``build/`` trees, caches, and the
+``freeports.log.jsonl`` a run at ``-vvv`` drops wherever it was started — so that a run that writes
+where it should not is at least easy to sweep up.

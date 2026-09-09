@@ -1,0 +1,182 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:2
+msgid "freeports\\_dev.ci"
+msgstr ""
+
+#: freeports_dev.ci:1 of
+msgid ""
+"The measurements, the thresholds and the gate -- what a commit to this "
+"repository must clear."
+msgstr ""
+
+#: freeports_dev.ci:3 of
+msgid "Three layers, and nothing in one layer knows the next:"
+msgstr ""
+
+#: freeports_dev.ci:5 of
+msgid ""
+"**measurement** -- each command answers one question and writes one small"
+" normalised JSON file into ``reports/``. None of them decides anything;"
+msgstr ""
+
+#: freeports_dev.ci:7 of
+msgid ""
+"**the gate** -- :mod:`freeports_dev.ci.gate` reads those files, "
+"``ci.yaml`` and the class of the current branch, prints one table and "
+"chooses an exit status;"
+msgstr ""
+
+#: freeports_dev.ci:9 of
+msgid ""
+"**the wiring** -- ``make`` targets in the engine repository and a thin "
+"hook in each of the others."
+msgstr ""
+
+#: freeports_dev.ci:11 of
+msgid ""
+"It is the split ``freeports-validate`` already follows -- ``collect`` "
+"establishes facts, ``report`` renders them, ``check-grants`` judges them "
+"-- and it is what keeps every figure reproducible by hand, which is the "
+"only way a threshold survives its first failure."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:9
+msgid "Modules"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`config <freeports_dev.ci.config>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``ci.yaml``: what a repository demands of a commit, in one file with one "
+"name everywhere."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`docstrings <freeports_dev.ci.docstrings>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``docs.python``: what fraction of the public Python objects here carry a "
+"docstring."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`fingerprint <freeports_dev.ci.fingerprint>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``freeports-dev fingerprint``: making a manifest's hash and its version "
+"move together."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`formats <freeports_dev.ci.formats>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``freeports-dev coverage`` for a formats repository: how much of it is "
+"actually tested."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`gate <freeports_dev.ci.gate>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``freeports-dev ci-check``: the one place that decides whether a commit "
+"goes through."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`lint <freeports_dev.ci.lint>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``lint.rust`` and ``lint.python``: a linter's findings as a score out of "
+"ten."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`manifest <freeports_dev.ci.manifest>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"Reading and rewriting the two manifests, without reformatting what nobody"
+" asked to change."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`metrics <freeports_dev.ci.metrics>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"The metrics this workspace gates on, and which repository can answer for "
+"which."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`readers <freeports_dev.ci.readers>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid "Turning each tool's own JSON into the one record shape the gate reads."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`render <freeports_dev.ci.render>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"``freeports-dev ci-report``: what a gate run looks like once it is "
+"written down."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`report <freeports_dev.ci.report>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid "The shape every measurement writes, and how one is read back."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ":py:obj:`suites <freeports_dev.ci.suites>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.rst:25:<autosummary>:1
+msgid ""
+"The test suites this workspace gates on, what each one costs, and how to "
+"run it."
+msgstr ""
+

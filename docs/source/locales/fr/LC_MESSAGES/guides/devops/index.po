@@ -1,0 +1,152 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/index.rst:3
+msgid "Running the checks (DevOps)"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:5
+msgid ""
+"Every commit to a freeports repository is measured, and some commits are "
+"refused. This section is for whoever owns that machinery: what is "
+"measured, what refuses, and how to reproduce every figure by hand — "
+"because a threshold whose number you cannot check yourself is a threshold"
+" you will switch off the first time it is wrong."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:10
+msgid ""
+"There is no Jenkins at the moment. Everything a pipeline would do runs "
+"here, as ``make`` targets, and ``make ci`` is the answer to \"what did "
+"the pipeline run\"."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:25
+msgid "What each page here answers"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:31
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:32
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:33
+msgid ":doc:`fast-and-slow`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:34
+msgid ""
+"the one split everything else rests on, and why a gate that costs a "
+"minute gates nothing"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:35
+msgid ":doc:`the-gate`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:36
+msgid "what runs at every commit, and how the three branch classes differ"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:37
+msgid ":doc:`ci-yaml`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:38
+msgid ""
+"the thresholds file: the three tiers, the metrics, what each one measures"
+" and what it does not"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:39
+msgid ":doc:`suites-and-verdicts`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:40
+msgid "suites as opposed to metrics, and why ``unmeasured`` and ``stale`` refuse"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:41
+msgid ":doc:`fingerprints`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:42
+msgid ""
+"the hash a repository declares of itself, and which version component "
+"each one moves"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:43
+msgid ":doc:`reporting`"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:44
+msgid ""
+"writing the verdict down, and what Jenkins will add when it is turned "
+"back on"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:46
+msgid ""
+"The figures from the last run are not here: they are a *report about this"
+" repository* rather than a page about operating it, and they live with "
+"the other machine-written pages under :doc:`../../dev/ci-report/index`."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:51
+msgid "Three layers, and nothing in one knows the next"
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:53
+msgid ""
+"**Measurement.** Each command answers one question and writes one small "
+"JSON file into ``reports/``. None of them decides anything."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:56
+msgid ""
+"**The gate.** ``freeports-dev ci-check`` reads those files, ``ci.yaml``, "
+"and the class of the branch you are on. It prints one table and chooses "
+"an exit status. It measures nothing."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:59
+msgid ""
+"**The wiring.** ``make`` targets, and a thin ``pre-commit`` hook that "
+"names one of them. **Every freeports repository has both** — this one, a "
+"formats repository, an input database — with the same target names and "
+"the same two gates, ``ci-fast`` and ``ci-full``. What differs is how much"
+" there is to measure: see :doc:`the-gate` for a format repository's "
+"smaller surface."
+msgstr ""
+
+#: ../../source/guides/devops/index.rst:64
+msgid ""
+"This is the split ``freeports-validate`` already follows — ``collect`` "
+"establishes facts, ``report`` renders them, ``check-grants`` judges them."
+" It is what keeps every figure reproducible: when a commit is refused, "
+"the number that refused it is sitting in a file, written by a command you"
+" can re-run."
+msgstr ""
+

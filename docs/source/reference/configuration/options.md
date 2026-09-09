@@ -342,7 +342,8 @@ would be a chicken with no egg. {doc}`config_file` lists the tiers searched when
 | **Validation** | the name; the counts are clamped and can never be out of range |
 | **Example** | `-vv`, `FREEPORTS_VERBOSITY=trace` |
 
-```{warning}
-The environment and YAML forms are parsed, validated and merged but **do not reach the parent
-process's logging** — see {doc}`index`. Today only `-v` and `-q` change what you see.
+```{note}
+All three forms are applied, but not at the same instant: `-v`/`-q` govern from the first line
+logged, while the environment and YAML forms take effect the moment the configuration resolves. See
+{doc}`index` for the one consequence.
 ```

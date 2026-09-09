@@ -1,0 +1,123 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/why-this-exists.md:1
+msgid "Why this project exists"
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:3
+msgid "The obligation is on the publication, not on the shape"
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:4
+msgid ""
+"Funds and the companies managing them must disclose what they hold, what "
+"it is worth, who runs it and how it is classified under sustainability "
+"regulation. They do. The disclosure is an annual report, published as a "
+"PDF, laid out however that issuer's typesetter chose."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:8
+msgid ""
+"Nothing requires two issuers to agree on the shape of that document, and "
+"they do not. The same fact — this fund holds this much of this company — "
+"is printed in several hundred mutually incompatible ways, in documents "
+"built for a person to read one at a time."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:12
+msgid "Which leaves three options, and two of them are bad"
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:13
+msgid ""
+"**Read them by hand.** Correct, and it does not scale past a handful of "
+"reports. It is also not repeatable: the next person to ask the same "
+"question starts again."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:16
+msgid ""
+"**Buy the data from a vendor.** Someone else read them by hand, months "
+"ago, and now sells the result. You inherit their errors without being "
+"able to see them, their coverage without being able to extend it, and "
+"their timing."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:20
+msgid ""
+"**Write a program.** Which works, once, for one issuer, until next year's"
+" report moves a column. Done naively this is the worst of the three: a "
+"hundred fragile programs nobody maintains."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:23
+msgid "The third option, made maintainable"
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:24
+msgid ""
+"This project is the third option with the fragility factored out. There "
+"is an **engine** that knows nothing about any particular report, and "
+"there are **formats** — small recipes, one per report layout — that tell "
+"it where to look. The engine is the part that must not change. The "
+"formats are the part that grows, and they live in separate repositories "
+"maintained by whoever cares about those issuers."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:30
+msgid ""
+"The same split happens again for *which companies matter*: that lives in "
+"an **input database**, also separate, because it is a question about "
+"somebody's work rather than about parsing PDFs. Two people using the same"
+" formats can legitimately disagree about it."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:34
+#, python-brace-format
+msgid ""
+"{doc}`../../overview/how-it-works` is what the engine does with all that;"
+" {doc}`../../overview/the-repositories` is the map of who maintains which"
+" piece."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:37
+msgid "What it is used for"
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:38
+msgid ""
+"The immediate motivation is being able to ask a question like *which "
+"funds hold companies on this list, and how much* across many issuers at "
+"once, and to be able to show your working when somebody disputes the "
+"answer. That \"show your working\" is not decoration — it is the reason "
+"the project records who vouched for what, under which published "
+"methodology, against which exact bytes."
+msgstr ""
+
+#: ../../source/guides/institutional/why-this-exists.md:43
+#, python-brace-format
+msgid ""
+"Whether that is enough for your purpose is a real question, and {doc"
+"}`strengths-and-limits` is the honest answer rather than the encouraging "
+"one."
+msgstr ""
+

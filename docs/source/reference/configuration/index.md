@@ -101,15 +101,26 @@ The rule also refuses settings that were *considered and never implemented*. `ou
 is rejected even though `compressed` is the field's internal name, because accepting it would make an
 option that does not exist look active.
 
-## The one setting that does not work: verbosity
-```{warning}
-`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key are **parsed, validated and
-merged, but not applied** to the logging of an ordinary run. The parent process installs its logging
-from the `-v` and `-q` counts alone, before the configuration is resolved, and never revisits it.
+## The one setting that arrives in two moments: verbosity
 
-Measured, not inferred: with `FREEPORTS_VERBOSITY=trace` and no flags, stderr stays at warning level.
+All four sources work, and verbosity is the only setting that cannot be applied all at once — which
+is worth understanding, because it has one visible consequence.
 
-Worker child processes *do* honour the resolved value, since it reaches them inside their request —
-so a parent and its children can disagree about verbosity in the same run. Today the verbosity of the
-process you are watching can only be set with `-v` and `-q`.
+Logging has to be running before the configuration is resolved: resolving it is one of the things
+that can fail, and a failure nobody can see is not a failure anybody can fix. But two of the three
+sources of the verbosity — `FREEPORTS_VERBOSITY` and the file's `verbosity` key — are *inside* that
+configuration. So a run starts logging at whatever `-v` and `-q` asked for, and **corrects itself
+the moment the configuration resolves**, raising or lowering both stderr and the structured log to
+the resolved value.
+
+```{note}
+The consequence: a configuration file cannot govern what was logged before the configuration file
+was read. Raising the verbosity opens the log sites from that point on; the handful of records that
+configuration resolution itself emitted below the old level were never produced at all and cannot be
+recovered. `-vvv` on the command line has no such gap, because then nothing needed correcting — and
+a run that dies *during* resolution never gets a resolved verbosity, so there the command line is
+the only answer there was.
 ```
+
+Worker child processes have no such split: they resolve nothing and are handed the resolved
+verbosity inside their request, so a parent and its children always agree.

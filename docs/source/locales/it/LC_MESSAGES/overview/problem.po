@@ -1,0 +1,237 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/problem.md:1
+msgid "The problem"
+msgstr "Il problema"
+
+#: ../../source/overview/problem.md:3
+msgid "What is being extracted"
+msgstr "Che cosa si estrae"
+
+#: ../../source/overview/problem.md:5
+msgid "A fund's annual report is a public document with a predictable set of facts inside it:"
+msgstr ""
+"La relazione annuale di un fondo è un documento pubblico con dentro un insieme "
+"prevedibile di fatti:"
+
+#: ../../source/overview/problem.md:7
+msgid ""
+"the **investments** the fund holds — the issuer, the instrument, the quantity, the "
+"market value, the share of net assets, sometimes the acquisition cost and the "
+"currency it was bought in;"
+msgstr ""
+"gli **investimenti** che il fondo detiene — l'emittente, lo strumento, la quantità, "
+"il valore di mercato, la quota sul patrimonio netto, a volte il costo d'acquisto e la"
+" valuta in cui è stato comprato;"
+
+#: ../../source/overview/problem.md:9
+msgid ""
+"the fund's **assets** — total assets, liabilities, net assets at the close of the "
+"year;"
+msgstr ""
+"il **patrimonio** del fondo — attività totali, passività, patrimonio netto alla "
+"chiusura dell'esercizio;"
+
+#: ../../source/overview/problem.md:10
+msgid "the **management company** and the **investment managers** attached to each fund;"
+msgstr "la **società di gestione** e i **gestori** associati a ciascun fondo;"
+
+#: ../../source/overview/problem.md:11
+msgid "**ESG indicators** and the fund's **SFDR classification**;"
+msgstr "gli **indicatori ESG** e la **classificazione SFDR** del fondo;"
+
+#: ../../source/overview/problem.md:12
+msgid ""
+"and the fund's own identity over time, including **renamings and mergers**, without "
+"which the same fund looks like two different ones in two consecutive years."
+msgstr ""
+"e l'identità del fondo nel tempo, comprese **ridenominazioni e fusioni**, senza le "
+"quali lo stesso fondo sembra due fondi diversi in due anni consecutivi."
+
+#: ../../source/overview/problem.md:15
+msgid ""
+"Those facts are why the report exists. Someone who wants to know whether a pension "
+"fund holds a particular arms manufacturer, or how a family of funds classifies itself"
+" under sustainability regulation, is asking a question the report already answers — "
+"on page 412, in a table with no header repeated from page 411, in a font chosen by a "
+"designer."
+msgstr ""
+"È per quei fatti che la relazione esiste. Chi vuole sapere se un fondo pensione "
+"detiene un certo produttore di armi, o come una famiglia di fondi si classifica "
+"secondo la normativa sulla sostenibilità, sta facendo una domanda a cui la relazione "
+"risponde già — a pagina 412, in una tabella la cui intestazione non è ripetuta da "
+"pagina 411, in un carattere scelto da un grafico."
+
+#: ../../source/overview/problem.md:20
+msgid "Why this is harder than scraping"
+msgstr "Perché è più difficile dello scraping"
+
+#: ../../source/overview/problem.md:22
+msgid ""
+"The reports are not databases with an inconvenient wrapper. Three things make them "
+"resist the obvious approach."
+msgstr ""
+"Le relazioni non sono database con un involucro scomodo. Tre cose le rendono "
+"refrattarie all'approccio ovvio."
+
+#: ../../source/overview/problem.md:25
+msgid ""
+"**A PDF has no structure, only appearance.** It records glyphs at coordinates. A "
+"\"table\" is a belief the reader forms about glyphs that happen to line up. Two "
+"reports can look identical to a person and share nothing at the level a program sees."
+" So the first job is not parsing but *re-deriving the structure a human eye "
+"reconstructs for free*: which lines belong to one row, which column a number is in, "
+"which heading governs which block."
+msgstr ""
+"**Un PDF non ha struttura, solo aspetto.** Registra glifi a certe coordinate. Una "
+"\"tabella\" è una convinzione che il lettore si forma su glifi che per caso sono "
+"allineati. Due relazioni possono sembrare identiche a una persona e non condividere "
+"niente al livello che un programma vede. Il primo lavoro perciò non è l'analisi "
+"sintattica ma *ricavare di nuovo la struttura che l'occhio umano ricostruisce "
+"gratis*: quali righe appartengono a una stessa riga di tabella, in quale colonna sta "
+"un numero, quale intestazione governa quale blocco."
+
+#: ../../source/overview/problem.md:31
+msgid ""
+"**Every issuer is different, and the same issuer changes.** There is no schema to "
+"conform to, so each layout needs its own recipe. Worse, layouts change between "
+"reporting years, which is why formats in this project carry the year in their name "
+"(`EURIZON-EN23`, `AMUNDI-IT24`) — a format is a recipe for *one layout*, not for one "
+"company forever."
+msgstr ""
+"**Ogni emittente è diverso, e lo stesso emittente cambia.** Non c'è alcuno schema a "
+"cui conformarsi, quindi ogni impaginazione ha bisogno della propria ricetta. Peggio, "
+"le impaginazioni cambiano da un esercizio all'altro, ed è per questo che i formati di"
+" questo progetto portano l'anno nel nome (`EURIZON-EN23`, `AMUNDI-IT24`) — un formato"
+" è la ricetta per *una impaginazione*, non per una società per sempre."
+
+#: ../../source/overview/problem.md:36
+msgid ""
+"**Context is not local.** The row that says a fund holds 12,000 shares of something "
+"does not say *which* fund; that was printed on a cover page eleven pages earlier, and"
+" the currency was declared in a header. A page-at-a-time reader that insists on "
+"producing complete records will produce none."
+msgstr ""
+"**Il contesto non è locale.** La riga che dice che un fondo detiene 12.000 azioni di "
+"qualcosa non dice *quale* fondo; quello era stampato su una copertina undici pagine "
+"prima, e la valuta era dichiarata in un'intestazione. Un lettore che procede una "
+"pagina per volta e insiste per produrre record completi non ne produrrà nessuno."
+
+#: ../../source/overview/problem.md:40
+msgid "The shape of the answer: three commitments"
+msgstr "La forma della risposta: tre impegni"
+
+#: ../../source/overview/problem.md:41
+#, python-brace-format
+msgid ""
+"Three commitments follow from those three difficulties, and between them they explain"
+" most of the engine's design. They are developed properly in "
+"{doc}`../reference/design/index`; here is what they are for."
+msgstr ""
+"Da quelle tre difficoltà discendono tre impegni, e insieme spiegano buona parte del "
+"progetto del motore. Sono sviluppati per bene in {doc}`../reference/design/index`; "
+"qui c'è a che cosa servono."
+
+#: ../../source/overview/problem.md:44
+msgid ""
+"**Formats are plugins, not features.** The engine has no knowledge of any issuer. "
+"Support for a report lives in a **formats repository** — an ordinary directory of "
+"CSV, YAML and, where a layout is genuinely irregular, Python — maintained separately "
+"from the engine and often by different people. Adding a report does not touch the "
+"engine, does not require a release of it, and cannot break the formats someone else "
+"maintains. This is the single decision that lets coverage grow faster than the core "
+"team."
+msgstr ""
+"**I formati sono plugin, non funzionalità.** Il motore non conosce alcun emittente. "
+"Il supporto per una relazione vive in un **repository di formati** — una comune "
+"cartella di CSV, YAML e, dove un'impaginazione è davvero irregolare, Python — "
+"mantenuto separatamente dal motore e spesso da persone diverse. Aggiungere una "
+"relazione non tocca il motore, non ne richiede un rilascio, e non può rompere i "
+"formati che mantiene qualcun altro. È l'unica decisione che permette alla copertura "
+"di crescere più in fretta della squadra centrale."
+
+#: ../../source/overview/problem.md:51
+msgid ""
+"**A page is the unit of work, and it is assumed self-contained.** The engine reads "
+"one page, decides what kind of page it is, and applies the recipe for that kind. This"
+" assumption is restrictive and it is deliberate: it is what makes the work divisible,"
+" parallelisable, and individually testable — a format's behaviour on page 412 is a "
+"fixture you can check, not a consequence of the 411 pages before it."
+msgstr ""
+"**La pagina è l'unità di lavoro, e si assume autosufficiente.** Il motore legge una "
+"pagina, decide di che tipo di pagina si tratta, e applica la ricetta per quel tipo. "
+"Questa assunzione è restrittiva ed è voluta: è ciò che rende il lavoro divisibile, "
+"parallelizzabile e verificabile pezzo per pezzo — il comportamento di un formato a "
+"pagina 412 è un caso di prova che si può controllare, non la conseguenza delle 411 "
+"pagine che lo precedono."
+
+#: ../../source/overview/problem.md:57
+msgid ""
+"**Where the assumption fails, it fails gracefully.** A value a page genuinely cannot "
+"know becomes a **promise**: a named placeholder, resolved once the whole document has"
+" been read. The fund name that appeared only on the cover page is filled in at the "
+"end, from whichever page did see it. So cross-page dependency is expressed as data "
+"rather than as an ordering constraint on the code, and the page stays the unit of "
+"work."
+msgstr ""
+"**Dove l'assunzione cade, cade con grazia.** Un valore che una pagina davvero non può"
+" conoscere diventa una **promessa**: un segnaposto con un nome, risolto una volta "
+"letto l'intero documento. Il nome del fondo comparso solo in copertina è riempito "
+"alla fine, dalla pagina che invece l'ha visto. Così la dipendenza fra pagine è "
+"espressa come dato anziché come vincolo d'ordine sul codice, e la pagina resta "
+"l'unità di lavoro."
+
+#: ../../source/overview/problem.md:63
+msgid ""
+"**Three separable questions, three replaceable stages.** Reading a page is split into"
+" *what is on it* (`pdf_extract`), *does any of it concern the funds we are looking "
+"for* (`text_filter`), and *what do the survivors mean* (`deserialize`). A format "
+"author usually needs to write only one of the three and can inherit the rest."
+msgstr ""
+"**Tre domande separabili, tre stadi sostituibili.** La lettura di una pagina è divisa"
+" in *che cosa c'è sopra* (`pdf_extract`), *qualcosa di questo riguarda i fondi che "
+"cerchiamo* (`text_filter`), e *che cosa significa ciò che è sopravvissuto* "
+"(`deserialize`). Chi scrive un formato di solito deve scriverne uno solo dei tre e "
+"può ereditare gli altri."
+
+#: ../../source/overview/problem.md:68
+msgid "What the project will not claim"
+msgstr "Che cosa il progetto non affermerà"
+
+#: ../../source/overview/problem.md:70
+#, python-brace-format
+msgid ""
+"Extraction from documents made for human eyes is not exact, and a tool that presents "
+"its output as simply correct is misrepresenting itself. This project's answer is "
+"neither a disclaimer that pushes all responsibility onto the user nor a promise of "
+"accuracy nobody can keep: it is a **published methodology** and a record, per file, "
+"of who vouched for it and under which method. That is the subject of {doc}`trust`, "
+"and reading it is part of using the output responsibly."
+msgstr ""
+"L'estrazione da documenti fatti per occhi umani non è esatta, e uno strumento che "
+"presenta i propri risultati come semplicemente corretti sta travisando sé stesso. La "
+"risposta di questo progetto non è né una liberatoria che scarica ogni responsabilità "
+"sull'utente né una promessa di accuratezza che nessuno può mantenere: è una "
+"**metodologia pubblicata** e un registro, file per file, di chi ne ha risposto e con "
+"quale metodo. È l'argomento di {doc}`trust`, e leggerla fa parte dell'usare i "
+"risultati in modo responsabile."
+

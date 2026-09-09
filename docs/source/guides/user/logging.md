@@ -3,11 +3,15 @@
 Three destinations, deliberately separate, because what a person watches while a run happens and
 what a tool parses afterwards are not the same artefact ({doc}`../../reference/design/limits` has the reasoning).
 
-| Destination | Where it lands | For | Level |
+| Destination | Where it lands | For | When |
 |---|---|---|---|
-| stderr | your terminal | watching it happen | your verbosity |
-| `freeports.log.jsonl` | the **working** directory | one JSON object per line, for tools | your verbosity |
-| `.log.csv` | the **output** directory | the extraction's own audit trail | `warn` and above |
+| stderr | your terminal | watching it happen | always, at your verbosity |
+| `freeports.log.jsonl` | the **working** directory | one JSON object per line, for tools | at `trace` only |
+| `.log.csv` | the **output** directory | the extraction's own audit trail | always, `warn` and above |
+
+Only the first of the three is there on an ordinary run. Below `trace` the structured log does not
+exist — not an empty file, no file — because a run you are watching on stderr should leave nothing
+behind in the directory you started it from.
 
 ## The six verbosity levels
 `-v` and `-q` are **independent dials** rather than opposed flags: the net of the two counts is
@@ -22,13 +26,12 @@ added to the default and clamped, so no combination is an error.
 | `-vv` | debug |
 | `-vvv` or more | trace |
 
-```{warning}
-This is today the **only** way to set the verbosity of a run. `FREEPORTS_VERBOSITY` and the
-configuration file's `verbosity` key are parsed, validated and merged into the resolved
-configuration, but the parent process installs its logging before the configuration is resolved and
-never revisits it. Curiously, worker child processes *do* honour the resolved value, because it
-reaches them inside their request — so a batch run in child processes and the parent that spawned
-them can disagree. See {doc}`../../reference/configuration/index`.
+```{note}
+`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key work too, and set the same dial —
+but a run has to start logging before it can read them, so it starts at whatever `-v` and `-q` asked
+for and corrects itself the moment the configuration resolves. One consequence: what was logged
+*during* resolution stayed at the command line's level, and a run that dies before resolving never
+gets that far. See {doc}`../../reference/configuration/index`.
 ```
 
 ## stderr
@@ -76,20 +79,30 @@ sequences too. Piping through `sed -r 's/\x1b\[[0-9;]*m//g'` strips them.
 
 ## `freeports.log.jsonl`
 
-One JSON object per line, at whatever level the verbosity allows, in the **working** directory. Each
-record carries the wall clock, the level, the same activity path stderr prints, the `target` module
-that stderr omits, the message, any coordinates, and — where the event attached one — the error in
-structured form, with its `Debug` shape, its message, and its whole `source()` chain.
+One JSON object per line, in the **working** directory, and **only at `trace`** — `-vvv`, or the
+`verbosity` setting from any of its other sources. Each record carries
+the wall clock, the level, the same activity path stderr prints, the `target` module that stderr
+omits, the message, any coordinates, and — where the event attached one — the error in structured
+form, with its `Debug` shape, its message, and its whole `source()` chain.
+
+It exists at one verbosity because it answers a question only that verbosity answers: *everything
+the engine did, in order, with the module and the error chain attached*. At `debug` and below it
+would be a partial transcript nobody asked for, written into whatever directory you happened to be
+standing in.
+
+Because the file is created only once the verbosity is settled, everything logged while the
+configuration was still resolving is held in memory and poured into it in order — so the file starts
+where the run started, not where the decision was taken.
 
 ```json
 {"time":"2026-08-31T09:14:02.118773Z","level":"WARN","activity":"run/job[EURIZON-EN23]/step[0]/class[investments]/document[EURIZON 2023]/page[16]/pipeline[investments]/text_filter/pipe[TextFilterInvestmentsStandard]","target":"freeports::formats_utils::text_filter","message":"expected text block not found near the matched company - row skipped","coords":{"report":"EURIZON 2023","page":"16","first_ref":"Leonardo Spa Az Nom","second_ref":"Leonardo","first":"row 12","second":"col 1"}}
 ```
 
-JSON Lines rather than one JSON or YAML document, for two reasons that both come from the volume
-this file sees at `-vvv` — tens of thousands of records for a single job. It **streams**: each
-record reaches the buffered writer as it happens, so nothing accumulates in memory and the file is
-readable even when the process dies, which is precisely the run whose log you most want to read.
-And every line stands alone, so `grep` works on it and `jq` consumes it as a stream:
+JSON Lines rather than one JSON document, for two reasons that both come from the volume this file
+sees — tens of thousands of records for a single job. It **streams**: each record reaches the
+buffered writer as it happens, so nothing accumulates in memory and the file is readable even when
+the process dies, which is precisely the run whose log you most want to read. And every line stands
+alone, so `grep` works on it and `jq` consumes it as a stream:
 
 ```console
 $ jq -c 'select(.level == "WARN") | {activity, message}' freeports.log.jsonl
@@ -124,12 +137,12 @@ which page, at which position, and what was done about it.
 or coordinate produces no row. A document's name is not a position, and a `document` span is open
 over a whole run — if it selected rows, every warning the program emits would become one.
 
-`Level` is the same distinction the JSONL has carried all along, and the one this file used to leave
-you to infer from the wording of the message. It separates the two severities the audit trail
-deliberately keeps apart: `WARN` is the report being awkward and the engine coping — a dash where a
-number belongs, a cast that had to be forced, a value sitting on the edge of its domain — while
-`ERROR` is something that should not have happened, a value that is there and will not convert.
-Only those two ever appear, because `warn` is this file's ceiling whatever `-v` you pass.
+`Level` separates the two severities the audit trail deliberately keeps apart, instead of leaving
+you to infer them from the wording of the message: `WARN` is the report being awkward and the engine
+coping — a dash where a number belongs, a cast that had to be forced, a value sitting on the edge of
+its domain — while `ERROR` is something that should not have happened, a value that is there and
+will not convert. Only those two ever appear, because `warn` is this file's ceiling whatever `-v`
+you pass.
 
 It is metadata rather than a field, which has one visible consequence: it is never inherited. A
 warning raised inside an `info` span is a `WARN` row, not an `INFO` one. And since every event has a
@@ -181,11 +194,4 @@ is different information.
 
 A run that dies before its configuration resolves writes no `.log.csv` at all, rather than leaving a
 header-only file in the working directory: at that point it is not yet known where the output goes.
-Nothing is lost — every one of those events also reached stderr and the JSONL file.
-
-## What is *not* produced
-
-Earlier versions wrote a fourth file, a YAML digest of the warnings and errors, at maximum
-verbosity. It no longer exists at any verbosity: it duplicated in a second format records that
-`freeports.log.jsonl` already carries in full, and only at the one verbosity where that file is at
-its most complete.
+Nothing is lost — every one of those events also reached stderr.

@@ -106,11 +106,22 @@ and serving both from one stream makes each worse. So: stderr for watching; a JS
 tools; ``.log.csv`` as the extraction's own audit trail, anchored to pages and coordinates. See
 :doc:`../../user/logging`.
 
-A fourth destination existed and was **retired**: a YAML digest of the warnings and errors at
-maximum verbosity. It duplicated, in a second format and a second file, records the JSON-lines file
-already carries in full — and only at the one verbosity where that file is at its most complete.
-What was valuable about it survives: the structured error record, with its ``Debug`` form, its
-message and its whole ``source()`` chain, is what fills the ``error`` key of a JSON line.
+Only two of the three are there on an ordinary run. The JSON-lines file exists at ``trace`` and
+nowhere below it: it answers *everything the engine did, in order, with the module and the error
+chain attached*, which is a question only the maximum verbosity answers, and creating it at every
+verbosity meant that even ``-q`` dropped a file into the directory the run was started from.
+
+Which is also why neither log is created by ``tracing_setup::init``. Whether there is to be a
+JSON-lines file, and where ``.log.csv`` goes, are both answers that live in a configuration that
+cannot be resolved until logging is already running; so ``init`` installs the subscriber and creates
+nothing, the records accumulate, and ``LogHandle::settle_verbosity`` and ``set_csv_dir`` settle the
+two of them the instant the configuration resolves. The level filters are reloadable for the same
+reason — raising a verbosity after the fact means rebuilding ``tracing``'s per-callsite interest
+cache, not just changing a comparison.
+
+That file is where the structured error record lands — its ``Debug`` form, its message and its whole
+``source()`` chain, under the ``error`` key of a line — because none of the three survives being
+flattened into a sentence on stderr.
 
 This whole area was tuned against a real complaint and measured. The first instrumentation pass made
 a 1,140-page job take **19 minutes** and produced a **2.8 GB** log file. After tuning: **13 seconds**

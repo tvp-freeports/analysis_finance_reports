@@ -1,0 +1,191 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/index.md:1
+msgid "What freeports is"
+msgstr "Che cos'è freeports"
+
+#: ../../source/overview/index.md:3
+msgid "`freeports` turns financial reports published as PDF into tables you can compute on."
+msgstr ""
+"`freeports` trasforma relazioni finanziarie pubblicate in PDF in tabelle su cui si "
+"può calcolare."
+
+#: ../../source/overview/index.md:5
+msgid ""
+"Funds, and the companies that manage them, are required to disclose what they hold, "
+"what their assets are worth, who manages them and how they classify themselves under "
+"sustainability regulation. They do disclose it — as an annual report, in PDF, laid "
+"out however the issuer's typesetter chose. The obligation is on the *publication*, "
+"not on the *shape*, so the same fact is printed in several hundred mutually "
+"incompatible ways. Anyone who wants to compare across issuers has to read them by "
+"hand, buy the data back from a vendor who read them by hand, or write a program per "
+"issuer."
+msgstr ""
+"I fondi, e le società che li gestiscono, sono tenuti a dichiarare che cosa detengono,"
+" quanto valgono le loro attività, chi li gestisce e come si classificano secondo la "
+"normativa sulla sostenibilità. E lo dichiarano davvero — come relazione annuale, in "
+"PDF, impaginata come ha scelto il tipografo dell'emittente. L'obbligo riguarda la "
+"*pubblicazione*, non la *forma*, così lo stesso fatto è stampato in diverse centinaia"
+" di modi reciprocamente incompatibili. Chi vuole confrontare più emittenti deve "
+"leggerli a mano, ricomprare i dati da un fornitore che li ha letti a mano, oppure "
+"scrivere un programma per emittente."
+
+#: ../../source/overview/index.md:13
+msgid ""
+"This project is the third option, made maintainable: an engine that knows nothing "
+"about any particular report, plus **formats** — small, separately maintained recipes,"
+" one per report layout — that tell it where to look. The engine is the part that does"
+" not change; the formats are the part the community grows."
+msgstr ""
+"Questo progetto è la terza strada, resa mantenibile: un motore che non sa niente di "
+"nessuna relazione in particolare, più i **formati** — piccole ricette mantenute a "
+"parte, una per impaginazione — che gli dicono dove guardare. Il motore è la parte che"
+" non cambia; i formati sono la parte che la comunità fa crescere."
+
+#: ../../source/overview/index.md:22
+msgid "Page"
+msgstr "Pagina"
+
+#: ../../source/overview/index.md:22
+msgid "Is"
+msgstr "È"
+
+#: ../../source/overview/index.md:22
+msgid "Goes deeper in"
+msgstr "Approfondita in"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`problem`"
+msgstr "{doc}`problem`"
+
+#: ../../source/overview/index.md:22
+msgid "what is being extracted, and why it is harder than scraping"
+msgstr "che cosa si estrae, e perché è più difficile dello scraping"
+
+#: ../../source/overview/index.md:22
+msgid "—"
+msgstr "—"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`how-it-works`"
+msgstr "{doc}`how-it-works`"
+
+#: ../../source/overview/index.md:22
+msgid "one run, end to end, in a diagram and a paragraph"
+msgstr "un'esecuzione, da un capo all'altro, in un diagramma e un paragrafo"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../reference/design/index`"
+msgstr "{doc}`../reference/design/index`"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`the-repositories`"
+msgstr "{doc}`the-repositories`"
+
+#: ../../source/overview/index.md:22
+msgid "the map: engine, formats, input databases, the site"
+msgstr "la mappa: motore, formati, database di ingresso, il sito"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../start/ways-to-contribute`"
+msgstr "{doc}`../start/ways-to-contribute`"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`trust`"
+msgstr "{doc}`trust`"
+
+#: ../../source/overview/index.md:22
+msgid "what the project claims about its own output, and what it refuses to claim"
+msgstr "che cosa il progetto afferma sui propri risultati, e che cosa rifiuta di affermare"
+
+#: ../../source/overview/index.md:22
+#, python-brace-format
+msgid "{doc}`../guides/institutional/why-trust-a-grant`"
+msgstr "{doc}`../guides/institutional/why-trust-a-grant`"
+
+#: ../../source/overview/index.md:32
+msgid "This section is the fast pass"
+msgstr "Questa sezione è il passaggio veloce"
+
+#: ../../source/overview/index.md:33
+msgid ""
+"Four short chapters, no technical background needed for two of them, and each one "
+"names the place where the same subject is treated properly."
+msgstr ""
+"Quattro capitoli brevi, due dei quali non richiedono alcuna preparazione tecnica, e "
+"ciascuno indica il punto in cui lo stesso argomento è trattato per bene."
+
+#: ../../source/overview/index.md:43
+msgid "Reading paths, by what you need"
+msgstr "Percorsi di lettura, secondo ciò che ti serve"
+
+#: ../../source/overview/index.md:44
+#, python-brace-format
+msgid ""
+"**Assessing whether to rely on this.** {doc}`problem`, then {doc}`trust`, then "
+"{doc}`../guides/institutional/index` — which is written for exactly that question and"
+" is honest about the limits rather than reassuring."
+msgstr ""
+"**Valutare se farci affidamento.** {doc}`problem`, poi {doc}`trust`, poi "
+"{doc}`../guides/institutional/index` — scritta esattamente per quella domanda, e "
+"onesta sui limiti anziché rassicurante."
+
+#: ../../source/overview/index.md:48
+#, python-brace-format
+msgid ""
+"**Getting results out of it.** {doc}`../start/install`, {doc}`../start/first-run`, "
+"then {doc}`../guides/user/index` in order, and "
+"{doc}`../reference/configuration/index` when you tire of long command lines."
+msgstr ""
+"**Ottenerne dei risultati.** {doc}`../start/install`, {doc}`../start/first-run`, poi "
+"{doc}`../guides/user/index` nell'ordine, e {doc}`../reference/configuration/index` "
+"quando ti stancherai delle righe di comando lunghe."
+
+#: ../../source/overview/index.md:52
+#, python-brace-format
+msgid ""
+"**Supporting a report nobody supports yet.** {doc}`../guides/formats/tutorials/first-"
+"format` end to end, with {doc}`../guides/formats/dev-loop` open beside it."
+msgstr ""
+"**Supportare una relazione che nessuno supporta ancora.** "
+"{doc}`../guides/formats/tutorials/first-format` da cima a fondo, con "
+"{doc}`../guides/formats/dev-loop` aperta di fianco."
+
+#: ../../source/overview/index.md:55
+#, python-brace-format
+msgid ""
+"**Arguing with a decision.** {doc}`../reference/design/index`, and in particular "
+"{doc}`../reference/design/limits`, which lists what is accepted, what is broken, and "
+"what is designed and not built. The choices about *technology* rather than "
+"*algorithm* are in {doc}`../guides/engine/advanced/implementation-notes`."
+msgstr ""
+"**Discutere una decisione.** {doc}`../reference/design/index`, e in particolare "
+"{doc}`../reference/design/limits`, che elenca ciò che è accettato, ciò che è rotto, e"
+" ciò che è progettato e non costruito. Le scelte di *tecnologia* anziché di "
+"*algoritmo* stanno in {doc}`../guides/engine/advanced/implementation-notes`."
+

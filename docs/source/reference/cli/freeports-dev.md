@@ -36,10 +36,14 @@ formats repository:
 
 | Path | What |
 |---|---|
-| `README.md` | the repository's front page: the three badges, the summary table between its markers, and links to the six pages below |
+| `README.md` | the repository's front page: the badges, both summary tables between their markers, and links to the pages below |
 | `validation/report/<table>.md` | six pages, one per arrangement of the grants — named after the `--table` value that fills each one |
 | `validation/report/badges/` | `grants-total`, `grants-coverage`, `check-grants`, each as an SVG and as shields.io endpoint JSON |
-| `.githooks/pre-commit` | regenerates all nine before every commit |
+| `ci/report/<table>.md`, `ci/report/badges/`, `ci/report/index.html` | the same for what the last run measured |
+| `ci.yaml` | how the repository is gated: the branch classes, the thresholds, the key server |
+| `Makefile`, `make.bat` | the single entry point — every target, and the Windows shim that calls it |
+| `.gitignore` | what a run leaves behind: `reports/`, the caches, a stray log |
+| `.githooks/pre-commit` | names the Makefile target that is the commit gate |
 
 All nine are then **filled straight away**, by running the command once — so a repository never
 starts life with three broken images and six empty tables in it. That step is best-effort: if
@@ -48,15 +52,22 @@ machine, the initialisation says so, names the command to run later, and succeed
 that could not be created without a reachable documentation server would be a worse tool than one
 that leaves nine files to fill.
 
-The hook runs after the test run, and **never refuses a commit over the report**. It collects once,
-renders the nine artefacts, and `git add`s the ones it actually rewrote so the refresh is part of
-the same commit as the change that caused it. Everything about it is conditional: no
-`freeports-validate` on the path, no methodology it can resolve, or a page whose marker pair
-somebody removed, and it says so on standard error and leaves the file alone. The figures depend on
-a network, and a committer on a train still has to be able to commit.
+**The hook runs one thing**: `make pre-commit` on a `dev` branch, `make ci-full` on a `prod` one.
+What the gate consists of is decided in the `Makefile`, so it can grow without the hook being
+edited — and every step of it is a target you can also run by hand, which is the property that makes
+a refused commit something you can reproduce rather than something that happened to you. What is
+left in the hook is the environment check, the branch class, the non-ASCII filename check, the
+staging of what the run rewrote, and the verdict.
 
-To change where any of it goes, edit the hook: it is nine ordinary lines in a shell script the
-repository owns, and there is deliberately no setting for it.
+**No report can refuse a commit**, on any branch. The gate collects once, renders the artefacts, and
+the hook `git add`s the ones it actually rewrote, so the refresh is part of the same commit as the
+change that caused it. Everything about that is conditional: no `freeports-validate` on the path, no
+methodology it can resolve, or a page whose marker pair somebody removed, and the target says so on
+standard error and leaves the file alone. The figures depend on a network, and a committer on a
+train still has to be able to commit.
+
+To change what the gate does, edit the `Makefile` — `make help` lists every target, and
+{doc}`../../guides/devops/the-gate` explains which of them may refuse and on which branch.
 
 `setup-input-db` copies a minimal input database into `tests/input_db/`, with a single list named
 `TEST`. It exists so that the tests of a repository do not depend on a database maintained
@@ -142,7 +153,7 @@ $ freeports-dev make-tests --format CARNE-EN23 --page 25 --page-type investments
 | Option | Meaning |
 |---|---|
 | `--format` / `-f`, `--page` / `-p` | as above. Both **required** |
-| `--page-type` / `-t` | as above. No longer required: `dev.page_type` can supply it, and it defaults to `investments` |
+| `--page-type` / `-t` | as above. Optional: `dev.page_type` can supply it, and it defaults to `investments` |
 | `--document` / `-d` | the document variant, for a format with several |
 | `--report`, `--filter-data`, `--target-list`, `--repo`, `--config`, `--db-directory` | as above |
 | `--noconfirm` | do not ask before writing each fixture. Also `dev.noconfirm` |
@@ -163,10 +174,32 @@ an absent flag says nothing, it does not say no.
 ## `test` — run the repository's tests
 
 ```console
-$ freeports-dev test                         # everything
+$ freeports-dev test                         # the per-page tests — the default
+$ freeports-dev test --all                   # both halves
+$ freeports-dev test --slow                  # only the whole-document tests
 $ freeports-dev test --format CARNE-EN23     # one format
+$ freeports-dev test --repo ~/their-formats  # a repository that is not yours
 $ freeports-dev test -- -x -k investments    # anything after `--` goes to pytest
 ```
+
+| Option | Meaning |
+|---|---|
+| `--fast` | only the per-page tests, recorded as the suite `formats.single_page`. **The default** |
+| `--slow` | only the whole-document tests, recorded as `formats.integration` |
+| `--all` | both |
+| `--format` / `-f` | narrow the run to one format |
+| `--repo` / `-r`, `--config`, `--db-directory` / `-I` | the shared options; see {doc}`../configuration/dev-and-validate` |
+
+**The three selections are the Makefile's three targets**: `--fast` is `make test-fast`, `--slow` is
+`make test-slow`, `--all` is `make test-all`, and the default matches `make test`. The two surfaces
+are one vocabulary on purpose — `make` is how you work on your own repository, this command is how
+you interrogate one that is not yours, and a person meets both. A `-m` of your own, after `--`,
+outranks all three and is left to stand alone: pytest takes the last `-m` on the line, so a second
+one added beside yours would silently replace the selection you asked for.
+
+A run that leaves half the suite out **says so in its last line**. And a selection that matched
+nothing is not a failure: a repository with no formats in it yet, or one whose formats have no
+whole-document test, has nothing there to fail.
 
 It is pytest, with the `freeports_dev` plugin doing the collection: a directory named like a format
 in `metadata/formats.csv` becomes a test node, and the per-page fixtures and the `out/` reference
@@ -176,7 +209,9 @@ and a CI job needs nothing else.
 Two kinds of test live there and they cost very different amounts. The per-page tests are fast, and
 they are what you run every few minutes while working. The whole-document test replays the entire
 report and compares the output tables against `tests/formats/<FORMAT>/out/`; it is slow, it is
-marked `integration_tests`, and it is the one that actually says the format works.
+marked `integration_tests`, and it is the one that actually says the format works. That marker is
+what `--fast` and `--slow` select on, and the flag is the one spelling of it — the marker string
+itself never needs to be written out by hand.
 
 ```{important}
 `tests/formats/<FORMAT>/out/**` is the repository's specification, not a snapshot. When a run

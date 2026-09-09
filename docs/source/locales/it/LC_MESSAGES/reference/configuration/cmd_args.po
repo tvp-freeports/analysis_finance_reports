@@ -1,0 +1,286 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/configuration/cmd_args.md:1
+msgid "The command line"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:3
+#, python-brace-format
+msgid ""
+"The strongest source except in batch mode, where a row overrides it. Per-"
+"option detail is in {doc}`options`; this page is the mapping and the "
+"rules specific to this source."
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:6
+msgid "Flag to option"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "Flag"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "Option"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "Note"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--input`, `--report`, `-i`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`reports`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "repeatable, several values after one occurrence"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--target-list`, `-T`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`target_lists`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "likewise"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--format`, `-f`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`format`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--formats-directory`, `--repo`, `-F`, `-r`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`formats_repo_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--db-directory`, `-I`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`input_db_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--out`, `-o`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`out_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--out-profile`, `-P`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`out_profile`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "one of the three names, case-insensitively"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--separate-out`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`separate_out`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "present = true"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--archive`, `-z`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`compressed`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--no-download`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`save_pdf`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "present = **false**"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--batch`, `-b`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`batch_file`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--config`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`config_file`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--workers`, `-j`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`n_workers`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "positive integer or `auto`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--jobs`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`parallelism_jobs`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "long form only"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--pages`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`parallelism_pages`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`-v`, `-q`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`verbosity`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "counted; only when at least one is given"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "`--internal-worker`"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "—"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md
+msgid "hidden; the channel between two copies of the binary, not a setting"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:28
+msgid "Rules of the command line"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:29
+msgid ""
+"**An absent flag leaves its option unset, never set to a default.** "
+"Defaults belong to the defaults tier, and a command line that set "
+"everything would make every other source unreachable — a configuration "
+"file could then never contribute anything."
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:33
+msgid ""
+"The visible consequence is that the three boolean flags can only be "
+"switched **on** here. `--archive` absent means *nothing said*, not false."
+" To say false, use a source that can spell it: `FREEPORTS_ARCHIVE=false`,"
+" or `archive: false`."
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:37
+msgid ""
+"**`-v` and `-q` are independent dials**, not opposed flags. Both are "
+"counted, the net offset `verbose - quiet` is added to the default and "
+"clamped, and using them together is never an error. The option is left "
+"unset unless at least one of the two appears."
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:41
+msgid ""
+"**Repeatable flags leave the option unset when absent**, not empty. `-i` "
+"given zero times is not \"no documents\", it is \"this source says "
+"nothing about documents\"."
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:44
+msgid "What the command line rejects outright"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:45
+msgid ""
+"Three things are rejected here rather than later, each with the flag's "
+"own name in the message so that someone who mistyped `--pages` reads "
+"`--pages` and not a generic sentence about parallelism:"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:48
+#, python-brace-format
+msgid ""
+"a document specifier that does not parse "
+"({doc}`../../guides/user/documents`);"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:49
+msgid ""
+"a parallelism value that is not a positive integer or `auto` — including "
+"zero and negatives, which is why hyphen values have to be accepted at "
+"all: without that, `-1` would be taken for an unknown option and the "
+"typed error could never be reached;"
+msgstr ""
+
+#: ../../source/reference/configuration/cmd_args.md:52
+msgid "an output profile that is not one of the three names."
+msgstr ""
+

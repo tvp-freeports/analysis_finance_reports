@@ -1,0 +1,196 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/engine/tests.rst:3
+msgid "Writing tests"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:5
+msgid ""
+"There are two test surfaces in this project, with different owners and "
+"different purposes."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:8
+msgid "Which of them run at every commit"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:10
+msgid ""
+"Every suite here is worth running, and not every suite is worth running "
+"*every time*. The line is drawn by cost, and :ref:`fast-and-slow` is the "
+"whole argument: a gate that costs a minute is a gate people commit "
+"around, and a check that gets skipped has no value at all."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:20
+msgid ""
+"**Deferring a suite does not hide it.** Each one records its outcome and "
+"the commit it ran at, so ``make ci-check`` prints a suite nobody ran here"
+" as ``NOT RUN`` and one that last ran elsewhere as ``STALE`` — neither of"
+" which reads as a pass. On a production branch each of those refuses the "
+"commit, and the hook runs ``make ci-full`` first so that nothing is left "
+"unknown. The table of suites, and what each verdict means, is in "
+":doc:`../devops/index`."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:26
+msgid ""
+"If you are about to move a test across the line, read the tip under *What"
+" marks a test slow* in :doc:`../devops/index` first. Twice in this "
+"repository the slow thing turned out not to be the test."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:30
+msgid "The engine's own tests"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:32
+msgid ""
+"The bulk of the coverage is in the Rust crate, as unit tests inside the "
+"module they exercise."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:41
+msgid ""
+"The unit tests are in the gate because they are the ones that answer a "
+"keystroke: 0.7 s, no fixture files, no whole-document flow. The "
+"integration tests are what would notice a regression across the whole "
+"flow and cost four times as much between them, so they are run when you "
+"ask — which the verdict table then reminds you to do."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:46
+msgid ""
+"How much of it is covered is a *gated* figure, not a matter of taste: "
+"``make coverage-rust`` and ``make coverage-python`` measure it and ``make"
+" ci-check`` compares it against the minimum this repository sets for "
+"itself. Both are slow — one recompiles the crate instrumented, the other "
+"re-runs both Python suites under ``coverage.py`` — so neither is in the "
+"commit gate, and both are read from the last full run. "
+":doc:`../devops/index` says where those minima live and what happens when"
+" one is missed."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:52
+msgid "Two conventions are not optional:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:54
+msgid ""
+"**group by topic.** Tests live in nested modules inside ``mod tests``, "
+"one module per behaviour under test, never a flat list of ``#[test]`` "
+"functions. A file with two hundred flat tests is a file nobody can "
+"navigate."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:57
+msgid ""
+"**exhaust, do not sample.** Cover the branches, including the ones that "
+"only fail, and stress the edges — a parser is expected to survive any "
+"input without panicking, and that is a test, not a hope."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:61
+msgid ""
+"A handful of tests reach Python, because two modules genuinely do: "
+"loading a document, and running an author's pipe. Everything else stays "
+"native, which is what keeps the suite fast and deterministic."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:66
+msgid "A format's tests"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:68
+msgid ""
+"Tests for a format live in its **formats repository**, not here, and are "
+"run with ``freeports-dev``:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:75
+msgid "Each format under ``tests/formats/<FORMAT>/`` has three things:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:77
+msgid "``report.pdf``"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:78
+msgid "the document."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:80
+msgid "``pages/<page class>/``"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:81
+msgid ""
+"per-page fixtures — ``<page>-pdf_blks.json``, ``<page>-txt_blks.json``, "
+"``<page>-results.json``, and a ``filter_data.json`` per page class. They "
+"pin one page at a time, which is what tells you *which segment* broke "
+"rather than that the document did. Generate them with:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:89
+msgid "They are JSON on purpose: a regression should be visible in a diff."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:91
+msgid "``out/``"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:92
+msgid ""
+"the expected output of the whole document. This is the repository's "
+"specification, not a snapshot: if a run diverges from it, the engine "
+"changed, and the divergence is the finding. Regenerating one of these "
+"files is a deliberate act with a reason attached — and because grants are"
+" made against the content of exactly these files, regenerating one "
+"invalidates the grant on it. See :doc:`../../overview/trust`."
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:98
+msgid ""
+"The whole-document tests are slower than the per-page ones by a wide "
+"margin — a minute and a half against five seconds, in "
+"``analysis_finance_reports_formats``, because each one is a full "
+"extraction run. So they are two suites, gated the way the engine's are:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:108
+msgid ""
+"in that repository, or from anywhere against a repository that is not "
+"yours:"
+msgstr ""
+
+#: ../../source/guides/engine/tests.rst:116
+msgid ""
+"The targets and the flags are the same three selections — a format "
+"repository's ``Makefile`` is the engine's, with the axes it has no use "
+"for taken out. Run the per-page ones constantly: that is the loop format "
+"development actually happens in, and it is the one that tells you *which "
+"segment* broke rather than that the document did. That repository's "
+"commit hook runs them at every commit and the whole-document ones on a "
+"production branch, and ``make ci-check`` says which of the two describes "
+"the commit in front of you."
+msgstr ""
+

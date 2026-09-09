@@ -1,42 +1,217 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025, Oreste Sciacqualegni
-# This file is distributed under the same license as the freeports_analysis
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: freeports_analysis\n"
+"Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 11:03+0200\n"
-"PO-Revision-Date: 2025-07-18 18:36+0200\n"
-"Last-Translator: \n"
-"Language-Team: it <LL@li.org>\n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Generated-By: Babel 2.17.0\n"
-"X-Generator: Poedit 3.6\n"
+"Generated-By: Babel 2.18.0\n"
 
-#: ../../source/index.rst:10
-msgid "Contents:"
-msgstr "Contenuto:"
+#: ../../source/index.rst:3
+msgid "freeports"
+msgstr "freeports"
 
-#: ../../source/index.rst:8
-msgid "freeports_analysis documentation"
-msgstr "documentazione di freeports_analysis"
+#: ../../source/index.rst:5
+msgid "**Structured data out of financial reports published as PDF.**"
+msgstr "**Dati strutturati a partire da relazioni finanziarie pubblicate in PDF.**"
+
+#: ../../source/index.rst:7
+msgid ""
+"Funds disclose what they hold, what they are worth and how they classify themselves —"
+" in annual reports, in PDF, laid out however each issuer chose. ``freeports`` reads "
+"those documents and writes tables you can compute on. The engine knows nothing about "
+"any particular report: support for a layout lives in a separately maintained "
+"**formats repository**, which is what lets coverage grow without touching the engine."
+msgstr ""
+"I fondi dichiarano che cosa detengono, quanto valgono e come si classificano — in "
+"relazioni annuali, in PDF, impaginate come ha deciso ciascun emittente. ``freeports``"
+" legge quei documenti e scrive tabelle su cui si può calcolare. Il motore non sa "
+"niente di nessuna relazione in particolare: il supporto per un'impaginazione vive in "
+"un **repository di formati** mantenuto a parte, ed è questo che permette alla "
+"copertura di crescere senza toccare il motore."
+
+#: ../../source/index.rst:15
+msgid ""
+"Before relying on the output, read :doc:`what the project does and does not claim "
+"<overview/trust>`, and the :doc:`validation section <validation/index>` it "
+"summarises."
+msgstr ""
+"Prima di fare affidamento sui risultati, leggi :doc:`che cosa il progetto afferma e "
+"che cosa rifiuta di affermare <overview/trust>`, e la :doc:`sezione sulla validazione"
+" <validation/index>` che quella pagina riassume."
+
+#: ../../source/index.rst:19
+msgid "How this documentation is arranged"
+msgstr "Come è organizzata questa documentazione"
 
 #: ../../source/index.rst:21
 msgid ""
-"This packages is intended for generate a `csv` file from different "
-"finance `pdf` reports"
+"These pages are organised on **three axes at once**, because \"where is that written "
+"down\" has three different answers depending on why you are asking."
 msgstr ""
-"Questo pacchetto serve a generare dataset `csv` a partire da "
-"diversi report finanziari in formato `pdf`"
+"Queste pagine sono organizzate su **tre assi insieme**, perché \"dove sta scritto\" "
+"ha tre risposte diverse a seconda del motivo per cui lo si chiede."
 
-#: ../../source/index.rst:25
+#: ../../source/index.rst:28
+msgid "Axis"
+msgstr "Asse"
+
+#: ../../source/index.rst:29
+msgid "Where it lives"
+msgstr "Dove sta"
+
+#: ../../source/index.rst:30
+msgid "What it is for"
+msgstr "A che cosa serve"
+
+#: ../../source/index.rst:31
+msgid "**Who you are**"
+msgstr "**Chi sei**"
+
+#: ../../source/index.rst:32
+msgid ":doc:`guides/index`"
+msgstr ":doc:`guides/index`"
+
+#: ../../source/index.rst:33
+msgid ""
+"one section per figure — user, engine developer, format author, input-database "
+"maintainer, granter, documentation writer, translator, DevOps, and the institutional "
+"reader who wants to know whether to believe any of it"
+msgstr ""
+"una sezione per ciascuna figura — utente, sviluppatore del motore, autore di formati,"
+" curatore di un database di ingresso, garante, redattore della documentazione, "
+"traduttore, DevOps, e il lettore istituzionale che vuole sapere se credere a tutto "
+"questo"
+
+#: ../../source/index.rst:36
+msgid "**What you must do or know**"
+msgstr "**Che cosa devi fare o sapere**"
+
+#: ../../source/index.rst:37
+msgid "inside each guide"
+msgstr "dentro ciascuna guida"
+
+#: ../../source/index.rst:38
+msgid ""
+"a guide opens with its loop and keeps the deep material in its own ``advanced`` "
+"pages, so the first read is not the hardest one"
+msgstr ""
+"una guida si apre con il proprio ciclo di lavoro e tiene il materiale approfondito "
+"nelle proprie pagine ``advanced``, così che la prima lettura non sia la più difficile"
+
+#: ../../source/index.rst:40
+msgid "**What it is about**"
+msgstr "**Di che cosa parla**"
+
+#: ../../source/index.rst:41
+msgid ":doc:`reference/index`"
+msgstr ":doc:`reference/index`"
+
+#: ../../source/index.rst:42
+msgid ""
+"audience-independent: every option, every setting, the algorithm chapter by chapter. "
+"This is where the cross-references point, so nothing is written down twice"
+msgstr ""
+"indipendente dal lettore: ogni opzione, ogni impostazione, l'algoritmo capitolo per "
+"capitolo. È qui che puntano i rimandi, così niente è scritto due volte"
+
+#: ../../source/index.rst:45
+msgid ""
+"Above those sit two short sections everyone reads, and below them one that no human "
+"writes."
+msgstr ""
+"Sopra a questi stanno due sezioni brevi che leggono tutti, e sotto di essi una che "
+"non scrive nessun essere umano."
+
+#: ../../source/index.rst:48
+msgid "Start here"
+msgstr "Comincia da qui"
+
+#: ../../source/index.rst:54
+msgid "If you want"
+msgstr "Se vuoi"
+
+#: ../../source/index.rst:55
+msgid "Read"
+msgstr "Leggi"
+
+#: ../../source/index.rst:56
+msgid "to install it and see it run"
+msgstr "installarlo e vederlo funzionare"
+
+#: ../../source/index.rst:57
+msgid ":doc:`start/index` — installation, one real run, and the developer tools"
+msgstr ":doc:`start/index` — installazione, un'esecuzione vera, e gli strumenti di sviluppo"
+
+#: ../../source/index.rst:58
+msgid "to understand what it is and why it exists"
+msgstr "capire che cos'è e perché esiste"
+
+#: ../../source/index.rst:59
+msgid ""
+":doc:`overview/index` — the problem, how the engine works, the repositories, and what"
+" being trusted with the numbers means here"
+msgstr ""
+":doc:`overview/index` — il problema, come funziona il motore, i repository, e che "
+"cosa significa qui rispondere dei numeri"
+
+#: ../../source/index.rst:61
+msgid "to do a particular job"
+msgstr "svolgere un lavoro preciso"
+
+#: ../../source/index.rst:62
+msgid ":doc:`guides/index` — pick the figure that is you"
+msgstr ":doc:`guides/index` — scegli la figura che sei"
+
+#: ../../source/index.rst:63
+msgid "to look one thing up"
+msgstr "cercare una cosa sola"
+
+#: ../../source/index.rst:64
+msgid ":doc:`reference/index` — options, settings, and the design of the algorithm"
+msgstr ":doc:`reference/index` — opzioni, impostazioni, e il progetto dell'algoritmo"
+
+#: ../../source/index.rst:65
+msgid "to see what the machine says about this repository"
+msgstr "vedere che cosa dice la macchina di questo repository"
+
+#: ../../source/index.rst:66
+msgid ""
+":doc:`generated/index` — the two API references, the coverage of the grants, and the "
+"last gate run"
+msgstr ""
+":doc:`generated/index` — i due riferimenti di API, la copertura delle attestazioni, e"
+" l'ultima esecuzione del gate"
+
+#: ../../source/index.rst:69
+msgid "Getting started"
+msgstr "Per cominciare"
+
+#: ../../source/index.rst:77
+msgid "Guides"
+msgstr "Guide"
+
+#: ../../source/index.rst:84
+msgid "Reference"
+msgstr "Riferimento"
+
+#: ../../source/index.rst:91
+msgid "Generated"
+msgstr "Generato"
+
+#: ../../source/index.rst:100
 msgid "This project is under active development."
-msgstr "Questo progetto è attivamente sotto sviluppo."
+msgstr "Questo progetto è in sviluppo attivo."
+

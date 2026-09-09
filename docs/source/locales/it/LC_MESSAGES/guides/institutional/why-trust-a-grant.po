@@ -1,0 +1,278 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:1
+msgid "Why a grant is worth something"
+msgstr "Perché un'attestazione vale qualcosa"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:3
+#, python-brace-format
+msgid ""
+"A grant is a signed statement that a named methodology was applied to a specific "
+"file. This page is the argument for why that is worth more than a disclaimer and less"
+" than a guarantee — read it before deciding how much weight to put on the figures. "
+"The mechanics of making one are {doc}`../grants/index`; the published methodologies "
+"themselves are {doc}`../../validation/index`."
+msgstr ""
+"Un'attestazione è la dichiarazione firmata che una metodologia con un nome è stata "
+"applicata a un file preciso. Questa pagina è l'argomentazione del perché ciò valga "
+"più di una liberatoria e meno di una garanzia — leggila prima di decidere quanto peso"
+" dare ai numeri. La meccanica del farne una è {doc}`../grants/index`; le metodologie "
+"pubblicate stesse sono {doc}`../../validation/index`."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:9
+msgid "A methodology is a document at a location you chose to trust"
+msgstr "Una metodologia è un documento a un indirizzo che hai scelto di ritenere affidabile"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:11
+msgid ""
+"A methodology page does not ship with the tool, and it does not live in the "
+"repository being vouched for. It is **published somewhere**, and each person who uses"
+" it configures where they read it from — one or more *sources*, patterns like "
+"`https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`, in which a `*` "
+"stands for the methodology's name."
+msgstr ""
+"Una pagina di metodologia non viaggia insieme allo strumento, e non vive nel "
+"repository di cui si sta rispondendo. È **pubblicata da qualche parte**, e ciascuno "
+"che la usi configura da dove la legge — una o più *sorgenti*, schemi come "
+"`https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`, in cui un `*` "
+"sta per il nome della metodologia."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:17
+msgid ""
+"The obvious alternative — shipping the pages inside the installed command — is the "
+"one thing this arrangement exists to avoid, and following why explains what a grant "
+"means. If the text lived in the package, upgrading `freeports-validate` would "
+"silently change what every grant in every repository referred to: a claim you made in"
+" March could come to mean something else in April because your package manager "
+"updated something. The text a claim is about must not be chosen by a package manager."
+msgstr ""
+"L'alternativa ovvia — far viaggiare le pagine dentro il comando installato — è "
+"l'unica cosa che questa impalcatura esiste per evitare, e seguirne il perché spiega "
+"che cosa significhi un'attestazione. Se il testo vivesse nel pacchetto, aggiornare "
+"`freeports-validate` cambierebbe in silenzio ciò a cui ogni attestazione di ogni "
+"repository si riferisce: un'affermazione che hai fatto a marzo potrebbe voler dire "
+"qualcos'altro ad aprile perché il tuo gestore di pacchetti ha aggiornato qualcosa. Il"
+" testo di cui parla un'affermazione non deve essere scelto da un gestore di "
+"pacchetti."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:24
+msgid ""
+"So it is chosen by you. And the consequence — the honest half of the trade — is that "
+"whoever publishes a methodology can invalidate grants made under it, by editing the "
+"page. That is not a flaw that survived review; it is the correct shape of the thing. "
+"A methodology *is* a text, a grant *is* a claim about that text, and the person who "
+"controls the text therefore controls what the claim meant. Making that visible is "
+"better than hiding it inside a version number."
+msgstr ""
+"Perciò lo scegli tu. E la conseguenza — la metà onesta dello scambio — è che chi "
+"pubblica una metodologia può invalidare le attestazioni fatte sotto di essa, "
+"modificando la pagina. Non è un difetto sopravvissuto a una revisione; è la forma "
+"giusta della cosa. Una metodologia *è* un testo, un'attestazione *è* un'affermazione "
+"su quel testo, e chi controlla il testo controlla perciò che cosa l'affermazione "
+"volesse dire. Renderlo visibile è meglio che nasconderlo dentro un numero di "
+"versione."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:30
+msgid "The source is a contract, and it is deliberately not recorded"
+msgstr "La sorgente è un patto, e deliberatamente non viene registrata"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:32
+msgid ""
+"A validation document stores a methodology's **name** and its **sha256**. It stores "
+"nothing about where either came from."
+msgstr ""
+"Un documento di validazione conserva il **nome** di una metodologia e il suo "
+"**sha256**. Non conserva niente su da dove venga l'uno o l'altro."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:35
+msgid ""
+"That looks like a missing field and is a decision. The source is an agreement between"
+" the person who granted and the person who verifies, and each of them writes it in "
+"their own configuration — the granter chose which publication of a methodology they "
+"were working under, and the verifier chooses which publication they are checking "
+"against. Recording the granter's source inside the document would make the document "
+"assert something about the verifier's setup that it has no standing to assert, and "
+"would quietly turn a shared name into a URL that has to keep working for ever."
+msgstr ""
+"Sembra un campo che manca ed è una decisione. La sorgente è un accordo fra chi ha "
+"attestato e chi verifica, e ciascuno dei due la scrive nella propria configurazione —"
+" chi attesta ha scelto sotto quale pubblicazione di una metodologia stesse lavorando,"
+" e chi verifica sceglie contro quale pubblicazione sta controllando. Registrare nel "
+"documento la sorgente di chi attesta farebbe affermare al documento qualcosa "
+"sull'impostazione di chi verifica, cosa che non ha titolo di affermare, e "
+"trasformerebbe in sordina un nome condiviso in un URL che deve continuare a "
+"funzionare per sempre."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:42
+msgid ""
+"The price is that a hash mismatch is ambiguous. It may mean the page was rewritten; "
+"it may mean the two of you were reading two different publications of the same "
+"methodology. The tool pays that price in prose rather than in schema: a mismatch "
+"names a differently-configured source as the first likely cause, and prints the "
+"sources in use with the URI the name resolved to, so two people can compare one line "
+"and see which of the two it was."
+msgstr ""
+"Il prezzo è che una discordanza di hash è ambigua. Può voler dire che la pagina è "
+"stata riscritta; può voler dire che voi due stavate leggendo due pubblicazioni "
+"diverse della stessa metodologia. Lo strumento paga quel prezzo in prosa anziché "
+"nello schema: una discordanza indica come prima causa probabile una sorgente "
+"configurata diversamente, e stampa le sorgenti in uso con l'URI a cui il nome si è "
+"risolto, così che due persone possano confrontare una riga a testa e vedere quale dei"
+" due casi fosse."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:52
+msgid "What a methodology may say about itself"
+msgstr "Che cosa una metodologia può dire di sé"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:54
+msgid ""
+"Two optional things on the page are read by the tool rather than only by people, and "
+"both exist to make a grant more legible rather than to constrain it."
+msgstr ""
+"Due cose facoltative della pagina sono lette dallo strumento e non solo dalle "
+"persone, ed entrambe esistono per rendere un'attestazione più leggibile anziché per "
+"vincolarla."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:57
+msgid ""
+"A **`Supported paths`** section declares which repository paths the methodology "
+"covers, each with a sentence saying what vouching for such a file claims. A page that"
+" has no such section covers any path, which is the honest answer for a methodology — "
+"`agreement and good faith` is the example — whose scope cannot be written as a set of"
+" paths. Where a section exists and a grant falls outside it, `grant` refuses while "
+"its author is still standing there, and `check-grants` only warns: a repository must "
+"not go red because somebody else edited a page it adopts."
+msgstr ""
+"Una sezione **`Supported paths`** dichiara quali percorsi del repository la "
+"metodologia copre, ciascuno con una frase che dice che cosa si afferma rispondendo di"
+" un file del genere. Una pagina che non ha una sezione simile copre qualsiasi "
+"percorso, che è la risposta onesta per una metodologia — `agreement and good faith` "
+"ne è l'esempio — il cui ambito non si può scrivere come un insieme di percorsi. Dove "
+"la sezione c'è e un'attestazione ne cade fuori, `grant` rifiuta mentre il suo autore "
+"è ancora lì presente, e `check-grants` si limita ad avvisare: un repository non deve "
+"andare in rosso perché qualcun altro ha modificato una pagina che esso adotta."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:64
+msgid ""
+"A page may also **pin what it cites** — a diagram, a specification, another document "
+"— by hash, in ordinary reStructuredText comments. Those lines are part of the page, "
+"so the page's own hash already commits to them; following them is a deepening, never "
+"a second thing to trust. A check does follow them by default, because \"do the things"
+" this page relies on still say what its author read\" is the question actually being "
+"asked; `--no-deep` turns that off where the fetch per pinned resource is what you "
+"cannot afford."
+msgstr ""
+"Una pagina può anche **fissare ciò che cita** — un diagramma, una specifica, un altro"
+" documento — tramite hash, in normali commenti reStructuredText. Quelle righe sono "
+"parte della pagina, quindi l'hash della pagina già le impegna; seguirle è un "
+"approfondimento, mai una seconda cosa da ritenere affidabile. Un controllo le segue "
+"per impostazione predefinita, perché \"le cose su cui questa pagina si appoggia "
+"dicono ancora ciò che il suo autore ha letto\" è la domanda che si sta davvero "
+"facendo; `--no-deep` lo disattiva dove ciò che non ti puoi permettere è una richiesta"
+" di rete per ogni risorsa fissata."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:71
+#, python-brace-format
+msgid "{doc}`../grants/writing-a-methodology` is the guide to writing one."
+msgstr "{doc}`../grants/writing-a-methodology` è la guida per scriverne una."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:73
+msgid "The three published methodologies"
+msgstr "Le tre metodologie pubblicate"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:74
+msgid ""
+"A methodology says what a person actually did before vouching. Three are published "
+"today, and they differ in how much verification they claim, not in how much they "
+"promise:"
+msgstr ""
+"Una metodologia dice che cosa una persona ha fatto davvero prima di rispondere di "
+"qualcosa. Oggi ne sono pubblicate tre, e differiscono per quanta verifica dichiarano,"
+" non per quanto promettono:"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:77
+msgid ""
+"**Basic check** — the output files were generated, they look reasonable, and a human "
+"has actually looked at them. It is a low bar, and it is stated as a low bar. Its "
+"value is that it is *honest* about being one, and that someone's name is attached to "
+"it."
+msgstr ""
+"**Basic check** — i file di risultato sono stati generati, sembrano ragionevoli, e un"
+" essere umano li ha davvero guardati. È un'asticella bassa, ed è dichiarata come "
+"tale. Il suo valore sta nell'essere *onesta* sul fatto di esserlo, e nell'avere il "
+"nome di qualcuno attaccato."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:81
+msgid ""
+"**Golden standard** — basic check plus manual verification of the intermediate "
+"blocks: every unit the extraction saw was reviewed, and the claim includes that "
+"nothing relevant was missed. Expensive, and correspondingly rare."
+msgstr ""
+"**Golden standard** — basic check più la verifica manuale dei blocchi intermedi: ogni"
+" unità che l'estrazione ha visto è stata riesaminata, e l'affermazione comprende che "
+"non sia sfuggito niente di rilevante. Costosa, e di conseguenza rara."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:85
+msgid ""
+"**Agreement and good faith** — used for assertions rather than data: a contributor "
+"states that they have read a claim, understood it, judged it within their competence,"
+" and agree with it. It is how a statement that cannot be checked by running a program"
+" still gets a name attached."
+msgstr ""
+"**Agreement and good faith** — usata per le asserzioni anziché per i dati: un "
+"contributore dichiara di aver letto un'affermazione, di averla capita, di averla "
+"giudicata entro la propria competenza, e di essere d'accordo. È il modo in cui una "
+"dichiarazione che non si può controllare eseguendo un programma ottiene comunque un "
+"nome attaccato."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:89
+#, python-brace-format
+msgid ""
+"The full text of each — scope, protocol steps, what is and is not certified — is in "
+"{doc}`the validation section <../../validation/index>`, and that text, not this "
+"summary, is what a grant refers to."
+msgstr ""
+"Il testo completo di ciascuna — ambito, passi del protocollo, che cosa è e che cosa "
+"non è certificato — sta nella {doc}`sezione sulla validazione "
+"<../../validation/index>`, ed è a quel testo, non a questo riassunto, che "
+"un'attestazione si riferisce."
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:94
+msgid "What this does not give you"
+msgstr "Che cosa questo non ti dà"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:96
+#, python-brace-format
+msgid ""
+"It does not make the extraction correct. It makes the extraction **accountable**, "
+"which is a different and smaller thing: you can find out what was claimed, by whom, "
+"on what basis, and about exactly which bytes. Where that is not enough for your "
+"purpose, the honest answer is that it is not enough, and the {doc}`validation section"
+" <../../validation/index>` is written to let you determine that for yourself rather "
+"than to reassure you."
+msgstr ""
+"Non rende corretta l'estrazione. La rende **rendicontabile**, che è una cosa diversa "
+"e più piccola: puoi scoprire che cosa è stato affermato, da chi, su quale base, e su "
+"quali byte esattamente. Dove questo non basta al tuo scopo, la risposta onesta è che "
+"non basta, e la {doc}`sezione sulla validazione <../../validation/index>` è scritta "
+"per permetterti di stabilirlo da te anziché per rassicurarti."
+

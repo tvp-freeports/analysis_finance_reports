@@ -1,0 +1,188 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/inputs.md:1
+msgid "The two inputs"
+msgstr "I due ingressi"
+
+#: ../../source/guides/user/inputs.md:3
+#, python-brace-format
+msgid ""
+"The engine ships with no knowledge of any report and no idea which companies you care"
+" about. Both are inputs, both live outside the engine, and it will refuse to guess at"
+" either. That refusal is the design, not an omission: see "
+"{doc}`../../reference/design/formats-as-plugins`."
+msgstr ""
+"Il motore arriva senza alcuna conoscenza di alcuna relazione e senza la minima idea "
+"di quali società ti stiano a cuore. Sono entrambi ingressi, vivono entrambi fuori dal"
+" motore, e lui si rifiuterà di indovinare l'uno come l'altro. Quel rifiuto è il "
+"progetto, non una dimenticanza: vedi {doc}`../../reference/design/formats-as-"
+"plugins`."
+
+#: ../../source/guides/user/inputs.md
+msgid "Input"
+msgstr "Ingresso"
+
+#: ../../source/guides/user/inputs.md
+msgid "Says"
+msgstr "Dice"
+
+#: ../../source/guides/user/inputs.md
+msgid "Point at it with"
+msgstr "Lo indichi con"
+
+#: ../../source/guides/user/inputs.md
+msgid "Detail"
+msgstr "Dettaglio"
+
+#: ../../source/guides/user/inputs.md
+msgid "**formats repository**"
+msgstr "**repository di formati**"
+
+#: ../../source/guides/user/inputs.md
+msgid "how to read the layouts you care about"
+msgstr "come leggere le impaginazioni che ti interessano"
+
+#: ../../source/guides/user/inputs.md
+msgid "`--formats-directory` / `--repo` / `-F` / `-r`, or `FREEPORTS_FORMATS_REPO_PATH`"
+msgstr "`--formats-directory` / `--repo` / `-F` / `-r`, oppure `FREEPORTS_FORMATS_REPO_PATH`"
+
+#: ../../source/guides/user/inputs.md
+#, python-brace-format
+msgid "{doc}`../formats/repository`"
+msgstr "{doc}`../formats/repository`"
+
+#: ../../source/guides/user/inputs.md
+msgid "**input database**"
+msgstr "**database di ingresso**"
+
+#: ../../source/guides/user/inputs.md
+msgid "which companies to look for, and how to recognise each"
+msgstr "quali società cercare, e come riconoscere ciascuna"
+
+#: ../../source/guides/user/inputs.md
+msgid "`--db-directory` / `-I`, plus `--target-list` / `-T`"
+msgstr "`--db-directory` / `-I`, più `--target-list` / `-T`"
+
+#: ../../source/guides/user/inputs.md
+#, python-brace-format
+msgid "{doc}`../input-db/index`"
+msgstr "{doc}`../input-db/index`"
+
+#: ../../source/guides/user/inputs.md:12
+msgid "The formats repository"
+msgstr "Il repository di formati"
+
+#: ../../source/guides/user/inputs.md:14
+msgid ""
+"A directory, tracked in its own version control, holding one recipe — a **format** — "
+"per report layout. `analysis_finance_reports_formats` is one such repository; there "
+"is nothing privileged about it, and you can maintain your own."
+msgstr ""
+"Una cartella, tracciata in un proprio sistema di versionamento, che contiene una "
+"ricetta — un **formato** — per ciascuna impaginazione di relazione. "
+"`analysis_finance_reports_formats` è uno di questi repository; non ha niente di "
+"privilegiato, e puoi mantenere il tuo."
+
+#: ../../source/guides/user/inputs.md:18
+msgid "To start an empty one:"
+msgstr "Per cominciarne uno vuoto:"
+
+#: ../../source/guides/user/inputs.md:24
+#, python-brace-format
+msgid ""
+"That gives you a skeleton that supports no format yet. {doc}`../formats/index` is how"
+" you add one."
+msgstr ""
+"Ne ottieni uno scheletro che non supporta ancora alcun formato. "
+"{doc}`../formats/index` è come se ne aggiunge uno."
+
+#: ../../source/guides/user/inputs.md:26
+msgid ""
+"The repository is also what makes `--format` optional: it carries a mapping from URL "
+"prefixes to format names, so a document downloaded from a known address is read "
+"without being told which format it is. There is no such inference for a local file — "
+"a path carries no evidence of who published it."
+msgstr ""
+"È il repository, inoltre, a rendere `--format` facoltativo: porta con sé una "
+"corrispondenza fra prefissi di URL e nomi di formato, così che un documento scaricato"
+" da un indirizzo noto sia letto senza che gli si dica di quale formato sia. Per un "
+"file locale non c'è una deduzione simile — un percorso non porta con sé alcun indizio"
+" su chi l'abbia pubblicato."
+
+#: ../../source/guides/user/inputs.md:30
+msgid "The input database"
+msgstr "Il database di ingresso"
+
+#: ../../source/guides/user/inputs.md:32
+msgid ""
+"Which companies a run is looking for, organised into named **lists**. `--target-list`"
+" names the lists to use, and a run with no list stops before opening anything."
+msgstr ""
+"Quali società un'esecuzione sta cercando, organizzate in **liste** con un nome. "
+"`--target-list` nomina le liste da usare, e un'esecuzione senza alcuna lista si ferma"
+" prima di aprire qualsiasi cosa."
+
+#: ../../source/guides/user/inputs.md:35
+msgid "For testing, a minimal database with a single list called `TEST`:"
+msgstr "Per le prove, un database minimo con una sola lista chiamata `TEST`:"
+
+#: ../../source/guides/user/inputs.md:41
+msgid ""
+"It writes into `tests/input_db/` of the formats repository, deliberately: a format's "
+"tests must fail because the *format* broke, never because someone edited a company "
+"list maintained elsewhere. For real runs you want a real database."
+msgstr ""
+"Scrive dentro `tests/input_db/` del repository di formati, deliberatamente: i test di"
+" un formato devono fallire perché si è rotto il *formato*, mai perché qualcuno ha "
+"modificato una lista di società mantenuta altrove. Per le esecuzioni vere ti serve un"
+" database vero."
+
+#: ../../source/guides/user/inputs.md:45
+msgid "Two properties of the database change what a run finds, and both surprise people:"
+msgstr ""
+"Due proprietà del database cambiano ciò che un'esecuzione trova, ed entrambe colgono "
+"di sorpresa:"
+
+#: ../../source/guides/user/inputs.md:47
+msgid ""
+"**matching is first-match-wins, in file order.** The order of the file is meaningful,"
+" not incidental. A run that seems to attribute a holding to the wrong company is "
+"often reporting a database problem rather than an extraction one;"
+msgstr ""
+"**la corrispondenza è al primo che vince, nell'ordine del file.** L'ordine del file è"
+" significativo, non accidentale. Un'esecuzione che sembra attribuire una posizione "
+"alla società sbagliata sta spesso segnalando un problema del database anziché "
+"dell'estrazione;"
+
+#: ../../source/guides/user/inputs.md:50
+msgid ""
+"a company absent from every named list is simply not looked for. Nothing reports it, "
+"because nothing was asked about it."
+msgstr ""
+"una società assente da ogni lista nominata semplicemente non viene cercata. Niente lo"
+" segnala, perché su di essa non è stato chiesto niente."
+
+#: ../../source/guides/user/inputs.md:53
+#, python-brace-format
+msgid "{doc}`../input-db/index` is the full description."
+msgstr "{doc}`../input-db/index` è la descrizione completa."
+

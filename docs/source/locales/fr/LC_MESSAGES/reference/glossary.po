@@ -1,0 +1,274 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/glossary.md:1
+msgid "Glossary"
+msgstr ""
+
+#: ../../source/reference/glossary.md:3
+msgid ""
+"Words this project uses in a particular way. Each entry says where the "
+"idea is treated properly."
+msgstr ""
+
+#: ../../source/reference/glossary.md
+msgid "run"
+msgstr ""
+
+#: ../../source/reference/glossary.md:7
+#, python-brace-format
+msgid ""
+"One invocation of `freeports`. A run is one or more {term}`jobs <job>`, "
+"and everything they produce is accumulated and written **once**, at the "
+"end, as one set of tables. Running two reports in one run is therefore "
+"not the same as running them twice — see {doc}`../overview/how-it-works`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:5
+msgid "job"
+msgstr ""
+
+#: ../../source/reference/glossary.md:12
+#, python-brace-format
+msgid ""
+"One report, read with one {term}`format`, against one set of target "
+"companies. Jobs come from repeated `--input` or from the rows of a batch "
+"CSV ({doc}`../guides/user/advanced/batch`)."
+msgstr ""
+
+#: ../../source/reference/glossary.md:9
+msgid "format"
+msgstr ""
+
+#: ../../source/reference/glossary.md:16
+#, python-brace-format
+msgid ""
+"The recipe for one report layout, named for the issuer and the "
+"publication year — `EURIZON-EN23`. A layout is a snapshot, so next year's"
+" report from the same issuer is a different format rather than a "
+"revision. {doc}`../guides/formats/index`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:14
+msgid "formats repository"
+msgstr ""
+
+#: ../../source/reference/glossary.md:21
+#, python-brace-format
+msgid ""
+"A repository holding formats, their tests and their validation documents,"
+" maintained independently of the engine. Created with `freeports-dev "
+"init-format-repo`. {doc}`../guides/formats/repository`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:19
+msgid "input database"
+msgstr ""
+
+#: ../../source/reference/glossary.md:26
+#, python-brace-format
+msgid ""
+"A directory of CSV files saying **which companies a run looks for** and "
+"how to recognise each one. Separate from the engine and from any formats "
+"repository, because which companies matter is a question about your work "
+"rather than about parsing PDFs. {doc}`../guides/input-db/index`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:24
+msgid "bud"
+msgstr ""
+
+#: ../../source/reference/glossary.md:31
+#, python-brace-format
+msgid ""
+"A fragment of a company name used to recognise it in a report — the part "
+"that survives the variations issuers introduce. {doc}`../guides/input-db"
+"/recognising-companies`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:28
+msgid "target list"
+msgstr ""
+
+#: ../../source/reference/glossary.md:35
+#, python-brace-format
+msgid ""
+"A named set of companies within an input database. A run needs at least "
+"one, and refuses immediately if none is given. {doc}`../guides/input-db"
+"/target-lists`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:32
+msgid "page class"
+msgstr ""
+
+#: ../../source/reference/glossary.md:39
+#, python-brace-format
+msgid ""
+"What kind of page this is, decided per document before any extraction "
+"happens. Classification is itself a pipeline. "
+"{doc}`design/classification`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:36
+msgid "schedule"
+msgstr ""
+
+#: ../../source/reference/glossary.md:43
+#, python-brace-format
+msgid ""
+"The ordered list of work for a run: the classified pages of every "
+"document, poured together and processed in steps, where each step's "
+"results filter the next. {doc}`design/schedule`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:40
+msgid "pipeline"
+msgstr ""
+
+#: ../../source/reference/glossary.md:47
+#, python-brace-format
+msgid ""
+"What a page of a given class goes through: three {term}`segments "
+"<segment>` — `pdf_extract` → `text_filter` → `deserialize`. A class runs "
+"a *bundle* of them. {doc}`design/segments`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:45
+msgid "segment"
+msgstr ""
+
+#: ../../source/reference/glossary.md:52
+#, python-brace-format
+msgid ""
+"One of the three stages of a pipeline, answering one separable question: "
+"what is on this page, does any of it concern us, what do the survivors "
+"mean. {doc}`design/segments`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:49
+msgid "promise"
+msgstr ""
+
+#: ../../source/reference/glossary.md:56
+#, python-brace-format
+msgid ""
+"A placeholder for a value a page genuinely could not know, resolved at "
+"the end of the run against everything the run learned. "
+"{doc}`design/promises`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:53
+msgid "entity"
+msgstr ""
+
+#: ../../source/reference/glossary.md:60
+#, python-brace-format
+msgid ""
+"What the project models and ultimately writes out — the thing a resolved "
+"extraction becomes. {doc}`design/entities-and-output`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:57
+msgid "profile"
+msgstr ""
+
+#: ../../source/reference/glossary.md:64
+#, python-brace-format
+msgid ""
+"A choice of what shape the output takes: which tables are written and "
+"where. {doc}`../guides/user/output`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:61
+msgid "grant"
+msgstr ""
+
+#: ../../source/reference/glossary.md:68
+#, python-brace-format
+msgid ""
+"A signed statement that a named {term}`methodology` was applied to a "
+"specific file, recorded against that file's hash — and therefore "
+"invalidated by any change to the file, deliberately. "
+"{doc}`../guides/grants/index`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:66
+msgid "methodology"
+msgstr ""
+
+#: ../../source/reference/glossary.md:73
+#, python-brace-format
+msgid ""
+"A published document describing a protocol under which a grant may be "
+"made. It is a document at an address the granter chose to trust, not a "
+"value stored in the grant. {doc}`cli/methodology-sources`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:71
+msgid "validation document"
+msgstr ""
+
+#: ../../source/reference/glossary.md:78
+#, python-brace-format
+msgid ""
+"One YAML file per contributor, at `<repo>/validation/<name>.yaml`, signed"
+" with their key, holding every grant that person has made in that "
+"repository. {doc}`cli/freeports-validate`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:76
+msgid "assertion"
+msgstr ""
+
+#: ../../source/reference/glossary.md:83
+#, python-brace-format
+msgid ""
+"A statement about this software, written as prose, that a person can read"
+" and agree with. Grants over assertions are made under *agreement and "
+"good faith* rather than over bytes a program wrote. "
+"{doc}`../validation/index`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:81
+msgid "metric"
+msgstr ""
+
+#: ../../source/reference/glossary.md:88
+#, python-brace-format
+msgid ""
+"A dotted name, a unit and a cost class, with a minimum in `ci.yaml`. "
+"Distinct from a **suite**, which has an outcome rather than a number. "
+"{doc}`../guides/devops/ci-yaml`."
+msgstr ""
+
+#: ../../source/reference/glossary.md:85
+msgid "branch class"
+msgstr ""
+
+#: ../../source/reference/glossary.md:92
+#, python-brace-format
+msgid ""
+"Which of `dev`, `pre` or `prod` a branch belongs to, derived from its "
+"name at every run and never recorded. It decides what the gate refuses. "
+"{doc}`../guides/devops/the-gate`."
+msgstr ""
+

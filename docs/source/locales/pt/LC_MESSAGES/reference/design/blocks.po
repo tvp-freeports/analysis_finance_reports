@@ -1,0 +1,123 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/blocks.md:1
+msgid "Blocks"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:3
+#, python-brace-format
+msgid ""
+"*Implemented.* `PdfBlock` and `TextBlock` are the two units that travel "
+"through a pipeline ({doc}`segments`). Both are the same three things:"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "Part"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "Is"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "**block type**"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "a string in a newtype — an open set"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "**metadata**"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "free-form, a typed value enum"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "**content**"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md
+msgid "optional"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:12
+msgid "The block type cannot be closed"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:14
+msgid ""
+"It is a newtype over a string, not an enum, and it has to be: **formats "
+"repositories invent their own block types**, and that is the extension "
+"mechanism working rather than a hole in the model. An enum would mean "
+"every new kind of thing a report can contain requires a release of the "
+"engine."
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:18
+msgid ""
+"The newtype still earns its keep. It gives a distinct type in signatures "
+"— so a block type cannot be passed where a fund name was wanted — and a "
+"home for the standard constants that most formats use."
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:21
+msgid "The value is typed, the map is not"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:23
+msgid ""
+"Metadata and content are a **typed value enum** rather than an untyped "
+"map of strings."
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:25
+#, python-brace-format
+msgid ""
+"The consequence that matters is not internal: it is what lets "
+"serialisation be **derived** rather than hand-written, and that in turn "
+"is what makes the per-page test fixtures ordinary **JSON** that a person "
+"can read in a diff. A regression in a fixture should be something you can"
+" *see* ({doc}`../../guides/formats/dev-loop`)."
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:30
+msgid "Comparing a block does not mutate it"
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:32
+msgid ""
+"That sounds too obvious to state. It is stated because the previous "
+"implementation hashed metadata by **sorting it in place**, so hashing a "
+"block changed it, and `==` had side effects on its operands."
+msgstr ""
+
+#: ../../source/reference/design/blocks.md:36
+msgid ""
+"It is the kind of bug that hides for years: everything works until two "
+"blocks are compared in a different order than usual, and then a result "
+"changes for no visible reason. Recording it here is cheaper than "
+"rediscovering it."
+msgstr ""
+

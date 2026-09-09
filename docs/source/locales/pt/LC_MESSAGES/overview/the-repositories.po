@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/the-repositories.rst:3
+msgid "The project's repositories"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:5
+msgid ""
+"The project is **not** a monorepo. It is a set of repositories that "
+"depend on each other at run time and are maintained independently, which "
+"is the same decision as keeping formats out of the engine: coverage "
+"should be able to grow without anyone touching the part that must not "
+"change."
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:13
+msgid "Repository"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:14
+msgid "Holds"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:15
+msgid "You change it to"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:16
+msgid "``analysis_finance_reports``"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:17
+msgid "the engine, ``freeports-dev``, ``freeports-validate``, this documentation"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:18
+msgid "fix or extend the extraction machinery itself"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:19
+msgid "a **formats repository**"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:20
+msgid "format definitions, their tests, their validation documents"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:21
+msgid "add support for a report layout"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:22
+msgid "an **input database**"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:23
+msgid "company lists, the evidence for recognising them, target lists"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:24
+msgid "change *which* companies a run looks for"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:25
+msgid "the website"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:26
+msgid "`freeports.org <https://www.freeports.org>`_"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:27
+msgid "change the public site"
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:29
+msgid ""
+"The last three are not one repository each: anyone can create and "
+"maintain a formats repository or an input database, and several exist. "
+"`analysis_finance_reports_formats <https://github.com/tvp-freeports>`_ is"
+" the reference formats repository, and there is a public input database "
+"beside it."
+msgstr ""
+
+#: ../../source/overview/the-repositories.rst:34
+msgid ""
+"Only work on the first repository needs a Rust toolchain, and only it has"
+" a build to set up."
+msgstr ""
+

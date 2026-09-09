@@ -1,0 +1,124 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/tutorials/index.md:1
+msgid "Tutorials"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:3
+msgid ""
+"The rest of this area is reference: it tells you what exists and what it "
+"means. These two pages are the other thing — someone walking you through "
+"the work, on a real report, with the commands and their actual output."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+msgid "For when"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+#, python-brace-format
+msgid "{doc}`first-format`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+msgid "a report is not supported and you want to support it"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+#, python-brace-format
+msgid "{doc}`diagnosing-a-format`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:7
+msgid "a format already runs, and something in the output is wrong"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:20
+msgid "Read this before you decide it is not for you"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:22
+#, python-brace-format
+msgid ""
+"Adding a format looks like it should require understanding the engine. It"
+" does not, and that is a design decision rather than a happy accident: "
+"formats live outside the engine precisely so that the people who know "
+"what a fund report *means* do not have to know how a PDF is taken apart "
+"({doc}`../../../reference/design/formats-as-plugins`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:27
+msgid ""
+"Concretely, what a simple format costs is **one row in a spreadsheet**. "
+"Here is a real one, the whole extraction configuration for a Luxembourg "
+"fund report:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:35
+#, python-brace-format
+msgid ""
+"Those trailing numbers are column positions in the report's table, and "
+"there is a command that prints the table with its columns numbered so "
+"that you can read them off. That is the level of difficulty we are "
+"talking about. {doc}`first-format` does exactly this row, from scratch."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:39
+#, python-brace-format
+msgid ""
+"Some reports are genuinely awkward, and for those you can drop to writing"
+" Python — but you drop only the one segment that needs it, and you keep "
+"inheriting the rest ({doc}`../writing-a-format`). Nobody starts there."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:43
+msgid "The three habits that save the most time"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:45
+msgid ""
+"**Get classification right before anything else.** Which pages the engine"
+" even looks at is decided first, and everything downstream is meaningless"
+" until it is right. Debugging the extraction of a page that was never "
+"selected is the classic way to lose an afternoon."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:49
+msgid ""
+"**Let the tool tell you which segment is wrong.** A page goes through "
+"three stages and you can print the output of each one. *\"The page is "
+"wrong\"* has no handle on it; *\"the second stage dropped these rows\"* "
+"has one."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/index.md:53
+msgid ""
+"**Look at what you are about to freeze.** `make-tests` records what the "
+"code does *right now*. Read its output before confirming: a wrong result "
+"you confirm becomes the specification, and from then on the test defends "
+"the bug."
+msgstr ""
+

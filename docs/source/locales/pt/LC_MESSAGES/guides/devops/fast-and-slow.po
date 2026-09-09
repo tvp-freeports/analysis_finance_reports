@@ -1,0 +1,160 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/fast-and-slow.rst:4
+msgid "Fast and slow: the two categories"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:6
+msgid "Everything this page describes rests on one split, so it comes first."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:9
+msgid "Why a gate that costs a minute gates nothing"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:11
+msgid ""
+"The more often the tests, the linters and the coverage run, the more "
+"solid the tree. That is the entire argument for checking at every commit "
+"rather than at every release, and it is a good one."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:14
+msgid ""
+"It is also an argument that turns on itself the moment the gate costs "
+"real time. A person who waits a minute to commit commits less often. "
+"Fewer, larger commits are harder to review and harder to bisect; then "
+"somebody discovers ``--no-verify``; then the gate is a decoration. **A "
+"cheap check that runs a hundred times a week is worth more than a "
+"thorough one that runs on Fridays** — not because thoroughness does not "
+"matter, but because a check that is skipped has no value at all."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:20
+msgid ""
+"So the checks are sorted by **cost, not by importance**. Nothing here is "
+"optional; the question is only when it is paid for."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:24
+msgid "What makes something slow"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:26
+msgid ""
+"Two different expenses, and this workspace treats them as one category "
+"because the gate has to make the same decision about both."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:34
+msgid "It costs time"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:35
+msgid "It needs the network"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:36
+msgid "Why it is out"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:37
+msgid "minutes, or seconds multiplied by every commit of a working day"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:38
+msgid ""
+"it depends on a host nobody here controls, so it can fail for a reason "
+"that has nothing to do with the commit"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:40
+msgid "Examples"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:41
+msgid ""
+"the instrumented Rust coverage build, the crate's integration tests and "
+"doctests, the process-per-test half of the tooling suite, a formats "
+"repository's whole-document runs"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:43
+msgid "resolving methodology pages, looking a granter's key up on a key server"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:44
+msgid "Told apart by"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:45
+msgid "``cost`` in the registry"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:46
+msgid "``online`` beside it, which only changes the *message*"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:48
+msgid ""
+"They are kept apart in the tables so that a message can say *which* it is"
+" — \"run it\" and \"check your network\" are different things to tell "
+"somebody — and gated alike, because \"can this be paid for at every "
+"commit\" has the same answer for both."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:52
+msgid ""
+"A check is **fast** when it runs locally, needs no network, no second "
+"toolchain and no instrumented rebuild, and costs a second or so. "
+"Everything else is slow."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:56
+msgid "What the split is *not*"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:58
+msgid ""
+"It is not \"the checks\" and \"the optional checks\". It is **what this "
+"commit was checked against** and **what it was not** — and the second "
+"half is written down, at every commit, in the same table as the first."
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:62
+msgid ""
+"That is what the rest of this page is about: every suite records its "
+"outcome *and the commit it ran at*, every slow metric records the commit "
+"it was measured at, and ``ci-check`` — which measures nothing and costs a"
+" fifth of a second — prints a suite nobody ran here as ``NOT RUN`` and a "
+"figure from an earlier commit as ``STALE``. Neither can be read as a "
+"pass, for the same reason ``unmeasured`` cannot: **something nobody "
+"established is not something that holds.**"
+msgstr ""
+
+#: ../../source/guides/devops/fast-and-slow.rst:68
+msgid ""
+"On ``dev`` that is a notification and the work continues. On ``prod`` "
+"every one of them refuses, and the branch's gate is the slow one, so that"
+" nothing about a production commit is unknown."
+msgstr ""
+

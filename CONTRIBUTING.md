@@ -79,6 +79,9 @@ the formats side depends on, add a real formats repository's tests:
 make test-formats REPO=../analysis_finance_reports_formats
 ```
 
+That repository has the same targets as this one, with the axes it has no use for taken out, so
+`make ci-fast` inside it is the same gate under the same name. `make help` there lists all of it.
+
 There is no CI building this repository at the moment, so this local gate is the only one there is.
 
 ## A few guidelines

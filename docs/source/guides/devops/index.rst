@@ -56,8 +56,10 @@ Three layers, and nothing in one knows the next
 **The gate.** ``freeports-dev ci-check`` reads those files, ``ci.yaml``, and the class of the
 branch you are on. It prints one table and chooses an exit status. It measures nothing.
 
-**The wiring.** ``make`` targets in this repository, and a thin ``pre-commit`` hook in each of the
-others.
+**The wiring.** ``make`` targets, and a thin ``pre-commit`` hook that names one of them. **Every
+freeports repository has both** — this one, a formats repository, an input database — with the same
+target names and the same two gates, ``ci-fast`` and ``ci-full``. What differs is how much there is
+to measure: see :doc:`the-gate` for a format repository's smaller surface.
 
 This is the split ``freeports-validate`` already follows — ``collect`` establishes facts, ``report``
 renders them, ``check-grants`` judges them. It is what keeps every figure reproducible: when a

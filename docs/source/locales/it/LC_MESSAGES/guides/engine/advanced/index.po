@@ -1,0 +1,42 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/engine/advanced/index.md:1
+msgid "The engine, deeper"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/index.md:3
+msgid ""
+"One page, and it is the one that answers \"why is it built out of *these*"
+" pieces\"."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/index.md:12
+#, python-brace-format
+msgid ""
+"{doc}`implementation-notes` covers the **technology** choices — which "
+"crates, which bindings, what was tried and rejected. That is a different "
+"question from why the *algorithm* has the shape it has, which is "
+"{doc}`../../../reference/design/index`. Keeping the two apart is "
+"deliberate: a library can be replaced without the algorithm changing, and"
+" the algorithm can change without any library moving."
+msgstr ""
+

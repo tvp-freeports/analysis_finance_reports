@@ -261,9 +261,10 @@ mod parallelism_options {
 
 mod artifacts_stay_where_they_belong {
     use super::*;
+    use test_case::test_case;
 
-    /// Regola di L5, che con N figli avrebbe N modi in piu' di essere violata: `.log.csv` sta
-    /// accanto agli output, mai nella cartella di lavoro.
+    /// `.log.csv` sta accanto agli output, mai nella cartella di lavoro -- una regola che con N
+    /// figli ha N modi in piu' di essere violata.
     #[test]
     fn the_log_csv_lands_next_to_the_output_and_never_in_the_working_directory() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
@@ -321,13 +322,12 @@ mod artifacts_stay_where_they_belong {
     /// Le righe dei figli devono arrivare nel registro della corsa: e' l'unico posto in cui
     /// l'utente le vedra', visto che le cartelle private sono gia' sparite.
     ///
-    /// A `-v`, non alla verbosita' di default: dopo L4 il registro su file si ferma a `warn`, e una
-    /// corsa che riesce non ne produce nessuno. Il livello serve a rendere osservabile l'unione, non
-    /// a cambiarla.
+    /// A `-vvv`, perche' e' l'unica verbosita' alla quale il registro strutturato esiste. Il
+    /// livello serve a rendere osservabile l'unione, non a cambiarla.
     #[test]
     fn the_run_log_absorbs_what_the_workers_logged() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
-        let (output, _) = fixture.run_with(2, "out", &["-v"]);
+        let (output, _) = fixture.run_with(2, "out", &["-vvv"]);
         assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
 
         let jsonl = String::from_utf8(read(&fixture.cwd().join("freeports.log.jsonl"))).unwrap();
@@ -335,24 +335,67 @@ mod artifacts_stay_where_they_belong {
         assert!(jsonl.contains("job finished"), "no worker record reached the run log:\n{jsonl}");
     }
 
-    /// Alla verbosita' massima il registro strutturato si genera, ed e' **l'unico**: il vecchio
-    /// `.freeports.log.yaml` e' stato ritirato (richiesta dell'utente, 2026-08-31), e ne' il padre
-    /// ne' i figli devono lasciarne piu' traccia sul disco.
+    /// Il registro strutturato e' **l'unico** registro diagnostico, e alla verbosita' massima
+    /// esiste: ne' il padre ne' i figli devono lasciare sul disco nient'altro accanto ad esso.
     #[test]
-    fn at_trace_verbosity_only_the_jsonl_log_is_written_never_a_yaml_one() {
+    fn at_trace_verbosity_the_jsonl_log_is_written_and_is_the_only_one() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
         let (output, out_dir) = fixture.run_with(2, "out", &["-vvv"]);
         assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
 
         assert!(fixture.cwd().join("freeports.log.jsonl").is_file(), "the structured log is missing");
         for dir in [fixture.cwd(), out_dir] {
-            let yaml_logs: Vec<String> = std::fs::read_dir(&dir)
+            let other_logs: Vec<String> = std::fs::read_dir(&dir)
                 .unwrap()
                 .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
-                .filter(|name| name.contains("log.yaml") || name.contains("log.yml"))
+                .filter(|name| name.contains("log.yaml") || name.contains("log.yml") || name == "freeports.log")
                 .collect();
-            assert!(yaml_logs.is_empty(), "a yaml log was written in {}: {yaml_logs:?}", dir.display());
+            assert!(other_logs.is_empty(), "a second diagnostic log was written in {}: {other_logs:?}", dir.display());
         }
+    }
+
+    /// La verbosita' risolta, non quella della riga di comando, decide se il registro strutturato
+    /// esiste: `verbosity: trace` nel file di configurazione basta, senza alcun `-v`.
+    ///
+    /// E' il difetto che il padre aveva e i figli no — il padre avviava la registrazione dagli
+    /// argomenti prima di risolvere la configurazione e non ci tornava piu' sopra, cosi' i figli
+    /// scrivevano un registro che il padre non aveva. Adesso i due filtri di livello si alzano a
+    /// configurazione risolta, ed e' l'unico momento in cui la risposta esiste per entrambi.
+    #[test]
+    fn the_resolved_verbosity_decides_not_the_command_line_one() {
+        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
+        std::fs::write(fixture.path().join("config.yaml"), "verbosity: trace\n").unwrap();
+        let (output, _) = fixture.run(2, "out");
+        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+
+        let jsonl = fixture.cwd().join("freeports.log.jsonl");
+        assert!(jsonl.is_file(), "`verbosity: trace` in the configuration file must produce the structured log");
+        let content = String::from_utf8(read(&jsonl)).unwrap();
+        // Lo span `job` lo apre solo chi esegue un job: se c'e', anche cio' che hanno scritto i
+        // figli e' arrivato nel registro del padre, che e' la meta' che prima si perdeva.
+        assert!(content.contains("job finished"), "no worker record reached the run log:\n{content}");
+        // E cio' che il padre ha scritto dopo aver risolto la configurazione c'e' al livello nuovo:
+        // senza il ricaricamento del filtro, i `debug!` sarebbero gia' stati spenti al callsite.
+        assert!(content.contains("\"DEBUG\""), "the reloaded filter did not raise the level:\n{content}");
+    }
+
+    /// Sotto alla verbosita' massima il registro strutturato **non esiste**, e non esiste come
+    /// assenza di file, non come file vuoto: chi guarda una corsa su stderr non deve trovarsi
+    /// niente nella cartella da cui l'ha lanciata.
+    #[test_case(&[]; "alla verbosita' predefinita")]
+    #[test_case(&["-q"]; "-q: solo errori")]
+    #[test_case(&["-v"]; "-v: info")]
+    #[test_case(&["-vv"]; "-vv: debug")]
+    fn below_trace_verbosity_the_working_directory_stays_empty(extra: &[&str]) {
+        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
+        let (output, _) = fixture.run_with(2, "out", extra);
+        assert!(output.status.success(), "the run failed: {}", String::from_utf8_lossy(&output.stderr));
+
+        let leftovers: Vec<String> = std::fs::read_dir(fixture.cwd())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert!(leftovers.is_empty(), "the run left files in the working directory: {leftovers:?}");
     }
 }
 

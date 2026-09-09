@@ -1,0 +1,78 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:9
+msgid "Validation Algorithm Trustworthiness"
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:11
+msgid ""
+"**Assertion Statement** The validation algorithm implemented in this "
+"system is trustworthy, technically valid, and cryptographically secure."
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:14
+msgid ""
+"**Technical Basis** - **Cryptographic Security**: The system uses SHA256 "
+"hashing for content integrity verification and GPG/PGP signatures for "
+"authentication, both of which are industry-standard cryptographic "
+"primitives - **Technical Validity**: The validation workflow follows "
+"established software verification patterns including hash-based content "
+"addressing, digital signatures, and schema validation - "
+"**Trustworthiness**: The multi-layered approach combining cryptographic "
+"proofs, methodology protocols, and contributor accountability creates a "
+"robust trust model"
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:19
+msgid ""
+"**Security Properties** 1. **Integrity Protection**: SHA256 hashes ensure"
+" file content cannot be modified without detection 2. **Authentication**:"
+" GPG signatures verify contributor identity and document authorship 3. "
+"**Non-repudiation**: Signed validation documents provide cryptographic "
+"proof of contributor actions 4. **Consistency**: JSON Schema validation "
+"ensures structural integrity of all validation documents"
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:25
+msgid ""
+"**Implementation Details** - Document signing uses GPG detached "
+"signatures with 40-character key IDs - Hash verification covers both "
+"methodology definitions and actual file content - The schema enforces "
+"required fields and prevents additional properties - Signature validation"
+" occurs before any trust decisions are made"
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:31
+msgid ""
+"**Scope of Trust** This assertion covers: - The validation document "
+"structure and schema - The signature verification process - The hash-"
+"based integrity checking - The methodology application protocol"
+msgstr ""
+
+#: ../../source/validation/assertions/validation_algorithm_trustworthiness.rst:38
+msgid ""
+"**Limitations** - Trustworthiness depends on proper key management by "
+"contributors - Cryptographic security assumes no compromise of underlying"
+" algorithms - Technical validity requires correct implementation of the "
+"validation utilities"
+msgstr ""
+

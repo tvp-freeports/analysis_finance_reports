@@ -37,21 +37,15 @@ removed today.
 
 *These are wrong, not merely limited. They are listed so that nobody rediscovers them.*
 
-**Verbosity from the environment and the configuration file does not reach the parent process.**
-Both are parsed, validated and merged into the resolved configuration; the parent installs its
-logging from the `-v`/`-q` counts before the configuration is resolved and never revisits it.
-Worker child processes *do* honour the resolved value, so a parent and its children can disagree in
-one run. Two fixes are possible — reload the layers after resolution, or drop the two sources and
-say verbosity is command-line only — and neither has been chosen.
-
 **`--separate-out` on an unnamed document produces an invalid path.**
 The file name is `{table}__{report}.csv`, and an unnamed document's name defaults to its whole
 absolute path, which contains separators. Naming the document works around it
 ({doc}`../../guides/user/documents`).
 
-**`freeports.log.jsonl` is written in the working directory** while `.log.csv` was moved next to the
+**`freeports.log.jsonl` is written in the working directory** while `.log.csv` sits next to the
 output on the grounds that it is a product of the run. Two files of one run in two places; whether
-that is right has not been settled.
+that is right has not been settled. What is settled is that only `trace` writes the first one at
+all, so the working directory of an ordinary run stays empty.
 
 ## Deliberately not built
 

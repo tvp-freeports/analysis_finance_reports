@@ -18,6 +18,7 @@ network is not there.
 """
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -135,7 +136,241 @@ class TestThePagesExplainThemselves:
             assert f"validation/report/badges/{badge}.svg" in text
 
 
+class TestTheBuildSystem:
+    """The `Makefile` is the repository's single entry point, and the hook only names a target.
+
+    These read the file as text, which is the right level for it: it is a program shipped as a data
+    file, and what has to hold about it are properties of its source — that a target exists, that a
+    suite name matches the registry, that nothing which reaches the network is in the fast gate.
+    Running the whole gate end to end is a different test with a different cost, and it would need a
+    repository with formats in it, a keyring and a network.
+    """
+
+    @pytest.fixture
+    def makefile(self, repo):
+        return (repo / "Makefile").read_text()
+
+    def test_there_is_a_makefile(self, repo):
+        assert (repo / "Makefile").is_file()
+
+    def test_there_is_a_windows_shim_beside_it(self, repo):
+        """One build system, not one per platform: `make.bat` starts a POSIX shell and calls it."""
+        assert (repo / "make.bat").is_file()
+        assert "exec make" in (repo / "make.bat").read_text()
+
+    def test_the_shim_holds_no_build_logic_of_its_own(self, repo):
+        """Two formulations of the same build always diverge, so the second one holds nothing.
+
+        It names a target in its own example line, which is documentation; what it must not have is
+        a recipe, a path or a command of its own.
+        """
+        shim = [
+            line
+            for line in (repo / "make.bat").read_text().splitlines()
+            if not line.lstrip().lower().startswith("rem")
+        ]
+        for logic in ("freeports-dev", "freeports-validate", "ruff", "pytest"):
+            assert not any(logic in line for line in shim)
+
+    def test_make_can_parse_it(self, repo):
+        """A Makefile with a syntax error fails every commit and says nothing useful about why."""
+        if shutil.which("make") is None:
+            pytest.skip("make is not installed")
+        parsed = subprocess.run(
+            ["make", "-C", str(repo), "--dry-run", "help"], capture_output=True
+        )
+        assert parsed.returncode == 0, parsed.stderr
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            "help",
+            "doctor",
+            "init",
+            "githooks",
+            "check",
+            "test",
+            "test-fast",
+            "test-slow",
+            "test-all",
+            "lint",
+            "fmt",
+            "fmt-check",
+            "coverage",
+            "doc-coverage",
+            "validation",
+            "validation-report",
+            "check-grants",
+            "check-keys",
+            "ci",
+            "ci-fast",
+            "ci-full",
+            "pre-commit",
+            "ci-report",
+            "ci-check",
+            "branch-class",
+            "fingerprint",
+            "clean",
+        ],
+    )
+    def test_the_target_exists(self, makefile, target):
+        assert f"\n{target}:" in makefile
+
+    def test_every_target_documents_itself(self, makefile):
+        """`make help` is generated from the `##` comments, so an undocumented target is invisible."""
+        undocumented = [
+            line.split(":")[0]
+            for line in makefile.splitlines()
+            if re.match(r"^[a-z][a-z0-9-]*:", line)
+            and "##" not in line
+            and not line.startswith(("pre-commit:", "ci-fast:", "ci-full:"))
+        ]
+        assert undocumented == []
+
+    def test_the_names_are_the_engine_makefile_s_names(self, makefile):
+        """A person who has learnt one repository can work in the other without looking anything up.
+
+        The engine's surface is laid out on two axes and this one has no second axis, so there are
+        fewer targets here — but not *different* ones. A name that meant one thing there and another
+        here would be worse than a name that does not exist.
+        """
+        for target in (
+            "test-fast",
+            "test-slow",
+            "test-all",
+            "ci-fast",
+            "ci-full",
+            "ci-check",
+        ):
+            assert f"\n{target}:" in makefile
+
+    def test_the_names_it_records_are_the_ones_the_registry_knows(self, makefile):
+        """A typo here would create a suite nothing has a policy for, reported under a name the
+        gate has never heard of — which is the one failure a registry exists to prevent."""
+        from freeports_dev.ci import metrics, suites
+
+        for suite in suites.known_in(metrics.FORMATS):
+            assert f",{suite.name})" in makefile
+
+    def test_each_half_of_the_suite_is_selected_by_the_flag_and_not_by_a_marker(
+        self, makefile
+    ):
+        """`make test-fast` and `freeports-dev test --fast` have to be the same run.
+
+        The marker string used to be written out here *and* in the hook *and* in the registry's
+        `command` field. One spelling of the selection, in the command that owns it, is what keeps
+        the two surfaces from drifting apart.
+        """
+        assert "test $(REPO) $(FORMAT_ARG) --fast" in makefile
+        assert "test $(REPO) $(FORMAT_ARG) --slow" in makefile
+        assert "integration_tests" not in makefile
+
+    def test_every_command_is_told_which_repository_it_acts_on(self, makefile):
+        """Left to resolve it themselves, either command can be pointed elsewhere by a stray tier.
+
+        A relative `FREEPORTS_FORMATS_REPO_PATH` carried in from another directory, or a
+        `formats_repo:` line in a configuration file found from here, both name a different
+        repository than the one being worked on — and the failure reads as the repository not being
+        a repository, with its last path segment doubled.
+        """
+        # An invocation is the variable followed by a subcommand. `doctor` lists the same variable
+        # beside the others to ask whether each is installed, which is a different thing entirely.
+        invocation = re.compile(r"\$\(FREEPORTS_DEV\) [a-z][a-z-]*")
+        for line in makefile.splitlines():
+            if line.lstrip().startswith("#") or "command -v" in line:
+                continue
+            if invocation.search(line):
+                assert "$(REPO)" in line, line
+
+    def test_the_verdict_and_the_fingerprint_are_the_only_steps_that_refuse(
+        self, makefile
+    ):
+        """Everything else measures and records; only the step that can see the branch decides.
+
+        `GATE` is what expresses it: the two aggregates set it, GNU make hands a target-specific
+        variable down to every prerequisite, and under it a failing suite or an unvouched-for grant
+        is recorded rather than raised.
+        """
+        assert "ci-fast: GATE := 1" in makefile
+        assert "ci-full: GATE := 1" in makefile
+        assert makefile.count('test -n "$(GATE)"') >= 2
+
+    def test_nothing_that_reaches_the_network_is_in_the_fast_gate(self, makefile):
+        """A commit has to be possible on a train, and six seconds of somebody else's server is the
+        single most expensive thing a per-commit gate could do."""
+        fast = makefile[makefile.index("\nci-fast: lint") :].split("\n")[1]
+        for network in ("validation", "check-grants", "check-keys"):
+            assert network not in fast
+
+    def test_and_all_of_it_is_in_the_prod_gate(self, makefile):
+        """On a production branch nothing may be stale, so everything gated is established there."""
+        full = makefile[makefile.index("\nci-full: lint") :].split("\n")[1]
+        assert "validation" in full
+        assert "test-all" in full
+
+    def test_the_report_is_written_before_anything_may_refuse(self, makefile):
+        """A run refused before the report was written leaves the badges describing the previous
+        commit — the one arrangement in which a published figure is wrong and nothing says so."""
+        for gate in ("ci-fast: lint", "ci-full: lint"):
+            line = makefile[makefile.index(f"\n{gate}") :].split("\n")[1]
+            assert line.index("ci-report") < line.index("fingerprint")
+            assert line.index("ci-report") < line.index("ci-check")
+
+    def test_a_page_is_rewritten_only_when_it_asks_to_be(self, makefile):
+        """Both reports write *between markers*, so a file without them is not one this can fill.
+
+        Testing for the file rather than for the markers is how one page that is not what it looks
+        like takes the other eight renderings down with it.
+        """
+        assert "CI_MARKER" in makefile and "GRANT_MARKER" in makefile
+        assert makefile.count('grep -q "$(CI_MARKER)"') == 1
+        assert makefile.count('grep -q "$(GRANT_MARKER)"') == 2
+
+    def test_the_report_is_not_rewritten_from_a_walk_that_resolved_nothing(
+        self, makefile
+    ):
+        """Otherwise a network outage is committed as `coverage --, check-grants failing`, which is
+        a claim about somebody's web server written into tracked files."""
+        assert '"state": *"unmeasured"' in makefile
+        assert "no methodology page could be resolved" in makefile
+
+    def test_every_rendering_is_asked_for_in_one_invocation(self, makefile):
+        """Five invocations are five interpreter starts, and five evaluations that could disagree
+        with one another about the same run."""
+        assert makefile.count("$(FREEPORTS_DEV) ci-report") == 1
+        assert "--render badges:" in makefile
+
+    def test_the_grant_walk_happens_once(self, makefile):
+        """Nine artefacts out of nine collections would resolve every page nine times over."""
+        assert makefile.count("collect >") == 1
+        assert "--model" in makefile
+
+    def test_it_forces_no_methodology_source_of_its_own(self, makefile):
+        """The published `stable` channel is the command's own default, and the right one: it is
+        what a reader of this repository can fetch, and a grant is a claim addressed to that reader.
+
+        Naming a source here would take the decision away from whoever is running it, and silently:
+        a ``--source`` on the command line outranks a configuration file, so a pattern written down
+        in a generated Makefile would override the ``validate.sources`` somebody set in their own
+        ``freeports-conf.yaml`` — the one tier where a personal choice belongs. Working against
+        ``latest``, the channel built from the engine's branch, is exactly such a choice.
+        """
+        assert "\nVALIDATE_SOURCES ?=\n" in makefile
+        assert "VALIDATE_SOURCE_ARGS" in makefile
+        # Only in the comment that shows where such a choice belongs — never in a recipe or an
+        # assignment, which is what would actually be passed to the command.
+        for line in makefile.splitlines():
+            if not line.lstrip().startswith("#"):
+                assert "_sources/validation" not in line, line
+
+    def test_the_measurements_are_not_carried_in_the_history(self, repo):
+        """`reports/` is one machine's answer about one commit, and the Makefile says it is ignored."""
+        assert "/reports/" in (repo / ".gitignore").read_text()
+
+
 class TestTheHook:
+    """What is left of the hook once the Makefile owns the gate: four checks and a target name."""
+
     @pytest.fixture
     def hook(self, repo):
         return (repo / ".githooks" / "pre-commit").read_text()
@@ -150,127 +385,95 @@ class TestTheHook:
         )
         assert checked.returncode == 0, checked.stderr
 
-    def test_it_walks_the_repository_once(self, hook):
-        """Nine artefacts out of nine collections would resolve every page nine times."""
-        assert hook.count("collect >") == 1
-        assert "--model" in hook
+    def test_the_gate_is_a_name_and_not_a_list(self, hook):
+        """What the gate consists of is decided in the Makefile, so it can grow without this file
+        being edited again. The hook used to run a dozen commands, every one of them a second copy
+        of something a person also had to be able to run by hand."""
+        assert "make -C" in hook
+        for own_work in (
+            "freeports-dev test",
+            "freeports-dev coverage",
+            "freeports-dev lint-score",
+            "freeports-validate --repo",
+            "ci-record",
+            "--render",
+        ):
+            assert own_work not in hook
 
-    def test_it_refreshes_the_badges_the_readme_and_every_page(self, hook):
-        assert "--format badges" in hook
-        assert "README.md" in hook
+    def test_it_runs_the_dev_gate_by_name(self, hook):
+        assert "pre-commit" in hook
 
+    def test_and_the_prod_gate_on_a_prod_branch(self, hook):
+        invocation = [
+            line for line in hook.splitlines() if line.lstrip().startswith("make -C")
+        ]
+        assert len(invocation) == 2
+        prod, dev = invocation
+        assert prod.endswith("ci-full || gate_status=1")
+        assert dev.endswith("pre-commit || gate_status=1")
+        assert 'if [ "$branch_class" = "prod" ]; then' in hook[: hook.index(prod)]
 
-class TestWhichHalfOfTheHookRunsOnWhichBranch:
-    """The fast/slow split, as the generated hook implements it.
-
-    These read the script as text, which is the right level for exactly this file: it is a shell
-    program shipped as a data file, and what has to hold about it are properties of its source —
-    that a name matches the registry, that a branch guard is present. Running it end to end is a
-    different test with a different cost, and it would need a repository with formats in it, a
-    keyring and a network.
-    """
-
-    @pytest.fixture
-    def hook(self, repo):
-        return (repo / ".githooks" / "pre-commit").read_text()
-
-    def test_the_names_it_records_are_the_ones_the_registry_knows(self, hook):
-        """A typo here would create a suite nothing has a policy for, reported under a name the
-        gate has never heard of — which is the one failure a registry exists to prevent."""
-        from freeports_dev.ci import metrics, suites
-
-        for suite in suites.known_in(metrics.FORMATS):
-            assert f'--suite "{suite.name}:' in hook
-
-    def test_the_per_page_suite_runs_unconditionally(self, hook):
-        assert '-m "not integration_tests"' in hook
-
-    def test_the_whole_document_suite_runs_only_on_a_prod_branch(self, hook):
-        """Ninety-five seconds of full extraction runs, which is not a per-commit cost."""
-        before, _, after = hook.partition('-m "integration_tests"')
-        assert (
-            'if [ "$branch_class" = "prod" ]; then'
-            in before.split('-m "not integration_tests"')[-1]
-        )
-        assert after
-
-    def test_nothing_that_reaches_the_network_runs_on_a_dev_branch(self, hook):
-        """A commit has to be possible on a train, and six seconds of somebody else's server is
-        the single most expensive thing this hook could do at every commit."""
-        for command in ("collect >", "check-grants", "check-keys"):
-            index = hook.index(command)
-            assert 'if [ "$branch_class" = "prod" ]; then' in hook[:index]
-
-    def test_an_empty_suite_is_passed_rather_than_failed(self, hook):
-        """pytest exits 5 when it collects nothing, and a repository this command has just created
-        has no formats yet. Read as a failure it would make every freshly bootstrapped repository
-        report a broken suite — at the moment a new user decides whether to trust the hook."""
-        assert hook.count("0|5)") == 2
-
-    def test_the_report_is_not_rewritten_from_a_walk_that_resolved_nothing(self, hook):
-        """Otherwise a network outage is committed as `coverage --, check-grants failing`, which is
-        a claim about somebody's web server written into tracked files."""
-        assert '"state": *"unmeasured"' in hook
-        assert "no methodology page could be resolved" in hook
-
-    def test_every_rendering_is_asked_for_in_one_invocation(self, hook):
-        """Five invocations are five interpreter starts, and five evaluations that could disagree
-        with one another about the same run."""
-        assert hook.count("freeports-dev ci-report") == 1
-        assert "--render badges:" in hook
-
-    def test_the_verdict_makes_no_claim_of_its_own_about_a_suite(self, hook):
-        """`ci-check --suite ...` was a claim typed on a command line about a run that may never
-        have happened, and silent about every suite that did not."""
-        assert "freeports-dev ci-check --repo" in hook
-        assert 'ci-check --repo "$repo_root" --suite' not in hook
-        for table in TABLES:
-            assert table in hook
+    def test_it_keeps_going_so_that_both_refusals_are_seen(self, hook):
+        """Two steps of the gate can refuse. Without `-k` the first hides the second, and the next
+        commit discovers it after fixing the first."""
+        assert "-k" in hook
 
     def test_it_names_the_repository_git_is_committing(self, hook):
         """A hook has no business asking where it is: git already knows."""
         assert "git rev-parse --show-toplevel" in hook
+        for line in hook.splitlines():
+            if line.lstrip().startswith("make "):
+                assert '-C "$repo_root"' in line, line
 
-    def test_and_hands_that_to_both_commands(self, hook):
-        """Left to resolve it themselves, either can be pointed elsewhere by a stray tier.
-
-        A relative `FREEPORTS_FORMATS_REPO_PATH` carried in from another directory, or a
-        `formats_repo:` line in a configuration file found from here, both name a different
-        repository than the one being committed — and the failure reads as the repository not
-        being a repository, with its last path segment doubled.
-        """
-        for command in ("freeports-dev test", "freeports-validate "):
-            for line in hook.splitlines():
-                # Comments name the commands to explain them, `command -v` only asks whether one
-                # exists, and `echo` says what happened -- none of the three is an invocation.
-                stripped = line.lstrip()
-                if stripped.startswith(("#", "echo ")) or "command -v" in line:
-                    continue
-                if command in line:
-                    assert "--repo" in line or "$repo_root" in line, line
-
-    def test_it_stages_what_it_rewrote(self, hook):
+    def test_it_stages_what_the_run_rewrote(self, hook):
         """Otherwise the refresh is a dirty working tree rather than part of the commit."""
-        assert "git add" in hook
+        assert 'git -C "$repo_root" add' in hook
 
-    def test_it_does_nothing_when_the_command_is_not_installed(self, hook):
-        assert "command -v freeports-validate" in hook
+    def test_it_stages_after_the_gate_and_not_before_it(self, hook):
+        """The gate *is* what measures this commit. Anything staged before it describes the previous
+        one and is rewritten a moment later — into the working tree, not into the commit."""
+        assert hook.index("make -C") < hook.index('git -C "$repo_root" add')
 
-    def test_it_checks_the_grants(self, hook):
-        """Rendering what `validation/` claims is not the same as checking that it still holds."""
-        assert "check-grants" in hook
+    def test_it_stages_the_manifest_the_fingerprint_rule_may_have_rewritten(self, hook):
+        assert "package.yaml" in hook
 
-    def test_it_never_refuses_a_commit_over_the_report_or_the_grants(self, hook):
-        """A committer on a train still has to be able to commit, and so does one without the key.
+    def test_the_grant_report_is_staged_only_where_it_was_regenerated(self, hook):
+        """`ci-full` runs `make validation`; `ci-fast` does not. What a run rewrote, that run stages."""
+        block = hook[hook.index("refreshed=") :]
+        index = block.index("validation/report")
+        assert 'if [ "$branch_class" = "prod" ]; then' in block[:index]
 
-        The slice covers the grant check as well as the report: a granted output regenerated by
-        `make-tests` is an ordinary step of writing a format, and a contributor who does not hold
-        the key that granted a file has no way to clear such a gate at all.
+    def test_the_only_refusal_is_the_gate_s_own_verdict(self, hook):
+        """Whether a commit is refused is `ci-check`'s decision and depends on the branch, not on
+        anything written in this file."""
+        after_gate = hook[hook.index("gate_status=1") :]
+        assert after_gate.count("exit 1") == 1
+        assert "${gate_status:-}" in after_gate
+
+    def test_and_it_refuses_on_a_prod_branch_only(self, hook):
+        """On `dev` a failing gate is reported and the commit stands.
+
+        The two steps that are meant to refuse already know the branch. A failing `make` on a dev
+        branch therefore means something else went wrong — a missing tool, a measurement that
+        crashed — which is worth saying loudly and not worth refusing a commit over.
         """
-        block = hook[hook.index("command -v freeports-validate") :]
-        block = block[: block.index("git rev-parse --verify HEAD")]
-        assert "check-grants" in block
-        assert "exit 1" not in block
+        refusal = hook[hook.index("${gate_status:-}") :]
+        assert refusal.index('[ "$branch_class" = "prod" ]') < refusal.index("exit 1")
+        assert "the commit stands" in refusal
+
+    def test_an_off_branch_is_checked_not_at_all(self, hook):
+        assert '[ "$branch_class" = "off" ]' in hook
+        assert hook.index('"off"') < hook.index("make -C")
+
+    def test_a_branch_nobody_classified_is_dev_and_never_off(self, hook):
+        """The quiet answer is never the default one."""
+        assert "branch_class=${branch_class:-dev}" in hook
+
+    def test_it_is_shorter_than_the_makefile_it_calls(self, repo):
+        """The point of the whole arrangement: the gate is described once, where it can be run by
+        hand, and the hook is the thin thing that names it."""
+        hook = (repo / ".githooks" / "pre-commit").read_text()
+        assert len(hook) < len((repo / "Makefile").read_text())
 
 
 class TestTheFirstFill:
@@ -341,11 +544,19 @@ class TestTheFilesThatHostTheCiReport:
                 "demonstrative" in (repo / "ci" / "report" / f"{table}.md").read_text()
             )
 
-    def test_the_hook_refreshes_it_and_cannot_refuse_over_it(self, repo):
+    def test_the_gate_refreshes_it_and_the_hook_stages_it(self, repo):
+        """The refresh moved into `make ci-report`, which both gates run before anything may refuse.
+
+        What is left in the hook is the staging, and the staging cannot fail a commit: everything
+        between the gate and the verdict is a `git add` of files the run rewrote.
+        """
+        makefile = (repo / "Makefile").read_text()
+        for gate in ("ci-fast: lint", "ci-full: lint"):
+            assert "ci-report" in makefile[makefile.index(gate) :].split("\n")[0]
+
         hook = (repo / ".githooks" / "pre-commit").read_text()
-        block = hook[hook.index("Keep the CI report current") :]
-        block = block[: block.index("The fingerprint rule")]
-        assert "ci-report" in block
+        block = hook[hook.index("refreshed=") : hook.index("${gate_status:-}")]
+        assert "ci/report/badges" in block
         assert "git -C" in block
         assert "exit 1" not in block
 

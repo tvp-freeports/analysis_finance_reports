@@ -1,0 +1,53 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/dev-tools.rst:3
+msgid "Installing the developer tools"
+msgstr "Installare gli strumenti di sviluppo"
+
+#: ../../source/start/dev-tools.rst:5
+msgid "One command from a fresh clone, and then whichever role you are in:"
+msgstr "Un comando da un clone appena fatto, e poi quello del ruolo in cui ti trovi:"
+
+#: ../../source/start/dev-tools.rst:14
+msgid ""
+"``make init`` installs everything, which is the right default for a first look "
+"around. When you know which part you are working on, the narrower targets are faster:"
+msgstr ""
+"``make init`` installa tutto, che è il valore predefinito giusto per un primo giro "
+"d'orizzonte. Quando sai su quale parte stai lavorando, i target più stretti sono più "
+"rapidi:"
+
+#: ../../source/start/dev-tools.rst:23
+msgid ""
+"You also need a Rust toolchain — ``rustup`` with the stable channel. The engine is a "
+"Rust crate, so there is no way around it. ``make doctor`` tells you what is "
+"installed, what is missing and which target supplies each gap; "
+":doc:`../guides/engine/build` explains the whole arrangement, and :doc:`install` "
+"gives the same steps as plain commands for an environment the Makefile knows nothing "
+"about."
+msgstr ""
+"Serve anche una toolchain Rust — ``rustup`` con il canale stabile. Il motore è un "
+"crate Rust, quindi non c'è modo di aggirarlo. ``make doctor`` dice che cosa è "
+"installato, che cosa manca e quale target colma ciascuna lacuna; "
+":doc:`../guides/engine/build` spiega l'intera impalcatura, e :doc:`install` dà gli "
+"stessi passi come comandi ordinari, per un ambiente di cui il Makefile non sa nulla."
+

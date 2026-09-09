@@ -1,0 +1,108 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/semistructured.md:1
+msgid "The semistructured level"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:3
+msgid ""
+"Between the two others. The algorithm has a **name**; you say which name "
+"serves which segment, and configure it in YAML."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:6
+msgid "The two files a semistructured format needs"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:7
+msgid ""
+"`content/algorithms/semistructured/formats_mapping.csv` says which named "
+"algorithm serves which segment of which pipeline:"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:15
+msgid ""
+"An empty cell leaves that segment unspecified at this level, so another "
+"level can supply it."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:17
+msgid "One YAML file per segment carries the configuration, under `args/`:"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:31
+msgid "The key that links a format to an algorithm"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:32
+#, python-brace-format
+msgid ""
+"`{format}({pipeline})`, falling back to the bare `{format}` only for the "
+"**unnamed** pipeline. The two forms are not interchangeable: writing "
+"`AMUNDI-IT24` when the pipeline has a name will not be found, and the "
+"failure is silent in the sense that the segment simply has no "
+"configuration."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:36
+msgid "Lists, and the counter that indexes them"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:38
+msgid ""
+"Where a value is a **list**, the element used is chosen by **how many "
+"pipes have already been emitted for that pipeline and segment** — not by "
+"the row's position in the mapping table."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:48
+msgid ""
+"An algorithm that returns three pipes advances that counter by **three**."
+" This is the rule that surprises people, and it is worth restating: the "
+"counter follows the pipes actually produced, so adding an algorithm "
+"earlier in the same segment shifts every list index after it."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:52
+msgid "Algorithm names of your own"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:53
+msgid ""
+"An algorithm name may be implemented natively or by you, in your "
+"repository's Python."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:55
+msgid ""
+"Defining the same name **both** ways is an **error**, not a precedence to"
+" be remembered. The check runs over every native name of the segment as "
+"soon as your module loads."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/semistructured.md:58
+msgid ""
+"A collision is nearly always a typo, and letting one side win silently is"
+" what makes a typo expensive — you would be debugging an algorithm you "
+"did not write while reading the one you did."
+msgstr ""
+

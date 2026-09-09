@@ -96,7 +96,7 @@ REGISTRY = (
         FAST,
         (FORMATS,),
         "A formats repository's per-page tests: one page of one document at a time.",
-        "freeports-dev test -- -m 'not integration_tests'",
+        "make test-fast",
     ),
     Suite(
         "rust.integration",
@@ -132,7 +132,7 @@ REGISTRY = (
         SLOW,
         (FORMATS,),
         "A formats repository's whole-document tests, each one a full extraction run.",
-        "freeports-dev test -- -m integration_tests",
+        "make test-slow",
     ),
 )
 

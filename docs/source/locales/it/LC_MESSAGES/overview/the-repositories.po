@@ -1,0 +1,118 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/overview/the-repositories.rst:3
+msgid "The project's repositories"
+msgstr "I repository del progetto"
+
+#: ../../source/overview/the-repositories.rst:5
+msgid ""
+"The project is **not** a monorepo. It is a set of repositories that depend on each "
+"other at run time and are maintained independently, which is the same decision as "
+"keeping formats out of the engine: coverage should be able to grow without anyone "
+"touching the part that must not change."
+msgstr ""
+"Il progetto **non** è un monorepo. È un insieme di repository che dipendono l'uno "
+"dall'altro a tempo di esecuzione e sono mantenuti in modo indipendente, che è la "
+"stessa decisione del tenere i formati fuori dal motore: la copertura deve poter "
+"crescere senza che nessuno tocchi la parte che non deve cambiare."
+
+#: ../../source/overview/the-repositories.rst:13
+msgid "Repository"
+msgstr "Repository"
+
+#: ../../source/overview/the-repositories.rst:14
+msgid "Holds"
+msgstr "Contiene"
+
+#: ../../source/overview/the-repositories.rst:15
+msgid "You change it to"
+msgstr "Lo modifichi per"
+
+#: ../../source/overview/the-repositories.rst:16
+msgid "``analysis_finance_reports``"
+msgstr "``analysis_finance_reports``"
+
+#: ../../source/overview/the-repositories.rst:17
+msgid "the engine, ``freeports-dev``, ``freeports-validate``, this documentation"
+msgstr "il motore, ``freeports-dev``, ``freeports-validate``, questa documentazione"
+
+#: ../../source/overview/the-repositories.rst:18
+msgid "fix or extend the extraction machinery itself"
+msgstr "correggere o estendere il meccanismo di estrazione stesso"
+
+#: ../../source/overview/the-repositories.rst:19
+msgid "a **formats repository**"
+msgstr "un **repository di formati**"
+
+#: ../../source/overview/the-repositories.rst:20
+msgid "format definitions, their tests, their validation documents"
+msgstr "le definizioni dei formati, i loro test, i loro documenti di validazione"
+
+#: ../../source/overview/the-repositories.rst:21
+msgid "add support for a report layout"
+msgstr "aggiungere il supporto per l'impaginazione di una relazione"
+
+#: ../../source/overview/the-repositories.rst:22
+msgid "an **input database**"
+msgstr "un **database di ingresso**"
+
+#: ../../source/overview/the-repositories.rst:23
+msgid "company lists, the evidence for recognising them, target lists"
+msgstr "elenchi di società, gli indizi per riconoscerle, liste bersaglio"
+
+#: ../../source/overview/the-repositories.rst:24
+msgid "change *which* companies a run looks for"
+msgstr "cambiare *quali* società un'esecuzione cerca"
+
+#: ../../source/overview/the-repositories.rst:25
+msgid "the website"
+msgstr "il sito"
+
+#: ../../source/overview/the-repositories.rst:26
+msgid "`freeports.org <https://www.freeports.org>`_"
+msgstr "`freeports.org <https://www.freeports.org>`_"
+
+#: ../../source/overview/the-repositories.rst:27
+msgid "change the public site"
+msgstr "cambiare il sito pubblico"
+
+#: ../../source/overview/the-repositories.rst:29
+msgid ""
+"The last three are not one repository each: anyone can create and maintain a formats "
+"repository or an input database, and several exist. `analysis_finance_reports_formats"
+" <https://github.com/tvp-freeports>`_ is the reference formats repository, and there "
+"is a public input database beside it."
+msgstr ""
+"Gli ultimi tre non sono un repository ciascuno: chiunque può creare e mantenere un "
+"repository di formati o un database di ingresso, e ne esistono diversi. "
+"`analysis_finance_reports_formats <https://github.com/tvp-freeports>`_ è il "
+"repository di formati di riferimento, e accanto a esso c'è un database di ingresso "
+"pubblico."
+
+#: ../../source/overview/the-repositories.rst:34
+msgid ""
+"Only work on the first repository needs a Rust toolchain, and only it has a build to "
+"set up."
+msgstr ""
+"Solo il lavoro sul primo repository richiede una toolchain Rust, ed è l'unico ad "
+"avere una compilazione da preparare."
+

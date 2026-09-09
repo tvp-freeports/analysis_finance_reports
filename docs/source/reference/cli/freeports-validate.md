@@ -139,12 +139,6 @@ other per-project settings. Reading it from the configuration file needs the eng
 alongside — `pip install 'freeports-validate[config]'` — because that is the one thing that knows
 where a configuration file lives.
 
-```{note}
-This variable used to be called `AFINANCE_VALIDATION_KEYID`, a name from before the project was
-called freeports and the only setting anywhere that did not begin with `FREEPORTS_`. The old name is
-**no longer read**: a shell that exports only it gets the same refusal as one that sets nothing.
-```
-
 **5. Publish the public half**, because a signature nobody can check is a signature nobody reads.
 Verification is `gpg --verify` against the signer's public key; without it, `check-grants` can
 confirm that a document is well formed and that its hashes are current, but not that the signature
@@ -513,8 +507,8 @@ $ freeports-validate update version                          # the general metho
 ```
 
 `update file` restates an existing claim; it does not create one. A file that was never granted
-under that methodology is refused, naming the `grant` that would be the right command — it used to be
-accepted, do nothing, and report success.
+under that methodology is refused, naming the `grant` that would be the right command, rather than
+being accepted, doing nothing and reporting success.
 
 Each re-signs afterwards. `update methodology` is the heavy one: a changed methodology page means
 the claims made under it were made about a text that no longer exists, so it **drops every file

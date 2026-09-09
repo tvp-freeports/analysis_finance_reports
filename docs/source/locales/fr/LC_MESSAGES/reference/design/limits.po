@@ -1,0 +1,178 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/limits.md:1
+msgid "Accepted limits, and open questions"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:3
+msgid ""
+"Every design has edges. These are recorded rather than hidden, because a "
+"limit you know about is a constraint and a limit you do not is a bug "
+"report waiting to happen."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:6
+msgid "Accepted limits"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:8
+msgid ""
+"*These are decisions, not omissions. Each has a reason and a cost that "
+"was judged acceptable.*"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:10
+#, python-brace-format
+msgid ""
+"**A pipe needing the target companies works only in the first step.** "
+"`FilterData` is an enum with two variants — the target companies at the "
+"first step, the accumulated results at later ones — and they are never "
+"both available ({doc}`schedule`). Carrying both everywhere would make "
+"every pipe pay for a case almost none of them want."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:15
+#, python-brace-format
+msgid ""
+"**Sequence-dependent reasoning exists only in classification.** A format "
+"may express \"this page continues the previous one\" in its page-class "
+"finalizer, and nowhere else. Extraction is per page, full stop "
+"({doc}`pages`)."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:19
+msgid ""
+"**Two inherited panics.** Carried over from the Python original, on paths"
+" whose input genuinely cannot come from outside. They are documented "
+"where they are rather than converted into errors that would never fire, "
+"because a recorded known edge is more honest than a pretence of handling."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:24
+msgid ""
+"**The PDF line model, the line selections and the tabularizer were not "
+"redesigned.** Ported essentially as they were, and improvements noticed "
+"during the port were **reported rather than applied**. That code has been"
+" used for a long time, the existing formats depend on its exact "
+"behaviour, and a rewrite would have been risk with no user asking for it."
+" The place to record an improvement you cannot justify is a note, not a "
+"commit."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:30
+msgid ""
+"**PyMuPDF is a hard dependency.** There is no mature Rust equivalent that"
+" reads a page's text with its layout, and writing one is not this "
+"project. It is called once per document and its output becomes a native "
+"page immediately, so the boundary is one call rather than a per-block "
+"round trip — but it is a boundary that cannot be removed today."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:36
+msgid "Known defects, not yet decided"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:38
+msgid ""
+"*These are wrong, not merely limited. They are listed so that nobody "
+"rediscovers them.*"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:40
+#, python-brace-format
+msgid ""
+"**`--separate-out` on an unnamed document produces an invalid path.** The"
+" file name is `{table}__{report}.csv`, and an unnamed document's name "
+"defaults to its whole absolute path, which contains separators. Naming "
+"the document works around it ({doc}`../../guides/user/documents`)."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:45
+msgid ""
+"**`freeports.log.jsonl` is written in the working directory** while "
+"`.log.csv` sits next to the output on the grounds that it is a product of"
+" the run. Two files of one run in two places; whether that is right has "
+"not been settled. What is settled is that only `trace` writes the first "
+"one at all, so the working directory of an ordinary run stays empty."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:50
+msgid "Deliberately not built"
+msgstr ""
+
+#: ../../source/reference/design/limits.md:52
+#, python-brace-format
+msgid ""
+"**The fourth segment.** Separating filtering from semantic "
+"interpretation, with defaults for the two segments that are usually "
+"boilerplate. Designed, argued for, not implemented — see {doc}`segments`."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:55
+#, python-brace-format
+msgid ""
+"**Parallelism of page classes and of deserialization blocks.** Cancelled "
+"by measurement, not forgotten. {doc}`parallelism` says what the "
+"measurements were."
+msgstr ""
+
+#: ../../source/reference/design/limits.md:58
+#, python-format
+msgid ""
+"**Internal optimisation of the hottest pipe.** 30–54% of a job, single-"
+"threaded and deterministic, never optimised. Possibly worth as much as "
+"the entire parallelism effort, with none of its risk."
+msgstr ""
+
+#~ msgid ""
+#~ "**Verbosity from the environment and the"
+#~ " configuration file does not reach "
+#~ "the parent process.** Both are parsed,"
+#~ " validated and merged into the "
+#~ "resolved configuration; the parent installs"
+#~ " its logging from the `-v`/`-q` "
+#~ "counts before the configuration is "
+#~ "resolved and never revisits it. Worker"
+#~ " child processes *do* honour the "
+#~ "resolved value, so a parent and "
+#~ "its children can disagree in one "
+#~ "run. Two fixes are possible — "
+#~ "reload the layers after resolution, or"
+#~ " drop the two sources and say "
+#~ "verbosity is command-line only — "
+#~ "and neither has been chosen."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "**`freeports.log.jsonl` is written in the "
+#~ "working directory** while `.log.csv` sits "
+#~ "next to the output on the grounds"
+#~ " that it is a product of the"
+#~ " run. Two files of one run in"
+#~ " two places; whether that is right"
+#~ " has not been settled. What is "
+#~ "settled is that only `-vvv` writes "
+#~ "the first one at all, so the "
+#~ "working directory of an ordinary run "
+#~ "stays empty."
+#~ msgstr ""
+

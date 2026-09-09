@@ -1,0 +1,347 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/cli/methodology-sources.md:1
+msgid "Methodology sources"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:3
+#, python-brace-format
+msgid ""
+"A grant names a methodology, and a methodology is a **document at an "
+"address**. This page is how `freeports-validate` is told which addresses "
+"to trust and how it resolves a name into a body of text. Why the "
+"mechanism is shaped this way — and why the source is deliberately not "
+"recorded in the grant — is {doc}`../../guides/institutional/why-"
+"trust-a-grant`."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:5
+msgid "What a source is"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:7
+msgid ""
+"A grant is a claim made **under a text**, so the tool has to be able to "
+"read that text, and it does not carry one. Methodology pages are resolved"
+" from **sources** you configure, and the hash your document records is "
+"the hash of whatever your sources gave you."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:11
+#, python-brace-format
+msgid ""
+"That is a deliberate trade, and it is worth stating both halves. Were the"
+" pages to travel inside the installed package, upgrading `freeports-"
+"validate` would silently change what every grant in every repository "
+"referred to. Instead the text is a document at an address you chose — and"
+" the mirror image of that freedom is that whoever publishes the address "
+"can invalidate your grants by editing the page. "
+"{doc}`../../guides/institutional/why-trust-a-grant` says why that is the "
+"right way round."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:17
+msgid ""
+"**The source is not recorded in your document.** A validation document "
+"stores a methodology's *name* and its *sha256*, and nothing about where "
+"either came from. The source is a contract between the person who granted"
+" and the person who verifies, held in the configuration each of them "
+"writes. The cost is that a hash mismatch is ambiguous — the page may have"
+" been rewritten, or the two of you may simply be reading two publications"
+" of the same methodology — and `sources` below is where that cost is paid"
+" back."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:24
+msgid "The setting"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "Tier"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "Spelling"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "Type"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "configuration file"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`validate.sources`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "a YAML **list** of strings"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "environment"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`FREEPORTS_VALIDATE_SOURCE`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "**one** source — the whole value, never split"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "command line"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`--source URI`, `-s URI`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "repeatable"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:32
+msgid ""
+"With no tier naming anything, the default is the published documentation:"
+" `https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:35
+msgid "Two rules about the list are worth learning once:"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:37
+msgid ""
+"**The tiers do not merge.** The strongest tier that names any source "
+"provides the whole list, so a command line with `-s` ignores the "
+"configuration file's list entirely. Merging would make *which text did "
+"this hash come from* unanswerable from any one place. The case that wants"
+" two sources at once — the published documentation **plus** your own "
+"methodologies — is served by listing both in the same tier, which is why "
+"the file tier takes a list."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:43
+msgid ""
+"**The environment carries one source, and its value is never split.** "
+"Every separator one might pick — comma, colon, space, semicolon — is a "
+"legal character in a URI or a path, so splitting would turn one source "
+"you meant into two that do not exist. This is the same rule "
+"`FREEPORTS_TARGET_LIST` follows, for the same reason."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:48
+msgid ""
+"**Order is priority.** A name is resolved from the first source that "
+"offers it; the rest are shadowed, and `sources` says so."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:51
+msgid "The grammar of a source"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:53
+msgid ""
+"A source is a pattern containing **exactly one `*`**. The `*` stands for "
+"the methodology's relative name, which may itself contain a `/`; "
+"everything before it is the base and everything after it is the "
+"extension."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "What is being resolved"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`*` becomes"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the general methodology — your document's `version` field"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`general_methodology`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "a methodology named `basic check`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`methodologies/basic_check`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "Rule"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "zero, or more than one, `*`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid ""
+"a configuration error naming the offending source — it is not guessable "
+"which half is the base"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "a `github.com/<owner>/<repo>/blob/<ref>/<path>` URL"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid ""
+"rewritten to `raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>`, "
+"because fetching the `blob` page would hash a web page rather than a "
+"document, and would do it silently. Both spellings are correct input"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`http://`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid ""
+"accepted, and warned about once per run: the hash is what compensates for"
+" an unauthenticated fetch, but you should know which kind you are doing"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "a bare relative path"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid ""
+"accepted. In a **configuration file** it is resolved against the file's "
+"own directory, because that file is searched for and one line in it is "
+"read from many working directories; on the command line and in the "
+"environment it is relative to the shell you typed it in"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:76
+msgid ""
+"Sphinx publishes reStructuredText sources under `_sources/` with a `.txt`"
+" suffix appended, which is why the default pattern ends in `.rst.txt` "
+"rather than `.rst`."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:79
+msgid "Fetching, the cache, and being offline"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:81
+#, python-brace-format
+msgid ""
+"Pages are fetched with `curl -fsSL` and cached, content-addressed, under "
+"`${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/<sha256 of the "
+"URI>/<sha256 of the body>`. Every distinct body ever seen for a URI is "
+"kept, and a `latest` symlink names the most recent one."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:85
+msgid ""
+"**Online, the cache is a fallback and never a shortcut.** A run with a "
+"network always fetches. A cache consulted first would quietly pin a "
+"methodology to whatever was fetched the day you first saw it — and the "
+"published text changing is precisely the event this whole mechanism "
+"exists to notice."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "Situation"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "What happens"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the fetch succeeds"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the fetched body is hashed, and cached"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the fetch fails, no `--offline`"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid ""
+"the check is **inconclusive** — not matching and not mismatched. `check-"
+"grants` exits `3` over it: nothing failed, and not everything was checked"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the fetch fails, `--offline` given"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "the newest cached body is used, and every line that depended on it says so"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "`--offline`, nothing cached"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md
+msgid "reported as unreachable"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:96
+msgid ""
+"`--offline` is a setting like any other: `validate.offline`, "
+"`FREEPORTS_VALIDATE_OFFLINE`, `--offline`. A machine can be permanently "
+"without egress — an air-gapped build, a runner with no network — which is"
+" a property of the machine, written down once, rather than something to "
+"remember on every run."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:101
+msgid "Seeing what your configuration resolves"
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:103
+msgid ""
+"`sources` is the answer to *why does my hash differ from yours*. Two "
+"people can compare its output and see in one line which of the two "
+"possible causes it was. It needs no key."
+msgstr ""
+
+#: ../../source/reference/cli/methodology-sources.md:128
+msgid ""
+"It reports the general methodology, every methodology adopted by a "
+"document in this repository, and anything you name as an argument. It "
+"does **not** offer a catalogue: a remote source cannot be enumerated at "
+"all — there is no way to ask a URL what else it serves — so a listing "
+"would silently mean *the local ones* while looking like *all of them*. "
+"Where one source shadows another for the same name, it says which, which "
+"is the fix for the failure where you edit a page, nothing changes, and "
+"nothing anywhere says why."
+msgstr ""
+

@@ -1,0 +1,323 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/install.md:1
+msgid "Installation"
+msgstr "Installazione"
+
+#: ../../source/start/install.md:3
+msgid "The three distributions"
+msgstr "Le tre distribuzioni"
+
+#: ../../source/start/install.md:4
+msgid "Three distributions, with distinct jobs. Only the first is needed to extract data."
+msgstr "Tre distribuzioni, con compiti distinti. Solo la prima serve per estrarre dati."
+
+#: ../../source/start/install.md
+msgid "Distribution"
+msgstr "Distribuzione"
+
+#: ../../source/start/install.md
+msgid "Gives you"
+msgstr "Ti dà"
+
+#: ../../source/start/install.md
+msgid "Who needs it"
+msgstr "A chi serve"
+
+#: ../../source/start/install.md
+msgid "`freeports`"
+msgstr "`freeports`"
+
+#: ../../source/start/install.md
+msgid "the extraction engine: the `freeports` command and the Python module of the same name"
+msgstr "il motore di estrazione: il comando `freeports` e il modulo Python con lo stesso nome"
+
+#: ../../source/start/install.md
+msgid "everyone"
+msgstr "a tutti"
+
+#: ../../source/start/install.md
+msgid "`freeports-dev`"
+msgstr "`freeports-dev`"
+
+#: ../../source/start/install.md
+msgid ""
+"the `freeports-dev` command and a pytest plugin: inspecting pages, generating "
+"fixtures, running a formats repository's tests"
+msgstr ""
+"il comando `freeports-dev` e un plugin per pytest: ispezionare pagine, generare "
+"fixture, eseguire i test di un repository di formati"
+
+#: ../../source/start/install.md
+msgid "format authors"
+msgstr "agli autori di formati"
+
+#: ../../source/start/install.md
+msgid "`freeports-validate`"
+msgstr "`freeports-validate`"
+
+#: ../../source/start/install.md
+msgid "the `freeports-validate` command: methodology grants and their verification"
+msgstr "il comando `freeports-validate`: le attestazioni di metodologia e la loro verifica"
+
+#: ../../source/start/install.md
+msgid "format authors, and anyone auditing a repository"
+msgstr "agli autori di formati, e a chiunque revisioni un repository"
+
+#: ../../source/start/install.md:12
+msgid ""
+"The engine is a **Rust crate that is also a Python extension module**. `import "
+"freeports` from Python imports the compiled extension itself — there is no Python "
+"source tree underneath it — and the `freeports` command is a native binary built from"
+" the same crate. This matters for installation only in that building from source "
+"needs a Rust toolchain as well as Python."
+msgstr ""
+"Il motore è un **crate Rust che è anche un modulo di estensione Python**. `import "
+"freeports` da Python importa l'estensione compilata stessa — sotto non c'è alcun "
+"albero di sorgenti Python — e il comando `freeports` è un binario nativo costruito "
+"dallo stesso crate. Ai fini dell'installazione questo conta solo in quanto compilare "
+"dai sorgenti richiede una toolchain Rust oltre a Python."
+
+#: ../../source/start/install.md:17
+msgid "Prerequisites for installing"
+msgstr "Prerequisiti per l'installazione"
+
+#: ../../source/start/install.md
+msgid "Needed by"
+msgstr "Serve a"
+
+#: ../../source/start/install.md
+msgid "Note"
+msgstr "Nota"
+
+#: ../../source/start/install.md
+msgid "Python ≥ 3.10"
+msgstr "Python ≥ 3.10"
+
+#: ../../source/start/install.md
+msgid "everything"
+msgstr "tutto"
+
+#: ../../source/start/install.md
+msgid "the two tooling packages accept 3.8, but the engine sets the floor"
+msgstr "i due pacchetti di strumenti accettano il 3.8, ma è il motore a fissare il minimo"
+
+#: ../../source/start/install.md
+msgid "a Rust toolchain"
+msgstr "una toolchain Rust"
+
+#: ../../source/start/install.md
+msgid "building from source"
+msgstr "compilare dai sorgenti"
+
+#: ../../source/start/install.md
+msgid "`rustup` with the stable channel is enough"
+msgstr "basta `rustup` con il canale stabile"
+
+#: ../../source/start/install.md
+msgid "[PyMuPDF](https://pypi.org/project/PyMuPDF/)"
+msgstr "[PyMuPDF](https://pypi.org/project/PyMuPDF/)"
+
+#: ../../source/start/install.md
+msgid "the engine"
+msgstr "il motore"
+
+#: ../../source/start/install.md
+msgid "pulled in as a dependency; the one external library the engine cannot do without"
+msgstr ""
+"tirata dentro come dipendenza; l'unica libreria esterna di cui il motore non può fare"
+" a meno"
+
+#: ../../source/start/install.md
+msgid "GnuPG and `jq`"
+msgstr "GnuPG e `jq`"
+
+#: ../../source/start/install.md
+msgid "`freeports-validate` only"
+msgstr "solo `freeports-validate`"
+
+#: ../../source/start/install.md
+#, python-brace-format
+msgid ""
+"its Python dependencies come with it; these two must come from your system — see "
+"{doc}`../reference/cli/index`"
+msgstr ""
+"le sue dipendenze Python arrivano con esso; queste due devono venire dal tuo sistema "
+"— vedi {doc}`../reference/cli/index`"
+
+#: ../../source/start/install.md
+msgid "`freeports-validate`, **optionally**"
+msgstr "`freeports-validate`, **facoltativamente**"
+
+#: ../../source/start/install.md
+msgid "only to read the configuration file; see below"
+msgstr "solo per leggere il file di configurazione; vedi sotto"
+
+#: ../../source/start/install.md:26
+msgid "Installing from source"
+msgstr "Installare dai sorgenti"
+
+#: ../../source/start/install.md:27
+msgid ""
+"Work in a virtual environment. The engine is a compiled extension, and mixing it with"
+" a system Python is the fastest way to an import error nobody can reproduce."
+msgstr ""
+"Lavora in un ambiente virtuale. Il motore è un'estensione compilata, e mescolarlo con"
+" un Python di sistema è la via più rapida a un errore di importazione che nessuno "
+"riesce a riprodurre."
+
+#: ../../source/start/install.md:30
+msgid "The repository's `Makefile` does the whole thing, virtual environment included:"
+msgstr "Il `Makefile` del repository fa tutto quanto, ambiente virtuale compreso:"
+
+#: ../../source/start/install.md:39
+msgid ""
+"A format author wants the tooling as well, which is one target rather than three "
+"commands:"
+msgstr ""
+"Chi scrive formati vuole anche gli strumenti, il che è un target solo anziché tre "
+"comandi:"
+
+#: ../../source/start/install.md:45
+#, python-brace-format
+msgid ""
+"`make help` lists the rest, and {doc}`../guides/engine/build` explains the "
+"arrangement. If anything looks off, `make doctor` says what is installed, what is "
+"missing, and which target supplies it."
+msgstr ""
+"`make help` elenca il resto, e {doc}`../guides/engine/build` spiega l'impalcatura. Se"
+" qualcosa non torna, `make doctor` dice che cosa è installato, che cosa manca, e "
+"quale target lo fornisce."
+
+#: ../../source/start/install.md:48
+msgid "The same thing by hand"
+msgstr "La stessa cosa a mano"
+
+#: ../../source/start/install.md:49
+msgid ""
+"Nothing above is magic, and none of it is required — the targets are recipes of "
+"ordinary commands, which is what you want if you are installing into an environment "
+"the Makefile knows nothing about:"
+msgstr ""
+"Niente di quanto sopra è magia, e niente di ciò è obbligatorio — i target sono "
+"ricette di comandi ordinari, che è ciò che vuoi se stai installando in un ambiente di"
+" cui il Makefile non sa nulla:"
+
+#: ../../source/start/install.md:60
+msgid ""
+"The engine is built by [maturin](https://www.maturin.rs/) because of the Rust "
+"extension; the two tooling packages are plain setuptools projects. For an editable "
+"install while working on the crate itself, use maturin directly — `maturin develop` "
+"rebuilds the extension in place, and `--release` is worth the extra compile time for "
+"anything but the smallest report:"
+msgstr ""
+"Il motore è costruito da [maturin](https://www.maturin.rs/) a causa dell'estensione "
+"Rust; i due pacchetti di strumenti sono normali progetti setuptools. Per "
+"un'installazione modificabile mentre lavori sul crate stesso, usa maturin "
+"direttamente — `maturin develop` ricompila l'estensione sul posto, e `--release` vale"
+" il tempo di compilazione in più per qualsiasi relazione che non sia la più piccola:"
+
+#: ../../source/start/install.md:70
+msgid ""
+"`freeports-validate` does **not** require the engine: verifying somebody else's "
+"grants should not mean installing a PDF extractor. The one thing it gives up without "
+"it is reading its settings from the freeports configuration file, which needs the "
+"engine's knowledge of where such a file lives. To have that tier as well:"
+msgstr ""
+"`freeports-validate` **non** richiede il motore: verificare le attestazioni di "
+"qualcun altro non deve voler dire installare un estrattore di PDF. L'unica cosa a cui"
+" rinuncia senza di esso è leggere le proprie impostazioni dal file di configurazione "
+"di freeports, cosa che richiede al motore di sapere dove un file simile si trovi. Per"
+" avere anche quel livello:"
+
+#: ../../source/start/install.md:79
+msgid "A format author installing all three has it anyway."
+msgstr "Chi scrive formati e installa tutte e tre ce l'ha comunque."
+
+#: ../../source/start/install.md:81
+msgid "The `freeports` binary"
+msgstr "Il binario `freeports`"
+
+#: ../../source/start/install.md:83
+msgid ""
+"`pip install` and `maturin develop` build the *extension module*, not the command-"
+"line binary: the two are separate build products of one crate, and neither implies "
+"the other. This is the usual reason an installation ends up half-done — the module "
+"imports and the command is nowhere."
+msgstr ""
+"`pip install` e `maturin develop` costruiscono il *modulo di estensione*, non il "
+"binario da riga di comando: i due sono prodotti di compilazione distinti di uno "
+"stesso crate, e nessuno dei due implica l'altro. È il motivo abituale per cui "
+"un'installazione resta a metà — il modulo si importa e il comando non si trova da "
+"nessuna parte."
+
+#: ../../source/start/install.md:87
+msgid "`make install` covers both. Done by hand it is a cargo build and a copy:"
+msgstr "`make install` copre entrambi. Fatto a mano è una compilazione con cargo e una copia:"
+
+#: ../../source/start/install.md:95
+msgid ""
+"By default `make install-binary` puts it in the active environment's `bin/`, so that "
+"uninstalling is complete; `make install-binary PREFIX=/usr/local` installs it system-"
+"wide instead, and `DESTDIR` is honoured for packaging."
+msgstr ""
+"Per impostazione predefinita `make install-binary` lo mette nel `bin/` dell'ambiente "
+"attivo, così che la disinstallazione sia completa; `make install-binary "
+"PREFIX=/usr/local` lo installa invece a livello di sistema, e `DESTDIR` è rispettato "
+"per l'impacchettamento."
+
+#: ../../source/start/install.md:99
+msgid ""
+"Everything the binary does is also reachable from Python through the same crate, so "
+"this step is optional if you drive the engine as a library."
+msgstr ""
+"Tutto ciò che fa il binario è raggiungibile anche da Python attraverso lo stesso "
+"crate, quindi questo passo è facoltativo se guidi il motore come libreria."
+
+#: ../../source/start/install.md:102
+msgid "Checking the installation"
+msgstr "Verificare l'installazione"
+
+#: ../../source/start/install.md:108
+msgid "which is these two questions, and says nothing if both work:"
+msgstr "che è queste due domande, e non dice niente se funzionano entrambe:"
+
+#: ../../source/start/install.md:115
+msgid ""
+"Both should answer. If the second fails while the first works, the binary is on your "
+"`PATH` but the extension is not in *this* interpreter's environment — almost always a"
+" virtual environment that is not the one the install went into."
+msgstr ""
+"Devono rispondere entrambe. Se la seconda fallisce mentre la prima funziona, il "
+"binario è nel tuo `PATH` ma l'estensione non è nell'ambiente di *questo* interprete —"
+" quasi sempre un ambiente virtuale che non è quello in cui è finita l'installazione."
+
+#: ../../source/start/install.md:119
+#, python-brace-format
+msgid ""
+"A working installation is not yet a working run: two inputs must exist first, and "
+"neither ships with the engine. See {doc}`../guides/user/inputs`."
+msgstr ""
+"Un'installazione funzionante non è ancora un'esecuzione funzionante: prima devono "
+"esistere due ingressi, e nessuno dei due viaggia insieme al motore. Vedi "
+"{doc}`../guides/user/inputs`."
+

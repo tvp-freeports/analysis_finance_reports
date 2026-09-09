@@ -362,6 +362,10 @@ pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
     // In the child's private directory, never in the parent's output directory. The parent merges
     // them into its own at the end of the run.
     let log_handle = crate::core::tracing_setup::init(request.config.verbosity, &request.log_dir)?;
+    // Settled straight away, unlike the parent: a child resolves no configuration, it is *given*
+    // the resolved verbosity in its request. So the two moments the parent has to keep apart are
+    // one moment here, and a child can never end up disagreeing with the run it belongs to.
+    log_handle.settle_verbosity(request.config.verbosity)?;
     log_handle.set_csv_dir(&request.log_dir)?;
 
     let parallelism = crate::core::parallelism::Parallelism::pages(request.page_workers);

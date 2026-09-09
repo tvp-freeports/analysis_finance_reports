@@ -15,10 +15,30 @@ their test suites are checked against under `tests/formats/`, and the signed sta
 under `validation/`.
 
 ```sh
-freeports-dev test                    # run every format's test suite
-freeports-dev make-tests <FORMAT>     # write a format's reference output
-freeports-validate check-grants       # verify every claim made in validation/
+make init                             # first time: point git at .githooks/
+make test                             # the per-page suite — the development loop
+make ci-fast                          # what the commit hook runs: lint, tests, report, verdict
+make help                             # every target, with a line each
 ```
+
+**Two command surfaces, one vocabulary.** `make` changes *this* repository — it writes the
+measurements, refreshes the committed reports, and rewrites the manifest when it is entitled to.
+`freeports-dev` and `freeports-validate` answer questions *about* a repository, including one that
+is not yours, and write only where you point them:
+
+```sh
+freeports-dev make-tests <FORMAT>              # write a format's reference output
+freeports-dev inspect-page -f <FORMAT> -p <N>  # look at a page while writing a format
+freeports-dev test --repo <path> --all         # somebody else's repository, both suites
+freeports-dev ci-report --repo <path> -f json  # their figures, as a model to query
+freeports-validate check-grants                # verify every claim made in validation/
+```
+
+Every target is one of those commands with `--repo` pointed here, so the two never disagree:
+`make test-fast` is `freeports-dev test --fast`, `make ci-check` is `freeports-dev ci-check`, and
+`make check-grants` is `freeports-validate check-grants`. On Windows the targets are typed
+`make.bat <target>` from `cmd` or PowerShell — a shim that starts a POSIX shell and calls the same
+`Makefile`.
 
 ## What this repository has been vouched for
 
@@ -51,15 +71,24 @@ put it there — run it first whenever the hook does something you did not expec
 | `dev` — the default | everything is measured and reported; nothing is refused |
 | `off` — `experimental`, `wip/*` | the hook does nothing at all |
 
-The hook runs the fast tests, measures four things, refreshes both reports, and asks
-`freeports-dev ci-check` for a verdict. The measurements are:
+The hook runs one thing — `make pre-commit` on a `dev` branch, `make ci-full` on a `prod` one — so
+what the gate consists of is decided in the `Makefile` and can grow without the hook being touched.
+On a dev branch that is the linter, the per-page suite, three measurements, both report renderings
+and the verdict; on a prod branch it is both suites and the grants re-resolved over the network as
+well. Each is a target you can run on its own:
 
 ```sh
-freeports-dev coverage       # how many documents are tested, and how
-freeports-dev lint-score     # ruff's findings on content/, as a score out of ten
-freeports-dev doc-coverage   # public objects carrying a docstring
-freeports-dev ci-check       # the verdict table, and the exit status
+make test-fast        # the per-page suite, recorded as formats.single_page
+make test-slow        # the whole-document suite, recorded as formats.integration
+make coverage         # how many documents are tested, and how
+make lint             # ruff's findings on content/, and the score out of ten
+make doc-coverage     # public objects carrying a docstring
+make ci-check         # the verdict table, and the exit status
 ```
+
+**Only `make ci-check` and `make fingerprint` can refuse a commit.** Everything else measures and
+records; the verdict reads what they wrote, together with `ci.yaml` and the class of the branch,
+and is the one step that knows whether this branch enforces or reports.
 
 `freeports-dev coverage` counts **documents**, not formats: a format with one `report.pdf` is one
 document, and a format with several subdirectories is one document each. A document counts for
@@ -99,30 +128,21 @@ X covers content Y, which is a false statement, and the point of the field is th
 
 ### Keeping all of it current
 
-The `pre-commit` hook in `.githooks/` regenerates the badges, the block above and the six pages,
-and adds what it rewrote to the commit being made. It never refuses a commit over the report: a
-methodology page that could not be resolved leaves the figures as they were and says so, because a
-repository whose documentation server is down still has to be committable.
-
-To do the same by hand, run what that hook runs — one walk of the repository, rendered several
-times:
+The commit hook refreshes both reports and adds what it rewrote to the commit being made, so the
+published figures and the change that moved them arrive together. Two targets do the same by hand:
 
 ```sh
-freeports-validate collect > model.json
-freeports-validate report --model model.json --format badges --out validation/report/badges/
-freeports-validate report --model model.json --format markdown --out README.md
+make ci-report          # the badges, the block above, the two pages and the HTML
+make validation-report  # the grant badges, its block, and the six lookup pages
+make validation         # that, plus check-grants and check-keys — the whole grant picture
 ```
 
-`.githooks/pre-commit` has the six `--table` lines that follow.
+Each is **one walk of the repository rendered many times**, never one walk per artefact: the grant
+report resolves every methodology page from the configured sources, and doing that once per page
+would fetch each of them nine times over for an answer that cannot have changed in between.
 
-The CI report is the same idea for the other half of what this repository publishes about itself,
-and its hook block does the same thing:
-
-```sh
-freeports-dev ci-report --format json > ci-model.json
-freeports-dev ci-report --model ci-model.json --format badges   --out ci/report/badges/
-freeports-dev ci-report --model ci-model.json --format markdown --out README.md
-```
-
-Neither report can refuse a commit. What may refuse is `freeports-dev ci-check`, and only on a
-`prod` branch.
+Neither report can refuse a commit, on any branch. A methodology page that could not be resolved
+leaves the figures as they were and says so — a repository whose documentation server is down still
+has to be committable, and a report rewritten to say "coverage --, check-grants failing" would be a
+claim about somebody's web server written into tracked files. What may refuse is a *threshold*, and
+that is `make ci-check`'s decision on a `prod` branch.

@@ -1,0 +1,111 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/misc.md:1
+msgid "Anything not yet placed"
+msgstr ""
+
+#: ../../source/reference/misc.md:3
+msgid ""
+"This page exists so that nothing has to be forced into a section it does "
+"not belong to. A subject lands here when it is real, worth writing down, "
+"and does not yet have enough company to justify a section of its own."
+msgstr ""
+
+#: ../../source/reference/misc.md:7
+#, python-brace-format
+msgid ""
+"A page here is **waiting for its section to be written**, which is a "
+"normal state rather than a failure. If you find yourself adding a third "
+"entry on the same subject, that is the signal to promote it: see "
+"{doc}`../guides/docs/organisation`."
+msgstr ""
+
+#: ../../source/reference/misc.md:11
+msgid "Things that live outside this site"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "Subject"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "Where"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "the project website"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid ""
+"[freeports.org](https://www.freeports.org), its own repository and "
+"toolchain"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "the demo API and dashboard"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid ""
+"`freeports-backend` and `freeports-frontend`, unrelated to the extraction"
+" side"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "the Qt desktop interface"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "`analysis_finance_reports_qt` — spec-first, and not built"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "licence, code of conduct, security policy"
+msgstr ""
+
+#: ../../source/reference/misc.md
+msgid "the files of the same name at the root of the repository"
+msgstr ""
+
+#: ../../source/reference/misc.md:19
+msgid "Where the pieces of the project live"
+msgstr ""
+
+#: ../../source/reference/misc.md:20
+#, python-brace-format
+msgid ""
+"{doc}`../overview/the-repositories` is the map. It is short, and it is "
+"the answer to most questions that begin \"which repository does …\"."
+msgstr ""
+
+#: ../../source/reference/misc.md:23
+msgid "Conventions of this documentation itself"
+msgstr ""
+
+#: ../../source/reference/misc.md:24
+#, python-brace-format
+msgid ""
+"How these pages are arranged, where a new one goes, and the two rules "
+"that keep the side panel usable: {doc}`../guides/docs/organisation`."
+msgstr ""
+

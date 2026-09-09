@@ -1,0 +1,708 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:2
+msgid "freeports\\_dev.ci.render"
+msgstr ""
+
+#: freeports_dev.ci.render:1 of
+msgid ""
+"``freeports-dev ci-report``: what a gate run looks like once it is "
+"written down."
+msgstr ""
+
+#: freeports_dev.ci.render:3 of
+msgid ""
+"The measurement commands establish facts and write them into "
+"``reports/``; :mod:`freeports_dev.ci.gate` judges them; this renders the "
+"judgement, and does nothing else. That is the same three-way split "
+"``freeports-validate`` follows — ``collect``, ``report``, ``check-"
+"grants`` — and it is here for the same reason: a rendering that measured "
+"something of its own would be a second source of truth for a figure the "
+"gate already decided about."
+msgstr ""
+
+#: freeports_dev.ci.render:9 of
+msgid ""
+"Every rendering is a pure function of the model, which is why the model "
+"exists at all::"
+msgstr ""
+
+#: freeports_dev.ci.render:17 of
+msgid ""
+"The first of those answers questions no rendering here anticipated, and "
+"it stays available however the others change."
+msgstr ""
+
+#: freeports_dev.ci.render:20 of
+msgid ""
+"**This command never refuses anything.** ``ci-check`` decides whether a "
+"commit is made; this says what the run found, and exits non-zero only "
+"when it could not write what it was asked to write. A hook that could be "
+"stopped by its own report would be a hook people remove."
+msgstr ""
+
+#: freeports_dev.ci.render:24 of
+msgid ""
+"**Nothing here carries a timestamp, and no rendering names a commit "
+"unless a figure is stale.** These artefacts are committed — badges in a "
+"``README.md``, tables in a documentation tree — and a date, or the head "
+"recorded beside every figure, would put a diff in every commit saying "
+"nothing had changed. The commit is named in exactly the place where it is"
+" the news: beside a figure that was measured at another one."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`FORMATS <freeports_dev.ci.render.FORMATS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "What a rendering may be asked for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`MARKERS <freeports_dev.ci.render.MARKERS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "The lines a rewritable file must already contain, per format."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`GATE_DOC_URL <freeports_dev.ci.render.GATE_DOC_URL>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.GATE_DOC_URL:1 of
+msgid "the page that explains the gate, not the table that ran it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`GATE_DOC_LABEL <freeports_dev.ci.render.GATE_DOC_LABEL>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.GATE_DOC_LABEL:1 of
+msgid ""
+"The same page, referred to the way one page of a Sphinx site refers to "
+"another."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`NOTICE <freeports_dev.ci.render.NOTICE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.NOTICE:1 of
+msgid "The sentence every rendering carries, and the reason it is not optional."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`PASSING <freeports_dev.ci.render.PASSING>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.PASSING:1 of
+msgid "Every gated figure measured, current, and at or above its minimum."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`FAILING <freeports_dev.ci.render.FAILING>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.FAILING:1 of
+msgid "A measured figure under its minimum, or a suite that did not pass."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`INCONCLUSIVE <freeports_dev.ci.render.INCONCLUSIVE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.INCONCLUSIVE:1 of
+msgid ""
+"Nothing below, but something nobody could compute, something taken at "
+"another commit, or something a ``--skip-slow`` run did not look at."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ""
+":py:obj:`DEFAULT_BREAKDOWN_LIMIT "
+"<freeports_dev.ci.render.DEFAULT_BREAKDOWN_LIMIT>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.DEFAULT_BREAKDOWN_LIMIT:1 of
+msgid ""
+"How many breakdown lines per metric a *document* shows, when no tier says"
+" otherwise."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`COLORS <freeports_dev.ci.render.COLORS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.COLORS:1 of
+msgid ""
+"Shields' own palette, so a badge generated here sits beside one fetched "
+"from shields.io without the two looking like they came from different "
+"projects."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`STATUS_COLORS <freeports_dev.ci.render.STATUS_COLORS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.STATUS_COLORS:1 of
+msgid "What the one-word status of a run is worth on a badge."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`VERDICT_LABEL <freeports_dev.ci.render.VERDICT_LABEL>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "How each verdict is written outside the terminal."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`VERDICT_LEGEND <freeports_dev.ci.render.VERDICT_LEGEND>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.VERDICT_LEGEND:1 of
+msgid ""
+"What each verdict means, printed as the legend of every rendering that "
+"shows verdicts."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`TOTAL_KEY <freeports_dev.ci.render.TOTAL_KEY>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "How each verdict is counted in ``totals``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`TABLES <freeports_dev.ci.render.TABLES>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "The three values of ``--table``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`DEFAULT_TABLE <freeports_dev.ci.render.DEFAULT_TABLE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.DEFAULT_TABLE:1 of
+msgid "The default, and what a caller that says nothing is asking for."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`STYLE <freeports_dev.ci.render.STYLE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+#: freeports_dev.ci.render.STYLE:1 of
+msgid ""
+"a report that went to a content delivery network for its stylesheet would"
+" render as unformatted text on exactly the machines — an air-gapped "
+"build, a laptop on a train — this project already goes out of its way to "
+"work on."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`SCRIPT <freeports_dev.ci.render.SCRIPT>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "switching viewpoint, and filtering rows by substring."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid ":py:obj:`VIEWPOINTS <freeports_dev.ci.render.VIEWPOINTS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:31:<autosummary>:1
+msgid "The three tabs, which are the three tables."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:33
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`badge_name <freeports_dev.ci.render.badge_name>`\\ \\(metric\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.badge_name:1 of
+msgid ""
+"The file a metric's badge is written to: the dotted name with dots as "
+"dashes."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`breakdown_omitted <freeports_dev.ci.render.breakdown_omitted>`\\"
+" \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.breakdown_omitted:1 of
+msgid "How many breakdown lines each metric has that a document does not show."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`build <freeports_dev.ci.render.build>`\\ \\(gate\\[\\, config\\,"
+" name\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.build:1 of
+msgid ""
+"The model of one gate run: every metric, every condition, and what they "
+"add up to."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`explained <freeports_dev.ci.render.explained>`\\ \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.explained:1 of
+msgid "Every metric that did not pass and has something to say about why."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`failing_conditions "
+"<freeports_dev.ci.render.failing_conditions>`\\ \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.failing_conditions:1 of
+msgid ""
+"The conditions that did not hold — a suite that failed, a rule that was "
+"broken."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`metric_badge <freeports_dev.ci.render.metric_badge>`\\ "
+"\\(entry\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.metric_badge:1 of
+msgid "One metric as a badge: what it reads, and what colour that is worth."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`render <freeports_dev.ci.render.render>`\\ \\(model\\, "
+"style\\[\\, table\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid "One rendering of the model, as text."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`render_badges <freeports_dev.ci.render.render_badges>`\\ "
+"\\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.render_badges:1 of
+msgid "The badges, as a mapping of filename to content."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`render_html <freeports_dev.ci.render.render_html>`\\ \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`render_json <freeports_dev.ci.render.render_json>`\\ \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`render_markdown <freeports_dev.ci.render.render_markdown>`\\ "
+"\\(model\\[\\, table\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`render_rst <freeports_dev.ci.render.render_rst>`\\ "
+"\\(model\\[\\, table\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`rewrite <freeports_dev.ci.render.rewrite>`\\ \\(text\\, block\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.rewrite:1 of
+msgid "``text`` with everything between the markers replaced by ``block``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`status_of <freeports_dev.ci.render.status_of>`\\ "
+"\\(verdicts\\[\\, conditions\\, skipped\\_slow\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.status_of:1 of
+msgid ""
+"The one word a badge carries, in the order the three cases have to be "
+"decided."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ""
+":py:obj:`suites_badge <freeports_dev.ci.render.suites_badge>`\\ "
+"\\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.suites_badge:1 of
+msgid ""
+"The suites in one badge: how much of the test surface actually ran at "
+"this commit."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+msgid ":py:obj:`summary <freeports_dev.ci.render.summary>`\\ \\(model\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:52:<autosummary>:1
+#: freeports_dev.ci.render.summary:1 of
+msgid "The one sentence every rendering opens with."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:54
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:58:<autosummary>:1
+msgid ""
+":py:obj:`Table <freeports_dev.ci.render.Table>`\\ \\(heading\\, prose\\, "
+"headers\\, alignment\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:58:<autosummary>:1
+#: freeports_dev.ci.render.Table:1 of
+msgid ""
+"One arrangement of the same run: what it is called, and what its columns "
+"are."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:60
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:63:<autosummary>:1
+msgid ":py:obj:`MarkersMissing <freeports_dev.ci.render.MarkersMissing>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.render.rst:63:<autosummary>:1
+#: freeports_dev.ci.render.MarkersMissing:1 of
+msgid "A file to be rewritten does not say where the report goes."
+msgstr ""
+
+#: freeports_dev.ci.render.DEFAULT_BREAKDOWN_LIMIT:3 of
+msgid ""
+"Fifteen, because the question a breakdown answers is \"what would I fix "
+"first\" and nobody fixes the hundred and twentieth file. ``0`` means all "
+"of them, and ``--format json`` always carries all of them whatever this "
+"says."
+msgstr ""
+
+#: freeports_dev.ci.render.FORMATS:1 of
+msgid ""
+"What a rendering may be asked for. ``json`` is the model itself, and is "
+"first because it is the one that outlives this file."
+msgstr ""
+
+#: freeports_dev.ci.render.GATE_DOC_LABEL:3 of
+msgid ""
+"An absolute URL is right in a README and on a standalone page, and wrong "
+"inside the documentation: a reader on ``/en/latest/…`` who follows one "
+"lands in a *different version* of the site, and a page that is new on "
+"this branch has no other version to land in at all. A ``:ref:`` resolves "
+"inside whatever build it is in — every version, every translation, and an"
+" offline build with no network — and cannot 404. The label is defined at "
+"the top of ``docs/source/guides/devops/the-gate.rst``."
+msgstr ""
+
+#: freeports_dev.ci.render.GATE_DOC_URL:4 of
+msgid ""
+"``latest`` and not ``stable``, which is the one difference from the "
+"grants report's link and is not a preference. ``stable`` is the last "
+"*release*; this page describes the gate as it is now, and a repository "
+"whose gate changed since its last release would link its README at a page"
+" that either does not exist yet — which is what happened, a 404 reached "
+"from the documentation itself — or describes rules nobody is being held "
+"to. ``latest`` tracks the branch the figures were measured on, which is "
+"the same thing the report is about."
+msgstr ""
+
+#: freeports_dev.ci.render.GATE_DOC_URL freeports_dev.ci.render.SCRIPT
+#: freeports_dev.ci.render.STYLE of
+msgid "type"
+msgstr ""
+
+#: freeports_dev.ci.render.GATE_DOC_URL:11 of
+msgid "Where a reader goes to find out what any of this is worth"
+msgstr ""
+
+#: freeports_dev.ci.render.INCONCLUSIVE:4 of
+msgid ""
+"Grey, and never a pass. A figure nobody could compute is not a figure "
+"above the threshold — the rule :mod:`freeports_dev.ci.gate` already "
+"applies, and the same one the grants report applies to a methodology page"
+" it could not reach."
+msgstr ""
+
+#: freeports_dev.ci.render.MARKERS:1 of
+msgid ""
+"The lines a rewritable file must already contain, per format. Ordinary "
+"comments in both languages, so a file carrying them renders exactly as it"
+" did before anything was written between them. They say ``freeports-dev``"
+" where the grants report says ``freeports-validate``: one file may well "
+"carry both blocks, and a marker that did not name its writer would have "
+"them overwrite each other."
+msgstr ""
+
+#: freeports_dev.ci.render.MarkersMissing:3 of
+msgid ""
+"Deliberately not \"append it at the end\". Where a table belongs in a "
+"README is a judgement about that README, and a command that guessed would"
+" put one under a licence notice once and then keep it there for ever."
+msgstr ""
+
+#: freeports_dev.ci.render.NOTICE:3 of
+msgid ""
+"A page of percentages invites exactly one misreading — that somebody has "
+"certified the software — and a coverage figure is the easiest number in "
+"this project to mistake for a guarantee. What a report shows is what one "
+"run measured, on one machine, with whatever tools that machine had. It is"
+" evidence a reader can reproduce, and the only way to be sure of a line "
+"in it is to re-run the command that measured it."
+msgstr ""
+
+#: freeports_dev.ci.render.SCRIPT:1 of
+msgid ""
+"switching viewpoint, and filtering rows by substring. Written out rather "
+"than pulled from a framework for the same reason as the stylesheet, and "
+"kept small enough to read in one screen."
+msgstr ""
+
+#: freeports_dev.ci.render.SCRIPT:5 of
+msgid "The only behaviour the page has"
+msgstr ""
+
+#: freeports_dev.ci.render.STYLE:6 of
+msgid ""
+"A near-copy of the one `freeports-validate report` writes, and "
+"deliberately not shared with it: the two packages are installed "
+"independently, and a formats repository may hold one and not the other. A"
+" stylesheet is not worth a dependency between two commands that otherwise"
+" never import each other."
+msgstr ""
+
+#: freeports_dev.ci.render.STYLE:11 of
+msgid ""
+"Everything the page needs to look like a page. Inline, and it has to stay"
+" inline"
+msgstr ""
+
+#: freeports_dev.ci.render.TABLES:1 of
+msgid ""
+"The three values of ``--table``. ``summary`` is first because it is the "
+"default and the one a README carries; the other two are the two questions"
+" it provokes — *what is being asked of this repository*, and *where does "
+"a figure that fell short actually come from*."
+msgstr ""
+
+#: freeports_dev.ci.render.TOTAL_KEY:1 of
+msgid ""
+"How each verdict is counted in ``totals``. A key rather than the verdict "
+"itself, because ``no threshold`` carries a space and a JSON key somebody "
+"has to quote in ``jq`` is a key somebody gets wrong; ``ungated`` says the"
+" same thing in one word."
+msgstr ""
+
+#: freeports_dev.ci.render.VERDICT_LABEL:1 of
+msgid ""
+"How each verdict is written outside the terminal. ``ci-check``'s own "
+"labels shout, which is right on a console at the moment a commit is "
+"refused and wrong in a document somebody reads later."
+msgstr ""
+
+#: freeports_dev.ci.render.VIEWPOINTS:1 of
+msgid ""
+"The three tabs, which are the three tables. A reader who has learned the "
+"`--table` names has learned the page, and a page that invented a fourth "
+"arrangement would be teaching a second vocabulary for the same run."
+msgstr ""
+
+#: freeports_dev.ci.render.badge_name:3 of
+msgid ""
+"The same mechanical rule :func:`freeports_dev.ci.report.file_name` uses "
+"for the measurement files, so a person who knows the metric can find both"
+" without a lookup table."
+msgstr ""
+
+#: freeports_dev.ci.render.build:3 of
+msgid ""
+"It carries what the gate decided *and* what the registry knows about each"
+" metric — its cost class and the sentence saying what it measures. A "
+"table reading ``docs.rust 39.4 %`` and nothing else tells a reader a "
+"number and not what was counted, and the reader of a documentation page "
+"has no ``--help`` to hand."
+msgstr ""
+
+#: freeports_dev.ci.render.explained:3 of
+msgid ""
+"The sentences are the part that matters. A table of verdicts tells "
+"somebody a figure is wrong; a sentence naming the tool, the number and "
+"the command tells them what to do about it."
+msgstr ""
+
+#: freeports_dev.ci.render.failing_conditions:3 of
+msgid ""
+"They are not metrics: they have no unit, no minimum and nothing to plot, "
+"so every rendering prints them as sentences under the table rather than "
+"inventing table cells for them."
+msgstr ""
+
+#: freeports_dev.ci.render.metric_badge:3 of
+msgid ""
+"**The colour is the figure, not the verdict** — with two exceptions. A "
+"figure under this repository's own minimum is red whatever its value, "
+"because falling short of a rule the repository wrote down is news; and "
+"one nobody could compute, or one taken at another commit, is grey, "
+"because it is not a figure about this code at all."
+msgstr ""
+
+#: freeports_dev.ci.render.metric_badge:8 of
+#, python-format
+msgid ""
+"Everywhere else the colour is the absolute number. Painting 32 % green on"
+" the grounds that 32 is what this repository currently demands would "
+"flatter a reader with the project's own floor, and a badge exists to be "
+"read by somebody who has not opened `ci.yaml`."
+msgstr ""
+
+#: freeports_dev.ci.render.render:1 of
+msgid ""
+"One rendering of the model, as text. ``badges`` is not here: it is "
+"several files."
+msgstr ""
+
+#: freeports_dev.ci.render.render:3 of
+msgid ""
+"``--table`` chooses among the three arrangements, and only the two text "
+"formats have it. ``json`` is the model and a table of it would be a "
+"second, lossy one; ``html`` already carries all three as tabs, so asking "
+"it for one would be asking for a page with two tabs removed. Both refuse "
+"rather than ignore the argument — silently rendering something other than"
+" what was asked for is how a hook writes the wrong file for a year."
+msgstr ""
+
+#: freeports_dev.ci.render.render_badges:3 of
+msgid ""
+"One for the run as a whole, one for the test suites, and one for every "
+"metric that has something to say — measured, or gated, or both. A metric "
+"that is neither is left out: a wall of ``n/a`` badges in a README says "
+"nothing about the repository and hides the ones that do."
+msgstr ""
+
+#: freeports_dev.ci.render.rewrite:3 of
+msgid ""
+"The markers are found in ``block`` itself rather than passed separately, "
+"so a block can only ever be written into a file marked for that same "
+"format. Idempotent by construction: what is written between the markers "
+"includes them, and what is replaced is everything from one to the other."
+msgstr ""
+
+#: freeports_dev.ci.render.status_of:3 of
+msgid ""
+"``failing`` first: a figure known to be under its minimum, or a suite "
+"known to have broken, is the strongest thing this run can say, and one "
+"unmeasured metric beside it does not soften that. ``inconclusive`` "
+"second, and it covers the skipped figures too — a metric a ``--skip-"
+"slow`` run never looked at must not be mistaken afterwards for one that "
+"passed."
+msgstr ""
+
+#: freeports_dev.ci.render.status_of:8 of
+msgid ""
+"**A suite that is stale or was never run is inconclusive, not failing**, "
+"and the difference is the whole vocabulary of this report: `failing` says"
+" something is wrong with the code, and sending somebody to look for a "
+"broken test that does not exist is how a status word stops being read. "
+"Stale says something is unknown, which is a different thing to do about "
+"it — run it — and it is exactly as far from `passing`."
+msgstr ""
+
+#: freeports_dev.ci.render.status_of:14 of
+msgid ""
+"**A run that gated nothing is inconclusive, not passing.** \"Passing\" "
+"means every gated figure cleared its minimum, and with no minima there is"
+" nothing that cleared anything — a green badge on a repository nobody has"
+" configured is the vacuous truth this whole mechanism exists to keep out "
+"of a README. It is also the first state of every repository `init-format-"
+"repo` creates, and it says so."
+msgstr ""
+
+#: freeports_dev.ci.render.suites_badge:3 of
+msgid ""
+"The badge the fast/slow split makes necessary. A gate that runs the cheap"
+" suites at every commit publishes a green tick that a reader will take to"
+" mean \"the tests pass\" — and it means \"the tests we could afford "
+"pass\". This says which, in the README, without anybody having to open "
+"the report: *all ran*, or how many broke, or how many are stale or were "
+"never run here."
+msgstr ""
+
+#: freeports_dev.ci.render.suites_badge:8 of
+msgid ""
+"Broken is red and unknown is grey, the same vocabulary the metric badges "
+"use, and for the same reason: a suite nobody ran is not a suite that "
+"passed, and it is not a suite that failed either."
+msgstr ""
+

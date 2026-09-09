@@ -30,6 +30,41 @@ def _repo_or_exit(config):
     return repo
 
 
+#: The two halves of a formats repository's suite: the marker that selects each, the suite it is
+#: recorded under, and what a run of it does *not* cover.
+#:
+#: One entry per half, named after the Makefile target that runs it — ``--fast`` is ``make
+#: test-fast`` and ``--slow`` is ``make test-slow``. The two surfaces are deliberately one
+#: vocabulary: a person who has learnt the engine's Makefile can work in a formats repository
+#: without reading anything, and a person who has learnt this command can run the suite of a
+#: repository they have just cloned. Two names for the same selection is how they come apart.
+TEST_SELECTIONS = {
+    "fast": (
+        "not integration_tests",
+        "formats.single_page",
+        "the per-page tests: one page of one document at a time",
+        "The whole-document tests did not run here: `freeports-dev test --slow`, or --all for both.",
+    ),
+    "slow": (
+        "integration_tests",
+        "formats.integration",
+        "the whole-document tests: a full extraction run per document",
+        "The per-page tests did not run here: `freeports-dev test --fast`, or --all for both.",
+    ),
+    "all": (None, None, "every test in this repository", None),
+}
+
+#: pytest's exit status for "nothing was collected", which is **not** a failure here.
+#:
+#: A repository `init-format-repo` has just created has no formats in it yet, and a suite with no
+#: tests in it has not failed -- it has passed vacuously, the way an empty directory of tests
+#: passes. Reading 5 as a failure made every freshly bootstrapped repository report a broken suite
+#: until somebody wrote a format, which is exactly the moment a new user decides whether to trust
+#: any of this. The same reading is why `--slow` on a repository whose formats have no
+#: whole-document test yet is not a red suite.
+NOTHING_COLLECTED = 5
+
+
 def _cmd_test(args):
     import pytest
 
@@ -44,8 +79,44 @@ def _cmd_test(args):
     extra = args.pytest_args
     if extra and extra[0] == "--":
         extra = extra[1:]
+
+    marker, _suite, covers, left_out = TEST_SELECTIONS[args.select]
+
+    # A `-m` of your own outranks the flag, and is left to stand alone.
+    #
+    # pytest takes the *last* `-m` on the command line, so adding one beside `-- -m 'not
+    # integration_tests and not xfail'` would not even be an error: it would quietly replace the
+    # selection that was asked for with the one this flag defaults to. Selections this command has
+    # no vocabulary for have to stay possible, and this is what keeps them so.
+    own_marker = any(
+        argument == "-m" or argument.startswith("-m") for argument in extra
+    )
+    if marker and not own_marker:
+        pytest_args += ["-m", marker]
+
+    if not own_marker:
+        print(f"Running {covers}.")
+
     pytest_args.extend(extra)
-    sys.exit(pytest.main(pytest_args))
+    outcome = pytest.main(pytest_args)
+
+    if outcome == NOTHING_COLLECTED:
+        print(
+            "\nNo test matched this selection, which is not a failure: there is nothing here to"
+        )
+        print(
+            "fail. `freeports-dev coverage` says which documents have tests and which have not."
+        )
+        outcome = 0
+
+    # Said after the run rather than before it, where a reader looks once the summary has printed.
+    # A gate that runs half the tests and says nothing about the other half is a gate that lies;
+    # this is the same rule the recorded suite outcomes follow, in the one place a person is
+    # looking at the result rather than at the report.
+    if left_out and not own_marker:
+        print(left_out)
+
+    sys.exit(outcome)
 
 
 def _cmd_make_tests(args):
@@ -1091,6 +1162,35 @@ def main():
     p_test.add_argument(
         "--format", "-f", help="Run tests only for a specific format (e.g. AMUNDI-EN24)"
     )
+    # **The default is the fast half**, and it is the same default `make test` has.
+    #
+    # It used to be "everything", which made the two ways of running the suite in the same
+    # repository mean two different things -- the one place they must agree. The fast half is the
+    # loop format development actually runs in, and a run that leaves the other half out says so
+    # in its last line rather than leaving it to be discovered.
+    selection = p_test.add_mutually_exclusive_group()
+    selection.add_argument(
+        "--fast",
+        dest="select",
+        action="store_const",
+        const="fast",
+        help="Only the per-page tests, which is `make test-fast` [the default]",
+    )
+    selection.add_argument(
+        "--slow",
+        dest="select",
+        action="store_const",
+        const="slow",
+        help="Only the whole-document tests, a full extraction run each — `make test-slow`",
+    )
+    selection.add_argument(
+        "--all",
+        dest="select",
+        action="store_const",
+        const="all",
+        help="Both halves — `make test-all`",
+    )
+    p_test.set_defaults(select="fast")
     p_test.add_argument(
         "pytest_args", nargs=argparse.REMAINDER, help="Arguments forwarded to pytest"
     )

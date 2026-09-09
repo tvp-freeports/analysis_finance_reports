@@ -28,7 +28,7 @@ are judged by ``ci-check``.
    * - ``formats.single_page``
      - fast
      - formats
-     - ``freeports-dev test -- -m 'not integration_tests'``
+     - ``make test-fast``
    * - ``rust.integration``
      - **slow**
      - engine
@@ -48,17 +48,24 @@ are judged by ``ci-check``.
    * - ``formats.integration``
      - **slow**
      - formats
-     - ``freeports-dev test -- -m integration_tests``
+     - ``make test-slow``
 
 Every row carries the command that runs it, and every message about a suite quotes it. A verdict
 that says something is stale without saying how to un-stale it is a verdict people route around.
 
+**Every row is a** ``make`` **target, in whichever repository the suite belongs to.** The
+alternative is quoting the selection itself — ``freeports-dev test -- -m 'not integration_tests'`` —
+in the hook, in this table and in the repository's own documentation, which is three copies of one
+decision, and the failure mode of three copies is that a fourth reader invents a fifth. The
+selection has one spelling, ``--fast`` / ``--slow``, in the command that owns it, and the target is
+what a message quotes.
+
 Why a suite is recorded rather than announced
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The outcome used to be a string on a command line — ``ci-check --suite fast:passed``. That says what
-has just happened, and it is **silent about everything that has not**. A gate that runs two of six
-suites and reports "tests: ok" is worse than one that reports nothing, because a reader believes it.
+An outcome passed on a command line — ``ci-check --suite fast:passed`` — says what has just
+happened, and it is **silent about everything that has not**. A gate that runs two of six suites and
+reports "tests: ok" is worse than one that reports nothing, because a reader believes it.
 
 So each suite writes ``reports/suite-<name>.json``:
 
@@ -108,10 +115,10 @@ one that stops doing so stops being marked. Three hundred hand-written ``@pytest
 decorators would be three hundred chances to forget.
 
 The seam is **"starts anything"**, and getting it wrong is expensive in a way that is easy to miss.
-In ``freeports_validate`` the line used to be drawn at "starts *the command*", which left twenty
-tests that start a threaded HTTP server and forty that start a ``bash`` or a Python interpreter on
-the fast side of it — three and a half seconds, most of a commit gate's entire budget, spent on
-``fork``. In ``freeports_dev`` the same seam catches the two fixtures that bootstrap a whole
+Drawing it at "starts *the command*" instead — which is where it lands if nobody thinks about it —
+leaves, in ``freeports_validate``, twenty tests that start a threaded HTTP server and forty that
+start a ``bash`` or a Python interpreter on the fast side: three and a half seconds, most of a
+commit gate's entire budget, spent on ``fork``. In ``freeports_dev`` the same seam catches the two fixtures that bootstrap a whole
 repository, each of which is twenty-odd process starts.
 
 .. tip::

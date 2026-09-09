@@ -1,0 +1,299 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/fingerprints.rst:3
+msgid "Fingerprints and version discipline"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:5
+msgid ""
+"Three repositories declare a hash of their own contents. Until this work,"
+" **nothing computed it** — and a field nobody verifies is not a "
+"fingerprint, it is a comment that looks like one."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:9
+msgid "The recipe, once"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:15
+msgid ""
+"The paths relative to the repository root, sorted in byte order; the "
+"sha256 of each, in that order, as ``\"<hash>  <path>\"`` lines; and the "
+"sha256 of that stream."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:18
+msgid ""
+"**The path is inside the hashed lines on purpose**: moving a file changes"
+" the fingerprint as much as editing it. A grant naming ``tests/a.json`` "
+"does not cover the same repository once that file is called "
+"``tests/b.json``. The sort is ``LC_ALL=C`` so the answer does not depend "
+"on the committer's locale — the one thing a fingerprint must never do is "
+"differ between two people looking at the same tree."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:24
+msgid ""
+"Non-ASCII file names would need ``sha256sum``'s escaping rules pinned "
+"down to stay reproducible. Both hooks already refuse them, so this says "
+"so rather than pretending to handle a case nobody can currently create."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:29
+msgid "A formats repository"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:31
+msgid ""
+"``info.validation_sha256`` in ``package.yaml`` covers **every file a "
+"grant covers**, read from the repository's own ``validation/*.yaml`` — "
+"not from ``freeports-validate collect``, because collecting resolves "
+"methodology pages over the network and a fingerprint that cannot be "
+"computed on a train is one the hook has to skip."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:36
+msgid ""
+"When it moves, ``info.version`` must move too. Which component is the "
+"author's choice: the change may be a correction or a whole new format, "
+"and only they know which."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:39
+msgid ""
+"On ``dev`` the hook warns and **does not write the new fingerprint**. "
+"Writing it would leave the manifest claiming that version X covers "
+"content Y, which is a false statement — and the entire point of the field"
+" is that it is not one."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:44
+msgid "An input database"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:46
+msgid ""
+"``sha256.companies`` and ``sha256.lists`` in ``metadata.yaml``, over "
+"their two directories, same recipe. Here the bump is **mechanical**, so "
+"the hook proposes it:"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:53
+msgid "What moved"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:54
+msgid "Proposal"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:55
+msgid "Why"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:56
+msgid "``lists`` only"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:57
+msgid "**minor + 1**"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:58
+msgid "a list change alters only the association between a company and a list"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:59
+msgid "``companies`` (± ``lists``)"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:60
+msgid "**major + 1**"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:61
+msgid ""
+"``companies/`` decides what *matches*, so it changes the meaning of every"
+" run"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:63
+msgid ""
+"The patch component is never proposed: it is what a change moving neither"
+" fingerprint gets — a description, a README — and only a person knows "
+"they made one."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:66
+msgid ""
+"Interactive means interactive: the hook reopens the terminal and asks, "
+"showing both hashes and the proposed version. **Declined, or "
+"unanswerable, is no.** A rebase, a script, an editor's commit button and "
+"a CI runner all reach it with no terminal, and in each of those the "
+"person who would have said yes is not there. A prompt nobody can answer "
+"must never be read as a yes."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:71
+msgid "By hand, in any of the three repository kinds:"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:82
+msgid "The targets"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:84
+msgid ""
+"The quality surface is laid out on two axes: **``<what>`` alone is "
+"everything, ``<what>-<which>`` is one slice.** You compose a name and it "
+"exists."
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:91
+msgid "``<what>`` ↓ / ``<which>`` →"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:92
+msgid "(all)"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:93
+msgid "``-rust``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:94
+msgid "``-python``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:95
+msgid "``-formats``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:96
+msgid "``test``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:97
+msgid "the fast suites (``test-all`` for every one)"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:98
+msgid "the crate"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:99
+msgid "the tooling packages"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:100
+msgid "a formats repository"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:101
+msgid "``lint``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:102
+msgid "both linters"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:103
+msgid "clippy"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:104
+msgid "ruff"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:105
+msgid "ruff over ``content/``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:106
+msgid "``fmt``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:107
+#: ../../source/guides/devops/fingerprints.rst:117
+msgid "both"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:108
+msgid "``cargo fmt``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:109
+msgid "``ruff format``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:110
+#: ../../source/guides/devops/fingerprints.rst:120
+msgid "—"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:111
+msgid "``coverage``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:112
+msgid "both **(slow)**"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:113
+msgid "``cargo llvm-cov`` **(slow)**"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:114
+msgid "``pytest --cov`` **(slow)**"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:115
+msgid "the document inventory"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:116
+msgid "``doc-coverage``"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:118
+msgid "rustdoc"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:119
+msgid "the docstring walker"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:122
+msgid "And the aggregates:"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:135
+msgid "And the suites, on the same two axes:"
+msgstr ""
+
+#: ../../source/guides/devops/fingerprints.rst:146
+msgid ""
+"The ``test-*`` targets were renamed when this was built, and **no aliases"
+" were kept**: ``test-full`` is now ``test-rust``, ``test-tools`` is "
+"``test-python``, and their variants follow. ``docs-coverage`` is ``docs-"
+"site-coverage``, because that name claimed something it does not measure."
+msgstr ""
+

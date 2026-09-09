@@ -1,0 +1,100 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/input-db/index.md:1
+msgid "The input database"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:3
+msgid ""
+"A run needs to know **which companies it is looking for** and **how to "
+"recognise each of them in a report**. That is the input database: a "
+"directory, separate from the engine and from any formats repository, "
+"pointed at with `--db-directory` / `-I`."
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:7
+msgid ""
+"Keeping it separate is the same decision as keeping formats separate. "
+"Which companies matter is a question about your work, not about PDF "
+"parsing, and two people using the same formats repository will disagree "
+"about it — legitimately."
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:20
+msgid "What each page here answers"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`recognising-companies`"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+msgid ""
+"how a company is matched in a report: buds, regexes, and which file is "
+"checked against what"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`target-lists`"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+msgid "which companies a run actually looks for, and where a list came from"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+#, python-brace-format
+msgid "{doc}`working-on-a-database`"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:11
+msgid "getting one, changing one, and what is validated on load"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:27
+msgid "The layout of a database"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:40
+msgid "What is not here"
+msgstr ""
+
+#: ../../source/guides/input-db/index.md:41
+#, python-brace-format
+msgid ""
+"`--db-directory` and `--target-list` as options, with their defaults and "
+"validation, are {doc}`../../reference/cli/freeports`. There is no build "
+"and no test suite in an input database: the loop is the engine's own "
+"validation, which runs **before any PDF is opened** and therefore answers"
+" in seconds."
+msgstr ""
+

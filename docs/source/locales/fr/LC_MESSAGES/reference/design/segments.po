@@ -1,0 +1,177 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/segments.md:1
+msgid "The three segments"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:3
+msgid "*Implemented — with a fourth that is designed and not built.*"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:5
+msgid ""
+"Each page class maps to a **bundle**: the pipelines applied to a page of "
+"that class. A pipeline is three segments, in a fixed order."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:8
+msgid ""
+"One page through a pipeline: pdf_extract, text_filter, deserialize, and "
+"the promise map"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:12
+#, python-brace-format
+msgid ""
+"**One page through one pipeline.** The page is cut into `PdfBlock`s; the "
+"blocks that concern the funds being looked for become `TextBlock`s; each "
+"of those is deserialized independently into an entity or into promise "
+"entries. This diagram covers the pipeline only — what decides *which* "
+"pipeline a page gets is {doc}`classification` and {doc}`schedule`."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:18
+msgid "The three questions the segments answer"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:19
+msgid ""
+"**`pdf_extract` — what is on this page.** Takes the page, returns "
+"`PdfBlock`s. By convention it looks only at **graphical** evidence: font,"
+" size, position, and text that is part of the layout rather than of the "
+"content. Keeping it away from meaning is what makes it reusable — a table"
+" is a table regardless of what the numbers in it are about."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:24
+#, python-format
+msgid ""
+"**`text_filter` — does any of this concern us.** Takes the blocks — *all*"
+" of them, because interpreting one may depend on another — and returns "
+"`TextBlock`s, each keeping a reference back to the PDF block it came "
+"from. This is where the target companies enter, and where most of a run's"
+" time is spent: measured, 85–96% of the engine's work, and a single "
+"standard pipe inside it accounts for 30–54% of a whole job."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:30
+#, python-format
+msgid ""
+"**`deserialize` — what do the survivors mean.** Takes each text block "
+"**independently** and produces a typed entity. No filtering happens here:"
+" once meaning is settled the transformation is per block, so the segment "
+"is *defined* to be per block. Measured at under 0.2% of a run."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:34
+msgid "Why three segments, and not a graph"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:35
+msgid ""
+"**Rejected: a general graph of transformations**, which is more "
+"expressive and would let a format do anything."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:38
+#, python-brace-format
+msgid ""
+"The three segments answer three **separable** questions, and separability"
+" is the entire benefit: an author replaces one segment and inherits the "
+"other two. That is what keeps a hard format from costing three times a "
+"simple one, and it is what the merge across the three levels operates on "
+"({doc}`formats-as-plugins`)."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:43
+msgid ""
+"A general graph gives up exactly that. Nothing then says which node an "
+"author may replace in isolation, and \"inherit the rest\" stops having a "
+"meaning."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:46
+msgid "Why there is no fourth segment yet"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:47
+msgid ""
+"A fourth was considered and not added, and the machinery is **generic in "
+"the number of segments**, so adding one is cheap if a fourth separable "
+"question ever appears."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:50
+msgid ""
+"None had — until one was proposed. It is described below, marked as what "
+"it is."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:52
+msgid "The planned fourth segment"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:54
+msgid "Planned, not implemented"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:57
+msgid ""
+"Today `text_filter` does two jobs: it **filters** (does this concern the "
+"companies we are looking for) and it **interprets semantically** (what do"
+" these blocks mean as a unit). Those are separable, and the design to "
+"separate them exists:"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:61
+msgid ""
+"one segment for **layout interpretation** and one for **semantic "
+"interpretation**, both of which an author must specify, because they are "
+"what a format actually is;"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:63
+msgid ""
+"**filtering becomes its own segment with a default that filters "
+"nothing**, so a format that does not need it never writes it;"
+msgstr ""
+
+#: ../../source/reference/design/segments.md:65
+msgid ""
+"**`deserialize` gains a standard implementation too**, dispatching on the"
+" block type to the standard constructor for that kind of value — ideally "
+"by deserializing the metadata coming out of the filter, since the "
+"outgoing classes are already typed."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:69
+msgid ""
+"The shape of the win is that the two segments a format *must* describe "
+"are the two that are genuinely format-specific, and the two that are "
+"usually boilerplate get defaults. It is why the segment count was kept "
+"generic rather than hard-coded at three."
+msgstr ""
+
+#: ../../source/reference/design/segments.md:73
+msgid "Nothing in the engine implements this yet, and no format can use it."
+msgstr ""
+

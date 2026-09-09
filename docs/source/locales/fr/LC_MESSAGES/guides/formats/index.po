@@ -1,0 +1,137 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/index.md:1
+msgid "Formats"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:3
+msgid ""
+"A **format** is the recipe for one report layout: `EURIZON-EN23`, "
+"`AMUNDI-IT24`. It carries the publication year because a layout is a "
+"snapshot — next year's report from the same issuer is a different format,"
+" not a revision of this one."
+msgstr ""
+
+#: ../../source/guides/formats/index.md:7
+#, python-brace-format
+msgid ""
+"Formats do not live in the engine. They live in a **formats repository**,"
+" and this area is about what you put in one and how you work on it. Why "
+"they live outside is {doc}`../../reference/design/formats-as-plugins`."
+msgstr ""
+
+#: ../../source/guides/formats/index.md:26
+msgid "What each page here answers"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`tutorials/index`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid ""
+"walked-through examples: a first format, and diagnosing one that "
+"misbehaves"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`writing-a-format`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "the whole path of adding support for a new report, as a checklist"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`dev-loop`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "inspect-document → inspect-page → make-tests → test"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`selections`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "how you say *where to look* on a page"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`repository`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "the repository itself: layout, metadata, orchestration, versioning"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+#, python-brace-format
+msgid "{doc}`advanced/index`"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:14
+msgid "the three levels a format can be written at, and how to choose"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:36
+msgid "What is not here"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:37
+#, python-brace-format
+msgid ""
+"Every option of `freeports-dev`, subcommand by subcommand, is "
+"{doc}`../../reference/cli/freeports-dev`. Configuring it the way the "
+"engine is configured is {doc}`../../reference/configuration/dev-and-"
+"validate`. Vouching for the reference output your tests freeze is a "
+"different job with a different tool, and it is {doc}`../grants/index`."
+msgstr ""
+
+#: ../../source/guides/formats/index.md:42
+msgid "Starting a formats repository"
+msgstr ""
+
+#: ../../source/guides/formats/index.md:49
+#, python-brace-format
+msgid ""
+"If you have never added a format, go to {doc}`tutorials/first-format`: it"
+" does one real report from an empty repository to a passing test suite, "
+"and a simple format turns out to be a single row in a spreadsheet. "
+"{doc}`writing-a-format` is the same path as a checklist, for when you "
+"have done it once."
+msgstr ""
+

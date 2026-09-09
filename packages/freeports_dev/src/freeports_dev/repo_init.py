@@ -103,6 +103,39 @@ def _write_hook(target: Path, template: str) -> None:
     print("  created .githooks/pre-commit")
 
 
+def _write_build_system(target: Path) -> None:
+    """Write the `Makefile` and its Windows shim: the repository's single entry point.
+
+    A format repository is worked on with `make` and interrogated with `freeports-dev`, and the
+    two are deliberately the same vocabulary — `make test-fast` is `freeports-dev test --fast`,
+    `make ci-check` is `freeports-dev ci-check`. What the Makefile adds is that it acts on *this*
+    repository: it writes into `reports/`, refreshes the committed report artefacts and rewrites
+    the manifest when it is entitled to. The command acts on any repository, including one that is
+    not yours, and only where you point it with `--out`.
+
+    Generated here rather than left to the author for the same reason the hook is: the hook runs
+    `make pre-commit`, so a repository created without a Makefile would be one whose commit gate
+    fails at the first commit, naming a file nobody told them to write.
+
+    `make.bat` is a shim of a dozen lines that starts a POSIX shell and hands it the same Makefile.
+    There is one build system in a format repository, not one per platform.
+    """
+    (target / "Makefile").write_text(
+        _read_template("Makefile.template"), encoding="utf-8"
+    )
+    (target / "make.bat").write_text(
+        _read_template("make.bat.template"), encoding="utf-8"
+    )
+    # And the list of what those targets leave behind. Without it the first commit made in a new
+    # repository carries `reports/` into the history and every commit after it shows the same files
+    # modified again -- which is the state the hook's staging of the report artefacts exists to
+    # avoid, arrived at from the other side.
+    (target / ".gitignore").write_text(
+        _read_template("gitignore.template"), encoding="utf-8"
+    )
+    print("  wrote Makefile, make.bat and .gitignore")
+
+
 def _write_ci_yaml(target: Path) -> None:
     """Write `ci.yaml`, which says how this repository is gated.
 
@@ -393,6 +426,7 @@ def init_format_repo(target: Path, quiet: bool = False) -> None:
     # Validate package.yaml
     _validate_package_yaml(target)
 
+    _write_build_system(target)
     _write_hook(target, "pre-commit.template")
     _write_ci_yaml(target)
 

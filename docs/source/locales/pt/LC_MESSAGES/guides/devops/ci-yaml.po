@@ -1,0 +1,476 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/ci-yaml.rst:3
+msgid "``ci.yaml``: the thresholds"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:5
+msgid ""
+"One file, one name, one syntax, in all three kinds of repository — the "
+"engine, a formats repository, an input database. It is committed, it is "
+"what the repository owner edits, and it is the only file you have to open"
+" to answer \"what does this repository demand of a commit\"."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:22
+msgid ""
+"Patterns are shell globs, so ``release/*`` works and a plain name is an "
+"exact match."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:24
+msgid ""
+"``package.yaml`` and ``metadata.yaml`` say what a repository *is*. "
+"``ci.yaml`` says how it is *gated*, which is a different question with a "
+"different audience — and the engine repository, which has no manifest, "
+"needs no manifest invented for the purpose."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:28
+msgid "Two things in the file are **errors**, and deliberately:"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:30
+msgid ""
+"a branch matching two class lists. Resolving that silently would make the"
+" class of a commit depend on the order of a mapping nobody reads;"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:32
+msgid ""
+"a threshold on a metric this repository cannot measure. A threshold that "
+"can never be evaluated is a threshold somebody only thinks they have."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:35
+msgid ""
+"Absent, everything falls to the defaults: class ``dev``, no thresholds, "
+"the default key server — which is to say a repository nobody has "
+"configured reports and never refuses."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:40
+msgid ""
+"``off`` is one of the ten words YAML 1.1 spells a boolean with, so a bare"
+" ``off:`` key parses as ``False``. The reader maps it back, so both "
+"``off:`` and ``\"off\":`` name the class. You do not have to quote it."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:45
+msgid "The three tiers"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:47
+msgid ""
+"Resolved **per setting**, so raising one bar leaves every other where it "
+"was."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:54
+msgid "Thresholds"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:55
+msgid "Branch class"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:56
+msgid "Key server"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:57
+msgid "command line"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:58
+msgid "``--min tests.rust.lines=95``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:59
+msgid "``--branch-class prod``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:60
+msgid "``--keyserver URL``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:61
+msgid "environment"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:62
+msgid "``FREEPORTS_CI_MIN_TESTS_RUST_LINES``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:63
+msgid "``FREEPORTS_CI_BRANCH_CLASS``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:64
+msgid "``FREEPORTS_VALIDATE_KEYSERVER``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:65
+msgid "file"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:66
+msgid "``thresholds:``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:67
+msgid "``branches:``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:68
+msgid "``keyserver:``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:69
+msgid "default"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:70
+msgid "none — reported, never gated"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:71
+msgid "``dev``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:72
+msgid "``keys.openpgp.org``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:74
+msgid ""
+"``--min metric=value`` rather than a flag per metric: the set of metrics "
+"grows, and the per-package minima make it combinatorial. The environment "
+"name is the metric upper-cased with dots as underscores, prefixed "
+"``FREEPORTS_CI_MIN_``."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:80
+msgid "The metrics"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:86
+msgid "Metric"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:87
+msgid "Unit"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:88
+msgid "Cost"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:89
+msgid "Repositories"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:90
+msgid "Measured by"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:91
+msgid "``tests.rust.lines``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:92
+#: ../../source/guides/devops/ci-yaml.rst:97
+#: ../../source/guides/devops/ci-yaml.rst:102
+#: ../../source/guides/devops/ci-yaml.rst:107
+#: ../../source/guides/devops/ci-yaml.rst:112
+#: ../../source/guides/devops/ci-yaml.rst:117
+#: ../../source/guides/devops/ci-yaml.rst:122
+#: ../../source/guides/devops/ci-yaml.rst:137
+#: ../../source/guides/devops/ci-yaml.rst:142
+msgid "percent"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:93
+#: ../../source/guides/devops/ci-yaml.rst:98
+#: ../../source/guides/devops/ci-yaml.rst:103
+#: ../../source/guides/devops/ci-yaml.rst:118
+#: ../../source/guides/devops/ci-yaml.rst:138
+#: ../../source/guides/devops/ci-yaml.rst:143
+msgid "**slow**"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:94
+#: ../../source/guides/devops/ci-yaml.rst:99
+#: ../../source/guides/devops/ci-yaml.rst:104
+#: ../../source/guides/devops/ci-yaml.rst:119
+#: ../../source/guides/devops/ci-yaml.rst:129
+msgid "engine"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:95
+msgid "``make coverage-rust``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:96
+msgid "``tests.python.lines``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:100
+#: ../../source/guides/devops/ci-yaml.rst:105
+msgid "``make coverage-python``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:101
+msgid "``tests.python.<pkg>.lines``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:106
+msgid "``tests.formats.integration``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:108
+#: ../../source/guides/devops/ci-yaml.rst:113
+#: ../../source/guides/devops/ci-yaml.rst:123
+#: ../../source/guides/devops/ci-yaml.rst:128
+#: ../../source/guides/devops/ci-yaml.rst:133
+msgid "fast"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:109
+#: ../../source/guides/devops/ci-yaml.rst:114
+msgid "formats"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:110
+#: ../../source/guides/devops/ci-yaml.rst:115
+msgid "``freeports-dev coverage``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:111
+msgid "``tests.formats.single_page``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:116
+msgid "``docs.rust``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:120
+msgid "``make doc-coverage-rust``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:121
+msgid "``docs.python``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:124
+#: ../../source/guides/devops/ci-yaml.rst:134
+msgid "engine, formats"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:125
+msgid "``make doc-coverage-python``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:126
+msgid "``lint.rust``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:127
+#: ../../source/guides/devops/ci-yaml.rst:132
+msgid "score /10"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:130
+msgid "``make lint-rust``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:131
+msgid "``lint.python``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:135
+msgid "``make lint-python``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:136
+msgid "``grants.coverage``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:139
+#: ../../source/guides/devops/ci-yaml.rst:144
+msgid "all with ``validation/``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:140
+msgid "``freeports-validate collect``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:141
+msgid "``grants.keys_online``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:145
+msgid "``freeports-validate check-keys``"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:147
+msgid ""
+"**Cost is a property of the metric, not of the caller.** "
+"``tests.rust.lines`` costs minutes whether a hook, a person or a pipeline"
+" asks for it, which is what lets the hook run the fast set at every "
+"commit and read the slow ones from the last full run."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:151
+msgid ""
+"Five of these are slow for two different reasons, and :ref:`fast-and-"
+"slow` is why both count as one category. ``tests.python.lines`` and its "
+"per-package family re-run both suites under ``coverage.py`` — twenty-four"
+" seconds, for figures the suites themselves have already established the "
+"*outcome* of. ``docs.rust`` needs a nightly toolchain. "
+"``grants.coverage`` and ``grants.keys_online`` are quick on this machine "
+"and depend entirely on somebody else's being up."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:158
+msgid "Per-package minima"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:160
+msgid ""
+"``tests.python.lines`` and ``docs.python`` each have a per-package "
+"family. **The most specific configured name wins for that package, and "
+"the aggregate applies to whatever no specific name claims** — a package "
+"with its own minimum leaves the aggregate's denominator, so the two can "
+"never contradict each other."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:166
+msgid "What each metric measures, and what it does not"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:168
+msgid ""
+"**Test coverage, Rust.** ``cargo llvm-cov``, line percentage. It needs "
+"``venv/freeports-dev`` active: six tests in the crate's "
+"``python_boundary`` submodules import PyMuPDF through PyO3, and without "
+"the environment they panic, the run exits non-zero, and llvm-cov writes "
+"*no report at all*."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:172
+msgid ""
+"**Test coverage, Python.** ``pytest --cov`` per package, over the same "
+"fast selection the commit gate uses. *An honest limit:* "
+"``freeports_validate`` is mostly shell scripts, so its figure covers "
+"``cli.py`` and the three modules under ``lib/`` only. The shell half is "
+"exercised by the slow process tests and **is not measured**. Do not read "
+"that number as coverage of the whole command."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:177
+msgid ""
+"**Test coverage, formats.** A directory walk, so it is fast. The unit is "
+"the **document** — a format directory holding a ``report.pdf``, or each "
+"variant subdirectory of a multi-document format:"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:180
+msgid ""
+"``tests.formats.integration`` — documents with an ``out/``, i.e. for "
+"which a whole-document test is collected at all;"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:182
+msgid ""
+"``tests.formats.single_page`` — documents with at least one page carrying"
+" all three of ``<n>-pdf_blks.json``, ``<n>-txt_blks.json`` and "
+"``<n>-results.json``."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:185
+msgid ""
+"The two are not averaged into one, because a repository can be strong in "
+"one and weak in the other and one number would hide it. The walk is "
+":mod:`freeports_dev.format_inventory`, **shared with the pytest plugin**,"
+" so the report cannot claim a coverage the suite does not collect."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:190
+msgid ""
+"**Documentation coverage, Rust.** ``cargo +nightly rustdoc -- --show-"
+"coverage``, aggregated from the per-file item counts."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:193
+msgid ""
+"**Documentation coverage, Python — and why not sphinx's number.** "
+"``sphinx.ext.coverage`` measures whether an object *appears in the built "
+"site*, which is a fact about how ``autosummary`` is configured rather "
+"than about whether anything is documented. Two things follow, and both "
+"make it unusable as a threshold: every module of the compiled "
+"``freeports`` extension reports 100.00 % because ``inspect.getmembers`` "
+"attributes nothing to it — a vacuous 100, not a perfect one — and its "
+"TOTAL line is a union over object names, which is why it reads 25.93 % "
+"while nearly every row above it reads 100 %. A threshold on that would "
+"move whenever somebody edited a template."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:201
+msgid ""
+"So the gated metric is **docstring coverage**, an AST walk over public "
+"modules, classes, functions and methods. ``make docs-site-coverage`` "
+"still reports on the site, which is a real question worth asking — it is "
+"simply a different one."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:205
+msgid "**Lint.** A score out of ten, with pylint's own formula:"
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:211
+msgid ""
+"Pylint's formula because the number then means what it meant on the trend"
+" graph this project used to plot, and because a raw count is not "
+"comparable between a 2 900-line repository and a 44 000-line one. "
+"``statements`` is approximated by **non-blank, non-comment lines over the"
+" file set the linter was given** — an approximation, stated as such, and "
+"stable enough to ratchet against. Docstrings are counted in that "
+"denominator on purpose: excluding them would make the score rise as "
+"documentation is deleted."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:218
+msgid ""
+"**The raw counts print beside the score, always.** A score is what a "
+"threshold compares; a count is what a person fixes."
+msgstr ""
+
+#: ../../source/guides/devops/ci-yaml.rst:221
+msgid ""
+"**Grants.** ``grants.coverage`` is read out of ``freeports-validate "
+"collect``'s model, so a commit resolves each methodology page once rather"
+" than once per thing that wants a number from it. ``grants.keys_online`` "
+"is the fraction of granters whose key is published on the configured key "
+"server."
+msgstr ""
+

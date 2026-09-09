@@ -1,0 +1,132 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/index.md:1
+msgid "Reference, by topic"
+msgstr ""
+
+#: ../../source/reference/index.md:3
+msgid ""
+"This is the **topic** axis of the documentation: audience-independent, "
+"complete, and the place every guide points at rather than repeating. A "
+"page here answers *what does this do*, for every option and every "
+"setting, without caring who is asking or what they are trying to achieve."
+msgstr ""
+
+#: ../../source/reference/index.md:7
+#, python-brace-format
+msgid ""
+"If you want to know which of these you need, you are asking a guide's "
+"question: {doc}`../guides/index`."
+msgstr ""
+
+#: ../../source/reference/index.md:22
+msgid "What each part covers"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "Part"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "Covers"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`cli/index`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "every option of `freeports`, `freeports-dev` and `freeports-validate`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`configuration/index`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "the four places a setting can come from, and how they merge"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`design/index`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid ""
+"the algorithm, chapter by chapter, with each claim marked implemented, "
+"planned or accepted limit"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`../validation/index`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid ""
+"the published methodologies themselves — hashed artefacts, not ordinary "
+"prose"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`glossary`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "the words this project uses in a particular way"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+#, python-brace-format
+msgid "{doc}`misc`"
+msgstr ""
+
+#: ../../source/reference/index.md:10
+msgid "whatever a section has not been written for yet"
+msgstr ""
+
+#: ../../source/reference/index.md:32
+msgid "Two things to know about this column"
+msgstr ""
+
+#: ../../source/reference/index.md:33
+msgid ""
+"**A reference page does not advise.** It says what an option does and "
+"stops. \"Which of these do I want\" is answered in the guide you came "
+"from — deliberately, because the answer differs by reader and the option "
+"does not."
+msgstr ""
+
+#: ../../source/reference/index.md:37
+#, python-brace-format
+msgid ""
+"**The validation pages are not editable prose.** They are content-"
+"addressed: their hashes are recorded in signed grants, here and in other "
+"repositories, and their published URLs are what those grants resolve. "
+"Correcting a typo in one invalidates every grant that cites it. See "
+"{doc}`../guides/institutional/why-trust-a-grant`."
+msgstr ""
+

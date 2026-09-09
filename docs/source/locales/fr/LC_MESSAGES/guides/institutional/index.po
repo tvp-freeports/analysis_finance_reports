@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/index.md:1
+msgid "Understanding the project"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:3
+msgid ""
+"This section is for reading rather than for doing. It is written for "
+"someone deciding whether this project is worth their attention, their "
+"data, or their trust — a journalist, a researcher, an institution "
+"weighing whether a figure from here can be cited, or simply somebody "
+"curious about what a tool like this can honestly promise."
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:8
+msgid ""
+"Nothing here assumes a technical background, and nothing here is trying "
+"to sell you anything. Where the answer is unflattering, the page says so:"
+" a project that only publishes its strengths is asking to be taken on "
+"faith, which is exactly what this one is built to avoid."
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:21
+msgid "What each page here answers"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+#, python-brace-format
+msgid "{doc}`why-this-exists`"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+msgid "what problem this is, who has it, and why the obvious fixes do not work"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+#, python-brace-format
+msgid "{doc}`why-trust-a-grant`"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+msgid "what a signed grant actually establishes — and what it does not"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+#, python-brace-format
+msgid "{doc}`strengths-and-limits`"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:12
+msgid ""
+"where the project is strong, where it is weak, and how to check either "
+"claim yourself"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:28
+msgid "The one thing worth knowing first"
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:29
+#, python-brace-format
+msgid ""
+"Every figure this project publishes about itself — how much of the code "
+"is tested, how much of the documentation exists, how many files anyone "
+"has vouched for — is **written by a command you can re-run**, and every "
+"generated page says which command. That is deliberate, and it is the "
+"whole posture: {doc}`../../generated/index` is where those pages live, "
+"and none of them asks to be believed."
+msgstr ""
+
+#: ../../source/guides/institutional/index.md:35
+#, python-brace-format
+msgid ""
+"If you read only two pages, read {doc}`../../overview/problem` and {doc"
+"}`strengths-and-limits`."
+msgstr ""
+

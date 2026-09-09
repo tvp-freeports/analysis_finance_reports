@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/validation/methodologies/basic_check.rst:10
+msgid "Basic Check Methodology"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:12
+msgid ""
+"**Purpose** The basic_check methodology provides a lightweight validation"
+" that ensures program outputs are generated correctly and appear "
+"reasonable at first glance."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:15
+msgid ""
+"**Scope** This methodology covers files in the test output directories "
+"(``tests/.../out/`` and ``tests/.../pages/``) and certifies that:"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:18
+msgid "The program successfully generates the expected output files"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:19
+msgid "The content appears reasonable and follows expected patterns"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:20
+msgid "A human has performed a basic visual inspection of the results"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:22
+msgid ""
+"**Covered File Types** - ``.csv`` files (e.g., ``investments.csv``, "
+"``.log.csv``) - ``.yaml`` files (e.g., ``investments_add_infos.yaml``) - "
+"``.pkl`` files (specifically ``results.pkl``)"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:27
+msgid "**Protocol Steps**"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:29
+msgid ""
+"**File Generation Check**: Verify that all expected output files are "
+"created by the program"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:30
+msgid ""
+"**Basic Content Validation**: - Check that CSV files contain data with "
+"expected columns - Verify YAML files have valid structure and contain "
+"expected keys - Ensure pickle files can be loaded and contain data"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:34
+msgid ""
+"**Human Visual Inspection**: - Quick review of output data for obvious "
+"anomalies - Confirmation that data appears reasonable for the test case"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:37
+msgid ""
+"**Cross-reference Check**: Verify that ``results.pkl`` is derived from "
+"``pdf_blks`` and ``txt_blks`` inputs"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:39
+msgid ""
+"**Trust Level** This methodology provides **weak certification** - it "
+"indicates the program functions correctly on test data and produces "
+"outputs that appear reasonable, but does not guarantee complete accuracy "
+"or comprehensive data validation."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:42
+msgid ""
+"**Applicable Context** Use this methodology for routine testing and "
+"development verification where comprehensive manual review is not "
+"required."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:46
+msgid "Supported paths"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:48
+msgid ""
+"Vouching for a file under this methodology means the protocol above was "
+"applied to *that file*. What that means concretely depends on what the "
+"file is, so each path this methodology covers says so. All patterns are "
+"relative to the root of the repository the granted file lives in."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:52
+msgid "``tests/formats/**/out/*.csv``"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:53
+msgid ""
+"The tabular reference output of a format's test suite, in a **formats "
+"repository** -- the files ``freeports-dev make-tests`` writes and "
+"``freeports-dev test`` afterwards compares against. A basic check here "
+"means the run that produced them completed, the columns are the ones "
+"expected, and a person has read the values looking for obvious nonsense. "
+"It includes ``.log.csv``, whose basic check is that its contents were "
+"read rather than merely produced."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:59
+msgid "``tests/formats/**/out/*.yaml``"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:60
+msgid ""
+"The non-tabular output of the same run, such as "
+"``investments_add_infos.yaml``. A basic check here means the file parses,"
+" carries the keys expected of it, and its values were looked at."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:63
+msgid "``tests/formats/**/pages/**``"
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:64
+msgid ""
+"The per-page fixtures of the same suite: the blocks the extraction saw "
+"and the result it reached for one page. A basic check here means the page"
+" was classified as the fixture says, and that a person confirmed it by "
+"eye against the report it came from."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:70
+msgid ""
+"These paths mean what they say **in a formats repository** -- one with a "
+"``metadata/formats.csv`` at its root, whose ``tests/formats/`` holds "
+"reports and the fixtures made from them. A directory of the same name in "
+"the extraction engine's own repository holds fixtures of the library "
+"rather than of any format, and this methodology does not describe what "
+"vouching for one of those would mean."
+msgstr ""
+
+#: ../../source/validation/methodologies/basic_check.rst:76
+msgid ""
+"Note also that the variant level between a format and its outputs is "
+"optional: both ``tests/formats/ASTERIA-EN23/out/funds.csv`` and "
+"``tests/formats/ARCA-IT24/1/out/funds.csv`` are ordinary, which is why "
+"the patterns above are written with ``**`` rather than with ``*``."
+msgstr ""
+

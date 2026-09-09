@@ -1,0 +1,209 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/cli/index.md:1
+msgid "The command-line tools"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:3
+msgid ""
+"`freeports` extracts. The two other distributions do the jobs around it: "
+"`freeports-dev` is what a format author works in all day, and `freeports-"
+"validate` is how a claim about a file gets a name and a signature "
+"attached. Neither is needed to run an extraction; both are needed to "
+"maintain a formats repository."
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "Command"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "Answers"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "Needs"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "`freeports-dev`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid ""
+"*what does the engine see on this page, and does it still see it "
+"tomorrow?*"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "Python, the engine"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid "`freeports-validate`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid ""
+"*who vouched for this file, under which published methodology, and is "
+"that still true?*"
+msgstr ""
+
+#: ../../source/reference/cli/index.md
+msgid ""
+"GnuPG, `jq` and `curl`, plus two Python packages it installs itself. Not "
+"the engine, unless you want the configuration file"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:13
+#, python-brace-format
+msgid "Both are installed from the source tree ({doc}`../../start/install`):"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:30
+msgid "What each page here covers"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "Page"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "Is"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`freeports`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid ""
+"every option of the extraction command, with its default and its "
+"validation"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`freeports-dev`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "the format author's loop: inspect, freeze, test, and creating a repository"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`freeports-validate`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid ""
+"keys, validation documents, granting, and checking what a repository "
+"claims"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`methodology-sources`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "how a methodology name is resolved into a body of text"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+#, python-brace-format
+msgid "{doc}`coverage-report`"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:19
+msgid "`freeports-validate report`, and the shapes it renders"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:39
+#, python-brace-format
+msgid ""
+"These pages say *what each option does*. They do not say which of them "
+"you want — that is the job of whichever guide you came from: "
+"{doc}`../../guides/user/index` for running the engine, "
+"{doc}`../../guides/formats/index` for writing a format, "
+"{doc}`../../guides/grants/index` for vouching for one."
+msgstr ""
+
+#: ../../source/reference/cli/index.md:44
+msgid "Both commands need to find a formats repository"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:46
+msgid ""
+"Every subcommand of either tool works *inside* a formats repository, and "
+"both resolve which one the way the engine resolves everything: **command "
+"line, then environment, then configuration file, then a default**."
+msgstr ""
+
+#: ../../source/reference/cli/index.md:50
+msgid ""
+"`--repo` / `-r` / `--formats-directory` / `-F` — the engine's own four "
+"spellings, all accepted;"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:51
+msgid ""
+"`FREEPORTS_FORMATS_REPO_PATH` — again the engine's variable, not a second"
+" one;"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:52
+msgid "`formats_repo` in the configuration file;"
+msgstr ""
+
+#: ../../source/reference/cli/index.md:53
+msgid ""
+"the default: the working directory, except for `freeports-validate`, "
+"which first walks up to the enclosing Git repository."
+msgstr ""
+
+#: ../../source/reference/cli/index.md:56
+#, python-brace-format
+msgid ""
+"That is one path, written once, found by all three commands. "
+"{doc}`../configuration/dev-and-validate` is the full account — the two "
+"optional sections, the environment prefixes, the precedence."
+msgstr ""
+
+#: ../../source/reference/cli/index.md:59
+msgid ""
+"`freeports-dev` additionally checks that the directory really is one — "
+"`metadata/formats.csv` has to exist — and refuses with a message naming "
+"the path rather than failing later and obscurely."
+msgstr ""
+
+#: ../../source/reference/cli/index.md:63
+msgid ""
+"`FREEPORTS_FORMATS_REPO`, without the `_PATH`, used to be a **second** "
+"variable meaning the same thing, so setting one left the other command "
+"falling back to the working directory. The two are now one, and the old "
+"name is **no longer read at all** — a profile still exporting it silently"
+" configures nothing."
+msgstr ""
+

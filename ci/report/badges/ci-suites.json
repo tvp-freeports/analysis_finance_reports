@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "test suites",
-  "message": "all 6 ran here",
-  "color": "brightgreen"
+  "message": "4 of 6 not current",
+  "color": "grey"
 }

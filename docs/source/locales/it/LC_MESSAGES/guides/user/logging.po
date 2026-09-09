@@ -1,0 +1,646 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/logging.md:1
+msgid "Watching a run, and reading it afterwards"
+msgstr "Guardare un'esecuzione, e rileggerla dopo"
+
+#: ../../source/guides/user/logging.md:3
+#, python-brace-format
+msgid ""
+"Three destinations, deliberately separate, because what a person watches while a run "
+"happens and what a tool parses afterwards are not the same artefact "
+"({doc}`../../reference/design/limits` has the reasoning)."
+msgstr ""
+"Tre destinazioni, tenute separate apposta, perché ciò che una persona guarda mentre "
+"l'esecuzione avviene e ciò che uno strumento analizza dopo non sono lo stesso "
+"artefatto ({doc}`../../reference/design/limits` ne dà il ragionamento)."
+
+#: ../../source/guides/user/logging.md
+msgid "Destination"
+msgstr "Destinazione"
+
+#: ../../source/guides/user/logging.md
+msgid "Where it lands"
+msgstr "Dove finisce"
+
+#: ../../source/guides/user/logging.md
+msgid "For"
+msgstr "A che serve"
+
+#: ../../source/guides/user/logging.md
+msgid "When"
+msgstr "Quando"
+
+#: ../../source/guides/user/logging.md ../../source/guides/user/logging.md:37
+msgid "stderr"
+msgstr "stderr"
+
+#: ../../source/guides/user/logging.md
+msgid "your terminal"
+msgstr "il tuo terminale"
+
+#: ../../source/guides/user/logging.md
+msgid "watching it happen"
+msgstr "guardare le cose mentre accadono"
+
+#: ../../source/guides/user/logging.md
+msgid "always, at your verbosity"
+msgstr "sempre, alla tua verbosità"
+
+#: ../../source/guides/user/logging.md ../../source/guides/user/logging.md:80
+msgid "`freeports.log.jsonl`"
+msgstr "`freeports.log.jsonl`"
+
+#: ../../source/guides/user/logging.md
+msgid "the **working** directory"
+msgstr "la cartella di **lavoro**"
+
+#: ../../source/guides/user/logging.md
+msgid "one JSON object per line, for tools"
+msgstr "un oggetto JSON per riga, per gli strumenti"
+
+#: ../../source/guides/user/logging.md
+msgid "at `trace` only"
+msgstr "solo a `trace`"
+
+#: ../../source/guides/user/logging.md ../../source/guides/user/logging.md:116
+msgid "`.log.csv`"
+msgstr "`.log.csv`"
+
+#: ../../source/guides/user/logging.md
+msgid "the **output** directory"
+msgstr "la cartella dei **risultati**"
+
+#: ../../source/guides/user/logging.md
+msgid "the extraction's own audit trail"
+msgstr "la traccia di controllo dell'estrazione stessa"
+
+#: ../../source/guides/user/logging.md
+msgid "always, `warn` and above"
+msgstr "sempre, da `warn` in su"
+
+#: ../../source/guides/user/logging.md:12
+#, fuzzy
+msgid ""
+"Only the first of the three is there on an ordinary run. Below `trace` the structured"
+" log does not exist — not an empty file, no file — because a run you are watching on "
+"stderr should leave nothing behind in the directory you started it from."
+msgstr ""
+"In un'esecuzione ordinaria c'è solo la prima delle tre. Sotto a `-vvv` il registro "
+"strutturato non esiste — non un file vuoto: nessun file — perché un'esecuzione che "
+"stai guardando su stderr non deve lasciare niente nella cartella da cui l'hai "
+"lanciata."
+
+#: ../../source/guides/user/logging.md:16
+msgid "The six verbosity levels"
+msgstr "I sei livelli di verbosità"
+
+#: ../../source/guides/user/logging.md:17
+msgid ""
+"`-v` and `-q` are **independent dials** rather than opposed flags: the net of the two"
+" counts is added to the default and clamped, so no combination is an error."
+msgstr ""
+"`-v` e `-q` sono **due manopole indipendenti** anziché due opzioni contrapposte: il "
+"saldo netto dei due conteggi è sommato al valore predefinito e limitato agli estremi,"
+" quindi nessuna combinazione è un errore."
+
+#: ../../source/guides/user/logging.md
+msgid "Flags"
+msgstr "Opzioni"
+
+#: ../../source/guides/user/logging.md
+msgid "Level"
+msgstr "Livello"
+
+#: ../../source/guides/user/logging.md
+msgid "none"
+msgstr "nessuna"
+
+#: ../../source/guides/user/logging.md
+msgid "warnings"
+msgstr "avvisi"
+
+#: ../../source/guides/user/logging.md
+msgid "`-q`"
+msgstr "`-q`"
+
+#: ../../source/guides/user/logging.md
+msgid "errors only"
+msgstr "solo errori"
+
+#: ../../source/guides/user/logging.md
+msgid "`-qq` or more"
+msgstr "`-qq` o più"
+
+#: ../../source/guides/user/logging.md
+msgid "silent"
+msgstr "silenzio"
+
+#: ../../source/guides/user/logging.md
+msgid "`-v`"
+msgstr "`-v`"
+
+#: ../../source/guides/user/logging.md
+msgid "info"
+msgstr "info"
+
+#: ../../source/guides/user/logging.md
+msgid "`-vv`"
+msgstr "`-vv`"
+
+#: ../../source/guides/user/logging.md
+msgid "debug"
+msgstr "debug"
+
+#: ../../source/guides/user/logging.md
+msgid "`-vvv` or more"
+msgstr "`-vvv` o più"
+
+#: ../../source/guides/user/logging.md
+msgid "trace"
+msgstr "trace"
+
+#: ../../source/guides/user/logging.md:30
+#, python-brace-format
+msgid ""
+"`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key work too, and set "
+"the same dial — but a run has to start logging before it can read them, so it starts "
+"at whatever `-v` and `-q` asked for and corrects itself the moment the configuration "
+"resolves. One consequence: what was logged *during* resolution stayed at the command "
+"line's level, and a run that dies before resolving never gets that far. See "
+"{doc}`../../reference/configuration/index`."
+msgstr ""
+"Funzionano anche `FREEPORTS_VERBOSITY` e la chiave `verbosity` del file di "
+"configurazione, e agiscono sulla stessa manopola — ma un'esecuzione deve cominciare a"
+" registrare prima di poterli leggere, quindi parte da quanto hanno chiesto `-v` e "
+"`-q` e si corregge nel momento in cui la configurazione si risolve. Una conseguenza: "
+"ciò che è stato registrato *durante* la risoluzione è rimasto al livello della riga "
+"di comando, e un'esecuzione che muore prima di risolvere non ci arriva affatto. Vedi "
+"{doc}`../../reference/configuration/index`."
+
+#: ../../source/guides/user/logging.md:39
+msgid ""
+"Built to be read at a glance during a run, not to be parsed. No timestamp — while you"
+" are watching, \"now\" is not information — and no module path. What it does carry is"
+" the **activity**: the span path saying what the engine was doing when the line was "
+"emitted, coloured in four shades so the structure is visible without reading it word "
+"by word."
+msgstr ""
+"Fatto per essere letto a colpo d'occhio durante l'esecuzione, non per essere "
+"analizzato da un programma. Nessuna marca temporale — mentre stai guardando, "
+"\"adesso\" non è un'informazione — e nessun percorso di modulo. Ciò che invece porta "
+"è **l'attività**: il percorso di span che dice che cosa stava facendo il motore "
+"quando la riga è stata emessa, colorato in quattro tonalità così che la struttura si "
+"veda senza doverla leggere parola per parola."
+
+#: ../../source/guides/user/logging.md:49
+msgid ""
+"That path is the point. It says *what was happening* — job, step, page class, "
+"document, page, pipeline, segment, pipe — rather than which source file the line came"
+" from, which is what you want when a format misbehaves on one page of one report. "
+"`job` is the **format**; `document` is the report, and it is what tells two documents"
+" of one run apart."
+msgstr ""
+"Quel percorso è tutto il punto. Dice *che cosa stava accadendo* — job, passo, classe "
+"di pagina, documento, pagina, pipeline, segmento, pipe — anziché da quale file "
+"sorgente venga la riga, ed è ciò che serve quando un formato si comporta male su una "
+"pagina di una relazione. `job` è il **formato**; `document` è la relazione, ed è ciò "
+"che distingue due documenti di una stessa esecuzione."
+
+#: ../../source/guides/user/logging.md:54
+msgid "Where a value ends"
+msgstr "Dove finisce un valore"
+
+#: ../../source/guides/user/logging.md:56
+msgid ""
+"Most of what these lines carry is **text copied out of the report** — a company as "
+"the document spells it, a fund's name — and that text contains spaces, dashes and "
+"sometimes commas. So a value is quoted wherever something else stands beside it:"
+msgstr ""
+"Quasi tutto ciò che queste righe portano è **testo copiato dalla relazione** — una "
+"società come la scrive il documento, il nome di un fondo — e quel testo contiene "
+"spazi, trattini e a volte virgole. Perciò un valore va fra virgolette ovunque gli "
+"stia accanto qualcos'altro:"
+
+#: ../../source/guides/user/logging.md:66
+msgid ""
+"A span carrying **one** field renders it bare, which is nearly all of them; a span "
+"carrying several quotes each. In the `key=value` tail after the message the rule is "
+"the same ambiguity seen from the other side: a value with a space in it is quoted, "
+"one without cannot run into the next key and is left alone."
+msgstr ""
+"Uno span che porta **un solo** campo lo scrive nudo, ed è il caso di quasi tutti; uno"
+" span che ne porta parecchi li mette tutti fra virgolette. Nella coda `chiave=valore`"
+" dopo il messaggio la regola è la stessa ambiguità vista dall'altro lato: un valore "
+"che contiene uno spazio va fra virgolette, uno che non ne contiene non può "
+"confondersi con la chiave successiva e resta com'è."
+
+#: ../../source/guides/user/logging.md:71
+msgid ""
+"The quoting is CSV's — a `\"` inside a value is doubled — and deliberately not Rust's"
+" `Debug`, which would escape the accents out of `Société Générale` and defeat the "
+"purpose of printing text you are meant to paste into a PDF viewer's search box."
+msgstr ""
+"Le virgolette seguono la convenzione del CSV — un `\"` dentro un valore viene "
+"raddoppiato — e deliberatamente non quella del `Debug` di Rust, che toglierebbe gli "
+"accenti a `Société Générale` con una sequenza di escape, mandando all'aria lo scopo "
+"di stampare un testo che sei tu a dover incollare nella casella di ricerca di un "
+"lettore di PDF."
+
+#: ../../source/guides/user/logging.md:76
+msgid ""
+"The colours are emitted even when stderr is not a terminal, so `2>file` collects the "
+"escape sequences too. Piping through `sed -r 's/\\x1b\\[[0-9;]*m//g'` strips them."
+msgstr ""
+"I colori sono emessi anche quando stderr non è un terminale, quindi `2>file` "
+"raccoglie pure le sequenze di escape. Passandolo per `sed -r 's/\\x1b\\[[0-9;]*m//g'`"
+" si tolgono."
+
+#: ../../source/guides/user/logging.md:82
+#, fuzzy
+msgid ""
+"One JSON object per line, in the **working** directory, and **only at `trace`** — "
+"`-vvv`, or the `verbosity` setting from any of its other sources. Each record carries"
+" the wall clock, the level, the same activity path stderr prints, the `target` module"
+" that stderr omits, the message, any coordinates, and — where the event attached one "
+"— the error in structured form, with its `Debug` shape, its message, and its whole "
+"`source()` chain."
+msgstr ""
+"Un oggetto JSON per riga, nella cartella di **lavoro**, e **solo con `-vvv`**. Ogni "
+"record porta l'orologio a muro, il livello, lo stesso percorso di attività che stampa"
+" stderr, il modulo `target` che stderr omette, il messaggio, le eventuali coordinate "
+"e — dove l'evento ne ha allegato uno — l'errore in forma strutturata, con la sua "
+"forma `Debug`, il suo messaggio e l'intera catena di `source()`."
+
+#: ../../source/guides/user/logging.md:88
+#, fuzzy
+msgid ""
+"It exists at one verbosity because it answers a question only that verbosity answers:"
+" *everything the engine did, in order, with the module and the error chain attached*."
+" At `debug` and below it would be a partial transcript nobody asked for, written into"
+" whatever directory you happened to be standing in."
+msgstr ""
+"Esiste a una sola verbosità perché risponde a una domanda a cui risponde solo quella "
+"verbosità: *tutto ciò che il motore ha fatto, in ordine, con il modulo e la catena "
+"degli errori allegati*. Da `-vv` in giù sarebbe una trascrizione parziale che nessuno"
+" ha chiesto, scritta in qualunque cartella ti trovassi per caso."
+
+#: ../../source/guides/user/logging.md:93
+msgid ""
+"Because the file is created only once the verbosity is settled, everything logged "
+"while the configuration was still resolving is held in memory and poured into it in "
+"order — so the file starts where the run started, not where the decision was taken."
+msgstr ""
+"Siccome il file si crea solo una volta stabilita la verbosità, tutto ciò che è stato "
+"registrato mentre la configurazione si stava ancora risolvendo è tenuto in memoria e "
+"vi viene versato dentro nell'ordine — così il file comincia da dove è cominciata "
+"l'esecuzione, non da dove è stata presa la decisione."
+
+#: ../../source/guides/user/logging.md:101
+msgid ""
+"JSON Lines rather than one JSON document, for two reasons that both come from the "
+"volume this file sees — tens of thousands of records for a single job. It "
+"**streams**: each record reaches the buffered writer as it happens, so nothing "
+"accumulates in memory and the file is readable even when the process dies, which is "
+"precisely the run whose log you most want to read. And every line stands alone, so "
+"`grep` works on it and `jq` consumes it as a stream:"
+msgstr ""
+"JSON Lines anziché un unico documento JSON, per due motivi che vengono entrambi dalla"
+" mole che questo file vede — decine di migliaia di record per un solo job. Prima di "
+"tutto **scorre**: ogni record raggiunge lo scrittore bufferizzato nel momento in cui "
+"accade, così niente si accumula in memoria e il file è leggibile anche quando il "
+"processo muore, che è proprio l'esecuzione il cui registro vorresti leggere di più. E"
+" poi ogni riga sta in piedi da sola, quindi `grep` ci funziona e `jq` la consuma a "
+"flusso:"
+
+#: ../../source/guides/user/logging.md:112
+msgid ""
+"When a run uses child processes, each child writes its own file in a private "
+"directory that is deleted with it; the parent **absorbs** their contents into this "
+"one, in job order, before closing it. There is one log per run, not one per process."
+msgstr ""
+"Quando un'esecuzione usa processi figli, ciascun figlio scrive il proprio file in una"
+" cartella privata che sparisce insieme a lui; il padre ne **assorbe** il contenuto in"
+" questo, nell'ordine dei job, prima di chiuderlo. C'è un registro per esecuzione, non"
+" uno per processo."
+
+#: ../../source/guides/user/logging.md:118
+msgid ""
+"The interesting one, and the only log that travels **with the output** rather than "
+"staying in the working directory — because it is a product of the run and belongs "
+"with the run's other products."
+msgstr ""
+"Quello interessante, e l'unico registro che viaggia **insieme ai risultati** anziché "
+"restare nella cartella di lavoro — perché è un prodotto dell'esecuzione e sta con gli"
+" altri prodotti dell'esecuzione."
+
+#: ../../source/guides/user/logging.md:121
+msgid ""
+"A row appears only if the event carries a **page or a coordinate**. That single rule "
+"is what keeps it an audit trail of the *extraction* rather than a transcript of the "
+"program: what was skipped, on which page, at which position, and what was done about "
+"it."
+msgstr ""
+"Una riga compare solo se l'evento porta con sé una **pagina o una coordinata**. È "
+"quest'unica regola a tenerlo una traccia di controllo dell'*estrazione* anziché una "
+"trascrizione del programma: che cosa è stato saltato, su quale pagina, in quale "
+"posizione, e che cosa se n'è fatto."
+
+#: ../../source/guides/user/logging.md:75
+msgid "Column"
+msgstr "Colonna"
+
+#: ../../source/guides/user/logging.md:75
+msgid "From"
+msgstr "Da"
+
+#: ../../source/guides/user/logging.md:75 ../../source/guides/user/logging.md:151
+msgid "`Report`"
+msgstr "`Report`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the `report` field, from the `document` span"
+msgstr "il campo `report`, che viene dallo span `document`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`Page`"
+msgstr "`Page`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the `page` field"
+msgstr "il campo `page`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`Activity`"
+msgstr "`Activity`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "computed from the span stack"
+msgstr "calcolata dalla pila degli span"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`First coord ref`"
+msgstr "`First coord ref`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the **triggering text**: the report's own words that matched a company"
+msgstr ""
+"il **testo che ha innescato**: le parole della relazione stessa che hanno corrisposto"
+" a una società"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`Second coord ref`"
+msgstr "`Second coord ref`"
+
+#: ../../source/guides/user/logging.md:75
+msgid ""
+"the second anchor — the company the triggering text matched, or the field a row is "
+"about"
+msgstr ""
+"il secondo appiglio — la società a cui il testo che ha innescato corrisponde, o il "
+"campo di cui parla la riga"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`First coord`, `Second coord`"
+msgstr "`First coord`, `Second coord`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the position itself, in units that depend on the context (`row 12`, `col 1`)"
+msgstr "la posizione vera e propria, in unità che dipendono dal contesto (`row 12`, `col 1`)"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`Level`"
+msgstr "`Level`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the event's own severity — `WARN` or `ERROR`"
+msgstr "la gravità dell'evento stesso — `WARN` oppure `ERROR`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "`Message`"
+msgstr "`Message`"
+
+#: ../../source/guides/user/logging.md:75
+msgid "the event's message"
+msgstr "il messaggio dell'evento"
+
+#: ../../source/guides/user/logging.md:136
+msgid ""
+"`Report` and `Activity` enrich a row but never justify one: an event carrying only "
+"those and no page or coordinate produces no row. A document's name is not a position,"
+" and a `document` span is open over a whole run — if it selected rows, every warning "
+"the program emits would become one."
+msgstr ""
+"`Report` e `Activity` arricchiscono una riga ma non ne giustificano mai una: un "
+"evento che porta solo quelli e nessuna pagina o coordinata non produce alcuna riga. "
+"Il nome di un documento non è una posizione, e uno span `document` resta aperto per "
+"un'intera esecuzione — se selezionasse delle righe, ogni avviso emesso dal programma "
+"ne diventerebbe una."
+
+#: ../../source/guides/user/logging.md:140
+msgid ""
+"`Level` separates the two severities the audit trail deliberately keeps apart, "
+"instead of leaving you to infer them from the wording of the message: `WARN` is the "
+"report being awkward and the engine coping — a dash where a number belongs, a cast "
+"that had to be forced, a value sitting on the edge of its domain — while `ERROR` is "
+"something that should not have happened, a value that is there and will not convert. "
+"Only those two ever appear, because `warn` is this file's ceiling whatever `-v` you "
+"pass."
+msgstr ""
+"`Level` separa le due gravità che la traccia di controllo tiene apposta distinte, "
+"invece di lasciartele dedurre da come è formulato il messaggio: `WARN` è la relazione"
+" che fa la difficile e il motore che se la cava — un trattino dove va un numero, una "
+"conversione che è stata forzata, un valore che sta sul bordo del proprio dominio — "
+"mentre `ERROR` è qualcosa che non sarebbe dovuto succedere, un valore che c'è e non "
+"si lascia convertire. Compaiono sempre e solo quelle due, perché `warn` è il tetto di"
+" questo file qualunque `-v` tu passi."
+
+#: ../../source/guides/user/logging.md:147
+msgid ""
+"It is metadata rather than a field, which has one visible consequence: it is never "
+"inherited. A warning raised inside an `info` span is a `WARN` row, not an `INFO` one."
+" And since every event has a level, a level alone never writes a row — the page-or-"
+"coordinate rule still decides that."
+msgstr ""
+"È un metadato anziché un campo, il che ha una conseguenza visibile: non si eredita "
+"mai. Un avviso sollevato dentro uno span `info` è una riga `WARN`, non una `INFO`. E "
+"poiché ogni evento ha un livello, un livello da solo non scrive mai una riga — a "
+"deciderlo resta la regola della pagina o della coordinata."
+
+#: ../../source/guides/user/logging.md:153
+msgid ""
+"Which of the run's documents the row is about, so that a run over a batch is one file"
+" you can filter rather than several you have to correlate. It comes from the "
+"`document` span, which is why an event born deep inside a pipe carries it without "
+"knowing it exists. Empty for the rare row emitted outside any document — a failure "
+"during configuration, before the first report is opened. The coordinate *refs* are "
+"deliberately not required to identify a point uniquely — `Leonardo Spa Az Nom` is not"
+" a position, but it is something you can search for in a PDF viewer, which is what "
+"someone checking a skipped row actually does."
+msgstr ""
+"Di quale dei documenti dell'esecuzione parla la riga, così che un'esecuzione su un "
+"lotto sia un file solo da filtrare anziché parecchi da mettere in relazione fra loro."
+" Viene dallo span `document`, ed è per questo che un evento nato in fondo a una pipe "
+"se lo porta dietro senza sapere che esiste. È vuota per la rara riga emessa fuori da "
+"ogni documento — un guasto durante la configurazione, prima che sia aperta la prima "
+"relazione. Ai *riferimenti* di coordinata non si chiede affatto di identificare un "
+"punto in modo univoco — `Leonardo Spa Az Nom` non è una posizione, ma è qualcosa che "
+"puoi cercare in un lettore di PDF, che è ciò che fa davvero chi sta verificando una "
+"riga saltata."
+
+#: ../../source/guides/user/logging.md:160
+msgid ""
+"That is also why `First coord ref` holds the **triggering text** rather than the "
+"company's name. The two are not the same string: the triggering text is what the "
+"report wrote in the cell, and the company is what the input database calls that "
+"issuer — `ITALY BTPS` for a row the report prints as `Btps 1.3% 16-15.05.28 /Infl`. "
+"Only the first can be found again inside the document, and finding it again is the "
+"whole purpose of the column. The company is not lost: it travels in `Second coord "
+"ref` where the event has nothing more specific to say, it is the `Investee` column of"
+" `investments.csv`, and for rows the deserializer produced it is also visible in "
+"`Activity`, whose `investment[…]` segment carries the same anchor."
+msgstr ""
+"È anche il motivo per cui `First coord ref` contiene il **testo che ha innescato** "
+"anziché il nome della società. I due non sono la stessa stringa: il testo che ha "
+"innescato è ciò che la relazione ha scritto nella cella, mentre la società è come il "
+"database di ingresso chiama quell'emittente — `ITALY BTPS` per una riga che la "
+"relazione stampa come `Btps 1.3% 16-15.05.28 /Infl`. Solo il primo si può ritrovare "
+"dentro il documento, e ritrovarlo è tutto lo scopo della colonna. La società non si "
+"perde: viaggia in `Second coord ref` dove l'evento non ha niente di più preciso da "
+"dire, è la colonna `Investee` di `investments.csv`, e per le righe prodotte dal "
+"deserializzatore si vede anche in `Activity`, il cui segmento `investment[…]` porta "
+"lo stesso appiglio."
+
+#: ../../source/guides/user/logging.md:169
+msgid "`First coord` and `Second coord`"
+msgstr "`First coord` e `Second coord`"
+
+#: ../../source/guides/user/logging.md:171
+msgid ""
+"`row 12`, `col 1` — where in the page's table the row hooked itself. Every field of "
+"an investment row is read at a fixed offset from that cell, so an anchor that landed "
+"on a header, a total or a currency code shifts them all; the position is what shows "
+"it, as a column different from every other row of the page."
+msgstr ""
+"`row 12`, `col 1` — dove, nella tabella della pagina, la riga si è agganciata. Ogni "
+"campo di una riga di investimento è letto a uno scostamento fisso da quella cella, "
+"quindi un appiglio finito su un'intestazione, su un totale o su un codice di valuta "
+"li sposta tutti; è la posizione a mostrarlo, come una colonna diversa da quella di "
+"ogni altra riga della pagina."
+
+#: ../../source/guides/user/logging.md:176
+msgid ""
+"Both count **from one**, because they are written to be read by a person matching a "
+"row against the page, not fed back into the engine. The grid's own indices, the ones "
+"a format's offsets are computed in, still count from zero."
+msgstr ""
+"Contano entrambe **da uno**, perché sono scritte per essere lette da una persona che "
+"confronta una riga con la pagina, non per essere ridate in pasto al motore. Gli "
+"indici della griglia veri e propri, quelli in cui sono calcolati gli scostamenti di "
+"un formato, continuano a contare da zero."
+
+#: ../../source/guides/user/logging.md:180
+msgid ""
+"The two travel further than they look. The table exists only inside the text filter —"
+" by the time the deserializer sees the row it is a block, and the grid is gone — so "
+"the filter writes the position into the block's metadata and the deserializer puts it"
+" back on the span wrapping the row. That is what gives a coordinate to a failed cast "
+"or an out-of-range value, neither of which is emitted anywhere near a table."
+msgstr ""
+"Le due viaggiano più lontano di quanto sembri. La tabella esiste solo dentro il "
+"filtro di testo — quando il deserializzatore vede la riga, essa è un blocco e la "
+"griglia non c'è più — quindi il filtro scrive la posizione nei metadati del blocco e "
+"il deserializzatore la rimette sullo span che avvolge la riga. È ciò che dà una "
+"coordinata a una conversione fallita o a un valore fuori intervallo, nessuno dei due "
+"emesso nei paraggi di una tabella."
+
+#: ../../source/guides/user/logging.md:186
+msgid ""
+"They are empty for anything that did not come from a table: a fund name, an SFDR "
+"article, a management company. Empty is the honest answer there, not a missing "
+"feature."
+msgstr ""
+"Sono vuote per qualsiasi cosa non provenga da una tabella: il nome di un fondo, un "
+"articolo SFDR, una società di gestione. Lì il vuoto è la risposta onesta, non una "
+"funzionalità che manca."
+
+#: ../../source/guides/user/logging.md:189
+msgid ""
+"**One row per event, not three per failure.** A lost field is a single row saying "
+"both what went wrong and what was done about it — `\"Error casting, skipping field: "
+"…\"` — not an error row plus two warnings about mitigation and consequence. The level"
+" already carries the severity and the message the consequence. A *successful* "
+"mitigation does get its own row, because nothing was lost and that is different "
+"information."
+msgstr ""
+"**Una riga per evento, non tre per guasto.** Un campo perduto è una riga sola che "
+"dice sia che cosa è andato storto sia che cosa se n'è fatto — `\"Error casting, "
+"skipping field: …\"` — non una riga di errore più due avvisi sul rimedio e sulla "
+"conseguenza. Il livello porta già la gravità e il messaggio la conseguenza. Un "
+"rimedio *riuscito*, quello sì, ha una riga tutta sua, perché non si è perso niente ed"
+" è un'informazione diversa."
+
+#: ../../source/guides/user/logging.md:195
+msgid ""
+"A run that dies before its configuration resolves writes no `.log.csv` at all, rather"
+" than leaving a header-only file in the working directory: at that point it is not "
+"yet known where the output goes. Nothing is lost — every one of those events also "
+"reached stderr."
+msgstr ""
+"Un'esecuzione che muore prima che la propria configurazione sia risolta non scrive "
+"alcun `.log.csv`, anziché lasciare un file di sola intestazione nella cartella di "
+"lavoro: a quel punto non si sa ancora dove vadano i risultati. Non si perde niente — "
+"ognuno di quegli eventi ha raggiunto anche stderr."
+
+#~ msgid "`-vvv` only"
+#~ msgstr "solo con `-vvv`"
+
+#~ msgid ""
+#~ "`-v` and `-q` are the **only** way to"
+#~ " set the verbosity of a run. "
+#~ "`FREEPORTS_VERBOSITY` and the configuration file's "
+#~ "`verbosity` key are parsed, validated and "
+#~ "merged into the resolved configuration, but "
+#~ "the process installs its logging before the"
+#~ " configuration is resolved and never revisits "
+#~ "it. Worker child processes *do* honour the "
+#~ "resolved value, because it reaches them inside"
+#~ " their request, so a batch run in "
+#~ "child processes and the parent that spawned"
+#~ " them can disagree about how much they "
+#~ "say. See {doc}`../../reference/configuration/index`."
+#~ msgstr ""
+#~ "`-v` e `-q` sono il **solo** modo di "
+#~ "impostare la verbosità di un'esecuzione. "
+#~ "`FREEPORTS_VERBOSITY` e la chiave `verbosity` del"
+#~ " file di configurazione sono letti, validati "
+#~ "e fusi nella configurazione risolta, ma il "
+#~ "processo avvia il proprio sistema di "
+#~ "registrazione prima che la configurazione sia "
+#~ "risolta, e non ci ritorna più sopra. I"
+#~ " processi figli, quelli sì, rispettano il "
+#~ "valore risolto, perché arriva loro dentro la"
+#~ " richiesta: così un'esecuzione a lotti nei "
+#~ "processi figli e il padre che li ha "
+#~ "generati possono non essere d'accordo su "
+#~ "quanto dire. Vedi {doc}`../../reference/configuration/index`."
+

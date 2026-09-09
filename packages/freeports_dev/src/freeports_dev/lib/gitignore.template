@@ -1,0 +1,22 @@
+# What a run of the tooling leaves behind, and none of which belongs in the history.
+#
+# The two reports under `ci/report/` and `validation/report/` are **not** here: those are committed
+# artefacts, refreshed by the commit hook and staged with the change that moved them, so that a
+# reader of this repository on the web sees the figures without running anything.
+
+__pycache__/
+*.py[cod]
+
+.pytest_cache/
+.ruff_cache/
+.benchmarks/
+
+# The measurements the CI commands write, which `ci-check` then judges. Facts about one commit on
+# one machine: `make ci-fast` writes them again in seconds, and carrying them in the history would
+# put a diff in every commit saying where somebody's laptop got to.
+/reports/
+
+# The structured log, which a run at `-vvv` writes into the directory it was started from rather
+# than into its output directory. Ignored so that turning the verbosity up is not also a dirty
+# branch.
+freeports.log.jsonl

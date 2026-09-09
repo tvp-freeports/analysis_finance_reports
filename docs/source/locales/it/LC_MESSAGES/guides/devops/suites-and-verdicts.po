@@ -1,0 +1,466 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:3
+msgid "Suites and verdicts"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:6
+msgid "The suites"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:8
+msgid ""
+"A metric is a number with a minimum. A suite is a set of tests with an "
+"outcome. Both are facts about one commit, both are recorded into "
+"``reports/`` with the commit they were established at, and both are "
+"judged by ``ci-check``."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:16
+msgid "Suite"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:17
+msgid "Cost"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:18
+msgid "Repositories"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:19
+msgid "Run by"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:20
+msgid "``rust.unit``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:21
+#: ../../source/guides/devops/suites-and-verdicts.rst:25
+#: ../../source/guides/devops/suites-and-verdicts.rst:29
+msgid "fast"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:22
+#: ../../source/guides/devops/suites-and-verdicts.rst:26
+#: ../../source/guides/devops/suites-and-verdicts.rst:34
+#: ../../source/guides/devops/suites-and-verdicts.rst:38
+#: ../../source/guides/devops/suites-and-verdicts.rst:42
+#: ../../source/guides/devops/suites-and-verdicts.rst:46
+msgid "engine"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:23
+msgid "``make test-rust-unit``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:24
+msgid "``python.fast``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:27
+msgid "``make test-python``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:28
+msgid "``formats.single_page``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:30
+#: ../../source/guides/devops/suites-and-verdicts.rst:50
+msgid "formats"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:31
+msgid "``make test-fast``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:32
+msgid "``rust.integration``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:33
+#: ../../source/guides/devops/suites-and-verdicts.rst:37
+#: ../../source/guides/devops/suites-and-verdicts.rst:41
+#: ../../source/guides/devops/suites-and-verdicts.rst:49
+msgid "**slow**"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:35
+msgid "``make test-rust-integration``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:36
+msgid "``rust.doc``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:39
+msgid "``make test-rust-doc``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:40
+msgid "``python.slow``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:43
+msgid "``make test-python-slow``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:44
+msgid "``python.online``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:45
+msgid "**slow**, online"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:47
+msgid "``make test-python-online``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:48
+msgid "``formats.integration``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:51
+msgid "``make test-slow``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:53
+msgid ""
+"Every row carries the command that runs it, and every message about a "
+"suite quotes it. A verdict that says something is stale without saying "
+"how to un-stale it is a verdict people route around."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:56
+msgid ""
+"**Every row is a** ``make`` **target, in whichever repository the suite "
+"belongs to.** The alternative is quoting the selection itself — "
+"``freeports-dev test -- -m 'not integration_tests'`` — in the hook, in "
+"this table and in the repository's own documentation, which is three "
+"copies of one decision, and the failure mode of three copies is that a "
+"fourth reader invents a fifth. The selection has one spelling, ``--fast``"
+" / ``--slow``, in the command that owns it, and the target is what a "
+"message quotes."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:64
+msgid "Why a suite is recorded rather than announced"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:66
+msgid ""
+"An outcome passed on a command line — ``ci-check --suite fast:passed`` — "
+"says what has just happened, and it is **silent about everything that has"
+" not**. A gate that runs two of six suites and reports \"tests: ok\" is "
+"worse than one that reports nothing, because a reader believes it."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:70
+msgid "So each suite writes ``reports/suite-<name>.json``:"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:76
+msgid ""
+"and ``ci-check`` reads the lot. The commit is the point of the file. "
+"Without it there is no telling a suite that passed on this code from one "
+"that passed a fortnight ago, and the fast/slow split would quietly become"
+" a way of never running the slow half."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:84
+#: ../../source/guides/devops/suites-and-verdicts.rst:166
+msgid "Verdict"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:85
+#: ../../source/guides/devops/suites-and-verdicts.rst:167
+msgid "Meaning"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:86
+#: ../../source/guides/devops/suites-and-verdicts.rst:168
+msgid "``dev``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:87
+#: ../../source/guides/devops/suites-and-verdicts.rst:169
+msgid "``prod``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:88
+msgid "``ran``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:89
+msgid "ran at this commit, everything passed"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:90
+#: ../../source/guides/devops/suites-and-verdicts.rst:91
+#: ../../source/guides/devops/suites-and-verdicts.rst:172
+#: ../../source/guides/devops/suites-and-verdicts.rst:173
+msgid "—"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:92
+msgid "``FAILED``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:93
+msgid "ran at this commit, something did not pass"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:94
+#: ../../source/guides/devops/suites-and-verdicts.rst:98
+#: ../../source/guides/devops/suites-and-verdicts.rst:102
+#: ../../source/guides/devops/suites-and-verdicts.rst:176
+#: ../../source/guides/devops/suites-and-verdicts.rst:180
+#: ../../source/guides/devops/suites-and-verdicts.rst:184
+msgid "notify"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:95
+#: ../../source/guides/devops/suites-and-verdicts.rst:99
+#: ../../source/guides/devops/suites-and-verdicts.rst:103
+#: ../../source/guides/devops/suites-and-verdicts.rst:177
+#: ../../source/guides/devops/suites-and-verdicts.rst:181
+#: ../../source/guides/devops/suites-and-verdicts.rst:185
+msgid "**refuse**"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:96
+msgid "``STALE``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:97
+msgid "last ran at another commit"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:100
+msgid "``NOT RUN``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:101
+msgid "never run in this repository"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:105
+msgid ""
+"**A suite nobody ran is not a suite that passed**, which is the same rule"
+" ``unmeasured`` follows among the metrics, applied to the other half of "
+"what a commit is judged on."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:109
+msgid "What marks a test slow, and why it is derived"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:111
+msgid ""
+"Never by hand. In both tooling packages a test is marked ``slow`` by the "
+"*fixtures it asks for*: request one that starts a process or a server, "
+"and the marking follows. A test written next year that bootstraps a "
+"repository is marked by the act of asking for the fixture that bootstraps"
+" it, and one that stops doing so stops being marked. Three hundred hand-"
+"written ``@pytest.mark.slow`` decorators would be three hundred chances "
+"to forget."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:117
+msgid ""
+"The seam is **\"starts anything\"**, and getting it wrong is expensive in"
+" a way that is easy to miss. Drawing it at \"starts *the command*\" "
+"instead — which is where it lands if nobody thinks about it — leaves, in "
+"``freeports_validate``, twenty tests that start a threaded HTTP server "
+"and forty that start a ``bash`` or a Python interpreter on the fast side:"
+" three and a half seconds, most of a commit gate's entire budget, spent "
+"on ``fork``. In ``freeports_dev`` the same seam catches the two fixtures "
+"that bootstrap a whole repository, each of which is twenty-odd process "
+"starts."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:126
+msgid ""
+"Before moving a test across the line, check that it is really the test "
+"that is slow. **The three worst offenders in this repository were not "
+"tests at all**, and between them they were most of the suite:"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:130
+msgid ""
+"**A fixture rebuilt for every test.** The expensive fixtures in "
+"``freeports_validate``'s suite raise their state by running the command "
+"three to five times — ``create-document``, ``sign-document``, a couple of"
+" ``grant``\\ s — and were function-scoped, so a class of five tests paid "
+"for all of it five times. **327 of the slow suite's 470 seconds were** "
+"``setup``, and not one of them was a test. What those 4.4 seconds produce"
+" is seven files and one kilobyte, which ``copytree`` copies in 0.42 ms — "
+"four orders of magnitude. See ``Prototypes`` in "
+"``packages/freeports_validate/tests/conftest.py``: the state is built "
+"once per session and each test gets a copy, so isolation is exactly what "
+"it was."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:138
+msgid ""
+"**A half-second poll interval, paid per test.** "
+"``ThreadingHTTPServer.shutdown()`` waits for ``serve_forever``'s loop to "
+"look between ``select`` timeouts, and the default is 0.5 s — paid in full"
+" at every teardown. Twenty tests, ten seconds. ``poll_interval=0.01`` "
+"took it to the noise floor."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:142
+msgid ""
+"**A plugin importing the world.** ``freeports_dev``'s ``pytest11`` entry "
+"point imported pandas, PyMuPDF and the engine at module level, so *every "
+"pytest process on the machine* paid three quarters of a second for "
+"libraries it would never touch — including the two tooling suites, which "
+"collect no format tests at all. The imports now happen where they are "
+"used."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:147
+msgid ""
+"Deferring a test is a decision with a cost: it is a test that stops "
+"running at every commit. Deleting a wasted second costs nothing, and the "
+"second is usually there. Between them these three took the slow suite "
+"from **470 s to 162 s** and the fast gate from 5.5 s to 1.8 s, without a "
+"single test being deleted, deferred or weakened."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:152
+msgid ""
+"The tool for finding them is ``pytest --durations=0 --durations-min=0``, "
+"split by ``setup`` / ``call`` / ``teardown``: setup that dominates call "
+"is a fixture doing per-test work that is not per-test. Where the cost is "
+"outside Python — this command shells out to ``yq``, ``gpg`` and ``check-"
+"jsonschema`` — putting a timing wrapper for each of them first on "
+"``PATH`` and summing by program says in one run where the seconds went."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:160
+msgid "Verdicts"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:170
+msgid "``pass``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:171
+msgid "measured, at or above the minimum"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:174
+msgid "``below``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:175
+msgid "measured, under it"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:178
+msgid "``unmeasured``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:179
+msgid "the tool is missing, or the run failed"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:182
+msgid "``stale``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:183
+msgid "measured at a commit other than HEAD"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:186
+msgid "``no threshold``"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:187
+msgid "nothing configured"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:188
+#: ../../source/guides/devops/suites-and-verdicts.rst:189
+msgid "listed"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:192
+msgid "Why ``unmeasured`` refuses"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:194
+msgid ""
+"**A figure nobody could compute is not a figure above the threshold.** "
+"Reporting it as a pass is exactly the failure this project already "
+"refuses for a methodology page it could not reach: unverifiable is not "
+"granted, and unmeasured is not passing. The message names the missing "
+"tool and the command that installs it — ``make dev-ci`` supplies all four"
+" — because a refusal you cannot act on is a refusal you will route "
+"around."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:203
+msgid "Why ``stale`` refuses"
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:205
+msgid ""
+"Staleness is what makes the fast/slow split honest. The hook measures the"
+" fast metrics now and reads the slow ones from the last full run; without"
+" the commit recorded beside each number there would be no way to tell a "
+"fresh figure from one taken three weeks ago, and the split would quietly "
+"become a way of never measuring the slow half at all."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:210
+msgid ""
+"**It is the mechanism that lets the gate be cheap without being "
+"dishonest.** A gate may run a subset — as long as it says, in the same "
+"table, exactly which subset. Take staleness away and the fast gate stops "
+"being a smaller gate and becomes a smaller *claim about the same thing*, "
+"which is the failure this whole arrangement exists to avoid."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:215
+msgid ""
+"On ``dev`` it is a notification. On ``prod`` it refuses — and the "
+"``prod`` hook runs ``make ci-full`` first, so by the time the verdict is "
+"read there is nothing left to be stale. That is the inversion the two "
+"branch classes are for: on a working branch you keep the loop tight and "
+"accept that some things are unknown, and on a production branch you take "
+"the time and nothing is. ``--skip-slow`` exists for the person who knows "
+"better; it is never the default, and it prints what it skipped."
+msgstr ""
+
+#: ../../source/guides/devops/suites-and-verdicts.rst:222
+msgid ""
+"Exit statuses: ``0`` pass or dev, ``1`` refused, ``2`` the configuration "
+"itself cannot be obeyed."
+msgstr ""
+

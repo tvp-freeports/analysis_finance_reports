@@ -1,0 +1,82 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.input.rst:2
+msgid "freeports.input"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.input.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.input.rst:14:<autosummary>:1
+msgid ""
+":py:obj:`get_target_companies <freeports.input.get_target_companies>`\\ "
+"\\(input\\_db\\_directory\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.input.rst:14:<autosummary>:1
+#: input.get_target_companies:1 of
+msgid ""
+"The companies of the named lists, already compiled and ready to pass as "
+"filter data."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.input.rst:14:<autosummary>:1
+msgid ""
+":py:obj:`load_target_companies <freeports.input.load_target_companies>`\\"
+" \\(input\\_db\\_directory\\, ...\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.input.rst:14:<autosummary>:1
+#: input.load_target_companies:1 of
+msgid "The raw, uncompiled inputs."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.input.rst:16
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.input.rst:19:<autosummary>:1
+msgid ":py:obj:`CompanyMatchInfos <freeports.input.CompanyMatchInfos>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.input.rst:19:<autosummary>:1
+#: freeports.input.CompanyMatchInfos:1 of
+msgid "The Python shim of a compiled target company."
+msgstr ""
+
+#: ../../docstring freeports.input.CompanyMatchInfos:3 of
+msgid ""
+"Opaque on purpose: it holds already-compiled patterns, and author code "
+"has nothing to read inside it but the name — which is the only thing ever"
+" exposed."
+msgstr ""
+
+#: ../../docstring input.get_target_companies:3 of
+msgid ""
+"The compilation is included, rather than left to the caller, because it "
+"is the only thing callers ever did with the result."
+msgstr ""
+

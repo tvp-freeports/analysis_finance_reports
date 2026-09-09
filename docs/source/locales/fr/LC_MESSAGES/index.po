@@ -1,15 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025, Oreste Sciacqualegni
-# This file is distributed under the same license as the freeports_analysis
-# package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: freeports_analysis \n"
+"Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-12 11:03+0200\n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -18,23 +17,182 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
-#: ../../source/index.rst:10
-msgid "Contents:"
+#: ../../source/index.rst:69
+msgid "Getting started"
 msgstr ""
 
-#: ../../source/index.rst:8
-msgid "freeports_analysis documentation"
+#: ../../source/index.rst:77
+msgid "Guides"
+msgstr ""
+
+#: ../../source/index.rst:84
+msgid "Reference"
+msgstr ""
+
+#: ../../source/index.rst:91
+msgid "Generated"
+msgstr ""
+
+#: ../../source/index.rst:3
+msgid "freeports"
+msgstr ""
+
+#: ../../source/index.rst:5
+msgid "**Structured data out of financial reports published as PDF.**"
+msgstr ""
+
+#: ../../source/index.rst:7
+msgid ""
+"Funds disclose what they hold, what they are worth and how they classify "
+"themselves — in annual reports, in PDF, laid out however each issuer "
+"chose. ``freeports`` reads those documents and writes tables you can "
+"compute on. The engine knows nothing about any particular report: support"
+" for a layout lives in a separately maintained **formats repository**, "
+"which is what lets coverage grow without touching the engine."
+msgstr ""
+
+#: ../../source/index.rst:15
+msgid ""
+"Before relying on the output, read :doc:`what the project does and does "
+"not claim <overview/trust>`, and the :doc:`validation section "
+"<validation/index>` it summarises."
+msgstr ""
+
+#: ../../source/index.rst:19
+msgid "How this documentation is arranged"
 msgstr ""
 
 #: ../../source/index.rst:21
 msgid ""
-"This packages is intended for generate a `csv` file from different "
-"finance `pdf` reports"
+"These pages are organised on **three axes at once**, because \"where is "
+"that written down\" has three different answers depending on why you are "
+"asking."
 msgstr ""
 
-#: ../../source/index.rst:25
+#: ../../source/index.rst:28
+msgid "Axis"
+msgstr ""
+
+#: ../../source/index.rst:29
+msgid "Where it lives"
+msgstr ""
+
+#: ../../source/index.rst:30
+msgid "What it is for"
+msgstr ""
+
+#: ../../source/index.rst:31
+msgid "**Who you are**"
+msgstr ""
+
+#: ../../source/index.rst:32
+msgid ":doc:`guides/index`"
+msgstr ""
+
+#: ../../source/index.rst:33
+msgid ""
+"one section per figure — user, engine developer, format author, input-"
+"database maintainer, granter, documentation writer, translator, DevOps, "
+"and the institutional reader who wants to know whether to believe any of "
+"it"
+msgstr ""
+
+#: ../../source/index.rst:36
+msgid "**What you must do or know**"
+msgstr ""
+
+#: ../../source/index.rst:37
+msgid "inside each guide"
+msgstr ""
+
+#: ../../source/index.rst:38
+msgid ""
+"a guide opens with its loop and keeps the deep material in its own "
+"``advanced`` pages, so the first read is not the hardest one"
+msgstr ""
+
+#: ../../source/index.rst:40
+msgid "**What it is about**"
+msgstr ""
+
+#: ../../source/index.rst:41
+msgid ":doc:`reference/index`"
+msgstr ""
+
+#: ../../source/index.rst:42
+msgid ""
+"audience-independent: every option, every setting, the algorithm chapter "
+"by chapter. This is where the cross-references point, so nothing is "
+"written down twice"
+msgstr ""
+
+#: ../../source/index.rst:45
+msgid ""
+"Above those sit two short sections everyone reads, and below them one "
+"that no human writes."
+msgstr ""
+
+#: ../../source/index.rst:48
+msgid "Start here"
+msgstr ""
+
+#: ../../source/index.rst:54
+msgid "If you want"
+msgstr ""
+
+#: ../../source/index.rst:55
+msgid "Read"
+msgstr ""
+
+#: ../../source/index.rst:56
+msgid "to install it and see it run"
+msgstr ""
+
+#: ../../source/index.rst:57
+msgid ":doc:`start/index` — installation, one real run, and the developer tools"
+msgstr ""
+
+#: ../../source/index.rst:58
+msgid "to understand what it is and why it exists"
+msgstr ""
+
+#: ../../source/index.rst:59
+msgid ""
+":doc:`overview/index` — the problem, how the engine works, the "
+"repositories, and what being trusted with the numbers means here"
+msgstr ""
+
+#: ../../source/index.rst:61
+msgid "to do a particular job"
+msgstr ""
+
+#: ../../source/index.rst:62
+msgid ":doc:`guides/index` — pick the figure that is you"
+msgstr ""
+
+#: ../../source/index.rst:63
+msgid "to look one thing up"
+msgstr ""
+
+#: ../../source/index.rst:64
+msgid ""
+":doc:`reference/index` — options, settings, and the design of the "
+"algorithm"
+msgstr ""
+
+#: ../../source/index.rst:65
+msgid "to see what the machine says about this repository"
+msgstr ""
+
+#: ../../source/index.rst:66
+msgid ""
+":doc:`generated/index` — the two API references, the coverage of the "
+"grants, and the last gate run"
+msgstr ""
+
+#: ../../source/index.rst:100
 msgid "This project is under active development."
 msgstr ""
 

@@ -1,0 +1,86 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/docs/index.rst:3
+msgid "Writing the documentation"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:5
+msgid ""
+"This section is for whoever is adding to, correcting or reorganising "
+"these pages. It has two halves, and they answer different questions: "
+":doc:`organisation` says **where a page belongs and why**, and :doc"
+":`building-the-site` says **how to build and read the result**."
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:9
+msgid ""
+"Read :doc:`organisation` first, even for a one-paragraph correction. The "
+"site is arranged on three axes at once, and a page filed on the wrong one"
+" is worse than a page that does not exist: it makes the reader believe "
+"they have found the answer."
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:24
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:25
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:26
+msgid ":doc:`organisation`"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:27
+msgid ""
+"the three axes, where a new page goes, and the rules that keep the side "
+"panel usable"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:28
+msgid ":doc:`building-the-site`"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:29
+msgid ""
+"Sphinx, MyST, the two generated API references, and what ``make docs-"
+"serve`` is for"
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:31
+msgid ""
+"Translating what is here is a different job with a different toolchain, "
+"and it is :doc:`../i18n/index`."
+msgstr ""
+
+#: ../../source/guides/docs/index.rst:36
+msgid ""
+"The pages under ``docs/source/validation/`` are **content-addressed**: "
+"their SHA-256 hashes are recorded in signed validation documents, in this"
+" repository and in others, and their published URLs are the default "
+"source those documents resolve. Editing one — even fixing a typo — or "
+"moving it invalidates every grant that cites it. Changing them is a "
+"deliberate operation that includes re-granting and re-signing, not an act"
+" of tidying. See :doc:`../institutional/why-trust-a-grant`."
+msgstr ""
+

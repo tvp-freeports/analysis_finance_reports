@@ -1,0 +1,268 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:2
+msgid "freeports\\_dev.ci.report"
+msgstr ""
+
+#: freeports_dev.ci.report:1 of
+msgid "The shape every measurement writes, and how one is read back."
+msgstr ""
+
+#: freeports_dev.ci.report:3 of
+msgid ""
+"A measurement command answers one question and writes one small file into"
+" ``reports/``. It decides nothing: the gate reads these files, applies "
+"``ci.yaml``, and chooses the exit status. Keeping the two apart is what "
+"makes a threshold survivable — when a commit is refused, the number that "
+"refused it is sitting in a file a person can open, produced by a command "
+"they can re-run by hand."
+msgstr ""
+
+#: freeports_dev.ci.report:14 of
+msgid ""
+"``state`` is the field that matters. **A figure nobody could compute is "
+"not a figure above the threshold**, so a measurement that failed says "
+"``unmeasured`` and carries the sentence a person reads instead of quietly"
+" reporting zero — which would be a lie in one direction — or being "
+"absent, which the gate would have to guess about. It is the same "
+"distinction this project already draws for a methodology page it could "
+"not reach: unverifiable is not granted."
+msgstr ""
+
+#: freeports_dev.ci.report:20 of
+msgid ""
+"``head`` is the commit the figure was taken at, and it is what makes "
+"staleness visible. The commit hook measures the fast metrics now and "
+"*reads* the slow ones from the last full run; without the commit recorded"
+" beside the number there would be no way to tell a fresh figure from one "
+"taken three weeks ago, and the fast/slow split would quietly become a way"
+" of never measuring the slow half."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid ":py:obj:`MEASURED <freeports_dev.ci.report.MEASURED>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+#: freeports_dev.ci.report.MEASURED:1 of
+msgid "The figure was computed and can be compared against a minimum."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid ":py:obj:`UNMEASURED <freeports_dev.ci.report.UNMEASURED>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid "The figure could not be computed."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid ":py:obj:`REPORTS_DIR <freeports_dev.ci.report.REPORTS_DIR>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid "Where a repository's measurements are written."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid ":py:obj:`SUITE_PREFIX <freeports_dev.ci.report.SUITE_PREFIX>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:16:<autosummary>:1
+msgid "What a suite outcome is written to."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:18
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+msgid ":py:obj:`file_name <freeports_dev.ci.report.file_name>`\\ \\(metric\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+#: freeports_dev.ci.report.file_name:1 of
+msgid ""
+"The file a metric is written to: the dotted name with dots as dashes, "
+"plus ``.json``."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+msgid ":py:obj:`head_commit <freeports_dev.ci.report.head_commit>`\\ \\(root\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+#: freeports_dev.ci.report.head_commit:1 of
+msgid ""
+"The commit a measurement is being taken at, or ``None`` where there is no"
+" git or no commit."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`read_all <freeports_dev.ci.report.read_all>`\\ "
+"\\(reports\\_dir\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+#: freeports_dev.ci.report.read_all:1 of
+msgid "Every measurement in ``reports/``, by metric name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`read_suites <freeports_dev.ci.report.read_suites>`\\ "
+"\\(reports\\_dir\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+#: freeports_dev.ci.report.read_suites:1 of
+msgid "Every recorded suite outcome in ``reports/``, by suite name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`suite_file_name <freeports_dev.ci.report.suite_file_name>`\\ "
+"\\(suite\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:26:<autosummary>:1
+#: freeports_dev.ci.report.suite_file_name:1 of
+msgid ""
+"The file a suite's outcome is written to, by the same mechanical rule "
+"metrics follow."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:28
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:32:<autosummary>:1
+msgid ""
+":py:obj:`Measurement <freeports_dev.ci.report.Measurement>`\\ "
+"\\(metric\\[\\, value\\, unit\\, state\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:32:<autosummary>:1
+#: freeports_dev.ci.report.Measurement:1 of
+msgid ""
+"One metric's answer, with everything the gate needs to judge it and a "
+"person needs to fix it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:32:<autosummary>:1
+msgid ""
+":py:obj:`SuiteOutcome <freeports_dev.ci.report.SuiteOutcome>`\\ "
+"\\(suite\\, outcome\\[\\, head\\, detail\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.report.rst:32:<autosummary>:1
+#: freeports_dev.ci.report.SuiteOutcome:1 of
+msgid ""
+"One test suite's answer: whether it passed, and the commit it was asked "
+"at."
+msgstr ""
+
+#: freeports_dev.ci.report.Measurement.unmeasured:1 of
+msgid ""
+"A metric whose tool is missing or whose run failed, and the sentence that"
+" says which."
+msgstr ""
+
+#: freeports_dev.ci.report.Measurement.unmeasured:3 of
+msgid ""
+"The reason is not optional and is not a category: it is what a person "
+"reads at the moment a commit is refused, so it names the tool and, where "
+"there is one, the command that installs it."
+msgstr ""
+
+#: freeports_dev.ci.report.REPORTS_DIR:1 of
+msgid ""
+"Where a repository's measurements are written. Gitignored in every "
+"repository kind."
+msgstr ""
+
+#: freeports_dev.ci.report.SUITE_PREFIX:1 of
+msgid ""
+"What a suite outcome is written to. The suite name with dots as dashes, "
+"under a prefix that keeps it out of :func:`read_all`'s way -- two kinds "
+"of fact share this directory and neither should have to guess which shape"
+" a file it did not write is in."
+msgstr ""
+
+#: freeports_dev.ci.report.SuiteOutcome:3 of
+msgid ""
+"The commit is the whole reason this is a file rather than a command-line "
+"string. ``--suite rust.unit:passed`` says what has just happened; it "
+"cannot say that the integration suite has not been run since Tuesday. "
+"Recorded, a suite that nobody ran at this commit is *visibly* not run, "
+"and one whose last run was at another commit is visibly stale -- which is"
+" what makes it honest for the commit gate to run only part of the tests."
+msgstr ""
+
+#: freeports_dev.ci.report.SuiteOutcome:9 of
+msgid ""
+"``detail`` is free text a runner may leave behind -- how many tests, how "
+"long -- and nothing judges it. It is there so that a person reading "
+"``reports/`` gets more than a verdict."
+msgstr ""
+
+#: freeports_dev.ci.report.UNMEASURED:1 of
+msgid "The figure could not be computed. Never a pass, on any branch."
+msgstr ""
+
+#: freeports_dev.ci.report.file_name:3 of
+msgid ""
+"Mechanical, so that a person who knows the metric can find the file "
+"without a lookup table, and so that the gate can read a directory of them"
+" without a manifest saying what is in it."
+msgstr ""
+
+#: freeports_dev.ci.report.head_commit:3 of
+msgid ""
+"``None`` is honest and the gate treats it as \"staleness cannot be judged"
+" here\" rather than as stale — a repository with no commits has nothing "
+"for a figure to be stale against."
+msgstr ""
+
+#: freeports_dev.ci.report.read_all:3 of
+msgid ""
+"A file that does not parse is skipped rather than fatal: the directory is"
+" a cache of separate runs, one of which may have been interrupted, and "
+"one bad file must not stop the gate from judging the other eleven "
+"metrics. The metric it held then reads as having no measurement at all, "
+"which the gate already knows how to report."
+msgstr ""
+
+#: freeports_dev.ci.report.read_suites:3 of
+msgid ""
+"Told apart from a measurement by the key it carries rather than by its "
+"file name, so that a file somebody renamed still reads as what it is. A "
+"file that does not parse is skipped for the reason :func:`read_all` skips"
+" one: the directory is a cache of separate runs and one interrupted write"
+" must not stop the gate from judging everything else."
+msgstr ""
+

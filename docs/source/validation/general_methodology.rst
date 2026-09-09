@@ -80,11 +80,10 @@ resolved from the first that offers it.
    ``freeports-validate sources`` prints what each name resolves to on the machine it is run on, so
    two people can compare one line each and see which of the two it was.
 
-This also means the methodology pages do **not** travel inside the tool. They used to, and the
-consequence was that upgrading the tool silently changed what every grant in every repository
-referred to. The text a claim is about should not be chosen by a package manager. The mirror image
-of that fragility is the one we now have and state openly: whoever publishes a methodology can
-invalidate the grants made under it, by editing the page.
+This also means the methodology pages do **not** travel inside the tool. Were they to, upgrading the
+tool would silently change what every grant in every repository refers to, and the text a claim is
+about must not be chosen by a package manager. The price of the arrangement is stated openly:
+whoever publishes a methodology can invalidate the grants made under it, by editing the page.
 
 ********************
 Validation documents

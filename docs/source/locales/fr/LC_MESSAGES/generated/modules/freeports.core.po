@@ -1,0 +1,198 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.core.rst:2
+msgid "freeports.core"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:9
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+msgid ":py:obj:`Algorithm <freeports.core.Algorithm>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+#: freeports.core.Algorithm:1 of
+msgid "The Python shim of an algorithm."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`PdfBlock <freeports.core.PdfBlock>`\\ \\(type\\_block\\[\\, "
+"metadata\\, content\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+#: freeports.core.PdfBlock:1 of
+msgid "The Python shim of a PDF block."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`Pipeline <freeports.core.Pipeline>`\\ \\(\\[pdf\\_extract\\, "
+"text\\_filter\\, deserialize\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+#: freeports.core.Pipeline:1 of
+msgid "The Python shim of an author's pipeline."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`Promise <freeports.core.Promise>`\\ \\(raw\\[\\, strict\\, "
+"multiple\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+#: freeports.core.Promise:1 of
+msgid "Shim Python di [`Promise`]."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+msgid ""
+":py:obj:`TextBlock <freeports.core.TextBlock>`\\ \\(type\\_block\\[\\, "
+"metadata\\, pdf\\_block\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:17:<autosummary>:1
+#: freeports.core.TextBlock:1 of
+msgid "The Python shim of a text block."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:19
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.core.rst:22:<autosummary>:1
+msgid ":py:obj:`PageParseFail <freeports.core.PageParseFail>`"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.core.rst:22:<autosummary>:1
+#: freeports.core.PageParseFail:1 of
+msgid "Sollevata da un pipe d'autore quando la pagina non è interpretabile."
+msgstr ""
+
+#: ../../docstring freeports.core.Algorithm:3 of
+msgid ""
+"The three per-segment methods are the API the development tooling drives "
+"for its single-page tests. What differs from a naive chaining is *how* "
+"they compose, not what they return: the native per-segment API starts "
+"from text blocks, so this shim redoes the extraction and filtering chain "
+"before deserializing."
+msgstr ""
+
+#: ../../docstring freeports.core.Algorithm.classify_pages:1 of
+msgid ""
+"Classifies **a whole document**: which of the format's page classes each "
+"page belongs to, `None` for a page the format claims none of."
+msgstr ""
+
+#: ../../docstring freeports.core.Algorithm.classify_pages:4 of
+msgid ""
+"Takes the list of `page.get_text(\"dict\")` dicts, in document order, and"
+" numbers them from one accordingly. It has to be the whole document and "
+"not one page at a time, because a format may supply a finalizer that "
+"rewrites the raw per-page answers looking at all of them together — "
+"\"every page after the holdings header is holdings\" is the shape of it. "
+"A page classified in isolation would then get a different answer from the"
+" same page classified in its document, and the isolated one is the wrong "
+"one."
+msgstr ""
+
+#: ../../docstring freeports.core.Algorithm.load:1 of
+msgid ""
+"**A divergence absorbed here:** the third argument is accepted and "
+"ignored. It used to be the list of known formats, which the caller had to"
+" fetch and pass; the native loader reads it from the repository itself, "
+"so passing it adds nothing — but existing callers still do."
+msgstr ""
+
+#: ../../docstring freeports.core.Algorithm.page_classes:1 of
+msgid "The page classes the schedule visits, in schedule order."
+msgstr ""
+
+#: ../../docstring freeports.core.PdfBlock:3 of
+msgid "# Why the metadata is a live Python dict, not the native map"
+msgstr ""
+
+#: ../../docstring freeports.core.PdfBlock:5 of
+msgid ""
+"Author code **mutates the metadata in place**: `block.metadata[\"fund\"] "
+"= …`. Were the getter to build a fresh dictionary on each read, that line"
+" would write into a throwaway object and the change would vanish without "
+"an error — the worst way to diverge. The dictionary is therefore **the** "
+"container of the metadata, created once at construction and always handed"
+" back the same. The native map is derived from it when needed."
+msgstr ""
+
+#: ../../docstring freeports.core.Pipeline:3 of
+msgid "# A container, not an engine"
+msgstr ""
+
+#: ../../docstring freeports.core.Pipeline:5 of
+msgid ""
+"This shim does one thing: be the value an author module puts in its "
+"pipelines, from which the loader reads the three segments. The loader "
+"reads them **by shape** — three attributes, each a callable or an "
+"iterable of callables — so that is exactly the contract this type must "
+"satisfy, and all it exposes."
+msgstr ""
+
+#: ../../docstring freeports.core.Pipeline:10 of
+msgid ""
+"Each segment is normalised to a list at construction: nothing becomes an "
+"empty list, a single callable a list of one, an iterable is materialised."
+" The loader then need not tell the three cases apart, and the order of "
+"the pipes is the one the author wrote."
+msgstr ""
+
+#: ../../docstring freeports.core.Pipeline.complete:1 of
+msgid "True when all three segments hold at least one pipe."
+msgstr ""
+
+#: ../../docstring freeports.core.TextBlock:3 of
+msgid ""
+"Not frozen: author code rewrites the content of an already-built block. "
+"Equality and hashing are therefore written by hand rather than derived — "
+"PyO3 grants hashing only to a frozen class — with the usual caveat of a "
+"mutable hashable object: mutating one while it sits in a set makes it "
+"unfindable."
+msgstr ""
+
+#: ../../docstring freeports.core.TextBlock:8 of
+msgid ""
+"The metadata is a live Python dict for the same reason as [`PyPdfBlock`];"
+" see its documentation."
+msgstr ""
+
+#: ../../docstring freeports.core.TextBlock.from_content:1 of
+msgid "A text block that comes from no PDF block."
+msgstr ""
+

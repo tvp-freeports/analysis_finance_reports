@@ -1,0 +1,225 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/index.md:1
+msgid "Guides, by who you are"
+msgstr ""
+
+#: ../../source/guides/index.md:3
+#, python-brace-format
+msgid ""
+"This is the audience axis of the documentation. Each section below is "
+"written for one figure, opens with the loop that figure actually works "
+"in, and keeps its deep material in its own `advanced` pages. Where two "
+"figures need the same fact, neither repeats it: both point at "
+"{doc}`../reference/index`."
+msgstr ""
+
+#: ../../source/guides/index.md:9
+msgid ""
+"**A project is shaped by the people who turn up, not the other way "
+"round.** The figures below are how these pages happen to be arranged "
+"today — a record of the work people have already done here, not a list of"
+" the work that counts. They are soft at the edges and certainly "
+"incomplete."
+msgstr ""
+
+#: ../../source/guides/index.md:13
+msgid ""
+"So do not look for yourself in the table and conclude you are missing. "
+"Take a piece of one section and a piece of another, bring an expertise "
+"none of them anticipated, or arrive with a background this project has "
+"never had — that is the case in which everyone gains most. A contribution"
+" these pages have no section for is a good sign about the project and a "
+"gap in the documentation; the section gets written afterwards, which is "
+"how most of the ones below came to exist."
+msgstr ""
+
+#: ../../source/guides/index.md:35
+msgid "Where might you start?"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "If you"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "A good place to start"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "It assumes"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want tables out of a report"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`user/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "nothing but a shell"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to support a report layout nobody supports yet"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`formats/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "you can read a PDF and edit a spreadsheet"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to change which companies a run looks for"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`input-db/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "you can edit CSV"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to change the extraction engine itself"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`engine/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "Rust, and a toolchain"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to vouch for a file under a published methodology"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`grants/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "GnuPG, and that you have read the file"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to write or reorganise these pages"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`docs/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "Sphinx, and the rules on that page"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to translate them"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`i18n/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "gettext"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "own the checks that refuse a commit"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`devops/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "`make`, and a willingness to argue about thresholds"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "want to know whether to believe any of it"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`institutional/index`"
+msgstr ""
+
+#: ../../source/guides/index.md:20
+msgid "nothing at all"
+msgstr ""
+
+#: ../../source/guides/index.md:48
+#, python-brace-format
+msgid ""
+"The first three of those happen in **different repositories** — a formats"
+" repository and an input database are maintained separately from the "
+"engine, by whoever wants to. That is the same decision twice: coverage "
+"should grow without anybody touching the part that must not change. "
+"{doc}`../overview/the-repositories` is the map."
+msgstr ""
+
+#: ../../source/guides/index.md:53
+msgid "The three kinds of page you will meet"
+msgstr ""
+
+#: ../../source/guides/index.md:54
+msgid ""
+"**A guide page** tells you how to do something, in order, in the "
+"repository you are in. It is the kind of page you are reading now."
+msgstr ""
+
+#: ../../source/guides/index.md:57
+#, python-brace-format
+msgid ""
+"**A reference page** answers \"what does this option do\" for every "
+"option, without caring who is asking. It lives under "
+"{doc}`../reference/index` and is linked from every guide that needs it."
+msgstr ""
+
+#: ../../source/guides/index.md:60
+#, python-brace-format
+msgid ""
+"**A generated page** is written by a command, not by a person — the two "
+"API references, the coverage of the grants, the last gate run. It lives "
+"under {doc}`../generated/index`, and every one of them says which command"
+" to run to check it yourself."
+msgstr ""
+

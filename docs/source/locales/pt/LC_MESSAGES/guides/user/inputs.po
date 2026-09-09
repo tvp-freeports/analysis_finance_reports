@@ -1,0 +1,166 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/inputs.md:1
+msgid "The two inputs"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:3
+#, python-brace-format
+msgid ""
+"The engine ships with no knowledge of any report and no idea which "
+"companies you care about. Both are inputs, both live outside the engine, "
+"and it will refuse to guess at either. That refusal is the design, not an"
+" omission: see {doc}`../../reference/design/formats-as-plugins`."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "Input"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "Says"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "Point at it with"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "Detail"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "**formats repository**"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "how to read the layouts you care about"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid ""
+"`--formats-directory` / `--repo` / `-F` / `-r`, or "
+"`FREEPORTS_FORMATS_REPO_PATH`"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+#, python-brace-format
+msgid "{doc}`../formats/repository`"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "**input database**"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "which companies to look for, and how to recognise each"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+msgid "`--db-directory` / `-I`, plus `--target-list` / `-T`"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md
+#, python-brace-format
+msgid "{doc}`../input-db/index`"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:12
+msgid "The formats repository"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:14
+msgid ""
+"A directory, tracked in its own version control, holding one recipe — a "
+"**format** — per report layout. `analysis_finance_reports_formats` is one"
+" such repository; there is nothing privileged about it, and you can "
+"maintain your own."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:18
+msgid "To start an empty one:"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:24
+#, python-brace-format
+msgid ""
+"That gives you a skeleton that supports no format yet. "
+"{doc}`../formats/index` is how you add one."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:26
+msgid ""
+"The repository is also what makes `--format` optional: it carries a "
+"mapping from URL prefixes to format names, so a document downloaded from "
+"a known address is read without being told which format it is. There is "
+"no such inference for a local file — a path carries no evidence of who "
+"published it."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:30
+msgid "The input database"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:32
+msgid ""
+"Which companies a run is looking for, organised into named **lists**. "
+"`--target-list` names the lists to use, and a run with no list stops "
+"before opening anything."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:35
+msgid "For testing, a minimal database with a single list called `TEST`:"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:41
+msgid ""
+"It writes into `tests/input_db/` of the formats repository, deliberately:"
+" a format's tests must fail because the *format* broke, never because "
+"someone edited a company list maintained elsewhere. For real runs you "
+"want a real database."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:45
+msgid ""
+"Two properties of the database change what a run finds, and both surprise"
+" people:"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:47
+msgid ""
+"**matching is first-match-wins, in file order.** The order of the file is"
+" meaningful, not incidental. A run that seems to attribute a holding to "
+"the wrong company is often reporting a database problem rather than an "
+"extraction one;"
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:50
+msgid ""
+"a company absent from every named list is simply not looked for. Nothing "
+"reports it, because nothing was asked about it."
+msgstr ""
+
+#: ../../source/guides/user/inputs.md:53
+#, python-brace-format
+msgid "{doc}`../input-db/index` is the full description."
+msgstr ""
+

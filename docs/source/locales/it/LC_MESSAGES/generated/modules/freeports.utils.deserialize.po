@@ -1,0 +1,190 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:2
+msgid "freeports.utils.deserialize"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:9
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`is_numeric_shape "
+"<freeports.utils.deserialize.is_numeric_shape>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.is_numeric_shape:1 of
+msgid "Whether the text has the shape of a number."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`perc_to_float <freeports.utils.deserialize.perc_to_float>`\\ "
+"\\(perc\\[\\, norm\\]\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.perc_to_float:1 of
+msgid "A percentage as a fraction, or as a plain number."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`to_currency <freeports.utils.deserialize.to_currency>`\\ "
+"\\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_currency:1 of
+msgid "Una valuta da testo."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ":py:obj:`to_date <freeports.utils.deserialize.to_date>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_date:1 of
+msgid "A date, from text to a numeric form."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`to_date_with_en_month "
+"<freeports.utils.deserialize.to_date_with_en_month>`\\ \\(text\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_date_with_en_month:1 of
+msgid "A date whose month is written in English."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`to_date_with_it_month "
+"<freeports.utils.deserialize.to_date_with_it_month>`\\ \\(text\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_date_with_it_month:1 of
+msgid "A date whose month is written in Italian."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ":py:obj:`to_float <freeports.utils.deserialize.to_float>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid "A floating-point number from text."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ":py:obj:`to_int <freeports.utils.deserialize.to_int>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_int:1 of
+msgid "Un intero da testo."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`to_int_en_month <freeports.utils.deserialize.to_int_en_month>`\\"
+" \\(text\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_int_en_month:1 of
+msgid "The month number from an English month name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ""
+":py:obj:`to_int_it_month <freeports.utils.deserialize.to_int_it_month>`\\"
+" \\(text\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_int_it_month:1 of
+msgid "The month number from an Italian month name."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+msgid ":py:obj:`to_str <freeports.utils.deserialize.to_str>`\\ \\(data\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:23:<autosummary>:1
+#: deserialize.to_str:1 of
+msgid "Il testo ripulito."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:25
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:29:<autosummary>:1
+msgid ""
+":py:obj:`deserialize_block_type "
+"<freeports.utils.deserialize.deserialize_block_type>`\\ "
+"\\(\\*blk\\_types\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:29:<autosummary>:1
+#: freeports.utils.deserialize.deserialize_block_type:1 of
+msgid "Decoratore parametrico: restringe un deserializer a **un** tipo di blocco."
+msgstr ""
+
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:29:<autosummary>:1
+msgid ""
+":py:obj:`deserialize_block_types "
+"<freeports.utils.deserialize.deserialize_block_types>`\\ "
+"\\(\\*blk\\_types\\)"
+msgstr ""
+
+#: ../../docstring
+#: ../../source/generated/modules/freeports.utils.deserialize.rst:29:<autosummary>:1
+#: freeports.utils.deserialize.deserialize_block_types:1 of
+msgid ""
+"Decoratore parametrico: restringe un deserializer a **piu'** tipi di "
+"blocco."
+msgstr ""
+
+#: ../../docstring deserialize.to_float:1 of
+msgid ""
+"A floating-point number from text. A leading minus is a sign and is "
+"always honoured; wrap the call in `abs` where the report writes a "
+"magnitude with one."
+msgstr ""
+

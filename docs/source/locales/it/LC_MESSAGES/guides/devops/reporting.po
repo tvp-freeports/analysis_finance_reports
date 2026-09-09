@@ -1,0 +1,215 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/devops/reporting.rst:3
+msgid "Writing the verdict down"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:5
+msgid ""
+"``ci-check`` prints a table on a terminal and nothing keeps it. "
+"``freeports-dev ci-report`` renders the *same run* into the shapes a "
+"reader meets outside a terminal, and ``make ci-report`` writes all of "
+"them at once — which is what the commit hook runs, staging what it "
+"rewrote, so the published figures and the commit that changed them arrive"
+" together."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:14
+msgid "``--format``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:15
+msgid "What it is"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:16
+msgid "Where this repository keeps it"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:17
+msgid "``json``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:18
+msgid ""
+"The model. Every other rendering is a pure function of it, and a question"
+" none of them answers is a ``jq`` expression away."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:20
+msgid ""
+"Nowhere: it is written to standard output, or to a temporary file so one "
+"evaluation can be rendered several times."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:22
+msgid "``badges``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:23
+msgid ""
+"One shields-style SVG per metric, plus one for the run as a whole. Drawn "
+"locally, so generating them needs no network."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:25
+msgid "``ci/report/badges/``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:26
+msgid "``markdown``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:27
+msgid "A block rewritten between two markers in a file somebody else wrote."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:28
+msgid "``README.md``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:29
+msgid "``rst``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:30
+msgid "The same, for a documentation page. ``--table`` picks the arrangement."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:31
+msgid ":doc:`../../dev/ci-report/index`, and the two pages beside it"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:32
+msgid "``html``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:33
+msgid "One self-contained page: the three arrangements as tabs, and a filter box."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:34
+msgid ""
+"``docs/source/_extra/ci/report.html``, copied into the site root by "
+"``html_extra_path``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:36
+msgid ""
+"All of it is published under :doc:`the continuous-integration report "
+"<../../dev/ci-report/index>`, beside the validation coverage in *Trust "
+"and provenance* — because what the last run measured is a report about "
+"this repository rather than a page about contributing to it. The single-"
+"page rendering is `here <../ci/report.html>`_."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:41
+msgid ""
+"**This command never refuses anything.** Its exit status says whether it "
+"could write what it was asked to write, and nothing about what it found —"
+" a hook that could be stopped by its own report is a hook people remove. "
+"That is the rule the grants report already follows, and the reasons are "
+"the same."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:46
+#, python-format
+msgid ""
+"**A badge is coloured by the figure, not by the verdict** — with two "
+"exceptions. A figure under this repository's own minimum is red whatever "
+"its value, because falling short of a rule the repository wrote down is "
+"news; and one nobody could compute, or one taken at another commit, is "
+"grey, because it is not a figure about this code at all. Everywhere else "
+"the colour is the absolute number: painting 32 % green on the grounds "
+"that 32 is what this repository currently demands would flatter a reader "
+"with the project's own floor, and a badge is read by people who have not "
+"opened ``ci.yaml``."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:53
+msgid ""
+"**The run as a whole gets one word**, and it is the vocabulary the grants"
+" report already uses:"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:59
+msgid "Status"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:60
+msgid "When"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:61
+msgid "``passing``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:62
+msgid "every gated figure measured, current, and at or above its minimum"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:63
+msgid "``failing``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:64
+msgid "a measured figure under its minimum, or a suite that did not pass"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:65
+msgid "``inconclusive``"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:66
+msgid ""
+"nothing below, but something unmeasured, something stale, or something a "
+"``--skip-slow`` run never looked at"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:69
+msgid ""
+"``inconclusive`` is grey and is **not** a pass, for the reason "
+"``unmeasured`` is not one: a figure nobody could compute is not a figure "
+"above the threshold."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:74
+msgid ""
+"**No rendering carries a timestamp, and none names a commit unless a "
+"figure is stale.** These artefacts are committed — badges in a "
+"``README.md``, tables in this tree — and a date, or the head recorded "
+"beside every figure, would put a diff in every commit saying nothing had "
+"changed. The commit is named in the one place where it is the news: "
+"beside a figure measured at another one."
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:82
+msgid "What Jenkins will add"
+msgstr ""
+
+#: ../../source/guides/devops/reporting.rst:84
+msgid ""
+"Two things, and nothing else: publishing to PyPI on a tagged release "
+"(``make release``), and building the documentation. Everything else it "
+"would run already has a name here, and ``make ci`` is that name."
+msgstr ""
+

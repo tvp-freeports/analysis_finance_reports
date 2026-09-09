@@ -1,0 +1,222 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:1
+msgid "Strengths, weaknesses, and how to check them"
+msgstr "Punti di forza, punti deboli, e come verificarli"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:3
+msgid ""
+"A page of claims about a project, written by that project, is worth very little on "
+"its own. What makes this one worth reading is that almost every line below names the "
+"command that would prove it wrong."
+msgstr ""
+"Una pagina di affermazioni su un progetto, scritta da quel progetto, da sola vale "
+"pochissimo. Ciò che rende questa degna di lettura è che quasi ogni riga qui sotto "
+"nomina il comando che la smentirebbe."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:7
+msgid "Where the project is strong"
+msgstr "Dove il progetto è forte"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:9
+msgid ""
+"**The method is inspectable end to end.** A number in the output came from a page of "
+"a PDF, read by a named format, under a recipe you can read. Nothing is a model whose "
+"behaviour has to be inferred from its outputs."
+msgstr ""
+"**Il metodo è ispezionabile da un capo all'altro.** Un numero nei risultati viene da "
+"una pagina di un PDF, letta da un formato con un nome, secondo una ricetta che puoi "
+"leggere. Niente qui è un modello il cui comportamento vada dedotto da ciò che "
+"produce."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:13
+msgid ""
+"**Support grows without touching the engine.** A new report layout is a new format in"
+" somebody else's repository. The part that must not change does not change in order "
+"to cover more issuers — which is what usually rots this kind of tool."
+msgstr ""
+"**Il supporto cresce senza toccare il motore.** L'impaginazione di una nuova "
+"relazione è un nuovo formato nel repository di qualcun altro. La parte che non deve "
+"cambiare non cambia per coprire più emittenti — che è ciò che di solito fa marcire "
+"questo genere di strumenti."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:17
+#, python-brace-format
+msgid ""
+"**Claims are attributable and hash-bound.** A grant says *this person, under this "
+"published methodology, vouched for these exact bytes*. Change the file and the grant "
+"is invalid, deliberately. {doc}`why-trust-a-grant` is what that does and does not "
+"establish."
+msgstr ""
+"**Le affermazioni sono attribuibili e legate a un hash.** Un'attestazione dice "
+"*questa persona, secondo questa metodologia pubblicata, ha risposto di questi byte "
+"precisi*. Cambia il file e l'attestazione non vale più, deliberatamente. {doc}`why-"
+"trust-a-grant` dice che cosa questo stabilisce e che cosa no."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:21
+#, python-brace-format
+msgid ""
+"**The project measures itself and publishes the measurements.** Test coverage, "
+"documentation coverage, lint scores, how much of the repository anyone has vouched "
+"for — all of it is generated, all of it is re-runnable, and a commit can be refused "
+"over it. {doc}`../devops/index` is the machinery; {doc}`../../dev/ci-report/index` is"
+" what it found last time."
+msgstr ""
+"**Il progetto si misura e pubblica le misure.** Copertura dei test, copertura della "
+"documentazione, punteggi dei linter, di quanto del repository qualcuno abbia risposto"
+" — è tutto generato, è tutto rieseguibile, e per quei numeri un commit può essere "
+"rifiutato. {doc}`../devops/index` è il meccanismo; {doc}`../../dev/ci-report/index` è"
+" ciò che ha trovato l'ultima volta."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:26
+#, python-brace-format
+msgid ""
+"**Failures are local.** The page is the unit of work, so a page the engine cannot "
+"read is a page, not a run. {doc}`../../reference/design/pages` is the assumption and "
+"what it costs."
+msgstr ""
+"**I guasti sono circoscritti.** La pagina è l'unità di lavoro, quindi una pagina che "
+"il motore non riesce a leggere è una pagina, non un'esecuzione. "
+"{doc}`../../reference/design/pages` è l'assunzione, con quello che costa."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:29
+msgid "Where the project is weak"
+msgstr "Dove il progetto è debole"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:31
+#, python-brace-format
+msgid ""
+"**Extraction from documents made for human eyes is not exact, and never will be.** "
+"The project's own position is that any tool claiming otherwise is misrepresenting "
+"itself — {doc}`../../overview/trust`."
+msgstr ""
+"**L'estrazione da documenti fatti per occhi umani non è esatta, e non lo sarà mai.** "
+"La posizione del progetto è che ogni strumento che affermi il contrario stia "
+"travisando sé stesso — {doc}`../../overview/trust`."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:35
+msgid ""
+"**Coverage is whatever people have written formats for.** There is no coverage of an "
+"issuer nobody has cared about yet, and no way to tell from the output that a report "
+"*would* have been misread — only that it was not read."
+msgstr ""
+"**La copertura è quella per cui la gente ha scritto dei formati.** Non c'è copertura "
+"per un emittente di cui nessuno si è ancora curato, e non c'è modo di capire dai "
+"risultati che una relazione *sarebbe* stata letta male — solo che non è stata letta."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:39
+msgid ""
+"**A grant is a statement by a person, not a proof.** It says somebody applied a named"
+" protocol in good faith. It does not say they were right, and the methodologies say "
+"so themselves."
+msgstr ""
+"**Un'attestazione è la dichiarazione di una persona, non una dimostrazione.** Dice "
+"che qualcuno ha applicato in buona fede un protocollo con un nome. Non dice che "
+"avesse ragione, e sono le metodologie stesse a dirlo."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:42
+msgid ""
+"**The published figures describe one run on one machine.** Every generated page "
+"carries that sentence, because a coverage number measured elsewhere is a fact about "
+"elsewhere."
+msgstr ""
+"**I dati pubblicati descrivono una sola esecuzione su una sola macchina.** Ogni "
+"pagina generata porta con sé quella frase, perché un numero di copertura misurato "
+"altrove è un fatto che riguarda altrove."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:45
+#, python-brace-format
+msgid ""
+"**Parts of it are designed and not built.** That is stated rather than hidden: "
+"{doc}`../../reference/design/limits` lists what is an accepted limit, what is "
+"planned, and what is simply broken. A project that keeps such a list is easier to "
+"trust than one that does not, and it is also an admission."
+msgstr ""
+"**Alcune sue parti sono progettate e non costruite.** La cosa è dichiarata anziché "
+"nascosta: {doc}`../../reference/design/limits` elenca che cosa è un limite accettato,"
+" che cosa è previsto, e che cosa è semplicemente rotto. Un progetto che tiene una "
+"lista del genere è più facile da ritenere affidabile di uno che non ce l'ha, ed è "
+"anche un'ammissione."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:50
+#, python-brace-format
+msgid ""
+"**There is no continuous integration running right now.** The pipeline exists and is "
+"stopped; the gate is local. {doc}`../devops/index` says so plainly."
+msgstr ""
+"**Al momento non c'è alcuna integrazione continua in funzione.** La pipeline esiste "
+"ed è ferma; il gate è locale. {doc}`../devops/index` lo dice chiaramente."
+
+#: ../../source/guides/institutional/strengths-and-limits.md:53
+msgid "How to check any of it yourself"
+msgstr "Come verificare da te qualunque di queste cose"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "Claim"
+msgstr "Affermazione"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "Command that settles it"
+msgstr "Comando che la risolve"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "the grants say what the site says"
+msgstr "le attestazioni dicono ciò che dice il sito"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-validate check-grants`"
+msgstr "`freeports-validate check-grants`"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "the coverage and lint figures are current"
+msgstr "i dati di copertura e di lint sono aggiornati"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev ci-check`"
+msgstr "`freeports-dev ci-check`"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "a format reads a given report the way it should"
+msgstr "un formato legge una data relazione come dovrebbe"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev test`, against that repository"
+msgstr "`freeports-dev test`, contro quel repository"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "a figure in a report came from where it says"
+msgstr "un dato di una relazione viene da dove dice"
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev inspect-page`"
+msgstr "`freeports-dev inspect-page`"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:61
+msgid ""
+"Every generated page on this site repeats that invitation, in those words, for the "
+"same reason: a figure you cannot re-derive is a figure you are being asked to take on"
+" faith."
+msgstr ""
+"Ogni pagina generata di questo sito ripete quell'invito, con quelle parole, per lo "
+"stesso motivo: un dato che non puoi ricavare di nuovo è un dato che ti si chiede di "
+"credere sulla parola."
+

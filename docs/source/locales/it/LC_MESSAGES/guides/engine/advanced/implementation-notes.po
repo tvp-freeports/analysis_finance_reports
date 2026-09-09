@@ -1,0 +1,359 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:3
+msgid "Implementation notes"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:5
+msgid ""
+"The technology choices behind the engine, each with the alternative that "
+"was rejected and the reason. These are decisions about *how the thing is "
+"built*, useful to someone about to change it."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:8
+msgid ""
+"They are deliberately kept out of the whitepaper, whose design section is"
+" about the **algorithm** — pages, classification, segments, promises — "
+"and not about which crates it is assembled from. See "
+":doc:`../../../reference/design/index` for that."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:13
+msgid "The engine is Rust, and the parts that are not are named"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:15
+msgid ""
+"The engine was originally Python. It is now a Rust crate that Python "
+"imports, and the whole of the logic — the data model, the pipelines, "
+"loading a formats repository, promise resolution, writing the output — is"
+" native."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:19
+msgid ""
+"**Rejected:** keeping the engine in Python and optimising the hot spots. "
+"The hot spots were not localised; the work is per page and per block and "
+"it is *all* of it."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:22
+msgid ""
+"**Two exceptions, and only two.** Python is reached in exactly two "
+"places, and both are recorded as boundaries rather than left to grow:"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:25
+msgid ""
+"**Loading the PDF**, through PyMuPDF. There is no mature Rust equivalent "
+"that reads a page's text with its layout, and writing one is not this "
+"project. PyMuPDF is called once per document, and its output becomes a "
+"native page immediately."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:28
+msgid ""
+"**Running an author's pipes**, because an unstructured format *is* Python"
+" by definition."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:30
+msgid ""
+"The original page dictionary is kept next to the native page, so an "
+"author's pipe receives what it expects while native pipes work on native "
+"data — one conversion, not a round trip per block. Nothing else in the "
+"crate mentions PyO3, and a Python error from an author's pipe is logged "
+"with its traceback and converted to a typed error at the boundary; no "
+"Python exception travels further."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:36
+msgid "Oniguruma, not the ``regex`` crate"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:38
+msgid ""
+"**Rejected:** the ``regex`` crate, which is faster and is what a Rust "
+"programmer reaches for by reflex."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:41
+msgid ""
+"Formats repositories are full of patterns already written by their "
+"authors in Python/PCRE syntax, with backreferences and lookaround. The "
+"``regex`` crate does not support them, by design. Choosing it would have "
+"meant rewriting every existing pattern and telling every future author "
+"that their regex knowledge does not apply here. The engine uses ``onig`` "
+"so that a pattern that worked yesterday works today."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:48
+msgid "The public API is a facade, not the module tree"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:50
+msgid ""
+"Everything reachable from ``api`` is a promise to library users; "
+"everything else is an internal tree that may be reorganised at any time."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:53
+msgid ""
+"**Rejected:** exporting the module tree directly, which is free and is "
+"what most crates do. It makes every file move a breaking change, and it "
+"publishes as commitments the fifty types that exist only because the code"
+" is split into files."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:57
+msgid ""
+"The facade is deliberately narrower than the tree, with one recurring "
+"exception: a facade type drags in the types of its own public fields and "
+"signatures. Exposing a block without its value type would hand callers a "
+"struct they cannot read; exposing a fallible function without its error "
+"type would hand them a ``Result`` they cannot match on. Those are not "
+"surface creep, they are what makes a facade usable."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:64
+msgid "Typed errors everywhere, and no panics on a user path"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:66
+msgid ""
+"**Rejected:** exceptions carried across the boundary, and ``unwrap`` on "
+"values that came from a file."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:69
+msgid ""
+"One error enum per module, built with ``thiserror``. Panics remain only "
+"where the input genuinely cannot come from outside, and where they do, "
+"the module says so. Two inherited panics are documented limits rather "
+"than pending fixes — a deliberate choice to record a known edge instead "
+"of pretending it was handled."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:75
+msgid "No pandas, no Pydantic, no Pandera"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:77
+msgid ""
+"**Rejected:** reading the formats repository's CSVs with pandas and "
+"validating with Pandera, as the Python original did."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:80
+msgid ""
+"The joins involved are lookups on a derived key — a hash map, ten lines. "
+"The validations are per-row checks that need to report **the row "
+"number**, because these files are edited in a spreadsheet by people who "
+"will never see a stack trace. Heavy dataframe dependencies bought a "
+"concise expression of something that was not hard, and made the error "
+"messages worse."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:85
+msgid ""
+"Dates are hand-written for the same reason: parse, format, compare, no "
+"calendar arithmetic. A date library would have been a dependency serving "
+"three functions."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:89
+msgid "Serialisation is derived, so fixtures are readable"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:91
+msgid ""
+"Everything crossing a segment derives serde's traits. The consequence "
+"that matters is not internal: the per-page test fixtures are **JSON**, "
+"produced and consumed by the same derivation, instead of Python pickles."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:95
+msgid ""
+"**Rejected:** keeping pickle compatibility with the existing fixtures. It"
+" would have frozen the data model to Python's object layout, and pickles "
+"are opaque in a diff — a regression in a fixture should be something you "
+"can *see*."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:100
+msgid "One logging system, three destinations"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:102
+msgid ""
+"**Rejected:** one log stream with levels, which is the default answer "
+"everywhere."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:104
+msgid ""
+"What a person watches while a run happens and what a tool parses "
+"afterwards are different artefacts, and serving both from one stream "
+"makes each worse. So: stderr for watching; a JSON-lines file for tools; "
+"``.log.csv`` as the extraction's own audit trail, anchored to pages and "
+"coordinates. See :doc:`../../user/logging`."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:109
+msgid ""
+"Only two of the three are there on an ordinary run. The JSON-lines file "
+"exists at ``trace`` and nowhere below it: it answers *everything the "
+"engine did, in order, with the module and the error chain attached*, "
+"which is a question only the maximum verbosity answers, and creating it "
+"at every verbosity meant that even ``-q`` dropped a file into the "
+"directory the run was started from."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:114
+msgid ""
+"Which is also why neither log is created by ``tracing_setup::init``. "
+"Whether there is to be a JSON-lines file, and where ``.log.csv`` goes, "
+"are both answers that live in a configuration that cannot be resolved "
+"until logging is already running; so ``init`` installs the subscriber and"
+" creates nothing, the records accumulate, and "
+"``LogHandle::settle_verbosity`` and ``set_csv_dir`` settle the two of "
+"them the instant the configuration resolves. The level filters are "
+"reloadable for the same reason — raising a verbosity after the fact means"
+" rebuilding ``tracing``'s per-callsite interest cache, not just changing "
+"a comparison."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:122
+msgid ""
+"That file is where the structured error record lands — its ``Debug`` "
+"form, its message and its whole ``source()`` chain, under the ``error`` "
+"key of a line — because none of the three survives being flattened into a"
+" sentence on stderr."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:126
+msgid ""
+"This whole area was tuned against a real complaint and measured. The "
+"first instrumentation pass made a 1,140-page job take **19 minutes** and "
+"produced a **2.8 GB** log file. After tuning: **13 seconds** and **609 "
+"rows**, doing the same work. Instrumentation nobody can afford to leave "
+"on is instrumentation that does not exist."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:132
+msgid "Processes and threads"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:134
+msgid ""
+"The reasoning, the measurements and the two levels that the measurements "
+"cancelled are part of the algorithm's design and live in "
+":doc:`../../../reference/design/parallelism`. Two notes belong here "
+"instead, because they are about the implementation rather than about the "
+"design:"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:138
+msgid ""
+"the page-level thread pool is **owned by the crate**, in a ``OnceLock``, "
+"and is not rayon's global pool. A library must not seize the thread pool "
+"of the program embedding it — and this library is also a Python extension"
+" module, so the embedding program is a real thing with its own plans;"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:142
+msgid ""
+"job-level parallelism is child **processes** of the same binary, driven "
+"through a hidden ``--internal-worker`` flag and a two-file JSON protocol "
+"in a temporary directory. The flag is hidden because it is not a user "
+"interface but the channel between two copies of one program."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:147
+msgid "Documentation: one Sphinx site, rustdoc beside it"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:149
+msgid ""
+"**Rejected:** mdbook for the prose, which reads better and is pleasanter "
+"to write."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:151
+msgid ""
+"Three reasons survived scrutiny: the validation section already exists "
+"and is live content that cannot be rewritten for free; publishing is "
+"already configured; and enabling MyST means the prose is written in "
+"Markdown *inside* Sphinx, which is most of what mdbook was wanted for, "
+"without a second toolchain."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:156
+msgid ""
+"A fourth reason was offered and turned out to be **false** on measurement"
+" — that four translations already existed. There is one partial "
+"translation. The decision stands on the other three, and the false one is"
+" recorded here because a reason that does not hold should stop being "
+"repeated."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:160
+msgid ""
+"rustdoc is generated and published as a sub-path, not transcribed into "
+"``.rst``. A hand-written copy of the Rust API goes stale in a week."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:164
+msgid "Some things were deliberately not redesigned"
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:166
+msgid ""
+"The PDF line model, the line selections and the tabularizer were carried "
+"over essentially as they were, and improvements noticed during the port "
+"were **reported rather than applied**."
+msgstr ""
+
+#: ../../source/guides/engine/advanced/implementation-notes.rst:169
+msgid ""
+"This is a decision, not an omission. That code has been used for a long "
+"time, its behaviour is what the existing formats depend on, and a rewrite"
+" would have been risk without a user asking for it. The place to record "
+"an improvement you cannot justify is a note, not a commit."
+msgstr ""
+
+#~ msgid ""
+#~ "Only two of the three are there"
+#~ " on an ordinary run. The JSON-"
+#~ "lines file exists at ``-vvv`` and "
+#~ "nowhere below it: it answers *everything"
+#~ " the engine did, in order, with "
+#~ "the module and the error chain "
+#~ "attached*, which is a question only "
+#~ "the maximum verbosity answers, and "
+#~ "creating it at every verbosity meant "
+#~ "that even ``-q`` dropped a file "
+#~ "into the directory the run was "
+#~ "started from."
+#~ msgstr ""
+

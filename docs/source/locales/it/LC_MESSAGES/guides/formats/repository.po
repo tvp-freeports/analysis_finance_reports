@@ -1,0 +1,206 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/repository.md:1
+msgid "The formats repository"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:3
+msgid ""
+"A formats repository is an ordinary directory, tracked in its own version"
+" control, holding the recipes for a set of report layouts. The engine "
+"reads it; it is not part of the engine."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:6
+msgid ""
+"That separation is the project's main structural bet. Support for a new "
+"report needs no release of the engine, touches nothing anyone else "
+"maintains, and can be published by whoever cares about those reports. "
+"`analysis_finance_reports_formats` — *Italy, five top groups* — is one "
+"such repository, and there is nothing privileged about it."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:11
+msgid "Starting a repository"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:18
+msgid "The layout of a repository"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:50
+#, python-brace-format
+msgid ""
+"Everything marked *generated* is rewritten between two markers — by "
+"`freeports-validate report` for the grants and `freeports-dev ci-report` "
+"for the figures — and what is between them is replaced whole; see {ref"
+"}`what-init-format-repo-writes`. Text of your own outside the markers is "
+"kept."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:54
+msgid "Working on it: `make`, and asking about it: `freeports-dev`"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:56
+msgid ""
+"The repository is worked on with `make` and interrogated with `freeports-"
+"dev`, and the two are the same vocabulary rather than two ways of doing "
+"the same thing:"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:67
+msgid ""
+"`make` acts on *this* repository: it writes the measurements into "
+"`reports/`, refreshes the committed reports, and rewrites "
+"`package.yaml`'s fingerprint when it is entitled to. `freeports-dev` and "
+"`freeports-validate` act on *any* repository — `--repo ~/their-formats` —"
+" and write only where you point them. That is why the same figure has two"
+" commands: one to keep yours current, one to ask about somebody else's."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:73
+#, python-brace-format
+msgid ""
+"{doc}`../devops/the-gate` says which targets may refuse a commit, and on "
+"which branch."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:75
+msgid "The `metadata/` tables"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:76
+msgid ""
+"`metadata/formats.csv` lists the formats by their **components**, not by "
+"their names:"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:84
+msgid ""
+"The name every other file refers to — `AMUNDI-EN24` — is **synthesised** "
+"as `Name-Locale<YY>[@Country][.Version]` and written nowhere. There is "
+"exactly one place a format name comes from, so a name and its components "
+"cannot disagree."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:88
+msgid ""
+"`metadata/url_mapping.csv` maps URL prefixes to format names, and is what"
+" lets a document downloaded from a known address be read without "
+"`--format`. The **order matters**: the first matching prefix wins."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:92
+msgid "Orchestration"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:94
+#, python-brace-format
+msgid ""
+"Three tables decide what runs and in what order; "
+"{doc}`../../reference/design/schedule` explains why they have this shape."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:97
+msgid ""
+"**`algorithms_schedule.csv`** — per format, the page classes in "
+"processing order, split into steps. Classes accumulate into the current "
+"step until a row raises `Filter next iteration`, which closes it and "
+"opens the next. That flag is how you say \"the results so far are the "
+"filter for what comes next\":"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:109
+msgid ""
+"Here `investments` runs first and alone; the two remaining classes run in"
+" a second step and can filter on what the first found."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:112
+#, python-brace-format
+msgid ""
+"**`mapping.csv`** — which pipelines handle which page class, keyed by "
+"`{format}({pipeline})`. Left unspecified, a page class is handled by the "
+"pipeline of the same name. Several rows may point at one class, and one "
+"pipeline may serve several classes."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:116
+msgid ""
+"**`pageclassify_overwrite.csv`** — the formats that replace the standard "
+"page classification with their own pipelines. Empty in the common case."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:119
+msgid "Tests, and what they are for"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:121
+msgid ""
+"Each format under `tests/formats/<FORMAT>/` has the report, per-page "
+"fixtures, and the expected output."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:124
+msgid ""
+"The per-page fixtures — `<page>-pdf_blks.json`, `<page>-txt_blks.json`, "
+"`<page>-results.json`, plus a `filter_data.json` per page class — pin one"
+" page at a time and are generated by `freeports-dev make-tests`. They are"
+" what tells you which segment broke."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:128
+#, python-brace-format
+msgid ""
+"`out/` is different in kind. It is the **expected output of the whole "
+"document**, and it is the repository's specification: if a run diverges "
+"from it, the engine is what changed, not the expectation. Regenerating "
+"one of those files is a deliberate act with a reason attached, never a "
+"way to make a red test go green. That is also what makes the grants in "
+"{doc}`../../overview/trust` meaningful — a grant is a claim about the "
+"content of exactly these files."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:134
+#, python-brace-format
+msgid ""
+"Run them with `freeports-dev test`, optionally narrowed with `--format`. "
+"{doc}`dev-loop` is the workflow, {doc}`../../reference/cli/index` the "
+"option-by-option reference."
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:137
+msgid "Versioning and identity"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:139
+msgid "`package.yaml` carries the repository's own identity:"
+msgstr ""
+
+#: ../../source/guides/formats/repository.md:149
+msgid ""
+"`validation_sha256` ties the repository to the validation document that "
+"vouches for its contents, so that a consumer can tell not only *what* "
+"they have but *what was claimed about it*."
+msgstr ""
+

@@ -1,0 +1,74 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/advanced/index.md:1
+msgid "Beyond a single run"
+msgstr "Oltre la singola esecuzione"
+
+#: ../../source/guides/user/advanced/index.md:3
+msgid ""
+"Two things you do not need for a first run and will want for a hundredth: driving "
+"many jobs from a file, and deciding how much of the machine to use."
+msgstr ""
+"Due cose che non servono alla prima esecuzione e che vorrai alla centesima: guidare "
+"molti job da un file, e decidere quanta macchina usare."
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "Page"
+msgstr "Pagina"
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "Answers"
+msgstr "Risponde a"
+
+#: ../../source/guides/user/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`batch`"
+msgstr "{doc}`batch`"
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "one job per CSV row, and why a row wins over the command line"
+msgstr "un job per riga di CSV, e perché una riga vince sulla riga di comando"
+
+#: ../../source/guides/user/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`parallelism`"
+msgstr "{doc}`parallelism`"
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "the two levels, `auto`, the measurements, and the price in memory"
+msgstr "i due livelli, `auto`, le misure, e il prezzo in memoria"
+
+#: ../../source/guides/user/advanced/index.md:19
+#, python-brace-format
+msgid ""
+"Both are configured like everything else — "
+"{doc}`../../../reference/configuration/index` — and both are consequences of the "
+"design rather than features bolted on: {doc}`../../../reference/design/parallelism` "
+"explains why parallelism falls out of the page assumption instead of being added to "
+"it."
+msgstr ""
+"Entrambe si configurano come tutto il resto — "
+"{doc}`../../../reference/configuration/index` — ed entrambe sono conseguenze del "
+"progetto anziché funzionalità applicate sopra: "
+"{doc}`../../../reference/design/parallelism` spiega perché il parallelismo discende "
+"dall'assunzione sulla pagina invece di esserle aggiunto."
+

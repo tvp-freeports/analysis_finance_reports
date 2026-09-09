@@ -1,0 +1,205 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:1
+msgid "Why a grant is worth something"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:3
+#, python-brace-format
+msgid ""
+"A grant is a signed statement that a named methodology was applied to a "
+"specific file. This page is the argument for why that is worth more than "
+"a disclaimer and less than a guarantee — read it before deciding how much"
+" weight to put on the figures. The mechanics of making one are "
+"{doc}`../grants/index`; the published methodologies themselves are "
+"{doc}`../../validation/index`."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:9
+msgid "A methodology is a document at a location you chose to trust"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:11
+msgid ""
+"A methodology page does not ship with the tool, and it does not live in "
+"the repository being vouched for. It is **published somewhere**, and each"
+" person who uses it configures where they read it from — one or more "
+"*sources*, patterns like "
+"`https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`, in "
+"which a `*` stands for the methodology's name."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:17
+msgid ""
+"The obvious alternative — shipping the pages inside the installed command"
+" — is the one thing this arrangement exists to avoid, and following why "
+"explains what a grant means. If the text lived in the package, upgrading "
+"`freeports-validate` would silently change what every grant in every "
+"repository referred to: a claim you made in March could come to mean "
+"something else in April because your package manager updated something. "
+"The text a claim is about must not be chosen by a package manager."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:24
+msgid ""
+"So it is chosen by you. And the consequence — the honest half of the "
+"trade — is that whoever publishes a methodology can invalidate grants "
+"made under it, by editing the page. That is not a flaw that survived "
+"review; it is the correct shape of the thing. A methodology *is* a text, "
+"a grant *is* a claim about that text, and the person who controls the "
+"text therefore controls what the claim meant. Making that visible is "
+"better than hiding it inside a version number."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:30
+msgid "The source is a contract, and it is deliberately not recorded"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:32
+msgid ""
+"A validation document stores a methodology's **name** and its **sha256**."
+" It stores nothing about where either came from."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:35
+msgid ""
+"That looks like a missing field and is a decision. The source is an "
+"agreement between the person who granted and the person who verifies, and"
+" each of them writes it in their own configuration — the granter chose "
+"which publication of a methodology they were working under, and the "
+"verifier chooses which publication they are checking against. Recording "
+"the granter's source inside the document would make the document assert "
+"something about the verifier's setup that it has no standing to assert, "
+"and would quietly turn a shared name into a URL that has to keep working "
+"for ever."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:42
+msgid ""
+"The price is that a hash mismatch is ambiguous. It may mean the page was "
+"rewritten; it may mean the two of you were reading two different "
+"publications of the same methodology. The tool pays that price in prose "
+"rather than in schema: a mismatch names a differently-configured source "
+"as the first likely cause, and prints the sources in use with the URI the"
+" name resolved to, so two people can compare one line and see which of "
+"the two it was."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:52
+msgid "What a methodology may say about itself"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:54
+msgid ""
+"Two optional things on the page are read by the tool rather than only by "
+"people, and both exist to make a grant more legible rather than to "
+"constrain it."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:57
+msgid ""
+"A **`Supported paths`** section declares which repository paths the "
+"methodology covers, each with a sentence saying what vouching for such a "
+"file claims. A page that has no such section covers any path, which is "
+"the honest answer for a methodology — `agreement and good faith` is the "
+"example — whose scope cannot be written as a set of paths. Where a "
+"section exists and a grant falls outside it, `grant` refuses while its "
+"author is still standing there, and `check-grants` only warns: a "
+"repository must not go red because somebody else edited a page it adopts."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:64
+msgid ""
+"A page may also **pin what it cites** — a diagram, a specification, "
+"another document — by hash, in ordinary reStructuredText comments. Those "
+"lines are part of the page, so the page's own hash already commits to "
+"them; following them is a deepening, never a second thing to trust. A "
+"check does follow them by default, because \"do the things this page "
+"relies on still say what its author read\" is the question actually being"
+" asked; `--no-deep` turns that off where the fetch per pinned resource is"
+" what you cannot afford."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:71
+#, python-brace-format
+msgid "{doc}`../grants/writing-a-methodology` is the guide to writing one."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:73
+msgid "The three published methodologies"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:74
+msgid ""
+"A methodology says what a person actually did before vouching. Three are "
+"published today, and they differ in how much verification they claim, not"
+" in how much they promise:"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:77
+msgid ""
+"**Basic check** — the output files were generated, they look reasonable, "
+"and a human has actually looked at them. It is a low bar, and it is "
+"stated as a low bar. Its value is that it is *honest* about being one, "
+"and that someone's name is attached to it."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:81
+msgid ""
+"**Golden standard** — basic check plus manual verification of the "
+"intermediate blocks: every unit the extraction saw was reviewed, and the "
+"claim includes that nothing relevant was missed. Expensive, and "
+"correspondingly rare."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:85
+msgid ""
+"**Agreement and good faith** — used for assertions rather than data: a "
+"contributor states that they have read a claim, understood it, judged it "
+"within their competence, and agree with it. It is how a statement that "
+"cannot be checked by running a program still gets a name attached."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:89
+#, python-brace-format
+msgid ""
+"The full text of each — scope, protocol steps, what is and is not "
+"certified — is in {doc}`the validation section <../../validation/index>`,"
+" and that text, not this summary, is what a grant refers to."
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:94
+msgid "What this does not give you"
+msgstr ""
+
+#: ../../source/guides/institutional/why-trust-a-grant.md:96
+#, python-brace-format
+msgid ""
+"It does not make the extraction correct. It makes the extraction "
+"**accountable**, which is a different and smaller thing: you can find out"
+" what was claimed, by whom, on what basis, and about exactly which bytes."
+" Where that is not enough for your purpose, the honest answer is that it "
+"is not enough, and the {doc}`validation section <../../validation/index>`"
+" is written to let you determine that for yourself rather than to "
+"reassure you."
+msgstr ""
+

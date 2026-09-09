@@ -14,18 +14,18 @@ it from — one or more *sources*, patterns like
 `https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`, in which a `*` stands for the
 methodology's name.
 
-The pages used to travel inside the installed command, and the reason for moving them is worth
-following, because the same reasoning explains what a grant means now. When the text lived in the
-package, upgrading `freeports-validate` silently changed what every grant in every repository
+The obvious alternative — shipping the pages inside the installed command — is the one thing this
+arrangement exists to avoid, and following why explains what a grant means. If the text lived in the
+package, upgrading `freeports-validate` would silently change what every grant in every repository
 referred to: a claim you made in March could come to mean something else in April because your
-package manager updated something. The text a claim is about should not be chosen by a package
+package manager updated something. The text a claim is about must not be chosen by a package
 manager.
 
 So it is chosen by you. And the consequence — the honest half of the trade — is that whoever
-publishes a methodology can now invalidate grants made under it, by editing the page. That is not a
-flaw that survived review; it is the correct shape of the thing. A methodology *is* a text, a grant
-*is* a claim about that text, and the person who controls the text therefore controls what the claim
-meant. Making that visible is better than hiding it inside a version number.
+publishes a methodology can invalidate grants made under it, by editing the page. That is not a flaw
+that survived review; it is the correct shape of the thing. A methodology *is* a text, a grant *is* a
+claim about that text, and the person who controls the text therefore controls what the claim meant.
+Making that visible is better than hiding it inside a version number.
 
 ## The source is a contract, and it is deliberately not recorded
 

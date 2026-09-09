@@ -1,0 +1,172 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/index.md:1
+msgid "Quick start"
+msgstr ""
+
+#: ../../source/start/index.md:3
+msgid ""
+"Everything in this section is read by everyone, whatever you came here to"
+" do: what to install, what one real run looks like, and — if you intend "
+"to change something rather than only use it — which of the eight kinds of"
+" contribution is yours."
+msgstr ""
+
+#: ../../source/start/index.md:17
+msgid "The four pages here"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "Page"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "Answers"
+msgstr ""
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`install`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "what to install, and which of the three distributions you need"
+msgstr ""
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`first-run`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "one real run, commented argument by argument"
+msgstr ""
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`dev-tools`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "the developer toolchain, and what each `make` target sets up"
+msgstr ""
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`ways-to-contribute`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "the eight shapes a contribution takes, and where each one is documented"
+msgstr ""
+
+#: ../../source/start/index.md:25
+msgid "The four things a run needs"
+msgstr ""
+
+#: ../../source/start/index.md:26
+msgid ""
+"Four things must be given, and only one of them can ever be worked out by"
+" the engine on its own:"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "What"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "How"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "Can be inferred?"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "a document"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "`--input` / `-i`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "no"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "a format for it"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "`--format` / `-f`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "**yes**, from a URL the formats repository recognises"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "a formats repository"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "`--repo` / `-F`"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "an input database, and at least one list in it"
+msgstr ""
+
+#: ../../source/start/index.md:7
+msgid "`--db-directory` / `-I`, `--target-list` / `-T`"
+msgstr ""
+
+#: ../../source/start/index.md:41
+msgid ""
+"None of the four has a useful default, and the engine refuses rather than"
+" guessing. If no target list is given the run stops immediately, before "
+"opening anything — the check is first because failing fast on a missing "
+"input is kinder than failing after four minutes of PDF."
+msgstr ""
+
+#: ../../source/start/index.md:45
+#, python-brace-format
+msgid ""
+"Two of those four are separate repositories, maintained by other people: "
+"{doc}`../guides/formats/index` is where a format comes from, "
+"{doc}`../guides/input-db/index` is where the company lists come from. "
+"{doc}`../overview/the-repositories` is the whole map."
+msgstr ""
+
+#: ../../source/start/index.md:49
+msgid "Where to go next"
+msgstr ""
+
+#: ../../source/start/index.md:50
+#, python-brace-format
+msgid ""
+"{doc}`../overview/index` if you want to understand the thing before "
+"driving it; {doc}`../guides/user/index` if you want to drive it now; {doc"
+"}`ways-to-contribute` if you intend to change it."
+msgstr ""
+

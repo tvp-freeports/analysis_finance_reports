@@ -1,0 +1,250 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/index.md:1
+msgid "Guides, by who you are"
+msgstr "Guide, secondo chi sei"
+
+#: ../../source/guides/index.md:3
+#, python-brace-format
+msgid ""
+"This is the audience axis of the documentation. Each section below is written for one"
+" figure, opens with the loop that figure actually works in, and keeps its deep "
+"material in its own `advanced` pages. Where two figures need the same fact, neither "
+"repeats it: both point at {doc}`../reference/index`."
+msgstr ""
+"Questo è l'asse del lettore della documentazione. Ciascuna sezione qui sotto è "
+"scritta per una figura, si apre con il ciclo di lavoro in cui quella figura si muove "
+"davvero, e tiene il materiale approfondito nelle proprie pagine `advanced`. Dove due "
+"figure hanno bisogno dello stesso fatto, nessuna delle due lo ripete: entrambe "
+"puntano a {doc}`../reference/index`."
+
+#: ../../source/guides/index.md:9
+msgid ""
+"**A project is shaped by the people who turn up, not the other way round.** The "
+"figures below are how these pages happen to be arranged today — a record of the work "
+"people have already done here, not a list of the work that counts. They are soft at "
+"the edges and certainly incomplete."
+msgstr ""
+"**Un progetto prende la forma delle persone che si presentano, non il contrario.** Le"
+" figure qui sotto sono il modo in cui queste pagine si dà il caso siano organizzate "
+"oggi — la registrazione del lavoro che qui è già stato fatto, non l'elenco del lavoro"
+" che conta. Hanno bordi sfumati e sono senz'altro incomplete."
+
+#: ../../source/guides/index.md:13
+msgid ""
+"So do not look for yourself in the table and conclude you are missing. Take a piece "
+"of one section and a piece of another, bring an expertise none of them anticipated, "
+"or arrive with a background this project has never had — that is the case in which "
+"everyone gains most. A contribution these pages have no section for is a good sign "
+"about the project and a gap in the documentation; the section gets written "
+"afterwards, which is how most of the ones below came to exist."
+msgstr ""
+"Quindi non cercarti nella tabella per concluderne che manchi. Prendi un pezzo di una "
+"sezione e un pezzo di un'altra, porta una competenza che nessuna di esse aveva "
+"previsto, o arriva con una formazione che questo progetto non ha mai avuto — è il "
+"caso in cui ci guadagnano tutti di più. Un contributo per cui queste pagine non hanno"
+" una sezione è un buon segno per il progetto e una lacuna nella documentazione; la "
+"sezione si scrive dopo, ed è così che sono nate quasi tutte quelle qui sotto."
+
+#: ../../source/guides/index.md:35
+msgid "Where might you start?"
+msgstr "Da dove potresti cominciare?"
+
+#: ../../source/guides/index.md:20
+msgid "If you"
+msgstr "Se"
+
+#: ../../source/guides/index.md:20
+msgid "A good place to start"
+msgstr "Un buon punto di partenza"
+
+#: ../../source/guides/index.md:20
+msgid "It assumes"
+msgstr "Presuppone"
+
+#: ../../source/guides/index.md:20
+msgid "want tables out of a report"
+msgstr "vuoi delle tabelle a partire da una relazione"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`user/index`"
+msgstr "{doc}`user/index`"
+
+#: ../../source/guides/index.md:20
+msgid "nothing but a shell"
+msgstr "nient'altro che una shell"
+
+#: ../../source/guides/index.md:20
+msgid "want to support a report layout nobody supports yet"
+msgstr "vuoi supportare l'impaginazione di una relazione che nessuno supporta ancora"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`formats/index`"
+msgstr "{doc}`formats/index`"
+
+#: ../../source/guides/index.md:20
+msgid "you can read a PDF and edit a spreadsheet"
+msgstr "che tu sappia leggere un PDF e modificare un foglio di calcolo"
+
+#: ../../source/guides/index.md:20
+msgid "want to change which companies a run looks for"
+msgstr "vuoi cambiare quali società un'esecuzione cerca"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`input-db/index`"
+msgstr "{doc}`input-db/index`"
+
+#: ../../source/guides/index.md:20
+msgid "you can edit CSV"
+msgstr "che tu sappia modificare un CSV"
+
+#: ../../source/guides/index.md:20
+msgid "want to change the extraction engine itself"
+msgstr "vuoi cambiare il motore di estrazione stesso"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`engine/index`"
+msgstr "{doc}`engine/index`"
+
+#: ../../source/guides/index.md:20
+msgid "Rust, and a toolchain"
+msgstr "Rust, e una toolchain"
+
+#: ../../source/guides/index.md:20
+msgid "want to vouch for a file under a published methodology"
+msgstr "vuoi rispondere di un file secondo una metodologia pubblicata"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`grants/index`"
+msgstr "{doc}`grants/index`"
+
+#: ../../source/guides/index.md:20
+msgid "GnuPG, and that you have read the file"
+msgstr "GnuPG, e che tu abbia letto il file"
+
+#: ../../source/guides/index.md:20
+msgid "want to write or reorganise these pages"
+msgstr "vuoi scrivere o riorganizzare queste pagine"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`docs/index`"
+msgstr "{doc}`docs/index`"
+
+#: ../../source/guides/index.md:20
+msgid "Sphinx, and the rules on that page"
+msgstr "Sphinx, e le regole di quella pagina"
+
+#: ../../source/guides/index.md:20
+msgid "want to translate them"
+msgstr "vuoi tradurle"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`i18n/index`"
+msgstr "{doc}`i18n/index`"
+
+#: ../../source/guides/index.md:20
+msgid "gettext"
+msgstr "gettext"
+
+#: ../../source/guides/index.md:20
+msgid "own the checks that refuse a commit"
+msgstr "farsi carico dei controlli che rifiutano un commit"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`devops/index`"
+msgstr "{doc}`devops/index`"
+
+#: ../../source/guides/index.md:20
+msgid "`make`, and a willingness to argue about thresholds"
+msgstr "`make`, e la disponibilità a discutere di soglie"
+
+#: ../../source/guides/index.md:20
+msgid "want to know whether to believe any of it"
+msgstr "vuoi sapere se credere a tutto questo"
+
+#: ../../source/guides/index.md:20
+#, python-brace-format
+msgid "{doc}`institutional/index`"
+msgstr "{doc}`institutional/index`"
+
+#: ../../source/guides/index.md:20
+msgid "nothing at all"
+msgstr "proprio niente"
+
+#: ../../source/guides/index.md:48
+#, python-brace-format
+msgid ""
+"The first three of those happen in **different repositories** — a formats repository "
+"and an input database are maintained separately from the engine, by whoever wants to."
+" That is the same decision twice: coverage should grow without anybody touching the "
+"part that must not change. {doc}`../overview/the-repositories` is the map."
+msgstr ""
+"Le prime tre di queste avvengono in **repository diversi** — un repository di formati"
+" e un database di ingresso sono mantenuti separatamente dal motore, da chi ne ha "
+"voglia. È due volte la stessa decisione: la copertura deve crescere senza che nessuno"
+" tocchi la parte che non deve cambiare. {doc}`../overview/the-repositories` è la "
+"mappa."
+
+#: ../../source/guides/index.md:53
+msgid "The three kinds of page you will meet"
+msgstr "I tre tipi di pagina che incontrerai"
+
+#: ../../source/guides/index.md:54
+msgid ""
+"**A guide page** tells you how to do something, in order, in the repository you are "
+"in. It is the kind of page you are reading now."
+msgstr ""
+"**Una pagina di guida** ti dice come fare qualcosa, nell'ordine, nel repository in "
+"cui ti trovi. È il tipo di pagina che stai leggendo adesso."
+
+#: ../../source/guides/index.md:57
+#, python-brace-format
+msgid ""
+"**A reference page** answers \"what does this option do\" for every option, without "
+"caring who is asking. It lives under {doc}`../reference/index` and is linked from "
+"every guide that needs it."
+msgstr ""
+"**Una pagina di riferimento** risponde a \"che cosa fa questa opzione\" per ogni "
+"opzione, senza curarsi di chi lo chieda. Vive sotto {doc}`../reference/index` ed è "
+"collegata da ogni guida che ne ha bisogno."
+
+#: ../../source/guides/index.md:60
+#, python-brace-format
+msgid ""
+"**A generated page** is written by a command, not by a person — the two API "
+"references, the coverage of the grants, the last gate run. It lives under "
+"{doc}`../generated/index`, and every one of them says which command to run to check "
+"it yourself."
+msgstr ""
+"**Una pagina generata** è scritta da un comando, non da una persona — i due "
+"riferimenti di API, la copertura delle attestazioni, l'ultima esecuzione del gate. "
+"Vive sotto {doc}`../generated/index`, e ciascuna di esse dice quale comando eseguire "
+"per controllarla tu stesso."
+

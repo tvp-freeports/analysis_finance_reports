@@ -171,7 +171,7 @@ DOCS_PORT ?= 8000
         ci-report-html \
         validation validation-report check-grants check-keys \
         docs html docs-html docs-rustdoc docs-validation docs-site-coverage docs-serve docs-lang \
-        i18n i18n-extract i18n-update i18n-build \
+        i18n i18n-extract i18n-update i18n-build i18n-stat i18n-prune \
         clean mostlyclean clean-docs clean-rust distclean maintainer-clean
 
 ##@ Help

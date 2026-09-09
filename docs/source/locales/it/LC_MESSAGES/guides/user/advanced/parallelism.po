@@ -1,0 +1,250 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/advanced/parallelism.md:1
+msgid "Parallelism"
+msgstr "Parallelismo"
+
+#: ../../source/guides/user/advanced/parallelism.md:3
+#, python-brace-format
+msgid ""
+"Two independent levels, both automatic by default. This page is how to drive them; "
+"*why* they are shaped this way, and the measurements that cancelled two other levels,"
+" are in {doc}`../../../reference/design/parallelism`."
+msgstr ""
+"Due livelli indipendenti, entrambi automatici per impostazione predefinita. Questa "
+"pagina è come guidarli; il *perché* abbiano questa forma, e le misure che hanno fatto"
+" cancellare altri due livelli, stanno in "
+"{doc}`../../../reference/design/parallelism`."
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "Option"
+msgstr "Opzione"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "Sets"
+msgstr "Imposta"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "Default"
+msgstr "Predefinito"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "`--workers` / `-j`"
+msgstr "`--workers` / `-j`"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "the default for **both** levels"
+msgstr "il valore predefinito per **entrambi** i livelli"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "`auto`"
+msgstr "`auto`"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "`--jobs`"
+msgstr "`--jobs`"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "the job level alone"
+msgstr "il solo livello dei job"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "inherits `--workers`"
+msgstr "eredita da `--workers`"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "`--pages`"
+msgstr "`--pages`"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "the page level alone"
+msgstr "il solo livello delle pagine"
+
+#: ../../source/guides/user/advanced/parallelism.md:13
+msgid ""
+"Each accepts a positive integer **or** `auto`. `auto` is a value you can write, not "
+"merely the absence of one: it is how a level is put back to automatic after a "
+"configuration file or an environment variable has pinned it to a number."
+msgstr ""
+"Ciascuna accetta un intero positivo **oppure** `auto`. `auto` è un valore che si può "
+"scrivere, non semplicemente l'assenza di un valore: è il modo in cui si rimette un "
+"livello su automatico dopo che un file di configurazione o una variabile d'ambiente "
+"l'ha fissato a un numero."
+
+#: ../../source/guides/user/advanced/parallelism.md:17
+msgid ""
+"Zero and negatives are a typed error naming the option you mistyped. From a "
+"configuration file the same two levels are `n_workers` and the `parallelism` section:"
+msgstr ""
+"Zero e i negativi sono un errore tipizzato che nomina l'opzione che hai sbagliato a "
+"scrivere. Da un file di configurazione gli stessi due livelli sono `n_workers` e la "
+"sezione `parallelism`:"
+
+#: ../../source/guides/user/advanced/parallelism.md:27
+msgid "The two parallelism levels"
+msgstr "I due livelli di parallelismo"
+
+#: ../../source/guides/user/advanced/parallelism.md:28
+#, python-format
+msgid ""
+"**Jobs run in separate processes.** Loading a PDF goes through PyMuPDF, which means "
+"through Python, which means through the GIL — profiling put that load at 35–75% of a "
+"job's wall time. Threads would have re-serialised exactly the part worth "
+"parallelising. The children report their results back to the parent, which writes the"
+" output once, so process-level parallelism does not change what is produced."
+msgstr ""
+"**I job girano in processi separati.** Caricare un PDF passa per PyMuPDF, quindi per "
+"Python, quindi per il GIL — la profilazione ha misurato quel carico al 35–75% del "
+"tempo di un job. I thread avrebbero riserializzato esattamente la parte che vale la "
+"pena parallelizzare. I figli riportano i propri risultati al padre, che scrive i "
+"risultati una volta sola, quindi il parallelismo a livello di processo non cambia ciò"
+" che viene prodotto."
+
+#: ../../source/guides/user/advanced/parallelism.md:34
+msgid ""
+"**Pages of one document run in threads**, on a pool the crate owns rather than "
+"rayon's global one, so that a program embedding the crate keeps its own."
+msgstr ""
+"**Le pagine di uno stesso documento girano in thread**, su una riserva che appartiene"
+" al crate anziché su quella globale di rayon, così che un programma che incorpori il "
+"crate mantenga la propria."
+
+#: ../../source/guides/user/advanced/parallelism.md:37
+msgid "`-j 1` therefore has a universal meaning: one job at a time *and* one page at a time."
+msgstr "`-j 1` ha perciò un significato universale: un job per volta *e* una pagina per volta."
+
+#: ../../source/guides/user/advanced/parallelism.md:39
+msgid "What parallelism buys, and what it costs"
+msgstr "Che cosa fa guadagnare il parallelismo, e quanto costa"
+
+#: ../../source/guides/user/advanced/parallelism.md:40
+msgid "Measured on a 20-thread machine, two large reports in one run:"
+msgstr "Misurato su una macchina a 20 thread, due grandi relazioni in una sola esecuzione:"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "Time"
+msgstr "Tempo"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "Note"
+msgstr "Nota"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "sequential"
+msgstr "sequenziale"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "39.4 s"
+msgstr "39,4 s"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "defaults"
+msgstr "valori predefiniti"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "16.7 s"
+msgstr "16,7 s"
+
+#: ../../source/guides/user/advanced/parallelism.md
+msgid "**2.36×**, output byte-identical to sequential"
+msgstr "**2,36×**, risultati identici byte per byte a quelli sequenziali"
+
+#: ../../source/guides/user/advanced/parallelism.md:47
+msgid ""
+"Page-level threading alone gave 4.4–7.0× *inside the engine*; the end-to-end figure "
+"is lower because the PDF loading that only job-level parallelism touches remains."
+msgstr ""
+"I soli thread a livello di pagina hanno dato 4,4–7,0× *dentro il motore*; la cifra da"
+" un capo all'altro è più bassa perché resta il caricamento dei PDF, che solo il "
+"parallelismo a livello di job tocca."
+
+#: ../../source/guides/user/advanced/parallelism.md:50
+msgid ""
+"The price is **memory**: peak went from 783 MB to about 1.2 GB for two concurrent "
+"large jobs, and it grows with the number of jobs running at once. On a memory-"
+"constrained machine, `--jobs 1` keeps page-level threading and drops the concurrent "
+"copies of the document — usually the right trade, since it gives up the smaller of "
+"the two gains."
+msgstr ""
+"Il prezzo è la **memoria**: il picco è passato da 783 MB a circa 1,2 GB per due "
+"grandi job in contemporanea, e cresce col numero di job in corso insieme. Su una "
+"macchina a memoria stretta, `--jobs 1` mantiene i thread a livello di pagina e toglie"
+" le copie contemporanee del documento — di solito è lo scambio giusto, dato che "
+"rinuncia al minore dei due guadagni."
+
+#: ../../source/guides/user/advanced/parallelism.md:55
+msgid "When a format does not speed up"
+msgstr "Quando un formato non accelera"
+
+#: ../../source/guides/user/advanced/parallelism.md:57
+msgid ""
+"A format whose work is done by an author's Python pipe does not scale with threads, "
+"and **says so**: those pipes declare that they do not, and the engine runs them "
+"sequentially rather than contending for the GIL."
+msgstr ""
+"Un formato il cui lavoro è svolto da una pipe Python scritta dall'autore non scala "
+"con i thread, e **lo dichiara**: quelle pipe dichiarano di non scalare, e il motore "
+"le esegue in sequenza anziché contendersi il GIL."
+
+#: ../../source/guides/user/advanced/parallelism.md:61
+msgid ""
+"A format that gains nothing from `--pages` is usually one of these. That is the "
+"design working, not failing — the alternative is threads that queue on the GIL and "
+"cost more than they save. Measured: one small format with an author's `deserialize` "
+"went 182 ms → 189 ms between one thread and twenty, while an entirely structured "
+"format went 7.2 s → 1.0 s on the same machine."
+msgstr ""
+"Un formato che non guadagna niente da `--pages` è di solito uno di questi. È il "
+"progetto che funziona, non che fallisce — l'alternativa sono thread che fanno la fila"
+" sul GIL e costano più di quanto facciano risparmiare. Misurato: un piccolo formato "
+"con un `deserialize` scritto dall'autore è passato da 182 ms a 189 ms fra un thread e"
+" venti, mentre un formato interamente strutturato è passato da 7,2 s a 1,0 s sulla "
+"stessa macchina."
+
+#: ../../source/guides/user/advanced/parallelism.md:66
+msgid "Reproducibility"
+msgstr "Riproducibilità"
+
+#: ../../source/guides/user/advanced/parallelism.md:68
+msgid ""
+"Parallelism does not change the tables. Results from the jobs are collected in "
+"**indexed slots**, so the aggregated output is byte-identical whether you run at one "
+"worker or twenty — verified in the test suite, and by checksum against the reference "
+"outputs of the formats repository."
+msgstr ""
+"Il parallelismo non cambia le tabelle. I risultati dei job sono raccolti in **caselle"
+" indicizzate**, così che i risultati aggregati siano identici byte per byte tanto a "
+"un worker quanto a venti — verificato nella suite di test, e per checksum contro i "
+"risultati di riferimento del repository di formati."
+
+#: ../../source/guides/user/advanced/parallelism.md:72
+#, python-brace-format
+msgid ""
+"The one place the ordering guarantee is spent is the **merging of log files**, where "
+"the children's lines are poured into the parent's in job order rather than in the "
+"instant they happened. See {doc}`../../../reference/design/determinism`."
+msgstr ""
+"L'unico punto in cui la garanzia sull'ordine viene spesa è l'**unione dei file di "
+"registro**, dove le righe dei figli sono versate in quelle del padre nell'ordine dei "
+"job anziché nell'istante in cui sono accadute. Vedi "
+"{doc}`../../../reference/design/determinism`."
+

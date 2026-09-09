@@ -70,8 +70,10 @@ page, a page with an awkward row. Those are where formats break.
 ## 4. `test` — run them
 
 ```console
-$ freeports-dev test --format CARNE-EN23
-$ freeports-dev test                        # the whole repository
+$ freeports-dev test --format CARNE-EN23     # one format, per-page tests
+$ freeports-dev test                         # the whole repository, per-page tests
+$ freeports-dev test --all                   # both halves
+$ make test                                  # the same, in the repository you are working on
 ```
 
 Two kinds of test with very different costs:
@@ -82,7 +84,9 @@ and they tell you *which segment of which page* changed.
 **The whole-document test** replays the entire report and compares the output tables against
 `tests/formats/<FORMAT>/out/`. Slow, marked `integration_tests`, and it is the one that actually
 says the format works — the per-page fixtures can all pass while the schedule, the promise
-resolution or the deduplication are wrong.
+resolution or the deduplication are wrong. It is `--slow`, or `make test-slow`, and it is **not** in
+the default run: a command that leaves it out says so in its last line, and `make ci-check` reports
+a suite nobody ran at this commit as `NOT RUN` rather than as a pass.
 
 ```{important}
 `out/**` is the repository's **specification**, not a snapshot. If a run diverges from it, the

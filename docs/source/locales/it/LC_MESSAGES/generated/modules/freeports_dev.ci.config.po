@@ -1,0 +1,342 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:2
+msgid "freeports\\_dev.ci.config"
+msgstr ""
+
+#: freeports_dev.ci.config:1 of
+msgid ""
+"``ci.yaml``: what a repository demands of a commit, in one file with one "
+"name everywhere."
+msgstr ""
+
+#: freeports_dev.ci.config:3 of
+msgid ""
+"Every freeports repository -- the engine, a formats repository, an input "
+"database -- is gated by a file called ``ci.yaml`` at its root, written in"
+" one syntax. That is deliberate and it was a reversal: an earlier round "
+"of this design put the settings inside each repository's own manifest, "
+"``package.yaml`` here and ``metadata.yaml`` there, and the roles of the "
+"branches then read differently in every repository. A manifest says *what"
+" the repository is*; this file says *how it is gated*, which is a "
+"different question with a different audience, and the engine repository "
+"-- which has no manifest at all -- would have needed one invented for the"
+" purpose."
+msgstr ""
+
+#: freeports_dev.ci.config:23 of
+msgid ""
+"**Absent, everything falls to the defaults**: class ``dev``, no "
+"thresholds, the default key server -- which is to say a repository nobody"
+" has configured reports and never refuses. That is the right behaviour "
+"for a repository nobody has configured yet, and it is why the file's "
+"absence is not an error."
+msgstr ""
+
+#: freeports_dev.ci.config:28 of
+msgid "Two things in it *are* errors, and loudly:"
+msgstr ""
+
+#: freeports_dev.ci.config:30 of
+msgid ""
+"a branch matching two class lists -- resolving that silently would make "
+"the class of a commit depend on the order of a mapping nobody reads;"
+msgstr ""
+
+#: freeports_dev.ci.config:32 of
+msgid ""
+"a threshold naming a metric this repository cannot measure -- a threshold"
+" that can never be evaluated is a threshold somebody thinks they have."
+msgstr ""
+
+#: freeports_dev.ci.config:35 of
+msgid ""
+"The three tiers are the engine's own, resolved per setting: **command "
+"line, then environment, then this file, then the default**. Thresholds "
+"are per metric all the way down, so ``--min`` on one metric does not "
+"discard the file's minima for the others."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:9
+msgid "Module Attributes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`CI_FILE <freeports_dev.ci.config.CI_FILE>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid "The name of the file, in every repository kind."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`PROD <freeports_dev.ci.config.PROD>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.PROD:1 of
+msgid ""
+"A commit here is refused when a threshold is missed, a suite fails or a "
+"figure is unmeasured."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`DEV <freeports_dev.ci.config.DEV>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.DEV:1 of
+msgid "A commit here reports everything and refuses nothing."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`OFF <freeports_dev.ci.config.OFF>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.OFF:1 of
+msgid "The hook does nothing at all -- a scratch branch, a spike."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`BRANCH_CLASSES <freeports_dev.ci.config.BRANCH_CLASSES>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.BRANCH_CLASSES:1 of
+msgid "In the order a report lists them."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ""
+":py:obj:`DEFAULT_BRANCH_CLASS "
+"<freeports_dev.ci.config.DEFAULT_BRANCH_CLASS>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.DEFAULT_BRANCH_CLASS:1 of
+msgid "What an unlisted branch is, unless ``branches.default`` says otherwise."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+msgid ":py:obj:`DEFAULT_KEYSERVER <freeports_dev.ci.config.DEFAULT_KEYSERVER>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:19:<autosummary>:1
+#: freeports_dev.ci.config.DEFAULT_KEYSERVER:1 of
+msgid "Where a fingerprint is looked up when nothing names another server."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:21
+msgid "Functions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`current_branch <freeports_dev.ci.config.current_branch>`\\ "
+"\\(root\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:26:<autosummary>:1
+#: freeports_dev.ci.config.current_branch:1 of
+msgid ""
+"The branch checked out at ``root``, or ``None`` for a detached HEAD or no"
+" git at all."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:26:<autosummary>:1
+msgid ""
+":py:obj:`detect_repo_kind <freeports_dev.ci.config.detect_repo_kind>`\\ "
+"\\(root\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:26:<autosummary>:1
+#: freeports_dev.ci.config.detect_repo_kind:1 of
+msgid ""
+"Which of the three kinds of repository ``root`` is, by what it actually "
+"contains."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:28
+msgid "Classes"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:33:<autosummary>:1
+msgid ""
+":py:obj:`BranchClass <freeports_dev.ci.config.BranchClass>`\\ \\(name\\, "
+"reason\\[\\, branch\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:33:<autosummary>:1
+#: freeports_dev.ci.config.BranchClass:1 of
+msgid "The resolved class of a branch, together with the rule that produced it."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:33:<autosummary>:1
+msgid ""
+":py:obj:`CiConfig <freeports_dev.ci.config.CiConfig>`\\ \\(root\\[\\, "
+"args\\, repo\\_kind\\]\\)"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:33:<autosummary>:1
+#: freeports_dev.ci.config.CiConfig:1 of
+msgid "The gating settings of one run, already resolved across the three tiers."
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:35
+msgid "Exceptions"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:38:<autosummary>:1
+msgid ":py:obj:`ConfigError <freeports_dev.ci.config.ConfigError>`"
+msgstr ""
+
+#: ../../source/generated/modules/freeports_dev.ci.config.rst:38:<autosummary>:1
+msgid "A ``ci.yaml`` that cannot be obeyed."
+msgstr ""
+
+#: freeports_dev.ci.config.BranchClass:3 of
+msgid ""
+"The rule is carried rather than recomputed because it is the whole "
+"content of ``freeports-dev branch-class`` -- the first thing to run when "
+"a hook does something unexpected. \"prod\" answers nothing; \"prod, "
+"because *main* matched the pattern *main* in branches.prod\" answers "
+"everything."
+msgstr ""
+
+#: freeports_dev.ci.config.BranchClass.refuses:1 of
+msgid ""
+"Whether a failure on this branch stops the commit, rather than being "
+"reported."
+msgstr ""
+
+#: freeports_dev.ci.config.BranchClass.silent:1 of
+msgid "Whether the hook does nothing at all here."
+msgstr ""
+
+#: freeports_dev.ci.config.CI_FILE:1 of
+msgid ""
+"The name of the file, in every repository kind. There is no second "
+"spelling."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig:3 of
+msgid ""
+"Built from a repository root and the parsed command line, so every "
+"subcommand reads the same answers instead of each one re-implementing the"
+" precedence."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.branch_class:1 of
+msgid "The class of the branch checked out now, with the rule that produced it."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.branch_class:3 of
+msgid ""
+"Command line, then environment, then the lists in the file, then "
+"``branches.default``, then ``dev``."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.breakdown_limit:1 of
+msgid "How many breakdown lines per metric ``ci-report`` writes into a document."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.breakdown_limit:3 of
+msgid ""
+"The three tiers, like every other setting here: ``--breakdown-limit``, "
+"then ``FREEPORTS_CI_BREAKDOWN_LIMIT``, then ``report.breakdown_limit`` in"
+" ``ci.yaml``, then fifteen. ``0`` means every line."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.breakdown_limit:7 of
+msgid ""
+"It is a setting and not a constant because how long a useful list is "
+"depends on the repository: a crate of a hundred and twenty files and a "
+"formats repository of four have different answers, and neither of them is"
+" the other's."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.keyserver:1 of
+msgid "Where a granter's fingerprint is looked up."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.keyserver:3 of
+msgid ""
+"A setting rather than a constant because ``keys.openpgp.org`` is the "
+"default and not a law: a repository may publish to another server, and "
+"this project could not confirm that every server it was pointed at is "
+"live."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.thresholds:1 of
+msgid "Every configured minimum, by metric name, across the three tiers."
+msgstr ""
+
+#: freeports_dev.ci.config.CiConfig.thresholds:3 of
+msgid ""
+"Resolved per metric rather than per source: ``--min lint.rust=9.9`` "
+"raises the bar for clippy and leaves every other minimum the file "
+"declares exactly where it was."
+msgstr ""
+
+#: freeports_dev.ci.config.ConfigError:1 of
+msgid ""
+"A ``ci.yaml`` that cannot be obeyed. Always exit status 2, never a "
+"refused commit."
+msgstr ""
+
+#: freeports_dev.ci.config.ConfigError:3 of
+msgid ""
+"The distinction matters: a refused commit means the repository's rules "
+"were applied and the commit failed them; this means the rules themselves "
+"do not parse, which is a different thing to tell somebody and a different"
+" thing to fix."
+msgstr ""
+
+#: freeports_dev.ci.config.current_branch:3 of
+msgid ""
+"Derived at every run rather than recorded anywhere, so switching branch "
+"sets nothing and forgets nothing. ``None`` is not a failure: it falls to "
+"the default class, and the gate says which class and why."
+msgstr ""
+
+#: freeports_dev.ci.config.current_branch:7 of
+msgid ""
+"``symbolic-ref`` and not ``rev-parse --abbrev-ref``, which is the obvious"
+" spelling and the wrong one twice over. It answers the literal string "
+"``HEAD`` on a detached HEAD, which is indistinguishable from a branch "
+"actually called ``HEAD``; and it fails outright on a branch that has no "
+"commit yet, so a freshly initialised repository would be read as having "
+"no branch at all and gated by the default class for a reason that has "
+"nothing to do with its branch. ``symbolic-ref`` reads the ref rather than"
+" resolving it: it needs no commit, and its failure means detached and "
+"nothing else."
+msgstr ""
+
+#: freeports_dev.ci.config.detect_repo_kind:3 of
+msgid ""
+"Not by what ``ci.yaml`` claims to be: the file is the thing being "
+"validated, and a repository that could declare its own kind could declare"
+" a kind whose metrics it cannot measure, which is the error this is here "
+"to catch."
+msgstr ""
+

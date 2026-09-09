@@ -1,0 +1,176 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/engine/index.rst:3
+msgid "Developing the engine"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:5
+msgid ""
+"This section is about changing **this** repository — the Rust crate that "
+"is the engine, and the two Python packages beside it. Writing a *format* "
+"is a different activity in a different repository and is "
+":doc:`../formats/index`; so is changing an :doc:`input database "
+"<../input-db/index>`."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:19
+msgid "What each page here answers"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:25
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:26
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:27
+msgid ":doc:`build`"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:28
+msgid ""
+"one command per role, where things get installed, and what ``make "
+"doctor`` tells you"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:29
+msgid ":doc:`tests`"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:30
+msgid ""
+"what a test in this repository is expected to do, and how the suites are "
+"divided"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:31
+msgid ":doc:`conventions/index`"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:32
+msgid ""
+"the house style for Rust, Python and tests — and how much of it is "
+"arbitrary"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:33
+msgid ":doc:`advanced/index`"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:34
+msgid "the technology choices, as opposed to the algorithm"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:37
+msgid "What is in this repository"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:39
+msgid "Three packages under ``packages/``:"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:41
+msgid "``freeports``"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:42
+msgid ""
+"The engine. One Rust crate that produces two things: the ``freeports`` "
+"command-line binary, and the Python extension module that ``import "
+"freeports`` loads. There is no Python source tree underneath — the "
+"package *is* the compiled extension."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:46
+msgid "``freeports_dev``"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:47
+msgid ""
+"The ``freeports-dev`` command and a pytest plugin: inspecting pages, "
+"generating per-page fixtures, running a formats repository's tests."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:50
+msgid "``freeports_validate``"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:51
+msgid ""
+"The ``freeports-validate`` command: methodology grants and their "
+"verification."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:53
+msgid ""
+"Formats are **not** here. They live in formats repositories, maintained "
+"separately — see :doc:`../formats/repository`."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:57
+msgid "The day-to-day loop"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:59
+msgid "From a fresh clone, the whole setup is one command:"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:66
+msgid "Then:"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:76
+msgid ""
+"``make develop`` builds the extension module; ``make build`` builds the "
+"binary. They are two build products of one crate and neither implies the "
+"other, so after changing Rust that the Python side uses, rebuild the "
+"extension — a stale ``.so`` is the usual explanation for a change that "
+"\"had no effect\"."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:81
+msgid ""
+"Every target is a recipe of commands you could type by hand, and ``make "
+"help`` lists them all. :doc:`build` explains the arrangement."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:85
+msgid "What the gate will do to your commit"
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:89
+msgid ""
+"**No CI currently builds this repository.** The ``Jenkinsfile`` describes"
+" a pipeline that is stopped, not obsolete: it is kept, and kept current, "
+"because it will be turned back on. Until then, the real gate is the local"
+" one — ``make pre-commit``, which is what the commit hook runs."
+msgstr ""
+
+#: ../../source/guides/engine/index.rst:93
+msgid ""
+"What that gate measures, what refuses and why, is a section of its own: "
+":doc:`../devops/index`. What it found on the last run is :doc:`../../dev"
+"/ci-report/index`."
+msgstr ""
+

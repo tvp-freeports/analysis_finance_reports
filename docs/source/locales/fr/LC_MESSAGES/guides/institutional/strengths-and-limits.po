@@ -1,0 +1,183 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/institutional/strengths-and-limits.md:1
+msgid "Strengths, weaknesses, and how to check them"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:3
+msgid ""
+"A page of claims about a project, written by that project, is worth very "
+"little on its own. What makes this one worth reading is that almost every"
+" line below names the command that would prove it wrong."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:7
+msgid "Where the project is strong"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:9
+msgid ""
+"**The method is inspectable end to end.** A number in the output came "
+"from a page of a PDF, read by a named format, under a recipe you can "
+"read. Nothing is a model whose behaviour has to be inferred from its "
+"outputs."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:13
+msgid ""
+"**Support grows without touching the engine.** A new report layout is a "
+"new format in somebody else's repository. The part that must not change "
+"does not change in order to cover more issuers — which is what usually "
+"rots this kind of tool."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:17
+#, python-brace-format
+msgid ""
+"**Claims are attributable and hash-bound.** A grant says *this person, "
+"under this published methodology, vouched for these exact bytes*. Change "
+"the file and the grant is invalid, deliberately. {doc}`why-trust-a-grant`"
+" is what that does and does not establish."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:21
+#, python-brace-format
+msgid ""
+"**The project measures itself and publishes the measurements.** Test "
+"coverage, documentation coverage, lint scores, how much of the repository"
+" anyone has vouched for — all of it is generated, all of it is re-"
+"runnable, and a commit can be refused over it. {doc}`../devops/index` is "
+"the machinery; {doc}`../../dev/ci-report/index` is what it found last "
+"time."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:26
+#, python-brace-format
+msgid ""
+"**Failures are local.** The page is the unit of work, so a page the "
+"engine cannot read is a page, not a run. "
+"{doc}`../../reference/design/pages` is the assumption and what it costs."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:29
+msgid "Where the project is weak"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:31
+#, python-brace-format
+msgid ""
+"**Extraction from documents made for human eyes is not exact, and never "
+"will be.** The project's own position is that any tool claiming otherwise"
+" is misrepresenting itself — {doc}`../../overview/trust`."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:35
+msgid ""
+"**Coverage is whatever people have written formats for.** There is no "
+"coverage of an issuer nobody has cared about yet, and no way to tell from"
+" the output that a report *would* have been misread — only that it was "
+"not read."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:39
+msgid ""
+"**A grant is a statement by a person, not a proof.** It says somebody "
+"applied a named protocol in good faith. It does not say they were right, "
+"and the methodologies say so themselves."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:42
+msgid ""
+"**The published figures describe one run on one machine.** Every "
+"generated page carries that sentence, because a coverage number measured "
+"elsewhere is a fact about elsewhere."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:45
+#, python-brace-format
+msgid ""
+"**Parts of it are designed and not built.** That is stated rather than "
+"hidden: {doc}`../../reference/design/limits` lists what is an accepted "
+"limit, what is planned, and what is simply broken. A project that keeps "
+"such a list is easier to trust than one that does not, and it is also an "
+"admission."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:50
+#, python-brace-format
+msgid ""
+"**There is no continuous integration running right now.** The pipeline "
+"exists and is stopped; the gate is local. {doc}`../devops/index` says so "
+"plainly."
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:53
+msgid "How to check any of it yourself"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "Claim"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "Command that settles it"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "the grants say what the site says"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-validate check-grants`"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "the coverage and lint figures are current"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev ci-check`"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "a format reads a given report the way it should"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev test`, against that repository"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "a figure in a report came from where it says"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md
+msgid "`freeports-dev inspect-page`"
+msgstr ""
+
+#: ../../source/guides/institutional/strengths-and-limits.md:61
+msgid ""
+"Every generated page on this site repeats that invitation, in those "
+"words, for the same reason: a figure you cannot re-derive is a figure you"
+" are being asked to take on faith."
+msgstr ""
+

@@ -1,0 +1,176 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/determinism.md:1
+msgid "Determinism and observable order"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:3
+msgid ""
+"*Implemented.* What the engine guarantees about order, what it does not, "
+"and why the guarantee was deliberately weakened in exactly one place."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:6
+msgid "Ordered maps where order is observable"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:8
+msgid ""
+"Promise maps, schedule steps and pipe order all use **insertion or key "
+"order**, never hash order."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:10
+msgid ""
+"**Rejected: hash maps**, which are faster and were what the Python "
+"original used for some of these."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:12
+msgid ""
+"The cost of hash order is not correctness but **reproducibility**, in two"
+" specific ways:"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:14
+msgid "the order pages are processed in determines the order of the output rows;"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:15
+msgid ""
+"the order ids are visited in determines **which cycle** a promise failure"
+" reports."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:17
+msgid ""
+"A test that passes four times out of five is worse than a slower map. An "
+"error message that names a different cycle on each run cannot be "
+"asserted, so it stops being tested, so it stops being maintained."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:21
+msgid "What determinism guarantees"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "Guaranteed"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "output tables"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "**byte-identical** regardless of the parallelism settings"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "row order within a table"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "deterministic for the same inputs"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "the cycle a promise error reports"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "the same cycle every time"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "`.log.csv` rows"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md
+msgid "sorted, and identical between one worker and many"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:29
+msgid ""
+"The first is the strong one, and it is tested rather than asserted: the "
+"same run at one worker and at N produces the same files, checked in the "
+"integration suite and by checksum against the formats repository's "
+"reference outputs."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:33
+msgid "The one place determinism was relaxed"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:34
+msgid ""
+"Byte-for-byte determinism was the original requirement for the parallel "
+"work. It was relaxed, on purpose, to **semantic equivalence**: the "
+"parallel output must contain the same data, not necessarily in the same "
+"order."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:38
+msgid ""
+"The relaxation was needed because a strict reading would have excluded "
+"the cheapest collection strategies. What happened next is worth "
+"recording:"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:41
+msgid ""
+"**The licence to diverge was taken and then not used.** Results from jobs"
+" are collected in **indexed slots**, which costs nothing, so the "
+"aggregated tables stay byte-identical anyway. The margin was spent only "
+"on **merging log files**, where the children's lines are poured into the "
+"parent's in job order rather than in the instant they happened."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:46
+msgid ""
+"That is the ideal outcome for that kind of permission, and it is why "
+"reference outputs remain comparable by checksum even though the "
+"constraint that protected them was formally dropped."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:49
+msgid "What determinism does not guarantee"
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:50
+msgid ""
+"**The interleaving of log lines across concurrent jobs.** Two jobs "
+"running at once produce lines in whatever order they happen; the merge "
+"restores job order at the end, not the original instants."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:53
+msgid "**Wall-clock timing in the logs**, obviously."
+msgstr ""
+
+#: ../../source/reference/design/determinism.md:55
+#, python-brace-format
+msgid ""
+"**That a page is processed on any particular thread or process**, which "
+"nothing downstream may depend on — that is the whole content of "
+"{doc}`pages`."
+msgstr ""
+

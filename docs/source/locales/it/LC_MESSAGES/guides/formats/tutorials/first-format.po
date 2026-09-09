@@ -1,0 +1,441 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/tutorials/first-format.md:1
+msgid "Your first format"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:3
+msgid ""
+"We are going to add support for one report, end to end, and we are going "
+"to do it at the level where you write no code at all. The report is a "
+"real one — the annual report of a Luxembourg SICAV, whose format is "
+"called `ASTERIA-EN24` — and every console block on this page is real "
+"output, not an illustration."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:8
+#, python-brace-format
+msgid ""
+"{doc}`../writing-a-format` is the same path as a checklist, once you have"
+" done it once."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:10
+msgid "What we are aiming at"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:12
+msgid "A format is a recipe for one report layout. When it works, this happens:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:19
+msgid "and the engine can read every report published in that layout."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:21
+msgid "Step 0 — the two things you need"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:23
+msgid "A formats repository and a report to work on."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:31
+msgid ""
+"`setup-input-db` writes a small list of well-known companies under "
+"`tests/input_db/`, called `TEST`. It matters more than it looks: the "
+"engine only emits a holding whose investee is **in the list you are "
+"searching**. A page full of holdings, none of them in your list, produces"
+" nothing at all — and that is correct behaviour, not a failure. Remember "
+"this; it will confuse you at least once."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:36
+msgid "Then put the report where the tests will look for it:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:42
+msgid "Step 1 — declare that the format exists"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:44
+msgid ""
+"One row in `metadata/formats.csv`, written by components rather than by "
+"name:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:51
+#, python-brace-format
+msgid ""
+"The name everything else refers to — `ASTERIA-EN24` — is assembled from "
+"those components, so a name and its parts cannot drift apart. The year is"
+" not decoration: next year's report from the same issuer is a *different "
+"format*, because a layout is a snapshot ({doc}`../repository`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:55
+msgid "Step 2 — ask the engine what it currently sees"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:65
+msgid ""
+"Everything is unclassified, and that is exactly right: we have not told "
+"it anything yet. This is the starting line."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:68
+msgid ""
+"Now open the PDF and find a page of the table you actually want — the "
+"list of holdings. Ask yourself one question: **what would let a machine "
+"recognise this page and not the others?** Usually it is a heading. In "
+"this report every holdings page carries the line *\"Transferable "
+"securities admitted to an official stock exchange listing\"*."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:73
+msgid "Step 3 — find out how that heading is actually set"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:75
+msgid ""
+"You could guess the font. Don't — there is a mode for this. Give "
+"`inspect-page` a string and it tells you how the line is really typeset:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:84
+msgid ""
+"Read that as: font `centurygothic-bold`, size ≈ 7.98, occupying x "
+"45.5→307.0 and y 157.6→167.4."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:86
+msgid ""
+"This one command is the answer to most *\"what do I write here?\"* "
+"questions. Whenever you are about to invent a font name or a coordinate, "
+"search for the text instead and let the report tell you."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:89
+msgid "Step 4 — classify the pages"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:91
+msgid ""
+"Now write the rule, in "
+"`content/algorithms/structured/page_classify/args.csv`:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:98
+#, python-brace-format
+msgid ""
+"That is a **selection** — a predicate over the lines of a page, here a "
+"font plus a piece of text. The text is matched literally, with `^` and "
+"`$` available as anchors and nothing else; it is not a regular expression"
+" ({doc}`../selections`). Note that we did not repeat the size: font plus "
+"that much text is already unambiguous, and the fewer conditions you pin, "
+"the less likely a later page breaks them."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:104
+msgid "Ask again:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:115
+#, python-brace-format
+msgid ""
+"**Do not go past this step until it is right.** Classification decides "
+"which pages the engine even looks at. If a page you care about is not "
+"listed here, no amount of work on the extraction will make it appear — "
+"and hunting for the reason in the wrong place is the single most common "
+"way to lose an afternoon "
+"({doc}`../../../reference/design/classification`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:121
+msgid "Step 5 — put the class on the schedule"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:123
+msgid ""
+"A page class that no step mentions is an error, not a silent no-op. Add "
+"it to `content/orchestration/algorithms_schedule.csv`:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:131
+#, python-brace-format
+msgid ""
+"One line, and for a single-class format that is all scheduling ever asks "
+"of you ({doc}`../../../reference/design/schedule`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:134
+msgid "Step 6 — read the table the way the engine reads it"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:136
+msgid ""
+"Here is the part that makes the structured level feel easy. Ask for the "
+"page as a **table**:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:154
+msgid ""
+"The engine has already worked out the grid. The numbers along the top are"
+" the column positions, and naming the columns is now just reading them "
+"off:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Column"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Holds"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Configuration field"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "0"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "the security's name"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "*(the anchor — not configured)*"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "1"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "how many"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Quantity"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "2"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "the currency it was bought in"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Acquisition currency"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "3"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "what it cost"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Acquisition cost"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "4"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "what it is worth"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "Market value"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "5"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "share of net assets"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:114
+msgid "% net assets"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:166
+msgid ""
+"So the extraction row, in "
+"`content/algorithms/structured/investments/args.csv`:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:173
+msgid ""
+"The three selections before the numbers say where to find, in order, the "
+"sub-fund name, the sentence that states the report's currency, and the "
+"body of the table. `(:87)` and `(:810)` are vertical bands — *above y=87*"
+" for the sub-fund heading, *above y=810* for the body, which is how the "
+"page footer is kept out. You find these the same way as everything else: "
+"search for a string, read the coordinates it comes back with."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:179
+msgid "Step 7 — walk the three stages"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:181
+msgid ""
+"A page is processed in three stages, and you can print the output of "
+"each. Always in this order, because the first one that looks wrong is the"
+" one to fix:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:190
+msgid ""
+"The middle stage keeps only holdings whose investee is in your list, and "
+"attaches everything it understood:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:199
+#, python-brace-format
+msgid ""
+"Everything is still text at this stage — `\"816,173\"`, not a number. "
+"That is deliberate: reading the layout and interpreting the meaning are "
+"different jobs, and keeping them apart is what lets you tell a layout "
+"mistake from a units mistake ({doc}`../../../reference/design/segments`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:203
+msgid "The last stage does the interpreting:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:211
+msgid ""
+"Numbers are numbers, the percentage is a fraction, and the fund name has "
+"been normalised."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:214
+msgid ""
+"If `txt_blks` comes back **empty** on a page that clearly has holdings, "
+"the usual reason is not a bug: none of the companies on that page is in "
+"the list you are searching. Try a page you know contains one, or point at"
+" a bigger input database with `-I`."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:219
+msgid "Step 8 — freeze what you have checked"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:225
+msgid ""
+"This writes three JSON fixtures for that page, one per stage. It shows "
+"you what it is about to write and asks first — and you should genuinely "
+"read it, because `make-tests` records *what the code does now*. Confirm a"
+" wrong number here and you have promoted a bug to a specification that "
+"the test suite will defend from then on."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:230
+msgid ""
+"Freeze a handful of pages, chosen for being awkward rather than for being"
+" many: the first page of a table, a page where it continues, a page with "
+"a row that wraps onto two lines. Those are where formats break."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:234
+msgid "Step 9 — run the whole report"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:241
+msgid ""
+"Two kinds of test just ran. The per-page ones replay a single page "
+"through a single stage — fast, and they name the stage that changed. The "
+"whole-document one replays the entire report and compares every output "
+"table against `tests/formats/ASTERIA-EN24/out/`. That second one is what "
+"actually says the format works: the per-page fixtures can all be green "
+"while the scheduling or the deduplication across pages is wrong."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:247
+msgid ""
+"The first time, there is nothing to compare against, so generate it — "
+"deliberately, after reading it. From that moment it is the format's "
+"specification, not a snapshot of a run."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:250
+msgid "Step 10 — say who vouches for it"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:252
+#, python-brace-format
+msgid ""
+"The reference output of a format is a claim about the world: *this "
+"company appears in this fund for this amount.* The project records who is"
+" making the claim and on what basis, and that is what `freeports-"
+"validate` is for ({doc}`../../../overview/trust`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:256
+msgid "When one row is not enough"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:258
+#, python-brace-format
+msgid ""
+"Sooner or later a report will resist. The escape hatch is graded, not "
+"all-or-nothing: the three levels **add up**, so you can keep the "
+"structured extraction and write only the filtering in Python, or keep "
+"everything and override one deserializer. A hard format should cost more "
+"than a simple one — but only in the one place that is hard "
+"({doc}`../writing-a-format`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:263
+msgid "Two things worth knowing before you meet them:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:265
+#, python-brace-format
+msgid ""
+"**Company matching is first-match-wins, in the input database's file "
+"order.** A holding attributed to the wrong company is often a database "
+"problem, not an extraction one ({doc}`../../input-db/index`)."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/first-format.md:268
+#, python-brace-format
+msgid ""
+"**A page that cannot answer everything by itself is not a broken page.** "
+"If the fund name is on the cover and the table is on page 412, the table "
+"*promises* the name and the cover supplies it later. Reach for that "
+"before you reach for making pages depend on each other "
+"({doc}`../../../reference/design/promises`)."
+msgstr ""
+

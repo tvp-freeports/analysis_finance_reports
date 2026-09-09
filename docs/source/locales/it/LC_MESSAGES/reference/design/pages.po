@@ -1,0 +1,143 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/pages.md:1
+msgid "The page is the unit of work"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:3
+msgid ""
+"*Implemented.* This is the assumption everything else in the engine rests"
+" on, and the one worth understanding before any other."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:6
+msgid "The assumption: a page carries its own context"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:7
+msgid "**A page carries the context needed to understand what is on it.**"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:9
+msgid ""
+"A document is opened once, through PyMuPDF, and immediately becomes a "
+"sequence of native pages. From that point nothing downstream knows a PDF "
+"reader was involved. Each page is then processed **on its own**, with no "
+"knowledge of the pages before or after it."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:13
+#, python-brace-format
+msgid ""
+"The assumption is restrictive, and it is deliberately restrictive. It is "
+"false of some pages of some reports, and the engine does not pretend "
+"otherwise — see {doc}`promises` for what happens there."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:16
+msgid "What the page assumption makes possible"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:17
+msgid ""
+"Three good properties, and they are not independent benefits so much as "
+"three faces of the same one:"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:19
+#, python-brace-format
+msgid ""
+"**Work divides.** Nothing in the description of the algorithm mentions "
+"threads or processes, and that is why parallelism could be added without "
+"redesigning anything: pages that do not depend on each other can be "
+"processed in any order, anywhere. See {doc}`parallelism`."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:23
+msgid ""
+"**A page is a testable unit.** A format's behaviour on one page can be "
+"frozen as a fixture and checked in isolation — this is exactly what "
+"`freeports-dev make-tests` writes, three JSON files per page, one per "
+"segment. A regression tells you *which segment* of *which page* changed, "
+"rather than that a 1,800-page document now produces a different table."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:28
+msgid ""
+"**A failure is local.** A page the engine cannot read is a page that is "
+"skipped, with a log row naming it and a coordinate inside it. It is not a"
+" run that dies, and it is not a silent hole either."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:31
+msgid "What the page assumption costs"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:32
+msgid "The cost is real and is paid in two places."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:34
+#, python-brace-format
+msgid ""
+"**Some values genuinely are not on the page.** A fund name printed once "
+"on the section's cover, a currency declared in a heading forty pages "
+"earlier. The assumption says nothing about these, and the answer is not "
+"to weaken it — see {doc}`promises`."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:38
+#, python-brace-format
+msgid ""
+"**Some layouts encode meaning in sequence.** \"This table continues from "
+"the previous page\" is a fact about a pair of pages, not about a page. "
+"The engine's answer is to confine that reasoning to **classification**, "
+"where a per-document finalizer may look at the whole sequence, and to "
+"keep it out of extraction entirely. See {doc}`classification`."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:43
+msgid "The rejected alternative: a second pass over the document"
+msgstr ""
+
+#: ../../source/reference/design/pages.md:44
+msgid ""
+"A second pass over the document: read it once to gather context, once "
+"more to use it."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:46
+#, python-format
+msgid ""
+"It was rejected because it doubles the most expensive part of a run — PDF"
+" loading and page parsing are 35–75% of a job — to serve a minority of "
+"values, and because it reintroduces exactly the ordering dependency "
+"between pages that this assumption exists to remove. Once page 412 needs "
+"page 3 to have been read first, work no longer divides, a page is no "
+"longer a testable unit, and a failure is no longer local. All three "
+"properties go at once."
+msgstr ""
+
+#: ../../source/reference/design/pages.md:52
+msgid "Promises keep them. That is the whole argument for them."
+msgstr ""
+

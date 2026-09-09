@@ -1,0 +1,363 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 20:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/configuration/config_file.md:1
+msgid "The configuration file"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:3
+msgid ""
+"YAML, and the weakest source above the built-in defaults. It is where the"
+" settings that do not change between runs belong — the repository, the "
+"database, the lists, the output shape — so that a command line only has "
+"to say what is different this time."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:7
+msgid "Key to option"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "Key"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "Option"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "Note"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`url`, `pdf`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`reports`, in two halves"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`reports`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a list, each element in the specifier grammar"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`target_lists`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a list"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`format`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`formats_repo`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`formats_repo_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`db_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`input_db_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`out_path`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`out_profile`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a profile name, case-insensitively"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`out_flags`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`separate_out`, `compressed`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a map, only `separate_out` and `archive`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`save_pdf`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a real YAML boolean"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`n_workers`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a positive integer or `auto`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`parallelism`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`parallelism_jobs`, `parallelism_pages`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "a map, only `jobs` and `pages`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`batch_file`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`verbosity`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+#, python-brace-format
+msgid "applied once the configuration resolves; see {doc}`index`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "`dev`, `validate`"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "—"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md
+msgid "sections read by the two tooling commands, never by the engine; see below"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:27
+msgid ""
+"There is no key for `config_file`: a configuration file naming the "
+"configuration file to read would be a chicken with no egg."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:30
+msgid "A complete example file"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:48
+msgid "The two sections the engine never reads"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:50
+msgid ""
+"The same file also configures `freeports-dev` and `freeports-validate`, "
+"under two optional sections:"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:61
+#, python-brace-format
+msgid ""
+"Both commands are only ever run by **format authors**. If you extract "
+"data, these sections do not exist for you, and a file without them is "
+"complete. {doc}`dev-and-validate` is their reference."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:65
+msgid ""
+"They live here rather than in two files of their own so that the settings"
+" genuinely shared with the engine — `formats_repo`, `db_path` — stay at "
+"the top level and get written **once**, for all three commands. The "
+"engine parses the sections and then ignores them; parsing them at all is "
+"what extends the unknown-key refusal below into `dev.tagret_lists`."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:70
+msgid "Relative paths in this file"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:72
+msgid ""
+"A path written here is resolved against **the directory holding the "
+"file**, not against the working directory the command happens to be run "
+"from. That is the only reading that survives the way the file is found: "
+"it is searched for — the working directory, then the user's, then the "
+"system's — so one line is read from many different working directories "
+"and has to name the same repository from all of them."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:83
+msgid ""
+"Paths given the other two ways keep the meaning they obviously have: "
+"`--repo` on the command line and `FREEPORTS_FORMATS_REPO_PATH` in the "
+"environment are relative to the shell you are standing in, because that "
+"is where you typed them."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:87
+msgid ""
+"The same rule reaches `validate.sources`, whose entries may be written as"
+" bare paths rather than as URIs. A relative one is resolved against this "
+"file's directory, for the same reason and with the same result — the "
+"pages it names are the same pages from every working directory. A URI, "
+"`file://` included, is left exactly as written."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:93
+msgid ""
+"`freeports-validate` reads the file this way. The engine and `freeports-"
+"dev` still resolve a relative path here against the working directory — "
+"which is why a workspace configuration file tends to carry a comment "
+"saying the run must start from its directory."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:98
+msgid "The two grouped settings"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:100
+msgid ""
+"`parallelism` and `out_flags` are **maps with a closed set of sub-keys** "
+"— two settings of one thing, grouped so the file reads as it thinks. Both"
+" behave the same way:"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:103
+msgid ""
+"a sub-key left out stays **unset**, so another source still decides it. A"
+" file naming only `archive` leaves `separate_out` alone;"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:105
+msgid ""
+"an **unknown sub-key is an error naming its full path** — "
+"`parallelism.pipelines`, `out_flags.compressed`. A level or a flag that "
+"was considered and never implemented must not look active because a file "
+"mentioned it;"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:108
+msgid "a section that is not a map at all is an error."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:110
+msgid ""
+"Note that `out_flags.archive` is spelled as the flag is, not as the field"
+" is: `compressed` is the internal name and is rejected here."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:113
+msgid "The file wants real YAML types"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:114
+msgid ""
+"The file wants **real YAML types**, unlike the environment, which only "
+"has strings: `save_pdf: true` is a boolean, not the string `\"true\"`. "
+"Parallelism is the one place both are accepted, because YAML already "
+"distinguishes `2` from `auto` and refusing a quoted number would be a "
+"subtlety with no gain."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:118
+msgid "Unknown keys are errors"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:120
+msgid ""
+"At the top level as in the two sections. A misspelled key that is "
+"silently ignored configures nothing and says nothing about it, and the "
+"user is left believing a setting took effect. A file with a single "
+"unknown key fails the run, naming the file and the key."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:124
+msgid ""
+"An empty file, or one holding nothing but `null`, contributes nothing and"
+" is not an error. A top-level document that is not a mapping is."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:127
+msgid "Where the file is looked for"
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:129
+msgid ""
+"Unless `--config` names one, three tiers are searched in **decreasing** "
+"precedence, and the first file found wins outright — the tiers do not "
+"merge with each other."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:132
+msgid ""
+"**The working directory** — a file named, case-insensitively, `config-"
+"freeports.yaml` or `freeports-config.yaml`, in their usual punctuation "
+"and extension variants: a leading dot, `conf` for `config`, `-`, `_` or "
+"`.` as separator, `.yml` for `.yaml`. This is the per-project "
+"configuration, and the one to commit next to a batch file."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:136
+msgid ""
+"**The user tier** — the operating system's *local* configuration "
+"directory, holding `freeports.yaml` or `freeports.yml`. Local rather than"
+" roaming, deliberately: a file naming machine-local paths should not "
+"follow you to another machine and point at directories that do not exist "
+"there."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:140
+msgid ""
+"**The system tier** — the XDG configuration directories and then `/etc` "
+"on POSIX; the program-data directory and then the system root on Windows."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:143
+msgid ""
+"No file anywhere is **not an error**. It simply means this layer "
+"contributes nothing."
+msgstr ""
+
+#: ../../source/reference/configuration/config_file.md:145
+msgid ""
+"Both platform branches of the system tier are always compiled, whatever "
+"the machine — which is how the tests exercise both regardless of which "
+"system runs them."
+msgstr ""
+
+#~ msgid "*parsed and merged, but not applied; see* {doc}`index`"
+#~ msgstr ""
+

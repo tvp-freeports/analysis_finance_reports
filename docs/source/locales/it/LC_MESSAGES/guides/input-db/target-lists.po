@@ -1,0 +1,83 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/input-db/target-lists.md:1
+msgid "Target lists, and their provenance"
+msgstr "Le liste bersaglio, e la loro provenienza"
+
+#: ../../source/guides/input-db/target-lists.md:2
+msgid ""
+"A run does not search for the whole database; it searches for **lists**, named with "
+"`--target-list` / `-T`. A list is a curated set of companies with a provenance:"
+msgstr ""
+"Un'esecuzione non cerca l'intero database; cerca delle **liste**, nominate con "
+"`--target-list` / `-T`. Una lista è un insieme curato di società con una provenienza:"
+
+#: ../../source/guides/input-db/target-lists.md:16
+msgid ""
+"The institution and the date are not decoration. A list is normally somebody's "
+"published position — an exclusion list, a sector definition, a screening — and the "
+"output of a run is only as interpretable as the answer to \"whose list, as of when\"."
+" Recording it in the database means the answer travels with the data."
+msgstr ""
+"L'istituzione e la data non sono un ornamento. Una lista è di norma la posizione "
+"pubblicata da qualcuno — una lista di esclusione, la definizione di un settore, uno "
+"screening — e i risultati di un'esecuzione sono interpretabili solo quanto lo è la "
+"risposta a \"la lista di chi, aggiornata a quando\". Registrarla nel database vuol "
+"dire che la risposta viaggia insieme ai dati."
+
+#: ../../source/guides/input-db/target-lists.md:21
+msgid "Several lists can be given at once; their companies are unioned."
+msgstr "Si possono dare più liste in una volta; le loro società si uniscono."
+
+#: ../../source/guides/input-db/target-lists.md:23
+msgid "Two properties that will surprise you if nobody says them"
+msgstr "Due proprietà che ti coglieranno di sorpresa se nessuno te le dice"
+
+#: ../../source/guides/input-db/target-lists.md:25
+msgid ""
+"**File order is significant and is preserved, never sorted.** Matching is *first "
+"match wins*, so a shorter name that is a prefix of a longer one must sit **after** "
+"the more specific one — exactly where you put it. Sorting the file alphabetically "
+"would silently reattribute holdings to the wrong company, which is the kind of error "
+"that produces a plausible number rather than an obvious failure."
+msgstr ""
+"**L'ordine del file è significativo ed è conservato, mai riordinato.** Il "
+"riconoscimento è *al primo che vince*, quindi un nome più corto che sia prefisso di "
+"uno più lungo deve stare **dopo** quello più specifico — esattamente dove l'hai messo"
+" tu. Ordinare il file alfabeticamente riattribuirebbe in silenzio delle posizioni "
+"alla società sbagliata, che è il tipo di errore che produce un numero plausibile "
+"anziché un guasto evidente."
+
+#: ../../source/guides/input-db/target-lists.md:30
+msgid ""
+"**Patterns are matched unanchored.** They search the whole string. This is what the "
+"real matcher does, and validation deliberately does the same, so a pattern that is "
+"accepted is a pattern that can fire. `\\bmaersk` against `ap moller maersk` is the "
+"case that decides it: anchoring the validation would reject a pattern that works "
+"perfectly."
+msgstr ""
+"**Gli schemi sono confrontati senza àncore.** Cercano nell'intera stringa. È ciò che "
+"fa il riconoscitore vero, e la validazione fa deliberatamente lo stesso, così che uno"
+" schema accettato sia uno schema capace di scattare. `\\bmaersk` contro `ap moller "
+"maersk` è il caso che lo decide: ancorare la validazione rifiuterebbe uno schema che "
+"funziona benissimo."
+

@@ -1,0 +1,312 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/reference/design/multidocument.md:1
+msgid "Several documents in one run"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:3
+msgid ""
+"*Implemented.* Giving `-i` more than once, or naming a directory, is not "
+"a loop over single-document runs. It is **one run with more pages in it**"
+" — the documents are a *bundle*, and the engine treats the bundle the way"
+" it would treat one large document that happened to be bound in several "
+"volumes."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:7
+msgid "Why a report arrives as several files"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:9
+msgid ""
+"The obvious reason to pass several documents is that you have many "
+"reports of the same layout and want them all extracted. That case works, "
+"but it is the uninteresting one: it would work just as well as several "
+"separate runs."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:13
+msgid ""
+"The reason the feature exists is the other one. **A single financial "
+"report is often published as several files**, because its sections are "
+"addressed to different audiences and are printed, dated and distributed "
+"separately — the holdings schedule for one readership, the management and"
+" governance sections for another, an annex for a regulator. Nothing about"
+" that split follows the structure of the information; it follows the "
+"structure of the publisher's obligations."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:19
+msgid ""
+"The consequence is that **no one file contains what you need**. A "
+"concrete shape of it, and a common one:"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "Wanted"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "Where it is"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "the investments"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "document A"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "the investment managers of those funds"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "document B"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "the asset managers"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "back in document A"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:28
+msgid ""
+"Extracting the investments *with their managers attached* is then not "
+"possible from either file alone. Run separately, document A yields "
+"holdings whose manager column is empty and a manager table with nothing "
+"to attach it to; document B yields managers belonging to funds it never "
+"mentions. Joining the two afterwards means reimplementing, outside the "
+"engine and by hand, the matching the engine already does — on names that "
+"were normalised inside it and are no longer normalised in the CSV."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:35
+msgid "Passed together, the two files are one report:"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:41
+msgid "What \"as if it were one document\" means precisely"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:43
+#, python-brace-format
+msgid ""
+"It means the **schedule** — the sequence of steps, where each step's "
+"results are the next step's input filter ({doc}`schedule`) — runs once, "
+"over the pages of the whole bundle:"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:46
+msgid "every document is classified on its own, so each page gets a class;"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:47
+msgid "the classified pages of all documents go into **one** pool;"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:48
+msgid ""
+"step 1 runs over every page of that pool, whichever file it came from, "
+"and its results become the filter data of step 2;"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:50
+msgid "step 2 runs over every page of the pool, again regardless of file."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:52
+#, python-brace-format
+msgid ""
+"So in the example above, the step that reads the investment managers out "
+"of document B produces results that the later step over document A's "
+"holdings pages **receives as its input filter**. That is the whole "
+"mechanism, and it is why the bundle yields information neither file "
+"yields alone. The same applies to promises ({doc}`promises`): a value "
+"promised by a table in one document can be supplied by a page in another,"
+" because resolution happens once, over everything."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:58
+msgid ""
+"Fund deduplication is also once, across the bundle — a fund named in both"
+" documents is one row, not two."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:61
+msgid "The rule: classify per document, schedule over the union"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:62
+msgid "**Classification is per document. The schedule is over the union.**"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:64
+#, python-brace-format
+msgid ""
+"Each document is opened and classified on its own, so a format's "
+"finalizer sees one document's page sequence ({doc}`classification`). The "
+"classified pages of every document are then poured into **one** pool, and"
+" the schedule processes them together, caring only about the class each "
+"page was given."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:68
+msgid ""
+"For everything downstream, having several documents changes **nothing** "
+"except that each page carries the information of which document it came "
+"from."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:71
+msgid "Why that is the right shape"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:72
+msgid "The two halves of the rule are each forced, for opposite reasons."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:74
+msgid ""
+"**Classification must be per document** because a continuation rule is a "
+"fact about *adjacent pages of one file*. Over a union, page 1 of document"
+" B follows page 400 of document A, and \"this page continues the previous"
+" table\" would join tables that have nothing to do with each other."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:78
+msgid ""
+"**The schedule must be over the union** because that is what makes "
+"several documents *one* extraction rather than several concatenated ones."
+" Promise resolution and fund deduplication happen once, across everything"
+" — so a fund named on the cover of document A can supply a value promised"
+" by a table in document B, and the same fund appearing in both is one "
+"row, not two."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:83
+msgid "This is the property that makes the two commands genuinely different:"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:90
+msgid "Identifying a document"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:92
+#, python-brace-format
+msgid ""
+"Every output row carries a **`Report`** column naming the document it "
+"came from, and the name comes from the document specifier "
+"({doc}`../../guides/user/documents`):"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "Given"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "Name"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "`report.pdf`"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "the absolute path"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "`report.pdf:EURIZON 2023`"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "`EURIZON 2023`"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "`https://…/r.pdf`"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "the URL"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "a directory named `2024`"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md
+msgid "`2024/<file name>` per document in it"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:102
+msgid "What the `Report` column replaced"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:103
+msgid ""
+"The `Report` column exists in **every** run, batch or not, and that "
+"uniformity is the point of the design. Before it, batch mode had a "
+"`prefix out` column whose job was to give a document a name, and non-"
+"batch runs had no notion of naming at all — so the output schema depended"
+" on which mode produced it."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:108
+msgid ""
+"Making the name a property of the *document specifier* rather than of "
+"*batch mode* removed the column, removed the special case, and made one "
+"schema serve both. A consumer of `investments.csv` no longer has to know "
+"how the run was invoked."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:112
+msgid "How this differs from batch mode"
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:113
+#, python-brace-format
+msgid ""
+"Several documents in one invocation is not the same as {doc}`batch mode "
+"<../../guides/user/advanced/batch>`, and the difference is exactly the "
+"one this page is about. Several `-i` is **one job** over several "
+"documents: one schedule, one pool of pages, shared filter data, shared "
+"promises, shared deduplication. Batch is **one job per row**, each with "
+"its own format and lists, each with its own schedule that sees nothing of"
+" the others — which is precisely what you do *not* want for a report "
+"split across files."
+msgstr ""
+
+#: ../../source/reference/design/multidocument.md:119
+msgid ""
+"A rule of thumb: if the files are pieces of one report, they belong to "
+"one job, several `-i`. If they are separate reports that merely happen to"
+" be extracted at the same time, they belong to separate rows of a batch. "
+"Batch rows can themselves name several documents, so a batch of bundles "
+"composes naturally."
+msgstr ""
+

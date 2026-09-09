@@ -1,0 +1,481 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:1
+msgid "Diagnosing a format that already runs"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:3
+msgid ""
+"The harder job is not the empty page. It is the format that runs, "
+"produces thousands of plausible rows, and is quietly wrong about some of "
+"them. This page is a method for that, written from a real investigation."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:7
+msgid "Start from the log, not from the PDF"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:9
+msgid ""
+"Every run writes `.log.csv` next to its output. It is a table, not a wall"
+" of text, and it exists so that the first question — *where should I even"
+" look?* — can be answered by counting."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:25
+msgid ""
+"Then count by *kind* of event rather than by document, because that is "
+"what tells you whether you are looking at one problem or twenty. In the "
+"run above, 188 rows turned out to be four distinct phenomena, of which "
+"two were not problems at all."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:29
+msgid ""
+"Each row carries the report, the page, the full activity path, and "
+"coordinates — the row and column of the cell it is about. That is "
+"deliberate: the point of an event is that you can go back to the report "
+"and *find the thing*."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:33
+msgid "What the events mean"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "The message says"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "It means"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "Usually"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`… sits on the edge of the admissible range - kept`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid ""
+"a value landed exactly on a boundary of its domain — a holding worth "
+"zero, a position that is the whole fund"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "fine, and kept on purpose"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`forced \"…\" to \"…\" to read it as a number`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid ""
+"the cell was not a clean number and noise had to be stripped before it "
+"could be read"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "worth a look"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`… - holding skipped` / `page skipped`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid ""
+"something did not satisfy the output schema and was dropped, with the "
+"field named"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "a real loss, always read it"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`the … is missing: N cells past the anchor`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "the grid was walked and the expected cell was not there"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "a column mapping to re-check"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:42
+msgid "Two habits follow from that table."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:44
+#, python-format
+msgid ""
+"**A warning is not automatically a bug.** The engine warns about zero-"
+"valued holdings because zero is on the edge of what is admissible, not "
+"because zero is wrong — a security written off is worth exactly nothing, "
+"and discarding it would throw away the very fact worth reporting. In the "
+"run above, 116 of the 188 rows were holdings rounding to 0.00% of net "
+"assets. All correct."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:49
+msgid ""
+"**And silence is not automatically correctness.** The events you get are "
+"the ones the engine knew how to doubt. Nothing warns you that a column "
+"mapping is off by one and every market value belongs to the row above."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:53
+msgid "Two examples of the same message meaning opposite things"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:55
+msgid ""
+"Both of these produced `forced \"-X\" to \"X\" to read it as a number`. "
+"One was noise, the other was a real defect. Telling them apart is the "
+"whole skill."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:58
+msgid "The false positive"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:60
+msgid ""
+"A fund's Statement of Net Assets is laid out so that assets plus "
+"liabilities equal net assets, so `Total Liabilities` is printed with a "
+"minus:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:69
+msgid ""
+"The output schema wants a magnitude — it checks that `liabilities + "
+"net_assets == tot_assets` — so the extracted value was right all along. "
+"The warning was an artefact of a convention, and the fix was to make the "
+"convention explicit in the format rather than to leave the engine "
+"guessing."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:73
+msgid ""
+"The check that settled it took one command: compare the same field across"
+" every format that does *not* warn, and see what value they carry. They "
+"were all positive magnitudes."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:76
+msgid "The real defect"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:78
+msgid "The same message, on a different report, was hiding this in the output:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:84
+msgid ""
+"A **written put option** — a short position — recorded as a long holding "
+"of 30,900 USD in Exxon Mobil, and classified as a bond. The minus sign "
+"that said \"short\" had been stripped."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:87
+msgid ""
+"Nothing about the message distinguished the two cases. What distinguished"
+" them was asking, in each case, **what the sign meant in that field**: a "
+"presentation convention on a magnitude, or the difference between owning "
+"something and owing it."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:91
+msgid "Reproducing it on one page"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:93
+msgid ""
+"Once you have a suspect page, the modes of `inspect-page` are a decision "
+"procedure rather than a menu."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "Your question"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "Mode"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "how is this text actually typeset?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`structured` with `--strings`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "did the engine read the columns the way I read them?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`table_ascii` or `table_md`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "what was found on the page?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`pdf_blks`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "what survived filtering?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`txt_blks`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "what was it turned into?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "`results`"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:104
+msgid ""
+"The table modes are the ones people forget, and they are the fastest "
+"route to a class of bug that is otherwise invisible. Here is the page "
+"that held the Exxon put, rendered as a table:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:115
+msgid ""
+"Eight columns, because **the page holds two tables side by side**. That "
+"single observation explains a whole family of confusing results, and it "
+"is worth internalising:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:118
+msgid ""
+"reading order is **column-major** — down the left table, then down the "
+"right one;"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:119
+msgid ""
+"a section of the report can therefore open partway down one column and "
+"continue in the *other* column, or on the *next page*;"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:121
+msgid ""
+"so a rule of the form *\"everything below y on this page\"* is wrong "
+"twice over."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:123
+msgid ""
+"In the report above, the heading that opens the short-positions section "
+"sits in the right-hand column of page 316, and the section runs on "
+"through the left-hand column of page 317. That is how a put option ended "
+"up two pages away from the heading that explained it."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:127
+msgid "Choosing the layer: is this the format's problem or the engine's?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:129
+msgid ""
+"The same symptom lives in different places, and putting the fix in the "
+"wrong one is how a repository accumulates workarounds."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "Ask"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "If yes, it belongs to"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "would another report with this layout need the same handling?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "**the format**"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "does the report state something the engine has no way to know?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "would every format be wrong in the same way on this input?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "**the engine**"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md
+msgid "is the engine producing a value the report does not contain?"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:139
+msgid ""
+"The Exxon case answers the last one: the report said `-200`, the output "
+"said `200`. No format configuration should have to compensate for that, "
+"so the fix went into the engine — and it went in as *stop coercing*, not "
+"as *stop warning*."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:144
+msgid ""
+"Never silence a diagnostic at the point where it is the only thing "
+"standing between a wrong value and the output. If a coercion is what "
+"makes an invalid value pass validation, the fix is to remove the coercion"
+" and let the field or the row be rejected with a message naming it — not "
+"to quieten the message. A quiet log and a wrong number is the worst of "
+"the four combinations."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:150
+msgid "Proving that a fix loses nothing"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:152
+msgid ""
+"This is the part that is easy to skip and expensive to skip. A change "
+"that removes bad rows can remove good ones, and *\"I checked and it looks"
+" right\"* does not scale to a thousand pages. Three measurements, in "
+"increasing strength:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:156
+msgid "**1. The suite you already have.**"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:163
+msgid ""
+"Every format's whole-document output is pinned, so anything you disturbed"
+" anywhere shows up. Do this before you believe anything else."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:166
+msgid ""
+"**2. A real run, diffed.** The suite searches a small built-in company "
+"list, so a change that only affects companies outside it passes "
+"invisibly. Run the engine against the input database you actually care "
+"about, before and after, and diff the outputs."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:170
+msgid ""
+"**3. A run that emits everything.** Even a real database only surfaces "
+"rows that matched a company. To see *every* row your change touches, "
+"build a throwaway input database with a single company whose regex "
+"matches anything:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:179
+msgid ""
+"Every row of the report is now emitted, and the diff covers rows a "
+"realistic database would never have reached. Expect noise — bare numbers "
+"get \"matched\" as company names — but this is the measurement that turns"
+" *\"nothing else seems to have changed\"* into a count."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:183
+msgid ""
+"In the investigation this page is drawn from, those three steps produced:"
+" 259 tests passing, exactly four rows removed from the real run and "
+"nothing altered, and, under the catch-all, confirmation that every "
+"removed row was one the engine had previously emitted with a falsified "
+"sign."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:187
+msgid "When the reference outputs must change"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:189
+msgid ""
+"Sometimes a genuine improvement makes tests fail, because `out/**` is the"
+" repository's specification and the specification was written against the"
+" old behaviour."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:192
+msgid ""
+"Regenerating is a deliberate act, and the rule is simple: **classify "
+"every single difference before you touch anything.** Not \"29 tests fail,"
+" let me regenerate\" — but a list, of the shape:"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:195
+msgid "13 coupon values, all corrected: `10.25%` was being read as `0.25%`;"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:196
+msgid "14 per-page fixtures carrying those same coupons;"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:197
+msgid ""
+"2 cells where `Intesa Sanpaolo SpA 7% / perpetual` moved from equity to "
+"**bond** — a perpetual has no maturity date, so it was only recognised "
+"once the coupon could be read;"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:199
+msgid "no rows lost, no row counts moved anywhere."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:201
+msgid ""
+"Once every difference has a reason, regenerate, and write the reasons "
+"down. If you cannot explain a difference, you have found a second bug "
+"rather than finished with the first."
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:204
+msgid "The shape of the whole thing"
+msgstr ""
+
+#: ../../source/guides/formats/tutorials/diagnosing-a-format.md:215
+msgid ""
+"The payoff, in the run this page follows: 188 log rows became 175, the "
+"twenty-one misleading warnings became four accurate errors that name the "
+"security and the field, and coupon correctness went from 2695 of 2758 to "
+"2817 of 2817."
+msgstr ""
+

@@ -1,0 +1,118 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/unstructured.md:1
+msgid "The unstructured level"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:3
+msgid ""
+"When a layout resists parameterisation, write it. One format, one Python "
+"module under `content/algorithms/unstructured/`."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:20
+msgid ""
+"The module exports a `pipelines` mapping. Two things about that example "
+"matter more than the code itself."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:23
+msgid "The contract is by shape, not by type"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:25
+msgid ""
+"`pipelines` maps a name to **any object** with `pdf_extract`, "
+"`text_filter` and `deserialize` attributes, each a callable or an "
+"iterable of callables."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:28
+msgid ""
+"The engine's own `Pipeline` satisfies that protocol, but a plain object —"
+" or a dictionary — works just as well. Which is what lets a format be "
+"written **without importing the engine at all**, and means a repository's"
+" Python is testable on its own terms."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:32
+msgid "Native and author pipes mix inside one segment"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:34
+msgid ""
+"The example does exactly that: a **library** pipe configured with a "
+"selection **you** built."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:36
+msgid ""
+"A native pipe passed in from Python is unwrapped back to its Rust form "
+"rather than being called through Python for every block. Only your own "
+"callables stay wrapped, and they are the only thing that pays the "
+"boundary cost."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:40
+#, python-brace-format
+msgid ""
+"That has a visible consequence for speed: an author's pipe declares that "
+"it does **not** scale with threads, so a page class handled by one runs "
+"sequentially rather than contending for the GIL "
+"({doc}`../../../reference/design/parallelism`). A format that gains "
+"nothing from `--pages` is usually one of these, and that is the design "
+"working."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:45
+msgid "The classification finalizer"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:47
+msgid "A module may also export `compute_page_class`:"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:56
+#, python-brace-format
+msgid ""
+"It receives the raw per-page classes of **one document** and returns the "
+"resolved ones. This is where *\"this page continues the table that "
+"started on the previous one\"* is expressed, and it is the only place in "
+"the engine where reasoning across pages is available at all "
+"({doc}`../../../reference/design/classification`)."
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:61
+msgid "What happens when your pipe raises"
+msgstr ""
+
+#: ../../source/guides/formats/advanced/unstructured.md:62
+msgid ""
+"A Python exception raised by your pipe is logged **with its traceback** "
+"and converted to a typed error at the boundary. No Python exception "
+"travels further into the engine, so a format cannot crash a run: the page"
+" your pipe raised on is skipped, with an error row naming the format, the"
+" page and the pipe, and every other page of the document is extracted as "
+"usual. A pipe that raises on every page therefore yields an empty result "
+"and a log full of rows saying why, rather than a run that dies."
+msgstr ""
+

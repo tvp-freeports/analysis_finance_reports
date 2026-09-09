@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "tests.python.lines",
-  "message": "54.0%",
-  "color": "yellow"
+  "message": "stale",
+  "color": "grey"
 }

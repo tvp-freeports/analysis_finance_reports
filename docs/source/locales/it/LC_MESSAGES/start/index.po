@@ -1,0 +1,186 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/index.md:1
+msgid "Quick start"
+msgstr "Avvio rapido"
+
+#: ../../source/start/index.md:3
+msgid ""
+"Everything in this section is read by everyone, whatever you came here to do: what to"
+" install, what one real run looks like, and — if you intend to change something "
+"rather than only use it — which of the eight kinds of contribution is yours."
+msgstr ""
+"Tutto ciò che sta in questa sezione lo leggono tutti, qualunque cosa tu sia venuto a "
+"fare: che cosa installare, che aspetto ha un'esecuzione vera, e — se hai intenzione "
+"di cambiare qualcosa anziché solo usarlo — quale degli otto tipi di contributo è il "
+"tuo."
+
+#: ../../source/start/index.md:17
+msgid "The four pages here"
+msgstr "Le quattro pagine qui"
+
+#: ../../source/start/index.md:7
+msgid "Page"
+msgstr "Pagina"
+
+#: ../../source/start/index.md:7
+msgid "Answers"
+msgstr "Risponde a"
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`install`"
+msgstr "{doc}`install`"
+
+#: ../../source/start/index.md:7
+msgid "what to install, and which of the three distributions you need"
+msgstr "che cosa installare, e quale delle tre distribuzioni ti serve"
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`first-run`"
+msgstr "{doc}`first-run`"
+
+#: ../../source/start/index.md:7
+msgid "one real run, commented argument by argument"
+msgstr "un'esecuzione vera, commentata argomento per argomento"
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`dev-tools`"
+msgstr "{doc}`dev-tools`"
+
+#: ../../source/start/index.md:7
+msgid "the developer toolchain, and what each `make` target sets up"
+msgstr "la toolchain di sviluppo, e che cosa prepara ciascun target `make`"
+
+#: ../../source/start/index.md:7
+#, python-brace-format
+msgid "{doc}`ways-to-contribute`"
+msgstr "{doc}`ways-to-contribute`"
+
+#: ../../source/start/index.md:7
+msgid "the eight shapes a contribution takes, and where each one is documented"
+msgstr "le otto forme che prende un contributo, e dove ciascuna è documentata"
+
+#: ../../source/start/index.md:25
+msgid "The four things a run needs"
+msgstr "Le quattro cose che servono a un'esecuzione"
+
+#: ../../source/start/index.md:26
+msgid ""
+"Four things must be given, and only one of them can ever be worked out by the engine "
+"on its own:"
+msgstr "Quattro cose vanno date, e una sola di esse il motore può ricavarsela da sé:"
+
+#: ../../source/start/index.md:7
+msgid "What"
+msgstr "Che cosa"
+
+#: ../../source/start/index.md:7
+msgid "How"
+msgstr "Come"
+
+#: ../../source/start/index.md:7
+msgid "Can be inferred?"
+msgstr "Si può dedurre?"
+
+#: ../../source/start/index.md:7
+msgid "a document"
+msgstr "un documento"
+
+#: ../../source/start/index.md:7
+msgid "`--input` / `-i`"
+msgstr "`--input` / `-i`"
+
+#: ../../source/start/index.md:7
+msgid "no"
+msgstr "no"
+
+#: ../../source/start/index.md:7
+msgid "a format for it"
+msgstr "un formato per esso"
+
+#: ../../source/start/index.md:7
+msgid "`--format` / `-f`"
+msgstr "`--format` / `-f`"
+
+#: ../../source/start/index.md:7
+msgid "**yes**, from a URL the formats repository recognises"
+msgstr "**sì**, da un URL che il repository di formati riconosce"
+
+#: ../../source/start/index.md:7
+msgid "a formats repository"
+msgstr "un repository di formati"
+
+#: ../../source/start/index.md:7
+msgid "`--repo` / `-F`"
+msgstr "`--repo` / `-F`"
+
+#: ../../source/start/index.md:7
+msgid "an input database, and at least one list in it"
+msgstr "un database di ingresso, e almeno un elenco al suo interno"
+
+#: ../../source/start/index.md:7
+msgid "`--db-directory` / `-I`, `--target-list` / `-T`"
+msgstr "`--db-directory` / `-I`, `--target-list` / `-T`"
+
+#: ../../source/start/index.md:41
+msgid ""
+"None of the four has a useful default, and the engine refuses rather than guessing. "
+"If no target list is given the run stops immediately, before opening anything — the "
+"check is first because failing fast on a missing input is kinder than failing after "
+"four minutes of PDF."
+msgstr ""
+"Nessuna delle quattro ha un valore predefinito utile, e il motore rifiuta anziché "
+"indovinare. Se non è dato alcun lista bersaglio l'esecuzione si ferma subito, prima "
+"di aprire qualsiasi cosa — il controllo è il primo perché fallire in fretta su un "
+"ingresso mancante è più gentile che fallire dopo quattro minuti di PDF."
+
+#: ../../source/start/index.md:45
+#, python-brace-format
+msgid ""
+"Two of those four are separate repositories, maintained by other people: "
+"{doc}`../guides/formats/index` is where a format comes from, {doc}`../guides/input-"
+"db/index` is where the company lists come from. {doc}`../overview/the-repositories` "
+"is the whole map."
+msgstr ""
+"Due di quelle quattro sono repository separati, mantenuti da altre persone: "
+"{doc}`../guides/formats/index` è da dove viene un formato, {doc}`../guides/input-"
+"db/index` è da dove vengono gli elenchi di società. {doc}`../overview/the-"
+"repositories` è la mappa completa."
+
+#: ../../source/start/index.md:49
+msgid "Where to go next"
+msgstr "Dove andare poi"
+
+#: ../../source/start/index.md:50
+#, python-brace-format
+msgid ""
+"{doc}`../overview/index` if you want to understand the thing before driving it; "
+"{doc}`../guides/user/index` if you want to drive it now; {doc}`ways-to-contribute` if"
+" you intend to change it."
+msgstr ""
+"{doc}`../overview/index` se vuoi capire la cosa prima di guidarla; "
+"{doc}`../guides/user/index` se vuoi guidarla adesso; {doc}`ways-to-contribute` se hai"
+" intenzione di cambiarla."
+

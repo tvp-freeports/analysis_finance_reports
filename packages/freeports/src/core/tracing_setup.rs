@@ -8,8 +8,21 @@
 //! | Destination | What it is for | Level |
 //! |---|---|---|
 //! | stderr | watching a run happen | [`Verbosity`] |
-//! | `freeports.log.jsonl` | one JSON object per line, for tools | [`Verbosity`] |
+//! | `freeports.log.jsonl` | one JSON object per line, for tools | `trace` only |
 //! | `.log.csv` | the extraction's own audit trail, anchored to pages and coordinates | `warn` and above |
+//!
+//! The middle one exists only at [`Verbosity::Trace`]. Below it there is no file at all, not an
+//! empty one: a run watched on stderr is the ordinary case, and it must not leave anything behind
+//! in the directory it was started from.
+//!
+//! # When each destination is settled
+//!
+//! [`init`] creates **nothing**. Where `.log.csv` goes and whether there is a `freeports.log.jsonl`
+//! at all are both answers that live in a configuration which cannot be resolved until logging is
+//! already running — resolving it is one of the things that can fail, and it wants to say so. So
+//! `init` installs the subscriber, records accumulate, and
+//! [`LogHandle::settle_verbosity`] and [`LogHandle::set_csv_dir`] settle the two of them the moment
+//! the configuration resolves. A run that dies before that point falls back to the command line.
 //!
 //! # Verbosity
 //!
@@ -96,7 +109,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use tracing::field::{Field, Visit};
@@ -107,7 +120,7 @@ use tracing_subscriber::fmt::time::{FormatTime, SystemTime};
 use tracing_subscriber::fmt::{FmtContext, FormatEvent, FormatFields, FormattedFields, MakeWriter};
 use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{Layer, filter::LevelFilter};
+use tracing_subscriber::{Layer, filter::LevelFilter, reload};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Verbosity {
@@ -505,21 +518,23 @@ fn fmt_layer_with_writer<S, W>(
     writer: W,
     filter: LevelFilter,
     ansi: bool,
-) -> impl Layer<S> + std::fmt::Debug
+) -> (impl Layer<S> + std::fmt::Debug, ReloadableLevel)
 where
-    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug,
+    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug + 'static,
     W: for<'writer> MakeWriter<'writer> + 'static + std::fmt::Debug,
 {
-    tracing_subscriber::fmt::layer()
+    let (filter, handle) = reload::Layer::new(EventLevelFilter::new(filter));
+    let layer = tracing_subscriber::fmt::layer()
         .fmt_fields(SpanValueFields)
         .event_format(SpanPathFormat::new(ansi))
         .with_writer(writer)
-        .with_filter(EventLevelFilter::new(filter))
+        .with_filter(filter);
+    (layer, ReloadableLevel(Arc::new(handle)))
 }
 
-pub fn stderr_layer<S>(verbosity: Verbosity) -> impl Layer<S> + std::fmt::Debug
+pub fn stderr_layer<S>(verbosity: Verbosity) -> (impl Layer<S> + std::fmt::Debug, ReloadableLevel)
 where
-    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug,
+    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug + 'static,
 {
     fmt_layer_with_writer(
         std::io::stderr as fn() -> std::io::Stderr,
@@ -528,52 +543,177 @@ where
     )
 }
 
-/// A `BufWriter<File>` behind a shared `Mutex`, so the same buffer can be both the destination
-/// [`JsonLogLayer`] writes its lines into and the thing [`LogHandle::close`] flushes.
+/// One layer's level filter, kept changeable after the subscriber is installed.
 ///
-/// Buffering is not a micro-optimisation here. Writing straight into a bare `File` meant one
-/// `write(2)` per event — 33,086 unbuffered syscalls for a single 1140-page job — and it happened
-/// at a hardcoded `DEBUG` regardless of verbosity.
+/// It exists because the two dials cannot be read at the same moment. `-v`/`-q` are on the command
+/// line and are known before anything can log; `FREEPORTS_VERBOSITY` and the configuration file's
+/// `verbosity` key are only known once the configuration has been *resolved*, and resolving it
+/// logs. So logging starts at the command line's verbosity and is corrected to the resolved one by
+/// [`LogHandle::settle_verbosity`], which is the moment both are finally known.
+///
+/// Reloading is not merely swapping a comparison. `tracing` caches, per callsite, whether anybody
+/// is interested in it, and derives a process-wide maximum level from every layer's
+/// `max_level_hint`; `reload::Handle::reload` rebuilds both. Without that, raising the verbosity
+/// would change nothing — the `debug!` sites would already have been switched off at their
+/// callsites and would never be reached again.
+///
+/// Type-erased because the two layers sit at different depths of the `Layered` stack and therefore
+/// have different `S` parameters, which would otherwise leak into [`LogHandle`]'s own type.
+#[derive(Clone)]
+pub struct ReloadableLevel(Arc<dyn ReloadLevel>);
+
+impl ReloadableLevel {
+    /// Silently does nothing if the subscriber is gone, which in this crate means a test whose
+    /// dispatcher has been dropped. A verbosity that could not be applied must never be the reason
+    /// a run fails: the old level is still a working level.
+    fn set(&self, verbosity: Verbosity) {
+        self.0.set(EventLevelFilter::new(verbosity.level_filter()));
+    }
+}
+
+impl std::fmt::Debug for ReloadableLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ReloadableLevel")
+    }
+}
+
+/// `RefUnwindSafe` is part of the contract, not decoration: [`LogHandle`] is passed by reference
+/// into `catch_unwind` by the tests that assert a failing run still flushes its logs.
+trait ReloadLevel: Send + Sync + std::panic::RefUnwindSafe {
+    fn set(&self, filter: EventLevelFilter);
+}
+
+impl<S: 'static> ReloadLevel for reload::Handle<EventLevelFilter, S> {
+    fn set(&self, filter: EventLevelFilter) {
+        let _ = self.reload(filter);
+    }
+}
+
+/// Where the JSON Lines records go, behind a shared `Mutex`, so the same sink can be both what
+/// [`JsonLogLayer`] writes into and what [`LogHandle`] settles and flushes.
+///
+/// Three states, because the decision *whether there is a file at all* cannot be taken when the
+/// subscriber is installed: it depends on the resolved verbosity, and resolving the configuration
+/// is itself something that logs. So records accumulate until [`LogHandle::settle_verbosity`] says
+/// which of the two ends this is.
+///
+/// Buffering into the file is not a micro-optimisation either. At `trace` a single 1140-page job
+/// produces tens of thousands of records, and writing straight into a bare `File` is one `write(2)`
+/// per event — 33,086 of them, measured, on that job.
+#[derive(Debug)]
+enum JsonSink {
+    /// Not settled yet. Bounded in practice by what configuration resolution logs, which is a
+    /// handful of records, not the run.
+    Pending(Vec<u8>),
+    /// Settled at `trace`: the file exists and everything buffered has already reached it.
+    Open(BufWriter<File>),
+    /// Settled below `trace`: there is no file, and records are dropped rather than kept.
+    Off,
+}
+
 #[derive(Debug, Clone)]
-pub struct SharedFileWriter(Arc<Mutex<BufWriter<File>>>);
+pub struct SharedFileWriter(Arc<Mutex<JsonSink>>);
 
 impl SharedFileWriter {
+    fn pending() -> Self {
+        Self(Arc::new(Mutex::new(JsonSink::Pending(Vec::new()))))
+    }
+
     /// Appends one already-serialized record and its newline. Called once per event from inside
     /// a `Layer::on_event`, which has no channel to report a failure back through — hence the
     /// `io::Result` returned here and deliberately dropped by its caller (see `JsonLogLayer`).
     fn write_line(&self, line: &str) -> std::io::Result<()> {
-        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
-        guard.write_all(line.as_bytes())?;
-        guard.write_all(b"\n")
+        match &mut *self.0.lock().unwrap_or_else(PoisonError::into_inner) {
+            JsonSink::Pending(buffer) => {
+                buffer.extend_from_slice(line.as_bytes());
+                buffer.push(b'\n');
+                Ok(())
+            }
+            JsonSink::Open(file) => {
+                file.write_all(line.as_bytes())?;
+                file.write_all(b"\n")
+            }
+            JsonSink::Off => Ok(()),
+        }
     }
 
     /// Appends bytes verbatim, without adding a newline (P1: the JSON Lines a worker process
-    /// already wrote, newlines included). Goes through the same writer as every other line, so
+    /// already wrote, newlines included). Goes through the same sink as every other line, so
     /// the absorbed records land after the parent's instead of racing its buffer.
     fn append_raw(&self, bytes: &[u8]) -> std::io::Result<()> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner).write_all(bytes)
+        match &mut *self.0.lock().unwrap_or_else(PoisonError::into_inner) {
+            JsonSink::Pending(buffer) => {
+                buffer.extend_from_slice(bytes);
+                Ok(())
+            }
+            JsonSink::Open(file) => file.write_all(bytes),
+            JsonSink::Off => Ok(()),
+        }
+    }
+
+    /// Creates the file and pours everything buffered so far into it, in order. Idempotent on an
+    /// already-open sink, which is what makes a second `settle_verbosity` harmless.
+    fn open(&self, path: &Path) -> Result<(), TracingSetupError> {
+        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        let buffered = match &mut *guard {
+            JsonSink::Pending(buffer) => std::mem::take(buffer),
+            JsonSink::Open(_) | JsonSink::Off => return Ok(()),
+        };
+        let file = File::create(path)
+            .map_err(|source| TracingSetupError::OpenLogFile { path: path.to_path_buf(), source })?;
+        let mut writer = BufWriter::new(file);
+        writer
+            .write_all(&buffered)
+            .map_err(|source| TracingSetupError::OpenLogFile { path: path.to_path_buf(), source })?;
+        *guard = JsonSink::Open(writer);
+        Ok(())
+    }
+
+    /// Settles the sink at "no file". The buffered records are dropped rather than written
+    /// somewhere else: every one of them also reached stderr.
+    fn discard(&self) {
+        let mut guard = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+        if matches!(*guard, JsonSink::Pending(_)) {
+            *guard = JsonSink::Off;
+        }
+    }
+
+    /// True once there is a file on disk to pour anything into.
+    fn is_open(&self) -> bool {
+        matches!(*self.0.lock().unwrap_or_else(PoisonError::into_inner), JsonSink::Open(_))
     }
 
     fn flush(&self) -> std::io::Result<()> {
-        self.0.lock().unwrap_or_else(PoisonError::into_inner).flush()
+        match &mut *self.0.lock().unwrap_or_else(PoisonError::into_inner) {
+            JsonSink::Open(file) => file.flush(),
+            JsonSink::Pending(_) | JsonSink::Off => Ok(()),
+        }
     }
 }
 
-/// `freeports.log.jsonl`, the diagnostic log — **structured** since L5, at the same level as
-/// stderr. See [`JsonLogLayer`] for why JSON Lines and not a single JSON or YAML document.
+/// `freeports.log.jsonl`, the diagnostic log: one JSON object per line, for tools. See
+/// [`JsonLogLayer`] for why JSON Lines and not a single JSON or YAML document.
+///
+/// **Only at [`Verbosity::Trace`]**, and the file is created by
+/// [`LogHandle::settle_verbosity`] rather than here: whether there is to be a file depends on the
+/// *resolved* verbosity, which is not known yet. Below `trace` the path is never touched — no
+/// file, not even an empty one. Two reasons, and either would do: the file answers a question
+/// (*what exactly did the engine do, everywhere, all of it*) that only the maximum verbosity
+/// actually answers, and creating it unconditionally meant that every run, including `-q`, dropped
+/// a file into whatever directory it was started from.
+///
+/// Nothing here is fallible, which is the point of deferring: a directory that cannot be written to
+/// is only a failure where a file is actually wanted.
 pub fn file_layer<S>(
-    path: &Path,
     verbosity: Verbosity,
-) -> Result<(impl Layer<S> + std::fmt::Debug, SharedFileWriter), TracingSetupError>
+) -> (impl Layer<S> + std::fmt::Debug, SharedFileWriter, ReloadableLevel)
 where
-    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug,
+    S: Subscriber + for<'span> LookupSpan<'span> + std::fmt::Debug + 'static,
 {
-    let file = File::create(path)
-        .map_err(|source| TracingSetupError::OpenLogFile { path: path.to_path_buf(), source })?;
-    let writer = SharedFileWriter(Arc::new(Mutex::new(BufWriter::new(file))));
-    let layer = JsonLogLayer::new(writer.clone())
-        .with_filter(EventLevelFilter::new(verbosity.level_filter()));
-    Ok((layer, writer))
+    let writer = SharedFileWriter::pending();
+    let (filter, handle) = reload::Layer::new(EventLevelFilter::new(verbosity.level_filter()));
+    let layer = JsonLogLayer::new(writer.clone()).with_filter(filter);
+    (layer, writer, ReloadableLevel(Arc::new(handle)))
 }
 
 
@@ -949,12 +1089,11 @@ impl CsvLogLayer {
 
     /// Throws away every accumulated row **without creating any file**.
     ///
-    /// This is what a run that never got a destination does at the end (L5): `.log.csv` belongs
-    /// next to the output, and a run that failed before resolving its configuration has no
-    /// output to sit next to. Writing it to the working directory instead — which is what
-    /// happened until L5 — left a stray header-only `.log.csv` behind after every failed run,
-    /// which the user asked to stop. The rows are not really lost: every one of them is an event
-    /// that also reached stderr and `freeports.log.jsonl`.
+    /// This is what a run that never got a destination does at the end: `.log.csv` belongs next
+    /// to the output, and a run that failed before resolving its configuration has no output to
+    /// sit next to. Writing it to the working directory instead would leave a stray header-only
+    /// `.log.csv` behind after every failed run. The rows are not really lost: every one of them
+    /// is an event that also reached stderr.
     pub fn discard(&self) {
         self.inner.rows.lock().unwrap_or_else(PoisonError::into_inner).clear();
     }
@@ -1096,13 +1235,22 @@ pub const CSV_FILE_NAME: &str = ".log.csv";
 pub const LOG_FILE_NAME: &str = "freeports.log.jsonl";
 
 /// What `init` hands back: the destinations that hold data in memory and must be settled before the
-/// process exits — the accumulated `.log.csv` rows and the `freeports.log.jsonl` buffer. The global
-/// `Dispatch` installed by `init` is `'static` and never dropped, so neither one reaches disk
-/// without this.
+/// process exits — the accumulated `.log.csv` rows and, at `trace` only, the `freeports.log.jsonl`
+/// buffer. The global `Dispatch` installed by `init` is `'static` and never dropped, so neither one
+/// reaches disk without this.
 #[derive(Debug, Clone)]
 pub struct LogHandle {
     csv: CsvLogLayer,
     file: SharedFileWriter,
+    /// Where `freeports.log.jsonl` will go if the resolved verbosity turns out to be `trace`.
+    json_path: PathBuf,
+    /// The verbosity the command line asked for, kept so that a run which dies before resolving
+    /// its configuration still honours `-vvv`. See [`LogHandle::close`].
+    initial: Verbosity,
+    /// The two level filters that follow the resolved verbosity — see [`ReloadableLevel`].
+    levels: [ReloadableLevel; 2],
+    /// Whether [`LogHandle::settle_verbosity`] has run. `close` settles at `initial` if it has not.
+    settled: Arc<AtomicBool>,
     /// What the worker processes logged, in job order, waiting to be poured into this run's own
     /// files at `close()`.
     ///
@@ -1132,9 +1280,14 @@ impl LogHandle {
     /// replace one diagnosis with two.
     pub fn absorb_worker_logs(&self, log_dir: &Path) -> Result<(), TracingSetupError> {
         let read = |name: &str| std::fs::read(log_dir.join(name)).unwrap_or_default();
+        // A child's structured log is read only if this run has one to pour it into. The two can
+        // genuinely disagree: this process installed its logging from `-v`/`-q` before the
+        // configuration was resolved, while a child receives the *resolved* verbosity, so a
+        // configuration file saying `verbosity: trace` makes the children write a file the parent
+        // never opened. Reading megabytes in order to drop them is the only other option.
         let logs = WorkerLogs {
             csv_rows: strip_csv_header(&read(CSV_FILE_NAME)),
-            jsonl: read(LOG_FILE_NAME),
+            jsonl: if self.file.is_open() { read(LOG_FILE_NAME) } else { Vec::new() },
         };
         self.absorbed.lock().unwrap_or_else(PoisonError::into_inner).push(logs);
         Ok(())
@@ -1154,9 +1307,8 @@ impl LogHandle {
             if self.csv.has_destination() {
                 record(self.csv.append_rows(&logs.csv_rows));
             }
-            record(self.file.append_raw(&logs.jsonl).map_err(|source| TracingSetupError::OpenLogFile {
-                path: PathBuf::from(LOG_FILE_NAME),
-                source,
+            record(self.file.append_raw(&logs.jsonl).map_err(|source| {
+                TracingSetupError::OpenLogFile { path: self.json_path.clone(), source }
             }));
         }
         first_error.map_or(Ok(()), Err)
@@ -1174,6 +1326,38 @@ impl LogHandle {
         self.csv.set_destination(&dir.join(CSV_FILE_NAME))
     }
 
+    /// Applies the **resolved** verbosity — the one `-v`/`-q`, `FREEPORTS_VERBOSITY` and the
+    /// configuration file's `verbosity` key merge into — to every destination, and settles whether
+    /// there is a `freeports.log.jsonl` at all.
+    ///
+    /// This is the second half of a decision that has to be taken in two moments. Logging must be
+    /// running before the configuration is resolved, because resolving it is one of the things that
+    /// can fail and wants to say so; but two of the three sources of the verbosity are *inside* that
+    /// configuration. So the command line's counts get logging started, and this corrects it as soon
+    /// as the answer exists — which is also what stops a parent and its worker children from
+    /// disagreeing, since the children were always given the resolved value.
+    ///
+    /// Called from `cli::run::execute` the moment the configuration resolves, and by a worker
+    /// immediately after `init`, its verbosity being resolved before it was spawned.
+    ///
+    /// One thing it cannot do, and the honest place to say it: a configuration file cannot govern
+    /// what was logged before the configuration file was read. Raising the verbosity here opens the
+    /// callsites from this point on; the handful of records that configuration resolution itself
+    /// emitted below the new level were never constructed and are not recoverable. Passing `-vvv`
+    /// on the command line has no such gap, because then nothing needed correcting.
+    pub fn settle_verbosity(&self, verbosity: Verbosity) -> Result<(), TracingSetupError> {
+        self.settled.store(true, Ordering::Release);
+        for level in &self.levels {
+            level.set(verbosity);
+        }
+        if verbosity == Verbosity::Trace {
+            self.file.open(&self.json_path)
+        } else {
+            self.file.discard();
+            Ok(())
+        }
+    }
+
     /// Flushes every destination. Attempts the `freeports.log.jsonl` flush even if the CSV one
     /// failed, so a failure in one never costs the diagnostics held by the other; the CSV error
     /// wins as the reported one, being the artifact the integration tests compare.
@@ -1186,6 +1370,14 @@ impl LogHandle {
         if !self.csv.has_destination() {
             self.csv.discard();
         }
+        // A run that died before its configuration resolved never reached `settle_verbosity`, so
+        // the command line has the last word — which is what makes a failing `-vvv` still leave its
+        // structured log behind, and that is the run whose log you most want to read.
+        let settle_result = if self.settled.load(Ordering::Acquire) {
+            Ok(())
+        } else {
+            self.settle_verbosity(self.initial)
+        };
         // Every destination is attempted even if an earlier one failed: an error on one must not
         // cost the diagnostics held by the others. The CSV wins as the reported error, being the
         // artefact the integration tests compare.
@@ -1197,8 +1389,9 @@ impl LogHandle {
         let file_result = self.file.flush();
         csv_result?;
         absorbed_result?;
+        settle_result?;
         file_result.map_err(|source| TracingSetupError::OpenLogFile {
-            path: PathBuf::from(LOG_FILE_NAME),
+            path: self.json_path.clone(),
             source,
         })
     }
@@ -1222,11 +1415,17 @@ fn strip_csv_header(bytes: &[u8]) -> Vec<u8> {
 /// process's one `set_global_default`.
 #[cfg(test)]
 pub fn log_handle_for_tests(log_dir: &Path) -> Result<LogHandle, TracingSetupError> {
-    let (_, file_writer) = file_layer::<tracing_subscriber::Registry>(
-        &log_dir.join(LOG_FILE_NAME),
-        Verbosity::Warn,
-    )?;
-    Ok(LogHandle { csv: CsvLogLayer::deferred(), file: file_writer, absorbed: Arc::new(Mutex::new(Vec::new())) })
+    let (_, stderr_level) = stderr_layer::<tracing_subscriber::Registry>(Verbosity::Trace);
+    let (_, file_writer, file_level) = file_layer::<tracing_subscriber::Registry>(Verbosity::Trace);
+    Ok(LogHandle {
+        csv: CsvLogLayer::deferred(),
+        file: file_writer,
+        json_path: log_dir.join(LOG_FILE_NAME),
+        initial: Verbosity::Trace,
+        levels: [stderr_level, file_level],
+        settled: Arc::new(AtomicBool::new(false)),
+        absorbed: Arc::new(Mutex::new(Vec::new())),
+    })
 }
 
 /// Coerces a concrete error into the `&dyn Error` that `tracing` records **structurally**
@@ -1319,14 +1518,14 @@ impl CoordsRecord {
 /// One entry of the structured log: a line of `freeports.log.jsonl`.
 #[derive(Debug, Clone, serde::Serialize)]
 struct LogRecord {
-    /// Wall clock, in the same format the pre-L5 text `freeports.log` printed. It moved from the
-    /// line's prefix into a field, but it did not disappear: it is what tells you *when* a run
-    /// spent its time, which is most of why the file is read at all.
+    /// Wall clock. It is what tells you *when* a run spent its time, which is most of why the
+    /// file is read at all — and it is here rather than on stderr because while you are watching,
+    /// "now" is not information.
     time: String,
     level: String,
     activity: String,
-    /// The module path the event came from — `freeports::core::algorithm`. Kept here precisely
-    /// because L5 removed it from stderr: too long to read live, too useful to lose.
+    /// The module path the event came from — `freeports::core::algorithm`. Here and not on
+    /// stderr: too long to read live, too useful to lose.
     target: String,
     message: String,
     #[serde(skip_serializing_if = "CoordsRecord::is_empty")]
@@ -1387,9 +1586,9 @@ impl Visit for RecordVisitor {
     }
 }
 
-/// The current wall clock, formatted exactly as the pre-L5 text log printed it
-/// (`2026-08-30T08:12:25.626426Z`). Goes through `tracing_subscriber`'s own `SystemTime` formatter
-/// rather than a new date dependency: same bytes as before, nothing added to `Cargo.toml`.
+/// The current wall clock, RFC 3339 with microseconds (`2026-08-30T08:12:25.626426Z`). Goes
+/// through `tracing_subscriber`'s own `SystemTime` formatter rather than a new date dependency:
+/// nothing added to `Cargo.toml` for a format it already produces.
 fn now_timestamp() -> String {
     let mut buffer = String::new();
     let _ = SystemTime.format_time(&mut Writer::new(&mut buffer));
@@ -1446,9 +1645,9 @@ where
     }
 }
 
-/// `freeports.log.jsonl` — the diagnostic log, **structured** since L5 (the user's request: "in
-/// freeports.log fosse strutturato"). One JSON object per line, at the same level as stderr, with
-/// the `target` stderr no longer prints and the serialized error stderr never carried.
+/// `freeports.log.jsonl` — the diagnostic log. One JSON object per line, written only at
+/// [`Verbosity::Trace`], carrying the `target` stderr does not print and the serialized error
+/// stderr cannot represent.
 ///
 /// JSON Lines rather than a single JSON array or a YAML document, for two reasons that both come
 /// from the volume this file sees at `-vvv` (tens of thousands of records for one job):
@@ -1494,10 +1693,16 @@ where
     }
 }
 
+/// Installs the one global subscriber, at the verbosity the **command line** asked for.
+///
+/// Nothing here touches `log_dir`. Both the `.log.csv` destination and the existence of
+/// `freeports.log.jsonl` are settled later — by `set_csv_dir` and `settle_verbosity` respectively —
+/// because both answers live in a configuration that cannot be resolved until logging is running.
 pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSetupError> {
     use tracing_subscriber::layer::SubscriberExt;
 
-    let (file_layer, file_writer) = file_layer(&log_dir.join(LOG_FILE_NAME), verbosity)?;
+    let (stderr_layer, stderr_level) = stderr_layer(verbosity);
+    let (file_layer, file_writer, file_level) = file_layer(verbosity);
     // Deferred on purpose: `.log.csv` belongs in the output directory, which the configuration
     // only reveals later — `log_dir` is merely the fallback. See `LogHandle::set_csv_dir`.
     let csv = CsvLogLayer::deferred();
@@ -1505,13 +1710,24 @@ pub fn init(verbosity: Verbosity, log_dir: &Path) -> Result<LogHandle, TracingSe
     // Binding: the CSV layer **must** carry a level filter. A layer without one leaves the
     // registry's global max level at `TRACE`, so every `trace!` in the crate is constructed and
     // dispatched even at `-q`. Do not remove `.with_filter` here.
+    //
+    // The CSV filter is deliberately *not* reloadable: `warn` is this file's ceiling at every
+    // verbosity, so there is nothing for a resolved verbosity to change about it.
     let subscriber = tracing_subscriber::registry()
-        .with(stderr_layer(verbosity))
+        .with(stderr_layer)
         .with(file_layer)
         .with(csv.clone().with_filter(EventLevelFilter::new(csv_level_filter(verbosity))));
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|source| TracingSetupError::AlreadyInitialized { source })?;
-    Ok(LogHandle { csv, file: file_writer, absorbed: Arc::new(Mutex::new(Vec::new())) })
+    Ok(LogHandle {
+        csv,
+        file: file_writer,
+        json_path: log_dir.join(LOG_FILE_NAME),
+        initial: verbosity,
+        levels: [stderr_level, file_level],
+        settled: Arc::new(AtomicBool::new(false)),
+        absorbed: Arc::new(Mutex::new(Vec::new())),
+    })
 }
 
 #[cfg(test)]
@@ -1722,7 +1938,8 @@ mod tests {
         #[test_case(Verbosity::Trace; "trace tier")]
         fn builds_and_runs_without_panicking(verbosity: Verbosity) {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-            let subscriber = tracing_subscriber::registry().with(stderr_layer(verbosity));
+            let (layer, _level) = stderr_layer(verbosity);
+            let subscriber = tracing_subscriber::registry().with(layer);
             // The point of this test is the absence of a panic while the layer is exercised at
             // every level, at every verbosity tier -- stderr output itself is not asserted on
             // (see the module doc: only "does not panic" is in scope for this destination).
@@ -1792,7 +2009,7 @@ mod tests {
         fn captured_output(verbosity: Verbosity) -> String {
             let _guard = SERIAL.lock().unwrap();
             let buffer = SharedBuffer::default();
-            let layer = fmt_layer_with_writer(buffer.clone(), verbosity.level_filter(), false);
+            let (layer, _level) = fmt_layer_with_writer(buffer.clone(), verbosity.level_filter(), false);
             let subscriber = tracing_subscriber::registry().with(layer);
             tracing::subscriber::with_default(subscriber, emit_one_event_per_level_at);
             String::from_utf8(buffer.0.lock().unwrap().clone()).expect("captured output is utf8")
@@ -1847,7 +2064,7 @@ mod tests {
         fn rendered(body: impl FnOnce()) -> String {
             let _guard = SERIAL.lock().unwrap();
             let buffer = SharedBuffer::default();
-            let layer = fmt_layer_with_writer(buffer.clone(), LevelFilter::TRACE, false);
+            let (layer, _level) = fmt_layer_with_writer(buffer.clone(), LevelFilter::TRACE, false);
             let subscriber = tracing_subscriber::registry().with(layer);
             tracing::subscriber::with_default(subscriber, body);
             String::from_utf8(buffer.0.lock().unwrap().clone()).expect("captured output is utf8")
@@ -1974,44 +2191,133 @@ mod tests {
         mod construction {
             use super::*;
             use pretty_assertions::assert_eq;
+            use test_case::test_case;
 
-            #[test]
-            fn creates_the_file_at_the_given_path() {
+            /// A helper standing in for `init` + `settle_verbosity` without installing a global
+            /// subscriber: what `file_layer` builds, settled at `verbosity`.
+            fn settled_sink(path: &Path, verbosity: Verbosity) -> (SharedFileWriter, Result<(), TracingSetupError>) {
+                let (_, writer, _) = file_layer::<tracing_subscriber::Registry>(verbosity);
+                let result = if verbosity == Verbosity::Trace {
+                    writer.open(path)
+                } else {
+                    writer.discard();
+                    Ok(())
+                };
+                (writer, result)
+            }
+
+            /// Nothing is created by construction any more: the path is not touched until the
+            /// resolved verbosity says there is to be a file.
+            #[test_case(Verbosity::Warn; "the default: warnings")]
+            #[test_case(Verbosity::Trace; "-vvv: trace")]
+            fn building_the_layer_creates_no_file_whatever_the_verbosity(verbosity: Verbosity) {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(LOG_FILE_NAME);
-                assert!(
-                    file_layer::<tracing_subscriber::Registry>(&path, Verbosity::Debug).is_ok()
-                );
+                let (_, _, _) = file_layer::<tracing_subscriber::Registry>(verbosity);
+                assert!(!path.exists(), "{verbosity:?} must not create a file before it is settled");
+            }
+
+            #[test]
+            fn settling_at_trace_creates_the_file_at_the_given_path() {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(LOG_FILE_NAME);
+                let (writer, result) = settled_sink(&path, Verbosity::Trace);
+                result.expect("settling at Trace must open the file");
+                assert!(writer.is_open(), "at Trace the sink must be open");
                 assert!(path.exists());
+            }
+
+            /// The file answers a question only the maximum verbosity answers, so below `Trace`
+            /// there is no file at all rather than an empty one: an ordinary run must leave
+            /// nothing behind in the directory it was started from.
+            #[test_case(Verbosity::Silent; "silent")]
+            #[test_case(Verbosity::ErrorOnly; "-q: errors only")]
+            #[test_case(Verbosity::Warn; "the default: warnings")]
+            #[test_case(Verbosity::Info; "-v: info")]
+            #[test_case(Verbosity::Debug; "-vv: debug")]
+            fn writes_nothing_at_all_below_trace(verbosity: Verbosity) {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(LOG_FILE_NAME);
+                let (writer, result) = settled_sink(&path, verbosity);
+                result.expect("settling below Trace opens nothing and cannot fail");
+                assert!(!writer.is_open(), "{verbosity:?} must leave the sink closed");
+                assert!(!path.exists(), "{verbosity:?} must not create {}", path.display());
+            }
+
+            /// A directory that cannot be written to is only a failure where a file is actually
+            /// wanted. Below `Trace` the path is never touched, so nothing can go wrong with it.
+            #[test]
+            fn an_unwritable_path_is_not_an_error_below_trace() {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join("missing_subdir").join(LOG_FILE_NAME);
+                let (writer, result) = settled_sink(&path, Verbosity::Warn);
+                result.expect("below Trace the path is never opened, so this cannot fail");
+                assert!(!writer.is_open());
             }
 
             #[test]
             fn errors_when_the_parent_directory_does_not_exist() {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join("missing_subdir").join(LOG_FILE_NAME);
-                let err = file_layer::<tracing_subscriber::Registry>(&path, Verbosity::Debug)
-                    .expect_err("parent directory does not exist, this must fail");
-                match err {
+                let (_, result) = settled_sink(&path, Verbosity::Trace);
+                match result.expect_err("parent directory does not exist, this must fail") {
                     TracingSetupError::OpenLogFile { path: reported, source: _ } => {
                         assert_eq!(reported, path);
                     }
                     other => panic!("expected OpenLogFile, found {other:?}"),
                 }
             }
+
+            /// The whole point of buffering rather than deciding early: records emitted before the
+            /// configuration resolved are in the file, in order, once it is opened.
+            #[test]
+            fn records_written_before_settling_reach_the_file_in_order() {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(LOG_FILE_NAME);
+                let (_, writer, _) = file_layer::<tracing_subscriber::Registry>(Verbosity::Trace);
+                writer.write_line("first").expect("buffered write");
+                writer.write_line("second").expect("buffered write");
+                writer.open(&path).expect("settling at Trace must open the file");
+                writer.write_line("third").expect("write after opening");
+                writer.flush().expect("flush");
+                assert_eq!(
+                    std::fs::read_to_string(&path).expect("read the jsonl log"),
+                    "first\nsecond\nthird\n"
+                );
+            }
+
+            /// The mirror image: settled below `trace`, what was buffered is dropped rather than
+            /// written somewhere else. Every one of those records also reached stderr.
+            #[test]
+            fn records_written_before_settling_are_dropped_when_there_is_no_file() {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let path = dir.path().join(LOG_FILE_NAME);
+                let (_, writer, _) = file_layer::<tracing_subscriber::Registry>(Verbosity::Trace);
+                writer.write_line("first").expect("buffered write");
+                writer.discard();
+                writer.write_line("second").expect("write after discarding");
+                writer.flush().expect("flush");
+                assert!(!path.exists(), "discarding must create nothing");
+            }
         }
 
-        mod level_filtering {
+        mod what_it_captures {
             use super::*;
+            use test_case::test_case;
 
-            /// Emits one marker per level through a `file_layer` built at `verbosity`, flushes
-            /// the buffered writer (buffering is why reading the file without flushing first
-            /// would see nothing) and returns the file's content.
+            /// Emits one marker per level through a `file_layer` built at `verbosity` and settled
+            /// at the same one, flushes the buffered writer (buffering is why reading the file
+            /// without flushing first would see nothing) and returns the file's content.
             fn file_content_at(verbosity: Verbosity) -> String {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(LOG_FILE_NAME);
-                let (layer, writer) =
-                    file_layer(&path, verbosity).expect("file layer construction");
+                let (layer, writer, _level) = file_layer(verbosity);
+                if verbosity == Verbosity::Trace {
+                    writer.open(&path).expect("settling at Trace must open the file");
+                } else {
+                    writer.discard();
+                }
                 let subscriber = tracing_subscriber::registry().with(layer);
                 tracing::subscriber::with_default(subscriber, || {
                     tracing::error!("error-marker");
@@ -2021,28 +2327,12 @@ mod tests {
                     tracing::trace!("trace-marker");
                 });
                 writer.flush().expect("flush the buffered freeports.log.jsonl writer");
-                std::fs::read_to_string(&path).expect("read freeports.log.jsonl")
+                std::fs::read_to_string(&path).unwrap_or_default()
             }
 
-            /// L4: the file log follows `-v`/`-q` instead of the hardcoded `DEBUG` it used
-            /// before. That hardcoding is why a default (`Warn`) run still formatted and wrote
-            /// every `debug!` in the crate to disk. The markers are matched as substrings, so
-            /// this stays true of the JSON lines L5 turned the file into.
-            #[test]
-            fn follows_the_given_verbosity_instead_of_a_hardcoded_debug() {
-                let content = file_content_at(Verbosity::Warn);
-                assert!(content.contains("error-marker"));
-                assert!(content.contains("warn-marker"));
-                assert!(
-                    !content.contains("info-marker"),
-                    "at Warn the file must not carry info events, got:\n{content}"
-                );
-                assert!(
-                    !content.contains("debug-marker"),
-                    "at Warn the file must not carry debug events, got:\n{content}"
-                );
-            }
-
+            /// The file exists at one verbosity, and at that verbosity it holds everything: there
+            /// is no level for it to filter, because the only level it is ever built at is the
+            /// one that admits every event.
             #[test]
             fn captures_every_level_at_trace() {
                 let content = file_content_at(Verbosity::Trace);
@@ -2053,23 +2343,23 @@ mod tests {
                 assert!(content.contains("trace-marker"));
             }
 
-            #[test]
-            fn captures_debug_and_above_but_not_trace_at_debug() {
-                let content = file_content_at(Verbosity::Debug);
-                assert!(content.contains("error-marker"));
-                assert!(content.contains("warn-marker"));
-                assert!(content.contains("info-marker"));
-                assert!(content.contains("debug-marker"));
+            /// Not "the file is empty": there is no file, so an event of any level has nowhere to
+            /// land. The markers still reached stderr, which is the whole point of the change.
+            #[test_case(Verbosity::Warn; "the default: warnings")]
+            #[test_case(Verbosity::Info; "-v: info")]
+            #[test_case(Verbosity::Debug; "-vv: debug")]
+            fn captures_nothing_below_trace_because_there_is_no_file(verbosity: Verbosity) {
+                let content = file_content_at(verbosity);
                 assert!(
-                    !content.contains("trace-marker"),
-                    "at Debug the file must not carry trace events, got:\n{content}"
+                    content.is_empty(),
+                    "{verbosity:?} must write no structured log at all, got:\n{content}"
                 );
             }
         }
     }
 
-    /// `freeports.log.jsonl`: one JSON line per event, carrying the `target` that stderr no longer
-    /// prints and the serialized error that stderr never carried.
+    /// `freeports.log.jsonl`: one JSON line per event, carrying the `target` stderr does not print
+    /// and the serialized error stderr cannot represent.
     mod json_layer {
         use super::*;
 
@@ -2092,8 +2382,8 @@ mod tests {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
             let dir = tempfile::tempdir().expect("tempdir");
             let path = dir.path().join(LOG_FILE_NAME);
-            let (layer, writer) =
-                file_layer(&path, Verbosity::Trace).expect("file layer construction");
+            let (layer, writer, _level) = file_layer(Verbosity::Trace);
+            writer.open(&path).expect("settling at Trace must open the file");
             let subscriber = tracing_subscriber::registry().with(layer);
             tracing::subscriber::with_default(subscriber, body);
             writer.flush().expect("flush the buffered writer");
@@ -2241,8 +2531,8 @@ mod tests {
                 let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
                 let dir = tempfile::tempdir().expect("tempdir");
                 let path = dir.path().join(LOG_FILE_NAME);
-                let (layer, _writer) =
-                    file_layer(&path, Verbosity::Trace).expect("file layer construction");
+                let (layer, writer, _level) = file_layer(Verbosity::Trace);
+                writer.open(&path).expect("settling at Trace must open the file");
                 let subscriber = tracing_subscriber::registry().with(layer);
                 // Enough events to overflow the `BufWriter` (8 KiB): past that threshold the
                 // content is on disk without anyone having closed anything — exactly what one wants
@@ -3481,8 +3771,11 @@ mod tests {
             log_dir
         }
 
+        /// Settled at `Trace` on purpose: absorbing a child's JSON Lines is only meaningful in a
+        /// run that has a `freeports.log.jsonl` of its own to pour them into.
         fn handle_writing_into(dir: &std::path::Path) -> LogHandle {
             let handle = log_handle_for_tests(dir).expect("test log handle");
+            handle.settle_verbosity(Verbosity::Trace).expect("settling at Trace must succeed");
             handle.set_csv_dir(dir).expect("the csv destination must be settable");
             handle
         }
@@ -3548,7 +3841,7 @@ mod tests {
             handle.absorb_worker_logs(&worker_log_dir(dir.path(), "job-0", "first")).unwrap();
             handle.close().unwrap();
 
-            // `log_handle_for_tests` opens `freeports.log.jsonl` in the directory it is given,
+            // `log_handle_for_tests` points `freeports.log.jsonl` at the directory it is given,
             // which here is `out`, not the root of the temporary directory.
             let jsonl = std::fs::read_to_string(out.join(LOG_FILE_NAME)).unwrap();
             assert!(jsonl.contains("\"first\""), "the worker's json line is missing:\n{jsonl}");
@@ -3716,30 +4009,40 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         #[test]
-        fn first_call_succeeds_and_creates_both_log_files_second_call_reports_already_initialized() {
+        fn first_call_succeeds_and_settling_creates_the_log_files_second_call_reports_already_initialized() {
             let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-            // This is the *only* test in this module allowed to call `init` successfully: a
-            // process only ever accepts one `tracing::subscriber::set_global_default` call, ever
-            // (not resettable), so this whole scenario -- success, then the resulting
-            // `AlreadyInitialized` error's shape, `Display`, and source chain -- is deliberately
-            // kept in one sequential test instead of split across several, to avoid racing other
-            // tests for who "wins" the one-time global install (`cargo test` runs tests in
-            // parallel threads by default).
+            // This is the *only* test in this module allowed to call `init` at all: a process only
+            // ever accepts one `tracing::subscriber::set_global_default` call, ever (not
+            // resettable), so this whole scenario -- success, what settling creates, then the
+            // resulting `AlreadyInitialized` error's shape, `Display`, and source chain -- is
+            // deliberately kept in one sequential test instead of split across several, to avoid
+            // racing other tests for who "wins" the one-time global install (`cargo test` runs
+            // tests in parallel threads by default).
             let dir = tempfile::tempdir().expect("tempdir");
 
-            let first = init(Verbosity::from_verbose_and_quiet_counts(1, 0), dir.path());
+            let first = init(Verbosity::from_verbose_and_quiet_counts(3, 0), dir.path());
             let handle = match first {
                 Ok(handle) => handle,
                 other => panic!("first init in this process must succeed, got {other:?}"),
             };
-            assert!(dir.path().join(LOG_FILE_NAME).exists());
-            // `.log.csv` deliberately does **not** exist yet: since it moved next to the output,
-            // its destination is only known once the configuration resolves. `init` leaves it
-            // deferred, and `set_csv_dir` is the only thing that ever creates it (L5: there is no
-            // longer a fallback to the working directory).
+            // **Neither** file exists yet, and that is the whole shape of this module: `init`
+            // installs the subscriber and creates nothing. Where the `.log.csv` goes and whether
+            // there is a `freeports.log.jsonl` at all are both answers that live in a
+            // configuration which cannot be resolved until logging is already running.
+            assert!(
+                !dir.path().join(LOG_FILE_NAME).exists(),
+                "init must not create the structured log before the verbosity is settled"
+            );
             assert!(
                 !dir.path().join(CSV_FILE_NAME).exists(),
                 "init must not create .log.csv before a destination is settled"
+            );
+
+            // At `-vvv`, the one verbosity that has a `freeports.log.jsonl` at all.
+            handle.settle_verbosity(Verbosity::Trace).expect("settling at Trace must succeed");
+            assert!(
+                dir.path().join(LOG_FILE_NAME).exists(),
+                "settling at Trace must create the structured log"
             );
 
             let out_dir = dir.path().join("out");
@@ -3754,7 +4057,7 @@ mod tests {
                 "a run that logs nothing still leaves a header-only file"
             );
 
-            let second = init(Verbosity::from_verbose_and_quiet_counts(1, 0), dir.path());
+            let second = init(Verbosity::from_verbose_and_quiet_counts(3, 0), dir.path());
             let err = match second {
                 Err(err @ TracingSetupError::AlreadyInitialized { .. }) => err,
                 other => panic!("expected AlreadyInitialized, found {other:?}"),
@@ -3766,23 +4069,76 @@ mod tests {
             let source = std::error::Error::source(&err).expect("AlreadyInitialized must expose a source");
             assert_eq!(source.to_string(), "a global default trace dispatcher has already been set");
         }
+    }
 
+    /// [`LogHandle::settle_verbosity`]: the second half of the verbosity decision, taken once the
+    /// configuration has resolved. Exercised through `log_handle_for_tests`, which builds a
+    /// complete handle **without** burning the process's one `set_global_default`.
+    mod settling_the_verbosity {
+        use super::*;
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
+
+        /// A missing directory is a failure only where a file is actually wanted, and that is now
+        /// `settle_verbosity`'s answer to give rather than `init`'s.
         #[test]
-        fn errors_when_the_log_directory_does_not_exist() {
-            let _guard = SERIAL.lock().unwrap_or_else(PoisonError::into_inner);
-            // Independent tempdir, and deliberately never followed by a successful `init` call
-            // in this test: `init`'s error path must not depend on whether the process-wide
-            // global default is already set by another test (`OpenLogFile`/`OpenCsvFile` must be
-            // checked, and fail, before `set_global_default` is ever attempted).
+        fn settling_at_trace_errors_when_the_log_directory_does_not_exist() {
             let dir = tempfile::tempdir().expect("tempdir");
             let missing = dir.path().join("does_not_exist");
-            let result = init(Verbosity::from_verbose_and_quiet_counts(0, 0), &missing);
+            let handle = log_handle_for_tests(&missing).expect("test log handle");
+            match handle
+                .settle_verbosity(Verbosity::Trace)
+                .expect_err("the parent directory does not exist, this must fail")
+            {
+                TracingSetupError::OpenLogFile { path: reported, source: _ } => {
+                    assert_eq!(reported, missing.join(LOG_FILE_NAME));
+                }
+                other => panic!("expected OpenLogFile, found {other:?}"),
+            }
+        }
+
+        #[test_case(Verbosity::Silent; "silent")]
+        #[test_case(Verbosity::ErrorOnly; "-q: errors only")]
+        #[test_case(Verbosity::Warn; "the default: warnings")]
+        #[test_case(Verbosity::Info; "-v: info")]
+        #[test_case(Verbosity::Debug; "-vv: debug")]
+        fn settling_below_trace_cannot_fail_on_a_directory_it_never_opens(verbosity: Verbosity) {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let missing = dir.path().join("does_not_exist");
+            let handle = log_handle_for_tests(&missing).expect("test log handle");
+            handle
+                .settle_verbosity(verbosity)
+                .expect("below Trace the path is never opened, so this cannot fail");
+            assert!(!missing.exists(), "{verbosity:?} must not create anything");
+        }
+
+        /// The fallback that makes a *failing* `-vvv` run still leave its log behind: a run that
+        /// died before resolving its configuration never settled, so `close` settles at the
+        /// command line's verbosity, which is the only answer anyone gave.
+        #[test]
+        fn closing_without_settling_falls_back_to_the_command_line_verbosity() {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let handle = log_handle_for_tests(dir.path()).expect("test log handle");
+            handle.set_csv_dir(dir.path()).expect("csv destination");
+            handle.close().expect("closing must succeed");
             assert!(
-                matches!(
-                    result,
-                    Err(TracingSetupError::OpenLogFile { .. }) | Err(TracingSetupError::OpenCsvFile { .. })
-                ),
-                "expected an OpenLogFile or OpenCsvFile error, found {result:?}"
+                dir.path().join(LOG_FILE_NAME).is_file(),
+                "an unsettled handle built at Trace must still write its structured log"
+            );
+        }
+
+        /// And settling wins over that fallback: a configuration saying anything but `trace`
+        /// leaves no file behind even though the command line asked for one.
+        #[test]
+        fn a_resolved_verbosity_below_trace_overrides_the_command_line() {
+            let dir = tempfile::tempdir().expect("tempdir");
+            let handle = log_handle_for_tests(dir.path()).expect("test log handle");
+            handle.settle_verbosity(Verbosity::Warn).expect("settling at Warn must succeed");
+            handle.set_csv_dir(dir.path()).expect("csv destination");
+            handle.close().expect("closing must succeed");
+            assert!(
+                !dir.path().join(LOG_FILE_NAME).exists(),
+                "a resolved verbosity below trace must leave no structured log"
             );
         }
     }

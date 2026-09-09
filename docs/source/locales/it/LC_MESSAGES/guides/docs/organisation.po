@@ -1,0 +1,300 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/docs/organisation.rst:3
+msgid "How this documentation is laid out"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:5
+msgid ""
+"A reader arrives with one of three questions, and they are not the same "
+"question:"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:7
+msgid "*I am a person of a certain kind — where is my part?*"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:8
+msgid "*I have a job to do — what are the steps, and how deep do I need to go?*"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:9
+msgid "*I need one fact — where is it written down?*"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:11
+msgid ""
+"A site organised on one of those serves the other two badly. So this one "
+"is organised on **all three at once**, and a page's address is the answer"
+" to \"which axis is this on\"."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:15
+msgid "The three axes"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:21
+msgid "Axis"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:22
+msgid "Lives in"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:23
+msgid "Rule"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:24
+msgid "**Audience** — who you are"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:25
+msgid "``guides/<figure>/``"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:26
+msgid ""
+"one subtree per figure. A guide is written *to somebody*, in the second "
+"person, about the repository they are actually in"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:28
+msgid "**Task and level** — what you must do or know"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:29
+msgid "inside each guide"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:30
+msgid ""
+"the guide's own pages are the loop, in the order you meet it; anything "
+"that is depth rather than sequence moves down into ``advanced/``"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:32
+msgid "**Topic** — what it is about"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:33
+msgid "``reference/``"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:34
+msgid ""
+"audience-independent and complete. Every option, every setting, the "
+"algorithm chapter by chapter. **This is where cross-references point**"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:37
+msgid ""
+"Above the three sit two short sections everyone reads — ``start/`` "
+"(install it, run it once, find out which kind of contribution is yours) "
+"and ``overview/`` (what the project is, how a run works, what the "
+"repositories are, what being trusted with the numbers means here). Below "
+"them sits ``generated/``, which no human writes."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:43
+msgid "Why the third axis exists"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:45
+msgid ""
+"The reference column is what stops the audience column from becoming nine"
+" copies of the same manual. A format author and a DevOps engineer both "
+"need to know what ``FREEPORTS_ARCHIVE`` does; neither guide explains it. "
+"Both link to the one page that does."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:49
+msgid ""
+"So the rule is blunt: **a fact is written down once, on the topic axis, "
+"and pointed at from everywhere else.** When you find yourself explaining "
+"something in a guide that is not about the reader's job — that is about "
+"the *thing* rather than about *doing* — it belongs in ``reference/`` and "
+"the guide should link to it in a sentence."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:54
+msgid ""
+"The inverse holds too. A reference page must not tell you what you want; "
+"it says what each option does and stops. \"Which of these do I want\" is "
+"the guide's job, and a reference page that starts advising has drifted "
+"onto the wrong axis."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:59
+msgid "Where does a new page go?"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:61
+msgid "Ask, in this order:"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:63
+msgid ""
+"**Would somebody read this because of who they are?** Then it is a guide."
+" Which figure — and if the answer is \"several\", it is probably "
+"reference material that several guides should link to."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:65
+msgid ""
+"**Is it sequence, or is it depth?** Sequence stays in the guide. Depth "
+"goes to that guide's ``advanced/``. The test is whether a first-time "
+"reader needs it to finish the loop: if not, it is depth."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:68
+msgid ""
+"**Is it about a thing rather than about doing something?** Then it is "
+"``reference/``, whoever asked."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:70
+msgid ""
+"**Is it written by a command?** Then it is ``generated/``, and it must "
+"say which command, so a reader can re-run it rather than believe it."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:72
+msgid ""
+"**None of the above?** ``reference/misc`` exists precisely so that "
+"nothing has to be forced into a section it does not belong to. A page "
+"there is a page waiting for its section to be written, which is a normal "
+"state and not a failure."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:77
+msgid "Splitting a page that has grown"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:79
+msgid "Long pages get split two ways, and the choice matters:"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:81
+msgid ""
+"**By theme**, when the page has become two subjects — as ``tooling.md`` "
+"did, and became one reference page per command."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:84
+msgid ""
+"**By level**, when the page has become one subject at two depths — the "
+"first read and the argument behind it. The first stays; the second goes "
+"to ``advanced/``."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:87
+msgid ""
+"A page that is long because it is *thorough about one thing at one level*"
+" should stay long. Length is not the problem; mixing subjects or mixing "
+"depths is."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:91
+msgid "Two rules that keep the side panel usable"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:93
+msgid ""
+"The side panel is how the site is explored, so **every page of the site "
+"is reachable from it, from anywhere**, without having to arrive at a page"
+" first to discover it exists. The section headings *within* a page appear"
+" only while you are on that page — otherwise the panel is four hundred "
+"rows and navigating it is worse than searching. Two things are needed for"
+" that to keep working, and both are easy to break by accident."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:99
+msgid ""
+"**A page title must make sense on its own.** In the panel it sits between"
+" titles from seventy other pages, with none of the surrounding prose. "
+"``The minimum``, ``Rules of this source`` and ``What it costs`` were real"
+" headings here and told a reader nothing — the last one appeared three "
+"times, on three different pages, meaning three different things. Name the"
+" subject, not the rhetorical role. No two titles in the site should read "
+"identically."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:105
+msgid ""
+"**A page's hidden toctree goes at the top of the page, above the first "
+"section**, not at the bottom where it reads more naturally in the source."
+" A directive belongs to whatever section encloses it, so a toctree at the"
+" end of the file makes every child page a child of the *last section* — "
+"which misstates the hierarchy. The toctrees are ``:hidden:``, so moving "
+"them changes the rendered page not at all."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:112
+msgid "Cross-references, and not repeating yourself"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:114
+#, python-brace-format
+msgid ""
+"Use ``:doc:`` and ``{doc}`` rather than prose like \"see the "
+"configuration page\": a real reference breaks the build when it rots, and"
+" a sentence does not."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:117
+msgid ""
+"Every index page carries a short table of *what each page below answers*,"
+" phrased as the question the reader has rather than as the title of the "
+"page. That table is the thing people actually read; write it before "
+"writing the pages."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:122
+msgid "What is written where, and by whom"
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:124
+msgid ""
+"**Prose** — everything under ``start/``, ``overview/``, ``guides/`` and "
+"``reference/`` — is written by hand. New prose is Markdown with `MyST "
+"<https://myst-parser.readthedocs.io/>`_; older pages are reStructuredText"
+" and stay that way, with no campaign to convert them."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:128
+msgid ""
+"**The Python API** is generated by ``autosummary`` from the installed "
+"packages, so it cannot drift. **The Rust API** is generated by ``cargo "
+"doc`` and published beside the site. **The grants coverage and the CI "
+"report** are written by ``freeports-validate report`` and ``freeports-dev"
+" ci-report`` into files with markers in them. Nothing under "
+"``generated/`` is edited by hand, and every page there names the command "
+"that produced it."
+msgstr ""
+
+#: ../../source/guides/docs/organisation.rst:134
+msgid ""
+"**The methodology pages** under ``docs/source/validation/`` are neither "
+"of those: they are hashed artefacts. See the warning on :doc:`index`."
+msgstr ""
+

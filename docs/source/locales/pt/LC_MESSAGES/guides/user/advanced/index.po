@@ -1,0 +1,68 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt\n"
+"Language-Team: pt <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/advanced/index.md:1
+msgid "Beyond a single run"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:3
+msgid ""
+"Two things you do not need for a first run and will want for a hundredth:"
+" driving many jobs from a file, and deciding how much of the machine to "
+"use."
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "Page"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "Answers"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`batch`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "one job per CSV row, and why a row wins over the command line"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+#, python-brace-format
+msgid "{doc}`parallelism`"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:6
+msgid "the two levels, `auto`, the measurements, and the price in memory"
+msgstr ""
+
+#: ../../source/guides/user/advanced/index.md:19
+#, python-brace-format
+msgid ""
+"Both are configured like everything else — "
+"{doc}`../../../reference/configuration/index` — and both are consequences"
+" of the design rather than features bolted on: "
+"{doc}`../../../reference/design/parallelism` explains why parallelism "
+"falls out of the page assumption instead of being added to it."
+msgstr ""
+
