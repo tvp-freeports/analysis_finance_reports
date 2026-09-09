@@ -228,10 +228,16 @@ def _within(root, item):
 def status_of(verdicts, conditions=(), skipped_slow=()):
     """The one word a badge carries, in the order the three cases have to be decided.
 
-    ``failing`` first: a figure known to be under its minimum is the strongest thing this run can
-    say, and one unmeasured metric beside it does not soften that. ``inconclusive`` second, and it
-    covers the skipped figures too — a metric a ``--skip-slow`` run never looked at must not be
-    mistaken afterwards for one that passed.
+    ``failing`` first: a figure known to be under its minimum, or a suite known to have broken, is
+    the strongest thing this run can say, and one unmeasured metric beside it does not soften that.
+    ``inconclusive`` second, and it covers the skipped figures too — a metric a ``--skip-slow`` run
+    never looked at must not be mistaken afterwards for one that passed.
+
+    **A suite that is stale or was never run is inconclusive, not failing**, and the difference is
+    the whole vocabulary of this report: `failing` says something is wrong with the code, and
+    sending somebody to look for a broken test that does not exist is how a status word stops being
+    read. Stale says something is unknown, which is a different thing to do about it — run it — and
+    it is exactly as far from `passing`.
 
     **A run that gated nothing is inconclusive, not passing.** "Passing" means every gated figure
     cleared its minimum, and with no minima there is nothing that cleared anything — a green badge
@@ -240,11 +246,13 @@ def status_of(verdicts, conditions=(), skipped_slow=()):
     it says so.
     """
     if any(v.state == ci_gate.BELOW for v in verdicts) or any(
-        c.fails for c in conditions
+        c.fails and c.state != ci_gate.NOT_RUN and c.state != ci_gate.SUITE_STALE
+        for c in conditions
     ):
         return FAILING
     if (
         any(v.state in (ci_gate.UNMEASURED, ci_gate.STALE) for v in verdicts)
+        or any(c.state in (ci_gate.NOT_RUN, ci_gate.SUITE_STALE) for c in conditions)
         or skipped_slow
     ):
         return INCONCLUSIVE
@@ -322,6 +330,9 @@ def build(gate, config=None, name=None):
                 "ok": condition.ok,
                 "applicable": condition.applicable,
                 "detail": condition.detail,
+                "state": condition.state,
+                "cost": condition.cost,
+                "command": condition.command,
             }
             for condition in gate.conditions
         ],
@@ -1000,17 +1011,48 @@ def badge_name(metric):
     return metric.replace(".", "-")
 
 
+def suites_badge(model):
+    """The suites in one badge: how much of the test surface actually ran at this commit.
+
+    The badge the fast/slow split makes necessary. A gate that runs the cheap suites at every
+    commit publishes a green tick that a reader will take to mean "the tests pass" — and it means
+    "the tests we could afford pass". This says which, in the README, without anybody having to
+    open the report: *all ran*, or how many broke, or how many are stale or were never run here.
+
+    Broken is red and unknown is grey, the same vocabulary the metric badges use, and for the same
+    reason: a suite nobody ran is not a suite that passed, and it is not a suite that failed either.
+    """
+    suites = [c for c in model["conditions"] if c["state"] in _SUITE_STATES]
+    if not suites:
+        return None
+    broke = [c for c in suites if c["state"] == ci_gate.BROKE]
+    unknown = [
+        c for c in suites if c["state"] in (ci_gate.SUITE_STALE, ci_gate.NOT_RUN)
+    ]
+    if broke:
+        return "test suites", f"{len(broke)} of {len(suites)} failing", "red"
+    if unknown:
+        return "test suites", f"{len(unknown)} of {len(suites)} not current", "grey"
+    return "test suites", f"all {len(suites)} ran here", "brightgreen"
+
+
+#: The condition states that belong to a suite rather than to a plain yes/no rule.
+_SUITE_STATES = (ci_gate.RAN, ci_gate.BROKE, ci_gate.SUITE_STALE, ci_gate.NOT_RUN)
+
+
 def render_badges(model):
     """The badges, as a mapping of filename to content.
 
-    One for the run as a whole, and one for every metric that has something to say — measured, or
-    gated, or both. A metric that is neither is left out: a wall of ``n/a`` badges in a README says
-    nothing about the repository and hides the ones that do.
+    One for the run as a whole, one for the test suites, and one for every metric that has something
+    to say — measured, or gated, or both. A metric that is neither is left out: a wall of ``n/a``
+    badges in a README says nothing about the repository and hides the ones that do.
     """
     answer = {}
     status = model["status"]
+    suites = suites_badge(model)
     for name, (label, message, color) in {
         "ci-status": ("ci", status, STATUS_COLORS.get(status, "grey")),
+        **({"ci-suites": suites} if suites else {}),
         **{
             badge_name(entry["metric"]): metric_badge(entry)
             for entry in model["metrics"]

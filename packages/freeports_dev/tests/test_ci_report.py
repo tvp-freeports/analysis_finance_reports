@@ -30,6 +30,7 @@ import pytest
 from freeports_dev.ci import gate as ci_gate
 from freeports_dev.ci import render
 from freeports_dev.ci import report
+from freeports_dev.ci import suites as ci_suites
 from freeports_dev.ci.config import CiConfig
 
 
@@ -67,6 +68,20 @@ def measured(metric, value, head=None, unit="percent", breakdown=None):
     return report.Measurement(metric, value, unit, head=head, breakdown=breakdown)
 
 
+def all_suites_ran(head=None):
+    """Every suite recorded as having passed here — the quiet background these tests want.
+
+    A model lists every suite the repository has, so without this every test about a *metric* would
+    be answered by six suites nobody ran, and the status word would read `inconclusive` for a reason
+    the test was not asking about. The suite renderings have their own tests, where the setup says
+    what it is doing.
+    """
+    return {
+        suite.name: report.SuiteOutcome(suite.name, ci_suites.PASSED, head=head)
+        for suite in ci_suites.REGISTRY
+    }
+
+
 def model_of(
     root,
     thresholds,
@@ -75,13 +90,27 @@ def model_of(
     head=None,
     conditions=None,
     skipped_slow=None,
+    suite_outcomes=None,
+    reported_suites=None,
 ):
     (root / "ci.yaml").write_text(thresholds)
     config = CiConfig(root, args(branch_class=branch_class))
     gate = ci_gate.evaluate(
-        config, measurements, conditions, head=head, skipped_slow=skipped_slow
+        config,
+        measurements,
+        conditions,
+        head=head,
+        skipped_slow=skipped_slow,
+        suite_outcomes=all_suites_ran(head)
+        if suite_outcomes is None
+        else suite_outcomes,
+        reported_suites=reported_suites,
     )
     return render.build(gate, config)
+
+
+def condition_for(model, suite):
+    return next(c for c in model["conditions"] if c["name"] == suite)
 
 
 def entry_for(model, metric):
@@ -106,7 +135,7 @@ class TestTheModel:
             engine, ONE_THRESHOLD, {"docs.rust": measured("docs.rust", 39.4)}
         )
         entry = entry_for(model, "docs.rust")
-        assert entry["cost"] == "fast"
+        assert entry["cost"] == "slow"
         assert "rustdoc" in entry["description"]
 
     def test_it_names_the_branch_and_the_rule_that_classified_it(self, engine):
@@ -196,11 +225,13 @@ class TestTheStatusWord:
     def test_a_suite_that_did_not_pass_is_failing_even_with_every_figure_clear(
         self, engine
     ):
+        broke = all_suites_ran()
+        broke["rust.unit"] = report.SuiteOutcome("rust.unit", ci_suites.FAILED)
         model = model_of(
             engine,
             ONE_THRESHOLD,
             {"docs.rust": measured("docs.rust", 39.4)},
-            conditions=[ci_gate.parse_suite("fast:failed")],
+            suite_outcomes=broke,
         )
         assert model["status"] == render.FAILING
 

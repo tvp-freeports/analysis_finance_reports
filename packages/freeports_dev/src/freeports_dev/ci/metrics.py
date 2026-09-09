@@ -10,6 +10,13 @@ instrumented and costs minutes; it is slow whether a hook, a person or a pipelin
 is what lets the commit hook run the fast set at every commit and *read* the slow ones from the last
 full run, instead of each caller guessing what it can afford.
 
+``FAST`` means **seconds, locally, always**. A metric is ``SLOW`` if it costs more than that *or* if
+it needs the network, and the two are one class here rather than two: a figure that depends on
+somebody else's host being up is not a figure about the commit being made, so it belongs with the
+instrumented recompilation and not in a gate somebody has to clear on a train. ``grants.coverage``
+and ``grants.keys_online`` are slow for that reason and not for their wall-clock cost; the whole
+budget for a commit gate is a few seconds, and it is spent on the code being committed.
+
 Two metric families are **per package**: a repository may gate ``tests.python.lines`` as a whole and
 still hold one package to a different figure. The rule is that the most specific configured name
 wins for that package and the aggregate applies to whatever no specific name claims -- a package
@@ -92,14 +99,14 @@ REGISTRY = (
     Metric(
         "tests.python.lines",
         PERCENT,
-        FAST,
+        SLOW,
         (ENGINE,),
         "Line coverage of the Python packages, from pytest --cov.",
     ),
     Metric(
         "tests.python.*.lines",
         PERCENT,
-        FAST,
+        SLOW,
         (ENGINE,),
         "Line coverage of one named Python package.",
     ),
@@ -120,7 +127,7 @@ REGISTRY = (
     Metric(
         "docs.rust",
         PERCENT,
-        FAST,
+        SLOW,
         (ENGINE,),
         "Documented items of the crate, from rustdoc --show-coverage.",
     ),
@@ -155,14 +162,14 @@ REGISTRY = (
     Metric(
         "grants.coverage",
         PERCENT,
-        FAST,
+        SLOW,
         (ENGINE, FORMATS, INPUT_DB),
         "Files covered by a methodology grant.",
     ),
     Metric(
         "grants.keys_online",
         PERCENT,
-        FAST,
+        SLOW,
         (ENGINE, FORMATS, INPUT_DB),
         "Granters' keys published on the configured key server.",
     ),

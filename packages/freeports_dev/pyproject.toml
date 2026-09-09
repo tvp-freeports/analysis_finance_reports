@@ -43,6 +43,15 @@ freeports_dev = ["py.typed", "data/**/*", "lib/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: bootstraps a repository, which is twenty-odd process starts; deselected by default, run with `make test-python-slow`",
+]
+# Deselected rather than absent. The two fixtures that bootstrap a repository cost a little over two
+# seconds between them, and the commit gate's whole budget is five -- see `tests/conftest.py` for
+# which fixtures those are and why the marking is derived from them rather than written by hand.
+# `make test-python-slow` runs them and records that it did, so a commit that has not seen them says
+# so rather than looking as though it has.
+addopts = "-m 'not slow'"
 # `src` first, so that what is tested is the working tree and not the copy `pip install` left in
 # the environment. Without it a change to `repo_init.py` would be checked against the previous
 # release of it, which is the one way a suite can pass while the code it names is broken.

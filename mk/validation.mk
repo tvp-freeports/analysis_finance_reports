@@ -54,6 +54,14 @@ COVERAGE_HTML = docs/source/_extra/validation/coverage.html
 REPORT_TABLES = file-contributor file-methodology contributor-methodology \
                 contributor-file methodology-file methodology-contributor
 
+# The three of them, and the name `make ci` calls. All three reach the network, which is why none of
+# them is in the commit gate any more and why they are worth having under one name: a person about
+# to merge to a production branch runs this once rather than remembering three commands.
+#
+# `check-grants` is here and is still not a gate. It says whether the claims in `validation/` hold;
+# what it says is worth reading and it refuses nothing, on any branch. That rule is unchanged.
+validation: validation-report check-grants check-keys ## Everything the grants say, re-established over the network
+
 validation-report: ## Refresh the badges, the README block, the seven doc pages and the HTML
 	@model=$$(mktemp) || exit 1; \
 	 trap 'rm -f "$$model"' EXIT; \

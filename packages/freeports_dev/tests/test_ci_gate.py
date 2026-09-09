@@ -41,6 +41,7 @@ import pytest
 
 from freeports_dev.ci import gate as ci_gate
 from freeports_dev.ci import report
+from freeports_dev.ci import suites as ci_suites
 from freeports_dev.ci.config import CiConfig
 
 
@@ -82,12 +83,46 @@ def measured(metric, value, head=None, unit="percent"):
     return report.Measurement(metric, value, unit, head=head)
 
 
+def all_suites_ran(head=None):
+    """Every suite this workspace knows, recorded as having passed at `head`.
+
+    The default for the tests below that are about *metrics*. A gate lists every suite whether or
+    not anybody ran one, so without this a test asking "does a figure at its minimum refuse on
+    prod" would be answered by six suites nobody ran — which is a true answer to a different
+    question. Suites get their own tests, further down, where the setup says so out loud.
+    """
+    return {
+        suite.name: report.SuiteOutcome(suite.name, ci_suites.PASSED, head=head)
+        for suite in ci_suites.REGISTRY
+    }
+
+
 def judge(
-    root, thresholds, measurements, branch_class=None, head=None, conditions=None
+    root,
+    thresholds,
+    measurements,
+    branch_class=None,
+    head=None,
+    conditions=None,
+    suite_outcomes=None,
+    reported_suites=None,
 ):
     configure(root, thresholds)
     config = CiConfig(root, args(branch_class=branch_class))
-    return ci_gate.evaluate(config, measurements, conditions, head=head)
+    return ci_gate.evaluate(
+        config,
+        measurements,
+        conditions,
+        head=head,
+        suite_outcomes=all_suites_ran(head)
+        if suite_outcomes is None
+        else suite_outcomes,
+        reported_suites=reported_suites,
+    )
+
+
+def condition_for(gate, suite):
+    return next(c for c in gate.conditions if c.name == suite)
 
 
 def verdict_for(gate, metric):
@@ -347,30 +382,188 @@ class TestPerPackageMinima:
         assert "freeports_validate" in verdict_for(gate, "tests.python.lines").reason
 
 
-class TestTheConditionsThatAreNotNumbers:
-    def test_a_suite_that_passed_is_ok(self):
-        assert ci_gate.parse_suite("fast:passed").ok
+class TestReadingASuiteOutcomeOffACommandLine:
+    def test_a_suite_that_passed_is_read_as_passed(self):
+        assert ci_gate.parse_suite("rust.unit:passed") == (
+            "rust.unit",
+            ci_suites.PASSED,
+        )
 
     def test_a_suite_that_failed_is_not(self):
-        assert not ci_gate.parse_suite("fast:failed").ok
+        assert ci_gate.parse_suite("rust.unit:failed") == (
+            "rust.unit",
+            ci_suites.FAILED,
+        )
 
     def test_a_word_nobody_intended_is_read_as_failure_not_success(self):
         """A hook writes this from a shell variable. The one way it must not fail is as a yes."""
-        assert not ci_gate.parse_suite("fast:probably").ok
-        assert not ci_gate.parse_suite("fast:").ok
+        assert ci_gate.parse_suite("rust.unit:probably")[1] == ci_suites.FAILED
+        assert ci_gate.parse_suite("rust.unit:")[1] == ci_suites.FAILED
 
-    def test_a_failing_suite_refuses_on_prod(self, engine):
+    def test_an_empty_variable_is_a_failure_and_not_a_pass(self):
+        """The shape a hook produces when the command it meant to run was never started."""
+        assert ci_gate.parse_suite("rust.unit: ")[1] == ci_suites.FAILED
+
+
+class TestASuiteThatRanHere:
+    def test_it_is_listed_as_having_run(self, engine):
+        gate = judge(engine, "", {})
+        assert condition_for(gate, "rust.unit").state == ci_gate.RAN
+
+    def test_and_nothing_is_refused_even_on_prod(self, engine):
+        gate = judge(engine, "", {}, "prod")
+        assert not gate.refuses
+
+    def test_what_the_caller_reports_now_outranks_what_is_on_disk(self, engine):
+        """A run in progress is more current than a run recorded at some earlier commit."""
         gate = judge(
-            engine, "", {}, "prod", conditions=[ci_gate.parse_suite("fast:failed")]
+            engine,
+            "",
+            {},
+            suite_outcomes={
+                "rust.unit": report.SuiteOutcome(
+                    "rust.unit", ci_suites.PASSED, head="0" * 40
+                )
+            },
+            reported_suites={"rust.unit": ci_suites.FAILED},
+            head="1" * 40,
+        )
+        assert condition_for(gate, "rust.unit").state == ci_gate.BROKE
+
+
+class TestASuiteThatBroke:
+    def setup_gate(self, engine, branch_class):
+        outcomes = all_suites_ran()
+        outcomes["rust.unit"] = report.SuiteOutcome("rust.unit", ci_suites.FAILED)
+        return judge(engine, "", {}, branch_class, suite_outcomes=outcomes)
+
+    def test_the_verdict_says_it_broke(self, engine):
+        assert (
+            condition_for(self.setup_gate(engine, "dev"), "rust.unit").state
+            == ci_gate.BROKE
+        )
+
+    def test_it_refuses_on_prod(self, engine):
+        assert self.setup_gate(engine, "prod").refuses
+
+    def test_and_is_only_reported_on_dev(self, engine):
+        gate = self.setup_gate(engine, "dev")
+        assert gate.failures and not gate.refuses
+
+    def test_the_detail_names_the_command_that_runs_it(self, engine):
+        detail = condition_for(self.setup_gate(engine, "dev"), "rust.unit").detail
+        assert "make test-rust-unit" in detail
+
+
+class TestASuiteNobodyRanHere:
+    """Not run is never a pass, for the reason `unmeasured` is never one.
+
+    This is the verdict the whole fast/slow split rests on. A gate that runs the two cheap suites
+    and prints nothing about the four it skipped is a gate that reports "tests: ok" on the strength
+    of a third of them — which is worse than reporting nothing, because a reader believes it.
+    """
+
+    def test_every_suite_this_repository_has_is_listed_even_with_no_reports_at_all(
+        self, engine
+    ):
+        gate = judge(engine, "", {}, suite_outcomes={})
+        listed = {c.name for c in gate.conditions}
+        assert {"rust.unit", "rust.integration", "rust.doc", "python.fast"} <= listed
+
+    def test_the_verdict_is_not_run(self, engine):
+        gate = judge(engine, "", {}, suite_outcomes={})
+        assert condition_for(gate, "rust.integration").state == ci_gate.NOT_RUN
+
+    def test_it_refuses_on_prod(self, engine):
+        """Nothing may be stale on a production branch, and never-run is the limit case of stale."""
+        assert judge(engine, "", {}, "prod", suite_outcomes={}).refuses
+
+    def test_and_is_only_reported_on_dev(self, engine):
+        gate = judge(engine, "", {}, "dev", suite_outcomes={})
+        assert gate.failures and not gate.refuses
+
+    def test_the_detail_says_why_it_is_not_in_the_commit_gate(self, engine):
+        gate = judge(engine, "", {}, suite_outcomes={})
+        assert (
+            "costs more than seconds" in condition_for(gate, "rust.integration").detail
+        )
+
+    def test_and_an_online_one_says_it_is_the_network_rather_than_the_clock(
+        self, engine
+    ):
+        """Two categories, one policy: the message keeps them apart, the gate treats them alike."""
+        gate = judge(engine, "", {}, suite_outcomes={})
+        assert "needs the network" in condition_for(gate, "python.online").detail
+
+    def test_a_formats_repository_is_never_asked_about_the_crate(self, tmp_path):
+        (tmp_path / "content").mkdir()
+        (tmp_path / "metadata").mkdir()
+        (tmp_path / "metadata" / "formats.csv").write_text("format\n")
+        (tmp_path / "package.yaml").write_text("info:\n  version: 0.0.1\n")
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "init", "-q", "-b", "dev"], check=True
+        )
+        gate = judge(tmp_path, "", {}, suite_outcomes={})
+        listed = {c.name for c in gate.conditions}
+        assert "formats.single_page" in listed
+        assert not any(name.startswith("rust.") for name in listed)
+
+
+class TestASuiteThatRanAtAnotherCommit:
+    """Stale is what makes running a subset honest rather than merely convenient."""
+
+    def setup_gate(self, engine, branch_class):
+        outcomes = all_suites_ran(head="a" * 40)
+        return judge(
+            engine, "", {}, branch_class, head="b" * 40, suite_outcomes=outcomes
+        )
+
+    def test_the_verdict_is_stale(self, engine):
+        assert (
+            condition_for(self.setup_gate(engine, "dev"), "rust.doc").state
+            == ci_gate.SUITE_STALE
+        )
+
+    def test_the_detail_names_both_commits(self, engine):
+        detail = condition_for(self.setup_gate(engine, "dev"), "rust.doc").detail
+        assert "aaaaaaaa" in detail and "bbbbbbbb" in detail
+
+    def test_it_refuses_on_prod(self, engine):
+        assert self.setup_gate(engine, "prod").refuses
+
+    def test_and_is_only_reported_on_dev(self, engine):
+        gate = self.setup_gate(engine, "dev")
+        assert gate.failures and not gate.refuses
+
+    def test_a_repository_with_no_commit_cannot_have_a_stale_suite(self, engine):
+        """Guessing here would refuse every commit in a repository that has never had one."""
+        gate = judge(
+            engine,
+            "",
+            {},
+            "prod",
+            head=None,
+            suite_outcomes=all_suites_ran(head="a" * 40),
+        )
+        assert condition_for(gate, "rust.doc").state == ci_gate.RAN
+
+
+class TestASuiteNobodyHasHeardOf:
+    """Listed rather than dropped: a suite that ran and was silently not counted is the one
+    outcome this table exists to prevent."""
+
+    def test_it_is_still_listed(self, engine):
+        gate = judge(engine, "", {}, reported_suites={"house.style": ci_suites.PASSED})
+        assert condition_for(gate, "house.style").state == ci_gate.RAN
+
+    def test_and_a_failing_one_still_refuses_on_prod(self, engine):
+        gate = judge(
+            engine, "", {}, "prod", reported_suites={"house.style": ci_suites.FAILED}
         )
         assert gate.refuses
 
-    def test_and_is_only_reported_on_dev(self, engine):
-        gate = judge(
-            engine, "", {}, "dev", conditions=[ci_gate.parse_suite("fast:failed")]
-        )
-        assert gate.failures and not gate.refuses
 
+class TestTheConditionsThatAreNotSuites:
     def test_a_condition_that_does_not_apply_here_fails_nothing(self, engine):
         condition = ci_gate.Condition("fingerprint vs version", False, applicable=False)
         gate = judge(engine, "", {}, "prod", conditions=[condition])

@@ -2,13 +2,29 @@
 #
 # Pre-commit hook for freeports format repositories.
 #
-# One gate and three reports. The gate is `freeports-dev ci-check`, which reads the measurements
-# taken below, the thresholds in `ci.yaml`, and the class of the branch you are on, and is the only
-# step here that can refuse. The reports are the validation report -- badges, README block, the six
-# pages -- which is regenerated and staged; `check-grants`, which says whether the claims in
-# `validation/` still hold; and the CI report, which writes the verdict itself down as badges, a
-# README block, two pages and an HTML page. No report can refuse a commit; the sections below say
-# why.
+# One gate and two reports. The gate is `freeports-dev ci-check`, which reads the measurements taken
+# below, the thresholds in `ci.yaml`, and the class of the branch you are on, and is the only step
+# here that can refuse. The reports are the CI report, which writes the verdict itself down as
+# badges, a README block, two pages and an HTML page, and -- on a production branch -- the
+# validation report. No report can refuse a commit; the sections below say why.
+#
+# **Two categories of check, and which one you get depends on the branch.**
+#
+# *Fast* means: local, no network, no whole-document extraction, seconds. That is the per-page test
+# suite, the document inventory, the lint score, and rendering the report. It runs at every commit,
+# on every branch, and it is what makes committing often affordable -- which is the whole argument
+# for a commit gate. The more often these run the more solid the repository; a gate that costs a
+# minute is one people commit around, and then it gates nothing.
+#
+# *Slow* means: minutes, or somebody else's server. That is the whole-document suite -- a full
+# extraction run per document, a minute and a half here -- and everything that resolves methodology
+# pages or looks a key up. It runs when you ask for it, and at every commit to a production branch.
+#
+# **Nothing left out is left silent.** Each suite records its outcome *and the commit it ran at*,
+# each slow metric records the commit it was measured at, and `ci-check` -- which costs a fifth of a
+# second -- prints a suite nobody ran here as `NOT RUN` and a figure from an earlier commit as
+# `STALE`. Neither reads as a pass. So a dev commit knows exactly what it was and was not checked
+# against, and a prod commit cannot be made until all of it is current.
 #
 # **What refuses, and on which branch.** `ci.yaml` at the root of this repository puts every branch
 # in one of three classes. On `prod` a missed threshold, a failing suite, a figure nobody could
@@ -17,9 +33,10 @@
 # hook returns immediately. `freeports-dev branch-class` prints the class you are on and the rule
 # that put you there; run it first when this hook does something you did not expect.
 #
-# Note that the test suite's outcome is *recorded and passed on* rather than acted on here: whether
-# a failing suite stops the commit is `ci-check`'s decision, because it is the one thing that knows
-# which branch you are on.
+# Note that a test suite's outcome is *recorded* rather than acted on here: whether a failing suite
+# stops the commit is `ci-check`'s decision, because it is the one thing that knows which branch you
+# are on. It is written to `reports/` rather than passed on a command line, because a command line
+# can say "the suite I just ran passed" and cannot say anything at all about the suite nobody ran.
 #
 
 if [ "$(basename "${VIRTUAL_ENV:-}")" != "freeports-dev" ] && [ "${CONDA_DEFAULT_ENV:-}" != "freeports-dev" ]; then
@@ -41,22 +58,51 @@ fi
 # not a repository. A hook has no business asking where it is.
 repo_root=$(git rev-parse --show-toplevel) || exit 1
 
-# An `off` branch -- `experimental`, `wip/*` -- and this hook has nothing to say. Before anything
-# that costs time. A branch nobody classified is `dev`, never `off`: the quiet answer is never the
-# default one.
-if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
-        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "off" ]; then
+# Which class this branch is in, read once and kept. Everything below asks it: an `off` branch is
+# checked not at all, a `dev` branch gets the fast half, a `prod` branch gets all of it.
+#
+# Before anything that costs time. A branch nobody classified is `dev`, never `off`: the quiet
+# answer is never the default one, which is also why an unreadable answer falls back to `dev`.
+branch_class=$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
+    | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')
+branch_class=${branch_class:-dev}
+
+if [ "$branch_class" = "off" ]; then
     echo "$(git rev-parse --abbrev-ref HEAD) is an 'off' branch in ci.yaml: nothing is checked."
     exit 0
 fi
 
-# The fast half of the suite. Its outcome is recorded and handed to `ci-check`, not acted on here:
-# on a dev branch a failing suite is reported and the commit stands, and only `ci-check` knows
-# which branch this is.
+# The per-page suite: one page of one document at a time, which is the loop format development
+# actually runs in. Fast enough to pay for at every commit, and the half that tells you *which
+# segment* broke rather than that the document did.
+#
+# Its outcome is written into `reports/` with the commit it ran at, not acted on here: on a dev
+# branch a failing suite is reported and the commit stands, and only `ci-check` knows which branch
+# this is.
 if freeports-dev test --repo "$repo_root" -- -m "not integration_tests"; then
-    suite_outcome=passed
+    single_page=passed
 else
-    suite_outcome=failed
+    single_page=failed
+fi
+freeports-dev ci-record --repo "$repo_root" --suite "formats.single_page:$single_page" >/dev/null
+
+# The whole-document suite, on a prod branch only. Each test is a full extraction run of a whole
+# report, which is a minute and a half across this repository -- worth paying for a merge to
+# production, and not worth paying at every commit of a working afternoon.
+#
+# On a dev branch nothing runs here and nothing pretends otherwise: `formats.integration` keeps
+# whatever outcome its last deliberate run recorded, and `ci-check` prints it as `STALE` if that run
+# was at another commit, or `NOT RUN` if there has never been one. Run it yourself with
+# `freeports-dev test --repo . -- -m integration_tests`.
+if [ "$branch_class" = "prod" ]; then
+    echo "prod branch: running the whole-document suite. This takes minutes."
+    if freeports-dev test --repo "$repo_root" -- -m "integration_tests"; then
+        integration=passed
+    else
+        integration=failed
+    fi
+    freeports-dev ci-record --repo "$repo_root" \
+        --suite "formats.integration:$integration" >/dev/null
 fi
 
 # The fast measurements. Each writes one small JSON file into `reports/`, which is gitignored:
@@ -73,87 +119,107 @@ if grep -q '^[[:space:]]*docs\.python[[:space:]]*:' "$repo_root/ci.yaml" 2>/dev/
 fi
 
 
-# Keep the validation report current, and never refuse a commit over it.
+# The validation report, the integrity check and the coverage figure -- **on a prod branch only.**
 #
-# The badges, the block in README.md and the six pages under validation/report/ are all functions
-# of this repository's validation documents, so a commit that changes a granted file and leaves
-# them alone publishes figures that are already wrong. Regenerating them here, and `git add`ing
-# what was rewritten, puts the refresh in the same commit as the change that caused it.
+# All three resolve every methodology page from wherever this machine is configured to fetch them.
+# That is six seconds with the network up, a failure with it down, and a commit that cannot be made
+# on a train. Against a commit gate meant to cost seconds it is the single most expensive thing this
+# hook could do, and it is expensive for a reason that has nothing to do with the change being
+# committed.
 #
-# Nothing below can fail the hook, on purpose. The figures depend on resolving each methodology
-# page from wherever this machine is configured to fetch it, and a committer on a train, behind a
-# proxy, or working in a repository whose documentation server is down still has to be able to
-# commit. A report one run out of date is a smaller problem than a commit that cannot be made.
-if command -v freeports-validate >/dev/null 2>&1; then
-    report_model=$(mktemp "${TMPDIR:-/tmp}/freeports-report.XXXXXX" 2>/dev/null) || report_model=""
+# So it moved here, behind the branch class, and what stands in its place costs nothing:
+# `grants.coverage` is recorded with the commit it was measured at, so the CI report refreshed below
+# paints it grey and names that commit the moment it stops describing HEAD, and `ci-check` prints it
+# as STALE. On a prod branch that refuses -- and this section is what clears it, at this commit,
+# before the verdict is read. On a dev branch it is a line of output saying the grants have not been
+# looked at since some earlier commit, which is true and worth knowing and not worth six seconds of
+# somebody else's server at every commit.
+#
+# Run it yourself at any time, on any branch: `freeports-validate report`, `freeports-validate
+# check-grants`. Both are the commands this section runs, and neither needs a hook to be useful.
+if [ "$branch_class" = "prod" ]; then
+    # Keep the validation report current, and never refuse a commit over it.
+    #
+    # The badges, the block in README.md and the six pages under validation/report/ are all functions
+    # of this repository's validation documents, so a commit that changes a granted file and leaves
+    # them alone publishes figures that are already wrong. Regenerating them here, and `git add`ing
+    # what was rewritten, puts the refresh in the same commit as the change that caused it.
+    #
+    # Nothing below can fail the hook, on purpose. The figures depend on resolving each methodology
+    # page from wherever this machine is configured to fetch it, and a committer on a train, behind a
+    # proxy, or working in a repository whose documentation server is down still has to be able to
+    # commit. A report one run out of date is a smaller problem than a commit that cannot be made.
+    if command -v freeports-validate >/dev/null 2>&1; then
+        report_model=$(mktemp "${TMPDIR:-/tmp}/freeports-report.XXXXXX" 2>/dev/null) || report_model=""
 
-    if [ -n "$report_model" ] &&
-        freeports-validate --repo "$repo_root" collect > "$report_model" 2>/dev/null; then
-        # One walk of the repository, rendered nine times. Collecting once per artefact would
-        # re-resolve every methodology page nine times for an answer that cannot have changed in
-        # between.
-        refresh() {
-            freeports-validate --repo "$repo_root" report \
-                --model "$report_model" "$@" >/dev/null 2>&1
-        }
+        if [ -n "$report_model" ] &&
+            freeports-validate --repo "$repo_root" collect > "$report_model" 2>/dev/null; then
+            # One walk of the repository, rendered nine times. Collecting once per artefact would
+            # re-resolve every methodology page nine times for an answer that cannot have changed in
+            # between.
+            refresh() {
+                freeports-validate --repo "$repo_root" report \
+                    --model "$report_model" "$@" >/dev/null 2>&1
+            }
 
-        # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
-        # pair they removed, is left alone rather than recreated behind their back.
-        refreshed=""
-        if refresh --format badges --out "$repo_root/validation/report/badges/"; then
-            refreshed="$refreshed validation/report/badges"
-        fi
-        if [ -f "$repo_root/README.md" ] && refresh --format markdown --out "$repo_root/README.md"; then
-            refreshed="$refreshed README.md"
-        fi
-        for table in file-contributor file-methodology contributor-methodology \
-                     contributor-file methodology-file methodology-contributor; do
-            page="validation/report/$table.md"
-            [ -f "$repo_root/$page" ] || continue
-            if refresh --format markdown --table "$table" --out "$repo_root/$page"; then
-                refreshed="$refreshed $page"
+            # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
+            # pair they removed, is left alone rather than recreated behind their back.
+            refreshed=""
+            if refresh --format badges --out "$repo_root/validation/report/badges/"; then
+                refreshed="$refreshed validation/report/badges"
             fi
-        done
+            if [ -f "$repo_root/README.md" ] && refresh --format markdown --out "$repo_root/README.md"; then
+                refreshed="$refreshed README.md"
+            fi
+            for table in file-contributor file-methodology contributor-methodology \
+                         contributor-file methodology-file methodology-contributor; do
+                page="validation/report/$table.md"
+                [ -f "$repo_root/$page" ] || continue
+                if refresh --format markdown --table "$table" --out "$repo_root/$page"; then
+                    refreshed="$refreshed $page"
+                fi
+            done
 
-        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
-        # space, and this is the one place the list has to be split back into arguments.
-        if [ -n "$refreshed" ]; then
-            # Staged by path relative to the top level, which is what `git add --` wants and what
-            # `refreshed` holds -- the absolute forms above are only for `--out`.
-            git -C "$repo_root" add -- $refreshed
-            echo "freeports-validate: report refreshed"
+            # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
+            # space, and this is the one place the list has to be split back into arguments.
+            if [ -n "$refreshed" ]; then
+                # Staged by path relative to the top level, which is what `git add --` wants and what
+                # `refreshed` holds -- the absolute forms above are only for `--out`.
+                git -C "$repo_root" add -- $refreshed
+                echo "freeports-validate: report refreshed"
+            fi
+        else
+            echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
         fi
-    else
-        echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
-    fi
 
-    # The integrity check itself, and it warns rather than refuses.
-    #
-    # Everything above is a *rendering* of what `validation/` claims; this is the check of whether
-    # those claims still hold -- signatures verify, hashes still match the files, methodology pages
-    # still say what they said. It is loud when it has something to say, and it never stops the
-    # commit: a granted output regenerated by `make-tests` is a normal step of writing a format, and
-    # a contributor who does not hold the key that granted a file could not clear the gate at all.
-    # What it can do is make sure nobody re-grants by accident, or pushes a broken claim unaware.
-    #
-    # A page that could not be fetched also comes back non-zero, and deliberately so: a grant
-    # nobody could verify is one this run does not vouch for. `check-grants` distinguishes that
-    # from a real failure in its own output and in its exit status.
-    if ! freeports-validate --repo "$repo_root" check-grants; then
-        echo "" 1>&2
-        echo "freeports-validate: the grants above are not all vouched for by this run." 1>&2
-        echo "The commit is not being refused. Re-grant with \`freeports-validate grant\`, or" 1>&2
-        echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
-    fi
+        # The integrity check itself, and it warns rather than refuses.
+        #
+        # Everything above is a *rendering* of what `validation/` claims; this is the check of whether
+        # those claims still hold -- signatures verify, hashes still match the files, methodology pages
+        # still say what they said. It is loud when it has something to say, and it never stops the
+        # commit: a granted output regenerated by `make-tests` is a normal step of writing a format, and
+        # a contributor who does not hold the key that granted a file could not clear the gate at all.
+        # What it can do is make sure nobody re-grants by accident, or pushes a broken claim unaware.
+        #
+        # A page that could not be fetched also comes back non-zero, and deliberately so: a grant
+        # nobody could verify is one this run does not vouch for. `check-grants` distinguishes that
+        # from a real failure in its own output and in its exit status.
+        if ! freeports-validate --repo "$repo_root" check-grants; then
+            echo "" 1>&2
+            echo "freeports-validate: the grants above are not all vouched for by this run." 1>&2
+            echo "The commit is not being refused. Re-grant with \`freeports-validate grant\`, or" 1>&2
+            echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
+        fi
 
-    # The coverage figure the gate compares against `grants.coverage`, read out of the same model
-    # that was just collected rather than by collecting a second time.
-    if [ -s "$report_model" ]; then
-        freeports-dev ci-record --repo "$repo_root" --metric grants.coverage \
-            --from validate --input "$report_model" >/dev/null 2>&1
-    fi
+        # The coverage figure the gate compares against `grants.coverage`, read out of the same model
+        # that was just collected rather than by collecting a second time.
+        if [ -s "$report_model" ]; then
+            freeports-dev ci-record --repo "$repo_root" --metric grants.coverage \
+                --from validate --input "$report_model" >/dev/null 2>&1
+        fi
 
-    rm -f "$report_model"
+        rm -f "$report_model"
+    fi
 fi
 
 
@@ -189,9 +255,7 @@ fi
 
 # The granters' keys, on a prod branch only. It reaches the network, and a dev commit must not
 # depend on a key server being up.
-if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null \
-        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "prod" ] &&
-   command -v freeports-validate >/dev/null 2>&1; then
+if [ "$branch_class" = "prod" ] && command -v freeports-validate >/dev/null 2>&1; then
     keys_report=$(mktemp "${TMPDIR:-/tmp}/freeports-keys.XXXXXX" 2>/dev/null) || keys_report=""
     if [ -n "$keys_report" ]; then
         freeports-validate --repo "$repo_root" check-keys > "$keys_report" 2>/dev/null
@@ -222,49 +286,48 @@ fi
 # One evaluation rendered several times, for the same reason as above: five renderings that each
 # re-read `reports/` could disagree with each other about the same run.
 #
+# **This is the artefact that says what is current and what is not**, which is why it is the one
+# report that runs on every branch while the validation report runs only on `prod`. It renders files
+# rather than measuring anything, so it costs a fifth of a second; and every figure and every suite
+# it renders carries the commit it was established at, so it can report its own staleness. Somebody
+# reading README.md sees a grey badge, the count of suites that did not run here, and the commit
+# beside a stale figure, without running anything at all.
+#
 # Nothing here can fail the hook, on purpose. A report one run out of date is a smaller problem than
 # a commit that cannot be made, and a report is not a gate on any branch.
 if command -v freeports-dev >/dev/null 2>&1; then
-    ci_model=$(mktemp "${TMPDIR:-/tmp}/freeports-ci-report.XXXXXX" 2>/dev/null) || ci_model=""
+    # **One process for every rendering.** `--render` is repeatable and each rendering is drawn from
+    # a single evaluation, which is the guarantee the old `mktemp` model file existed to give: five
+    # invocations that each re-read `reports/` could disagree with one another about the same run.
+    # One process gives it for nothing, and gives back four interpreter starts as well.
+    #
+    # The list is built first rather than passed blind, because **only what is actually there is
+    # rewritten**. A page somebody deleted, or one whose marker pair they removed, is left alone
+    # rather than recreated behind their back -- and `--render markdown:` on a file that is not
+    # there is an error, which would take the other four renderings down with it.
+    renderings="--render badges:$repo_root/ci/report/badges/"
+    renderings="$renderings --render html:$repo_root/ci/report/index.html"
+    ci_refreshed="ci/report/badges ci/report/index.html"
 
-    if [ -n "$ci_model" ] &&
-        freeports-dev ci-report --repo "$repo_root" --suite "fast:$suite_outcome" \
-            --format json --out "$ci_model" >/dev/null 2>&1; then
-        render_ci() {
-            freeports-dev ci-report --repo "$repo_root" --model "$ci_model" "$@" >/dev/null 2>&1
-        }
+    if [ -f "$repo_root/README.md" ]; then
+        renderings="$renderings --render markdown:$repo_root/README.md"
+        ci_refreshed="$ci_refreshed README.md"
+    fi
+    for table in thresholds breakdown; do
+        page="ci/report/$table.md"
+        [ -f "$repo_root/$page" ] || continue
+        renderings="$renderings --render markdown@$table:$repo_root/$page"
+        ci_refreshed="$ci_refreshed $page"
+    done
 
-        # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
-        # pair they removed, is left alone rather than recreated behind their back.
-        ci_refreshed=""
-        if render_ci --format badges --out "$repo_root/ci/report/badges/"; then
-            ci_refreshed="$ci_refreshed ci/report/badges"
-        fi
-        if [ -f "$repo_root/README.md" ] && render_ci --format markdown --out "$repo_root/README.md"; then
-            ci_refreshed="$ci_refreshed README.md"
-        fi
-        for table in thresholds breakdown; do
-            page="ci/report/$table.md"
-            [ -f "$repo_root/$page" ] || continue
-            if render_ci --format markdown --table "$table" --out "$repo_root/$page"; then
-                ci_refreshed="$ci_refreshed $page"
-            fi
-        done
-        if render_ci --format html --out "$repo_root/ci/report/index.html"; then
-            ci_refreshed="$ci_refreshed ci/report/index.html"
-        fi
-
-        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
-        # space, and this is the one place the list has to be split back into arguments.
-        if [ -n "$ci_refreshed" ]; then
-            git -C "$repo_root" add -- $ci_refreshed
-            echo "freeports-dev: CI report refreshed"
-        fi
+    # Unquoted on purpose, both of them: the paths are built above from `$repo_root` and fixed
+    # names, and this is the one place each list has to be split back into arguments.
+    if freeports-dev ci-report --repo "$repo_root" $renderings >/dev/null 2>&1; then
+        git -C "$repo_root" add -- $ci_refreshed
+        echo "freeports-dev: CI report refreshed"
     else
         echo "freeports-dev: the measurements could not be read, so the CI report is unchanged" 1>&2
     fi
-
-    rm -f "$ci_model"
 fi
 
 
@@ -279,7 +342,7 @@ freeports-dev fingerprint --repo "$repo_root" --update || fingerprint_failed=1
 
 # The verdict. The only step here that can refuse, and whether it does depends on the class of the
 # branch rather than on anything written in this file.
-freeports-dev ci-check --repo "$repo_root" --suite "fast:$suite_outcome" || {
+freeports-dev ci-check --repo "$repo_root" || {
     echo "" 1>&2
     echo "Commit gate failed -- commit refused. \`freeports-dev ci-check\` shows it again," 1>&2
     echo "and \`freeports-dev branch-class\` says why this branch enforces rather than reports." 1>&2

@@ -111,17 +111,25 @@ is in — on `dev`, the default, everything is measured and reported and nothing
 | `tests.rust.lines` | 91.2 % | 91.0 % | stale |
 | `tests.python.lines` | 51.5 % | 32.0 % | pass |
 | `docs.rust` | 39.4 % | 39.0 % | pass |
-| `docs.python` | 54.7 % | 49.0 % | pass |
+| `docs.python` | 55.9 % | 49.0 % | pass |
 | `lint.rust` | 9.998 | 9.900 | pass |
 | `lint.python` | 10.000 | 10.000 | pass |
 | `grants.coverage` | 100.0 % | 100.0 % | pass |
 | `grants.keys_online` | 100.0 % | 100.0 % | stale |
 | `tests.python.freeports_dev.lines` | 49.9 % | 27.0 % | pass |
 | `tests.python.freeports_validate.lines` | 89.4 % | 89.0 % | pass |
-| `docs.python.freeports_dev` | 53.9 % | 47.0 % | pass |
+| `docs.python.freeports_dev` | 55.2 % | 47.0 % | pass |
 | `docs.python.freeports_validate` | 64.0 % | 64.0 % | pass |
 
 tests.rust.lines, grants.keys_online — measured at 7df099f1, not at this one. Run `make ci` to take it again.
+
+rust.integration — never run in this repository, because it costs more than seconds. Run `make test-rust-integration`.
+
+rust.doc — never run in this repository, because it costs more than seconds. Run `make test-rust-doc`.
+
+python.slow — never run in this repository, because it costs more than seconds. Run `make test-python-slow`.
+
+python.online — never run in this repository, because it needs the network. Run `make test-python-online`.
 
 *pass* — measured, current, and at or above the minimum this repository asks for.
 

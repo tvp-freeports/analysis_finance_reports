@@ -82,7 +82,7 @@ RUN_TIMEOUT = 60.0
 # What is expensive, and how it gets marked
 # ---------------------------------------------------------------------------
 
-#: Requesting any of these makes a test `slow`, because each one starts the command as a *process*.
+#: Requesting any of these makes a test `slow`, because each one starts a *process* or a *server*.
 #:
 #: The marking is derived rather than written on each test, so that it cannot go stale: a test added
 #: next year that invokes the command is marked by the act of asking for the fixture that invokes
@@ -93,7 +93,28 @@ RUN_TIMEOUT = 60.0
 #: starts a Python interpreter, hands over to `bash`, and each subcommand shells out to `yq` (itself
 #: Python plus `jq`) several times, to `check-jsonschema` once per document, and to `gpg` to sign or
 #: verify. Tens of process starts per test, and a suite of them takes minutes.
-SLOW_FIXTURES = frozenset({"run_validate", "signed_document"})
+#:
+#: The list used to hold the first two only, and the line was drawn at "starts *the command*". That
+#: was the wrong seam: `pathmatch_script`, `report_script` and `paths_lib` start a Python
+#: interpreter or a `bash` each, and `http_source` starts a threaded HTTP server, so a test asking
+#: for one of them costs a process start too — just of a smaller thing. Between them they were
+#: three and a half of the five and a half seconds the "fast" half took, which is most of a commit
+#: gate's entire budget spent on `fork`. The seam is now "starts anything", which is both the
+#: honest description and the one a person can apply to a fixture they are about to write.
+#:
+#: They are not lost by being marked: `make test-python-slow` runs them, it records that it did, and
+#: `freeports-dev ci-check` prints `python.slow` as `NOT RUN` until somebody has. A suite moved out
+#: of the gate is visible; a suite quietly not run is what this workspace refuses.
+SLOW_FIXTURES = frozenset(
+    {
+        "run_validate",
+        "signed_document",
+        "pathmatch_script",
+        "report_script",
+        "paths_lib",
+        "http_source",
+    }
+)
 
 
 def pytest_collection_modifyitems(config, items):
@@ -438,7 +459,15 @@ def http_source(methodology_pages):
         recorder=requested,
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    # The poll interval, and not a default. `shutdown()` waits for `serve_forever`'s loop to notice
+    # it has been asked to stop, and the loop only looks between `select` timeouts -- so the
+    # default half-second is paid *in full, per test*, by every test that asks for this fixture.
+    # Twenty of them made ten seconds of the fast suite's fifteen, spent watching a socket nobody
+    # was talking to. A hundredth of a second costs a hundred wakeups a second on an idle thread,
+    # which is nothing, and takes the teardown to the noise floor.
+    thread = threading.Thread(
+        target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+    )
     thread.start()
     host, port = server.server_address[:2]
     source = HttpSource(

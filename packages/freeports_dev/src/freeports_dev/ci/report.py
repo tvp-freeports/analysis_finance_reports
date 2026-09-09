@@ -141,6 +141,89 @@ def read_all(reports_dir):
     return found
 
 
+#: What a suite outcome is written to. The suite name with dots as dashes, under a prefix that
+#: keeps it out of :func:`read_all`'s way -- two kinds of fact share this directory and neither
+#: should have to guess which shape a file it did not write is in.
+SUITE_PREFIX = "suite-"
+
+
+class SuiteOutcome:
+    """One test suite's answer: whether it passed, and the commit it was asked at.
+
+    The commit is the whole reason this is a file rather than a command-line string. ``--suite
+    rust.unit:passed`` says what has just happened; it cannot say that the integration suite has not
+    been run since Tuesday. Recorded, a suite that nobody ran at this commit is *visibly* not run,
+    and one whose last run was at another commit is visibly stale -- which is what makes it honest
+    for the commit gate to run only part of the tests.
+
+    ``detail`` is free text a runner may leave behind -- how many tests, how long -- and nothing
+    judges it. It is there so that a person reading ``reports/`` gets more than a verdict.
+    """
+
+    def __init__(self, suite, outcome, head=None, detail=None):
+        self.suite = suite
+        self.outcome = outcome
+        self.head = head
+        self.detail = detail or {}
+
+    @property
+    def passed(self):
+        return self.outcome == "passed"
+
+    def to_dict(self):
+        return {
+            "suite": self.suite,
+            "outcome": self.outcome,
+            "head": self.head,
+            "detail": self.detail,
+        }
+
+    @classmethod
+    def from_dict(cls, doc):
+        return cls(
+            suite=doc.get("suite"),
+            outcome=doc.get("outcome"),
+            head=doc.get("head"),
+            detail=doc.get("detail"),
+        )
+
+    def write(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        return path
+
+
+def suite_file_name(suite):
+    """The file a suite's outcome is written to, by the same mechanical rule metrics follow."""
+    return SUITE_PREFIX + suite.replace(".", "-") + ".json"
+
+
+def read_suites(reports_dir):
+    """Every recorded suite outcome in ``reports/``, by suite name.
+
+    Told apart from a measurement by the key it carries rather than by its file name, so that a
+    file somebody renamed still reads as what it is. A file that does not parse is skipped for the
+    reason :func:`read_all` skips one: the directory is a cache of separate runs and one
+    interrupted write must not stop the gate from judging everything else.
+    """
+    directory = Path(reports_dir)
+    found = {}
+    if not directory.is_dir():
+        return found
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(doc, dict) and doc.get("suite"):
+            found[doc["suite"]] = SuiteOutcome.from_dict(doc)
+    return found
+
+
 def head_commit(root):
     """The commit a measurement is being taken at, or ``None`` where there is no git or no commit.
 

@@ -48,28 +48,28 @@ code { font-size: .9em; overflow-wrap: anywhere; }
 <tr><td><code>tests.rust.lines</code></td><td class="n">91.2 %</td><td class="n">91.0 %</td><td><span class="state-stale">stale</span><p class="prose">measured at 7df099f1, not at this one. Run `make ci` to take it again.</p></td></tr>
 <tr><td><code>tests.python.lines</code></td><td class="n">51.5 %</td><td class="n">32.0 %</td><td><span class="state-pass">pass</span><p class="prose">packages with their own minimum: freeports_dev, freeports_validate</p></td></tr>
 <tr><td><code>docs.rust</code></td><td class="n">39.4 %</td><td class="n">39.0 %</td><td><span class="state-pass">pass</span></td></tr>
-<tr><td><code>docs.python</code></td><td class="n">54.7 %</td><td class="n">49.0 %</td><td><span class="state-pass">pass</span><p class="prose">packages with their own minimum: freeports_dev, freeports_validate</p></td></tr>
+<tr><td><code>docs.python</code></td><td class="n">55.9 %</td><td class="n">49.0 %</td><td><span class="state-pass">pass</span><p class="prose">packages with their own minimum: freeports_dev, freeports_validate</p></td></tr>
 <tr><td><code>lint.rust</code></td><td class="n">9.998</td><td class="n">9.900</td><td><span class="state-pass">pass</span></td></tr>
 <tr><td><code>lint.python</code></td><td class="n">10.000</td><td class="n">10.000</td><td><span class="state-pass">pass</span></td></tr>
 <tr><td><code>grants.coverage</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td><span class="state-pass">pass</span></td></tr>
 <tr><td><code>grants.keys_online</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td><span class="state-stale">stale</span><p class="prose">measured at 7df099f1, not at this one. Run `make ci` to take it again.</p></td></tr>
 <tr><td><code>tests.python.freeports_dev.lines</code></td><td class="n">49.9 %</td><td class="n">27.0 %</td><td><span class="state-pass">pass</span></td></tr>
 <tr><td><code>tests.python.freeports_validate.lines</code></td><td class="n">89.4 %</td><td class="n">89.0 %</td><td><span class="state-pass">pass</span></td></tr>
-<tr><td><code>docs.python.freeports_dev</code></td><td class="n">53.9 %</td><td class="n">47.0 %</td><td><span class="state-pass">pass</span></td></tr>
+<tr><td><code>docs.python.freeports_dev</code></td><td class="n">55.2 %</td><td class="n">47.0 %</td><td><span class="state-pass">pass</span></td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td class="n">64.0 %</td><td class="n">64.0 %</td><td><span class="state-pass">pass</span></td></tr>
 </tbody></table></section>
 <section data-panel="thresholds" hidden><table><thead><tr><th>Metric</th><th>Minimum</th><th>Measured</th><th>Cost</th><th>What it measures</th></tr></thead><tbody>
 <tr><td><code>tests.rust.lines</code></td><td class="n">91.0 %</td><td class="n">91.2 %</td><td>slow</td><td>Line coverage of the crate, from cargo llvm-cov.</td></tr>
-<tr><td><code>tests.python.lines</code></td><td class="n">32.0 %</td><td class="n">51.5 %</td><td>fast</td><td>Line coverage of the Python packages, from pytest --cov.</td></tr>
-<tr><td><code>docs.rust</code></td><td class="n">39.0 %</td><td class="n">39.4 %</td><td>fast</td><td>Documented items of the crate, from rustdoc --show-coverage.</td></tr>
-<tr><td><code>docs.python</code></td><td class="n">49.0 %</td><td class="n">54.7 %</td><td>fast</td><td>Public Python objects carrying a docstring.</td></tr>
+<tr><td><code>tests.python.lines</code></td><td class="n">32.0 %</td><td class="n">51.5 %</td><td>slow</td><td>Line coverage of the Python packages, from pytest --cov.</td></tr>
+<tr><td><code>docs.rust</code></td><td class="n">39.0 %</td><td class="n">39.4 %</td><td>slow</td><td>Documented items of the crate, from rustdoc --show-coverage.</td></tr>
+<tr><td><code>docs.python</code></td><td class="n">49.0 %</td><td class="n">55.9 %</td><td>fast</td><td>Public Python objects carrying a docstring.</td></tr>
 <tr><td><code>lint.rust</code></td><td class="n">9.900</td><td class="n">9.998</td><td>fast</td><td>Clippy diagnostics scored out of ten.</td></tr>
 <tr><td><code>lint.python</code></td><td class="n">10.000</td><td class="n">10.000</td><td>fast</td><td>Ruff violations scored out of ten.</td></tr>
-<tr><td><code>grants.coverage</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td>fast</td><td>Files covered by a methodology grant.</td></tr>
-<tr><td><code>grants.keys_online</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td>fast</td><td>Granters&#x27; keys published on the configured key server.</td></tr>
-<tr><td><code>tests.python.freeports_dev.lines</code></td><td class="n">27.0 %</td><td class="n">49.9 %</td><td>fast</td><td>Line coverage of one named Python package.</td></tr>
-<tr><td><code>tests.python.freeports_validate.lines</code></td><td class="n">89.0 %</td><td class="n">89.4 %</td><td>fast</td><td>Line coverage of one named Python package.</td></tr>
-<tr><td><code>docs.python.freeports_dev</code></td><td class="n">47.0 %</td><td class="n">53.9 %</td><td>fast</td><td>Public objects carrying a docstring, in one named package.</td></tr>
+<tr><td><code>grants.coverage</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td>slow</td><td>Files covered by a methodology grant.</td></tr>
+<tr><td><code>grants.keys_online</code></td><td class="n">100.0 %</td><td class="n">100.0 %</td><td>slow</td><td>Granters&#x27; keys published on the configured key server.</td></tr>
+<tr><td><code>tests.python.freeports_dev.lines</code></td><td class="n">27.0 %</td><td class="n">49.9 %</td><td>slow</td><td>Line coverage of one named Python package.</td></tr>
+<tr><td><code>tests.python.freeports_validate.lines</code></td><td class="n">89.0 %</td><td class="n">89.4 %</td><td>slow</td><td>Line coverage of one named Python package.</td></tr>
+<tr><td><code>docs.python.freeports_dev</code></td><td class="n">47.0 %</td><td class="n">55.2 %</td><td>fast</td><td>Public objects carrying a docstring, in one named package.</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td class="n">64.0 %</td><td class="n">64.0 %</td><td>fast</td><td>Public objects carrying a docstring, in one named package.</td></tr>
 </tbody></table></section>
 <section data-panel="breakdown" hidden><table><thead><tr><th>Metric</th><th>Item</th><th>Figure</th></tr></thead><tbody>
@@ -118,7 +118,7 @@ code { font-size: .9em; overflow-wrap: anywhere; }
 <tr><td><code>docs.rust</code></td><td><code>src/cli/freeports_config.rs</code></td><td class="n">12.5 %</td></tr>
 <tr><td><code>docs.rust</code></td><td><code>src/output/files_schema.rs</code></td><td class="n">13.8 %</td></tr>
 <tr><td><code>docs.rust</code></td><td><code>src/commons/sets/ast_simple.rs</code></td><td class="n">14.3 %</td></tr>
-<tr><td><code>docs.python</code></td><td><code>docs.python.freeports_dev</code></td><td class="n">53.9 %</td></tr>
+<tr><td><code>docs.python</code></td><td><code>docs.python.freeports_dev</code></td><td class="n">55.2 %</td></tr>
 <tr><td><code>docs.python</code></td><td><code>docs.python.freeports_validate</code></td><td class="n">64.0 %</td></tr>
 <tr><td><code>lint.rust</code></td><td><code>clippy::redundant_closure</code></td><td class="n">4</td></tr>
 <tr><td><code>lint.rust</code></td><td><code>clippy::ptr_arg</code></td><td class="n">1</td></tr>
@@ -143,12 +143,11 @@ code { font-size: .9em; overflow-wrap: anywhere; }
 <tr><td><code>tests.python.freeports_validate.lines</code></td><td><code>packages/freeports_validate/src/freeports_validate/cli.py</code></td><td class="n">89.4 %</td></tr>
 <tr><td><code>tests.python.freeports_validate.lines</code></td><td><code>packages/freeports_validate/src/freeports_validate/__init__.py</code></td><td class="n">100.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>ci.docstrings.DocumentableObject</code></td><td class="n">0.0 %</td></tr>
-<tr><td><code>docs.python.freeports_dev</code></td><td><code>ci.gate.Condition</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>ci.render.Table</code></td><td class="n">0.0 %</td></tr>
+<tr><td><code>docs.python.freeports_dev</code></td><td><code>ci.report.SuiteOutcome</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>create_test_page</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>lib.conftest.template</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>make_tests</code></td><td class="n">0.0 %</td></tr>
-<tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.AlgorithmCache</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.CsvCache</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.DeserializeTest</code></td><td class="n">0.0 %</td></tr>
@@ -157,14 +156,15 @@ code { font-size: .9em; overflow-wrap: anywhere; }
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.FormatCache</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.FreeportsFormat</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.JsonCache</code></td><td class="n">0.0 %</td></tr>
+<tr><td><code>docs.python.freeports_dev</code></td><td><code>pytest_plugin.PdfCache</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>lib.report.Table</code></td><td class="n">0.0 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>cli</code></td><td class="n">50.0 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>lib.report</code></td><td class="n">54.5 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>lib.pathmatch</code></td><td class="n">80.0 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>lib.rst_paths</code></td><td class="n">80.0 %</td></tr>
 <tr><td><code>docs.python.freeports_validate</code></td><td><code>freeports_validate</code></td><td class="n">100.0 %</td></tr>
-</tbody></table><p class="legend">Only the worst 15 lines of each metric are shown: <code>tests.rust.lines</code> (87 more), <code>tests.python.lines</code> (9 more), <code>docs.rust</code> (104 more), <code>tests.python.freeports_dev.lines</code> (7 more), <code>docs.python.freeports_dev</code> (38 more). <code>freeports-dev ci-report --format json</code> carries every one of them.</p></section>
-
+</tbody></table><p class="legend">Only the worst 15 lines of each metric are shown: <code>tests.rust.lines</code> (87 more), <code>tests.python.lines</code> (9 more), <code>docs.rust</code> (104 more), <code>tests.python.freeports_dev.lines</code> (7 more), <code>docs.python.freeports_dev</code> (41 more). <code>freeports-dev ci-report --format json</code> carries every one of them.</p></section>
+<div class="legend">Not a number, and not holding:<ul><li><strong>rust.integration</strong> — never run in this repository, because it costs more than seconds. Run `make test-rust-integration`.</li><li><strong>rust.doc</strong> — never run in this repository, because it costs more than seconds. Run `make test-rust-doc`.</li><li><strong>python.slow</strong> — never run in this repository, because it costs more than seconds. Run `make test-python-slow`.</li><li><strong>python.online</strong> — never run in this repository, because it needs the network. Run `make test-python-online`.</li></ul></div>
 
 <dl class="legend"><dt>pass</dt><dd>measured, current, and at or above the minimum this repository asks for.</dd><dt>stale</dt><dd>computed, but at a commit other than this one, so it describes other code.</dd></dl>
 <p class="legend">&#x27;dev&#x27; in branches.dev</p>

@@ -496,6 +496,30 @@ def _cmd_ci_record(args):
     from freeports_dev.ci.readers import ReaderError
 
     root = _ci_root(args)
+    if args.suite:
+        _record_suites(args, root)
+        return
+
+    # Neither half is `required` in the parser, because there are two kinds of fact to record and
+    # requiring the fields of one would make the other impossible to state. The check is here, and
+    # it names the two shapes rather than the missing flag: somebody who wrote `--metric` alone has
+    # not forgotten an argument, they have written half of one of two different commands.
+    missing = [
+        flag
+        for flag, value in (
+            ("--metric", args.metric),
+            ("--from", args.source),
+            ("--input", args.input),
+        )
+        if not value
+    ]
+    if missing:
+        print(
+            "Error: nothing to record. Either a measurement — --metric NAME --from TOOL --input "
+            f"PATH, and {', '.join(missing)} {'is' if len(missing) == 1 else 'are'} missing — or a "
+            "suite's outcome, --suite NAME:OUTCOME."
+        )
+        sys.exit(2)
     reader = readers.READERS[args.source]
     inputs = [Path(item).read_text(encoding="utf-8") for item in args.input]
     if len(inputs) > 1 and args.source != "coverage-py":
@@ -521,6 +545,32 @@ def _cmd_ci_record(args):
     )
 
 
+def _record_suites(args, root):
+    """Write down that a suite ran here, and how it went.
+
+    One file per suite, carrying the commit it ran at, for the reason every measurement carries
+    one: the commit hook runs the fast suites now and reads the rest from the last full run, and
+    without the commit beside the outcome there would be no way to tell a suite that passed on this
+    code from one that passed a fortnight ago. `freeports-dev ci-check` then reports the difference
+    as `stale`, and on a prod branch refuses it.
+    """
+    from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci import suites as ci_suites
+
+    out = Path(args.out) if args.out else root / ci_report.REPORTS_DIR
+    head = ci_report.head_commit(root)
+    for item in args.suite:
+        name, outcome = ci_suites.parse(item)
+        if not name:
+            print(f"Error: {item!r} names no suite. Write it as <suite>:<outcome>.")
+            sys.exit(2)
+        record = ci_report.SuiteOutcome(name, outcome, head=head)
+        path = record.write(
+            out if out.suffix == ".json" else out / ci_report.suite_file_name(name)
+        )
+        print(f"suite {name} = {outcome} -> {path}")
+
+
 def _judge(args):
     """The gate over whatever is in ``reports/``, built the same way for whoever asks.
 
@@ -533,35 +583,45 @@ def _judge(args):
     from freeports_dev.ci import gate as ci_gate
     from freeports_dev.ci import metrics
     from freeports_dev.ci import report as ci_report
+    from freeports_dev.ci import suites as ci_suites
     from freeports_dev.ci.config import CiConfig, ConfigError
 
     root = _ci_root(args)
+    reports_dir = (
+        Path(args.reports)
+        if getattr(args, "reports", None)
+        else root / ci_report.REPORTS_DIR
+    )
     try:
         config = CiConfig(root, args)
-        measurements = ci_report.read_all(
-            Path(args.reports)
-            if getattr(args, "reports", None)
-            else root / ci_report.REPORTS_DIR
-        )
+        measurements = ci_report.read_all(reports_dir)
+        suite_outcomes = ci_report.read_suites(reports_dir)
 
         skipped = []
         if getattr(args, "skip_slow", False):
             # Loud, never the default, and it prints what it skipped: a figure that was not
-            # checked must not be mistaken afterwards for one that passed.
+            # checked, and a suite nobody ran, must not be mistaken afterwards for one that passed.
+            # Suites are dropped from the table entirely rather than reported as `not run`, because
+            # `--skip-slow` is a statement that the person is not asking about them at all.
             for metric in metrics.REGISTRY:
                 if metric.cost == metrics.SLOW and not metric.is_family:
                     skipped.append(metric.pattern)
                     measurements.pop(metric.pattern, None)
+            for suite in ci_suites.REGISTRY:
+                if suite.cost == metrics.SLOW:
+                    skipped.append(suite.name)
+                    suite_outcomes.pop(suite.name, None)
 
-        conditions = [
+        reported = dict(
             ci_gate.parse_suite(item) for item in (getattr(args, "suite", None) or [])
-        ]
+        )
         gate = ci_gate.evaluate(
             config,
             measurements,
-            conditions,
             head=ci_report.head_commit(root),
             skipped_slow=skipped,
+            suite_outcomes=suite_outcomes,
+            reported_suites=reported,
         )
     except ConfigError as exc:
         print(f"Error: {exc}")
@@ -572,6 +632,8 @@ def _judge(args):
             if verdict.metric == name and verdict.state == ci_gate.UNMEASURED:
                 verdict.state = ci_gate.NO_THRESHOLD
                 verdict.reason = None
+    if skipped:
+        gate.conditions = [c for c in gate.conditions if c.name not in set(skipped)]
 
     return config, gate
 
@@ -586,6 +648,94 @@ def _cmd_ci_check(args):
         else ci_gate.render_text(gate)
     )
     sys.exit(gate.exit_status)
+
+
+def _write_rendering(model, style, table, out):
+    """One rendering of an already-built model to one path. Returns what to print, or exits.
+
+    Shared by the single-rendering path and by `--render`, so the two cannot drift: a hook that
+    wrote its README through one code path and its badges through another would eventually
+    disagree with itself about what "rewrite between the markers" means.
+    """
+    from freeports_dev.ci import render
+
+    if style == "badges":
+        if out is None:
+            print(
+                "Error: badges are several files, so the destination must be a directory"
+            )
+            sys.exit(2)
+        out.mkdir(parents=True, exist_ok=True)
+        written = render.render_badges(model)
+        for name, content in written.items():
+            (out / name).write_text(content, encoding="utf-8")
+        return f"{len(written)} badge files -> {out}"
+
+    try:
+        text = render.render(model, style, table)
+    except KeyError as refused:
+        print(f"Error: {refused.args[0]}")
+        sys.exit(2)
+
+    if out is None:
+        sys.stdout.write(text)
+        return None
+
+    # Markdown and reStructuredText are rewritten *into* a file rather than over it: the table is
+    # part of a page somebody wrote, and the rest of that page is theirs.
+    if style in render.MARKERS:
+        try:
+            updated = render.rewrite(out.read_text(encoding="utf-8"), text)
+        except OSError as exc:
+            print(f"Error: {out} cannot be read: {exc}")
+            sys.exit(1)
+        except render.MarkersMissing as missing:
+            print(f"Error: {out}: {missing}")
+            sys.exit(1)
+        out.write_text(updated, encoding="utf-8")
+    else:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+    return f"{style} -> {out}"
+
+
+def _render_many(model, specifications):
+    """Every rendering a caller asked for, from one model, in one process.
+
+    The commit hook wants six of these — badges, the README block, three documentation pages and an
+    HTML page — and used to get them by starting this command six times. Each start is an
+    interpreter, and six of them were most of a second out of a commit gate budgeted at five: two
+    thirds of the cost of publishing the report was `fork`, not rendering.
+
+    It also removes the temporary file. The reason a hook built a model into `mktemp` and passed
+    `--model` to every rendering was that six evaluations could disagree with each other; one
+    process rendering six times cannot, and needs no file to guarantee it.
+
+    A specification is `<format>[@<table>]:<path>`, the same vocabulary as `--format` and `--table`.
+    A malformed one is refused rather than skipped: a hook that silently wrote five of the six
+    things it was asked for would publish a report half of which describes an older run.
+    """
+    from freeports_dev.ci import render
+
+    for specification in specifications:
+        head, separator, path = specification.partition(":")
+        style, _, table = head.partition("@")
+        if not separator or not path or style not in render.FORMATS:
+            print(
+                f"Error: {specification!r} is not a rendering. Write it as "
+                f"<format>[@<table>]:<path>, with the format one of {', '.join(render.FORMATS)}."
+            )
+            sys.exit(2)
+        if table and table not in render.TABLES:
+            print(
+                f"Error: {specification!r} names no table. Try {', '.join(render.TABLES)}."
+            )
+            sys.exit(2)
+        said = _write_rendering(
+            model, style, table or render.DEFAULT_TABLE, Path(path).expanduser()
+        )
+        if said:
+            print(said)
 
 
 def _cmd_ci_report(args):
@@ -620,47 +770,18 @@ def _cmd_ci_report(args):
         config, gate = _judge(args)
         model = render.build(gate, config)
 
-    out = Path(args.out).expanduser() if args.out else None
-
-    if args.format == "badges":
-        if out is None:
-            print(
-                "Error: badges are several files, so --out must name a directory for them"
-            )
-            sys.exit(2)
-        out.mkdir(parents=True, exist_ok=True)
-        written = render.render_badges(model)
-        for name, content in written.items():
-            (out / name).write_text(content, encoding="utf-8")
-        print(f"{len(written)} badge files -> {out}")
+    if args.render:
+        _render_many(model, args.render)
         return
 
-    try:
-        text = render.render(model, args.format, args.table)
-    except KeyError as refused:
-        print(f"Error: {refused.args[0]}")
-        sys.exit(2)
-
-    if out is None:
-        sys.stdout.write(text)
-        return
-
-    # Markdown and reStructuredText are rewritten *into* a file rather than over it: the table is
-    # part of a page somebody wrote, and the rest of that page is theirs.
-    if args.format in render.MARKERS:
-        try:
-            updated = render.rewrite(out.read_text(encoding="utf-8"), text)
-        except OSError as exc:
-            print(f"Error: {out} cannot be read: {exc}")
-            sys.exit(1)
-        except render.MarkersMissing as missing:
-            print(f"Error: {out}: {missing}")
-            sys.exit(1)
-        out.write_text(updated, encoding="utf-8")
-    else:
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(text, encoding="utf-8")
-    print(f"{args.format} -> {out}")
+    said = _write_rendering(
+        model,
+        args.format,
+        args.table,
+        Path(args.out).expanduser() if args.out else None,
+    )
+    if said:
+        print(said)
 
 
 def _ask(question, default_yes=True):
@@ -1169,13 +1290,10 @@ def main():
         parents=[ci],
         help="Normalise a measurement tool's own JSON into a reports/ file",
     )
-    p_record.add_argument(
-        "--metric", required=True, help="The metric this report answers for"
-    )
+    p_record.add_argument("--metric", help="The metric this report answers for")
     p_record.add_argument(
         "--from",
         dest="source",
-        required=True,
         choices=sorted(
             [
                 "llvm-cov",
@@ -1191,11 +1309,19 @@ def main():
     )
     p_record.add_argument(
         "--input",
-        required=True,
         action="append",
         metavar="PATH",
         help="The tool's own report. Repeatable for coverage-py, whose reports are then combined "
         "over their counts rather than averaged over the packages",
+    )
+    p_record.add_argument(
+        "--suite",
+        action="append",
+        metavar="NAME:OUTCOME",
+        help="Record that a test suite ran here and how it went, e.g. --suite rust.unit:passed. "
+        "Repeatable. Written with the commit it ran at, which is what lets `ci-check` tell a "
+        "suite that passed on this code from one that passed a fortnight ago. "
+        "`freeports-dev ci-check` lists every suite name this repository has",
     )
     p_record.add_argument(
         "--out",
@@ -1217,7 +1343,9 @@ def main():
         "--suite",
         action="append",
         metavar="NAME:OUTCOME",
-        help="A test suite's outcome, repeatable, e.g. --suite fast:passed",
+        help="A suite that ran just now, repeatable, e.g. --suite rust.unit:passed. It outranks "
+        "what that suite left in reports/, because a run in progress is more current than one on "
+        "disk. Every other suite is still listed, from its recorded outcome or as `not run`",
     )
     p_check.add_argument(
         "--skip-slow",
@@ -1253,7 +1381,9 @@ def main():
         "--suite",
         action="append",
         metavar="NAME:OUTCOME",
-        help="A test suite's outcome, repeatable, e.g. --suite fast:passed",
+        help="A suite that ran just now, repeatable, e.g. --suite rust.unit:passed. It outranks "
+        "what that suite left in reports/, because a run in progress is more current than one on "
+        "disk. Every other suite is still listed, from its recorded outcome or as `not run`",
     )
     p_report.add_argument(
         "--skip-slow",
@@ -1274,6 +1404,15 @@ def main():
         choices=list(render.TABLES),
         default=render.DEFAULT_TABLE,
         help=f"Which arrangement, for markdown and rst [default: {render.DEFAULT_TABLE}]",
+    )
+    p_report.add_argument(
+        "--render",
+        action="append",
+        metavar="FORMAT[@TABLE]:PATH",
+        help="Write one rendering, repeatable: every one is drawn from a single evaluation in a "
+        "single process, e.g. --render badges:ci/report/badges/ --render markdown:README.md "
+        "--render rst@thresholds:docs/dev/thresholds.rst. This is what a commit hook wants; six "
+        "invocations of this command are six interpreter starts and can disagree with each other",
     )
     p_report.add_argument(
         "--breakdown-limit",

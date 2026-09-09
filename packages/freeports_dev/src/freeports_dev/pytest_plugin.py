@@ -1,15 +1,24 @@
+"""The pytest plugin that collects a formats repository's tests.
+
+**Everything expensive here is imported where it is used, and not at the top of the file.** This
+module is registered as a `pytest11` entry point, which means Python imports it at the start of
+*every* pytest process on a machine that has `freeports-dev` installed — including the suites of
+`freeports_dev` and `freeports_validate`, which never collect a format test and have no use for a
+dataframe or a PDF reader. Importing pandas, PyMuPDF and the engine at module level cost every one
+of those runs three quarters of a second before a single test was collected, which is a sixth of a
+commit gate's whole budget spent on libraries the run will not touch.
+
+So `pandas`, `pymupdf` and the three `freeports` entry points are imported inside the four places
+that need them. The cost is then paid by the repository that is actually running format tests,
+where it is a rounding error against opening the PDF.
+"""
+
 from pathlib import Path
 
-import pandas as pd
 import pytest
 import yaml
 from abc import ABC, abstractclassmethod
-from pymupdf import Document
 from pytest import Collector, Function, Directory
-
-from freeports.core import Algorithm
-from freeports.cli import run_job
-from freeports.formats_repo import get_formats
 
 from freeports_dev.format_inventory import InventoryError, scan_variant, variant_paths
 from freeports_dev.serialization import load as json_load
@@ -23,6 +32,8 @@ def _get_valid_formats(session):
     formats_csv = rootdir / "metadata" / "formats.csv"
     if formats_csv.exists():
         if _formats_cache["valid"] is None:
+            from freeports.formats_repo import get_formats
+
             _formats_cache["valid"] = set(get_formats(rootdir))
             _formats_cache["repo_dir"] = rootdir
         return _formats_cache["valid"]
@@ -73,6 +84,8 @@ class AlgorithmCache:
 
     def load(self, format_name):
         if format_name not in self.algorithms:
+            from freeports.core import Algorithm
+
             self.algorithms[format_name] = Algorithm.load(
                 _formats_cache["repo_dir"],
                 format_name,
@@ -97,6 +110,8 @@ class FileCache(ABC):
 
 class CsvCache(FileCache):
     def load_content(self, path):
+        import pandas as pd
+
         df = pd.read_csv(path, index_col=False, encoding="utf-8")
         for col in df.columns:
             if isinstance(df[col].dtype, pd.StringDtype):
@@ -116,6 +131,8 @@ class JsonCache(FileCache):
 
 class PdfCache(FileCache):
     def load_content(self, path):
+        from pymupdf import Document
+
         return Document(path)
 
 
@@ -259,6 +276,8 @@ class PipelineTest(Function):
 
         input_db = resolve_input_db(_formats_cache["repo_dir"])
         out_path = create_dir.mktemp(tmp_dir, numbered=False)
+        from freeports.cli import run_job
+
         run_job(
             input_reports=[(None, str(self.parent.path / "report.pdf"), "report")],
             format=self.format_name,
@@ -403,6 +422,8 @@ class PipelineTest(Function):
         ).drop(columns=["Fund ID"])
 
         expected_assets_managers = org_expected_assets_managers.drop(columns="ID")
+
+        import pandas as pd
 
         pd.testing.assert_frame_equal(
             actual_investments.sort_values(

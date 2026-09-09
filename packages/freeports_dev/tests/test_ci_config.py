@@ -454,6 +454,32 @@ class TestTheMetricRegistry:
         known = {m.pattern for m in metrics.known_in(metrics.INPUT_DB)}
         assert known == {"grants.coverage", "grants.keys_online"}
 
-    def test_the_slow_metric_is_the_instrumented_rust_build_and_nothing_else(self):
+    def test_the_slow_metrics_are_the_ones_a_commit_cannot_pay_for(self):
+        """The whole list, pinned. Moving a metric across this line changes what every commit costs.
+
+        Two different expenses, and the registry calls both `slow` because the gate treats both the
+        same way: the coverage figures recompile or re-run whole suites, and the two `grants` ones
+        resolve pages and fingerprints over somebody else's network. A figure that depends on a host
+        nobody here controls is not a figure about the commit being made.
+        """
         slow = {m.pattern for m in metrics.REGISTRY if m.cost == metrics.SLOW}
-        assert slow == {"tests.rust.lines"}
+        assert slow == {
+            "tests.rust.lines",
+            "tests.python.lines",
+            "tests.python.*.lines",
+            "docs.rust",
+            "grants.coverage",
+            "grants.keys_online",
+        }
+
+    def test_and_the_fast_ones_are_what_is_left(self):
+        """Named the other way round too, so that adding a metric has to answer this question."""
+        fast = {m.pattern for m in metrics.REGISTRY if m.cost == metrics.FAST}
+        assert fast == {
+            "tests.formats.integration",
+            "tests.formats.single_page",
+            "docs.python",
+            "docs.python.*",
+            "lint.rust",
+            "lint.python",
+        }

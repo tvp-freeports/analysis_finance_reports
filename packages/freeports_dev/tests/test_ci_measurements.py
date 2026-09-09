@@ -21,7 +21,7 @@ import json
 
 import pytest
 
-from freeports_dev.ci import docstrings, lint, readers, report
+from freeports_dev.ci import docstrings, lint, readers, report, suites
 from freeports_dev.ci.readers import ReaderError
 
 
@@ -472,6 +472,108 @@ class TestTheMeasurementRecord:
 
     def test_a_directory_that_is_not_there_holds_no_measurements(self, tmp_path):
         assert report.read_all(tmp_path / "nothing") == {}
+
+
+class TestTheSuiteRecord:
+    """A suite's outcome is a fact about a commit, stored the way a measurement is.
+
+    The point of storing it rather than announcing it on a command line: a claim typed into
+    `ci-check --suite fast:passed` describes one run and is silent about every suite that did not
+    happen, and that silence is what a green tick was being drawn from.
+    """
+
+    def test_it_round_trips_through_its_own_json(self, tmp_path):
+        original = report.SuiteOutcome("rust.unit", "passed", head="abc")
+        path = original.write(tmp_path / report.suite_file_name("rust.unit"))
+        restored = report.SuiteOutcome.from_dict(json.loads(path.read_text()))
+        assert (restored.suite, restored.outcome, restored.head) == (
+            "rust.unit",
+            "passed",
+            "abc",
+        )
+
+    def test_the_file_name_is_mechanical_and_prefixed(self, tmp_path):
+        assert report.suite_file_name("python.fast") == "suite-python-fast.json"
+
+    def test_reading_a_directory_of_them_keys_by_suite(self, tmp_path):
+        report.SuiteOutcome("rust.unit", "passed").write(
+            tmp_path / "suite-rust-unit.json"
+        )
+        report.SuiteOutcome("python.fast", "failed").write(
+            tmp_path / "suite-python-fast.json"
+        )
+        found = report.read_suites(tmp_path)
+        assert set(found) == {"rust.unit", "python.fast"}
+        assert found["rust.unit"].passed
+        assert not found["python.fast"].passed
+
+    def test_measurements_and_suites_share_a_directory_without_reading_each_other(
+        self, tmp_path
+    ):
+        """Told apart by the key each carries, so a file somebody renamed still reads as itself."""
+        report.Measurement("docs.rust", 39.4, "percent").write(
+            tmp_path / "docs-rust.json"
+        )
+        report.SuiteOutcome("rust.unit", "passed").write(
+            tmp_path / "suite-rust-unit.json"
+        )
+        assert set(report.read_all(tmp_path)) == {"docs.rust"}
+        assert set(report.read_suites(tmp_path)) == {"rust.unit"}
+
+    def test_one_unparseable_file_does_not_hide_the_others(self, tmp_path):
+        report.SuiteOutcome("rust.unit", "passed").write(
+            tmp_path / "suite-rust-unit.json"
+        )
+        (tmp_path / "suite-broken.json").write_text("{not json")
+        assert set(report.read_suites(tmp_path)) == {"rust.unit"}
+
+    def test_a_directory_that_is_not_there_holds_no_outcomes(self, tmp_path):
+        assert report.read_suites(tmp_path / "nothing") == {}
+
+
+class TestTheSuiteRegistry:
+    """What is in the commit gate, pinned. Moving a suite across this line changes every commit."""
+
+    def test_the_fast_suites_are_the_ones_a_commit_can_pay_for(self):
+        fast = {s.name for s in suites.REGISTRY if s.cost == suites.FAST}
+        assert fast == {"rust.unit", "python.fast", "formats.single_page"}
+
+    def test_and_everything_else_is_run_deliberately(self):
+        slow = {s.name for s in suites.REGISTRY if s.cost == suites.SLOW}
+        assert slow == {
+            "rust.integration",
+            "rust.doc",
+            "python.slow",
+            "python.online",
+            "formats.integration",
+        }
+
+    def test_an_online_suite_is_slow_even_though_it_is_quick(self):
+        """Two categories, one policy. It is out of the gate because of whose machine it needs."""
+        online = suites.find("python.online")
+        assert online.online
+        assert online.cost == suites.SLOW
+        assert "network" in online.expense
+
+    def test_a_slow_one_that_is_not_online_says_so_differently(self):
+        assert "seconds" in suites.find("rust.integration").expense
+
+    def test_a_fast_suite_has_no_excuse_to_offer(self):
+        assert suites.find("rust.unit").expense is None
+
+    def test_every_suite_names_the_command_that_runs_it(self):
+        """A verdict that says `stale` without saying how to fix it is a verdict people route
+        around."""
+        assert all(s.command for s in suites.REGISTRY)
+
+    def test_a_repository_is_only_asked_about_the_suites_it_has(self):
+        engine = {s.name for s in suites.known_in(suites.ENGINE)}
+        formats = {s.name for s in suites.known_in(suites.FORMATS)}
+        assert "rust.doc" in engine and "formats.integration" not in engine
+        assert "formats.integration" in formats and "rust.doc" not in formats
+
+    def test_an_unknown_name_belongs_to_no_suite(self):
+        assert suites.find("rust.made_up") is None
 
 
 class TestReadingCheckKeys:

@@ -85,7 +85,7 @@ Metric                                     Item                                 
 ``docs.rust``                              ``src/cli/freeports_config.rs``                                     12.5 %
 ``docs.rust``                              ``src/output/files_schema.rs``                                      13.8 %
 ``docs.rust``                              ``src/commons/sets/ast_simple.rs``                                  14.3 %
-``docs.python``                            ``docs.python.freeports_dev``                                       53.9 %
+``docs.python``                            ``docs.python.freeports_dev``                                       55.2 %
 ``docs.python``                            ``docs.python.freeports_validate``                                  64.0 %
 ``lint.rust``                              ``clippy::redundant_closure``                                       4
 ``lint.rust``                              ``clippy::ptr_arg``                                                 1
@@ -110,12 +110,11 @@ Metric                                     Item                                 
 ``tests.python.freeports_validate.lines``  ``packages/freeports_validate/src/freeports_validate/cli.py``       89.4 %
 ``tests.python.freeports_validate.lines``  ``packages/freeports_validate/src/freeports_validate/__init__.py``  100.0 %
 ``docs.python.freeports_dev``              ``ci.docstrings.DocumentableObject``                                0.0 %
-``docs.python.freeports_dev``              ``ci.gate.Condition``                                               0.0 %
 ``docs.python.freeports_dev``              ``ci.render.Table``                                                 0.0 %
+``docs.python.freeports_dev``              ``ci.report.SuiteOutcome``                                          0.0 %
 ``docs.python.freeports_dev``              ``create_test_page``                                                0.0 %
 ``docs.python.freeports_dev``              ``lib.conftest.template``                                           0.0 %
 ``docs.python.freeports_dev``              ``make_tests``                                                      0.0 %
-``docs.python.freeports_dev``              ``pytest_plugin``                                                   0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.AlgorithmCache``                                    0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.CsvCache``                                          0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.DeserializeTest``                                   0.0 %
@@ -124,6 +123,7 @@ Metric                                     Item                                 
 ``docs.python.freeports_dev``              ``pytest_plugin.FormatCache``                                       0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.FreeportsFormat``                                   0.0 %
 ``docs.python.freeports_dev``              ``pytest_plugin.JsonCache``                                         0.0 %
+``docs.python.freeports_dev``              ``pytest_plugin.PdfCache``                                          0.0 %
 ``docs.python.freeports_validate``         ``lib.report.Table``                                                0.0 %
 ``docs.python.freeports_validate``         ``cli``                                                             50.0 %
 ``docs.python.freeports_validate``         ``lib.report``                                                      54.5 %
@@ -132,6 +132,6 @@ Metric                                     Item                                 
 ``docs.python.freeports_validate``         ``freeports_validate``                                              100.0 %
 =========================================  ==================================================================  =======
 
-Only the worst 15 lines of each metric are shown: tests.rust.lines (87 more), tests.python.lines (9 more), docs.rust (104 more), tests.python.freeports_dev.lines (7 more), docs.python.freeports_dev (38 more). `freeports-dev ci-report --format json` carries every one of them.
+Only the worst 15 lines of each metric are shown: tests.rust.lines (87 more), tests.python.lines (9 more), docs.rust (104 more), tests.python.freeports_dev.lines (7 more), docs.python.freeports_dev (41 more). `freeports-dev ci-report --format json` carries every one of them.
 
 .. freeports-dev:end

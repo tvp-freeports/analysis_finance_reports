@@ -42,6 +42,7 @@ clear such a gate at all.
 """
 
 from freeports_dev.ci import metrics
+from freeports_dev.ci import suites as ci_suites
 
 
 #: Measured, and at or above the minimum.
@@ -89,18 +90,114 @@ class Verdict:
         return self.state in _REFUSING
 
 
-class Condition:
-    """Something gated that is not a number: a suite's outcome, or the fingerprint rule."""
+#: The suite ran at this commit and passed.
+RAN = "ran"
 
-    def __init__(self, name, ok, detail=None, applicable=True):
+#: The suite ran at this commit and something in it did not pass.
+BROKE = "broke"
+
+#: The suite last ran at another commit. Says nothing about this code.
+SUITE_STALE = "stale"
+
+#: Nobody has run it here at all.
+NOT_RUN = "not run"
+
+#: The suite states that stop a commit on a prod branch.
+#:
+#: ``not run`` and ``stale`` are in this list for the reason ``unmeasured`` is in the metric one:
+#: **a suite nobody ran is not a suite that passed.** Leaving them out would make the fast/slow
+#: split a way of never running the slow half -- the gate would report "tests: ok" on the strength
+#: of a quarter of them, which is worse than reporting nothing.
+_SUITE_REFUSING = (BROKE, SUITE_STALE, NOT_RUN)
+
+#: Every state a suite can be in, which is how a suite's line is told from a plain yes/no rule's.
+_SUITE_STATES = (RAN,) + _SUITE_REFUSING
+
+
+class Condition:
+    """Something gated that is not a number: a suite's outcome, or the fingerprint rule.
+
+    ``state`` is what a suite has and a plain yes/no rule does not. A rule either holds or it does
+    not; a suite can also be stale or never have been run here, and those are different things to
+    tell somebody -- one means "fix the code", the others mean "run the command", and ``command``
+    carries which command.
+    """
+
+    def __init__(
+        self,
+        name,
+        ok,
+        detail=None,
+        applicable=True,
+        state=None,
+        command=None,
+        cost=None,
+    ):
         self.name = name
         self.ok = ok
         self.detail = detail
         self.applicable = applicable
+        self.state = state if state is not None else (RAN if ok else BROKE)
+        self.command = command
+        self.cost = cost
 
     @property
     def fails(self):
-        return self.applicable and not self.ok
+        """Whether this line stops a commit on a prod branch.
+
+        A suite is judged by its state rather than by ``ok`` so that ``stale`` and ``not run``
+        carry their own weight: they refuse, for the reason ``unmeasured`` refuses among the
+        metrics. A plain rule has only the yes and the no.
+        """
+        if not self.applicable:
+            return False
+        if self.state in _SUITE_STATES:
+            return self.state in _SUITE_REFUSING
+        return not self.ok
+
+
+def judge_suite(suite, outcome, head=None):
+    """One suite's line, in the order the failures have to be checked.
+
+    Never run is decided before staleness and both before the outcome, because each answers a
+    question the next presupposes: there is no point asking when a suite ran if it never has, and
+    none asking whether it passed if what passed was other code.
+    """
+    where = f"Run `{suite.command}`."
+    if outcome is None:
+        because = f", because {suite.expense}" if suite.expense else ""
+        return Condition(
+            suite.name,
+            False,
+            f"never run in this repository{because}. {where}",
+            state=NOT_RUN,
+            command=suite.command,
+            cost=suite.cost,
+        )
+
+    if head and outcome.head and outcome.head != head:
+        return Condition(
+            suite.name,
+            False,
+            f"last run at {outcome.head[:8]}, not at HEAD ({head[:8]}). {where}",
+            state=SUITE_STALE,
+            command=suite.command,
+            cost=suite.cost,
+        )
+
+    if not outcome.passed:
+        return Condition(
+            suite.name,
+            False,
+            f"did not pass. {where}",
+            state=BROKE,
+            command=suite.command,
+            cost=suite.cost,
+        )
+
+    return Condition(
+        suite.name, True, state=RAN, command=suite.command, cost=suite.cost
+    )
 
 
 def judge_metric(name, measurement, minimum, head=None):
@@ -206,7 +303,15 @@ class Gate:
         return 1 if self.refuses else 0
 
 
-def evaluate(config, measurements, conditions=None, head=None, skipped_slow=None):
+def evaluate(
+    config,
+    measurements,
+    conditions=None,
+    head=None,
+    skipped_slow=None,
+    suite_outcomes=None,
+    reported_suites=None,
+):
     """Judge every metric this repository can answer for, plus the conditions it was told about.
 
     A metric with no minimum is still listed. Being able to see a figure nobody has decided about
@@ -238,7 +343,53 @@ def evaluate(config, measurements, conditions=None, head=None, skipped_slow=None
             verdict.reason = _note_overrides(verdict.reason, overrides[name])
         verdicts.append(verdict)
 
-    return Gate(branch_class, verdicts, conditions, skipped_slow)
+    return Gate(
+        branch_class,
+        verdicts,
+        _suite_conditions(config, suite_outcomes, reported_suites, head)
+        + list(conditions or []),
+        skipped_slow,
+    )
+
+
+def _suite_conditions(config, suite_outcomes, reported_suites, head):
+    """One line per suite this repository has, whether or not anybody ran it.
+
+    **Every suite is listed, not only the ones with an answer.** That is the whole point of the
+    registry: a gate that prints what it ran tells you nothing about what it did not, and the
+    suites it did not run are exactly the ones a person needs reminding of. A repository is asked
+    only about the suites its kind actually has, the same rule the metric table follows.
+
+    ``reported_suites`` is what the caller says happened just now, and it wins over the recorded
+    file for that suite -- a run in progress is more current than a run on disk, and by definition
+    it happened at HEAD.
+    """
+    from freeports_dev.ci import report as ci_report
+
+    recorded = dict(suite_outcomes or {})
+    for name, outcome in (reported_suites or {}).items():
+        recorded[name] = ci_report.SuiteOutcome(name, outcome, head=head)
+
+    known = (
+        ci_suites.known_in(config.repo_kind) if config.repo_kind else ci_suites.REGISTRY
+    )
+    lines = [judge_suite(suite, recorded.get(suite.name), head) for suite in known]
+
+    # A suite nobody has heard of, reported or recorded anyway. Listed rather than dropped: the one
+    # unacceptable outcome here is a suite that ran and was silently not counted.
+    for name in sorted(recorded):
+        if ci_suites.find(name) is None:
+            outcome = recorded[name]
+            passed = outcome.passed
+            lines.append(
+                Condition(
+                    name,
+                    passed,
+                    None if passed else "did not pass",
+                    state=RAN if passed else BROKE,
+                )
+            )
+    return lines
 
 
 def _note_overrides(reason, packages):
@@ -268,6 +419,16 @@ def _format_minimum(verdict):
         else f"{verdict.minimum:.3f}"
     )
 
+
+#: How a suite's state prints. The two that are not a pass and not a failure print as loudly as a
+#: failure does, because on a prod branch they refuse just as hard -- and on a dev branch they are
+#: the line a person is meant to notice and act on.
+_CONDITION_LABEL = {
+    RAN: "ran",
+    BROKE: "FAILED",
+    SUITE_STALE: "STALE",
+    NOT_RUN: "NOT RUN",
+}
 
 _VERDICT_LABEL = {
     PASS: "pass",
@@ -308,13 +469,16 @@ def render_text(gate):
 
     if gate.conditions:
         lines.append("")
+        lines.append(f"{'suite':<38}{'cost':>10}{'':>10}   verdict")
         for condition in gate.conditions:
             if not condition.applicable:
                 state = "not applicable"
             else:
-                state = "ok" if condition.ok else "FAILED"
-            detail = f"  ({condition.detail})" if condition.detail else ""
-            lines.append(f"{'rule  ' + condition.name:<38}{state}{detail}")
+                state = _CONDITION_LABEL.get(
+                    condition.state, "ok" if condition.ok else "FAILED"
+                )
+            cost = condition.cost or ""
+            lines.append(f"{condition.name:<38}{cost:>10}{'':>10}   {state}")
 
     explained = [v for v in gate.verdicts if v.fails and v.reason]
     if explained or gate.failures:
@@ -380,6 +544,9 @@ def render_json(gate):
                     "ok": c.ok,
                     "applicable": c.applicable,
                     "detail": c.detail,
+                    "state": c.state,
+                    "cost": c.cost,
+                    "command": c.command,
                 }
                 for c in gate.conditions
             ],
@@ -390,18 +557,15 @@ def render_json(gate):
 
 
 def parse_suite(text):
-    """``--suite fast:passed`` into a :class:`Condition`.
+    """``--suite rust.unit:passed`` into a name and an outcome, for the run happening *now*.
 
-    Anything that is not exactly ``passed`` is a failure, including a spelling nobody intended. A
-    hook writes this string from a shell variable, and the one way this must not fail is by reading
-    an unrecognised word as success.
+    What is given on the command line describes this moment, so it outranks whatever the same suite
+    left in ``reports/`` at some earlier commit. Anything that is not exactly ``passed`` is a
+    failure, including a spelling nobody intended: a hook writes this string from a shell variable,
+    and the one way this must not fail is by reading an unrecognised word as success.
+
+    A name no registry claims is still honoured rather than dropped. A repository may run a suite
+    this workspace has never heard of, and swallowing it would be the one failure mode that matters
+    -- a suite reported as passing because nobody recognised its name.
     """
-    name, _, outcome = str(text).partition(":")
-    name = name.strip() or "suite"
-    outcome = outcome.strip().lower()
-    passed = outcome in ("passed", "pass", "ok", "0")
-    return Condition(
-        f"{name} tests",
-        passed,
-        None if passed else f"the {name} suite did not pass",
-    )
+    return ci_suites.parse(text)

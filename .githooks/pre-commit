@@ -14,6 +14,21 @@
 # The last gate is a *name*, not a list: what the commit gate consists of is decided in the
 # Makefile at the repository root, so it can grow without this file being touched.
 #
+# **This hook has a time budget of five seconds, and that is why it is short.** It used to take
+# sixty-six: the whole crate suite, both Python suites twice over (once as tests, once under
+# coverage), a second rustdoc toolchain, and two commands that fetched every methodology page over
+# the network. Each of those is worth running. None of them is worth running at *every commit* —
+# a gate that costs a minute is a gate people commit around, in bigger and rarer commits, and then
+# `--no-verify`, and then it gates nothing. The cheap gate that always runs beats the thorough one
+# that runs on Fridays.
+#
+# What was taken out was **not** made invisible. Every suite records its outcome and the commit it
+# ran at, every slow metric records the commit it was measured at, and `ci-check` — which runs here,
+# and costs a fifth of a second — lists a suite nobody ran at this commit as `NOT RUN` and a figure
+# from an earlier one as `STALE`. Neither can be read as a pass. `make ci` runs all of it and clears
+# them. On a `prod` branch every one of them refuses the commit: a production commit is a deliberate
+# merge, and nothing about it may be unknown.
+#
 # **What refuses, and on which branch.** `ci.yaml` at the repository root puts every branch in one
 # of three classes. On `prod` a missed threshold, a failing suite or a figure nobody could measure
 # refuses the commit. On `dev` — which is the default, and which this repository's `dev` and
@@ -24,10 +39,17 @@
 # This is a change from what this hook used to do: it refused a failing `make pre-commit` on every
 # branch, and now it refuses only on `prod`.
 #
-# Two things here are not gates at all, and neither can refuse a commit on any branch: the
-# **validation report**, refreshed and staged before the gate because it does not depend on it, and
-# the **CI report**, staged *after* `make pre-commit` because that is what measures the figures it
-# renders. Staging it earlier is what made every commit leave the branch dirty; see that section.
+# One thing here is not a gate at all and cannot refuse a commit on any branch: the **CI report**,
+# staged *after* `make pre-commit` because that is what measures the figures it renders. Staging it
+# earlier is what made every commit leave the branch dirty; see that section.
+#
+# The **validation report** used to be refreshed here too, and is not any more. Regenerating it
+# resolves every methodology page from the configured sources — nine seconds with the network up,
+# and a commit that cannot be made at all on a train. It now belongs to `make validation`, which
+# `make ci` runs. What stands in its place costs nothing: `grants.coverage` carries the commit it
+# was measured at, so the CI report this hook *does* refresh shows it grey and names that commit
+# the moment it stops describing HEAD. The report is allowed to be one run out of date; what is not
+# allowed is for it to be out of date and silent about it.
 #
 # Note that it sees the *working tree*, not the staged snapshot: a commit of a subset of your
 # changes is checked against everything you have on disk.
@@ -46,9 +68,12 @@ fi
 # Before everything else that costs anything, and after the environment check only because the
 # class is read by `freeports-dev`, which needs the environment to be there at all. A branch
 # nobody classified is `dev`, never `off`: the quiet answer is never the default one.
+branch_class=dev
 if command -v freeports-dev >/dev/null 2>&1; then
-    if [ "$(freeports-dev branch-class --format json 2>/dev/null \
-            | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')" = "off" ]; then
+    branch_class=$(freeports-dev branch-class --format json 2>/dev/null \
+        | sed -n 's/.*"class": *"\([a-z]*\)".*/\1/p')
+    branch_class=${branch_class:-dev}
+    if [ "$branch_class" = "off" ]; then
         echo "$(git rev-parse --abbrev-ref HEAD) is an 'off' branch in ci.yaml: nothing is checked."
         exit 0
     fi
@@ -98,67 +123,38 @@ fi
 repo_root=$(git rev-parse --show-toplevel) || exit 1
 
 
-# Keep the validation report current, and never refuse a commit over it.
+# The validation report is *not* refreshed here, and this is where it used to be.
 #
-# The three badges in README.md, the summary block in it, the seven pages under
-# `docs/source/validation/report/` and the coverage page generated into `docs/source/_extra/` are
-# all functions of what `validation/` claims. A commit that changes a granted assertion and leaves
-# them alone publishes figures that are already wrong, so they are regenerated here and what was
-# rewritten is added to the commit being made.
+# It is one walk of the repository rendered ten times, and the walk resolves every methodology page
+# from the configured sources. Six seconds with the network up, a failure with it down, and a
+# commit gate whose budget is five seconds in total. `make validation` does it — the report, the
+# integrity check and the key lookup together — and `make ci` runs that.
 #
-# What this consists of is decided in the Makefile, like the gate at the bottom of this file:
-# `make validation-report` is one walk of the repository rendered ten times, and it is also the
-# command to run by hand. The list of files to stage is here rather than there because staging is
-# git's business and the Makefile has none.
+# **Nothing is hidden by the move.** `grants.coverage` is recorded with the commit it was measured
+# at, so the CI report refreshed below paints it grey and names that commit as soon as it stops
+# describing HEAD, and `ci-check` prints it as STALE. On a prod branch that refuses, which is the
+# right answer: a production commit that has not looked at its own grants since Tuesday should not
+# be made. On a dev branch it is a line of output, and the work continues.
 #
-# Nothing in this section can fail the hook, on purpose. The figures depend on fetching every
-# methodology page from the configured sources, and a committer on a train, behind a proxy, or
-# working while the documentation server is down still has to be able to commit. A report one run
-# out of date is a smaller problem than a commit that cannot be made.
-if command -v freeports-validate >/dev/null 2>&1; then
-    if make -C "$repo_root" -s validation-report >/dev/null 2>&1; then
-        # The coverage page is staged with the rest. It is the one artefact here that a
-        # documentation build cannot produce for itself: signature validity is computed from the
-        # keyring of the machine computing it, and a Read the Docs builder has none, so a page
-        # generated there would announce that every grant in the repository is invalid. It is
-        # written where the keys are — here — and merely copied into the site afterwards.
-        refreshed="README.md validation/report/badges docs/source/_extra/validation/coverage.html"
-        for page in index file-contributor file-methodology contributor-methodology \
-                    contributor-file methodology-file methodology-contributor; do
-            refreshed="$refreshed docs/source/validation/report/$page.rst"
-        done
-
-        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
-        # space, and this is the one place the list has to be split back into arguments.
-        git -C "$repo_root" add -- $refreshed
-        echo "freeports-validate: report refreshed"
-    else
-        echo "freeports-validate: the grants could not be read, so the report is unchanged" 1>&2
-    fi
-
-    # The integrity check itself, and it warns rather than refuses.
-    #
-    # It is loud when it has something to say, and what it has to say is never nothing: a page that
-    # could not be fetched exits non-zero here too, because a grant nobody could verify is a grant
-    # this run does not vouch for — see `freeports-validate check-grants`, which distinguishes the
-    # two cases in its own output. Neither stops the commit: deciding what a broken or unverified
-    # grant means is the granter's, and the badge, the report and this message all record it.
-    if ! make -C "$repo_root" -s check-grants; then
-        echo 1>&2
-        echo "freeports-validate: the grants above are not all vouched for by this run." 1>&2
-        echo "The commit is not being refused. Re-grant with \`freeports-validate grant\`, or" 1>&2
-        echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
-    fi
-fi
+# The same goes for `check-grants`, which used to warn here. It still never refuses on any branch —
+# a granted reference output regenerated by `make-tests` is ordinary work, and a contributor who
+# does not hold the granting key could not clear such a gate at all — but a warning that costs three
+# seconds of somebody else's network at every commit is a warning that gets the hook deleted. Run
+# `make validation` before you push, and `make ci` before a prod commit.
 
 
 # Keep the CI report current, and never refuse a commit over it either.
 #
-# The twin of the section above, for the other half of what this repository publishes about itself.
 # The badges under `ci/report/badges/`, the block in README.md, the three pages under
 # `docs/source/dev/ci-report/` and the page generated into `docs/source/_extra/ci/` are all
 # functions of what is in `reports/` — so a commit that moves a figure and leaves them alone
 # publishes numbers that are already wrong.
+#
+# **This is the artefact that says what is current and what is not**, which is why it is the one
+# report that stayed in the hook when the validation report left it. It is a rendering of files, not
+# a measurement, so it costs under a second; and every figure it renders carries the commit it was
+# taken at, so it can report its own staleness. A reader of README.md sees a grey badge and the
+# commit beside it, without running anything.
 #
 # **This is why the gate runs before the staging and not after it.** `ci-fast` *is* what measures
 # this commit: it lints, runs the suites, writes every fast figure into `reports/`, and rewrites the
@@ -178,13 +174,55 @@ fi
 #
 # Nothing in this section can fail the hook, on purpose, for the same reason as the section above:
 # a report one run out of date is a smaller problem than a commit that cannot be made.
-make pre-commit || gate_status=1
+# **Which gate, and it depends on the branch.**
+#
+# On `dev` — the default — `make pre-commit` is `ci-fast`: seconds, no network, no second toolchain,
+# no instrumented rebuild. What it leaves unmeasured it says it has left unmeasured, and the commit
+# stands.
+#
+# On `prod` it is `make ci-full`: both suites entire, the instrumented coverage, the documentation
+# figures and the grants re-resolved over the network. Minutes. That is not a punishment, it is the
+# other half of the same bargain — the fast gate is affordable *because* the slow one is what a
+# production commit has to clear, and running it here is what leaves `ci-check` with nothing to call
+# stale. A commit to `main` is a deliberate act made a few times a week; taking the time then is the
+# point of it.
+#
+# `-j`, because the gates say with `.WAIT` which of their steps may overlap and which may not: the
+# measurements are independent, the report may only be rendered once they have landed, and the
+# verdict may only be read once the report is written. It takes the fast gate from five and a half
+# seconds to under four. `-Otarget` is set in the Makefile, so each recipe's output still arrives in
+# one piece rather than interleaved.
+if [ "$branch_class" = "prod" ]; then
+    echo "$(git rev-parse --abbrev-ref HEAD) is a 'prod' branch: running the full gate."
+    echo "This measures everything at this commit and takes minutes. Nothing here may be stale."
+    make -j ci-full || gate_status=1
+else
+    make -j pre-commit || gate_status=1
+fi
 
 if command -v freeports-dev >/dev/null 2>&1; then
     refreshed="README.md ci/report/badges docs/source/_extra/ci/report.html"
     for page in index thresholds breakdown; do
         refreshed="$refreshed docs/source/dev/ci-report/$page.rst"
     done
+
+    # The validation report's artefacts as well, and **only on a prod branch**, because that is the
+    # only branch on which anything rewrote them: `ci-full` runs `make validation`, `ci-fast` does
+    # not. Staging them unconditionally would be harmless the day nothing changed and wrong the day
+    # something did; listing them only where they were regenerated keeps the rule simple — what a
+    # run rewrote, that run stages.
+    #
+    # This is the same discipline the CI report follows above, and it exists because of the same
+    # bug: an artefact regenerated by the hook and not added to the commit lands in the working
+    # tree instead, so every commit leaves the branch dirty and the next `git status` shows the
+    # same files modified again.
+    if [ "$branch_class" = "prod" ]; then
+        refreshed="$refreshed validation/report/badges docs/source/_extra/validation/coverage.html"
+        for page in index file-contributor file-methodology contributor-methodology \
+                    contributor-file methodology-file methodology-contributor; do
+            refreshed="$refreshed docs/source/validation/report/$page.rst"
+        done
+    fi
 
     # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
     # space, and this is the one place the list has to be split back into arguments.

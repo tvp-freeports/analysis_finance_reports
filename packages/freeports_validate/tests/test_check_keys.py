@@ -66,10 +66,15 @@ class _KeyServer(BaseHTTPRequestHandler):
 def _keyserver_process():
     """One server for the whole module.
 
-    Module-scoped because `ThreadingHTTPServer.shutdown()` takes about half a second to return, and
-    a fixture per test paid that sixteen times — seven seconds added to a suite the commit hook
-    runs. What each test needs to vary is which fingerprints the server holds, and that is a class
-    attribute reset between tests, not a reason to start another process.
+    Module-scoped because starting one is not free and nothing below needs its own. What each test
+    varies is which fingerprints the server holds, and that is a class attribute reset between
+    tests, not a reason to start another process.
+
+    The poll interval is given rather than left at its default for the reason `http_source` in
+    `conftest.py` gives it: `shutdown()` waits for `serve_forever`'s loop to look between `select`
+    timeouts, so the default half-second is paid in full at every teardown. Module scope used to be
+    the workaround for that; it is kept because it is right on its own terms, and the half-second
+    is now gone as well.
     """
 
     class Handler(_KeyServer):
@@ -77,7 +82,9 @@ def _keyserver_process():
         served_html_for_anything = False
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread = threading.Thread(
+        target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+    )
     thread.start()
     host, port = server.server_address[:2]
     Handler.url = f"http://{host}:{port}"

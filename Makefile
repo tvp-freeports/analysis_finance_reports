@@ -58,6 +58,16 @@
 
 .DEFAULT_GOAL := help
 
+# Output kept whole per target, so that `make -j` stays readable. Without it two recipes running at
+# once interleave line by line and a failure is a jigsaw; with it each target's output arrives in
+# one piece, in the order the targets finished. It costs nothing on a sequential run, which is why
+# it is set here rather than passed by whoever remembers to.
+#
+# `-j` itself is deliberately *not* set here. It is right for the quality surface, whose recipes
+# are independent measurements, and wrong for `install`, whose recipes are pip invocations that
+# would race over the same environment. `.githooks/pre-commit` asks for it where it applies.
+MAKEFLAGS += -Otarget
+
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
@@ -150,16 +160,16 @@ DOCS_PORT ?= 8000
         install install-engine install-binary install-tools install-dev-deps install-docs-deps \
         install-ci-deps dev-engine dev-formats dev-docs dev-ci dev-all uninstall reinstall \
         develop build dist distcheck check-compile \
-        check test test-all test-formats \
+        check test test-fast test-slow test-all test-formats \
         test-rust test-rust-unit test-rust-integration test-rust-doc \
-        test-python test-python-slow test-python-all \
+        test-python test-python-slow test-python-online test-python-all \
         lint lint-rust lint-python lint-formats fmt fmt-rust fmt-python fmt-check \
         coverage coverage-rust coverage-python coverage-formats \
         doc-coverage doc-coverage-rust doc-coverage-python \
-        ci ci-fast ci-rust ci-python ci-check branch-class release pre-commit \
+        ci ci-fast ci-full ci-docs ci-rust ci-python ci-check branch-class release pre-commit \
         ci-report ci-report-json ci-report-badges ci-report-readme ci-report-docs \
         ci-report-html \
-        validation-report check-grants check-keys \
+        validation validation-report check-grants check-keys \
         docs html docs-html docs-rustdoc docs-validation docs-site-coverage docs-serve docs-lang \
         i18n i18n-extract i18n-update i18n-build \
         clean mostlyclean clean-docs clean-rust distclean maintainer-clean
