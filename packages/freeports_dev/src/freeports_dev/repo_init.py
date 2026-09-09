@@ -246,6 +246,96 @@ def _fill_validation_report(target: Path) -> bool:
     return True
 
 
+def _write_ci_report(target: Path) -> list:
+    """Write the two pages that host the CI report, with their markers in them.
+
+    The twin of :func:`_write_validation_report`, for the other half of what a repository publishes
+    about itself. `freeports-dev ci-report` writes between two markers rather than over a whole
+    file, so the files have to exist before anything can be written into them — creating them here
+    is what makes the repository's `pre-commit` hook a refresh rather than a first draft.
+
+    Two pages and not three: the summary lives in the README, where a reader meets it, and the two
+    beside it answer the questions it provokes — what is being demanded, and where a figure that
+    fell short comes from.
+
+    Returns the paths written, relative to `target`.
+    """
+    entries = _read_json("ci_report_tables.json")
+    template = _read_template("ci_report_table.template.md")
+
+    written = []
+    for entry in entries:
+        page = f"ci/report/{entry['table']}.md"
+        body = template
+        for key in ("table", "title", "about"):
+            body = body.replace("{" + key + "}", entry[key])
+        (target / page).write_text(body, encoding="utf-8")
+        written.append(page)
+    return written
+
+
+def _fill_ci_report(target: Path) -> bool:
+    """Run the command once so the badges exist and every marked block is filled.
+
+    Best-effort, like its validation twin, and for a smaller reason: a new repository has taken no
+    measurements at all, so what this writes is a report saying exactly that — every metric not
+    measured, the status `inconclusive`, and the commands to run. That is the honest first state and
+    a more useful one than an empty file: it tells the author what the repository will be asked for
+    before they have anything to be asked about.
+
+    One evaluation rendered several times, so the badges cannot disagree with the pages.
+    """
+    entries = _read_json("ci_report_tables.json")
+
+    def dev(*arguments, **kwargs):
+        return subprocess.run(
+            ["freeports-dev", "ci-report", "--repo", str(target), *arguments],
+            check=True,
+            capture_output=True,
+            **kwargs,
+        )
+
+    with tempfile.NamedTemporaryFile("w+", suffix=".json") as model:
+        try:
+            dev("--format", "json", "--out", model.name)
+        except FileNotFoundError:
+            print("  note: freeports-dev is not installed, so the CI report is empty")
+            return False
+        except subprocess.CalledProcessError:
+            print(
+                "  note: the CI report could not be evaluated, so its pages are empty"
+            )
+            print("        run `freeports-dev ci-check` to see why")
+            return False
+
+        # A markdown rendering is written *between markers* in a file that has to exist already, so
+        # one whose page is absent is skipped rather than attempted. An input database has no
+        # README at all, and a repository kind acquiring one later should not need this list edited.
+        renderings = [("--format", "badges", "--out", str(target / "ci/report/badges"))]
+        pages = [("README.md", None)] + [
+            (f"ci/report/{entry['table']}.md", entry["table"]) for entry in entries
+        ]
+        for page, table in pages:
+            if not (target / page).exists():
+                continue
+            arguments = ["--format", "markdown"]
+            if table:
+                arguments += ["--table", table]
+            renderings.append(tuple(arguments + ["--out", str(target / page)]))
+        renderings.append(
+            ("--format", "html", "--out", str(target / "ci/report/index.html"))
+        )
+        for rendering in renderings:
+            try:
+                dev("--model", model.name, *rendering)
+            except subprocess.CalledProcessError:
+                print(f"  note: could not write {rendering[-1]}")
+                return False
+
+    print("  wrote the CI badges and filled the CI report")
+    return True
+
+
 def _is_empty_dir(target: Path) -> bool:
     """Check if a directory is empty, ignoring .git."""
     entries = [e for e in target.iterdir() if e.name != ".git"]
@@ -312,6 +402,13 @@ def init_format_repo(target: Path, quiet: bool = False) -> None:
         f"  wrote README.md and {len(written) - 1} report pages under validation/report/"
     )
     _fill_validation_report(target)
+
+    # The two CI report pages, and their first fill. After the validation report and not before it:
+    # both rewrite README.md between their own markers, and doing them in the order the README lists
+    # them keeps a diff of a fresh repository readable.
+    written = _write_ci_report(target)
+    print(f"  wrote {len(written)} report pages under ci/report/")
+    _fill_ci_report(target)
 
     # Copy default input DB
     from freeports_dev.input_db import copy_default_input_db
@@ -389,6 +486,11 @@ def init_input_db(target: Path, sample: bool = False, quiet: bool = False) -> No
     _write_hook(target, "input_db_pre-commit.template")
     _write_ci_yaml(target)
 
+    # **No CI report here**, and that is a decision rather than an omission. An input database takes
+    # no measurements at all -- its hook checks the fingerprint rule and nothing else -- so every
+    # figure a report could show would read "not measured", for ever, in a committed file nothing
+    # refreshes. An artefact nobody updates is worse than no artefact: it is a page of dashes that
+    # looks like a status. When a database gains a measurement, this is where the report starts.
     _setup_git(target, quiet=quiet, hooks=True)
 
     print(f"\nInput database created at {target}")

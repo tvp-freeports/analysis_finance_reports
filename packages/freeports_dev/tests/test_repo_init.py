@@ -38,6 +38,14 @@ TABLES = [
 
 MARKERS = ("<!-- freeports-validate:begin -->", "<!-- freeports-validate:end -->")
 
+#: The arrangements the CI report offers, read from the data file the code reads for the same
+#: reason as above: a third added there is covered here without anybody remembering to.
+CI_TABLES = [
+    entry["table"] for entry in json.loads((LIB / "ci_report_tables.json").read_text())
+]
+
+CI_MARKERS = ("<!-- freeports-dev:begin -->", "<!-- freeports-dev:end -->")
+
 
 @pytest.fixture(scope="module")
 def repo(tmp_path_factory):
@@ -223,6 +231,57 @@ class TestTheFirstFill:
         """Every generated table disclaims itself; one that did not is the misreading to prevent."""
         text = (repo / "validation" / "report" / "methodology-file.md").read_text()
         assert "demonstrative" in text
+
+
+class TestTheFilesThatHostTheCiReport:
+    """The other half of what a repository publishes about itself: what a commit has to clear.
+
+    The same shape as the validation report and deliberately so — a reader who has found one has
+    found the other — with one difference that matters: these figures are measured locally, so the
+    first fill of them needs no network at all.
+    """
+
+    @pytest.mark.parametrize("table", CI_TABLES)
+    def test_every_page_exists_and_is_marked(self, repo, table):
+        text = (repo / "ci" / "report" / f"{table}.md").read_text()
+        assert CI_MARKERS[0] in text and CI_MARKERS[1] in text
+
+    def test_the_readme_carries_the_summary_between_its_own_markers(self, repo):
+        """Its own markers: the README holds this block and the grants one, side by side."""
+        text = (repo / "README.md").read_text()
+        assert CI_MARKERS[0] in text and MARKERS[0] in text
+
+    def test_a_page_says_what_command_rewrites_it(self, repo):
+        text = (repo / "ci" / "report" / "thresholds.md").read_text()
+        assert "freeports-dev ci-report" in text
+
+    def test_the_badges_exist_rather_than_being_broken_images(self, repo):
+        badges = repo / "ci" / "report" / "badges"
+        assert (badges / "ci-status.svg").is_file()
+        assert (badges / "ci-status.json").is_file()
+
+    def test_a_repository_that_has_measured_nothing_says_so_rather_than_claiming_a_pass(
+        self, repo
+    ):
+        """The honest first state, and a more useful one than an empty file."""
+        text = (repo / "README.md").read_text()
+        between = text[text.index(CI_MARKERS[0]) : text.index(CI_MARKERS[1])]
+        assert "inconclusive" in between
+        assert "passing" not in between
+
+    def test_every_page_disclaims_itself(self, repo):
+        for table in CI_TABLES:
+            assert (
+                "demonstrative" in (repo / "ci" / "report" / f"{table}.md").read_text()
+            )
+
+    def test_the_hook_refreshes_it_and_cannot_refuse_over_it(self, repo):
+        hook = (repo / ".githooks" / "pre-commit").read_text()
+        block = hook[hook.index("Keep the CI report current") :]
+        block = block[: block.index("The fingerprint rule")]
+        assert "ci-report" in block
+        assert "git -C" in block
+        assert "exit 1" not in block
 
 
 @pytest.fixture

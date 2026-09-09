@@ -27,7 +27,12 @@
 #
 # `coverage-rust` is absent on purpose: it recompiles the crate instrumented. `ci-check` reads that
 # figure from the last `make ci` and, on a prod branch, refuses when it was taken at another commit.
-ci-fast: lint test coverage-python doc-coverage validation-report check-grants ci-check ## The commit gate: lint, the fast suites, the fast measurements, the verdict
+#
+# `ci-report` comes before `ci-check` and not after it. `ci-check` is the one step here that can
+# refuse, and a run that refused before the report was written would leave the badges and the
+# README describing the *previous* commit -- which is the one arrangement in which a published
+# figure is wrong and nothing says so.
+ci-fast: lint test coverage-python doc-coverage validation-report check-grants ci-report ci-check ## The commit gate: lint, the fast suites, the fast measurements, the report, the verdict
 
 # Kept as a name people already type, and as the name `.githooks/pre-commit` calls.
 pre-commit: ci-fast ## The commit gate (alias of ci-fast)
@@ -56,3 +61,70 @@ release: dist ## Upload the distributions to PyPI (tagged release, prod branch)
 	    echo "Not on a prod branch. Releasing from a dev branch is how a pre-release ships." >&2; \
 	    exit 1; }
 	$(PYTHON) -m twine upload $(DISTDIR)/*
+
+
+# ---------------------------------------------------------------------------
+# The report
+# ---------------------------------------------------------------------------
+# The verdict, written down where somebody who is not running `make` will meet it.
+#
+# `ci-check` prints a table on a terminal and nothing keeps it. This is the same run rendered into
+# the four shapes the grants report already has — badges, a block in `README.md`, pages in the
+# documentation, one HTML page — and it is the same arrangement, deliberately: `validation-report`
+# in `mk/validation.mk` is its twin, and a reader who has found one has found the other.
+#
+# **One evaluation, rendered several times.** `ci-report --format json` writes the model and every
+# other rendering is `--model` against it, so the badges cannot disagree with the README about the
+# same run. Evaluating six times would be cheap here — it reads JSON files, it does not measure —
+# but two renderings of a repository that disagree are not a cost anybody notices until they do.
+#
+# **Nothing here can refuse a commit**, on any branch, exactly like the validation report. What may
+# refuse is `ci-check`, below, and it is the last thing `ci-fast` runs for that reason.
+CI_BADGES_DIR = ci/report/badges
+CI_REPORT_DIR = docs/source/dev/ci-report
+# Generated into `_extra/`, which `html_extra_path` copies verbatim into the root of the site — the
+# same arrangement as rustdoc and the validation coverage page. It is written here and not by the
+# documentation builder because `reports/` is gitignored: a builder has no measurements at all, and
+# a page generated there would be a page of dashes.
+CI_REPORT_HTML = docs/source/_extra/ci/report.html
+CI_REPORT_TABLES = thresholds breakdown
+
+CI_REPORT = $(FREEPORTS_DEV) ci-report --repo "$(CURDIR)"
+
+ci-report: ## Refresh the CI badges, the README block, the doc pages and the HTML
+	@model=$$(mktemp) || exit 1; \
+	 trap 'rm -f "$$model"' EXIT; \
+	 $(CI_REPORT) --format json --out "$$model" >/dev/null || { \
+	     echo "freeports-dev: the measurements could not be read - nothing was rewritten" >&2; \
+	     exit 1; }; \
+	 $(CI_REPORT) --model "$$model" --format badges   --out $(CI_BADGES_DIR)/ >/dev/null; \
+	 $(CI_REPORT) --model "$$model" --format markdown --out README.md >/dev/null; \
+	 $(CI_REPORT) --model "$$model" --format rst      --out $(CI_REPORT_DIR)/index.rst >/dev/null; \
+	 for table in $(CI_REPORT_TABLES); do \
+	     $(CI_REPORT) --model "$$model" --format rst --table "$$table" \
+	         --out "$(CI_REPORT_DIR)/$$table.rst" >/dev/null || exit 1; \
+	 done; \
+	 mkdir -p $(dir $(CI_REPORT_HTML)); \
+	 $(CI_REPORT) --model "$$model" --format html --out $(CI_REPORT_HTML).new >/dev/null \
+	     && mv -f $(CI_REPORT_HTML).new $(CI_REPORT_HTML) \
+	     || { rm -f $(CI_REPORT_HTML).new; exit 1; }
+
+ci-report-json: ## The model every other rendering is drawn from, on standard output
+	@$(CI_REPORT) --format json
+
+ci-report-badges: ## Only the badges
+	$(CI_REPORT) --format badges --out $(CI_BADGES_DIR)/
+
+ci-report-readme: ## Only the block between the markers in README.md
+	$(CI_REPORT) --format markdown --out README.md
+
+ci-report-docs: ## Only the pages under docs/source/dev/ci-report/
+	@$(CI_REPORT) --format rst --out $(CI_REPORT_DIR)/index.rst
+	@for table in $(CI_REPORT_TABLES); do \
+	     $(CI_REPORT) --format rst --table "$$table" --out "$(CI_REPORT_DIR)/$$table.rst" \
+	         || exit 1; \
+	 done
+
+ci-report-html: ## Only the single-page HTML rendering
+	@mkdir -p $(dir $(CI_REPORT_HTML))
+	$(CI_REPORT) --format html --out $(CI_REPORT_HTML)

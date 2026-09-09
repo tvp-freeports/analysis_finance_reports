@@ -157,6 +157,8 @@ DOCS_PORT ?= 8000
         coverage coverage-rust coverage-python coverage-formats \
         doc-coverage doc-coverage-rust doc-coverage-python \
         ci ci-fast ci-rust ci-python ci-check branch-class release pre-commit \
+        ci-report ci-report-json ci-report-badges ci-report-readme ci-report-docs \
+        ci-report-html \
         validation-report check-grants check-keys \
         docs html docs-html docs-rustdoc docs-validation docs-site-coverage docs-serve docs-lang \
         i18n i18n-extract i18n-update i18n-build \

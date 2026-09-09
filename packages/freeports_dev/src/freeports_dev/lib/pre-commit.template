@@ -2,11 +2,13 @@
 #
 # Pre-commit hook for freeports format repositories.
 #
-# One gate and two reports. The gate is `freeports-dev ci-check`, which reads the measurements
+# One gate and three reports. The gate is `freeports-dev ci-check`, which reads the measurements
 # taken below, the thresholds in `ci.yaml`, and the class of the branch you are on, and is the only
 # step here that can refuse. The reports are the validation report -- badges, README block, the six
-# pages -- which is regenerated and staged, and `check-grants`, which says whether the claims in
-# `validation/` still hold. Neither report can refuse a commit; the sections below say why.
+# pages -- which is regenerated and staged; `check-grants`, which says whether the claims in
+# `validation/` still hold; and the CI report, which writes the verdict itself down as badges, a
+# README block, two pages and an HTML page. No report can refuse a commit; the sections below say
+# why.
 #
 # **What refuses, and on which branch.** `ci.yaml` at the root of this repository puts every branch
 # in one of three classes. On `prod` a missed threshold, a failing suite, a figure nobody could
@@ -197,6 +199,66 @@ if [ "$(freeports-dev branch-class --repo "$repo_root" --format json 2>/dev/null
             --from check-keys --input "$keys_report" >/dev/null 2>&1
         rm -f "$keys_report"
     fi
+fi
+
+
+# Keep the CI report current, and never refuse a commit over it either.
+#
+# The twin of the validation-report section above, for the other half of what this repository
+# publishes about itself. The badges under `ci/report/badges/`, the block in README.md, the two
+# pages beside it and the single-page HTML rendering are all functions of what is in `reports/`, so
+# a commit that moves a figure and leaves them alone publishes numbers that are already wrong.
+#
+# Placed after the measurements and after `ci-record` above, so that it renders the figures this
+# run took rather than the previous one's -- which is the one thing this half can do that the
+# validation half cannot, because measuring is cheap and collecting grants is not.
+#
+# One evaluation rendered several times, for the same reason as above: five renderings that each
+# re-read `reports/` could disagree with each other about the same run.
+#
+# Nothing here can fail the hook, on purpose. A report one run out of date is a smaller problem than
+# a commit that cannot be made, and a report is not a gate on any branch.
+if command -v freeports-dev >/dev/null 2>&1; then
+    ci_model=$(mktemp "${TMPDIR:-/tmp}/freeports-ci-report.XXXXXX" 2>/dev/null) || ci_model=""
+
+    if [ -n "$ci_model" ] &&
+        freeports-dev ci-report --repo "$repo_root" --suite "fast:$suite_outcome" \
+            --format json --out "$ci_model" >/dev/null 2>&1; then
+        render_ci() {
+            freeports-dev ci-report --repo "$repo_root" --model "$ci_model" "$@" >/dev/null 2>&1
+        }
+
+        # Only what was actually rewritten is staged. A page somebody deleted, or one whose marker
+        # pair they removed, is left alone rather than recreated behind their back.
+        ci_refreshed=""
+        if render_ci --format badges --out "$repo_root/ci/report/badges/"; then
+            ci_refreshed="$ci_refreshed ci/report/badges"
+        fi
+        if [ -f "$repo_root/README.md" ] && render_ci --format markdown --out "$repo_root/README.md"; then
+            ci_refreshed="$ci_refreshed README.md"
+        fi
+        for table in thresholds breakdown; do
+            page="ci/report/$table.md"
+            [ -f "$repo_root/$page" ] || continue
+            if render_ci --format markdown --table "$table" --out "$repo_root/$page"; then
+                ci_refreshed="$ci_refreshed $page"
+            fi
+        done
+        if render_ci --format html --out "$repo_root/ci/report/index.html"; then
+            ci_refreshed="$ci_refreshed ci/report/index.html"
+        fi
+
+        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
+        # space, and this is the one place the list has to be split back into arguments.
+        if [ -n "$ci_refreshed" ]; then
+            git -C "$repo_root" add -- $ci_refreshed
+            echo "freeports-dev: CI report refreshed"
+        fi
+    else
+        echo "freeports-dev: the measurements could not be read, so the CI report is unchanged" 1>&2
+    fi
+
+    rm -f "$ci_model"
 fi
 
 

@@ -19,6 +19,7 @@ repository.
    implementation-notes
    tests
    ci
+   ci-report/index
    docs
    i18n
 

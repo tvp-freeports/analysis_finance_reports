@@ -521,7 +521,15 @@ def _cmd_ci_record(args):
     )
 
 
-def _cmd_ci_check(args):
+def _judge(args):
+    """The gate over whatever is in ``reports/``, built the same way for whoever asks.
+
+    Two commands need it — ``ci-check``, which chooses an exit status from it, and ``ci-report``,
+    which writes it down — and two spellings of "what the gate found" would drift apart exactly
+    where it matters most: the report would keep saying `passing` after the gate had started
+    refusing. Exits 2 on a ``ci.yaml`` that cannot be obeyed, which is a different thing from a
+    commit that failed the rules and is reported as such.
+    """
     from freeports_dev.ci import gate as ci_gate
     from freeports_dev.ci import metrics
     from freeports_dev.ci import report as ci_report
@@ -531,11 +539,13 @@ def _cmd_ci_check(args):
     try:
         config = CiConfig(root, args)
         measurements = ci_report.read_all(
-            Path(args.reports) if args.reports else root / ci_report.REPORTS_DIR
+            Path(args.reports)
+            if getattr(args, "reports", None)
+            else root / ci_report.REPORTS_DIR
         )
 
         skipped = []
-        if args.skip_slow:
+        if getattr(args, "skip_slow", False):
             # Loud, never the default, and it prints what it skipped: a figure that was not
             # checked must not be mistaken afterwards for one that passed.
             for metric in metrics.REGISTRY:
@@ -543,7 +553,9 @@ def _cmd_ci_check(args):
                     skipped.append(metric.pattern)
                     measurements.pop(metric.pattern, None)
 
-        conditions = [ci_gate.parse_suite(item) for item in (args.suite or [])]
+        conditions = [
+            ci_gate.parse_suite(item) for item in (getattr(args, "suite", None) or [])
+        ]
         gate = ci_gate.evaluate(
             config,
             measurements,
@@ -555,19 +567,100 @@ def _cmd_ci_check(args):
         print(f"Error: {exc}")
         sys.exit(2)
 
-    if args.skip_slow:
-        for name in skipped:
-            for verdict in gate.verdicts:
-                if verdict.metric == name and verdict.state == ci_gate.UNMEASURED:
-                    verdict.state = ci_gate.NO_THRESHOLD
-                    verdict.reason = None
+    for name in skipped:
+        for verdict in gate.verdicts:
+            if verdict.metric == name and verdict.state == ci_gate.UNMEASURED:
+                verdict.state = ci_gate.NO_THRESHOLD
+                verdict.reason = None
 
+    return config, gate
+
+
+def _cmd_ci_check(args):
+    from freeports_dev.ci import gate as ci_gate
+
+    _config, gate = _judge(args)
     print(
         ci_gate.render_json(gate)
         if args.format == "json"
         else ci_gate.render_text(gate)
     )
     sys.exit(gate.exit_status)
+
+
+def _cmd_ci_report(args):
+    """Write the gate run down, and never refuse anything over it.
+
+    The exit status says whether this command could do what it was asked, and nothing about what it
+    found: a hook that could be stopped by its own report is a hook people remove, which is the same
+    rule the grants report already follows.
+    """
+    import json
+
+    from freeports_dev.ci import render
+
+    if args.model:
+        # One evaluation rendered several times, which is what a hook does: five renderings that
+        # each re-read `reports/` could disagree with each other if a measurement landed in between.
+        #
+        # Deliberately not a fallback: a `--model` naming a file that is not there is an error, not
+        # a reason to evaluate the repository instead. A run that quietly answered a different
+        # question from the one asked is the failure this whole pipeline exists to avoid.
+        try:
+            raw = (
+                sys.stdin.read()
+                if args.model == "-"
+                else Path(args.model).read_text(encoding="utf-8")
+            )
+            model = json.loads(raw)
+        except (OSError, ValueError) as exc:
+            print(f"Error: {args.model} is not a model this command wrote: {exc}")
+            sys.exit(2)
+    else:
+        config, gate = _judge(args)
+        model = render.build(gate, config)
+
+    out = Path(args.out).expanduser() if args.out else None
+
+    if args.format == "badges":
+        if out is None:
+            print(
+                "Error: badges are several files, so --out must name a directory for them"
+            )
+            sys.exit(2)
+        out.mkdir(parents=True, exist_ok=True)
+        written = render.render_badges(model)
+        for name, content in written.items():
+            (out / name).write_text(content, encoding="utf-8")
+        print(f"{len(written)} badge files -> {out}")
+        return
+
+    try:
+        text = render.render(model, args.format, args.table)
+    except KeyError as refused:
+        print(f"Error: {refused.args[0]}")
+        sys.exit(2)
+
+    if out is None:
+        sys.stdout.write(text)
+        return
+
+    # Markdown and reStructuredText are rewritten *into* a file rather than over it: the table is
+    # part of a page somebody wrote, and the rest of that page is theirs.
+    if args.format in render.MARKERS:
+        try:
+            updated = render.rewrite(out.read_text(encoding="utf-8"), text)
+        except OSError as exc:
+            print(f"Error: {out} cannot be read: {exc}")
+            sys.exit(1)
+        except render.MarkersMissing as missing:
+            print(f"Error: {out}: {missing}")
+            sys.exit(1)
+        out.write_text(updated, encoding="utf-8")
+    else:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+    print(f"{args.format} -> {out}")
 
 
 def _ask(question, default_yes=True):
@@ -1139,6 +1232,72 @@ def main():
         help="Rendering [default: text]",
     )
 
+    # Imported here rather than lazily inside the command, because the parser needs the names of
+    # the formats and the tables to offer them: one list, in the module that implements them, and
+    # no second copy in the help text to fall out of step with it.
+    from freeports_dev.ci import render
+
+    # The same three options `ci-check` takes, because it is the same evaluation: a report of a run
+    # gated differently from the run itself would be a report of something that never happened.
+    p_report = sub.add_parser(
+        "ci-report",
+        parents=[ci],
+        help="Write the verdict down: badges, a README block, documentation pages, one HTML page",
+    )
+    p_report.add_argument(
+        "--reports",
+        metavar="PATH",
+        help="Where the measurements are [default: reports/ under the repository]",
+    )
+    p_report.add_argument(
+        "--suite",
+        action="append",
+        metavar="NAME:OUTCOME",
+        help="A test suite's outcome, repeatable, e.g. --suite fast:passed",
+    )
+    p_report.add_argument(
+        "--skip-slow",
+        action="store_true",
+        help="Do not read the slow metrics at all. The report then says so, and its status is "
+        "inconclusive rather than passing [also $FREEPORTS_CI_SKIP_SLOW]",
+    )
+    p_report.add_argument(
+        "--format",
+        "-f",
+        choices=list(render.FORMATS),
+        default="json",
+        help="Rendering [default: json, which is the model every other one is drawn from]",
+    )
+    p_report.add_argument(
+        "--table",
+        "-t",
+        choices=list(render.TABLES),
+        default=render.DEFAULT_TABLE,
+        help=f"Which arrangement, for markdown and rst [default: {render.DEFAULT_TABLE}]",
+    )
+    p_report.add_argument(
+        "--breakdown-limit",
+        dest="breakdown_limit",
+        metavar="N",
+        help="How many breakdown lines per metric a document shows, worst first; 0 for all of them "
+        f"[default: $FREEPORTS_CI_BREAKDOWN_LIMIT, then `report.breakdown_limit` in ci.yaml, then "
+        f"{render.DEFAULT_BREAKDOWN_LIMIT}. --format json always carries every line]",
+    )
+    p_report.add_argument(
+        "--model",
+        "-M",
+        metavar="PATH",
+        help="Render a model written earlier instead of evaluating again, so one run can be "
+        "rendered several times; `-` reads it from a pipe [write one with --format json]",
+    )
+    p_report.add_argument(
+        "--out",
+        "-o",
+        metavar="PATH",
+        help="Where to write it: a file, or the directory the badges go in. Markdown and rst are "
+        "rewritten between their markers, not over the file [default: standard output]",
+    )
+
     p_fingerprint = sub.add_parser(
         "fingerprint",
         parents=[ci],
@@ -1207,6 +1366,8 @@ def main():
         _cmd_ci_record(args)
     elif args.command == "ci-check":
         _cmd_ci_check(args)
+    elif args.command == "ci-report":
+        _cmd_ci_report(args)
     elif args.command == "fingerprint":
         _cmd_fingerprint(args)
     else:

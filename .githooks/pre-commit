@@ -8,7 +8,7 @@
 #   2. the branch's class — on an `off` branch this hook does nothing at all;
 #   3. no non-ASCII filenames may be added;
 #   4. `make pre-commit` — an alias of `make ci-fast`: lint, the fast suites, the fast
-#      measurements, and `ci-check`, which is the step that decides.
+#      measurements, the report, and `ci-check`, which is the step that decides.
 #
 # The last gate is a *name*, not a list: what the commit gate consists of is decided in the
 # Makefile at the repository root, so it can grow without this file being touched.
@@ -23,9 +23,9 @@
 # This is a change from what this hook used to do: it refused a failing `make pre-commit` on every
 # branch, and now it refuses only on `prod`.
 #
-# Between the third gate and the last sits something that is not a gate at all: the validation
-# report is refreshed and staged, and the grants are checked. Neither can refuse a commit, on any
-# branch — see the section itself for why.
+# Between the third gate and the last sit two things that are not gates at all: the **validation
+# report** is refreshed and staged and the grants are checked, and the **CI report** is refreshed
+# and staged. None of it can refuse a commit, on any branch — see each section for why.
 #
 # Note that it sees the *working tree*, not the staged snapshot: a commit of a subset of your
 # changes is checked against everything you have on disk.
@@ -146,6 +146,44 @@ if command -v freeports-validate >/dev/null 2>&1; then
         echo "freeports-validate: the grants above are not all vouched for by this run." 1>&2
         echo "The commit is not being refused. Re-grant with \`freeports-validate grant\`, or" 1>&2
         echo "restate a changed one with \`freeports-validate update\`, once you know which it is." 1>&2
+    fi
+fi
+
+
+# Keep the CI report current, and never refuse a commit over it either.
+#
+# The twin of the section above, for the other half of what this repository publishes about itself.
+# The badges under `ci/report/badges/`, the block in README.md, the three pages under
+# `docs/source/dev/ci-report/` and the page generated into `docs/source/_extra/ci/` are all
+# functions of what is in `reports/` — so a commit that moves a figure and leaves them alone
+# publishes numbers that are already wrong.
+#
+# It runs *before* `make pre-commit`, which is where the report is regenerated a second time as
+# part of `ci-fast`. That is not waste worth removing: staging is git's business and belongs here,
+# and the gate at the bottom is the step that may refuse — a run refused before the report was
+# written would leave the badges describing the previous commit.
+#
+# The figures it renders are the ones measured by the *previous* `make pre-commit`, which is one
+# commit behind. That is the honest arrangement rather than a defect: the measurements this commit
+# will produce do not exist until `ci-fast` below has run, and re-rendering afterwards would stage
+# files git has already snapshotted. What keeps it from drifting is the staleness rule — a figure
+# taken at another commit says so, in the badge and in the table.
+#
+# Nothing in this section can fail the hook, on purpose, for the same reason as the section above:
+# a report one run out of date is a smaller problem than a commit that cannot be made.
+if command -v freeports-dev >/dev/null 2>&1; then
+    if make -C "$repo_root" -s ci-report >/dev/null 2>&1; then
+        refreshed="README.md ci/report/badges docs/source/_extra/ci/report.html"
+        for page in index thresholds breakdown; do
+            refreshed="$refreshed docs/source/dev/ci-report/$page.rst"
+        done
+
+        # Unquoted on purpose: the names are the fixed ones just above, none of which contains a
+        # space, and this is the one place the list has to be split back into arguments.
+        git -C "$repo_root" add -- $refreshed
+        echo "freeports-dev: CI report refreshed"
+    else
+        echo "freeports-dev: the measurements could not be read, so the CI report is unchanged" 1>&2
     fi
 fi
 

@@ -408,6 +408,42 @@ class CiConfig:
             found[name.strip()] = _as_number(raw.strip(), f"--min {name.strip()}")
         return found
 
+    # -- the report -------------------------------------------------------------------------
+
+    @property
+    def breakdown_limit(self):
+        """How many breakdown lines per metric ``ci-report`` writes into a document.
+
+        The three tiers, like every other setting here: ``--breakdown-limit``, then
+        ``FREEPORTS_CI_BREAKDOWN_LIMIT``, then ``report.breakdown_limit`` in ``ci.yaml``, then
+        fifteen. ``0`` means every line.
+
+        It is a setting and not a constant because how long a useful list is depends on the
+        repository: a crate of a hundred and twenty files and a formats repository of four have
+        different answers, and neither of them is the other's.
+        """
+        from freeports_dev.ci import render
+
+        for value in (
+            self._arg("breakdown_limit"),
+            os.environ.get("FREEPORTS_CI_BREAKDOWN_LIMIT"),
+            (self._file.get("report") or {}).get("breakdown_limit"),
+        ):
+            if value is None or value == "":
+                continue
+            try:
+                limit = int(value)
+            except (TypeError, ValueError):
+                raise ConfigError(
+                    f"report.breakdown_limit: {value!r} is not a whole number of lines"
+                ) from None
+            if limit < 0:
+                raise ConfigError(
+                    "report.breakdown_limit: a negative number of lines is no number"
+                )
+            return limit
+        return render.DEFAULT_BREAKDOWN_LIMIT
+
     # -- key server -------------------------------------------------------------------------
 
     @property

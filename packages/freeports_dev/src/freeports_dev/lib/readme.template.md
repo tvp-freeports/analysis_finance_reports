@@ -4,6 +4,12 @@
 ![coverage](validation/report/badges/grants-coverage.svg)
 ![check-grants](validation/report/badges/check-grants.svg)
 
+![ci](ci/report/badges/ci-status.svg)
+![tests.formats.integration](ci/report/badges/tests-formats-integration.svg)
+![tests.formats.single_page](ci/report/badges/tests-formats-single_page.svg)
+![docs.python](ci/report/badges/docs-python.svg)
+![lint.python](ci/report/badges/lint-python.svg)
+
 A **freeports formats repository**: the format definitions under `content/`, the reference outputs
 their test suites are checked against under `tests/formats/`, and the signed statements about both
 under `validation/`.
@@ -45,7 +51,7 @@ put it there — run it first whenever the hook does something you did not expec
 | `dev` — the default | everything is measured and reported; nothing is refused |
 | `off` — `experimental`, `wip/*` | the hook does nothing at all |
 
-The hook runs the fast tests, measures four things, refreshes the report, and asks
+The hook runs the fast tests, measures four things, refreshes both reports, and asks
 `freeports-dev ci-check` for a verdict. The measurements are:
 
 ```sh
@@ -65,6 +71,16 @@ strong in one and weak in the other, and one number would hide it.
 Seed a threshold in `ci.yaml` only at a figure you have measured. One set above the baseline
 refuses the first commit made under it, and then it is the gate somebody switches off rather than
 the code somebody fixes.
+
+### What the last run found
+
+<!-- freeports-dev:begin -->
+<!-- freeports-dev:end -->
+
+The same figures are written out two more ways beside it: [what each threshold is a threshold
+*of*](ci/report/thresholds.md), and [where each figure comes from](ci/report/breakdown.md). There is
+an [HTML page](ci/report/index.html) carrying all three as tabs, and `freeports-dev ci-report
+--format json` is the model every one of them is drawn from.
 
 ### The fingerprint, and the version
 
@@ -98,3 +114,15 @@ freeports-validate report --model model.json --format markdown --out README.md
 ```
 
 `.githooks/pre-commit` has the six `--table` lines that follow.
+
+The CI report is the same idea for the other half of what this repository publishes about itself,
+and its hook block does the same thing:
+
+```sh
+freeports-dev ci-report --format json > ci-model.json
+freeports-dev ci-report --model ci-model.json --format badges   --out ci/report/badges/
+freeports-dev ci-report --model ci-model.json --format markdown --out README.md
+```
+
+Neither report can refuse a commit. What may refuse is `freeports-dev ci-check`, and only on a
+`prod` branch.

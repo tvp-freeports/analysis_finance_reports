@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "label": "lint.rust",
+  "message": "stale",
+  "color": "grey"
+}

@@ -1,0 +1,12 @@
+[
+    {
+        "table": "thresholds",
+        "title": "What a commit here has to clear",
+        "about": "Every minimum this repository declares, what each one is a minimum *of*, and whether it is measured at every commit or read from the last full run."
+    },
+    {
+        "table": "breakdown",
+        "title": "Where each figure comes from",
+        "about": "The detail each measurement already carries, worst first: the documents with no test, the modules with no docstring, the rules a lint score is spent on."
+    }
+]
