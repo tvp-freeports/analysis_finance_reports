@@ -47,8 +47,6 @@ build:
           mkdir -p "$READTHEDOCS_OUTPUT/html"
           cp -a "$SOURCE/." "$READTHEDOCS_OUTPUT/html/"
 
-sphinx:
-  configuration: docs/source/conf.py
 
 python:
   install:
