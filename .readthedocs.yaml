@@ -11,6 +11,21 @@ build:
     rust: "latest"
 
   jobs:
+    pre_build:
+      # Verify the toolchains provided by Read the Docs.
+      - which python
+      - python --version
+      - python -m pip --version
+      - which cargo
+      - cargo --version
+      - rustc --version
+
+      # Generate the Rust API documentation.
+      #
+      # This is the repository-specific step that deposits rustdoc under
+      # docs/source/_extra/rustdoc/, where Sphinx includes it in the site.
+      - make -C docs rustdoc
+
     build:
       html:
         - |
@@ -19,40 +34,32 @@ build:
           echo "Python:"
           which python
           python --version
-          python -m pip --version
 
           echo "Sphinx:"
           which sphinx-build
           sphinx-build --version
 
-          echo "Rust:"
-          which cargo
-          cargo --version
-          rustc --version
-
-          # The repository's Makefile uses ENV_PREFIX/VIRTUAL_ENV to select
-          # its Python environment. Read the active Python prefix and expose
-          # its bin directory through PATH.
-          PYTHON_PREFIX="$(python -c "import sys; print(sys.prefix)")"
-          export PATH="$PYTHON_PREFIX/bin:$PATH"
-
-          echo "Documentation environment:"
-          echo "  Python prefix: $PYTHON_PREFIX"
-          echo "  sphinx-build: $(command -v sphinx-build)"
-
-          # Generate Rust API documentation before building the Sphinx site.
-          make -C docs rustdoc
-
           case "$READTHEDOCS_LANGUAGE" in
             en)
               echo "Building English documentation"
-              make -C docs docs-html
+
+              sphinx-build \
+                -b html \
+                docs/source \
+                docs/build/html
+
               SOURCE="docs/build/html"
               ;;
 
             *)
               echo "Building documentation for language: $READTHEDOCS_LANGUAGE"
-              make -C docs docs-lang DOCLANG="$READTHEDOCS_LANGUAGE"
+
+              sphinx-build \
+                -b html \
+                -D language="$READTHEDOCS_LANGUAGE" \
+                docs/source \
+                "docs/build/$READTHEDOCS_LANGUAGE"
+
               SOURCE="docs/build/$READTHEDOCS_LANGUAGE"
               ;;
           esac
@@ -67,8 +74,15 @@ build:
 
 python:
   install:
+    # Documentation dependencies, including Sphinx, the RTD theme,
+    # MyST and the translation tools.
     - requirements: contrib/requirements.docs.txt
 
+    # autodoc imports the actual packages, so install them rather than
+    # mocking them.
+    #
+    # freeports contains the PyO3/Rust extension and is built through
+    # maturin as declared by its pyproject.toml build-system configuration.
     - method: pip
       path: packages/freeports
 
