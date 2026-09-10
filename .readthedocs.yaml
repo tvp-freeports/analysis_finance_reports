@@ -1,35 +1,54 @@
 # Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html
 
 version: 2
 
 build:
   os: ubuntu-24.04
+
   tools:
     python: "3.13"
-    # Needed twice over: to compile the PyO3 extension autodoc imports, and to generate rustdoc,
-    # which the site publishes as a sub-path instead of transcribing it by hand into `.rst`.
+
+    # Required to build the PyO3 extension used by autodoc and to
+    # generate the Rust API documentation published with the site.
     rust: "latest"
+
   jobs:
-    pre_build:
-      # The same target used locally, so that the published site and the one built on the
-      # writer's screen do not diverge. It deposits `cargo doc` into
-      # `docs/source/_extra/rustdoc/`, from where `html_extra_path` copies it into the site.
-      - which cargo
-      - cargo --version
-      - rustc --version
-      - make -C docs rustdoc
-      #
-      # The validation coverage page is **not** generated here, and that is not an omission.
-      # Signature validity is computed from the keyring of the machine doing the computing, and a
-      # Read the Docs builder has no public keys in it -- so a page generated here would have
-      # announced that every grant in the repository is invalid. It is generated where the keys
-      # are, by the commit hook, committed under `docs/source/_extra/validation/`, and copied
-      # into the site by `html_extra_path` like any other file there.
     build:
       html:
         - |
           set -e
+
+          # Read the Python environment selected by Read the Docs.
+          #
+          # The repository Makefile uses VIRTUAL_ENV to determine which
+          # Python environment it should use. Export the environment used
+          # by Read the Docs so that the Makefile does not fall back to
+          # venv/freeports-dev.
+          export VIRTUAL_ENV="$(python -c 'import sys; print(sys.prefix)')"
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
+
+          echo "Python:"
+          which python
+          python --version
+          python -m pip --version
+
+          echo "Sphinx:"
+          which sphinx-build
+          sphinx-build --version
+
+          echo "Rust:"
+          which cargo
+          cargo --version
+          rustc --version
+
+          # Generate Rust API documentation before building the Sphinx site.
+          # The generated files are written to:
+          #
+          #     docs/source/_extra/rustdoc/
+          #
+          # and are included in the final documentation through Sphinx.
+          make -C docs rustdoc
 
           case "$READTHEDOCS_LANGUAGE" in
             en)
@@ -37,6 +56,7 @@ build:
               make -C docs docs-html
               SOURCE="docs/build/html"
               ;;
+
             *)
               echo "Building documentation for language: $READTHEDOCS_LANGUAGE"
               make -C docs docs-lang DOCLANG="$READTHEDOCS_LANGUAGE"
@@ -44,19 +64,31 @@ build:
               ;;
           esac
 
+          # Fail explicitly if Sphinx did not produce the expected output.
+          if [ ! -d "$SOURCE" ]; then
+            echo "ERROR: documentation output directory does not exist: $SOURCE"
+            exit 1
+          fi
+
           mkdir -p "$READTHEDOCS_OUTPUT/html"
           cp -a "$SOURCE/." "$READTHEDOCS_OUTPUT/html/"
 
-
 python:
   install:
+    # Documentation dependencies:
+    # Sphinx, the RTD theme, MyST, sphinx-intl and Babel.
     - requirements: contrib/requirements.docs.txt
-    # autodoc really imports the packages: they must be installed, not mocked. `freeports` is
-    # built by maturin (declared in its `build-system`), which is why the Rust toolchain above is
-    # needed.
+
+    # autodoc imports the real packages, so they must be installed rather
+    # than mocked.
+    #
+    # freeports contains the PyO3/Rust extension and is built through
+    # maturin as declared by its pyproject.toml build-system configuration.
     - method: pip
       path: packages/freeports
+
     - method: pip
       path: packages/freeports_dev
+
     - method: pip
       path: packages/freeports_validate
