@@ -23,6 +23,26 @@ build:
       # announced that every grant in the repository is invalid. It is generated where the keys
       # are, by the commit hook, committed under `docs/source/_extra/validation/`, and copied
       # into the site by `html_extra_path` like any other file there.
+    build:
+      html:
+        - |
+          set -e
+
+          case "$READTHEDOCS_LANGUAGE" in
+            en)
+              echo "Building English documentation"
+              make -C docs docs-html
+              SOURCE="docs/build/html"
+              ;;
+            *)
+              echo "Building documentation for language: $READTHEDOCS_LANGUAGE"
+              make -C docs docs-lang DOCLANG="$READTHEDOCS_LANGUAGE"
+              SOURCE="docs/build/$READTHEDOCS_LANGUAGE"
+              ;;
+          esac
+
+          mkdir -p "$READTHEDOCS_OUTPUT/html"
+          cp -a "$SOURCE/." "$READTHEDOCS_OUTPUT/html/"
 
 sphinx:
   configuration: docs/source/conf.py

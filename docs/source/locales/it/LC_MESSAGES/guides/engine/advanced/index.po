@@ -21,22 +21,24 @@ msgstr ""
 
 #: ../../source/guides/engine/advanced/index.md:1
 msgid "The engine, deeper"
-msgstr ""
+msgstr "Il motore, più a fondo"
 
 #: ../../source/guides/engine/advanced/index.md:3
-msgid ""
-"One page, and it is the one that answers \"why is it built out of *these*"
-" pieces\"."
-msgstr ""
+msgid "One page, and it is the one that answers \"why is it built out of *these* pieces\"."
+msgstr "Una pagina, ed è quella che risponde a \"perché è costruito con *questi* pezzi\"."
 
 #: ../../source/guides/engine/advanced/index.md:12
 #, python-brace-format
 msgid ""
-"{doc}`implementation-notes` covers the **technology** choices — which "
-"crates, which bindings, what was tried and rejected. That is a different "
-"question from why the *algorithm* has the shape it has, which is "
-"{doc}`../../../reference/design/index`. Keeping the two apart is "
-"deliberate: a library can be replaced without the algorithm changing, and"
-" the algorithm can change without any library moving."
+"{doc}`implementation-notes` covers the **technology** choices — which crates, which "
+"bindings, what was tried and rejected. That is a different question from why the "
+"*algorithm* has the shape it has, which is {doc}`../../../reference/design/index`. "
+"Keeping the two apart is deliberate: a library can be replaced without the algorithm "
+"changing, and the algorithm can change without any library moving."
 msgstr ""
+"{doc}`implementation-notes` copre le scelte di **tecnologia** — quali crate, quali "
+"binding, che cosa è stato provato e scartato. È una domanda diversa dal perché "
+"l'*algoritmo* abbia la forma che ha, che è {doc}`../../../reference/design/index`. "
+"Tenere le due cose distinte è voluto: una libreria si può sostituire senza che "
+"l'algoritmo cambi, e l'algoritmo può cambiare senza che nessuna libreria si sposti."
 

@@ -21,155 +21,192 @@ msgstr ""
 
 #: ../../source/guides/formats/dev-loop.md:1
 msgid "The development loop"
-msgstr ""
+msgstr "Il ciclo di sviluppo"
 
 #: ../../source/guides/formats/dev-loop.md:3
 #, python-brace-format
 msgid ""
-"Four commands, in this order, over and over. "
-"{doc}`../../reference/cli/index` is the option-by-option reference; this "
-"page is what the loop is *for*."
+"Four commands, in this order, over and over. {doc}`../../reference/cli/index` is the "
+"option-by-option reference; this page is what the loop is *for*."
 msgstr ""
+"Quattro comandi, in quest'ordine, ripetuti. {doc}`../../reference/cli/index` è il "
+"riferimento opzione per opzione; questa pagina è *a che cosa serve* il ciclo."
 
 #: ../../source/guides/formats/dev-loop.md:12
 msgid "1. `inspect-document` — which page is what"
-msgstr ""
+msgstr "1. `inspect-document` — quale pagina è che cosa"
 
 #: ../../source/guides/formats/dev-loop.md:21
 msgid ""
-"**Run this first, and do not go past it until it is right.** If "
-"classification is wrong, nothing downstream can be: a page that should be"
-" `investments` and comes back as nothing is a classification bug, not an "
-"extraction bug, and chasing it in `pdf_extract` is the single most common"
-" way to lose an afternoon."
+"**Run this first, and do not go past it until it is right.** If classification is "
+"wrong, nothing downstream can be: a page that should be `investments` and comes back "
+"as nothing is a classification bug, not an extraction bug, and chasing it in "
+"`pdf_extract` is the single most common way to lose an afternoon."
 msgstr ""
+"**Esegui prima questo, e non andare oltre finché non è giusto.** Se la "
+"classificazione è sbagliata, niente di ciò che viene dopo può essere giusto: una "
+"pagina che dovrebbe essere `investments` e torna indietro come niente è un difetto di"
+" classificazione, non di estrazione, e inseguirlo in `pdf_extract` è il modo più "
+"comune in assoluto di perdere un pomeriggio."
 
 #: ../../source/guides/formats/dev-loop.md:26
 msgid "2. `inspect-page` — what the engine sees, stage by stage"
-msgstr ""
+msgstr "2. `inspect-page` — che cosa vede il motore, stadio per stadio"
 
 #: ../../source/guides/formats/dev-loop.md:34
 msgid ""
-"The three pipeline modes in order, and the order is the method: each "
-"shows what one segment made of the page, so the first one that looks "
-"wrong is the segment to fix. This turns *\"the page is wrong\"* — a "
-"question with no handle on it — into *\"`text_filter` dropped these "
-"blocks\"*, which has one."
+"The three pipeline modes in order, and the order is the method: each shows what one "
+"segment made of the page, so the first one that looks wrong is the segment to fix. "
+"This turns *\"the page is wrong\"* — a question with no handle on it — into "
+"*\"`text_filter` dropped these blocks\"*, which has one."
 msgstr ""
+"Le tre modalità di pipeline nell'ordine, e l'ordine è il metodo: ciascuna mostra che "
+"cosa un segmento ha fatto della pagina, quindi il primo che sembra sbagliato è il "
+"segmento da correggere. Trasforma *\"la pagina è sbagliata\"* — una domanda su cui "
+"non c'è presa — in *\"`text_filter` ha scartato questi blocchi\"*, che una presa ce "
+"l'ha."
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "First wrong at"
-msgstr ""
+msgstr "Primo sbagliato a"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "Look at"
-msgstr ""
+msgstr "Guarda"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "`pdf_blks`"
-msgstr ""
+msgstr "`pdf_blks`"
 
 #: ../../source/guides/formats/dev-loop.md
 #, python-brace-format
 msgid "the layout selections: font, size, area ({doc}`selections`)"
-msgstr ""
+msgstr "le selezioni di impaginazione: carattere, corpo, area ({doc}`selections`)"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "`txt_blks`"
-msgstr ""
+msgstr "`txt_blks`"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "the filter: are the target companies matching? is the regex right?"
-msgstr ""
+msgstr "il filtro: le società bersaglio corrispondono? l'espressione regolare è giusta?"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "`results`"
-msgstr ""
+msgstr "`results`"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "the deserializer: types, columns, units"
-msgstr ""
+msgstr "il deserializzatore: tipi, colonne, unità"
 
 #: ../../source/guides/formats/dev-loop.md:44
 msgid "Two more families of mode:"
-msgstr ""
+msgstr "Altre due famiglie di modalità:"
 
 #: ../../source/guides/formats/dev-loop.md:46
 msgid ""
-"`table_md` / `table_ascii` render the PDF blocks **as a table**, with "
-"their row and column metadata — which is how you check that the "
-"tabularizer read the columns the way you read them;"
+"`table_md` / `table_ascii` render the PDF blocks **as a table**, with their row and "
+"column metadata — which is how you check that the tabularizer read the columns the "
+"way you read them;"
 msgstr ""
+"`table_md` / `table_ascii` rendono i blocchi PDF **come tabella**, con i loro "
+"metadati di riga e colonna — ed è così che si controlla che il tabularizzatore abbia "
+"letto le colonne come le leggi tu;"
 
 #: ../../source/guides/formats/dev-loop.md:48
 msgid ""
-"`structured` / `semistructured` / `unstructured` take `--strings` and "
-"report which lines match, which is how you find out what font and size a "
-"value is set in before writing a selection at all."
+"`structured` / `semistructured` / `unstructured` take `--strings` and report which "
+"lines match, which is how you find out what font and size a value is set in before "
+"writing a selection at all."
 msgstr ""
+"`structured` / `semistructured` / `unstructured` prendono `--strings` e riferiscono "
+"quali righe corrispondono, ed è così che si scopre in quale carattere e in quale "
+"corpo è composto un valore prima ancora di scrivere una selezione."
 
 #: ../../source/guides/formats/dev-loop.md:51
 msgid "3. `make-tests` — freeze a page"
-msgstr ""
+msgstr "3. `make-tests` — congelare una pagina"
 
 #: ../../source/guides/formats/dev-loop.md:57
 #, python-brace-format
 msgid ""
-"Writes the three per-page fixtures — PDF blocks, text blocks, results — "
-"as **JSON** under `tests/formats/<FORMAT>/pages/`. JSON and readable on "
-"purpose: a regression should be visible in a diff "
-"({doc}`../../reference/design/blocks`)."
+"Writes the three per-page fixtures — PDF blocks, text blocks, results — as **JSON** "
+"under `tests/formats/<FORMAT>/pages/`. JSON and readable on purpose: a regression "
+"should be visible in a diff ({doc}`../../reference/design/blocks`)."
 msgstr ""
+"Scrive le tre fixture per pagina — blocchi PDF, blocchi di testo, risultati — in "
+"**JSON** sotto `tests/formats/<FORMAT>/pages/`. JSON e leggibile apposta: una "
+"regressione deve essere visibile in un diff ({doc}`../../reference/design/blocks`)."
 
 #: ../../source/guides/formats/dev-loop.md:62
 msgid ""
-"`make-tests` records **what the code does now**. It shows you what it is "
-"about to write and asks; read it. Confirming a wrong result promotes a "
-"bug into the specification, and from then on the test defends the bug."
+"`make-tests` records **what the code does now**. It shows you what it is about to "
+"write and asks; read it. Confirming a wrong result promotes a bug into the "
+"specification, and from then on the test defends the bug."
 msgstr ""
+"`make-tests` registra **ciò che il codice fa adesso**. Ti mostra quello che sta per "
+"scrivere e chiede; leggilo. Confermare un risultato sbagliato promuove un difetto a "
+"specifica, e da quel momento il test difende il difetto."
 
 #: ../../source/guides/formats/dev-loop.md:67
 msgid ""
-"Freeze a handful of representative pages, not every page: the first page "
-"of a table, a continuation page, a page with an awkward row. Those are "
-"where formats break."
+"Freeze a handful of representative pages, not every page: the first page of a table, "
+"a continuation page, a page with an awkward row. Those are where formats break."
 msgstr ""
+"Congela una manciata di pagine rappresentative, non tutte le pagine: la prima pagina "
+"di una tabella, una pagina di continuazione, una pagina con una riga scomoda. È lì "
+"che i formati si rompono."
 
 #: ../../source/guides/formats/dev-loop.md:70
 msgid "4. `test` — run them"
-msgstr ""
+msgstr "4. `test` — eseguirli"
 
 #: ../../source/guides/formats/dev-loop.md:79
 msgid "Two kinds of test with very different costs:"
-msgstr ""
+msgstr "Due tipi di test dai costi molto diversi:"
 
 #: ../../source/guides/formats/dev-loop.md:81
 msgid ""
-"**Per-page tests** replay one page through one segment against its "
-"fixture. Fast, run constantly, and they tell you *which segment of which "
-"page* changed."
+"**Per-page tests** replay one page through one segment against its fixture. Fast, run"
+" constantly, and they tell you *which segment of which page* changed."
 msgstr ""
+"I **test per pagina** rieseguono una pagina attraverso un segmento contro la propria "
+"fixture. Sono rapidi, si eseguono di continuo, e dicono *quale segmento di quale "
+"pagina* è cambiato."
 
 #: ../../source/guides/formats/dev-loop.md:84
 msgid ""
-"**The whole-document test** replays the entire report and compares the "
-"output tables against `tests/formats/<FORMAT>/out/`. Slow, marked "
-"`integration_tests`, and it is the one that actually says the format "
-"works — the per-page fixtures can all pass while the schedule, the "
-"promise resolution or the deduplication are wrong. It is `--slow`, or "
-"`make test-slow`, and it is **not** in the default run: a command that "
-"leaves it out says so in its last line, and `make ci-check` reports a "
-"suite nobody ran at this commit as `NOT RUN` rather than as a pass."
+"**The whole-document test** replays the entire report and compares the output tables "
+"against `tests/formats/<FORMAT>/out/`. Slow, marked `integration_tests`, and it is "
+"the one that actually says the format works — the per-page fixtures can all pass "
+"while the schedule, the promise resolution or the deduplication are wrong. It is "
+"`--slow`, or `make test-slow`, and it is **not** in the default run: a command that "
+"leaves it out says so in its last line, and `make ci-check` reports a suite nobody "
+"ran at this commit as `NOT RUN` rather than as a pass."
 msgstr ""
+"Il **test sull'intero documento** riesegue tutta la relazione e confronta le tabelle "
+"di risultato con `tests/formats/<FORMAT>/out/`. È lento, marcato `integration_tests`,"
+" ed è quello che dice davvero se il formato funziona — le fixture per pagina possono "
+"passare tutte mentre la pianificazione, la risoluzione delle promesse o la "
+"deduplicazione sono sbagliate. È `--slow`, oppure `make test-slow`, e **non** fa "
+"parte dell'esecuzione predefinita: un comando che lo lascia fuori lo dice nella "
+"propria ultima riga, e `make ci-check` riferisce come `NOT RUN`, e non come superata,"
+" una suite che a questo commit non ha eseguito nessuno."
 
 #: ../../source/guides/formats/dev-loop.md:92
 #, python-brace-format
 msgid ""
-"`out/**` is the repository's **specification**, not a snapshot. If a run "
-"diverges from it, the assumption is that the engine changed, not that the"
-" expectation was wrong. Regenerating one of those files is a deliberate "
-"act with a reason written down — never a way to make a red test green. It"
-" is also what the grants of {doc}`../../overview/trust` are *about*: a "
-"grant is a claim about the content of exactly those bytes."
+"`out/**` is the repository's **specification**, not a snapshot. If a run diverges "
+"from it, the assumption is that the engine changed, not that the expectation was "
+"wrong. Regenerating one of those files is a deliberate act with a reason written down"
+" — never a way to make a red test green. It is also what the grants of "
+"{doc}`../../overview/trust` are *about*: a grant is a claim about the content of "
+"exactly those bytes."
 msgstr ""
+"`out/**` è la **specifica** del repository, non un'istantanea. Se un'esecuzione se ne"
+" discosta, si presume che sia cambiato il motore, non che l'aspettativa fosse "
+"sbagliata. Rigenerare uno di quei file è un atto deliberato con una motivazione messa"
+" per iscritto — mai un modo di far diventare verde un test rosso. È anche ciò *di cui"
+" parlano* le attestazioni di {doc}`../../overview/trust`: un'attestazione è "
+"un'affermazione sul contenuto esattamente di quei byte."
 

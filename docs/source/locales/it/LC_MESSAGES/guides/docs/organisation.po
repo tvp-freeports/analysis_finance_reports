@@ -21,280 +21,353 @@ msgstr ""
 
 #: ../../source/guides/docs/organisation.rst:3
 msgid "How this documentation is laid out"
-msgstr ""
+msgstr "Come è disposta questa documentazione"
 
 #: ../../source/guides/docs/organisation.rst:5
-msgid ""
-"A reader arrives with one of three questions, and they are not the same "
-"question:"
-msgstr ""
+msgid "A reader arrives with one of three questions, and they are not the same question:"
+msgstr "Un lettore arriva con una di tre domande, e non sono la stessa domanda:"
 
 #: ../../source/guides/docs/organisation.rst:7
 msgid "*I am a person of a certain kind — where is my part?*"
-msgstr ""
+msgstr "*Sono una persona di un certo tipo — dov'è la mia parte?*"
 
 #: ../../source/guides/docs/organisation.rst:8
 msgid "*I have a job to do — what are the steps, and how deep do I need to go?*"
-msgstr ""
+msgstr "*Ho un lavoro da fare — quali sono i passi, e quanto a fondo devo andare?*"
 
 #: ../../source/guides/docs/organisation.rst:9
 msgid "*I need one fact — where is it written down?*"
-msgstr ""
+msgstr "*Mi serve un fatto solo — dov'è scritto?*"
 
 #: ../../source/guides/docs/organisation.rst:11
 msgid ""
-"A site organised on one of those serves the other two badly. So this one "
-"is organised on **all three at once**, and a page's address is the answer"
-" to \"which axis is this on\"."
+"A site organised on one of those serves the other two badly. So this one is organised"
+" on **all three at once**, and a page's address is the answer to \"which axis is this"
+" on\"."
 msgstr ""
+"Un sito organizzato su una di quelle serve male le altre due. Questo è perciò "
+"organizzato su **tutte e tre insieme**, e l'indirizzo di una pagina è la risposta a "
+"\"su quale asse sta questa\"."
 
 #: ../../source/guides/docs/organisation.rst:15
 msgid "The three axes"
-msgstr ""
+msgstr "I tre assi"
 
 #: ../../source/guides/docs/organisation.rst:21
 msgid "Axis"
-msgstr ""
+msgstr "Asse"
 
 #: ../../source/guides/docs/organisation.rst:22
 msgid "Lives in"
-msgstr ""
+msgstr "Sta in"
 
 #: ../../source/guides/docs/organisation.rst:23
 msgid "Rule"
-msgstr ""
+msgstr "Regola"
 
 #: ../../source/guides/docs/organisation.rst:24
 msgid "**Audience** — who you are"
-msgstr ""
+msgstr "**Lettore** — chi sei"
 
 #: ../../source/guides/docs/organisation.rst:25
 msgid "``guides/<figure>/``"
-msgstr ""
+msgstr "``guides/<figura>/``"
 
 #: ../../source/guides/docs/organisation.rst:26
 msgid ""
-"one subtree per figure. A guide is written *to somebody*, in the second "
-"person, about the repository they are actually in"
+"one subtree per figure. A guide is written *to somebody*, in the second person, about"
+" the repository they are actually in"
 msgstr ""
+"un sottoalbero per figura. Una guida è scritta *a qualcuno*, in seconda persona, sul "
+"repository in cui quella persona si trova davvero"
 
 #: ../../source/guides/docs/organisation.rst:28
 msgid "**Task and level** — what you must do or know"
-msgstr ""
+msgstr "**Compito e livello** — che cosa devi fare o sapere"
 
 #: ../../source/guides/docs/organisation.rst:29
 msgid "inside each guide"
-msgstr ""
+msgstr "dentro ciascuna guida"
 
 #: ../../source/guides/docs/organisation.rst:30
 msgid ""
-"the guide's own pages are the loop, in the order you meet it; anything "
-"that is depth rather than sequence moves down into ``advanced/``"
+"the guide's own pages are the loop, in the order you meet it; anything that is depth "
+"rather than sequence moves down into ``advanced/``"
 msgstr ""
+"le pagine della guida sono il ciclo di lavoro, nell'ordine in cui lo incontri; tutto "
+"ciò che è profondità anziché sequenza scende in ``advanced/``"
 
 #: ../../source/guides/docs/organisation.rst:32
 msgid "**Topic** — what it is about"
-msgstr ""
+msgstr "**Argomento** — di che cosa parla"
 
 #: ../../source/guides/docs/organisation.rst:33
 msgid "``reference/``"
-msgstr ""
+msgstr "``reference/``"
 
 #: ../../source/guides/docs/organisation.rst:34
 msgid ""
-"audience-independent and complete. Every option, every setting, the "
-"algorithm chapter by chapter. **This is where cross-references point**"
+"audience-independent and complete. Every option, every setting, the algorithm chapter"
+" by chapter. **This is where cross-references point**"
 msgstr ""
+"indipendente dal lettore e completo. Ogni opzione, ogni impostazione, l'algoritmo "
+"capitolo per capitolo. **È qui che puntano i rimandi**"
 
 #: ../../source/guides/docs/organisation.rst:37
 msgid ""
-"Above the three sit two short sections everyone reads — ``start/`` "
-"(install it, run it once, find out which kind of contribution is yours) "
-"and ``overview/`` (what the project is, how a run works, what the "
-"repositories are, what being trusted with the numbers means here). Below "
-"them sits ``generated/``, which no human writes."
+"Above the three sit two short sections everyone reads — ``start/`` (install it, run "
+"it once, find out which kind of contribution is yours) and ``overview/`` (what the "
+"project is, how a run works, what the repositories are, what being trusted with the "
+"numbers means here). Below them sits ``generated/``, which no human writes."
 msgstr ""
+"Sopra ai tre stanno due sezioni brevi che leggono tutti — ``start/`` (installalo, "
+"eseguilo una volta, scopri quale tipo di contributo sia il tuo) e ``overview/`` (che "
+"cos'è il progetto, come funziona un'esecuzione, quali sono i repository, che cosa "
+"significhi qui la responsabilità dei numeri). Sotto di essi sta ``generated/``, che "
+"non scrive nessun essere umano."
 
 #: ../../source/guides/docs/organisation.rst:43
 msgid "Why the third axis exists"
-msgstr ""
+msgstr "Perché esiste il terzo asse"
 
 #: ../../source/guides/docs/organisation.rst:45
 msgid ""
-"The reference column is what stops the audience column from becoming nine"
-" copies of the same manual. A format author and a DevOps engineer both "
-"need to know what ``FREEPORTS_ARCHIVE`` does; neither guide explains it. "
-"Both link to the one page that does."
+"The reference column is what stops the audience column from becoming nine copies of "
+"the same manual. A format author and a DevOps engineer both need to know what "
+"``FREEPORTS_ARCHIVE`` does; neither guide explains it. Both link to the one page that"
+" does."
 msgstr ""
+"La colonna del riferimento è ciò che impedisce alla colonna dei lettori di diventare "
+"nove copie dello stesso manuale. A chi scrive un formato e a chi si occupa di DevOps "
+"serve entrambi sapere che cosa fa ``FREEPORTS_ARCHIVE``; nessuna delle due guide lo "
+"spiega. Entrambe rimandano all'unica pagina che lo fa."
 
 #: ../../source/guides/docs/organisation.rst:49
 msgid ""
-"So the rule is blunt: **a fact is written down once, on the topic axis, "
-"and pointed at from everywhere else.** When you find yourself explaining "
-"something in a guide that is not about the reader's job — that is about "
-"the *thing* rather than about *doing* — it belongs in ``reference/`` and "
-"the guide should link to it in a sentence."
+"So the rule is blunt: **a fact is written down once, on the topic axis, and pointed "
+"at from everywhere else.** When you find yourself explaining something in a guide "
+"that is not about the reader's job — that is about the *thing* rather than about "
+"*doing* — it belongs in ``reference/`` and the guide should link to it in a sentence."
 msgstr ""
+"La regola è perciò schietta: **un fatto si scrive una volta, sull'asse degli "
+"argomenti, e da tutto il resto ci si punta.** Quando ti accorgi di stare spiegando in"
+" una guida qualcosa che non riguarda il lavoro del lettore — che riguarda la *cosa* "
+"anziché il *fare* — quello appartiene a ``reference/`` e la guida dovrebbe rimandarci"
+" in una frase."
 
 #: ../../source/guides/docs/organisation.rst:54
 msgid ""
-"The inverse holds too. A reference page must not tell you what you want; "
-"it says what each option does and stops. \"Which of these do I want\" is "
-"the guide's job, and a reference page that starts advising has drifted "
-"onto the wrong axis."
+"The inverse holds too. A reference page must not tell you what you want; it says what"
+" each option does and stops. \"Which of these do I want\" is the guide's job, and a "
+"reference page that starts advising has drifted onto the wrong axis."
 msgstr ""
+"Vale anche l'inverso. Una pagina di riferimento non deve dirti che cosa vuoi; dice "
+"che cosa fa ciascuna opzione e si ferma. \"Quale di queste voglio\" è il lavoro della"
+" guida, e una pagina di riferimento che si mette a consigliare è scivolata sull'asse "
+"sbagliato."
 
 #: ../../source/guides/docs/organisation.rst:59
 msgid "Where does a new page go?"
-msgstr ""
+msgstr "Dove va una pagina nuova?"
 
 #: ../../source/guides/docs/organisation.rst:61
 msgid "Ask, in this order:"
-msgstr ""
+msgstr "Chiediti, in quest'ordine:"
 
 #: ../../source/guides/docs/organisation.rst:63
 msgid ""
-"**Would somebody read this because of who they are?** Then it is a guide."
-" Which figure — and if the answer is \"several\", it is probably "
-"reference material that several guides should link to."
+"**Would somebody read this because of who they are?** Then it is a guide. Which "
+"figure — and if the answer is \"several\", it is probably reference material that "
+"several guides should link to."
 msgstr ""
+"**Qualcuno la leggerebbe per via di chi è?** Allora è una guida. Quale figura — e se "
+"la risposta è \"parecchie\", si tratta probabilmente di materiale di riferimento a "
+"cui parecchie guide dovrebbero rimandare."
 
 #: ../../source/guides/docs/organisation.rst:65
 msgid ""
-"**Is it sequence, or is it depth?** Sequence stays in the guide. Depth "
-"goes to that guide's ``advanced/``. The test is whether a first-time "
-"reader needs it to finish the loop: if not, it is depth."
+"**Is it sequence, or is it depth?** Sequence stays in the guide. Depth goes to that "
+"guide's ``advanced/``. The test is whether a first-time reader needs it to finish the"
+" loop: if not, it is depth."
 msgstr ""
+"**È sequenza, oppure è profondità?** La sequenza resta nella guida. La profondità va "
+"nell'``advanced/`` di quella guida. La prova è se a chi legge per la prima volta "
+"serva per finire il ciclo: se non serve, è profondità."
 
 #: ../../source/guides/docs/organisation.rst:68
 msgid ""
-"**Is it about a thing rather than about doing something?** Then it is "
-"``reference/``, whoever asked."
+"**Is it about a thing rather than about doing something?** Then it is ``reference/``,"
+" whoever asked."
 msgstr ""
+"**Parla di una cosa anziché del fare qualcosa?** Allora è ``reference/``, chiunque "
+"l'abbia chiesto."
 
 #: ../../source/guides/docs/organisation.rst:70
 msgid ""
-"**Is it written by a command?** Then it is ``generated/``, and it must "
-"say which command, so a reader can re-run it rather than believe it."
+"**Is it written by a command?** Then it is ``generated/``, and it must say which "
+"command, so a reader can re-run it rather than believe it."
 msgstr ""
+"**È scritta da un comando?** Allora è ``generated/``, e deve dire quale comando, così"
+" che un lettore possa rieseguirlo anziché crederci."
 
 #: ../../source/guides/docs/organisation.rst:72
 msgid ""
-"**None of the above?** ``reference/misc`` exists precisely so that "
-"nothing has to be forced into a section it does not belong to. A page "
-"there is a page waiting for its section to be written, which is a normal "
-"state and not a failure."
+"**None of the above?** ``reference/misc`` exists precisely so that nothing has to be "
+"forced into a section it does not belong to. A page there is a page waiting for its "
+"section to be written, which is a normal state and not a failure."
 msgstr ""
+"**Nessuna delle precedenti?** ``reference/misc`` esiste proprio perché niente debba "
+"essere forzato in una sezione a cui non appartiene. Una pagina lì è una pagina che "
+"aspetta che la propria sezione venga scritta, che è uno stato normale e non un "
+"fallimento."
 
 #: ../../source/guides/docs/organisation.rst:77
 msgid "Splitting a page that has grown"
-msgstr ""
+msgstr "Dividere una pagina che è cresciuta"
 
 #: ../../source/guides/docs/organisation.rst:79
 msgid "Long pages get split two ways, and the choice matters:"
-msgstr ""
+msgstr "Le pagine lunghe si dividono in due modi, e la scelta conta:"
 
 #: ../../source/guides/docs/organisation.rst:81
 msgid ""
-"**By theme**, when the page has become two subjects — as ``tooling.md`` "
-"did, and became one reference page per command."
+"**By theme**, when the page has become two subjects — as ``tooling.md`` did, and "
+"became one reference page per command."
 msgstr ""
+"**Per tema**, quando la pagina è diventata due argomenti — come è successo a "
+"``tooling.md``, che è diventata una pagina di riferimento per comando."
 
 #: ../../source/guides/docs/organisation.rst:84
 msgid ""
-"**By level**, when the page has become one subject at two depths — the "
-"first read and the argument behind it. The first stays; the second goes "
-"to ``advanced/``."
+"**By level**, when the page has become one subject at two depths — the first read and"
+" the argument behind it. The first stays; the second goes to ``advanced/``."
 msgstr ""
+"**Per livello**, quando la pagina è diventata un argomento a due profondità — la "
+"prima lettura e l'argomentazione che le sta dietro. La prima resta; la seconda va in "
+"``advanced/``."
 
 #: ../../source/guides/docs/organisation.rst:87
 msgid ""
-"A page that is long because it is *thorough about one thing at one level*"
-" should stay long. Length is not the problem; mixing subjects or mixing "
-"depths is."
+"A page that is long because it is *thorough about one thing at one level* should stay"
+" long. Length is not the problem; mixing subjects or mixing depths is."
 msgstr ""
+"Una pagina che è lunga perché è *accurata su una cosa a un livello* deve restare "
+"lunga. Il problema non è la lunghezza; sono il mescolare argomenti o il mescolare "
+"profondità."
 
 #: ../../source/guides/docs/organisation.rst:91
 msgid "Two rules that keep the side panel usable"
-msgstr ""
+msgstr "Due regole che tengono usabile il pannello laterale"
 
 #: ../../source/guides/docs/organisation.rst:93
 msgid ""
-"The side panel is how the site is explored, so **every page of the site "
-"is reachable from it, from anywhere**, without having to arrive at a page"
-" first to discover it exists. The section headings *within* a page appear"
-" only while you are on that page — otherwise the panel is four hundred "
-"rows and navigating it is worse than searching. Two things are needed for"
-" that to keep working, and both are easy to break by accident."
+"The side panel is how the site is explored, so **every page of the site is reachable "
+"from it, from anywhere**, without having to arrive at a page first to discover it "
+"exists. The section headings *within* a page appear only while you are on that page —"
+" otherwise the panel is four hundred rows and navigating it is worse than searching. "
+"Two things are needed for that to keep working, and both are easy to break by "
+"accident."
 msgstr ""
+"Il pannello laterale è il modo in cui si esplora il sito, quindi **ogni pagina del "
+"sito è raggiungibile da lì, da qualsiasi punto**, senza dover prima arrivare a una "
+"pagina per scoprire che esiste. I titoli delle sezioni *dentro* una pagina compaiono "
+"solo mentre sei su quella pagina — altrimenti il pannello è quattrocento righe e "
+"navigarlo è peggio che cercare. Perché continui a funzionare servono due cose, ed "
+"entrambe sono facili da rompere per sbaglio."
 
 #: ../../source/guides/docs/organisation.rst:99
 msgid ""
-"**A page title must make sense on its own.** In the panel it sits between"
-" titles from seventy other pages, with none of the surrounding prose. "
-"``The minimum``, ``Rules of this source`` and ``What it costs`` were real"
-" headings here and told a reader nothing — the last one appeared three "
-"times, on three different pages, meaning three different things. Name the"
-" subject, not the rhetorical role. No two titles in the site should read "
-"identically."
+"**A page title must make sense on its own.** In the panel it sits between titles from"
+" seventy other pages, with none of the surrounding prose. ``The minimum``, ``Rules of"
+" this source`` and ``What it costs`` were real headings here and told a reader "
+"nothing — the last one appeared three times, on three different pages, meaning three "
+"different things. Name the subject, not the rhetorical role. No two titles in the "
+"site should read identically."
 msgstr ""
+"**Il titolo di una pagina deve avere senso da solo.** Nel pannello sta fra i titoli "
+"di altre settanta pagine, senza niente della prosa che lo circonda. ``The minimum``, "
+"``Rules of this source`` e ``What it costs`` sono stati titoli veri qui e non "
+"dicevano niente al lettore — l'ultimo compariva tre volte, in tre pagine diverse, con"
+" tre significati diversi. Nomina l'argomento, non il ruolo retorico. Nel sito non ci "
+"devono essere due titoli che si leggono uguali."
 
 #: ../../source/guides/docs/organisation.rst:105
 msgid ""
-"**A page's hidden toctree goes at the top of the page, above the first "
-"section**, not at the bottom where it reads more naturally in the source."
-" A directive belongs to whatever section encloses it, so a toctree at the"
-" end of the file makes every child page a child of the *last section* — "
-"which misstates the hierarchy. The toctrees are ``:hidden:``, so moving "
-"them changes the rendered page not at all."
+"**A page's hidden toctree goes at the top of the page, above the first section**, not"
+" at the bottom where it reads more naturally in the source. A directive belongs to "
+"whatever section encloses it, so a toctree at the end of the file makes every child "
+"page a child of the *last section* — which misstates the hierarchy. The toctrees are "
+"``:hidden:``, so moving them changes the rendered page not at all."
 msgstr ""
+"**Il toctree nascosto di una pagina va in cima alla pagina, sopra la prima sezione**,"
+" non in fondo dove nel sorgente si legge in modo più naturale. Una direttiva "
+"appartiene alla sezione che la racchiude, quindi un toctree alla fine del file rende "
+"ogni pagina figlia una figlia dell'*ultima sezione* — cosa che rappresenta male la "
+"gerarchia. I toctree sono ``:hidden:``, quindi spostarli non cambia affatto la pagina"
+" resa."
 
 #: ../../source/guides/docs/organisation.rst:112
 msgid "Cross-references, and not repeating yourself"
-msgstr ""
+msgstr "I rimandi, e il non ripetersi"
 
 #: ../../source/guides/docs/organisation.rst:114
 #, python-brace-format
 msgid ""
-"Use ``:doc:`` and ``{doc}`` rather than prose like \"see the "
-"configuration page\": a real reference breaks the build when it rots, and"
-" a sentence does not."
+"Use ``:doc:`` and ``{doc}`` rather than prose like \"see the configuration page\": a "
+"real reference breaks the build when it rots, and a sentence does not."
 msgstr ""
+"Usa ``:doc:`` e ``{doc}`` anziché prosa del tipo \"vedi la pagina della "
+"configurazione\": un rimando vero rompe la compilazione quando marcisce, una frase "
+"no."
 
 #: ../../source/guides/docs/organisation.rst:117
 msgid ""
-"Every index page carries a short table of *what each page below answers*,"
-" phrased as the question the reader has rather than as the title of the "
-"page. That table is the thing people actually read; write it before "
-"writing the pages."
+"Every index page carries a short table of *what each page below answers*, phrased as "
+"the question the reader has rather than as the title of the page. That table is the "
+"thing people actually read; write it before writing the pages."
 msgstr ""
+"Ogni pagina indice porta una breve tabella di *a che cosa risponde ciascuna pagina "
+"sottostante*, formulata come la domanda che il lettore ha anziché come il titolo "
+"della pagina. Quella tabella è la cosa che la gente legge davvero; scrivila prima di "
+"scrivere le pagine."
 
 #: ../../source/guides/docs/organisation.rst:122
 msgid "What is written where, and by whom"
-msgstr ""
+msgstr "Che cosa è scritto dove, e da chi"
 
 #: ../../source/guides/docs/organisation.rst:124
 msgid ""
 "**Prose** — everything under ``start/``, ``overview/``, ``guides/`` and "
-"``reference/`` — is written by hand. New prose is Markdown with `MyST "
-"<https://myst-parser.readthedocs.io/>`_; older pages are reStructuredText"
-" and stay that way, with no campaign to convert them."
+"``reference/`` — is written by hand. New prose is Markdown with `MyST <https://myst-"
+"parser.readthedocs.io/>`_; older pages are reStructuredText and stay that way, with "
+"no campaign to convert them."
 msgstr ""
+"**La prosa** — tutto ciò che sta sotto ``start/``, ``overview/``, ``guides/`` e "
+"``reference/`` — è scritta a mano. La prosa nuova è Markdown con `MyST <https://myst-"
+"parser.readthedocs.io/>`_; le pagine più vecchie sono reStructuredText e restano "
+"tali, senza alcuna campagna per convertirle."
 
 #: ../../source/guides/docs/organisation.rst:128
 msgid ""
-"**The Python API** is generated by ``autosummary`` from the installed "
-"packages, so it cannot drift. **The Rust API** is generated by ``cargo "
-"doc`` and published beside the site. **The grants coverage and the CI "
-"report** are written by ``freeports-validate report`` and ``freeports-dev"
-" ci-report`` into files with markers in them. Nothing under "
-"``generated/`` is edited by hand, and every page there names the command "
-"that produced it."
+"**The Python API** is generated by ``autosummary`` from the installed packages, so it"
+" cannot drift. **The Rust API** is generated by ``cargo doc`` and published beside "
+"the site. **The grants coverage and the CI report** are written by ``freeports-"
+"validate report`` and ``freeports-dev ci-report`` into files with markers in them. "
+"Nothing under ``generated/`` is edited by hand, and every page there names the "
+"command that produced it."
 msgstr ""
+"**L'API Python** è generata da ``autosummary`` dai pacchetti installati, quindi non "
+"può allontanarsi dal vero. **L'API Rust** è generata da ``cargo doc`` e pubblicata "
+"accanto al sito. **La copertura delle attestazioni e il rapporto di CI** sono scritti"
+" da ``freeports-validate report`` e da ``freeports-dev ci-report`` dentro file che "
+"contengono dei marcatori. Niente sotto ``generated/`` è modificato a mano, e ogni "
+"pagina lì nomina il comando che l'ha prodotta."
 
 #: ../../source/guides/docs/organisation.rst:134
 msgid ""
-"**The methodology pages** under ``docs/source/validation/`` are neither "
-"of those: they are hashed artefacts. See the warning on :doc:`index`."
+"**The methodology pages** under ``docs/source/validation/`` are neither of those: "
+"they are hashed artefacts. See the warning on :doc:`index`."
 msgstr ""
+"**Le pagine di metodologia** sotto ``docs/source/validation/`` non sono né l'una né "
+"l'altra cosa: sono artefatti sottoposti a hash. Vedi l'avvertimento su :doc:`index`."
 

@@ -21,45 +21,47 @@ msgstr ""
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:3
 msgid "Suites and verdicts"
-msgstr ""
+msgstr "Suite e verdetti"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:6
 msgid "The suites"
-msgstr ""
+msgstr "Le suite"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:8
 msgid ""
-"A metric is a number with a minimum. A suite is a set of tests with an "
-"outcome. Both are facts about one commit, both are recorded into "
-"``reports/`` with the commit they were established at, and both are "
-"judged by ``ci-check``."
+"A metric is a number with a minimum. A suite is a set of tests with an outcome. Both "
+"are facts about one commit, both are recorded into ``reports/`` with the commit they "
+"were established at, and both are judged by ``ci-check``."
 msgstr ""
+"Una metrica è un numero con un minimo. Una suite è un insieme di test con un esito. "
+"Sono entrambi fatti su un commit, sono entrambi registrati in ``reports/`` con il "
+"commit al quale sono stati stabiliti, ed entrambi sono giudicati da ``ci-check``."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:16
 msgid "Suite"
-msgstr ""
+msgstr "Suite"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:17
 msgid "Cost"
-msgstr ""
+msgstr "Costo"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:18
 msgid "Repositories"
-msgstr ""
+msgstr "Repository"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:19
 msgid "Run by"
-msgstr ""
+msgstr "Eseguita da"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:20
 msgid "``rust.unit``"
-msgstr ""
+msgstr "``rust.unit``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:21
 #: ../../source/guides/devops/suites-and-verdicts.rst:25
 #: ../../source/guides/devops/suites-and-verdicts.rst:29
 msgid "fast"
-msgstr ""
+msgstr "veloce"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:22
 #: ../../source/guides/devops/suites-and-verdicts.rst:26
@@ -68,169 +70,185 @@ msgstr ""
 #: ../../source/guides/devops/suites-and-verdicts.rst:42
 #: ../../source/guides/devops/suites-and-verdicts.rst:46
 msgid "engine"
-msgstr ""
+msgstr "motore"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:23
 msgid "``make test-rust-unit``"
-msgstr ""
+msgstr "``make test-rust-unit``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:24
 msgid "``python.fast``"
-msgstr ""
+msgstr "``python.fast``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:27
 msgid "``make test-python``"
-msgstr ""
+msgstr "``make test-python``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:28
 msgid "``formats.single_page``"
-msgstr ""
+msgstr "``formats.single_page``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:30
 #: ../../source/guides/devops/suites-and-verdicts.rst:50
 msgid "formats"
-msgstr ""
+msgstr "formati"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:31
 msgid "``make test-fast``"
-msgstr ""
+msgstr "``make test-fast``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:32
 msgid "``rust.integration``"
-msgstr ""
+msgstr "``rust.integration``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:33
 #: ../../source/guides/devops/suites-and-verdicts.rst:37
 #: ../../source/guides/devops/suites-and-verdicts.rst:41
 #: ../../source/guides/devops/suites-and-verdicts.rst:49
 msgid "**slow**"
-msgstr ""
+msgstr "**lenta**"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:35
 msgid "``make test-rust-integration``"
-msgstr ""
+msgstr "``make test-rust-integration``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:36
 msgid "``rust.doc``"
-msgstr ""
+msgstr "``rust.doc``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:39
 msgid "``make test-rust-doc``"
-msgstr ""
+msgstr "``make test-rust-doc``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:40
 msgid "``python.slow``"
-msgstr ""
+msgstr "``python.slow``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:43
 msgid "``make test-python-slow``"
-msgstr ""
+msgstr "``make test-python-slow``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:44
 msgid "``python.online``"
-msgstr ""
+msgstr "``python.online``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:45
 msgid "**slow**, online"
-msgstr ""
+msgstr "**lenta**, in rete"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:47
 msgid "``make test-python-online``"
-msgstr ""
+msgstr "``make test-python-online``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:48
 msgid "``formats.integration``"
-msgstr ""
+msgstr "``formats.integration``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:51
 msgid "``make test-slow``"
-msgstr ""
+msgstr "``make test-slow``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:53
 msgid ""
-"Every row carries the command that runs it, and every message about a "
-"suite quotes it. A verdict that says something is stale without saying "
-"how to un-stale it is a verdict people route around."
+"Every row carries the command that runs it, and every message about a suite quotes "
+"it. A verdict that says something is stale without saying how to un-stale it is a "
+"verdict people route around."
 msgstr ""
+"Ogni riga porta il comando che la esegue, e ogni messaggio su una suite lo cita. Un "
+"verdetto che dice che qualcosa è vecchio senza dire come farlo tornare fresco è un "
+"verdetto che la gente aggira."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:56
 msgid ""
-"**Every row is a** ``make`` **target, in whichever repository the suite "
-"belongs to.** The alternative is quoting the selection itself — "
-"``freeports-dev test -- -m 'not integration_tests'`` — in the hook, in "
-"this table and in the repository's own documentation, which is three "
-"copies of one decision, and the failure mode of three copies is that a "
-"fourth reader invents a fifth. The selection has one spelling, ``--fast``"
-" / ``--slow``, in the command that owns it, and the target is what a "
+"**Every row is a** ``make`` **target, in whichever repository the suite belongs to.**"
+" The alternative is quoting the selection itself — ``freeports-dev test -- -m 'not "
+"integration_tests'`` — in the hook, in this table and in the repository's own "
+"documentation, which is three copies of one decision, and the failure mode of three "
+"copies is that a fourth reader invents a fifth. The selection has one spelling, "
+"``--fast`` / ``--slow``, in the command that owns it, and the target is what a "
 "message quotes."
 msgstr ""
+"**Ogni riga è un target di** ``make``, nel repository a cui la suite appartiene. "
+"L'alternativa è citare la selezione stessa — ``freeports-dev test -- -m 'not "
+"integration_tests'`` — nel hook, in questa tabella e nella documentazione del "
+"repository, che sono tre copie di una sola decisione, e il modo in cui tre copie "
+"falliscono è che un quarto lettore ne inventa una quinta. La selezione ha una sola "
+"grafia, ``--fast`` / ``--slow``, nel comando che la possiede, e ciò che un messaggio "
+"cita è il target."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:64
 msgid "Why a suite is recorded rather than announced"
-msgstr ""
+msgstr "Perché una suite si registra anziché annunciarsi"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:66
 msgid ""
-"An outcome passed on a command line — ``ci-check --suite fast:passed`` — "
-"says what has just happened, and it is **silent about everything that has"
-" not**. A gate that runs two of six suites and reports \"tests: ok\" is "
-"worse than one that reports nothing, because a reader believes it."
+"An outcome passed on a command line — ``ci-check --suite fast:passed`` — says what "
+"has just happened, and it is **silent about everything that has not**. A gate that "
+"runs two of six suites and reports \"tests: ok\" is worse than one that reports "
+"nothing, because a reader believes it."
 msgstr ""
+"Un esito passato su una riga di comando — ``ci-check --suite fast:passed`` — dice ciò"
+" che è appena successo, e **tace su tutto ciò che non è successo**. Un gate che "
+"esegue due suite su sei e riferisce \"test: ok\" è peggio di uno che non riferisce "
+"niente, perché il lettore gli crede."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:70
 msgid "So each suite writes ``reports/suite-<name>.json``:"
-msgstr ""
+msgstr "Ogni suite scrive perciò ``reports/suite-<nome>.json``:"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:76
 msgid ""
-"and ``ci-check`` reads the lot. The commit is the point of the file. "
-"Without it there is no telling a suite that passed on this code from one "
-"that passed a fortnight ago, and the fast/slow split would quietly become"
-" a way of never running the slow half."
+"and ``ci-check`` reads the lot. The commit is the point of the file. Without it there"
+" is no telling a suite that passed on this code from one that passed a fortnight ago,"
+" and the fast/slow split would quietly become a way of never running the slow half."
 msgstr ""
+"e ``ci-check`` li legge tutti. Il commit è il senso del file. Senza di esso non c'è "
+"modo di distinguere una suite superata su questo codice da una superata quindici "
+"giorni fa, e la divisione fra veloce e lento diventerebbe in sordina un modo di non "
+"eseguire mai la metà lenta."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:84
 #: ../../source/guides/devops/suites-and-verdicts.rst:166
 msgid "Verdict"
-msgstr ""
+msgstr "Verdetto"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:85
 #: ../../source/guides/devops/suites-and-verdicts.rst:167
 msgid "Meaning"
-msgstr ""
+msgstr "Significato"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:86
 #: ../../source/guides/devops/suites-and-verdicts.rst:168
 msgid "``dev``"
-msgstr ""
+msgstr "``dev``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:87
 #: ../../source/guides/devops/suites-and-verdicts.rst:169
 msgid "``prod``"
-msgstr ""
+msgstr "``prod``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:88
 msgid "``ran``"
-msgstr ""
+msgstr "``ran``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:89
 msgid "ran at this commit, everything passed"
-msgstr ""
+msgstr "eseguita a questo commit, è passato tutto"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:90
 #: ../../source/guides/devops/suites-and-verdicts.rst:91
 #: ../../source/guides/devops/suites-and-verdicts.rst:172
 #: ../../source/guides/devops/suites-and-verdicts.rst:173
 msgid "—"
-msgstr ""
+msgstr "—"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:92
 msgid "``FAILED``"
-msgstr ""
+msgstr "``FAILED``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:93
 msgid "ran at this commit, something did not pass"
-msgstr ""
+msgstr "eseguita a questo commit, qualcosa non è passato"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:94
 #: ../../source/guides/devops/suites-and-verdicts.rst:98
@@ -239,7 +257,7 @@ msgstr ""
 #: ../../source/guides/devops/suites-and-verdicts.rst:180
 #: ../../source/guides/devops/suites-and-verdicts.rst:184
 msgid "notify"
-msgstr ""
+msgstr "notifica"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:95
 #: ../../source/guides/devops/suites-and-verdicts.rst:99
@@ -248,219 +266,285 @@ msgstr ""
 #: ../../source/guides/devops/suites-and-verdicts.rst:181
 #: ../../source/guides/devops/suites-and-verdicts.rst:185
 msgid "**refuse**"
-msgstr ""
+msgstr "**rifiuta**"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:96
 msgid "``STALE``"
-msgstr ""
+msgstr "``STALE``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:97
 msgid "last ran at another commit"
-msgstr ""
+msgstr "eseguita l'ultima volta a un altro commit"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:100
 msgid "``NOT RUN``"
-msgstr ""
+msgstr "``NOT RUN``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:101
 msgid "never run in this repository"
-msgstr ""
+msgstr "mai eseguita in questo repository"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:105
 msgid ""
-"**A suite nobody ran is not a suite that passed**, which is the same rule"
-" ``unmeasured`` follows among the metrics, applied to the other half of "
-"what a commit is judged on."
+"**A suite nobody ran is not a suite that passed**, which is the same rule "
+"``unmeasured`` follows among the metrics, applied to the other half of what a commit "
+"is judged on."
 msgstr ""
+"**Una suite che nessuno ha eseguito non è una suite superata**, che è la stessa "
+"regola che ``unmeasured`` segue fra le metriche, applicata all'altra metà di ciò su "
+"cui un commit è giudicato."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:109
 msgid "What marks a test slow, and why it is derived"
-msgstr ""
+msgstr "Che cosa marca lento un test, e perché è ricavato"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:111
 msgid ""
-"Never by hand. In both tooling packages a test is marked ``slow`` by the "
-"*fixtures it asks for*: request one that starts a process or a server, "
-"and the marking follows. A test written next year that bootstraps a "
-"repository is marked by the act of asking for the fixture that bootstraps"
-" it, and one that stops doing so stops being marked. Three hundred hand-"
-"written ``@pytest.mark.slow`` decorators would be three hundred chances "
-"to forget."
+"Never by hand. In both tooling packages a test is marked ``slow`` by the *fixtures it"
+" asks for*: request one that starts a process or a server, and the marking follows. A"
+" test written next year that bootstraps a repository is marked by the act of asking "
+"for the fixture that bootstraps it, and one that stops doing so stops being marked. "
+"Three hundred hand-written ``@pytest.mark.slow`` decorators would be three hundred "
+"chances to forget."
 msgstr ""
+"Mai a mano. In entrambi i pacchetti di strumenti un test è marcato ``slow`` dalle "
+"*fixture che chiede*: chiedine una che avvii un processo o un server, e la marcatura "
+"segue. Un test scritto l'anno prossimo che tiri su un repository è marcato dall'atto "
+"stesso di chiedere la fixture che lo tira su, e uno che smette di farlo smette di "
+"essere marcato. Trecento decoratori ``@pytest.mark.slow`` scritti a mano sarebbero "
+"trecento occasioni per dimenticarsene."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:117
 msgid ""
-"The seam is **\"starts anything\"**, and getting it wrong is expensive in"
-" a way that is easy to miss. Drawing it at \"starts *the command*\" "
-"instead — which is where it lands if nobody thinks about it — leaves, in "
-"``freeports_validate``, twenty tests that start a threaded HTTP server "
-"and forty that start a ``bash`` or a Python interpreter on the fast side:"
-" three and a half seconds, most of a commit gate's entire budget, spent "
-"on ``fork``. In ``freeports_dev`` the same seam catches the two fixtures "
-"that bootstrap a whole repository, each of which is twenty-odd process "
+"The seam is **\"starts anything\"**, and getting it wrong is expensive in a way that "
+"is easy to miss. Drawing it at \"starts *the command*\" instead — which is where it "
+"lands if nobody thinks about it — leaves, in ``freeports_validate``, twenty tests "
+"that start a threaded HTTP server and forty that start a ``bash`` or a Python "
+"interpreter on the fast side: three and a half seconds, most of a commit gate's "
+"entire budget, spent on ``fork``. In ``freeports_dev`` the same seam catches the two "
+"fixtures that bootstrap a whole repository, each of which is twenty-odd process "
 "starts."
 msgstr ""
+"La cucitura è **\"avvia qualcosa\"**, e sbagliarla è costoso in un modo che è facile "
+"non vedere. Tracciarla invece su \"avvia *il comando*\" — che è dove finisce se "
+"nessuno ci pensa — lascia, in ``freeports_validate``, venti test che avviano un "
+"server HTTP a thread e quaranta che avviano un ``bash`` o un interprete Python dal "
+"lato veloce: tre secondi e mezzo, quasi tutto il budget di un gate di commit, spesi "
+"in ``fork``. In ``freeports_dev`` la stessa cucitura acchiappa le due fixture che "
+"tirano su un intero repository, ciascuna delle quali è una ventina di avvii di "
+"processo."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:126
 msgid ""
-"Before moving a test across the line, check that it is really the test "
-"that is slow. **The three worst offenders in this repository were not "
-"tests at all**, and between them they were most of the suite:"
+"Before moving a test across the line, check that it is really the test that is slow. "
+"**The three worst offenders in this repository were not tests at all**, and between "
+"them they were most of the suite:"
 msgstr ""
+"Prima di spostare un test al di là della linea, controlla che sia davvero il test a "
+"essere lento. **I tre peggiori colpevoli in questo repository non erano affatto dei "
+"test**, e fra loro erano quasi tutta la suite:"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:130
 msgid ""
 "**A fixture rebuilt for every test.** The expensive fixtures in "
-"``freeports_validate``'s suite raise their state by running the command "
-"three to five times — ``create-document``, ``sign-document``, a couple of"
-" ``grant``\\ s — and were function-scoped, so a class of five tests paid "
-"for all of it five times. **327 of the slow suite's 470 seconds were** "
-"``setup``, and not one of them was a test. What those 4.4 seconds produce"
-" is seven files and one kilobyte, which ``copytree`` copies in 0.42 ms — "
-"four orders of magnitude. See ``Prototypes`` in "
-"``packages/freeports_validate/tests/conftest.py``: the state is built "
-"once per session and each test gets a copy, so isolation is exactly what "
-"it was."
+"``freeports_validate``'s suite raise their state by running the command three to five"
+" times — ``create-document``, ``sign-document``, a couple of ``grant``\\ s — and were"
+" function-scoped, so a class of five tests paid for all of it five times. **327 of "
+"the slow suite's 470 seconds were** ``setup``, and not one of them was a test. What "
+"those 4.4 seconds produce is seven files and one kilobyte, which ``copytree`` copies "
+"in 0.42 ms — four orders of magnitude. See ``Prototypes`` in "
+"``packages/freeports_validate/tests/conftest.py``: the state is built once per "
+"session and each test gets a copy, so isolation is exactly what it was."
 msgstr ""
+"**Una fixture ricostruita per ogni test.** Le fixture costose della suite di "
+"``freeports_validate`` tirano su il proprio stato eseguendo il comando dalle tre alle"
+" cinque volte — ``create-document``, ``sign-document``, un paio di ``grant`` — ed "
+"erano a livello di funzione, quindi una classe di cinque test pagava tutto ciò cinque"
+" volte. **327 dei 470 secondi della suite lenta erano** ``setup``, e nessuno di essi "
+"era un test. Ciò che quei 4,4 secondi producono sono sette file e un kilobyte, che "
+"``copytree`` copia in 0,42 ms — quattro ordini di grandezza. Vedi ``Prototypes`` in "
+"``packages/freeports_validate/tests/conftest.py``: lo stato è costruito una volta per"
+" sessione e ogni test ne riceve una copia, così che l'isolamento sia esattamente "
+"quello di prima."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:138
 msgid ""
-"**A half-second poll interval, paid per test.** "
-"``ThreadingHTTPServer.shutdown()`` waits for ``serve_forever``'s loop to "
-"look between ``select`` timeouts, and the default is 0.5 s — paid in full"
-" at every teardown. Twenty tests, ten seconds. ``poll_interval=0.01`` "
-"took it to the noise floor."
+"**A half-second poll interval, paid per test.** ``ThreadingHTTPServer.shutdown()`` "
+"waits for ``serve_forever``'s loop to look between ``select`` timeouts, and the "
+"default is 0.5 s — paid in full at every teardown. Twenty tests, ten seconds. "
+"``poll_interval=0.01`` took it to the noise floor."
 msgstr ""
+"**Un intervallo di sondaggio di mezzo secondo, pagato per test.** "
+"``ThreadingHTTPServer.shutdown()`` aspetta che il ciclo di ``serve_forever`` guardi "
+"fra un timeout di ``select`` e l'altro, e il valore predefinito è 0,5 s — pagato per "
+"intero a ogni smontaggio. Venti test, dieci secondi. ``poll_interval=0.01`` l'ha "
+"portato al livello del rumore."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:142
 msgid ""
-"**A plugin importing the world.** ``freeports_dev``'s ``pytest11`` entry "
-"point imported pandas, PyMuPDF and the engine at module level, so *every "
-"pytest process on the machine* paid three quarters of a second for "
-"libraries it would never touch — including the two tooling suites, which "
-"collect no format tests at all. The imports now happen where they are "
-"used."
+"**A plugin importing the world.** ``freeports_dev``'s ``pytest11`` entry point "
+"imported pandas, PyMuPDF and the engine at module level, so *every pytest process on "
+"the machine* paid three quarters of a second for libraries it would never touch — "
+"including the two tooling suites, which collect no format tests at all. The imports "
+"now happen where they are used."
 msgstr ""
+"**Un plugin che importava il mondo.** Il punto d'ingresso ``pytest11`` di "
+"``freeports_dev`` importava pandas, PyMuPDF e il motore a livello di modulo, quindi "
+"*ogni processo pytest sulla macchina* pagava tre quarti di secondo per librerie che "
+"non avrebbe mai toccato — comprese le due suite degli strumenti, che non raccolgono "
+"alcun test di formato. Adesso le importazioni avvengono dove servono."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:147
 msgid ""
-"Deferring a test is a decision with a cost: it is a test that stops "
-"running at every commit. Deleting a wasted second costs nothing, and the "
-"second is usually there. Between them these three took the slow suite "
-"from **470 s to 162 s** and the fast gate from 5.5 s to 1.8 s, without a "
-"single test being deleted, deferred or weakened."
+"Deferring a test is a decision with a cost: it is a test that stops running at every "
+"commit. Deleting a wasted second costs nothing, and the second is usually there. "
+"Between them these three took the slow suite from **470 s to 162 s** and the fast "
+"gate from 5.5 s to 1.8 s, without a single test being deleted, deferred or weakened."
 msgstr ""
+"Rimandare un test è una decisione con un costo: è un test che smette di girare a ogni"
+" commit. Cancellare un secondo sprecato non costa niente, e il secondo di solito c'è."
+" Fra tutti e tre hanno portato la suite lenta da **470 s a 162 s** e il gate veloce "
+"da 5,5 s a 1,8 s, senza che un solo test sia stato cancellato, rimandato o "
+"indebolito."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:152
 msgid ""
-"The tool for finding them is ``pytest --durations=0 --durations-min=0``, "
-"split by ``setup`` / ``call`` / ``teardown``: setup that dominates call "
-"is a fixture doing per-test work that is not per-test. Where the cost is "
-"outside Python — this command shells out to ``yq``, ``gpg`` and ``check-"
-"jsonschema`` — putting a timing wrapper for each of them first on "
-"``PATH`` and summing by program says in one run where the seconds went."
+"The tool for finding them is ``pytest --durations=0 --durations-min=0``, split by "
+"``setup`` / ``call`` / ``teardown``: setup that dominates call is a fixture doing "
+"per-test work that is not per-test. Where the cost is outside Python — this command "
+"shells out to ``yq``, ``gpg`` and ``check-jsonschema`` — putting a timing wrapper for"
+" each of them first on ``PATH`` and summing by program says in one run where the "
+"seconds went."
 msgstr ""
+"Lo strumento per trovarli è ``pytest --durations=0 --durations-min=0``, diviso per "
+"``setup`` / ``call`` / ``teardown``: un setup che domina la call è una fixture che fa"
+" per test un lavoro che non è per test. Dove il costo sta fuori da Python — questo "
+"comando si appoggia a ``yq``, ``gpg`` e ``check-jsonschema`` — mettere per ciascuno "
+"un involucro che cronometra in cima al ``PATH`` e sommare per programma dice in "
+"un'esecuzione sola dove siano finiti i secondi."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:160
 msgid "Verdicts"
-msgstr ""
+msgstr "Verdetti"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:170
 msgid "``pass``"
-msgstr ""
+msgstr "``pass``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:171
 msgid "measured, at or above the minimum"
-msgstr ""
+msgstr "misurata, pari o superiore al minimo"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:174
 msgid "``below``"
-msgstr ""
+msgstr "``below``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:175
 msgid "measured, under it"
-msgstr ""
+msgstr "misurata, al di sotto"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:178
 msgid "``unmeasured``"
-msgstr ""
+msgstr "``unmeasured``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:179
 msgid "the tool is missing, or the run failed"
-msgstr ""
+msgstr "lo strumento manca, oppure l'esecuzione è fallita"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:182
 msgid "``stale``"
-msgstr ""
+msgstr "``stale``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:183
 msgid "measured at a commit other than HEAD"
-msgstr ""
+msgstr "misurata a un commit diverso da HEAD"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:186
 msgid "``no threshold``"
-msgstr ""
+msgstr "``no threshold``"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:187
 msgid "nothing configured"
-msgstr ""
+msgstr "niente di configurato"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:188
 #: ../../source/guides/devops/suites-and-verdicts.rst:189
 msgid "listed"
-msgstr ""
+msgstr "elencata"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:192
 msgid "Why ``unmeasured`` refuses"
-msgstr ""
+msgstr "Perché ``unmeasured`` rifiuta"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:194
 msgid ""
-"**A figure nobody could compute is not a figure above the threshold.** "
-"Reporting it as a pass is exactly the failure this project already "
-"refuses for a methodology page it could not reach: unverifiable is not "
-"granted, and unmeasured is not passing. The message names the missing "
-"tool and the command that installs it — ``make dev-ci`` supplies all four"
-" — because a refusal you cannot act on is a refusal you will route "
+"**A figure nobody could compute is not a figure above the threshold.** Reporting it "
+"as a pass is exactly the failure this project already refuses for a methodology page "
+"it could not reach: unverifiable is not granted, and unmeasured is not passing. The "
+"message names the missing tool and the command that installs it — ``make dev-ci`` "
+"supplies all four — because a refusal you cannot act on is a refusal you will route "
 "around."
 msgstr ""
+"**Un dato che nessuno ha potuto calcolare non è un dato sopra la soglia.** Riferirlo "
+"come un superamento è esattamente il guasto che questo progetto già rifiuta per una "
+"pagina di metodologia irraggiungibile: non verificabile non è attestato, e non "
+"misurato non è superato. Il messaggio nomina lo strumento che manca e il comando che "
+"lo installa — ``make dev-ci`` li fornisce tutti e quattro — perché un rifiuto su cui "
+"non puoi agire è un rifiuto che aggirerai."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:203
 msgid "Why ``stale`` refuses"
-msgstr ""
+msgstr "Perché ``stale`` rifiuta"
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:205
 msgid ""
-"Staleness is what makes the fast/slow split honest. The hook measures the"
-" fast metrics now and reads the slow ones from the last full run; without"
-" the commit recorded beside each number there would be no way to tell a "
-"fresh figure from one taken three weeks ago, and the split would quietly "
-"become a way of never measuring the slow half at all."
+"Staleness is what makes the fast/slow split honest. The hook measures the fast "
+"metrics now and reads the slow ones from the last full run; without the commit "
+"recorded beside each number there would be no way to tell a fresh figure from one "
+"taken three weeks ago, and the split would quietly become a way of never measuring "
+"the slow half at all."
 msgstr ""
+"È l'invecchiamento a rendere onesta la divisione fra veloce e lento. Il hook misura "
+"adesso le metriche veloci e legge quelle lente dall'ultima esecuzione completa; senza"
+" il commit registrato accanto a ciascun numero non ci sarebbe modo di distinguere un "
+"dato fresco da uno preso tre settimane fa, e la divisione diventerebbe in sordina un "
+"modo di non misurare mai la metà lenta."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:210
 msgid ""
-"**It is the mechanism that lets the gate be cheap without being "
-"dishonest.** A gate may run a subset — as long as it says, in the same "
-"table, exactly which subset. Take staleness away and the fast gate stops "
-"being a smaller gate and becomes a smaller *claim about the same thing*, "
-"which is the failure this whole arrangement exists to avoid."
+"**It is the mechanism that lets the gate be cheap without being dishonest.** A gate "
+"may run a subset — as long as it says, in the same table, exactly which subset. Take "
+"staleness away and the fast gate stops being a smaller gate and becomes a smaller "
+"*claim about the same thing*, which is the failure this whole arrangement exists to "
+"avoid."
 msgstr ""
+"**È il meccanismo che permette al gate di costare poco senza essere disonesto.** Un "
+"gate può eseguire un sottoinsieme — purché dica, nella stessa tabella, esattamente "
+"quale sottoinsieme. Togli l'invecchiamento e il gate veloce smette di essere un gate "
+"più piccolo e diventa un'*affermazione più piccola sulla stessa cosa*, che è il "
+"guasto per evitare il quale tutta questa impalcatura esiste."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:215
 msgid ""
-"On ``dev`` it is a notification. On ``prod`` it refuses — and the "
-"``prod`` hook runs ``make ci-full`` first, so by the time the verdict is "
-"read there is nothing left to be stale. That is the inversion the two "
-"branch classes are for: on a working branch you keep the loop tight and "
-"accept that some things are unknown, and on a production branch you take "
-"the time and nothing is. ``--skip-slow`` exists for the person who knows "
-"better; it is never the default, and it prints what it skipped."
+"On ``dev`` it is a notification. On ``prod`` it refuses — and the ``prod`` hook runs "
+"``make ci-full`` first, so by the time the verdict is read there is nothing left to "
+"be stale. That is the inversion the two branch classes are for: on a working branch "
+"you keep the loop tight and accept that some things are unknown, and on a production "
+"branch you take the time and nothing is. ``--skip-slow`` exists for the person who "
+"knows better; it is never the default, and it prints what it skipped."
 msgstr ""
+"Su ``dev`` è una notifica. Su ``prod`` rifiuta — e il hook di ``prod`` esegue prima "
+"``make ci-full``, quindi quando si legge il verdetto non resta niente che possa "
+"essere vecchio. È l'inversione a cui servono le due classi di ramo: su un ramo di "
+"lavoro tieni stretto il ciclo e accetti che certe cose siano ignote, e su un ramo di "
+"produzione ti prendi il tempo e niente lo è. ``--skip-slow`` esiste per chi sa quel "
+"che fa; non è mai il valore predefinito, e stampa che cosa ha saltato."
 
 #: ../../source/guides/devops/suites-and-verdicts.rst:222
 msgid ""
-"Exit statuses: ``0`` pass or dev, ``1`` refused, ``2`` the configuration "
-"itself cannot be obeyed."
+"Exit statuses: ``0`` pass or dev, ``1`` refused, ``2`` the configuration itself "
+"cannot be obeyed."
 msgstr ""
+"Stati d'uscita: ``0`` superato o dev, ``1`` rifiutato, ``2`` la configurazione stessa"
+" non si può rispettare."
 

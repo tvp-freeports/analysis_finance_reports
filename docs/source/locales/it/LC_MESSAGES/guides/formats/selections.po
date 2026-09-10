@@ -21,140 +21,165 @@ msgstr ""
 
 #: ../../source/guides/formats/selections.md:1
 msgid "Selections: saying where to look"
-msgstr ""
+msgstr "Le selezioni: dire dove guardare"
 
 #: ../../source/guides/formats/selections.md:3
 msgid ""
-"Most of what a format author writes is a **selection** over the lines of "
-"a page: a predicate combining font, size, position, and text anchors."
+"Most of what a format author writes is a **selection** over the lines of a page: a "
+"predicate combining font, size, position, and text anchors."
 msgstr ""
+"Quasi tutto ciò che scrive chi fa un formato è una **selezione** sulle righe di una "
+"pagina: un predicato che mette insieme carattere, corpo, posizione e àncore testuali."
 
 #: ../../source/guides/formats/selections.md:6
 msgid "What a selection is"
-msgstr ""
+msgstr "Che cos'è una selezione"
 
 #: ../../source/guides/formats/selections.md:8
 msgid "A conjunction of conditions, any of which may be omitted:"
-msgstr ""
+msgstr "Una congiunzione di condizioni, ciascuna delle quali può essere omessa:"
 
 #: ../../source/guides/formats/selections.md
 msgid "Condition"
-msgstr ""
+msgstr "Condizione"
 
 #: ../../source/guides/formats/selections.md
 msgid "Says"
-msgstr ""
+msgstr "Dice"
 
 #: ../../source/guides/formats/selections.md
 msgid "font"
-msgstr ""
+msgstr "carattere"
 
 #: ../../source/guides/formats/selections.md
 msgid "the line is set in this face"
-msgstr ""
+msgstr "la riga è composta in questo carattere"
 
 #: ../../source/guides/formats/selections.md
 msgid "font size"
-msgstr ""
+msgstr "corpo del carattere"
 
 #: ../../source/guides/formats/selections.md
 msgid "exactly, or within a range"
-msgstr ""
+msgstr "esatto, oppure entro un intervallo"
 
 #: ../../source/guides/formats/selections.md
 msgid "area"
-msgstr ""
+msgstr "area"
 
 #: ../../source/guides/formats/selections.md
 msgid "the line falls within these coordinates"
-msgstr ""
+msgstr "la riga cade entro queste coordinate"
 
 #: ../../source/guides/formats/selections.md
 msgid "text anchor"
-msgstr ""
+msgstr "àncora testuale"
 
 #: ../../source/guides/formats/selections.md
 msgid "the line's text matches this, with `^` and `$` as anchors"
-msgstr ""
+msgstr "il testo della riga corrisponde a questo, con `^` e `$` come àncore"
 
 #: ../../source/guides/formats/selections.md:23
 msgid ""
-"The size range is not fussiness: a PDF's nominal 7-point body text is "
-"rarely exactly 7.0, and a range is how you say \"the body face\" rather "
-"than \"this one line\"."
+"The size range is not fussiness: a PDF's nominal 7-point body text is rarely exactly "
+"7.0, and a range is how you say \"the body face\" rather than \"this one line\"."
 msgstr ""
+"L'intervallo di corpo non è pignoleria: in un PDF il testo di corpo nominalmente a 7 "
+"punti è raramente esattamente 7,0, e un intervallo è il modo di dire \"il carattere "
+"del testo\" anziché \"questa singola riga\"."
 
 #: ../../source/guides/formats/selections.md:26
 msgid "Composing selections, and building one relative to another"
-msgstr ""
+msgstr "Comporre selezioni, e costruirne una relativa a un'altra"
 
 #: ../../source/guides/formats/selections.md:27
 msgid ""
-"Selections compose with `&`, which is ordinary conjunction. The useful "
-"part is that they can also be built **relative to another selection**:"
+"Selections compose with `&`, which is ordinary conjunction. The useful part is that "
+"they can also be built **relative to another selection**:"
 msgstr ""
+"Le selezioni si compongono con `&`, che è la normale congiunzione. La parte utile è "
+"che si possono anche costruire **relativamente a un'altra selezione**:"
 
 #: ../../source/guides/formats/selections.md:34
 msgid ""
-"*\"the region displaced from wherever **that** is\"*. This is how a "
-"layout is described without hard-coding coordinates that change on the "
-"next page — the header moves, and the window moves with it."
+"*\"the region displaced from wherever **that** is\"*. This is how a layout is "
+"described without hard-coding coordinates that change on the next page — the header "
+"moves, and the window moves with it."
 msgstr ""
+"*\"la regione spostata rispetto a dovunque stia **quella**\"*. È così che si descrive"
+" un'impaginazione senza inchiodare nel codice coordinate che cambiano alla pagina "
+"dopo — l'intestazione si sposta, e la finestra si sposta con lei."
 
 #: ../../source/guides/formats/selections.md:38
 msgid ""
-"Reaching for absolute coordinates is almost always the wrong first move. "
-"They work on the page you are looking at and fail on the page after it, "
-"and the failure is a silently empty extraction rather than an error."
+"Reaching for absolute coordinates is almost always the wrong first move. They work on"
+" the page you are looking at and fail on the page after it, and the failure is a "
+"silently empty extraction rather than an error."
 msgstr ""
+"Ricorrere a coordinate assolute è quasi sempre la prima mossa sbagliata. Funzionano "
+"sulla pagina che stai guardando e falliscono su quella dopo, e il guasto è "
+"un'estrazione silenziosamente vuota anziché un errore."
 
 #: ../../source/guides/formats/selections.md:42
 msgid "The compact textual form"
-msgstr ""
+msgstr "La forma testuale compatta"
 
 #: ../../source/guides/formats/selections.md:44
 msgid ""
-"The same selections appear in the structured CSVs, where there is no "
-"Python to write them in, and are available from Python through "
-"`pdfline_selection_from_str`:"
+"The same selections appear in the structured CSVs, where there is no Python to write "
+"them in, and are available from Python through `pdfline_selection_from_str`:"
 msgstr ""
+"Le stesse selezioni compaiono nei CSV strutturati, dove non c'è Python in cui "
+"scriverle, e sono disponibili da Python tramite `pdfline_selection_from_str`:"
 
 #: ../../source/guides/formats/selections.md:52
 msgid "Anchors are not regular expressions"
-msgstr ""
+msgstr "Le àncore non sono espressioni regolari"
 
 #: ../../source/guides/formats/selections.md:54
 msgid ""
-"Text anchors are matched **verbatim**, with `^` and `$` meaning start and"
-" end — so prefix, suffix, substring and exact are all expressible, and "
-"nothing else is."
+"Text anchors are matched **verbatim**, with `^` and `$` meaning start and end — so "
+"prefix, suffix, substring and exact are all expressible, and nothing else is."
 msgstr ""
+"Le àncore testuali sono confrontate **alla lettera**, con `^` e `$` che significano "
+"inizio e fine — quindi prefisso, suffisso, sottostringa ed esatto sono tutti "
+"esprimibili, e nient'altro lo è."
 
 #: ../../source/guides/formats/selections.md:57
 #, python-brace-format
 msgid ""
-"That is a deliberate restriction, not a missing feature. Regular "
-"expressions appear in `text_filter`, where **meaning** is being read out "
-"of a block; a layout predicate does not need them and is faster without. "
-"Keeping the two apart is the same separation the segments themselves are "
-"built on: `pdf_extract` looks at graphical evidence, `text_filter` at "
-"meaning ({doc}`../../reference/design/segments`)."
+"That is a deliberate restriction, not a missing feature. Regular expressions appear "
+"in `text_filter`, where **meaning** is being read out of a block; a layout predicate "
+"does not need them and is faster without. Keeping the two apart is the same "
+"separation the segments themselves are built on: `pdf_extract` looks at graphical "
+"evidence, `text_filter` at meaning ({doc}`../../reference/design/segments`)."
 msgstr ""
+"È una restrizione voluta, non una funzionalità che manca. Le espressioni regolari "
+"compaiono in `text_filter`, dove da un blocco si sta leggendo il **significato**; un "
+"predicato di impaginazione non ne ha bisogno ed è più rapido senza. Tenere le due "
+"cose distinte è la stessa separazione su cui sono costruiti i segmenti stessi: "
+"`pdf_extract` guarda l'evidenza grafica, `text_filter` il significato "
+"({doc}`../../reference/design/segments`)."
 
 #: ../../source/guides/formats/selections.md:63
 msgid "Finding out which selection to write"
-msgstr ""
+msgstr "Scoprire quale selezione scrivere"
 
 #: ../../source/guides/formats/selections.md:64
 msgid ""
-"The line-set modes of `inspect-page` exist for exactly this, and are the "
-"fastest way to learn what font and size a value is actually set in:"
+"The line-set modes of `inspect-page` exist for exactly this, and are the fastest way "
+"to learn what font and size a value is actually set in:"
 msgstr ""
+"Le modalità di insieme di righe di `inspect-page` esistono esattamente per questo, e "
+"sono il modo più rapido di sapere in quale carattere e in quale corpo è composto "
+"davvero un valore:"
 
 #: ../../source/guides/formats/selections.md:71
 #, python-brace-format
 msgid ""
-"It searches the page for those strings and prints the lines that match, "
-"as that level's selection machinery sees them. {doc}`dev-loop`."
+"It searches the page for those strings and prints the lines that match, as that "
+"level's selection machinery sees them. {doc}`dev-loop`."
 msgstr ""
+"Cerca quelle stringhe nella pagina e stampa le righe che corrispondono, così come le "
+"vede il meccanismo di selezione di quel livello. {doc}`dev-loop`."
 

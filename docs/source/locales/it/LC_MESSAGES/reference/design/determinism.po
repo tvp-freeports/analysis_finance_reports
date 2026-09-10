@@ -21,156 +21,184 @@ msgstr ""
 
 #: ../../source/reference/design/determinism.md:1
 msgid "Determinism and observable order"
-msgstr ""
+msgstr "Determinismo e ordine osservabile"
 
 #: ../../source/reference/design/determinism.md:3
 msgid ""
-"*Implemented.* What the engine guarantees about order, what it does not, "
-"and why the guarantee was deliberately weakened in exactly one place."
+"*Implemented.* What the engine guarantees about order, what it does not, and why the "
+"guarantee was deliberately weakened in exactly one place."
 msgstr ""
+"*Realizzato.* Che cosa il motore garantisce sull'ordine, che cosa non garantisce, e "
+"perché la garanzia sia stata deliberatamente indebolita in un punto solo."
 
 #: ../../source/reference/design/determinism.md:6
 msgid "Ordered maps where order is observable"
-msgstr ""
+msgstr "Mappe ordinate dove l'ordine è osservabile"
 
 #: ../../source/reference/design/determinism.md:8
 msgid ""
-"Promise maps, schedule steps and pipe order all use **insertion or key "
-"order**, never hash order."
+"Promise maps, schedule steps and pipe order all use **insertion or key order**, never"
+" hash order."
 msgstr ""
+"Le mappe delle promesse, i passi della pianificazione e l'ordine delle pipe usano "
+"tutti **l'ordine di inserimento o di chiave**, mai l'ordine di hash."
 
 #: ../../source/reference/design/determinism.md:10
 msgid ""
-"**Rejected: hash maps**, which are faster and were what the Python "
-"original used for some of these."
+"**Rejected: hash maps**, which are faster and were what the Python original used for "
+"some of these."
 msgstr ""
+"**Scartate: le mappe hash**, che sono più rapide ed erano ciò che l'originale in "
+"Python usava per alcune di queste."
 
 #: ../../source/reference/design/determinism.md:12
 msgid ""
-"The cost of hash order is not correctness but **reproducibility**, in two"
-" specific ways:"
+"The cost of hash order is not correctness but **reproducibility**, in two specific "
+"ways:"
 msgstr ""
+"Il costo dell'ordine di hash non è la correttezza ma la **riproducibilità**, in due "
+"modi precisi:"
 
 #: ../../source/reference/design/determinism.md:14
 msgid "the order pages are processed in determines the order of the output rows;"
-msgstr ""
+msgstr "l'ordine in cui le pagine sono lavorate determina l'ordine delle righe di risultato;"
 
 #: ../../source/reference/design/determinism.md:15
-msgid ""
-"the order ids are visited in determines **which cycle** a promise failure"
-" reports."
+msgid "the order ids are visited in determines **which cycle** a promise failure reports."
 msgstr ""
+"l'ordine in cui gli identificatori sono visitati determina **quale ciclo** riferisce "
+"un guasto di promessa."
 
 #: ../../source/reference/design/determinism.md:17
 msgid ""
-"A test that passes four times out of five is worse than a slower map. An "
-"error message that names a different cycle on each run cannot be "
-"asserted, so it stops being tested, so it stops being maintained."
+"A test that passes four times out of five is worse than a slower map. An error "
+"message that names a different cycle on each run cannot be asserted, so it stops "
+"being tested, so it stops being maintained."
 msgstr ""
+"Un test che passa quattro volte su cinque è peggio di una mappa più lenta. Un "
+"messaggio d'errore che nomina un ciclo diverso a ogni esecuzione non si può asserire,"
+" quindi smette di essere provato, quindi smette di essere mantenuto."
 
 #: ../../source/reference/design/determinism.md:21
 msgid "What determinism guarantees"
-msgstr ""
+msgstr "Che cosa garantisce il determinismo"
 
 #: ../../source/reference/design/determinism.md
 msgid "Guaranteed"
-msgstr ""
+msgstr "Garantito"
 
 #: ../../source/reference/design/determinism.md
 msgid "output tables"
-msgstr ""
+msgstr "tabelle di risultato"
 
 #: ../../source/reference/design/determinism.md
 msgid "**byte-identical** regardless of the parallelism settings"
-msgstr ""
+msgstr "**identiche byte per byte** a prescindere dalle impostazioni di parallelismo"
 
 #: ../../source/reference/design/determinism.md
 msgid "row order within a table"
-msgstr ""
+msgstr "ordine delle righe dentro una tabella"
 
 #: ../../source/reference/design/determinism.md
 msgid "deterministic for the same inputs"
-msgstr ""
+msgstr "deterministico a parità di ingressi"
 
 #: ../../source/reference/design/determinism.md
 msgid "the cycle a promise error reports"
-msgstr ""
+msgstr "il ciclo che riferisce un errore di promessa"
 
 #: ../../source/reference/design/determinism.md
 msgid "the same cycle every time"
-msgstr ""
+msgstr "lo stesso ciclo ogni volta"
 
 #: ../../source/reference/design/determinism.md
 msgid "`.log.csv` rows"
-msgstr ""
+msgstr "righe di `.log.csv`"
 
 #: ../../source/reference/design/determinism.md
 msgid "sorted, and identical between one worker and many"
-msgstr ""
+msgstr "ordinate, e identiche fra un worker e molti"
 
 #: ../../source/reference/design/determinism.md:29
 msgid ""
-"The first is the strong one, and it is tested rather than asserted: the "
-"same run at one worker and at N produces the same files, checked in the "
-"integration suite and by checksum against the formats repository's "
-"reference outputs."
+"The first is the strong one, and it is tested rather than asserted: the same run at "
+"one worker and at N produces the same files, checked in the integration suite and by "
+"checksum against the formats repository's reference outputs."
 msgstr ""
+"La prima è quella forte, ed è provata anziché asserita: la stessa esecuzione a un "
+"worker e a N produce gli stessi file, controllato nella suite di integrazione e per "
+"checksum contro i risultati di riferimento del repository di formati."
 
 #: ../../source/reference/design/determinism.md:33
 msgid "The one place determinism was relaxed"
-msgstr ""
+msgstr "L'unico punto in cui il determinismo è stato allentato"
 
 #: ../../source/reference/design/determinism.md:34
 msgid ""
-"Byte-for-byte determinism was the original requirement for the parallel "
-"work. It was relaxed, on purpose, to **semantic equivalence**: the "
-"parallel output must contain the same data, not necessarily in the same "
-"order."
+"Byte-for-byte determinism was the original requirement for the parallel work. It was "
+"relaxed, on purpose, to **semantic equivalence**: the parallel output must contain "
+"the same data, not necessarily in the same order."
 msgstr ""
+"Il determinismo byte per byte era il requisito originario per il lavoro parallelo. È "
+"stato allentato, apposta, a **equivalenza semantica**: i risultati paralleli devono "
+"contenere gli stessi dati, non necessariamente nello stesso ordine."
 
 #: ../../source/reference/design/determinism.md:38
 msgid ""
-"The relaxation was needed because a strict reading would have excluded "
-"the cheapest collection strategies. What happened next is worth "
-"recording:"
+"The relaxation was needed because a strict reading would have excluded the cheapest "
+"collection strategies. What happened next is worth recording:"
 msgstr ""
+"L'allentamento serviva perché una lettura stretta avrebbe escluso le strategie di "
+"raccolta più economiche. Ciò che è successo dopo vale la pena registrarlo:"
 
 #: ../../source/reference/design/determinism.md:41
 msgid ""
-"**The licence to diverge was taken and then not used.** Results from jobs"
-" are collected in **indexed slots**, which costs nothing, so the "
-"aggregated tables stay byte-identical anyway. The margin was spent only "
-"on **merging log files**, where the children's lines are poured into the "
-"parent's in job order rather than in the instant they happened."
+"**The licence to diverge was taken and then not used.** Results from jobs are "
+"collected in **indexed slots**, which costs nothing, so the aggregated tables stay "
+"byte-identical anyway. The margin was spent only on **merging log files**, where the "
+"children's lines are poured into the parent's in job order rather than in the instant"
+" they happened."
 msgstr ""
+"**La licenza di divergere è stata presa e poi non usata.** I risultati dei job sono "
+"raccolti in **caselle indicizzate**, cosa che non costa niente, quindi le tabelle "
+"aggregate restano comunque identiche byte per byte. Il margine è stato speso solo "
+"nell'**unione dei file di registro**, dove le righe dei figli sono versate in quelle "
+"del padre nell'ordine dei job anziché nell'istante in cui sono accadute."
 
 #: ../../source/reference/design/determinism.md:46
 msgid ""
-"That is the ideal outcome for that kind of permission, and it is why "
-"reference outputs remain comparable by checksum even though the "
-"constraint that protected them was formally dropped."
+"That is the ideal outcome for that kind of permission, and it is why reference "
+"outputs remain comparable by checksum even though the constraint that protected them "
+"was formally dropped."
 msgstr ""
+"È l'esito ideale per un permesso del genere, ed è il motivo per cui i risultati di "
+"riferimento restano confrontabili per checksum benché il vincolo che li proteggeva "
+"sia stato formalmente lasciato cadere."
 
 #: ../../source/reference/design/determinism.md:49
 msgid "What determinism does not guarantee"
-msgstr ""
+msgstr "Che cosa il determinismo non garantisce"
 
 #: ../../source/reference/design/determinism.md:50
 msgid ""
-"**The interleaving of log lines across concurrent jobs.** Two jobs "
-"running at once produce lines in whatever order they happen; the merge "
-"restores job order at the end, not the original instants."
+"**The interleaving of log lines across concurrent jobs.** Two jobs running at once "
+"produce lines in whatever order they happen; the merge restores job order at the end,"
+" not the original instants."
 msgstr ""
+"**L'intreccio delle righe di registro fra job contemporanei.** Due job che girano "
+"insieme producono righe nell'ordine in cui accadono; l'unione ristabilisce alla fine "
+"l'ordine dei job, non gli istanti originari."
 
 #: ../../source/reference/design/determinism.md:53
 msgid "**Wall-clock timing in the logs**, obviously."
-msgstr ""
+msgstr "**I tempi dell'orologio a muro nei registri**, ovviamente."
 
 #: ../../source/reference/design/determinism.md:55
 #, python-brace-format
 msgid ""
-"**That a page is processed on any particular thread or process**, which "
-"nothing downstream may depend on — that is the whole content of "
-"{doc}`pages`."
+"**That a page is processed on any particular thread or process**, which nothing "
+"downstream may depend on — that is the whole content of {doc}`pages`."
 msgstr ""
+"**Che una pagina sia lavorata su un particolare thread o processo**, da cui niente a "
+"valle può dipendere — è tutto il contenuto di {doc}`pages`."
 

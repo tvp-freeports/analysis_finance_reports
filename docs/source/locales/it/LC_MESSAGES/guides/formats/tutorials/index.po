@@ -21,104 +21,128 @@ msgstr ""
 
 #: ../../source/guides/formats/tutorials/index.md:1
 msgid "Tutorials"
-msgstr ""
+msgstr "Tutorial"
 
 #: ../../source/guides/formats/tutorials/index.md:3
 msgid ""
-"The rest of this area is reference: it tells you what exists and what it "
-"means. These two pages are the other thing — someone walking you through "
-"the work, on a real report, with the commands and their actual output."
+"The rest of this area is reference: it tells you what exists and what it means. These"
+" two pages are the other thing — someone walking you through the work, on a real "
+"report, with the commands and their actual output."
 msgstr ""
+"Il resto di quest'area è riferimento: dice che cosa esiste e che cosa significa. "
+"Queste due pagine sono l'altra cosa — qualcuno che ti accompagna nel lavoro, su una "
+"relazione vera, con i comandi e ciò che stampano davvero."
 
 #: ../../source/guides/formats/tutorials/index.md:7
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/guides/formats/tutorials/index.md:7
 msgid "For when"
-msgstr ""
+msgstr "Per quando"
 
 #: ../../source/guides/formats/tutorials/index.md:7
 #, python-brace-format
 msgid "{doc}`first-format`"
-msgstr ""
+msgstr "{doc}`first-format`"
 
 #: ../../source/guides/formats/tutorials/index.md:7
 msgid "a report is not supported and you want to support it"
-msgstr ""
+msgstr "una relazione non è supportata e vuoi supportarla"
 
 #: ../../source/guides/formats/tutorials/index.md:7
 #, python-brace-format
 msgid "{doc}`diagnosing-a-format`"
-msgstr ""
+msgstr "{doc}`diagnosing-a-format`"
 
 #: ../../source/guides/formats/tutorials/index.md:7
 msgid "a format already runs, and something in the output is wrong"
-msgstr ""
+msgstr "un formato gira già, e qualcosa nei risultati è sbagliato"
 
 #: ../../source/guides/formats/tutorials/index.md:20
 msgid "Read this before you decide it is not for you"
-msgstr ""
+msgstr "Leggi questo prima di decidere che non fa per te"
 
 #: ../../source/guides/formats/tutorials/index.md:22
 #, python-brace-format
 msgid ""
-"Adding a format looks like it should require understanding the engine. It"
-" does not, and that is a design decision rather than a happy accident: "
-"formats live outside the engine precisely so that the people who know "
-"what a fund report *means* do not have to know how a PDF is taken apart "
-"({doc}`../../../reference/design/formats-as-plugins`)."
+"Adding a format looks like it should require understanding the engine. It does not, "
+"and that is a design decision rather than a happy accident: formats live outside the "
+"engine precisely so that the people who know what a fund report *means* do not have "
+"to know how a PDF is taken apart ({doc}`../../../reference/design/formats-as-"
+"plugins`)."
 msgstr ""
+"Aggiungere un formato sembra dover richiedere di capire il motore. Non è così, ed è "
+"una decisione di progetto anziché un caso fortunato: i formati vivono fuori dal "
+"motore proprio perché chi sa che cosa *significhi* la relazione di un fondo non debba"
+" sapere come si smonta un PDF ({doc}`../../../reference/design/formats-as-plugins`)."
 
 #: ../../source/guides/formats/tutorials/index.md:27
 msgid ""
-"Concretely, what a simple format costs is **one row in a spreadsheet**. "
-"Here is a real one, the whole extraction configuration for a Luxembourg "
-"fund report:"
+"Concretely, what a simple format costs is **one row in a spreadsheet**. Here is a "
+"real one, the whole extraction configuration for a Luxembourg fund report:"
 msgstr ""
+"In concreto, un formato semplice costa **una riga in un foglio di calcolo**. Eccone "
+"una vera, l'intera configurazione di estrazione per la relazione di un fondo "
+"lussemburghese:"
 
 #: ../../source/guides/formats/tutorials/index.md:35
 #, python-brace-format
 msgid ""
-"Those trailing numbers are column positions in the report's table, and "
-"there is a command that prints the table with its columns numbered so "
-"that you can read them off. That is the level of difficulty we are "
-"talking about. {doc}`first-format` does exactly this row, from scratch."
+"Those trailing numbers are column positions in the report's table, and there is a "
+"command that prints the table with its columns numbered so that you can read them "
+"off. That is the level of difficulty we are talking about. {doc}`first-format` does "
+"exactly this row, from scratch."
 msgstr ""
+"Quei numeri in coda sono posizioni di colonna nella tabella della relazione, e c'è un"
+" comando che stampa la tabella con le colonne numerate così che tu possa leggerli lì."
+" È questo il livello di difficoltà di cui stiamo parlando. {doc}`first-format` fa "
+"esattamente questa riga, da zero."
 
 #: ../../source/guides/formats/tutorials/index.md:39
 #, python-brace-format
 msgid ""
-"Some reports are genuinely awkward, and for those you can drop to writing"
-" Python — but you drop only the one segment that needs it, and you keep "
-"inheriting the rest ({doc}`../writing-a-format`). Nobody starts there."
+"Some reports are genuinely awkward, and for those you can drop to writing Python — "
+"but you drop only the one segment that needs it, and you keep inheriting the rest "
+"({doc}`../writing-a-format`). Nobody starts there."
 msgstr ""
+"Certe relazioni sono davvero scomode, e per quelle si può scendere a scrivere del "
+"Python — ma scendi solo per il singolo segmento che ne ha bisogno, e continui a "
+"ereditare il resto ({doc}`../writing-a-format`). Nessuno comincia da lì."
 
 #: ../../source/guides/formats/tutorials/index.md:43
 msgid "The three habits that save the most time"
-msgstr ""
+msgstr "Le tre abitudini che fanno risparmiare più tempo"
 
 #: ../../source/guides/formats/tutorials/index.md:45
 msgid ""
-"**Get classification right before anything else.** Which pages the engine"
-" even looks at is decided first, and everything downstream is meaningless"
-" until it is right. Debugging the extraction of a page that was never "
-"selected is the classic way to lose an afternoon."
+"**Get classification right before anything else.** Which pages the engine even looks "
+"at is decided first, and everything downstream is meaningless until it is right. "
+"Debugging the extraction of a page that was never selected is the classic way to lose"
+" an afternoon."
 msgstr ""
+"**Fa' venire giusta la classificazione prima di ogni altra cosa.** Quali pagine il "
+"motore guardi si decide per primo, e tutto ciò che viene dopo è privo di senso finché"
+" non è giusto. Fare il debug dell'estrazione di una pagina che non è mai stata "
+"selezionata è il modo classico di perdere un pomeriggio."
 
 #: ../../source/guides/formats/tutorials/index.md:49
 msgid ""
-"**Let the tool tell you which segment is wrong.** A page goes through "
-"three stages and you can print the output of each one. *\"The page is "
-"wrong\"* has no handle on it; *\"the second stage dropped these rows\"* "
-"has one."
+"**Let the tool tell you which segment is wrong.** A page goes through three stages "
+"and you can print the output of each one. *\"The page is wrong\"* has no handle on "
+"it; *\"the second stage dropped these rows\"* has one."
 msgstr ""
+"**Lascia che sia lo strumento a dirti quale segmento è sbagliato.** Una pagina "
+"attraversa tre stadi e di ciascuno puoi stampare i risultati. Su *\"la pagina è "
+"sbagliata\"* non c'è presa; su *\"il secondo stadio ha scartato queste righe\"* sì."
 
 #: ../../source/guides/formats/tutorials/index.md:53
 msgid ""
-"**Look at what you are about to freeze.** `make-tests` records what the "
-"code does *right now*. Read its output before confirming: a wrong result "
-"you confirm becomes the specification, and from then on the test defends "
-"the bug."
+"**Look at what you are about to freeze.** `make-tests` records what the code does "
+"*right now*. Read its output before confirming: a wrong result you confirm becomes "
+"the specification, and from then on the test defends the bug."
 msgstr ""
+"**Guarda ciò che stai per congelare.** `make-tests` registra ciò che il codice fa "
+"*adesso*. Leggi ciò che stampa prima di confermare: un risultato sbagliato che "
+"confermi diventa la specifica, e da lì in poi è il test a difendere il difetto."
 

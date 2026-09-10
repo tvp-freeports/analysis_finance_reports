@@ -21,297 +21,349 @@ msgstr ""
 
 #: ../../source/guides/formats/writing-a-format.md:1
 msgid "Writing a format"
-msgstr ""
+msgstr "Scrivere un formato"
 
 #: ../../source/guides/formats/writing-a-format.md:3
 msgid ""
-"The path from *\"this PDF is not supported\"* to *\"this PDF is supported"
-" and the tests say so\"*."
+"The path from *\"this PDF is not supported\"* to *\"this PDF is supported and the "
+"tests say so\"*."
 msgstr ""
+"Il percorso da *\"questo PDF non è supportato\"* a *\"questo PDF è supportato e i "
+"test lo dicono\"*."
 
 #: ../../source/guides/formats/writing-a-format.md:5
 msgid "Before anything: choosing a level"
-msgstr ""
+msgstr "Prima di tutto: scegliere un livello"
 
 #: ../../source/guides/formats/writing-a-format.md:6
 #, python-brace-format
 msgid ""
-"A format specifies, for each page class it cares about, up to three "
-"segments ({doc}`../../reference/design/segments`). There are three "
-"**levels** at which a segment can be specified, and they differ only in "
-"how much of the algorithm you supply yourself:"
+"A format specifies, for each page class it cares about, up to three segments "
+"({doc}`../../reference/design/segments`). There are three **levels** at which a "
+"segment can be specified, and they differ only in how much of the algorithm you "
+"supply yourself:"
 msgstr ""
+"Un formato specifica, per ogni classe di pagina che gli interessa, fino a tre "
+"segmenti ({doc}`../../reference/design/segments`). Ci sono tre **livelli** ai quali "
+"si può specificare un segmento, e differiscono solo per quanta parte dell'algoritmo "
+"metti tu:"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "Level"
-msgstr ""
+msgstr "Livello"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "The algorithm"
-msgstr ""
+msgstr "L'algoritmo"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "Its parameters"
-msgstr ""
+msgstr "I suoi parametri"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "You write"
-msgstr ""
+msgstr "Tu scrivi"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "**structured**"
-msgstr ""
+msgstr "**structured**"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "in the library, fixed"
-msgstr ""
+msgstr "nella libreria, fisso"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "columns of a CSV"
-msgstr ""
+msgstr "colonne di un CSV"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "rows in a spreadsheet"
-msgstr ""
+msgstr "righe in un foglio di calcolo"
 
 #: ../../source/guides/formats/writing-a-format.md
 #, python-brace-format
 msgid "{doc}`advanced/structured`"
-msgstr ""
+msgstr "{doc}`advanced/structured`"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "**semistructured**"
-msgstr ""
+msgstr "**semistructured**"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "in the library *by name*, or your own"
-msgstr ""
+msgstr "nella libreria *per nome*, oppure tuo"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "YAML"
-msgstr ""
+msgstr "YAML"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "a name and a configuration"
-msgstr ""
+msgstr "un nome e una configurazione"
 
 #: ../../source/guides/formats/writing-a-format.md
 #, python-brace-format
 msgid "{doc}`advanced/semistructured`"
-msgstr ""
+msgstr "{doc}`advanced/semistructured`"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "**unstructured**"
-msgstr ""
+msgstr "**unstructured**"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "in the repository"
-msgstr ""
+msgstr "nel repository"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "in the code"
-msgstr ""
+msgstr "nel codice"
 
 #: ../../source/guides/formats/writing-a-format.md
 msgid "Python"
-msgstr ""
+msgstr "Python"
 
 #: ../../source/guides/formats/writing-a-format.md
 #, python-brace-format
 msgid "{doc}`advanced/unstructured`"
-msgstr ""
+msgstr "{doc}`advanced/unstructured`"
 
 #: ../../source/guides/formats/writing-a-format.md:16
 msgid ""
-"They **add up** rather than exclude one another, and mixing them is the "
-"normal case — structured extraction with unstructured filtering, say. "
-"Merging happens by summing the **same-named** pipelines of the three "
-"levels."
+"They **add up** rather than exclude one another, and mixing them is the normal case —"
+" structured extraction with unstructured filtering, say. Merging happens by summing "
+"the **same-named** pipelines of the three levels."
 msgstr ""
+"**Si sommano** anziché escludersi a vicenda, e mescolarli è il caso normale — "
+"estrazione strutturata con filtraggio non strutturato, per dire. La fusione avviene "
+"sommando le pipeline **con lo stesso nome** dei tre livelli."
 
 #: ../../source/guides/formats/writing-a-format.md:20
 msgid ""
-"Start at the most constrained level that works and drop down only where "
-"you must. A report whose investment table is perfectly ordinary may still"
-" name its funds in a way nothing can parameterise; inheriting two "
-"segments and writing the third is what keeps a hard format from costing "
-"three times a simple one."
+"Start at the most constrained level that works and drop down only where you must. A "
+"report whose investment table is perfectly ordinary may still name its funds in a way"
+" nothing can parameterise; inheriting two segments and writing the third is what "
+"keeps a hard format from costing three times a simple one."
 msgstr ""
+"Comincia dal livello più vincolato che funzioni e scendi solo dove devi. Una "
+"relazione con una tabella degli investimenti perfettamente ordinaria può comunque "
+"nominare i propri fondi in un modo che niente riesce a parametrizzare; ereditare due "
+"segmenti e scrivere il terzo è ciò che impedisce a un formato difficile di costare il"
+" triplo di uno semplice."
 
 #: ../../source/guides/formats/writing-a-format.md:25
 msgid "1. Declare the format"
-msgstr ""
+msgstr "1. Dichiarare il formato"
 
 #: ../../source/guides/formats/writing-a-format.md:27
-msgid ""
-"Add a row to `metadata/formats.csv`, by **components** rather than by "
-"name:"
-msgstr ""
+msgid "Add a row to `metadata/formats.csv`, by **components** rather than by name:"
+msgstr "Aggiungi una riga a `metadata/formats.csv`, per **componenti** anziché per nome:"
 
 #: ../../source/guides/formats/writing-a-format.md:34
 #, python-brace-format
 msgid ""
-"The name every other file refers to — `CARNE-EN23` — is synthesised as "
-"`Name-Locale<YY>[@Country][.Version]` and written nowhere else, so a name"
-" and its components cannot disagree. See {doc}`repository`."
+"The name every other file refers to — `CARNE-EN23` — is synthesised as `Name-"
+"Locale<YY>[@Country][.Version]` and written nowhere else, so a name and its "
+"components cannot disagree. See {doc}`repository`."
 msgstr ""
+"Il nome a cui si riferisce ogni altro file — `CARNE-EN23` — è sintetizzato come "
+"`Nome-Locale<AA>[@Paese][.Versione]` e non è scritto da nessun'altra parte, quindi un"
+" nome e le sue componenti non possono contraddirsi. Vedi {doc}`repository`."
 
 #: ../../source/guides/formats/writing-a-format.md:38
 msgid ""
-"If the reports come from a stable address, add a prefix to "
-"`metadata/url_mapping.csv` so the format is inferred without `--format`."
+"If the reports come from a stable address, add a prefix to `metadata/url_mapping.csv`"
+" so the format is inferred without `--format`."
 msgstr ""
+"Se le relazioni vengono da un indirizzo stabile, aggiungi un prefisso a "
+"`metadata/url_mapping.csv` così che il formato sia dedotto senza `--format`."
 
 #: ../../source/guides/formats/writing-a-format.md:41
 msgid "2. Put the report and the test companies in place"
-msgstr ""
+msgstr "2. Mettere a posto la relazione e le società di prova"
 
 #: ../../source/guides/formats/writing-a-format.md:47
 msgid "and, once per repository, `freeports-dev setup-input-db`."
-msgstr ""
+msgstr "e, una volta per repository, `freeports-dev setup-input-db`."
 
 #: ../../source/guides/formats/writing-a-format.md:49
 msgid "3. Find out which pages matter"
-msgstr ""
+msgstr "3. Scoprire quali pagine contano"
 
 #: ../../source/guides/formats/writing-a-format.md:55
 msgid ""
-"Nothing is classified yet, so everything comes back `unclassified` — that"
-" is the starting point, not a failure. Open the PDF, find a page of the "
-"table you want, and note what makes it recognisable: a header, a font, a "
-"phrase."
+"Nothing is classified yet, so everything comes back `unclassified` — that is the "
+"starting point, not a failure. Open the PDF, find a page of the table you want, and "
+"note what makes it recognisable: a header, a font, a phrase."
 msgstr ""
+"Non è ancora classificato niente, quindi torna tutto come `unclassified` — è il punto"
+" di partenza, non un guasto. Apri il PDF, trova una pagina della tabella che vuoi, e "
+"annota che cosa la rende riconoscibile: un'intestazione, un carattere, una frase."
 
 #: ../../source/guides/formats/writing-a-format.md:59
 msgid "4. Classify"
-msgstr ""
+msgstr "4. Classificare"
 
 #: ../../source/guides/formats/writing-a-format.md:61
 msgid ""
-"Write the classification rows or pipe, then run `inspect-document` again "
-"until the right pages carry the right class. At the structured level this"
-" is two or three rows:"
+"Write the classification rows or pipe, then run `inspect-document` again until the "
+"right pages carry the right class. At the structured level this is two or three rows:"
 msgstr ""
+"Scrivi le righe di classificazione o la pipe, poi esegui di nuovo `inspect-document` "
+"finché le pagine giuste non portano la classe giusta. Al livello structured sono due "
+"o tre righe:"
 
 #: ../../source/guides/formats/writing-a-format.md:70
 msgid ""
-"Rows sharing an id describe **one** pipe, and a page belongs to the class"
-" if it contains **all** of them."
+"Rows sharing an id describe **one** pipe, and a page belongs to the class if it "
+"contains **all** of them."
 msgstr ""
+"Le righe che condividono un id descrivono **una sola** pipe, e una pagina appartiene "
+"alla classe se le contiene **tutte**."
 
 #: ../../source/guides/formats/writing-a-format.md:73
 #, python-brace-format
 msgid ""
-"**Do not go further until this is right.** Chasing the extraction of a "
-"page the engine never selected is the single most common way to lose an "
-"afternoon ({doc}`../../reference/design/classification`)."
+"**Do not go further until this is right.** Chasing the extraction of a page the "
+"engine never selected is the single most common way to lose an afternoon "
+"({doc}`../../reference/design/classification`)."
 msgstr ""
+"**Non andare oltre finché non è giusto.** Inseguire l'estrazione di una pagina che il"
+" motore non ha mai selezionato è il modo più comune in assoluto di perdere un "
+"pomeriggio ({doc}`../../reference/design/classification`)."
 
 #: ../../source/guides/formats/writing-a-format.md:77
 msgid "5. Schedule the class"
-msgstr ""
+msgstr "5. Pianificare la classe"
 
 #: ../../source/guides/formats/writing-a-format.md:79
 msgid ""
 "A class no step mentions is an **error**, so add it to "
 "`content/orchestration/algorithms_schedule.csv`:"
 msgstr ""
+"Una classe che nessun passo nomina è un **errore**, quindi aggiungila a "
+"`content/orchestration/algorithms_schedule.csv`:"
 
 #: ../../source/guides/formats/writing-a-format.md:86
 #, python-brace-format
 msgid ""
-"Raise `Filter next iteration` on the last class of a step when what that "
-"step finds should filter the next one "
-"({doc}`../../reference/design/schedule`)."
+"Raise `Filter next iteration` on the last class of a step when what that step finds "
+"should filter the next one ({doc}`../../reference/design/schedule`)."
 msgstr ""
+"Alza `Filter next iteration` sull'ultima classe di un passo quando ciò che quel passo"
+" trova deve filtrare il successivo ({doc}`../../reference/design/schedule`)."
 
 #: ../../source/guides/formats/writing-a-format.md:89
 msgid "6. Extract, one segment at a time"
-msgstr ""
+msgstr "6. Estrarre, un segmento per volta"
 
 #: ../../source/guides/formats/writing-a-format.md:97
 #, python-brace-format
 msgid ""
-"In that order. Each mode shows what one segment made of the page, so a "
-"wrong result tells you **which segment** is wrong rather than that the "
-"page is wrong. {doc}`dev-loop`."
+"In that order. Each mode shows what one segment made of the page, so a wrong result "
+"tells you **which segment** is wrong rather than that the page is wrong. {doc}`dev-"
+"loop`."
 msgstr ""
+"In quell'ordine. Ogni modalità mostra che cosa un segmento ha fatto della pagina, "
+"così un risultato sbagliato ti dice **quale segmento** è sbagliato anziché che è "
+"sbagliata la pagina. {doc}`dev-loop`."
 
 #: ../../source/guides/formats/writing-a-format.md:100
 #, python-brace-format
 msgid ""
-"Most of what you write here is a **selection** — a predicate over the "
-"lines of a page. {doc}`selections`."
+"Most of what you write here is a **selection** — a predicate over the lines of a "
+"page. {doc}`selections`."
 msgstr ""
+"Quasi tutto ciò che scrivi qui è una **selezione** — un predicato sulle righe di una "
+"pagina. {doc}`selections`."
 
 #: ../../source/guides/formats/writing-a-format.md:103
 msgid "7. Freeze it"
-msgstr ""
+msgstr "7. Congelarlo"
 
 #: ../../source/guides/formats/writing-a-format.md:109
 msgid ""
-"Three JSON fixtures for that page, one per segment. Read what it prints "
-"before confirming: `make-tests` records *what the code does now*, so "
-"confirming a wrong result promotes a bug into the specification and the "
-"test will then defend it."
+"Three JSON fixtures for that page, one per segment. Read what it prints before "
+"confirming: `make-tests` records *what the code does now*, so confirming a wrong "
+"result promotes a bug into the specification and the test will then defend it."
 msgstr ""
+"Tre fixture JSON per quella pagina, una per segmento. Leggi ciò che stampa prima di "
+"confermare: `make-tests` registra *ciò che il codice fa adesso*, quindi confermare un"
+" risultato sbagliato promuove un difetto a specifica e da lì in poi sarà il test a "
+"difenderlo."
 
 #: ../../source/guides/formats/writing-a-format.md:113
 msgid ""
-"Repeat for a handful of representative pages — the first page of a table,"
-" a continuation page, a page with an awkward row."
+"Repeat for a handful of representative pages — the first page of a table, a "
+"continuation page, a page with an awkward row."
 msgstr ""
+"Ripeti per una manciata di pagine rappresentative — la prima pagina di una tabella, "
+"una pagina di continuazione, una pagina con una riga scomoda."
 
 #: ../../source/guides/formats/writing-a-format.md:116
 msgid "8. Run the whole document"
-msgstr ""
+msgstr "8. Eseguire l'intero documento"
 
 #: ../../source/guides/formats/writing-a-format.md:122
 msgid ""
-"The per-page tests are fast. The whole-document test compares the output "
-"tables against `tests/formats/CARNE-EN23/out/`, and the first time there "
-"is nothing to compare against: generate it deliberately, **after reading "
-"it**, because from then on it is the format's specification and not a "
-"snapshot."
+"The per-page tests are fast. The whole-document test compares the output tables "
+"against `tests/formats/CARNE-EN23/out/`, and the first time there is nothing to "
+"compare against: generate it deliberately, **after reading it**, because from then on"
+" it is the format's specification and not a snapshot."
 msgstr ""
+"I test per pagina sono rapidi. Il test sull'intero documento confronta le tabelle di "
+"risultato con `tests/formats/CARNE-EN23/out/`, e la prima volta non c'è niente con "
+"cui confrontarle: generalo deliberatamente, **dopo averlo letto**, perché da lì in "
+"poi è la specifica del formato e non un'istantanea."
 
 #: ../../source/guides/formats/writing-a-format.md:127
 msgid "9. Vouch for it"
-msgstr ""
+msgstr "9. Risponderne"
 
 #: ../../source/guides/formats/writing-a-format.md:129
 #, python-brace-format
 msgid ""
-"The reference output of a format is a claim about the world. The project "
-"records who is making it and on what basis — {doc}`../../overview/trust` "
-"for the mechanism, {doc}`../../reference/cli/index` for the commands."
+"The reference output of a format is a claim about the world. The project records who "
+"is making it and on what basis — {doc}`../../overview/trust` for the mechanism, "
+"{doc}`../../reference/cli/index` for the commands."
 msgstr ""
+"I risultati di riferimento di un formato sono un'affermazione sul mondo. Il progetto "
+"registra chi la sta facendo e su quale base — {doc}`../../overview/trust` per il "
+"meccanismo, {doc}`../../reference/cli/index` per i comandi."
 
 #: ../../source/guides/formats/writing-a-format.md:132
 msgid "Two rules about matching and unresolved pages"
-msgstr ""
+msgstr "Due regole sul riconoscimento e sulle pagine non risolte"
 
 #: ../../source/guides/formats/writing-a-format.md:133
 #, python-brace-format
 msgid ""
-"**Company matching is first-match-wins, in file order.** The input "
-"database's order is meaningful, not incidental. A format that seems to "
-"attribute a holding to the wrong company is often reporting a database "
-"problem rather than an extraction one. See {doc}`../input-db/index`."
+"**Company matching is first-match-wins, in file order.** The input database's order "
+"is meaningful, not incidental. A format that seems to attribute a holding to the "
+"wrong company is often reporting a database problem rather than an extraction one. "
+"See {doc}`../input-db/index`."
 msgstr ""
+"**Il riconoscimento delle società è al primo che vince, nell'ordine del file.** "
+"L'ordine del database di ingresso è significativo, non accidentale. Un formato che "
+"sembra attribuire una posizione alla società sbagliata sta spesso segnalando un "
+"problema del database anziché dell'estrazione. Vedi {doc}`../input-db/index`."
 
 #: ../../source/guides/formats/writing-a-format.md:137
 #, python-brace-format
 msgid ""
-"**A page that cannot fully resolve is not a failed page.** Reach for a "
-"promise before reaching for a second pass. If the fund name is on the "
-"cover and the table is on page 412, the table *promises* the name and the"
-" cover supplies it. Adding an ordering constraint between pages instead "
-"gives up everything the page-as-unit assumption buys "
-"({doc}`../../reference/design/promises`)."
+"**A page that cannot fully resolve is not a failed page.** Reach for a promise before"
+" reaching for a second pass. If the fund name is on the cover and the table is on "
+"page 412, the table *promises* the name and the cover supplies it. Adding an ordering"
+" constraint between pages instead gives up everything the page-as-unit assumption "
+"buys ({doc}`../../reference/design/promises`)."
 msgstr ""
+"**Una pagina che non riesce a risolversi del tutto non è una pagina fallita.** "
+"Ricorri a una promessa prima di ricorrere a un secondo passaggio. Se il nome del "
+"fondo è in copertina e la tabella è a pagina 412, la tabella *promette* il nome e la "
+"copertina lo fornisce. Aggiungere invece un vincolo d'ordine fra le pagine butta via "
+"tutto ciò che si guadagna dall'assunzione della pagina come unità "
+"({doc}`../../reference/design/promises`)."
 

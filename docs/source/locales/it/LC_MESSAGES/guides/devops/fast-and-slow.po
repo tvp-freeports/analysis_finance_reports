@@ -21,140 +21,176 @@ msgstr ""
 
 #: ../../source/guides/devops/fast-and-slow.rst:4
 msgid "Fast and slow: the two categories"
-msgstr ""
+msgstr "Veloce e lento: le due categorie"
 
 #: ../../source/guides/devops/fast-and-slow.rst:6
 msgid "Everything this page describes rests on one split, so it comes first."
-msgstr ""
+msgstr "Tutto ciò che questa pagina descrive poggia su una divisione, quindi viene per prima."
 
 #: ../../source/guides/devops/fast-and-slow.rst:9
 msgid "Why a gate that costs a minute gates nothing"
-msgstr ""
+msgstr "Perché un gate che costa un minuto non fa da gate a niente"
 
 #: ../../source/guides/devops/fast-and-slow.rst:11
 msgid ""
-"The more often the tests, the linters and the coverage run, the more "
-"solid the tree. That is the entire argument for checking at every commit "
-"rather than at every release, and it is a good one."
+"The more often the tests, the linters and the coverage run, the more solid the tree. "
+"That is the entire argument for checking at every commit rather than at every "
+"release, and it is a good one."
 msgstr ""
+"Più spesso girano i test, i linter e la copertura, più solido è l'albero. È tutta qui"
+" l'argomentazione per controllare a ogni commit anziché a ogni rilascio, ed è buona."
 
 #: ../../source/guides/devops/fast-and-slow.rst:14
 msgid ""
-"It is also an argument that turns on itself the moment the gate costs "
-"real time. A person who waits a minute to commit commits less often. "
-"Fewer, larger commits are harder to review and harder to bisect; then "
-"somebody discovers ``--no-verify``; then the gate is a decoration. **A "
-"cheap check that runs a hundred times a week is worth more than a "
-"thorough one that runs on Fridays** — not because thoroughness does not "
+"It is also an argument that turns on itself the moment the gate costs real time. A "
+"person who waits a minute to commit commits less often. Fewer, larger commits are "
+"harder to review and harder to bisect; then somebody discovers ``--no-verify``; then "
+"the gate is a decoration. **A cheap check that runs a hundred times a week is worth "
+"more than a thorough one that runs on Fridays** — not because thoroughness does not "
 "matter, but because a check that is skipped has no value at all."
 msgstr ""
+"Ed è anche un'argomentazione che si rivolta contro sé stessa nel momento in cui il "
+"gate costa tempo vero. Una persona che aspetta un minuto per fare commit fa commit "
+"meno spesso. Commit meno numerosi e più grandi sono più difficili da rivedere e più "
+"difficili da bisecare; poi qualcuno scopre ``--no-verify``; poi il gate è un "
+"ornamento. **Un controllo a buon mercato che gira cento volte a settimana vale più di"
+" uno accurato che gira il venerdì** — non perché l'accuratezza non conti, ma perché "
+"un controllo che viene saltato non ha alcun valore."
 
 #: ../../source/guides/devops/fast-and-slow.rst:20
 msgid ""
-"So the checks are sorted by **cost, not by importance**. Nothing here is "
-"optional; the question is only when it is paid for."
+"So the checks are sorted by **cost, not by importance**. Nothing here is optional; "
+"the question is only when it is paid for."
 msgstr ""
+"I controlli sono perciò ordinati per **costo, non per importanza**. Niente qui è "
+"facoltativo; la domanda è solo quando lo si paga."
 
 #: ../../source/guides/devops/fast-and-slow.rst:24
 msgid "What makes something slow"
-msgstr ""
+msgstr "Che cosa rende lenta una cosa"
 
 #: ../../source/guides/devops/fast-and-slow.rst:26
 msgid ""
-"Two different expenses, and this workspace treats them as one category "
-"because the gate has to make the same decision about both."
+"Two different expenses, and this workspace treats them as one category because the "
+"gate has to make the same decision about both."
 msgstr ""
+"Due spese diverse, e questo spazio di lavoro le tratta come un'unica categoria perché"
+" il gate deve prendere la stessa decisione su entrambe."
 
 #: ../../source/guides/devops/fast-and-slow.rst:34
 msgid "It costs time"
-msgstr ""
+msgstr "Costa tempo"
 
 #: ../../source/guides/devops/fast-and-slow.rst:35
 msgid "It needs the network"
-msgstr ""
+msgstr "Ha bisogno della rete"
 
 #: ../../source/guides/devops/fast-and-slow.rst:36
 msgid "Why it is out"
-msgstr ""
+msgstr "Perché sta fuori"
 
 #: ../../source/guides/devops/fast-and-slow.rst:37
 msgid "minutes, or seconds multiplied by every commit of a working day"
-msgstr ""
+msgstr "minuti, o secondi moltiplicati per ogni commit di una giornata di lavoro"
 
 #: ../../source/guides/devops/fast-and-slow.rst:38
 msgid ""
-"it depends on a host nobody here controls, so it can fail for a reason "
-"that has nothing to do with the commit"
+"it depends on a host nobody here controls, so it can fail for a reason that has "
+"nothing to do with the commit"
 msgstr ""
+"dipende da un host che qui nessuno controlla, quindi può fallire per un motivo che "
+"non c'entra niente con il commit"
 
 #: ../../source/guides/devops/fast-and-slow.rst:40
 msgid "Examples"
-msgstr ""
+msgstr "Esempi"
 
 #: ../../source/guides/devops/fast-and-slow.rst:41
 msgid ""
-"the instrumented Rust coverage build, the crate's integration tests and "
-"doctests, the process-per-test half of the tooling suite, a formats "
-"repository's whole-document runs"
+"the instrumented Rust coverage build, the crate's integration tests and doctests, the"
+" process-per-test half of the tooling suite, a formats repository's whole-document "
+"runs"
 msgstr ""
+"la compilazione strumentata per la copertura Rust, i test di integrazione e i doctest"
+" del crate, la metà a un processo per test della suite degli strumenti, le esecuzioni"
+" sull'intero documento di un repository di formati"
 
 #: ../../source/guides/devops/fast-and-slow.rst:43
 msgid "resolving methodology pages, looking a granter's key up on a key server"
 msgstr ""
+"risolvere le pagine di metodologia, cercare su un key server la chiave di chi ha "
+"attestato"
 
 #: ../../source/guides/devops/fast-and-slow.rst:44
 msgid "Told apart by"
-msgstr ""
+msgstr "Si distinguono per"
 
 #: ../../source/guides/devops/fast-and-slow.rst:45
 msgid "``cost`` in the registry"
-msgstr ""
+msgstr "``cost`` nel registro"
 
 #: ../../source/guides/devops/fast-and-slow.rst:46
 msgid "``online`` beside it, which only changes the *message*"
-msgstr ""
+msgstr "``online`` accanto, che cambia solo il *messaggio*"
 
 #: ../../source/guides/devops/fast-and-slow.rst:48
 msgid ""
-"They are kept apart in the tables so that a message can say *which* it is"
-" — \"run it\" and \"check your network\" are different things to tell "
-"somebody — and gated alike, because \"can this be paid for at every "
-"commit\" has the same answer for both."
+"They are kept apart in the tables so that a message can say *which* it is — \"run "
+"it\" and \"check your network\" are different things to tell somebody — and gated "
+"alike, because \"can this be paid for at every commit\" has the same answer for both."
 msgstr ""
+"Sono tenute distinte nelle tabelle così che un messaggio possa dire *quale* delle due"
+" sia — \"eseguilo\" e \"controlla la rete\" sono due cose diverse da dire a qualcuno "
+"— e sottoposte allo stesso gate, perché a \"si può pagare questo a ogni commit\" la "
+"risposta è la stessa per entrambe."
 
 #: ../../source/guides/devops/fast-and-slow.rst:52
 msgid ""
-"A check is **fast** when it runs locally, needs no network, no second "
-"toolchain and no instrumented rebuild, and costs a second or so. "
-"Everything else is slow."
+"A check is **fast** when it runs locally, needs no network, no second toolchain and "
+"no instrumented rebuild, and costs a second or so. Everything else is slow."
 msgstr ""
+"Un controllo è **veloce** quando gira in locale, non ha bisogno della rete, né di una"
+" seconda toolchain, né di una ricompilazione strumentata, e costa un secondo circa. "
+"Tutto il resto è lento."
 
 #: ../../source/guides/devops/fast-and-slow.rst:56
 msgid "What the split is *not*"
-msgstr ""
+msgstr "Che cosa la divisione *non* è"
 
 #: ../../source/guides/devops/fast-and-slow.rst:58
 msgid ""
-"It is not \"the checks\" and \"the optional checks\". It is **what this "
-"commit was checked against** and **what it was not** — and the second "
-"half is written down, at every commit, in the same table as the first."
+"It is not \"the checks\" and \"the optional checks\". It is **what this commit was "
+"checked against** and **what it was not** — and the second half is written down, at "
+"every commit, in the same table as the first."
 msgstr ""
+"Non è \"i controlli\" e \"i controlli facoltativi\". È **ciò contro cui questo commit"
+" è stato controllato** e **ciò contro cui non lo è stato** — e la seconda metà è "
+"messa per iscritto, a ogni commit, nella stessa tabella della prima."
 
 #: ../../source/guides/devops/fast-and-slow.rst:62
 msgid ""
-"That is what the rest of this page is about: every suite records its "
-"outcome *and the commit it ran at*, every slow metric records the commit "
-"it was measured at, and ``ci-check`` — which measures nothing and costs a"
-" fifth of a second — prints a suite nobody ran here as ``NOT RUN`` and a "
-"figure from an earlier commit as ``STALE``. Neither can be read as a "
-"pass, for the same reason ``unmeasured`` cannot: **something nobody "
-"established is not something that holds.**"
+"That is what the rest of this page is about: every suite records its outcome *and the"
+" commit it ran at*, every slow metric records the commit it was measured at, and "
+"``ci-check`` — which measures nothing and costs a fifth of a second — prints a suite "
+"nobody ran here as ``NOT RUN`` and a figure from an earlier commit as ``STALE``. "
+"Neither can be read as a pass, for the same reason ``unmeasured`` cannot: **something"
+" nobody established is not something that holds.**"
 msgstr ""
+"È di questo che parla il resto della pagina: ogni suite registra il proprio esito *e "
+"il commit al quale è girata*, ogni metrica lenta registra il commit al quale è stata "
+"misurata, e ``ci-check`` — che non misura niente e costa un quinto di secondo — "
+"stampa come ``NOT RUN`` una suite che qui non ha eseguito nessuno e come ``STALE`` un"
+" dato di un commit precedente. Nessuno dei due si può leggere come un superamento, "
+"per lo stesso motivo per cui non lo si può fare con ``unmeasured``: **una cosa che "
+"nessuno ha stabilito non è una cosa che vale.**"
 
 #: ../../source/guides/devops/fast-and-slow.rst:68
 msgid ""
-"On ``dev`` that is a notification and the work continues. On ``prod`` "
-"every one of them refuses, and the branch's gate is the slow one, so that"
-" nothing about a production commit is unknown."
+"On ``dev`` that is a notification and the work continues. On ``prod`` every one of "
+"them refuses, and the branch's gate is the slow one, so that nothing about a "
+"production commit is unknown."
 msgstr ""
+"Su ``dev`` è una notifica e il lavoro continua. Su ``prod`` ciascuno di essi rifiuta,"
+" e il gate di quel ramo è quello lento, così che di un commit di produzione niente "
+"sia ignoto."
 

@@ -21,132 +21,153 @@ msgstr ""
 
 #: ../../source/guides/devops/index.rst:3
 msgid "Running the checks (DevOps)"
-msgstr ""
+msgstr "Eseguire i controlli (DevOps)"
 
 #: ../../source/guides/devops/index.rst:5
 msgid ""
-"Every commit to a freeports repository is measured, and some commits are "
-"refused. This section is for whoever owns that machinery: what is "
-"measured, what refuses, and how to reproduce every figure by hand — "
-"because a threshold whose number you cannot check yourself is a threshold"
-" you will switch off the first time it is wrong."
+"Every commit to a freeports repository is measured, and some commits are refused. "
+"This section is for whoever owns that machinery: what is measured, what refuses, and "
+"how to reproduce every figure by hand — because a threshold whose number you cannot "
+"check yourself is a threshold you will switch off the first time it is wrong."
 msgstr ""
+"Ogni commit su un repository freeports è misurato, e alcuni commit sono rifiutati. "
+"Questa sezione è per chi ha in carico quel meccanismo: che cosa si misura, che cosa "
+"rifiuta, e come riprodurre a mano ogni dato — perché una soglia il cui numero non "
+"puoi controllare da te è una soglia che spegnerai la prima volta che sbaglia."
 
 #: ../../source/guides/devops/index.rst:10
 msgid ""
-"There is no Jenkins at the moment. Everything a pipeline would do runs "
-"here, as ``make`` targets, and ``make ci`` is the answer to \"what did "
-"the pipeline run\"."
+"There is no Jenkins at the moment. Everything a pipeline would do runs here, as "
+"``make`` targets, and ``make ci`` is the answer to \"what did the pipeline run\"."
 msgstr ""
+"Al momento non c'è alcun Jenkins. Tutto ciò che farebbe una pipeline gira qui, come "
+"target di ``make``, e ``make ci`` è la risposta a \"che cosa ha eseguito la "
+"pipeline\"."
 
 #: ../../source/guides/devops/index.rst:25
 msgid "What each page here answers"
-msgstr ""
+msgstr "A che cosa risponde ciascuna pagina qui"
 
 #: ../../source/guides/devops/index.rst:31
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/guides/devops/index.rst:32
 msgid "Answers"
-msgstr ""
+msgstr "Risponde a"
 
 #: ../../source/guides/devops/index.rst:33
 msgid ":doc:`fast-and-slow`"
-msgstr ""
+msgstr ":doc:`fast-and-slow`"
 
 #: ../../source/guides/devops/index.rst:34
 msgid ""
-"the one split everything else rests on, and why a gate that costs a "
-"minute gates nothing"
+"the one split everything else rests on, and why a gate that costs a minute gates "
+"nothing"
 msgstr ""
+"l'unica divisione su cui poggia tutto il resto, e perché un gate che costa un minuto "
+"non fa da gate a niente"
 
 #: ../../source/guides/devops/index.rst:35
 msgid ":doc:`the-gate`"
-msgstr ""
+msgstr ":doc:`the-gate`"
 
 #: ../../source/guides/devops/index.rst:36
 msgid "what runs at every commit, and how the three branch classes differ"
-msgstr ""
+msgstr "che cosa gira a ogni commit, e in che cosa differiscono le tre classi di ramo"
 
 #: ../../source/guides/devops/index.rst:37
 msgid ":doc:`ci-yaml`"
-msgstr ""
+msgstr ":doc:`ci-yaml`"
 
 #: ../../source/guides/devops/index.rst:38
 msgid ""
-"the thresholds file: the three tiers, the metrics, what each one measures"
-" and what it does not"
+"the thresholds file: the three tiers, the metrics, what each one measures and what it"
+" does not"
 msgstr ""
+"il file delle soglie: i tre livelli, le metriche, che cosa ciascuna misura e che cosa"
+" no"
 
 #: ../../source/guides/devops/index.rst:39
 msgid ":doc:`suites-and-verdicts`"
-msgstr ""
+msgstr ":doc:`suites-and-verdicts`"
 
 #: ../../source/guides/devops/index.rst:40
 msgid "suites as opposed to metrics, and why ``unmeasured`` and ``stale`` refuse"
 msgstr ""
+"le suite in contrapposizione alle metriche, e perché ``unmeasured`` e ``stale`` "
+"rifiutano"
 
 #: ../../source/guides/devops/index.rst:41
 msgid ":doc:`fingerprints`"
-msgstr ""
+msgstr ":doc:`fingerprints`"
 
 #: ../../source/guides/devops/index.rst:42
-msgid ""
-"the hash a repository declares of itself, and which version component "
-"each one moves"
-msgstr ""
+msgid "the hash a repository declares of itself, and which version component each one moves"
+msgstr "l'hash che un repository dichiara di sé, e quale componente di versione ciascuno muove"
 
 #: ../../source/guides/devops/index.rst:43
 msgid ":doc:`reporting`"
-msgstr ""
+msgstr ":doc:`reporting`"
 
 #: ../../source/guides/devops/index.rst:44
-msgid ""
-"writing the verdict down, and what Jenkins will add when it is turned "
-"back on"
-msgstr ""
+msgid "writing the verdict down, and what Jenkins will add when it is turned back on"
+msgstr "mettere per iscritto il verdetto, e che cosa aggiungerà Jenkins quando sarà riacceso"
 
 #: ../../source/guides/devops/index.rst:46
 msgid ""
-"The figures from the last run are not here: they are a *report about this"
-" repository* rather than a page about operating it, and they live with "
-"the other machine-written pages under :doc:`../../dev/ci-report/index`."
+"The figures from the last run are not here: they are a *report about this repository*"
+" rather than a page about operating it, and they live with the other machine-written "
+"pages under :doc:`../../dev/ci-report/index`."
 msgstr ""
+"I dati dell'ultima esecuzione non stanno qui: sono un *rapporto su questo repository*"
+" anziché una pagina su come gestirlo, e stanno insieme alle altre pagine scritte "
+"dalla macchina sotto :doc:`../../dev/ci-report/index`."
 
 #: ../../source/guides/devops/index.rst:51
 msgid "Three layers, and nothing in one knows the next"
-msgstr ""
+msgstr "Tre strati, e niente in uno conosce il successivo"
 
 #: ../../source/guides/devops/index.rst:53
 msgid ""
-"**Measurement.** Each command answers one question and writes one small "
-"JSON file into ``reports/``. None of them decides anything."
+"**Measurement.** Each command answers one question and writes one small JSON file "
+"into ``reports/``. None of them decides anything."
 msgstr ""
+"**Misurazione.** Ogni comando risponde a una domanda e scrive un piccolo file JSON in"
+" ``reports/``. Nessuno di essi decide alcunché."
 
 #: ../../source/guides/devops/index.rst:56
 msgid ""
-"**The gate.** ``freeports-dev ci-check`` reads those files, ``ci.yaml``, "
-"and the class of the branch you are on. It prints one table and chooses "
-"an exit status. It measures nothing."
+"**The gate.** ``freeports-dev ci-check`` reads those files, ``ci.yaml``, and the "
+"class of the branch you are on. It prints one table and chooses an exit status. It "
+"measures nothing."
 msgstr ""
+"**Il gate.** ``freeports-dev ci-check`` legge quei file, ``ci.yaml``, e la classe del"
+" ramo su cui sei. Stampa una tabella e sceglie uno stato d'uscita. Non misura niente."
 
 #: ../../source/guides/devops/index.rst:59
 msgid ""
-"**The wiring.** ``make`` targets, and a thin ``pre-commit`` hook that "
-"names one of them. **Every freeports repository has both** — this one, a "
-"formats repository, an input database — with the same target names and "
-"the same two gates, ``ci-fast`` and ``ci-full``. What differs is how much"
-" there is to measure: see :doc:`the-gate` for a format repository's "
-"smaller surface."
+"**The wiring.** ``make`` targets, and a thin ``pre-commit`` hook that names one of "
+"them. **Every freeports repository has both** — this one, a formats repository, an "
+"input database — with the same target names and the same two gates, ``ci-fast`` and "
+"``ci-full``. What differs is how much there is to measure: see :doc:`the-gate` for a "
+"format repository's smaller surface."
 msgstr ""
+"**I collegamenti.** I target di ``make``, e un sottile hook ``pre-commit`` che ne "
+"nomina uno. **Ogni repository freeports ha entrambi** — questo, un repository di "
+"formati, un database di ingresso — con gli stessi nomi di target e gli stessi due "
+"gate, ``ci-fast`` e ``ci-full``. Ciò che cambia è quanto ci sia da misurare: vedi "
+":doc:`the-gate` per la superficie più piccola di un repository di formati."
 
 #: ../../source/guides/devops/index.rst:64
 msgid ""
-"This is the split ``freeports-validate`` already follows — ``collect`` "
-"establishes facts, ``report`` renders them, ``check-grants`` judges them."
-" It is what keeps every figure reproducible: when a commit is refused, "
-"the number that refused it is sitting in a file, written by a command you"
-" can re-run."
+"This is the split ``freeports-validate`` already follows — ``collect`` establishes "
+"facts, ``report`` renders them, ``check-grants`` judges them. It is what keeps every "
+"figure reproducible: when a commit is refused, the number that refused it is sitting "
+"in a file, written by a command you can re-run."
 msgstr ""
+"È la divisione che ``freeports-validate`` già segue — ``collect`` stabilisce i fatti,"
+" ``report`` li rende, ``check-grants`` li giudica. È ciò che tiene riproducibile ogni"
+" dato: quando un commit è rifiutato, il numero che l'ha rifiutato sta in un file, "
+"scritto da un comando che puoi rieseguire."
 

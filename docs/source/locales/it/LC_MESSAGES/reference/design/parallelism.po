@@ -21,16 +21,19 @@ msgstr ""
 
 #: ../../source/reference/design/parallelism.md:1
 msgid "Parallelism as a consequence"
-msgstr ""
+msgstr "Il parallelismo come conseguenza"
 
 #: ../../source/reference/design/parallelism.md:3
 #, python-brace-format
 msgid ""
-"*Implemented.* Nothing in {doc}`pages`, {doc}`classification`, "
-"{doc}`schedule` or {doc}`segments` mentions threads. That is the point: "
-"parallelism was **added without redesigning anything**, because the page "
-"had been the unit of work all along."
+"*Implemented.* Nothing in {doc}`pages`, {doc}`classification`, {doc}`schedule` or "
+"{doc}`segments` mentions threads. That is the point: parallelism was **added without "
+"redesigning anything**, because the page had been the unit of work all along."
 msgstr ""
+"*Realizzato.* Niente in {doc}`pages`, {doc}`classification`, {doc}`schedule` o "
+"{doc}`segments` nomina i thread. È tutto qui il punto: il parallelismo è stato "
+"**aggiunto senza riprogettare niente**, perché la pagina era stata l'unità di lavoro "
+"fin dall'inizio."
 
 #: ../../source/reference/design/parallelism.md:7
 #, python-brace-format
@@ -38,205 +41,247 @@ msgid ""
 "This page is why the levels are what they are. How to drive them is "
 "{doc}`../../guides/user/advanced/parallelism`."
 msgstr ""
+"Questa pagina è il perché i livelli siano quelli che sono. Come guidarli è "
+"{doc}`../../guides/user/advanced/parallelism`."
 
 #: ../../source/reference/design/parallelism.md:9
 msgid "What the profiler found in four real reports"
-msgstr ""
+msgstr "Che cosa ha trovato il profilatore in quattro relazioni vere"
 
 #: ../../source/reference/design/parallelism.md:10
 msgid ""
-"Four real reports, 29 to 1,824 pages, profiled through the spans the "
-"engine already carries:"
+"Four real reports, 29 to 1,824 pages, profiled through the spans the engine already "
+"carries:"
 msgstr ""
+"Quattro relazioni vere, da 29 a 1.824 pagine, profilate attraverso gli span che il "
+"motore già porta con sé:"
 
 #: ../../source/reference/design/parallelism.md
 msgid "Finding"
-msgstr ""
+msgstr "Scoperta"
 
 #: ../../source/reference/design/parallelism.md
 msgid "Measure"
-msgstr ""
+msgstr "Misura"
 
 #: ../../source/reference/design/parallelism.md
 msgid "loading the PDF through PyMuPDF"
-msgstr ""
+msgstr "il caricamento del PDF tramite PyMuPDF"
 
 #: ../../source/reference/design/parallelism.md
 msgid "**35–75%** of a job"
-msgstr ""
+msgstr "il **35–75%** di un job"
 
 #: ../../source/reference/design/parallelism.md
 msgid "page classification"
-msgstr ""
+msgstr "la classificazione delle pagine"
 
 #: ../../source/reference/design/parallelism.md
 msgid "between 1:8.5 and 1:157 of the extraction steps"
-msgstr ""
+msgstr "fra 1:8,5 e 1:157 rispetto ai passi di estrazione"
 
 #: ../../source/reference/design/parallelism.md
 msgid "`text_filter`"
-msgstr ""
+msgstr "`text_filter`"
 
 #: ../../source/reference/design/parallelism.md
 #, python-format
 msgid "85–96% of the engine's own work"
-msgstr ""
+msgstr "l'85–96% del lavoro proprio del motore"
 
 #: ../../source/reference/design/parallelism.md
 msgid "one pipe inside it — the standard investments text filter, pure Rust"
-msgstr ""
+msgstr "una pipe al suo interno — il filtro di testo standard degli investimenti, puro Rust"
 
 #: ../../source/reference/design/parallelism.md
 msgid "**30–54%** of a whole job"
-msgstr ""
+msgstr "il **30–54%** di un job intero"
 
 #: ../../source/reference/design/parallelism.md
 msgid "`deserialize`"
-msgstr ""
+msgstr "`deserialize`"
 
 #: ../../source/reference/design/parallelism.md
 msgid "under **0.2%** everywhere"
-msgstr ""
+msgstr "sotto lo **0,2%** dappertutto"
 
 #: ../../source/reference/design/parallelism.md:20
 msgid "Two of those numbers changed the plan, and one of them reversed it."
-msgstr ""
+msgstr "Due di quei numeri hanno cambiato il piano, e uno di essi l'ha rovesciato."
 
 #: ../../source/reference/design/parallelism.md:22
 msgid "Jobs get processes"
-msgstr ""
+msgstr "Ai job toccano i processi"
 
 #: ../../source/reference/design/parallelism.md:24
 msgid ""
-"Because the dominant cost is **behind the GIL**. PyMuPDF is Python; "
-"threads would have re-serialised precisely the part worth parallelising."
+"Because the dominant cost is **behind the GIL**. PyMuPDF is Python; threads would "
+"have re-serialised precisely the part worth parallelising."
 msgstr ""
+"Perché il costo dominante sta **dietro al GIL**. PyMuPDF è Python; i thread avrebbero"
+" riserializzato proprio la parte che vale la pena parallelizzare."
 
 #: ../../source/reference/design/parallelism.md:27
 msgid ""
-"The children send their results back over IPC and the **parent writes the"
-" output once**, so the observable behaviour does not change."
+"The children send their results back over IPC and the **parent writes the output "
+"once**, so the observable behaviour does not change."
 msgstr ""
+"I figli rimandano indietro i propri risultati tramite IPC e il **padre scrive i "
+"risultati una volta sola**, quindi il comportamento osservabile non cambia."
 
 #: ../../source/reference/design/parallelism.md:30
 msgid ""
-"**Rejected: letting each child write its own output.** It is simpler and "
-"it would have changed what batch mode produces — ten directories instead "
-"of one set of tables with a `Report` column. A parallelism strategy that "
-"changes the product is not a parallelism strategy."
+"**Rejected: letting each child write its own output.** It is simpler and it would "
+"have changed what batch mode produces — ten directories instead of one set of tables "
+"with a `Report` column. A parallelism strategy that changes the product is not a "
+"parallelism strategy."
 msgstr ""
+"**Scartato: lasciare che ogni figlio scriva i propri risultati.** È più semplice e "
+"avrebbe cambiato ciò che la modalità a lotti produce — dieci cartelle anziché un "
+"insieme di tabelle con una colonna `Report`. Una strategia di parallelismo che cambia"
+" il prodotto non è una strategia di parallelismo."
 
 #: ../../source/reference/design/parallelism.md:34
 msgid "Pages get threads"
-msgstr ""
+msgstr "Alle pagine toccano i thread"
 
 #: ../../source/reference/design/parallelism.md:36
 msgid ""
-"Inside a job, the pages of a step run on a thread pool **the crate "
-"owns**, not rayon's global one."
+"Inside a job, the pages of a step run on a thread pool **the crate owns**, not "
+"rayon's global one."
 msgstr ""
+"Dentro un job, le pagine di un passo girano su una riserva di thread **che appartiene"
+" al crate**, non su quella globale di rayon."
 
 #: ../../source/reference/design/parallelism.md:38
 msgid ""
-"A library must not seize the thread pool of the program embedding it. "
-"This one is a Python extension module as well as a binary, so \"the "
-"embedding program\" is a real thing with its own plans."
+"A library must not seize the thread pool of the program embedding it. This one is a "
+"Python extension module as well as a binary, so \"the embedding program\" is a real "
+"thing with its own plans."
 msgstr ""
+"Una libreria non deve impadronirsi della riserva di thread del programma che la "
+"incorpora. Questa è un modulo di estensione Python oltre che un binario, quindi \"il "
+"programma che la incorpora\" è una cosa vera con piani propri."
 
 #: ../../source/reference/design/parallelism.md:41
 msgid ""
-"Pipes **declare whether they scale with threads**, defaulting to yes, and"
-" the three Python pipe kinds declare no. A format whose work is an "
-"author's Python pipe therefore runs sequentially rather than contending "
-"for the GIL — measured, 182 ms → 189 ms between one thread and twenty, "
-"against 7.2 s → 1.0 s for an entirely structured format on the same "
-"machine."
+"Pipes **declare whether they scale with threads**, defaulting to yes, and the three "
+"Python pipe kinds declare no. A format whose work is an author's Python pipe "
+"therefore runs sequentially rather than contending for the GIL — measured, 182 ms → "
+"189 ms between one thread and twenty, against 7.2 s → 1.0 s for an entirely "
+"structured format on the same machine."
 msgstr ""
+"Le pipe **dichiarano se scalano con i thread**, con valore predefinito sì, e i tre "
+"tipi di pipe Python dichiarano di no. Un formato il cui lavoro è una pipe Python "
+"d'autore gira perciò in sequenza anziché contendersi il GIL — misurato, da 182 ms a "
+"189 ms fra un thread e venti, contro 7,2 s → 1,0 s per un formato interamente "
+"structured sulla stessa macchina."
 
 #: ../../source/reference/design/parallelism.md:46
 msgid "Two planned levels were cancelled by the measurements"
-msgstr ""
+msgstr "Due livelli previsti sono stati cancellati dalle misure"
 
 #: ../../source/reference/design/parallelism.md:48
 msgid ""
-"This is the part worth reading twice, because it is the opposite of what "
-"a plan usually produces."
+"This is the part worth reading twice, because it is the opposite of what a plan "
+"usually produces."
 msgstr ""
+"È la parte che vale la pena rileggere due volte, perché è il contrario di ciò che un "
+"piano di solito produce."
 
 #: ../../source/reference/design/parallelism.md:50
 msgid ""
-"**Page classes and pipelines within a step** — cancelled. It would sit on"
-" top of a loop that already saturates the machine: two nested units of "
-"work in rayon with no free threads to give them. The pathological case it"
-" was meant to serve — very few pages, many heavy pipelines — **does not "
-"exist in the corpus**: the smallest of 21 real reports has 29 pages, more"
-" than the machine has threads."
+"**Page classes and pipelines within a step** — cancelled. It would sit on top of a "
+"loop that already saturates the machine: two nested units of work in rayon with no "
+"free threads to give them. The pathological case it was meant to serve — very few "
+"pages, many heavy pipelines — **does not exist in the corpus**: the smallest of 21 "
+"real reports has 29 pages, more than the machine has threads."
 msgstr ""
+"**Le classi di pagina e le pipeline dentro un passo** — cancellato. Starebbe sopra a "
+"un ciclo che già satura la macchina: due unità di lavoro annidate in rayon senza "
+"thread liberi da dar loro. Il caso patologico che avrebbe dovuto servire — pochissime"
+" pagine, molte pipeline pesanti — **non esiste nel corpus**: la più piccola di 21 "
+"relazioni vere ha 29 pagine, più di quanti thread abbia la macchina."
 
 #: ../../source/reference/design/parallelism.md:55
 #, python-format
 msgid ""
-"**Deserialization blocks above a threshold** — cancelled. It would have "
-"addressed 0.2% of runtime."
+"**Deserialization blocks above a threshold** — cancelled. It would have addressed "
+"0.2% of runtime."
 msgstr ""
+"**I blocchi di deserializzazione oltre una soglia** — cancellato. Avrebbe affrontato "
+"lo 0,2% del tempo di esecuzione."
 
 #: ../../source/reference/design/parallelism.md:57
 msgid ""
-"Both were **removed from the design** rather than shipped as options that"
-" default to off. An option that is off by default never runs, is "
-"therefore never exercised, and still has to be maintained at every change"
-" to the code it wraps. A feature that exists only to honour an earlier "
-"plan is a maintenance cost with no user."
+"Both were **removed from the design** rather than shipped as options that default to "
+"off. An option that is off by default never runs, is therefore never exercised, and "
+"still has to be maintained at every change to the code it wraps. A feature that "
+"exists only to honour an earlier plan is a maintenance cost with no user."
 msgstr ""
+"Entrambi sono stati **tolti dal progetto** anziché distribuiti come opzioni spente "
+"per impostazione predefinita. Un'opzione spenta per impostazione predefinita non gira"
+" mai, non è quindi mai messa alla prova, e va comunque mantenuta a ogni modifica del "
+"codice che avvolge. Una funzionalità che esiste solo per onorare un piano precedente "
+"è un costo di manutenzione senza utenti."
 
 #: ../../source/reference/design/parallelism.md:62
 msgid "What parallelism costs in memory"
-msgstr ""
+msgstr "Quanto costa il parallelismo in memoria"
 
 #: ../../source/reference/design/parallelism.md
 msgid "gain"
-msgstr ""
+msgstr "guadagno"
 
 #: ../../source/reference/design/parallelism.md
-msgid ""
-"39.4 s → 16.7 s (**2.36×**) on two large reports, defaults, output byte-"
-"identical"
+msgid "39.4 s → 16.7 s (**2.36×**) on two large reports, defaults, output byte-identical"
 msgstr ""
+"da 39,4 s a 16,7 s (**2,36×**) su due grandi relazioni, con i valori predefiniti, "
+"risultati identici byte per byte"
 
 #: ../../source/reference/design/parallelism.md
 msgid "price"
-msgstr ""
+msgstr "prezzo"
 
 #: ../../source/reference/design/parallelism.md
 msgid "peak memory 783 MB → **~1.2 GB**, growing with concurrent jobs"
-msgstr ""
+msgstr "picco di memoria da 783 MB a **~1,2 GB**, crescente col numero di job contemporanei"
 
 #: ../../source/reference/design/parallelism.md:68
 msgid ""
-"The memory is the real price, and it is why the job level is the one "
-"worth turning down on a small machine: `--jobs 1` keeps page-level "
-"threading and drops the concurrent copies of the document, giving up the "
-"smaller of the two gains."
+"The memory is the real price, and it is why the job level is the one worth turning "
+"down on a small machine: `--jobs 1` keeps page-level threading and drops the "
+"concurrent copies of the document, giving up the smaller of the two gains."
 msgstr ""
+"La memoria è il prezzo vero, ed è il motivo per cui il livello dei job è quello che "
+"conviene abbassare su una macchina piccola: `--jobs 1` mantiene i thread a livello di"
+" pagina e toglie le copie contemporanee del documento, rinunciando al minore dei due "
+"guadagni."
 
 #: ../../source/reference/design/parallelism.md:72
 msgid "An optimisation not taken: the hottest pipe"
-msgstr ""
+msgstr "Un'ottimizzazione non presa: la pipe più calda"
 
 #: ../../source/reference/design/parallelism.md:73
 #, python-format
 msgid ""
-"The single hottest pipe — 30–54% of a job, pure Rust, single-threaded and"
-" deterministic — has never been optimised internally. Indexing the target"
-" companies instead of scanning them, and reducing regex compilation per "
-"call, could plausibly be worth as much as the whole parallelism effort, "
-"with **no** risk to determinism."
+"The single hottest pipe — 30–54% of a job, pure Rust, single-threaded and "
+"deterministic — has never been optimised internally. Indexing the target companies "
+"instead of scanning them, and reducing regex compilation per call, could plausibly be"
+" worth as much as the whole parallelism effort, with **no** risk to determinism."
 msgstr ""
+"La singola pipe più calda — il 30–54% di un job, puro Rust, a thread singolo e "
+"deterministica — non è mai stata ottimizzata al proprio interno. Indicizzare le "
+"società bersaglio anziché scorrerle, e ridurre la compilazione delle espressioni "
+"regolari a ogni chiamata, potrebbe plausibilmente valere quanto l'intero sforzo sul "
+"parallelismo, **senza** alcun rischio per il determinismo."
 
 #: ../../source/reference/design/parallelism.md:78
 #, python-brace-format
 msgid ""
-"It is recorded here rather than done, because it is a separate piece of "
-"work with its own measurements to take. {doc}`limits`."
+"It is recorded here rather than done, because it is a separate piece of work with its"
+" own measurements to take. {doc}`limits`."
 msgstr ""
+"È registrata qui anziché fatta, perché è un lavoro a sé con misure proprie da "
+"prendere. {doc}`limits`."
 

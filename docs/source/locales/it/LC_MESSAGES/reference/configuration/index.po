@@ -21,273 +21,325 @@ msgstr ""
 
 #: ../../source/reference/configuration/index.md:1
 msgid "Configuration"
-msgstr ""
+msgstr "Configurazione"
 
 #: ../../source/reference/configuration/index.md:3
 msgid ""
-"Nothing about a run has to be said on the command line. A setting can "
-"come from four places, and this area describes each of them plus the "
-"options they all share."
+"Nothing about a run has to be said on the command line. A setting can come from four "
+"places, and this area describes each of them plus the options they all share."
 msgstr ""
+"Di un'esecuzione non c'è niente che si debba dire sulla riga di comando. "
+"Un'impostazione può venire da quattro posti, e quest'area descrive ciascuno di essi "
+"più le opzioni che tutti condividono."
 
 #: ../../source/reference/configuration/index.md
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/reference/configuration/index.md
 msgid "Answers"
-msgstr ""
+msgstr "Risponde a"
 
 #: ../../source/reference/configuration/index.md
 #, python-brace-format
 msgid "{doc}`options`"
-msgstr ""
+msgstr "{doc}`options`"
 
 #: ../../source/reference/configuration/index.md
-msgid ""
-"the canonical options: type, default, validation, and how each source "
-"spells it"
+msgid "the canonical options: type, default, validation, and how each source spells it"
 msgstr ""
+"le opzioni canoniche: tipo, valore predefinito, validazione, e come ciascuna sorgente"
+" le scrive"
 
 #: ../../source/reference/configuration/index.md
 #, python-brace-format
 msgid "{doc}`cmd_args`"
-msgstr ""
+msgstr "{doc}`cmd_args`"
 
 #: ../../source/reference/configuration/index.md
 msgid "command line → option"
-msgstr ""
+msgstr "riga di comando → opzione"
 
 #: ../../source/reference/configuration/index.md
 #, python-brace-format
 msgid "{doc}`env_variables`"
-msgstr ""
+msgstr "{doc}`env_variables`"
 
 #: ../../source/reference/configuration/index.md
 msgid "environment variable → option"
-msgstr ""
+msgstr "variabile d'ambiente → opzione"
 
 #: ../../source/reference/configuration/index.md
 #, python-brace-format
 msgid "{doc}`config_file`"
-msgstr ""
+msgstr "{doc}`config_file`"
 
 #: ../../source/reference/configuration/index.md
 msgid "YAML key → option, and where the file is looked for"
-msgstr ""
+msgstr "chiave YAML → opzione, e dove si cerca il file"
 
 #: ../../source/reference/configuration/index.md
 #, python-brace-format
 msgid "{doc}`batch_rows`"
-msgstr ""
+msgstr "{doc}`batch_rows`"
 
 #: ../../source/reference/configuration/index.md
 msgid "batch CSV column → option"
-msgstr ""
+msgstr "colonna del CSV di lotto → opzione"
 
 #: ../../source/reference/configuration/index.md:14
 #, python-brace-format
 msgid ""
-"The same four sources, the same precedence and the same per-field merge "
-"also configure `freeports-dev` and `freeports-validate`, through two "
-"optional sections of the configuration file and two environment prefixes "
-"of their own. Both commands are only run by format authors, so that is "
-"documented where they are: {doc}`dev-and-validate`."
+"The same four sources, the same precedence and the same per-field merge also "
+"configure `freeports-dev` and `freeports-validate`, through two optional sections of "
+"the configuration file and two environment prefixes of their own. Both commands are "
+"only run by format authors, so that is documented where they are: {doc}`dev-and-"
+"validate`."
 msgstr ""
+"Le stesse quattro sorgenti, la stessa precedenza e la stessa fusione campo per campo "
+"configurano anche `freeports-dev` e `freeports-validate`, tramite due sezioni "
+"facoltative del file di configurazione e due prefissi d'ambiente propri. Entrambi i "
+"comandi sono eseguiti solo da chi scrive formati, quindi la cosa è documentata dove "
+"stanno loro: {doc}`dev-and-validate`."
 
 #: ../../source/reference/configuration/index.md:35
 msgid "Four sources, one order"
-msgstr ""
+msgstr "Quattro sorgenti, un ordine"
 
 #: ../../source/reference/configuration/index.md:37
 msgid "Precedence, from weakest to strongest:"
-msgstr ""
+msgstr "Precedenza, dalla più debole alla più forte:"
 
 #: ../../source/reference/configuration/index.md:44
 msgid ""
-"The **batch row wins over the command line** on purpose. In batch mode "
-"the command line describes the *run* and the row describes *this job*, "
-"and the more specific statement should be the one that holds."
+"The **batch row wins over the command line** on purpose. In batch mode the command "
+"line describes the *run* and the row describes *this job*, and the more specific "
+"statement should be the one that holds."
 msgstr ""
+"La **riga di lotto vince sulla riga di comando** apposta. In modalità a lotti la riga"
+" di comando descrive l'*esecuzione* e la riga descrive *questo job*, e a valere "
+"dev'essere l'affermazione più specifica."
 
 #: ../../source/reference/configuration/index.md:48
 msgid "Merged per field, not per source"
-msgstr ""
+msgstr "Fuse campo per campo, non sorgente per sorgente"
 
 #: ../../source/reference/configuration/index.md:50
 msgid ""
-"Each source is read into a *partial* configuration — partial because no "
-"source is obliged to say everything — and the merge is **field by "
-"field**. A configuration file may set the output path and the environment"
-" the formats repository, and neither erases the other."
+"Each source is read into a *partial* configuration — partial because no source is "
+"obliged to say everything — and the merge is **field by field**. A configuration file"
+" may set the output path and the environment the formats repository, and neither "
+"erases the other."
 msgstr ""
+"Ogni sorgente è letta in una configurazione *parziale* — parziale perché nessuna "
+"sorgente è obbligata a dire tutto — e la fusione è **campo per campo**. Un file di "
+"configurazione può impostare il percorso dei risultati e l'ambiente il repository di "
+"formati, e nessuno dei due cancella l'altro."
 
 #: ../../source/reference/configuration/index.md:54
 msgid ""
-"**Per field means per field, not per group.** Every setting that looks "
-"like one thing made of two — the two parallelism levels, the two output "
-"flags — travels the merge as two independent values and is only "
-"reassembled at the end. So a file that turns the archive on and an "
-"environment that turns separate output on produce a run with **both**, "
-"not a run with whichever source came last:"
+"**Per field means per field, not per group.** Every setting that looks like one thing"
+" made of two — the two parallelism levels, the two output flags — travels the merge "
+"as two independent values and is only reassembled at the end. So a file that turns "
+"the archive on and an environment that turns separate output on produce a run with "
+"**both**, not a run with whichever source came last:"
 msgstr ""
+"**Campo per campo significa campo per campo, non gruppo per gruppo.** Ogni "
+"impostazione che sembri una cosa fatta di due — i due livelli di parallelismo, le due"
+" opzioni sui risultati — attraversa la fusione come due valori indipendenti ed è "
+"riassemblata solo alla fine. Così un file che accende l'archivio e un ambiente che "
+"accende i risultati separati producono un'esecuzione con **entrambi**, non "
+"un'esecuzione con quella delle due sorgenti che è arrivata per ultima:"
 
 #: ../../source/reference/configuration/index.md:69
 msgid ""
-"The alternative would be an override nobody can see, which is the failure"
-" this whole design refuses."
+"The alternative would be an override nobody can see, which is the failure this whole "
+"design refuses."
 msgstr ""
+"L'alternativa sarebbe una sovrascrittura che nessuno vede, che è il guasto che tutto "
+"questo impianto rifiuta."
 
 #: ../../source/reference/configuration/index.md:71
 msgid "Absent is not false"
-msgstr ""
+msgstr "Assente non è falso"
 
 #: ../../source/reference/configuration/index.md:73
 msgid ""
-"A source that says nothing about a field leaves it **unset**, and a lower"
-" tier still decides it. This is why the command line can only switch a "
-"boolean flag *on*: `--archive` present means true, `--archive` absent "
-"means *nothing said* — otherwise every command line would silently switch"
-" off what a configuration file had turned on."
+"A source that says nothing about a field leaves it **unset**, and a lower tier still "
+"decides it. This is why the command line can only switch a boolean flag *on*: "
+"`--archive` present means true, `--archive` absent means *nothing said* — otherwise "
+"every command line would silently switch off what a configuration file had turned on."
 msgstr ""
+"Una sorgente che di un campo non dice niente lo lascia **non impostato**, e a "
+"deciderlo resta un livello più basso. È per questo che la riga di comando può solo "
+"*accendere* un'opzione booleana: `--archive` presente significa vero, `--archive` "
+"assente significa *non detto* — altrimenti ogni riga di comando spegnerebbe in "
+"silenzio ciò che un file di configurazione aveva acceso."
 
 #: ../../source/reference/configuration/index.md:78
 msgid ""
 "To turn a flag back off, say so where `false` can be written: "
 "`FREEPORTS_ARCHIVE=false`, or `archive: false` in the file."
 msgstr ""
+"Per rispegnere un'opzione, dillo dove si può scrivere `false`: "
+"`FREEPORTS_ARCHIVE=false`, oppure `archive: false` nel file."
 
 #: ../../source/reference/configuration/index.md:81
 msgid "Validation happens once, in a fixed order"
-msgstr ""
+msgstr "La validazione avviene una volta sola, in un ordine fisso"
 
 #: ../../source/reference/configuration/index.md:83
-msgid ""
-"Only the merged result is validated, and the order is part of the "
-"behaviour:"
-msgstr ""
+msgid "Only the merged result is validated, and the order is part of the behaviour:"
+msgstr "Si valida solo il risultato della fusione, e l'ordine fa parte del comportamento:"
 
 #: ../../source/reference/configuration/index.md:85
 msgid ""
-"**require the target lists** — a pure presence check, so a run missing "
-"them fails immediately rather than after four minutes of PDF;"
+"**require the target lists** — a pure presence check, so a run missing them fails "
+"immediately rather than after four minutes of PDF;"
 msgstr ""
+"**pretendi le liste bersaglio** — un puro controllo di presenza, così che "
+"un'esecuzione a cui mancano fallisca subito anziché dopo quattro minuti di PDF;"
 
 #: ../../source/reference/configuration/index.md:87
 msgid "**detect the format**, where none was given;"
-msgstr ""
+msgstr "**deduci il formato**, dove non ne è stato dato nessuno;"
 
 #: ../../source/reference/configuration/index.md:88
 #, python-brace-format
 msgid "**validate the document specifiers** ({doc}`../../guides/user/documents`);"
-msgstr ""
+msgstr "**valida gli specificatori di documento** ({doc}`../../guides/user/documents`);"
 
 #: ../../source/reference/configuration/index.md:89
 msgid ""
-"**set the archive flag**, which must come before the next step because it"
-" can change the output path;"
+"**set the archive flag**, which must come before the next step because it can change "
+"the output path;"
 msgstr ""
+"**imposta l'opzione di archivio**, che deve venire prima del passo successivo perché "
+"può cambiare il percorso dei risultati;"
 
 #: ../../source/reference/configuration/index.md:91
 msgid "**check that the output path's parent exists**;"
-msgstr ""
+msgstr "**controlla che il genitore del percorso dei risultati esista**;"
 
 #: ../../source/reference/configuration/index.md:92
-msgid ""
-"**check the single-file profile's path**, appending `out.csv` where "
-"needed."
+msgid "**check the single-file profile's path**, appending `out.csv` where needed."
 msgstr ""
+"**controlla il percorso del profilo a file singolo**, aggiungendo `out.csv` dove "
+"serve."
 
 #: ../../source/reference/configuration/index.md:94
 msgid "Unknown means error, everywhere"
-msgstr ""
+msgstr "Sconosciuto significa errore, dappertutto"
 
 #: ../../source/reference/configuration/index.md:96
 msgid ""
-"An unknown YAML key, an unknown sub-key of `parallelism` or `out_flags`, "
-"an unknown batch column: all are explicit errors. A misspelled setting "
-"that is quietly ignored configures nothing and reports nothing, and the "
-"user is left believing it took effect."
+"An unknown YAML key, an unknown sub-key of `parallelism` or `out_flags`, an unknown "
+"batch column: all are explicit errors. A misspelled setting that is quietly ignored "
+"configures nothing and reports nothing, and the user is left believing it took "
+"effect."
 msgstr ""
+"Una chiave YAML sconosciuta, una sottochiave sconosciuta di `parallelism` o di "
+"`out_flags`, una colonna di lotto sconosciuta: sono tutti errori espliciti. "
+"Un'impostazione scritta male e ignorata in sordina non configura niente e non "
+"riferisce niente, e all'utente resta la convinzione che abbia avuto effetto."
 
 #: ../../source/reference/configuration/index.md:100
 msgid ""
-"The rule also refuses settings that were *considered and never "
-"implemented*. `out_flags: compressed:` is rejected even though "
-"`compressed` is the field's internal name, because accepting it would "
-"make an option that does not exist look active."
+"The rule also refuses settings that were *considered and never implemented*. "
+"`out_flags: compressed:` is rejected even though `compressed` is the field's internal"
+" name, because accepting it would make an option that does not exist look active."
 msgstr ""
+"La regola rifiuta anche le impostazioni che sono state *considerate e mai "
+"realizzate*. `out_flags: compressed:` è rifiutata benché `compressed` sia il nome "
+"interno del campo, perché accettarla farebbe sembrare attiva un'opzione che non "
+"esiste."
 
 #: ../../source/reference/configuration/index.md:104
 msgid "The one setting that arrives in two moments: verbosity"
-msgstr ""
+msgstr "L'unica impostazione che arriva in due momenti: la verbosità"
 
 #: ../../source/reference/configuration/index.md:106
 msgid ""
-"All four sources work, and verbosity is the only setting that cannot be "
-"applied all at once — which is worth understanding, because it has one "
-"visible consequence."
+"All four sources work, and verbosity is the only setting that cannot be applied all "
+"at once — which is worth understanding, because it has one visible consequence."
 msgstr ""
+"Tutte e quattro le sorgenti funzionano, e la verbosità è l'unica impostazione che non"
+" si può applicare tutta in una volta — cosa che vale la pena capire, perché ha una "
+"conseguenza visibile."
 
 #: ../../source/reference/configuration/index.md:109
 msgid ""
-"Logging has to be running before the configuration is resolved: resolving"
-" it is one of the things that can fail, and a failure nobody can see is "
-"not a failure anybody can fix. But two of the three sources of the "
-"verbosity — `FREEPORTS_VERBOSITY` and the file's `verbosity` key — are "
-"*inside* that configuration. So a run starts logging at whatever `-v` and"
-" `-q` asked for, and **corrects itself the moment the configuration "
-"resolves**, raising or lowering both stderr and the structured log to the"
-" resolved value."
+"Logging has to be running before the configuration is resolved: resolving it is one "
+"of the things that can fail, and a failure nobody can see is not a failure anybody "
+"can fix. But two of the three sources of the verbosity — `FREEPORTS_VERBOSITY` and "
+"the file's `verbosity` key — are *inside* that configuration. So a run starts logging"
+" at whatever `-v` and `-q` asked for, and **corrects itself the moment the "
+"configuration resolves**, raising or lowering both stderr and the structured log to "
+"the resolved value."
 msgstr ""
+"La registrazione dev'essere già in funzione prima che la configurazione sia risolta: "
+"risolverla è una delle cose che possono fallire, e un guasto che nessuno può vedere "
+"non è un guasto che qualcuno possa correggere. Ma due delle tre sorgenti della "
+"verbosità — `FREEPORTS_VERBOSITY` e la chiave `verbosity` del file — stanno *dentro* "
+"quella configurazione. Un'esecuzione comincia perciò a registrare a quanto hanno "
+"chiesto `-v` e `-q`, e **si corregge nel momento in cui la configurazione si "
+"risolve**, alzando o abbassando al valore risolto sia stderr sia il registro "
+"strutturato."
 
 #: ../../source/reference/configuration/index.md:117
 msgid ""
-"The consequence: a configuration file cannot govern what was logged "
-"before the configuration file was read. Raising the verbosity opens the "
-"log sites from that point on; the handful of records that configuration "
-"resolution itself emitted below the old level were never produced at all "
-"and cannot be recovered. `-vvv` on the command line has no such gap, "
-"because then nothing needed correcting — and a run that dies *during* "
-"resolution never gets a resolved verbosity, so there the command line is "
-"the only answer there was."
+"The consequence: a configuration file cannot govern what was logged before the "
+"configuration file was read. Raising the verbosity opens the log sites from that "
+"point on; the handful of records that configuration resolution itself emitted below "
+"the old level were never produced at all and cannot be recovered. `-vvv` on the "
+"command line has no such gap, because then nothing needed correcting — and a run that"
+" dies *during* resolution never gets a resolved verbosity, so there the command line "
+"is the only answer there was."
 msgstr ""
+"La conseguenza: un file di configurazione non può governare ciò che è stato "
+"registrato prima che il file di configurazione fosse letto. Alzare la verbosità apre "
+"i punti di registrazione da lì in avanti; la manciata di record che la risoluzione "
+"della configurazione stessa ha emesso sotto al livello precedente non è mai stata "
+"prodotta e non si può recuperare. `-vvv` sulla riga di comando non ha una lacuna "
+"simile, perché allora non c'era niente da correggere — e un'esecuzione che muore "
+"*durante* la risoluzione non ottiene mai una verbosità risolta, quindi lì la riga di "
+"comando è l'unica risposta che ci fosse."
 
 #: ../../source/reference/configuration/index.md:125
 msgid ""
-"Worker child processes have no such split: they resolve nothing and are "
-"handed the resolved verbosity inside their request, so a parent and its "
-"children always agree."
+"Worker child processes have no such split: they resolve nothing and are handed the "
+"resolved verbosity inside their request, so a parent and its children always agree."
 msgstr ""
+"I processi figli non hanno una divisione simile: non risolvono niente e ricevono la "
+"verbosità risolta dentro la propria richiesta, quindi un padre e i suoi figli sono "
+"sempre d'accordo."
 
 #~ msgid "The one setting that does not work: verbosity"
 #~ msgstr ""
 
 #~ msgid ""
-#~ "`FREEPORTS_VERBOSITY` and the configuration "
-#~ "file's `verbosity` key are **parsed, "
-#~ "validated and merged, but not applied**"
-#~ " to the logging of an ordinary "
-#~ "run. The parent process installs its "
-#~ "logging from the `-v` and `-q` "
-#~ "counts alone, before the configuration "
-#~ "is resolved, and never revisits it."
+#~ "`FREEPORTS_VERBOSITY` and the configuration file's "
+#~ "`verbosity` key are **parsed, validated and "
+#~ "merged, but not applied** to the logging "
+#~ "of an ordinary run. The parent process "
+#~ "installs its logging from the `-v` and "
+#~ "`-q` counts alone, before the configuration is"
+#~ " resolved, and never revisits it."
 #~ msgstr ""
 
 #~ msgid ""
-#~ "Measured, not inferred: with "
-#~ "`FREEPORTS_VERBOSITY=trace` and no flags, "
-#~ "stderr stays at warning level."
+#~ "Measured, not inferred: with `FREEPORTS_VERBOSITY=trace`"
+#~ " and no flags, stderr stays at warning "
+#~ "level."
 #~ msgstr ""
 
 #~ msgid ""
-#~ "Worker child processes *do* honour the"
-#~ " resolved value, since it reaches "
-#~ "them inside their request — so a"
-#~ " parent and its children can disagree"
-#~ " about verbosity in the same run. "
-#~ "Today the verbosity of the process "
-#~ "you are watching can only be set"
-#~ " with `-v` and `-q`."
+#~ "Worker child processes *do* honour the "
+#~ "resolved value, since it reaches them inside"
+#~ " their request — so a parent and its"
+#~ " children can disagree about verbosity in "
+#~ "the same run. Today the verbosity of the"
+#~ " process you are watching can only be "
+#~ "set with `-v` and `-q`."
 #~ msgstr ""
 

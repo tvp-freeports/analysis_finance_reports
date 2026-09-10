@@ -21,342 +21,404 @@ msgstr ""
 
 #: ../../source/reference/configuration/config_file.md:1
 msgid "The configuration file"
-msgstr ""
+msgstr "Il file di configurazione"
 
 #: ../../source/reference/configuration/config_file.md:3
 msgid ""
-"YAML, and the weakest source above the built-in defaults. It is where the"
-" settings that do not change between runs belong — the repository, the "
-"database, the lists, the output shape — so that a command line only has "
-"to say what is different this time."
+"YAML, and the weakest source above the built-in defaults. It is where the settings "
+"that do not change between runs belong — the repository, the database, the lists, the"
+" output shape — so that a command line only has to say what is different this time."
 msgstr ""
+"YAML, e la sorgente più debole al di sopra dei valori predefiniti incorporati. È il "
+"posto a cui appartengono le impostazioni che non cambiano da un'esecuzione all'altra "
+"— il repository, il database, le liste, la forma dei risultati — così che una riga di"
+" comando debba dire soltanto ciò che questa volta è diverso."
 
 #: ../../source/reference/configuration/config_file.md:7
 msgid "Key to option"
-msgstr ""
+msgstr "Da chiave a impostazione"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "Key"
-msgstr ""
+msgstr "Chiave"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "Option"
-msgstr ""
+msgstr "Impostazione"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "Note"
-msgstr ""
+msgstr "Nota"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`url`, `pdf`"
-msgstr ""
+msgstr "`url`, `pdf`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`reports`, in two halves"
-msgstr ""
+msgstr "`reports`, in due metà"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`reports`"
-msgstr ""
+msgstr "`reports`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a list, each element in the specifier grammar"
-msgstr ""
+msgstr "una lista, ciascun elemento nella grammatica degli specificatori"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`target_lists`"
-msgstr ""
+msgstr "`target_lists`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a list"
-msgstr ""
+msgstr "una lista"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`format`"
-msgstr ""
+msgstr "`format`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`formats_repo`"
-msgstr ""
+msgstr "`formats_repo`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`formats_repo_path`"
-msgstr ""
+msgstr "`formats_repo_path`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`db_path`"
-msgstr ""
+msgstr "`db_path`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`input_db_path`"
-msgstr ""
+msgstr "`input_db_path`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`out_path`"
-msgstr ""
+msgstr "`out_path`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`out_profile`"
-msgstr ""
+msgstr "`out_profile`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a profile name, case-insensitively"
-msgstr ""
+msgstr "un nome di profilo, senza distinzione fra maiuscole e minuscole"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`out_flags`"
-msgstr ""
+msgstr "`out_flags`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`separate_out`, `compressed`"
-msgstr ""
+msgstr "`separate_out`, `compressed`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a map, only `separate_out` and `archive`"
-msgstr ""
+msgstr "una mappa, solo `separate_out` e `archive`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`save_pdf`"
-msgstr ""
+msgstr "`save_pdf`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a real YAML boolean"
-msgstr ""
+msgstr "un vero booleano YAML"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`n_workers`"
-msgstr ""
+msgstr "`n_workers`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a positive integer or `auto`"
-msgstr ""
+msgstr "un intero positivo oppure `auto`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`parallelism`"
-msgstr ""
+msgstr "`parallelism`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`parallelism_jobs`, `parallelism_pages`"
-msgstr ""
+msgstr "`parallelism_jobs`, `parallelism_pages`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "a map, only `jobs` and `pages`"
-msgstr ""
+msgstr "una mappa, solo `jobs` e `pages`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`batch_file`"
-msgstr ""
+msgstr "`batch_file`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`verbosity`"
-msgstr ""
+msgstr "`verbosity`"
 
 #: ../../source/reference/configuration/config_file.md
 #, python-brace-format
 msgid "applied once the configuration resolves; see {doc}`index`"
-msgstr ""
+msgstr "applicata una volta risolta la configurazione; vedi {doc}`index`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "`dev`, `validate`"
-msgstr ""
+msgstr "`dev`, `validate`"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "—"
-msgstr ""
+msgstr "—"
 
 #: ../../source/reference/configuration/config_file.md
 msgid "sections read by the two tooling commands, never by the engine; see below"
-msgstr ""
+msgstr "sezioni lette dai due comandi di servizio, mai dal motore; vedi sotto"
 
 #: ../../source/reference/configuration/config_file.md:27
 msgid ""
-"There is no key for `config_file`: a configuration file naming the "
-"configuration file to read would be a chicken with no egg."
+"There is no key for `config_file`: a configuration file naming the configuration file"
+" to read would be a chicken with no egg."
 msgstr ""
+"Non c'è una chiave per `config_file`: un file di configurazione che nominasse il file"
+" di configurazione da leggere sarebbe una gallina senza uovo."
 
 #: ../../source/reference/configuration/config_file.md:30
 msgid "A complete example file"
-msgstr ""
+msgstr "Un file di esempio completo"
 
 #: ../../source/reference/configuration/config_file.md:48
 msgid "The two sections the engine never reads"
-msgstr ""
+msgstr "Le due sezioni che il motore non legge mai"
 
 #: ../../source/reference/configuration/config_file.md:50
 msgid ""
-"The same file also configures `freeports-dev` and `freeports-validate`, "
-"under two optional sections:"
+"The same file also configures `freeports-dev` and `freeports-validate`, under two "
+"optional sections:"
 msgstr ""
+"Lo stesso file configura anche `freeports-dev` e `freeports-validate`, sotto due "
+"sezioni facoltative:"
 
 #: ../../source/reference/configuration/config_file.md:61
 #, python-brace-format
 msgid ""
-"Both commands are only ever run by **format authors**. If you extract "
-"data, these sections do not exist for you, and a file without them is "
-"complete. {doc}`dev-and-validate` is their reference."
+"Both commands are only ever run by **format authors**. If you extract data, these "
+"sections do not exist for you, and a file without them is complete. {doc}`dev-and-"
+"validate` is their reference."
 msgstr ""
+"Entrambi i comandi sono eseguiti soltanto da chi **scrive formati**. Se estrai dati, "
+"per te queste sezioni non esistono, e un file che non le ha è completo. {doc}`dev-"
+"and-validate` ne è il riferimento."
 
 #: ../../source/reference/configuration/config_file.md:65
 msgid ""
-"They live here rather than in two files of their own so that the settings"
-" genuinely shared with the engine — `formats_repo`, `db_path` — stay at "
-"the top level and get written **once**, for all three commands. The "
-"engine parses the sections and then ignores them; parsing them at all is "
-"what extends the unknown-key refusal below into `dev.tagret_lists`."
+"They live here rather than in two files of their own so that the settings genuinely "
+"shared with the engine — `formats_repo`, `db_path` — stay at the top level and get "
+"written **once**, for all three commands. The engine parses the sections and then "
+"ignores them; parsing them at all is what extends the unknown-key refusal below into "
+"`dev.tagret_lists`."
 msgstr ""
+"Stanno qui anziché in due file propri così che le impostazioni davvero condivise con "
+"il motore — `formats_repo`, `db_path` — restino al livello superiore e si scrivano "
+"**una volta sola**, per tutti e tre i comandi. Il motore analizza le sezioni e poi le"
+" ignora; analizzarle è ciò che estende fino a `dev.tagret_lists` il rifiuto delle "
+"chiavi sconosciute descritto qui sotto."
 
 #: ../../source/reference/configuration/config_file.md:70
 msgid "Relative paths in this file"
-msgstr ""
+msgstr "I percorsi relativi in questo file"
 
 #: ../../source/reference/configuration/config_file.md:72
 msgid ""
-"A path written here is resolved against **the directory holding the "
-"file**, not against the working directory the command happens to be run "
-"from. That is the only reading that survives the way the file is found: "
-"it is searched for — the working directory, then the user's, then the "
-"system's — so one line is read from many different working directories "
-"and has to name the same repository from all of them."
+"A path written here is resolved against **the directory holding the file**, not "
+"against the working directory the command happens to be run from. That is the only "
+"reading that survives the way the file is found: it is searched for — the working "
+"directory, then the user's, then the system's — so one line is read from many "
+"different working directories and has to name the same repository from all of them."
 msgstr ""
+"Un percorso scritto qui è risolto rispetto alla **cartella che contiene il file**, "
+"non rispetto alla cartella di lavoro da cui si dà il caso il comando sia eseguito. È "
+"l'unica lettura che sopravvive al modo in cui il file viene trovato: lo si cerca — "
+"nella cartella di lavoro, poi in quella dell'utente, poi in quella di sistema — "
+"quindi una riga è letta da molte cartelle di lavoro diverse e da tutte deve nominare "
+"lo stesso repository."
 
 #: ../../source/reference/configuration/config_file.md:83
 msgid ""
-"Paths given the other two ways keep the meaning they obviously have: "
-"`--repo` on the command line and `FREEPORTS_FORMATS_REPO_PATH` in the "
-"environment are relative to the shell you are standing in, because that "
-"is where you typed them."
+"Paths given the other two ways keep the meaning they obviously have: `--repo` on the "
+"command line and `FREEPORTS_FORMATS_REPO_PATH` in the environment are relative to the"
+" shell you are standing in, because that is where you typed them."
 msgstr ""
+"I percorsi dati negli altri due modi mantengono il significato che ovviamente hanno: "
+"`--repo` sulla riga di comando e `FREEPORTS_FORMATS_REPO_PATH` nell'ambiente sono "
+"relativi alla shell in cui ti trovi, perché è lì che li hai digitati."
 
 #: ../../source/reference/configuration/config_file.md:87
 msgid ""
-"The same rule reaches `validate.sources`, whose entries may be written as"
-" bare paths rather than as URIs. A relative one is resolved against this "
-"file's directory, for the same reason and with the same result — the "
-"pages it names are the same pages from every working directory. A URI, "
-"`file://` included, is left exactly as written."
+"The same rule reaches `validate.sources`, whose entries may be written as bare paths "
+"rather than as URIs. A relative one is resolved against this file's directory, for "
+"the same reason and with the same result — the pages it names are the same pages from"
+" every working directory. A URI, `file://` included, is left exactly as written."
 msgstr ""
+"La stessa regola arriva a `validate.sources`, le cui voci si possono scrivere come "
+"percorsi nudi anziché come URI. Una relativa è risolta rispetto alla cartella di "
+"questo file, per lo stesso motivo e con lo stesso risultato — le pagine che nomina "
+"sono le stesse pagine da ogni cartella di lavoro. Un URI, `file://` compreso, è "
+"lasciato esattamente com'è scritto."
 
 #: ../../source/reference/configuration/config_file.md:93
 msgid ""
-"`freeports-validate` reads the file this way. The engine and `freeports-"
-"dev` still resolve a relative path here against the working directory — "
-"which is why a workspace configuration file tends to carry a comment "
-"saying the run must start from its directory."
+"`freeports-validate` reads the file this way. The engine and `freeports-dev` still "
+"resolve a relative path here against the working directory — which is why a workspace"
+" configuration file tends to carry a comment saying the run must start from its "
+"directory."
 msgstr ""
+"`freeports-validate` legge il file in questo modo. Il motore e `freeports-dev` "
+"risolvono ancora un percorso relativo scritto qui rispetto alla cartella di lavoro — "
+"ed è per questo che il file di configurazione di uno spazio di lavoro tende a portare"
+" un commento che dice che l'esecuzione deve partire dalla sua cartella."
 
 #: ../../source/reference/configuration/config_file.md:98
 msgid "The two grouped settings"
-msgstr ""
+msgstr "Le due impostazioni raggruppate"
 
 #: ../../source/reference/configuration/config_file.md:100
 msgid ""
-"`parallelism` and `out_flags` are **maps with a closed set of sub-keys** "
-"— two settings of one thing, grouped so the file reads as it thinks. Both"
-" behave the same way:"
+"`parallelism` and `out_flags` are **maps with a closed set of sub-keys** — two "
+"settings of one thing, grouped so the file reads as it thinks. Both behave the same "
+"way:"
 msgstr ""
+"`parallelism` e `out_flags` sono **mappe con un insieme chiuso di sottochiavi** — due"
+" impostazioni di una stessa cosa, raggruppate perché il file si legga come ragiona. "
+"Entrambe si comportano allo stesso modo:"
 
 #: ../../source/reference/configuration/config_file.md:103
 msgid ""
-"a sub-key left out stays **unset**, so another source still decides it. A"
-" file naming only `archive` leaves `separate_out` alone;"
+"a sub-key left out stays **unset**, so another source still decides it. A file naming"
+" only `archive` leaves `separate_out` alone;"
 msgstr ""
+"una sottochiave lasciata fuori resta **non impostata**, quindi a deciderla resta "
+"un'altra sorgente. Un file che nomina solo `archive` lascia stare `separate_out`;"
 
 #: ../../source/reference/configuration/config_file.md:105
 msgid ""
-"an **unknown sub-key is an error naming its full path** — "
-"`parallelism.pipelines`, `out_flags.compressed`. A level or a flag that "
-"was considered and never implemented must not look active because a file "
-"mentioned it;"
+"an **unknown sub-key is an error naming its full path** — `parallelism.pipelines`, "
+"`out_flags.compressed`. A level or a flag that was considered and never implemented "
+"must not look active because a file mentioned it;"
 msgstr ""
+"una **sottochiave sconosciuta è un errore che ne nomina il percorso completo** — "
+"`parallelism.pipelines`, `out_flags.compressed`. Un livello o un'opzione che sia "
+"stata considerata e mai realizzata non deve sembrare attiva solo perché un file l'ha "
+"nominata;"
 
 #: ../../source/reference/configuration/config_file.md:108
 msgid "a section that is not a map at all is an error."
-msgstr ""
+msgstr "una sezione che non sia affatto una mappa è un errore."
 
 #: ../../source/reference/configuration/config_file.md:110
 msgid ""
-"Note that `out_flags.archive` is spelled as the flag is, not as the field"
-" is: `compressed` is the internal name and is rejected here."
+"Note that `out_flags.archive` is spelled as the flag is, not as the field is: "
+"`compressed` is the internal name and is rejected here."
 msgstr ""
+"Nota che `out_flags.archive` si scrive come si scrive l'opzione di comando, non come "
+"si scrive il campo: `compressed` è il nome interno ed è rifiutato qui."
 
 #: ../../source/reference/configuration/config_file.md:113
 msgid "The file wants real YAML types"
-msgstr ""
+msgstr "Il file vuole veri tipi YAML"
 
 #: ../../source/reference/configuration/config_file.md:114
 msgid ""
-"The file wants **real YAML types**, unlike the environment, which only "
-"has strings: `save_pdf: true` is a boolean, not the string `\"true\"`. "
-"Parallelism is the one place both are accepted, because YAML already "
-"distinguishes `2` from `auto` and refusing a quoted number would be a "
-"subtlety with no gain."
+"The file wants **real YAML types**, unlike the environment, which only has strings: "
+"`save_pdf: true` is a boolean, not the string `\"true\"`. Parallelism is the one "
+"place both are accepted, because YAML already distinguishes `2` from `auto` and "
+"refusing a quoted number would be a subtlety with no gain."
 msgstr ""
+"Il file vuole **veri tipi YAML**, a differenza dell'ambiente, che ha solo stringhe: "
+"`save_pdf: true` è un booleano, non la stringa `\"true\"`. Il parallelismo è l'unico "
+"posto in cui si accettano entrambi, perché YAML già distingue `2` da `auto` e "
+"rifiutare un numero fra virgolette sarebbe una sottigliezza senza guadagno."
 
 #: ../../source/reference/configuration/config_file.md:118
 msgid "Unknown keys are errors"
-msgstr ""
+msgstr "Le chiavi sconosciute sono errori"
 
 #: ../../source/reference/configuration/config_file.md:120
 msgid ""
-"At the top level as in the two sections. A misspelled key that is "
-"silently ignored configures nothing and says nothing about it, and the "
-"user is left believing a setting took effect. A file with a single "
-"unknown key fails the run, naming the file and the key."
+"At the top level as in the two sections. A misspelled key that is silently ignored "
+"configures nothing and says nothing about it, and the user is left believing a "
+"setting took effect. A file with a single unknown key fails the run, naming the file "
+"and the key."
 msgstr ""
+"Al livello superiore come nelle due sezioni. Una chiave scritta male e ignorata in "
+"silenzio non configura niente e non lo dice, e all'utente resta la convinzione che "
+"un'impostazione abbia avuto effetto. Un file con una sola chiave sconosciuta fa "
+"fallire l'esecuzione, nominando il file e la chiave."
 
 #: ../../source/reference/configuration/config_file.md:124
 msgid ""
-"An empty file, or one holding nothing but `null`, contributes nothing and"
-" is not an error. A top-level document that is not a mapping is."
+"An empty file, or one holding nothing but `null`, contributes nothing and is not an "
+"error. A top-level document that is not a mapping is."
 msgstr ""
+"Un file vuoto, o che non contenga altro che `null`, non contribuisce in niente e non "
+"è un errore. Un documento di livello superiore che non sia una mappatura lo è."
 
 #: ../../source/reference/configuration/config_file.md:127
 msgid "Where the file is looked for"
-msgstr ""
+msgstr "Dove si cerca il file"
 
 #: ../../source/reference/configuration/config_file.md:129
 msgid ""
-"Unless `--config` names one, three tiers are searched in **decreasing** "
-"precedence, and the first file found wins outright — the tiers do not "
-"merge with each other."
+"Unless `--config` names one, three tiers are searched in **decreasing** precedence, "
+"and the first file found wins outright — the tiers do not merge with each other."
 msgstr ""
+"A meno che `--config` non ne nomini uno, si cercano tre livelli in ordine "
+"**decrescente** di precedenza, e il primo file trovato vince del tutto — i livelli "
+"non si fondono fra loro."
 
 #: ../../source/reference/configuration/config_file.md:132
 msgid ""
-"**The working directory** — a file named, case-insensitively, `config-"
-"freeports.yaml` or `freeports-config.yaml`, in their usual punctuation "
-"and extension variants: a leading dot, `conf` for `config`, `-`, `_` or "
-"`.` as separator, `.yml` for `.yaml`. This is the per-project "
-"configuration, and the one to commit next to a batch file."
+"**The working directory** — a file named, case-insensitively, `config-freeports.yaml`"
+" or `freeports-config.yaml`, in their usual punctuation and extension variants: a "
+"leading dot, `conf` for `config`, `-`, `_` or `.` as separator, `.yml` for `.yaml`. "
+"This is the per-project configuration, and the one to commit next to a batch file."
 msgstr ""
+"**La cartella di lavoro** — un file chiamato, senza distinzione fra maiuscole e "
+"minuscole, `config-freeports.yaml` oppure `freeports-config.yaml`, nelle loro solite "
+"varianti di punteggiatura ed estensione: un punto iniziale, `conf` per `config`, `-`,"
+" `_` o `.` come separatore, `.yml` per `.yaml`. È la configurazione del singolo "
+"progetto, e quella da committare accanto a un file di lotto."
 
 #: ../../source/reference/configuration/config_file.md:136
 msgid ""
-"**The user tier** — the operating system's *local* configuration "
-"directory, holding `freeports.yaml` or `freeports.yml`. Local rather than"
-" roaming, deliberately: a file naming machine-local paths should not "
-"follow you to another machine and point at directories that do not exist "
-"there."
+"**The user tier** — the operating system's *local* configuration directory, holding "
+"`freeports.yaml` or `freeports.yml`. Local rather than roaming, deliberately: a file "
+"naming machine-local paths should not follow you to another machine and point at "
+"directories that do not exist there."
 msgstr ""
+"**Il livello dell'utente** — la cartella di configurazione *locale* del sistema "
+"operativo, che contiene `freeports.yaml` oppure `freeports.yml`. Locale anziché "
+"itinerante, deliberatamente: un file che nomina percorsi locali alla macchina non "
+"deve seguirti su un'altra macchina e puntare a cartelle che lì non esistono."
 
 #: ../../source/reference/configuration/config_file.md:140
 msgid ""
-"**The system tier** — the XDG configuration directories and then `/etc` "
-"on POSIX; the program-data directory and then the system root on Windows."
+"**The system tier** — the XDG configuration directories and then `/etc` on POSIX; the"
+" program-data directory and then the system root on Windows."
 msgstr ""
+"**Il livello di sistema** — le cartelle di configurazione XDG e poi `/etc` su POSIX; "
+"la cartella dei dati dei programmi e poi la radice del sistema su Windows."
 
 #: ../../source/reference/configuration/config_file.md:143
-msgid ""
-"No file anywhere is **not an error**. It simply means this layer "
-"contributes nothing."
+msgid "No file anywhere is **not an error**. It simply means this layer contributes nothing."
 msgstr ""
+"Nessun file da nessuna parte **non è un errore**. Significa semplicemente che questo "
+"strato non contribuisce in niente."
 
 #: ../../source/reference/configuration/config_file.md:145
 msgid ""
-"Both platform branches of the system tier are always compiled, whatever "
-"the machine — which is how the tests exercise both regardless of which "
-"system runs them."
+"Both platform branches of the system tier are always compiled, whatever the machine —"
+" which is how the tests exercise both regardless of which system runs them."
 msgstr ""
+"Entrambi i rami di piattaforma del livello di sistema sono sempre compilati, "
+"qualunque sia la macchina — ed è così che i test li mettono alla prova entrambi a "
+"prescindere da quale sistema li esegua."
 
 #~ msgid "*parsed and merged, but not applied; see* {doc}`index`"
 #~ msgstr ""

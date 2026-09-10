@@ -21,66 +21,80 @@ msgstr ""
 
 #: ../../source/guides/docs/index.rst:3
 msgid "Writing the documentation"
-msgstr ""
+msgstr "Scrivere la documentazione"
 
 #: ../../source/guides/docs/index.rst:5
 msgid ""
-"This section is for whoever is adding to, correcting or reorganising "
-"these pages. It has two halves, and they answer different questions: "
-":doc:`organisation` says **where a page belongs and why**, and :doc"
-":`building-the-site` says **how to build and read the result**."
+"This section is for whoever is adding to, correcting or reorganising these pages. It "
+"has two halves, and they answer different questions: :doc:`organisation` says **where"
+" a page belongs and why**, and :doc:`building-the-site` says **how to build and read "
+"the result**."
 msgstr ""
+"Questa sezione è per chi sta aggiungendo, correggendo o riorganizzando queste pagine."
+" Ha due metà, e rispondono a domande diverse: :doc:`organisation` dice **dove "
+"appartiene una pagina e perché**, e :doc:`building-the-site` dice **come costruire e "
+"leggere il risultato**."
 
 #: ../../source/guides/docs/index.rst:9
 msgid ""
-"Read :doc:`organisation` first, even for a one-paragraph correction. The "
-"site is arranged on three axes at once, and a page filed on the wrong one"
-" is worse than a page that does not exist: it makes the reader believe "
-"they have found the answer."
+"Read :doc:`organisation` first, even for a one-paragraph correction. The site is "
+"arranged on three axes at once, and a page filed on the wrong one is worse than a "
+"page that does not exist: it makes the reader believe they have found the answer."
 msgstr ""
+"Leggi prima :doc:`organisation`, anche per una correzione di un paragrafo. Il sito è "
+"organizzato su tre assi insieme, e una pagina archiviata su quello sbagliato è peggio"
+" di una pagina che non esiste: fa credere al lettore di aver trovato la risposta."
 
 #: ../../source/guides/docs/index.rst:24
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/guides/docs/index.rst:25
 msgid "Answers"
-msgstr ""
+msgstr "Risponde a"
 
 #: ../../source/guides/docs/index.rst:26
 msgid ":doc:`organisation`"
-msgstr ""
+msgstr ":doc:`organisation`"
 
 #: ../../source/guides/docs/index.rst:27
-msgid ""
-"the three axes, where a new page goes, and the rules that keep the side "
-"panel usable"
+msgid "the three axes, where a new page goes, and the rules that keep the side panel usable"
 msgstr ""
+"i tre assi, dove va una pagina nuova, e le regole che tengono usabile il pannello "
+"laterale"
 
 #: ../../source/guides/docs/index.rst:28
 msgid ":doc:`building-the-site`"
-msgstr ""
+msgstr ":doc:`building-the-site`"
 
 #: ../../source/guides/docs/index.rst:29
-msgid ""
-"Sphinx, MyST, the two generated API references, and what ``make docs-"
-"serve`` is for"
+msgid "Sphinx, MyST, the two generated API references, and what ``make docs-serve`` is for"
 msgstr ""
+"Sphinx, MyST, i due riferimenti di API generati, e a che cosa serve ``make docs-"
+"serve``"
 
 #: ../../source/guides/docs/index.rst:31
 msgid ""
-"Translating what is here is a different job with a different toolchain, "
-"and it is :doc:`../i18n/index`."
+"Translating what is here is a different job with a different toolchain, and it is "
+":doc:`../i18n/index`."
 msgstr ""
+"Tradurre ciò che sta qui è un lavoro diverso con una toolchain diversa, ed è "
+":doc:`../i18n/index`."
 
 #: ../../source/guides/docs/index.rst:36
 msgid ""
-"The pages under ``docs/source/validation/`` are **content-addressed**: "
-"their SHA-256 hashes are recorded in signed validation documents, in this"
-" repository and in others, and their published URLs are the default "
-"source those documents resolve. Editing one — even fixing a typo — or "
-"moving it invalidates every grant that cites it. Changing them is a "
-"deliberate operation that includes re-granting and re-signing, not an act"
-" of tidying. See :doc:`../institutional/why-trust-a-grant`."
+"The pages under ``docs/source/validation/`` are **content-addressed**: their SHA-256 "
+"hashes are recorded in signed validation documents, in this repository and in others,"
+" and their published URLs are the default source those documents resolve. Editing one"
+" — even fixing a typo — or moving it invalidates every grant that cites it. Changing "
+"them is a deliberate operation that includes re-granting and re-signing, not an act "
+"of tidying. See :doc:`../institutional/why-trust-a-grant`."
 msgstr ""
+"Le pagine sotto ``docs/source/validation/`` sono **indirizzate dal contenuto**: i "
+"loro hash SHA-256 sono registrati in documenti di validazione firmati, in questo "
+"repository e in altri, e i loro URL pubblicati sono la sorgente predefinita che quei "
+"documenti risolvono. Modificarne una — anche solo correggere un refuso — o spostarla "
+"invalida ogni attestazione che la cita. Cambiarle è un'operazione deliberata che "
+"comprende il riattestare e il rifirmare, non un atto di riordino. Vedi "
+":doc:`../institutional/why-trust-a-grant`."
 

@@ -21,65 +21,68 @@ msgstr ""
 
 #: ../../source/guides/formats/advanced/index.md:1
 msgid "The three levels of a format"
-msgstr ""
+msgstr "I tre livelli di un formato"
 
 #: ../../source/guides/formats/advanced/index.md:3
 msgid ""
-"Most formats never leave the first level. These pages are the other two, "
-"and the rule for choosing between them: **go up a level only when the "
-"level below genuinely cannot express the layout.**"
+"Most formats never leave the first level. These pages are the other two, and the rule"
+" for choosing between them: **go up a level only when the level below genuinely "
+"cannot express the layout.**"
 msgstr ""
+"Quasi tutti i formati non escono mai dal primo livello. Queste pagine sono gli altri "
+"due, e la regola per scegliere fra loro: **sali di livello solo quando quello sotto "
+"non riesce davvero a esprimere l'impaginazione.**"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "Level"
-msgstr ""
+msgstr "Livello"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "Is"
-msgstr ""
+msgstr "È"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "Reach for it when"
-msgstr ""
+msgstr "Ricorrici quando"
 
 #: ../../source/guides/formats/advanced/index.md:6
 #, python-brace-format
 msgid "{doc}`structured`"
-msgstr ""
+msgstr "{doc}`structured`"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "rows in a spreadsheet, no code"
-msgstr ""
+msgstr "righe in un foglio di calcolo, nessun codice"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "the layout is a table the engine can already read"
-msgstr ""
+msgstr "l'impaginazione è una tabella che il motore sa già leggere"
 
 #: ../../source/guides/formats/advanced/index.md:6
 #, python-brace-format
 msgid "{doc}`semistructured`"
-msgstr ""
+msgstr "{doc}`semistructured`"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "a named algorithm plus YAML"
-msgstr ""
+msgstr "un algoritmo con un nome più dello YAML"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "the shape is regular but needs parameters"
-msgstr ""
+msgstr "la forma è regolare ma ha bisogno di parametri"
 
 #: ../../source/guides/formats/advanced/index.md:6
 #, python-brace-format
 msgid "{doc}`unstructured`"
-msgstr ""
+msgstr "{doc}`unstructured`"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "a Python module"
-msgstr ""
+msgstr "un modulo Python"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "the layout resists parameterisation altogether"
-msgstr ""
+msgstr "l'impaginazione resiste del tutto alla parametrizzazione"
 
 #: ../../source/guides/formats/advanced/index.md:21
 #, python-brace-format
@@ -87,4 +90,6 @@ msgid ""
 "How the three merge, and why they are outside the engine at all, is "
 "{doc}`../../../reference/design/formats-as-plugins`."
 msgstr ""
+"Come i tre si fondano, e perché stiano fuori dal motore, sta in "
+"{doc}`../../../reference/design/formats-as-plugins`."
 

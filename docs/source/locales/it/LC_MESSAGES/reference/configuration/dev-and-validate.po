@@ -21,510 +21,606 @@ msgstr ""
 
 #: ../../source/reference/configuration/dev-and-validate.md:1
 msgid "Configuring the two tooling commands"
-msgstr ""
+msgstr "Configurare i due comandi di servizio"
 
 #: ../../source/reference/configuration/dev-and-validate.md:3
 msgid ""
-"`freeports-dev` and `freeports-validate` are configured the same way "
-"`freeports` is, and in most cases *by the same file*. This page is the "
-"whole of it: what each command reads, where from, and which name a "
-"setting has in each of the three places."
+"`freeports-dev` and `freeports-validate` are configured the same way `freeports` is, "
+"and in most cases *by the same file*. This page is the whole of it: what each command"
+" reads, where from, and which name a setting has in each of the three places."
 msgstr ""
+"`freeports-dev` e `freeports-validate` si configurano come si configura `freeports`, "
+"e nella maggior parte dei casi *dallo stesso file*. Questa pagina è tutto quanto: che"
+" cosa legge ciascun comando, da dove, e che nome ha un'impostazione in ciascuno dei "
+"tre posti."
 
 #: ../../source/reference/configuration/dev-and-validate.md:7
 #, python-brace-format
 msgid ""
-"If you only extract data, none of this concerns you — see {doc}`index` "
-"instead. The two sections described here are **optional**, and a "
-"configuration file that never mentions them is not incomplete."
+"If you only extract data, none of this concerns you — see {doc}`index` instead. The "
+"two sections described here are **optional**, and a configuration file that never "
+"mentions them is not incomplete."
 msgstr ""
+"Se ti limiti a estrarre dati, niente di tutto ciò ti riguarda — vedi invece "
+"{doc}`index`. Le due sezioni descritte qui sono **facoltative**, e un file di "
+"configurazione che non le nomini mai non è incompleto."
 
 #: ../../source/reference/configuration/dev-and-validate.md:11
 msgid "One setting, three spellings"
-msgstr ""
+msgstr "Un'impostazione, tre grafie"
 
 #: ../../source/reference/configuration/dev-and-validate.md:13
-msgid ""
-"Every setting exists in three places, and the three names differ only in "
-"punctuation:"
+msgid "Every setting exists in three places, and the three names differ only in punctuation:"
 msgstr ""
+"Ogni impostazione esiste in tre posti, e i tre nomi differiscono solo per la "
+"punteggiatura:"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "Where"
-msgstr ""
+msgstr "Dove"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "Shared with the engine"
-msgstr ""
+msgstr "Condivisa con il motore"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`freeports-dev`"
-msgstr ""
+msgstr "`freeports-dev`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`freeports-validate`"
-msgstr ""
+msgstr "`freeports-validate`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "configuration file"
-msgstr ""
+msgstr "file di configurazione"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "a **top-level** key"
-msgstr ""
+msgstr "una chiave di **livello superiore**"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "under **`dev:`**"
-msgstr ""
+msgstr "sotto **`dev:`**"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "under **`validate:`**"
-msgstr ""
+msgstr "sotto **`validate:`**"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "environment"
-msgstr ""
+msgstr "ambiente"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_…`"
-msgstr ""
+msgstr "`FREEPORTS_…`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_DEV_…`"
-msgstr ""
+msgstr "`FREEPORTS_DEV_…`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_VALIDATE_…`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_…`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "command line"
-msgstr ""
+msgstr "riga di comando"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "the engine's flag"
-msgstr ""
+msgstr "l'opzione del motore"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "the same flag"
-msgstr ""
+msgstr "la stessa opzione"
 
 #: ../../source/reference/configuration/dev-and-validate.md:21
 msgid ""
-"So the page type is `dev.page_type`, `FREEPORTS_DEV_PAGE_TYPE` and "
-"`--page-type`, and knowing one tells you the other two. The prefix says "
-"*which command owns the setting*, which is also the answer to \"may I "
-"delete this from my configuration file\" — anything under `dev:` or "
-"`validate:` only ever matters to a format author."
+"So the page type is `dev.page_type`, `FREEPORTS_DEV_PAGE_TYPE` and `--page-type`, and"
+" knowing one tells you the other two. The prefix says *which command owns the "
+"setting*, which is also the answer to \"may I delete this from my configuration "
+"file\" — anything under `dev:` or `validate:` only ever matters to a format author."
 msgstr ""
+"Il tipo di pagina è quindi `dev.page_type`, `FREEPORTS_DEV_PAGE_TYPE` e `--page-"
+"type`, e conoscerne uno ti dice gli altri due. Il prefisso dice *quale comando "
+"possiede l'impostazione*, che è anche la risposta a \"posso cancellare questo dal mio"
+" file di configurazione\" — tutto ciò che sta sotto `dev:` o `validate:` interessa "
+"soltanto a chi scrive formati."
 
 #: ../../source/reference/configuration/dev-and-validate.md:26
 msgid "Precedence among the three sources"
-msgstr ""
+msgstr "Precedenza fra le tre sorgenti"
 
 #: ../../source/reference/configuration/dev-and-validate.md:27
 msgid ""
-"**Command line, then environment, then configuration file, then the "
-"command's own default.** The same order the engine uses, minus the tiers "
-"that have no meaning here — there is no batch row."
+"**Command line, then environment, then configuration file, then the command's own "
+"default.** The same order the engine uses, minus the tiers that have no meaning here "
+"— there is no batch row."
 msgstr ""
+"**Riga di comando, poi ambiente, poi file di configurazione, poi il valore "
+"predefinito del comando.** Lo stesso ordine che usa il motore, meno i livelli che qui"
+" non hanno senso — non c'è alcuna riga di lotto."
 
 #: ../../source/reference/configuration/dev-and-validate.md:30
 msgid ""
-"The merge is **per setting, not per source**, exactly as in the engine: "
-"naming the repository on the command line does not discard the target "
-"lists the file declares."
+"The merge is **per setting, not per source**, exactly as in the engine: naming the "
+"repository on the command line does not discard the target lists the file declares."
 msgstr ""
+"La fusione è **impostazione per impostazione, non sorgente per sorgente**, "
+"esattamente come nel motore: nominare il repository sulla riga di comando non scarta "
+"le liste bersaglio che il file dichiara."
 
 #: ../../source/reference/configuration/dev-and-validate.md:37
 msgid "What is shared, and why it is not in a section"
-msgstr ""
+msgstr "Che cosa è condiviso, e perché non stia in una sezione"
 
 #: ../../source/reference/configuration/dev-and-validate.md:39
 msgid ""
-"The formats repository and the input database are **top-level keys**, the"
-" same ones the engine reads. That is deliberate, and it is the point of "
-"the whole arrangement: a format author writes the path once and all three"
-" commands find it."
+"The formats repository and the input database are **top-level keys**, the same ones "
+"the engine reads. That is deliberate, and it is the point of the whole arrangement: a"
+" format author writes the path once and all three commands find it."
 msgstr ""
+"Il repository di formati e il database di ingresso sono **chiavi di livello "
+"superiore**, le stesse che legge il motore. È voluto, ed è il senso di tutta "
+"l'impalcatura: chi scrive formati scrive il percorso una volta sola e tutti e tre i "
+"comandi lo trovano."
 
 #: ../../source/reference/configuration/dev-and-validate.md:48
 msgid ""
-"A `tools:` section holding a second copy of the repository path would "
-"have been the obvious design and the wrong one — two places to write the "
-"same thing is two places to write it differently."
+"A `tools:` section holding a second copy of the repository path would have been the "
+"obvious design and the wrong one — two places to write the same thing is two places "
+"to write it differently."
 msgstr ""
+"Una sezione `tools:` che contenesse una seconda copia del percorso del repository "
+"sarebbe stata la soluzione ovvia e quella sbagliata — due posti in cui scrivere la "
+"stessa cosa sono due posti in cui scriverla diversamente."
 
 #: ../../source/reference/configuration/dev-and-validate.md:51
 msgid "The `dev` section"
-msgstr ""
+msgstr "La sezione `dev`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Key"
-msgstr ""
+msgstr "Chiave"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Environment"
-msgstr ""
+msgstr "Ambiente"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Flag"
-msgstr ""
+msgstr "Opzione di comando"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Default"
-msgstr ""
+msgstr "Predefinito"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Means"
-msgstr ""
+msgstr "Significa"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`dev.target_lists`"
-msgstr ""
+msgstr "`dev.target_lists`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_DEV_TARGET_LIST`"
-msgstr ""
+msgstr "`FREEPORTS_DEV_TARGET_LIST`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`--target-list` / `-T`"
-msgstr ""
+msgstr "`--target-list` / `-T`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`[TEST]`"
-msgstr ""
+msgstr "`[TEST]`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "the lists a repository's tests search for"
-msgstr ""
+msgstr "le liste che i test di un repository cercano"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`dev.noconfirm`"
-msgstr ""
+msgstr "`dev.noconfirm`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_DEV_NOCONFIRM`"
-msgstr ""
+msgstr "`FREEPORTS_DEV_NOCONFIRM`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`--noconfirm`"
-msgstr ""
+msgstr "`--noconfirm`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`false`"
-msgstr ""
+msgstr "`false`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "skip the `make-tests` prompts"
-msgstr ""
+msgstr "salta le richieste di conferma di `make-tests`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`dev.page_type`"
-msgstr ""
+msgstr "`dev.page_type`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`FREEPORTS_DEV_PAGE_TYPE`"
-msgstr ""
+msgstr "`FREEPORTS_DEV_PAGE_TYPE`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`--page-type` / `-t`"
-msgstr ""
+msgstr "`--page-type` / `-t`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "`investments`"
-msgstr ""
+msgstr "`investments`"
 
 #: ../../source/reference/configuration/dev-and-validate.md
 msgid "the page class `make-tests` and `inspect-page` assume"
-msgstr ""
+msgstr "la classe di pagina che `make-tests` e `inspect-page` presuppongono"
 
 #: ../../source/reference/configuration/dev-and-validate.md:66
 msgid ""
-"As in the engine, **an absent flag is unset, not false**: `--noconfirm` "
-"can only ever switch the setting on, so a command line that does not "
-"mention it leaves alone a file that did. To switch it back off, use a "
-"source that can spell false — `FREEPORTS_DEV_NOCONFIRM=false`, or "
-"`noconfirm: false`."
+"As in the engine, **an absent flag is unset, not false**: `--noconfirm` can only ever"
+" switch the setting on, so a command line that does not mention it leaves alone a "
+"file that did. To switch it back off, use a source that can spell false — "
+"`FREEPORTS_DEV_NOCONFIRM=false`, or `noconfirm: false`."
 msgstr ""
+"Come nel motore, **un'opzione assente è non impostata, non falsa**: `--noconfirm` può"
+" soltanto accendere l'impostazione, quindi una riga di comando che non la nomina "
+"lascia stare un file che l'aveva nominata. Per rispegnerla, usa una sorgente che "
+"sappia scrivere falso — `FREEPORTS_DEV_NOCONFIRM=false`, oppure `noconfirm: false`."
 
 #: ../../source/reference/configuration/dev-and-validate.md:70
 msgid ""
-"And as in the engine, `FREEPORTS_DEV_TARGET_LIST` is **one** list, the "
-"whole raw value, never split: a list whose name contains a comma still "
-"names one list. Several lists need a source with a list type — the flag, "
-"or the YAML file."
+"And as in the engine, `FREEPORTS_DEV_TARGET_LIST` is **one** list, the whole raw "
+"value, never split: a list whose name contains a comma still names one list. Several "
+"lists need a source with a list type — the flag, or the YAML file."
 msgstr ""
+"E come nel motore, `FREEPORTS_DEV_TARGET_LIST` è **una sola** lista, l'intero valore "
+"grezzo, mai diviso: una lista il cui nome contiene una virgola nomina comunque una "
+"lista sola. Per più liste serve una sorgente con un tipo lista — l'opzione di "
+"comando, oppure il file YAML."
 
 #: ../../source/reference/configuration/dev-and-validate.md:75
 msgid ""
-"`dev.target_lists` decides what a repository's tests look for, and "
-"therefore what its reference output contains. Setting it in a **user- or "
-"system-tier** file changes the behaviour of every formats repository on "
-"the machine, including ones built against `TEST`. It belongs in the "
-"repository's own `freeports-config.yaml`, next to the tests it governs."
+"`dev.target_lists` decides what a repository's tests look for, and therefore what its"
+" reference output contains. Setting it in a **user- or system-tier** file changes the"
+" behaviour of every formats repository on the machine, including ones built against "
+"`TEST`. It belongs in the repository's own `freeports-config.yaml`, next to the tests"
+" it governs."
 msgstr ""
+"`dev.target_lists` decide che cosa cercano i test di un repository, e quindi che cosa"
+" contengono i suoi risultati di riferimento. Impostarla in un file di **livello "
+"utente o di sistema** cambia il comportamento di ogni repository di formati sulla "
+"macchina, compresi quelli costruiti su `TEST`. Appartiene al `freeports-config.yaml` "
+"del repository stesso, accanto ai test che governa."
 
 #: ../../source/reference/configuration/dev-and-validate.md:81
 msgid "The `validate` section"
-msgstr ""
+msgstr "La sezione `validate`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`validate.key_id`"
-msgstr ""
+msgstr "`validate.key_id`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`FREEPORTS_VALIDATE_KEY_ID`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_KEY_ID`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`--key-id` / `-k`"
-msgstr ""
+msgstr "`--key-id` / `-k`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "none"
-msgstr ""
+msgstr "nessuno"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "the GPG key that is your identity"
-msgstr ""
+msgstr "la chiave GPG che è la tua identità"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`validate.sources`"
-msgstr ""
+msgstr "`validate.sources`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`FREEPORTS_VALIDATE_SOURCE`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_SOURCE`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`--source` / `-s`"
-msgstr ""
+msgstr "`--source` / `-s`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "the published documentation"
-msgstr ""
+msgstr "la documentazione pubblicata"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "where methodology pages are resolved from"
-msgstr ""
+msgstr "da dove si risolvono le pagine di metodologia"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`validate.offline`"
-msgstr ""
+msgstr "`validate.offline`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`FREEPORTS_VALIDATE_OFFLINE`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_OFFLINE`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`--offline` / `--no-offline`"
-msgstr ""
+msgstr "`--offline` / `--no-offline`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "never fetch a page; answer from the cache"
-msgstr ""
+msgstr "non scaricare mai una pagina; rispondi dalla cache"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`validate.deep`"
-msgstr ""
+msgstr "`validate.deep`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`FREEPORTS_VALIDATE_DEEP`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_DEEP`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`--deep` / `--no-deep`"
-msgstr ""
+msgstr "`--deep` / `--no-deep`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "**`true`**"
-msgstr ""
+msgstr "**`true`**"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "also follow what a methodology page pins"
-msgstr ""
+msgstr "segui anche ciò che una pagina di metodologia fissa"
 
 #: ../../source/reference/configuration/dev-and-validate.md:100
 msgid ""
-"**The key is not required by every subcommand.** It says who is "
-"*speaking*, so it is asked for by the ones that speak in your name — "
-"`create-document`, `grant`, `ungrant`, `update`, `sign-document` — and by"
-" nothing else. Reading what other people have vouched for needs no "
-"identity of your own, which is what lets `check-grants`, the three "
-"lookups, `sources` and `report` run in continuous integration and on the "
+"**The key is not required by every subcommand.** It says who is *speaking*, so it is "
+"asked for by the ones that speak in your name — `create-document`, `grant`, "
+"`ungrant`, `update`, `sign-document` — and by nothing else. Reading what other people"
+" have vouched for needs no identity of your own, which is what lets `check-grants`, "
+"the three lookups, `sources` and `report` run in continuous integration and on the "
 "machine of somebody auditing a repository they did not write."
 msgstr ""
+"**La chiave non è richiesta da ogni sottocomando.** Dice chi *sta parlando*, quindi "
+"la chiedono quelli che parlano a tuo nome — `create-document`, `grant`, `ungrant`, "
+"`update`, `sign-document` — e nient'altro. Leggere ciò di cui altre persone hanno "
+"risposto non richiede un'identità propria, ed è ciò che permette a `check-grants`, "
+"alle tre ricerche, a `sources` e a `report` di girare nell'integrazione continua e "
+"sulla macchina di chi sta revisionando un repository che non ha scritto."
 
 #: ../../source/reference/configuration/dev-and-validate.md:106
 msgid ""
-"**`validate.sources` is the one setting whose tiers do not merge.** Every"
-" other setting in this project is resolved per setting, so naming one on "
-"the command line leaves the others to the file. Sources are a *list*, and"
-" the strongest tier that names any source provides the whole of it: a "
-"command line with `-s` ignores the file's list entirely. Merging would "
-"make the question *which text did this hash come from* unanswerable from "
-"any one place, since the answer would be a set assembled out of three "
-"places nobody reads together. The case that wants two sources at once — "
-"the published documentation plus your own methodologies — is served by "
-"listing both in the same tier, which is why the file tier takes a list "
-"and the environment does not."
+"**`validate.sources` is the one setting whose tiers do not merge.** Every other "
+"setting in this project is resolved per setting, so naming one on the command line "
+"leaves the others to the file. Sources are a *list*, and the strongest tier that "
+"names any source provides the whole of it: a command line with `-s` ignores the "
+"file's list entirely. Merging would make the question *which text did this hash come "
+"from* unanswerable from any one place, since the answer would be a set assembled out "
+"of three places nobody reads together. The case that wants two sources at once — the "
+"published documentation plus your own methodologies — is served by listing both in "
+"the same tier, which is why the file tier takes a list and the environment does not."
 msgstr ""
+"**`validate.sources` è l'unica impostazione i cui livelli non si fondono.** Ogni "
+"altra impostazione di questo progetto è risolta impostazione per impostazione, quindi"
+" nominarne una sulla riga di comando lascia le altre al file. Le sorgenti sono una "
+"*lista*, e il livello più forte che nomini una qualsiasi sorgente la fornisce per "
+"intero: una riga di comando con `-s` ignora del tutto la lista del file. Fondere "
+"renderebbe la domanda *da quale testo viene questo hash* senza risposta da nessun "
+"singolo posto, dato che la risposta sarebbe un insieme messo insieme da tre posti che"
+" nessuno legge insieme. Al caso che vuole due sorgenti in una volta — la "
+"documentazione pubblicata più le tue metodologie — si provvede elencandole entrambe "
+"nello stesso livello, ed è per questo che il livello del file prende una lista e "
+"l'ambiente no."
 
 #: ../../source/reference/configuration/dev-and-validate.md:115
 msgid ""
-"And as with `dev.target_lists`, `FREEPORTS_VALIDATE_SOURCE` is **one** "
-"source, the whole raw value, never split: every separator one might pick "
-"is a legal character in a URI or a path."
+"And as with `dev.target_lists`, `FREEPORTS_VALIDATE_SOURCE` is **one** source, the "
+"whole raw value, never split: every separator one might pick is a legal character in "
+"a URI or a path."
 msgstr ""
+"E come per `dev.target_lists`, `FREEPORTS_VALIDATE_SOURCE` è **una sola** sorgente, "
+"l'intero valore grezzo, mai diviso: ogni separatore che si potrebbe scegliere è un "
+"carattere lecito in un URI o in un percorso."
 
 #: ../../source/reference/configuration/dev-and-validate.md:118
 #, python-brace-format
 msgid ""
-"A source is a pattern with exactly one `*`, standing for the "
-"methodology's relative name. {doc}`../cli/index` has the grammar, the "
-"resolution order and the cache; what belongs here is that a **relative** "
-"source written in a configuration file is resolved against that file's "
-"own directory, not against your working directory — the file is searched "
-"for, so one line in it is read from many different working directories "
-"and has to name the same pages from all of them. A `file://` URI, like "
+"A source is a pattern with exactly one `*`, standing for the methodology's relative "
+"name. {doc}`../cli/index` has the grammar, the resolution order and the cache; what "
+"belongs here is that a **relative** source written in a configuration file is "
+"resolved against that file's own directory, not against your working directory — the "
+"file is searched for, so one line in it is read from many different working "
+"directories and has to name the same pages from all of them. A `file://` URI, like "
 "every other URI, is left exactly as written."
 msgstr ""
+"Una sorgente è uno schema con esattamente un `*`, che sta per il nome relativo della "
+"metodologia. {doc}`../cli/index` ha la grammatica, l'ordine di risoluzione e la "
+"cache; ciò che appartiene a qui è che una sorgente **relativa** scritta in un file di"
+" configurazione è risolta rispetto alla cartella di quel file, non rispetto alla tua "
+"cartella di lavoro — il file viene cercato, quindi una sua riga è letta da molte "
+"cartelle di lavoro diverse e da tutte deve nominare le stesse pagine. Un URI "
+"`file://`, come ogni altro URI, è lasciato esattamente com'è scritto."
 
 #: ../../source/reference/configuration/dev-and-validate.md:125
 msgid ""
-"An empty list falls through to the next tier. `sources: []` is a tier "
-"declining to have an opinion, not a decision to have no methodologies at "
-"all — the latter would leave every check unresolvable."
+"An empty list falls through to the next tier. `sources: []` is a tier declining to "
+"have an opinion, not a decision to have no methodologies at all — the latter would "
+"leave every check unresolvable."
 msgstr ""
+"Una lista vuota scivola al livello successivo. `sources: []` è un livello che "
+"rinuncia ad avere un'opinione, non la decisione di non avere alcuna metodologia — "
+"quest'ultima renderebbe irrisolvibile ogni controllo."
 
 #: ../../source/reference/configuration/dev-and-validate.md:128
 msgid ""
-"`validate.offline` and `validate.deep` are settings rather than one-off "
-"flags because each is a standing property of a machine or of a person: an"
-" air-gapped runner is permanently without egress, and how thorough a "
-"check should be is a standing preference of whoever is doing the "
-"checking. `grant --force` is deliberately **not** here: it overrides a "
-"refusal for one invocation, and written into a file it would silently "
-"disable that check for every future grant."
+"`validate.offline` and `validate.deep` are settings rather than one-off flags because"
+" each is a standing property of a machine or of a person: an air-gapped runner is "
+"permanently without egress, and how thorough a check should be is a standing "
+"preference of whoever is doing the checking. `grant --force` is deliberately **not** "
+"here: it overrides a refusal for one invocation, and written into a file it would "
+"silently disable that check for every future grant."
 msgstr ""
+"`validate.offline` e `validate.deep` sono impostazioni anziché opzioni estemporanee "
+"perché ciascuna è una proprietà permanente di una macchina o di una persona: un "
+"runner isolato dalla rete è permanentemente senza uscita, e quanto a fondo debba "
+"andare un controllo è una preferenza permanente di chi sta controllando. `grant "
+"--force` deliberatamente **non** sta qui: scavalca un rifiuto per una sola "
+"invocazione, e scritta in un file disattiverebbe in silenzio quel controllo per ogni "
+"attestazione futura."
 
 #: ../../source/reference/configuration/dev-and-validate.md:134
 msgid ""
-"**`validate.deep` is on unless something turns it off**, which is why it "
-"is the one flag in this project that has a negative form. A flag can "
-"otherwise only ever switch a setting *on*, and a setting that defaults to"
-" on would then have no command-line spelling for \"no\" — leaving the "
-"strongest tier unable to express half the answers. Hence `--no-deep` and "
-"its synonym `--shallow`, and `--no-offline` for symmetry."
+"**`validate.deep` is on unless something turns it off**, which is why it is the one "
+"flag in this project that has a negative form. A flag can otherwise only ever switch "
+"a setting *on*, and a setting that defaults to on would then have no command-line "
+"spelling for \"no\" — leaving the strongest tier unable to express half the answers. "
+"Hence `--no-deep` and its synonym `--shallow`, and `--no-offline` for symmetry."
 msgstr ""
+"**`validate.deep` è acceso a meno che qualcosa non lo spenga**, ed è per questo che è"
+" l'unica opzione di questo progetto ad avere una forma negativa. Un'opzione di "
+"comando può altrimenti soltanto *accendere* un'impostazione, e un'impostazione accesa"
+" per impostazione predefinita non avrebbe allora alcuna grafia da riga di comando per"
+" il \"no\" — lasciando il livello più forte incapace di esprimere metà delle "
+"risposte. Da qui `--no-deep` e il suo sinonimo `--shallow`, e `--no-offline` per "
+"simmetria."
 
 #: ../../source/reference/configuration/dev-and-validate.md:140
 msgid ""
 "Both booleans distinguish **no** from **silence** at every tier. "
-"`FREEPORTS_VALIDATE_DEEP=0` beats a configuration file that says `true`: "
-"a tier that says no has said something, and only a tier that says nothing"
-" falls through to the next."
+"`FREEPORTS_VALIDATE_DEEP=0` beats a configuration file that says `true`: a tier that "
+"says no has said something, and only a tier that says nothing falls through to the "
+"next."
 msgstr ""
+"Entrambi i booleani distinguono il **no** dal **silenzio** a ogni livello. "
+"`FREEPORTS_VALIDATE_DEEP=0` batte un file di configurazione che dice `true`: un "
+"livello che dice no ha detto qualcosa, e solo un livello che non dice niente scivola "
+"al successivo."
 
 #: ../../source/reference/configuration/dev-and-validate.md:144
 msgid "Finding the repository"
-msgstr ""
+msgstr "Trovare il repository"
 
 #: ../../source/reference/configuration/dev-and-validate.md:146
 msgid ""
-"Both commands accept the engine's own spellings — `--repo`, `-r`, "
-"`--formats-directory`, `-F` — and read `FREEPORTS_FORMATS_REPO_PATH` and "
-"the file's `formats_repo`. Where they differ is the last resort, and the "
-"difference is intentional:"
+"Both commands accept the engine's own spellings — `--repo`, `-r`, `--formats-"
+"directory`, `-F` — and read `FREEPORTS_FORMATS_REPO_PATH` and the file's "
+"`formats_repo`. Where they differ is the last resort, and the difference is "
+"intentional:"
 msgstr ""
+"Entrambi i comandi accettano le grafie del motore — `--repo`, `-r`, `--formats-"
+"directory`, `-F` — e leggono `FREEPORTS_FORMATS_REPO_PATH` e il `formats_repo` del "
+"file. Dove differiscono è l'ultima risorsa, e la differenza è voluta:"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "Falls back to"
-msgstr ""
+msgstr "Ripiega su"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "`freeports`, `freeports-dev`"
-msgstr ""
+msgstr "`freeports`, `freeports-dev`"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "the working directory"
-msgstr ""
+msgstr "la cartella di lavoro"
 
 #: ../../source/reference/configuration/dev-and-validate.md:74
 msgid "the enclosing Git repository, then the working directory"
-msgstr ""
+msgstr "il repository Git che lo racchiude, poi la cartella di lavoro"
 
 #: ../../source/reference/configuration/dev-and-validate.md:155
 msgid ""
-"`freeports-validate` walks up because a validation document lives at the "
-"repository *root* while grants are issued from wherever in the tree the "
-"granted file happens to be — `freeports-validate grant tests/formats"
-"/CARNE-EN23/out/investments.csv with \"basic check\"` should work from "
-"inside `tests/`. `freeports-dev` has no such need: it checks that "
-"`metadata/formats.csv` exists and says so plainly when it does not."
+"`freeports-validate` walks up because a validation document lives at the repository "
+"*root* while grants are issued from wherever in the tree the granted file happens to "
+"be — `freeports-validate grant tests/formats/CARNE-EN23/out/investments.csv with "
+"\"basic check\"` should work from inside `tests/`. `freeports-dev` has no such need: "
+"it checks that `metadata/formats.csv` exists and says so plainly when it does not."
 msgstr ""
+"`freeports-validate` risale perché un documento di validazione vive alla *radice* del"
+" repository mentre le attestazioni si emettono da dovunque nell'albero si dia il caso"
+" che stia il file attestato — `freeports-validate grant tests/formats/CARNE-"
+"EN23/out/investments.csv with \"basic check\"` deve funzionare da dentro `tests/`. "
+"`freeports-dev` non ne ha bisogno: controlla che `metadata/formats.csv` esista e lo "
+"dice chiaramente quando non c'è."
 
 #: ../../source/reference/configuration/dev-and-validate.md:161
 msgid "Reading the file needs the engine — for one of the two"
-msgstr ""
+msgstr "Leggere il file richiede il motore — per uno dei due"
 
 #: ../../source/reference/configuration/dev-and-validate.md:163
 msgid "`freeports-dev` requires `freeports` anyway, so it always reads the file."
-msgstr ""
+msgstr "`freeports-dev` richiede comunque `freeports`, quindi legge sempre il file."
 
 #: ../../source/reference/configuration/dev-and-validate.md:165
 msgid ""
-"`freeports-validate` does not. Verifying somebody else's grants should "
-"not mean installing a PDF extractor, so the engine is an **optional** "
-"dependency there:"
+"`freeports-validate` does not. Verifying somebody else's grants should not mean "
+"installing a PDF extractor, so the engine is an **optional** dependency there:"
 msgstr ""
+"`freeports-validate` no. Verificare le attestazioni di qualcun altro non deve voler "
+"dire installare un estrattore di PDF, quindi lì il motore è una dipendenza "
+"**facoltativa**:"
 
 #: ../../source/reference/configuration/dev-and-validate.md:173
 msgid ""
-"Without it, the command works exactly as before and simply has no file "
-"tier; `--config` then reports that it needs the engine rather than "
-"silently ignoring the file. There is deliberately **no** second "
-"implementation of the search for a configuration file: the tiers, the "
-"accepted filenames and the refusal of unknown keys are the engine's "
-"answer, and there is one of them."
+"Without it, the command works exactly as before and simply has no file tier; "
+"`--config` then reports that it needs the engine rather than silently ignoring the "
+"file. There is deliberately **no** second implementation of the search for a "
+"configuration file: the tiers, the accepted filenames and the refusal of unknown keys"
+" are the engine's answer, and there is one of them."
 msgstr ""
+"Senza di esso, il comando funziona esattamente come prima e semplicemente non ha il "
+"livello del file; `--config` riferisce allora che ha bisogno del motore anziché "
+"ignorare il file in silenzio. Deliberatamente **non** esiste una seconda "
+"realizzazione della ricerca di un file di configurazione: i livelli, i nomi di file "
+"accettati e il rifiuto delle chiavi sconosciute sono la risposta del motore, e ce n'è"
+" una sola."
 
 #: ../../source/reference/configuration/dev-and-validate.md:178
 msgid "A complete example for a formats repository"
-msgstr ""
+msgstr "Un esempio completo per un repository di formati"
 
 #: ../../source/reference/configuration/dev-and-validate.md:179
-msgid ""
-"One file, at the root of a formats repository, configuring all three "
-"commands:"
+msgid "One file, at the root of a formats repository, configuring all three commands:"
 msgstr ""
+"Un solo file, alla radice di un repository di formati, che configura tutti e tre i "
+"comandi:"
 
 #: ../../source/reference/configuration/dev-and-validate.md:198
 msgid ""
-"Note the two `target_lists`. The top-level one is what a **real "
-"extraction** searches for; `dev`'s is what the **repository's own tests**"
-" search for. They are different questions, and a repository that "
-"conflated them would have tests whose result depended on the user's day "
-"job."
+"Note the two `target_lists`. The top-level one is what a **real extraction** searches"
+" for; `dev`'s is what the **repository's own tests** search for. They are different "
+"questions, and a repository that conflated them would have tests whose result "
+"depended on the user's day job."
 msgstr ""
+"Nota i due `target_lists`. Quello di livello superiore è ciò che cerca "
+"un'**estrazione vera**; quello di `dev` è ciò che cercano i **test del repository "
+"stesso**. Sono domande diverse, e un repository che le confondesse avrebbe test il "
+"cui esito dipende dal lavoro quotidiano dell'utente."
 
 #: ../../source/reference/configuration/dev-and-validate.md:202
 msgid "Unknown keys are errors here too"
-msgstr ""
+msgstr "Anche qui le chiavi sconosciute sono errori"
 
 #: ../../source/reference/configuration/dev-and-validate.md:204
 msgid ""
-"`dev.tagret_lists` fails, naming the full path of the key. The engine "
-"parses these sections even though it never reads them, precisely so that "
-"this rule reaches inside them: a misspelled setting that is silently "
-"ignored configures nothing and reports nothing."
+"`dev.tagret_lists` fails, naming the full path of the key. The engine parses these "
+"sections even though it never reads them, precisely so that this rule reaches inside "
+"them: a misspelled setting that is silently ignored configures nothing and reports "
+"nothing."
 msgstr ""
+"`dev.tagret_lists` fallisce, nominando il percorso completo della chiave. Il motore "
+"analizza queste sezioni benché non le legga mai, proprio perché questa regola vi "
+"arrivi dentro: un'impostazione scritta male e ignorata in silenzio non configura "
+"niente e non riferisce niente."
 

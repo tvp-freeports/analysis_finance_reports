@@ -21,888 +21,947 @@ msgstr ""
 
 #: ../../source/reference/configuration/options.md:1
 msgid "The canonical options"
-msgstr ""
+msgstr "Le opzioni canoniche"
 
 #: ../../source/reference/configuration/options.md:3
 msgid ""
-"Sixteen settings. Each has one meaning and up to four spellings — one per"
-" source. This page is the per-option reference; the four pages after it "
-"are the per-source views of the same table."
+"Sixteen settings. Each has one meaning and up to four spellings — one per source. "
+"This page is the per-option reference; the four pages after it are the per-source "
+"views of the same table."
 msgstr ""
+"Sedici impostazioni. Ciascuna ha un significato e fino a quattro grafie — una per "
+"sorgente. Questa pagina è il riferimento impostazione per impostazione; le quattro "
+"pagine che la seguono sono le viste per sorgente della stessa tabella."
 
 #: ../../source/reference/configuration/options.md:6
 msgid ""
-"Every card has the same fields, in the same order, so the page can be "
-"consulted rather than read. A dash means *this source cannot set this "
-"option*."
+"Every card has the same fields, in the same order, so the page can be consulted "
+"rather than read. A dash means *this source cannot set this option*."
 msgstr ""
+"Ogni scheda ha gli stessi campi, nello stesso ordine, così che la pagina si possa "
+"consultare anziché leggere. Un trattino significa *questa sorgente non può impostare "
+"questa opzione*."
 
 #: ../../source/reference/configuration/options.md:9
 msgid "All sixteen options at a glance"
-msgstr ""
+msgstr "Tutte e sedici le opzioni a colpo d'occhio"
 
 #: ../../source/reference/configuration/options.md
 msgid "Option"
-msgstr ""
+msgstr "Impostazione"
 
 #: ../../source/reference/configuration/options.md
 msgid "Command line"
-msgstr ""
+msgstr "Riga di comando"
 
 #: ../../source/reference/configuration/options.md
 msgid "Environment"
-msgstr ""
+msgstr "Ambiente"
 
 #: ../../source/reference/configuration/options.md
 msgid "YAML"
-msgstr ""
+msgstr "YAML"
 
 #: ../../source/reference/configuration/options.md
 msgid "Batch"
-msgstr ""
+msgstr "Lotto"
 
 #: ../../source/reference/configuration/options.md
 msgid "[reports](#reports)"
-msgstr ""
+msgstr "[reports](#reports)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-i`"
-msgstr ""
+msgstr "`-i`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_URL`, `FREEPORTS_PDF`, `FREEPORTS_REPORTS`"
-msgstr ""
+msgstr "`FREEPORTS_URL`, `FREEPORTS_PDF`, `FREEPORTS_REPORTS`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`url`, `pdf`, `reports`"
-msgstr ""
+msgstr "`url`, `pdf`, `reports`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`url`, `pdf`"
-msgstr ""
+msgstr "`url`, `pdf`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[target_lists](#target-lists)"
-msgstr ""
+msgstr "[target_lists](#target-lists)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-T`"
-msgstr ""
+msgstr "`-T`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_TARGET_LIST`"
-msgstr ""
+msgstr "`FREEPORTS_TARGET_LIST`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:55
 msgid "`target_lists`"
-msgstr ""
+msgstr "`target_lists`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`target list`"
-msgstr ""
+msgstr "`target list`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[format](#format)"
-msgstr ""
+msgstr "[format](#format)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-f`"
-msgstr ""
+msgstr "`-f`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_FORMAT`"
-msgstr ""
+msgstr "`FREEPORTS_FORMAT`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:78
 msgid "`format`"
-msgstr ""
+msgstr "`format`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[formats_repo_path](#formats-repo-path)"
-msgstr ""
+msgstr "[formats_repo_path](#formats-repo-path)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-F`, `-r`"
-msgstr ""
+msgstr "`-F`, `-r`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_FORMATS_REPO_PATH`"
-msgstr ""
+msgstr "`FREEPORTS_FORMATS_REPO_PATH`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`formats_repo`"
-msgstr ""
+msgstr "`formats_repo`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "—"
-msgstr ""
+msgstr "—"
 
 #: ../../source/reference/configuration/options.md
 msgid "[input_db_path](#input-db-path)"
-msgstr ""
+msgstr "[input_db_path](#input-db-path)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-I`"
-msgstr ""
+msgstr "`-I`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_INPUT_DB_PATH`"
-msgstr ""
+msgstr "`FREEPORTS_INPUT_DB_PATH`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`db_path`"
-msgstr ""
+msgstr "`db_path`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[out_path](#out-path)"
-msgstr ""
+msgstr "[out_path](#out-path)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-o`"
-msgstr ""
+msgstr "`-o`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_OUT_PATH`"
-msgstr ""
+msgstr "`FREEPORTS_OUT_PATH`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 #: ../../source/reference/configuration/options.md:138
 msgid "`out_path`"
-msgstr ""
+msgstr "`out_path`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[out_profile](#out-profile)"
-msgstr ""
+msgstr "[out_profile](#out-profile)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-P`"
-msgstr ""
+msgstr "`-P`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_OUT_PROFILE`"
-msgstr ""
+msgstr "`FREEPORTS_OUT_PROFILE`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 #: ../../source/reference/configuration/options.md:162
 msgid "`out_profile`"
-msgstr ""
+msgstr "`out_profile`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[separate_out](#separate-out)"
-msgstr ""
+msgstr "[separate_out](#separate-out)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`--separate-out`"
-msgstr ""
+msgstr "`--separate-out`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_SEPARATE_OUT`"
-msgstr ""
+msgstr "`FREEPORTS_SEPARATE_OUT`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`out_flags.separate_out`"
-msgstr ""
+msgstr "`out_flags.separate_out`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[compressed](#compressed)"
-msgstr ""
+msgstr "[compressed](#compressed)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-z`"
-msgstr ""
+msgstr "`-z`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_ARCHIVE`"
-msgstr ""
+msgstr "`FREEPORTS_ARCHIVE`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`out_flags.archive`"
-msgstr ""
+msgstr "`out_flags.archive`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[save_pdf](#save-pdf)"
-msgstr ""
+msgstr "[save_pdf](#save-pdf)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`--no-download`"
-msgstr ""
+msgstr "`--no-download`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_SAVE_PDF`"
-msgstr ""
+msgstr "`FREEPORTS_SAVE_PDF`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:221
 msgid "`save_pdf`"
-msgstr ""
+msgstr "`save_pdf`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`save pdf`"
-msgstr ""
+msgstr "`save pdf`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[n_workers](#n-workers)"
-msgstr ""
+msgstr "[n_workers](#n-workers)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-j`"
-msgstr ""
+msgstr "`-j`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_N_WORKERS`"
-msgstr ""
+msgstr "`FREEPORTS_N_WORKERS`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 #: ../../source/reference/configuration/options.md:240
 msgid "`n_workers`"
-msgstr ""
+msgstr "`n_workers`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[parallelism_jobs](#parallelism-jobs)"
-msgstr ""
+msgstr "[parallelism_jobs](#parallelism-jobs)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`--jobs`"
-msgstr ""
+msgstr "`--jobs`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_PARALLELISM_JOBS`"
-msgstr ""
+msgstr "`FREEPORTS_PARALLELISM_JOBS`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`parallelism.jobs`"
-msgstr ""
+msgstr "`parallelism.jobs`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[parallelism_pages](#parallelism-pages)"
-msgstr ""
+msgstr "[parallelism_pages](#parallelism-pages)"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`--pages`"
-msgstr ""
+msgstr "`--pages`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_PARALLELISM_PAGES`"
-msgstr ""
+msgstr "`FREEPORTS_PARALLELISM_PAGES`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`parallelism.pages`"
-msgstr ""
+msgstr "`parallelism.pages`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[batch_file](#batch-file)"
-msgstr ""
+msgstr "[batch_file](#batch-file)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-b`"
-msgstr ""
+msgstr "`-b`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_BATCH_FILE`"
-msgstr ""
+msgstr "`FREEPORTS_BATCH_FILE`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 #: ../../source/reference/configuration/options.md:295
 msgid "`batch_file`"
-msgstr ""
+msgstr "`batch_file`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[config_file](#config-file)"
-msgstr ""
+msgstr "[config_file](#config-file)"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`--config`"
-msgstr ""
+msgstr "`--config`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_CONFIG_FILE`"
-msgstr ""
+msgstr "`FREEPORTS_CONFIG_FILE`"
 
 #: ../../source/reference/configuration/options.md
 msgid "[verbosity](#verbosity)"
-msgstr ""
+msgstr "[verbosity](#verbosity)"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-v`, `-q`"
-msgstr ""
+msgstr "`-v`, `-q`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`FREEPORTS_VERBOSITY`"
-msgstr ""
+msgstr "`FREEPORTS_VERBOSITY`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:332
 msgid "`verbosity`"
-msgstr ""
+msgstr "`verbosity`"
 
 #: ../../source/reference/configuration/options.md:32
 msgid "`reports`"
-msgstr ""
+msgstr "`reports`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Command line**"
-msgstr ""
+msgstr "**Riga di comando**"
 
 #: ../../source/reference/configuration/options.md
 msgid "`--input`, `--report`, `-i` — repeatable, several values allowed"
-msgstr ""
+msgstr "`--input`, `--report`, `-i` — ripetibile, più valori ammessi"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Environment**"
-msgstr ""
+msgstr "**Ambiente**"
 
 #: ../../source/reference/configuration/options.md
 msgid ""
-"`FREEPORTS_URL` + `FREEPORTS_PDF` (singular), or `FREEPORTS_REPORTS` "
-"(plural, `|`-separated)"
+"`FREEPORTS_URL` + `FREEPORTS_PDF` (singular), or `FREEPORTS_REPORTS` (plural, "
+"`|`-separated)"
 msgstr ""
+"`FREEPORTS_URL` + `FREEPORTS_PDF` (singolari), oppure `FREEPORTS_REPORTS` (plurale, "
+"separato da `|`)"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**YAML**"
-msgstr ""
+msgstr "**YAML**"
 
 #: ../../source/reference/configuration/options.md
 msgid "`url` + `pdf` (singular), or `reports` (a list)"
-msgstr ""
+msgstr "`url` + `pdf` (singolari), oppure `reports` (una lista)"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Batch column**"
-msgstr ""
+msgstr "**Colonna di lotto**"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Type**"
-msgstr ""
+msgstr "**Tipo**"
 
 #: ../../source/reference/configuration/options.md
 msgid "a list of document specifiers, `<url>:<path>:<name>`"
-msgstr ""
+msgstr "una lista di specificatori di documento, `<url>:<path>:<name>`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Default**"
-msgstr ""
+msgstr "**Predefinito**"
 
 #: ../../source/reference/configuration/options.md
 msgid "the empty list"
-msgstr ""
+msgstr "la lista vuota"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Validation**"
-msgstr ""
+msgstr "**Validazione**"
 
 #: ../../source/reference/configuration/options.md
-msgid ""
-"each specifier parsed by the grammar; then paths and URLs checked against"
-" `save_pdf`"
+msgid "each specifier parsed by the grammar; then paths and URLs checked against `save_pdf`"
 msgstr ""
+"ogni specificatore analizzato dalla grammatica; poi percorsi e URL controllati "
+"rispetto a `save_pdf`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "**Example**"
-msgstr ""
+msgstr "**Esempio**"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-i \"https://x/r.pdf:local.pdf:2023\"`"
-msgstr ""
+msgstr "`-i \"https://x/r.pdf:local.pdf:2023\"`"
 
 #: ../../source/reference/configuration/options.md:45
 msgid ""
-"Giving both the singular and the plural form **on the same source** is an"
-" error: one of the two would have to win silently. Different sources may "
-"of course use different forms — the merge then applies normally, and the "
-"stronger source's list replaces the weaker's entirely."
+"Giving both the singular and the plural form **on the same source** is an error: one "
+"of the two would have to win silently. Different sources may of course use different "
+"forms — the merge then applies normally, and the stronger source's list replaces the "
+"weaker's entirely."
 msgstr ""
+"Dare sia la forma singolare sia quella plurale **sulla stessa sorgente** è un errore:"
+" una delle due dovrebbe vincere in silenzio. Sorgenti diverse possono naturalmente "
+"usare forme diverse — la fusione si applica allora normalmente, e la lista della "
+"sorgente più forte sostituisce per intero quella della più debole."
 
 #: ../../source/reference/configuration/options.md:49
 #, python-brace-format
 msgid ""
-"The full grammar, and the behaviour of directories and of `save_pdf` case"
-" by case, is in {doc}`../../guides/user/documents`."
+"The full grammar, and the behaviour of directories and of `save_pdf` case by case, is"
+" in {doc}`../../guides/user/documents`."
 msgstr ""
+"La grammatica completa, e il comportamento delle cartelle e di `save_pdf` caso per "
+"caso, sta in {doc}`../../guides/user/documents`."
 
 #: ../../source/reference/configuration/options.md
 msgid "`--target-list`, `-T` — repeatable, several values allowed"
-msgstr ""
+msgstr "`--target-list`, `-T` — ripetibile, più valori ammessi"
 
 #: ../../source/reference/configuration/options.md
-msgid ""
-"`FREEPORTS_TARGET_LIST` — **one** element, the whole raw value, never "
-"split"
-msgstr ""
+msgid "`FREEPORTS_TARGET_LIST` — **one** element, the whole raw value, never split"
+msgstr "`FREEPORTS_TARGET_LIST` — **un solo** elemento, l'intero valore grezzo, mai diviso"
 
 #: ../../source/reference/configuration/options.md
 msgid "`target_lists` — a list"
-msgstr ""
+msgstr "`target_lists` — una lista"
 
 #: ../../source/reference/configuration/options.md
 msgid "`target list` — one element, taken whole"
-msgstr ""
+msgstr "`target list` — un solo elemento, preso per intero"
 
 #: ../../source/reference/configuration/options.md
 msgid "list of names"
-msgstr ""
+msgstr "lista di nomi"
 
 #: ../../source/reference/configuration/options.md
 msgid "**none** — deliberately unset"
-msgstr ""
+msgstr "**nessuno** — deliberatamente non impostato"
 
 #: ../../source/reference/configuration/options.md
-msgid ""
-"presence, checked **first of all**; absent from every source is a hard "
-"error"
+msgid "presence, checked **first of all**; absent from every source is a hard error"
 msgstr ""
+"la presenza, controllata **per prima cosa**; assente da ogni sorgente è un errore "
+"fatale"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-T controversial_weapons -T coal`"
-msgstr ""
+msgstr "`-T controversial_weapons -T coal`"
 
 #: ../../source/reference/configuration/options.md:68
 msgid ""
-"The one structural field the defaults deliberately do **not** fill in. "
-"Its absence has to stay visible so validation can name it: if the "
-"defaults supplied an empty list, a run with no target list would silently"
-" search for nothing and report success over an empty table."
+"The one structural field the defaults deliberately do **not** fill in. Its absence "
+"has to stay visible so validation can name it: if the defaults supplied an empty "
+"list, a run with no target list would silently search for nothing and report success "
+"over an empty table."
 msgstr ""
+"L'unico campo strutturale che i valori predefiniti deliberatamente **non** riempiono."
+" La sua assenza deve restare visibile perché la validazione possa nominarla: se i "
+"valori predefiniti fornissero una lista vuota, un'esecuzione senza lista bersaglio "
+"cercherebbe in silenzio niente e riferirebbe successo su una tabella vuota."
 
 #: ../../source/reference/configuration/options.md:72
 msgid ""
-"The environment and batch forms never split their value, so a list name "
-"containing a comma or a pipe still works."
+"The environment and batch forms never split their value, so a list name containing a "
+"comma or a pipe still works."
 msgstr ""
+"Le forme d'ambiente e di lotto non dividono mai il proprio valore, quindi il nome di "
+"una lista che contenga una virgola o una barra verticale funziona comunque."
 
 #: ../../source/reference/configuration/options.md
 msgid "`--format`, `-f`"
-msgstr ""
+msgstr "`--format`, `-f`"
 
 #: ../../source/reference/configuration/options.md
 msgid "string"
-msgstr ""
+msgstr "stringa"
 
 #: ../../source/reference/configuration/options.md
 msgid "none — inferred, or an error"
-msgstr ""
+msgstr "nessuno — dedotto, oppure un errore"
 
 #: ../../source/reference/configuration/options.md
 msgid "inference from document URLs via the repository's `url_mapping.csv`"
-msgstr ""
+msgstr "la deduzione dagli URL dei documenti tramite l'`url_mapping.csv` del repository"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-f EURIZON-EN23`"
-msgstr ""
+msgstr "`-f EURIZON-EN23`"
 
 #: ../../source/reference/configuration/options.md:91
 msgid ""
-"Left unset, the engine infers it from the URL of each document; the first"
-" matching prefix in the mapping wins, so the order of that file is "
-"meaningful. Two documents inferring **different** formats is an error. An"
-" explicit format that **disagrees** with a successful inference is a "
-"warning, and the explicit one is used."
+"Left unset, the engine infers it from the URL of each document; the first matching "
+"prefix in the mapping wins, so the order of that file is meaningful. Two documents "
+"inferring **different** formats is an error. An explicit format that **disagrees** "
+"with a successful inference is a warning, and the explicit one is used."
 msgstr ""
+"Lasciato non impostato, il motore lo deduce dall'URL di ciascun documento; vince il "
+"primo prefisso che corrisponde nella mappatura, quindi l'ordine di quel file è "
+"significativo. Due documenti che deducono formati **diversi** sono un errore. Un "
+"formato esplicito **in disaccordo** con una deduzione riuscita è un avviso, e si usa "
+"quello esplicito."
 
 #: ../../source/reference/configuration/options.md:96
 msgid ""
-"There is no inference for a local file: a path carries no evidence of who"
-" published it."
+"There is no inference for a local file: a path carries no evidence of who published "
+"it."
 msgstr ""
+"Per un file locale non c'è deduzione: un percorso non porta con sé alcun indizio su "
+"chi l'abbia pubblicato."
 
 #: ../../source/reference/configuration/options.md:101
 msgid "`formats_repo_path`"
-msgstr ""
+msgstr "`formats_repo_path`"
 
 #: ../../source/reference/configuration/options.md
 msgid "`--formats-directory`, `--repo`, `-F`, `-r`"
-msgstr ""
+msgstr "`--formats-directory`, `--repo`, `-F`, `-r`"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "path"
-msgstr ""
+msgstr "percorso"
 
 #: ../../source/reference/configuration/options.md
 #: ../../source/reference/configuration/options.md:114
 msgid "none"
-msgstr ""
+msgstr "nessuno"
 
 #: ../../source/reference/configuration/options.md
-msgid ""
-"read when formats are loaded; a repository without `metadata/formats.csv`"
-" fails there"
+msgid "read when formats are loaded; a repository without `metadata/formats.csv` fails there"
 msgstr ""
+"letto quando si caricano i formati; un repository senza `metadata/formats.csv` "
+"fallisce lì"
 
 #: ../../source/reference/configuration/options.md
 msgid "`-r ~/work/formats-repo`"
-msgstr ""
+msgstr "`-r ~/work/formats-repo`"
 
 #: ../../source/reference/configuration/options.md:115
 #, python-brace-format
 msgid ""
-"`freeports-dev` and `freeports-validate` read "
-"**`FREEPORTS_FORMATS_REPO`** — a different variable name for the same "
-"thing. Export both. See {doc}`../cli/index`."
+"`freeports-dev` and `freeports-validate` read **`FREEPORTS_FORMATS_REPO`** — a "
+"different variable name for the same thing. Export both. See {doc}`../cli/index`."
 msgstr ""
+"`freeports-dev` e `freeports-validate` leggono **`FREEPORTS_FORMATS_REPO`** — un nome"
+" di variabile diverso per la stessa cosa. Esportale entrambe. Vedi "
+"{doc}`../cli/index`."
 
 #: ../../source/reference/configuration/options.md:122
 msgid "`input_db_path`"
-msgstr ""
+msgstr "`input_db_path`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--db-directory`, `-I`"
-msgstr ""
+msgstr "`--db-directory`, `-I`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "read when the target lists are loaded"
-msgstr ""
+msgstr "letto quando si caricano le liste bersaglio"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-I ~/work/input-db`"
-msgstr ""
+msgstr "`-I ~/work/input-db`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--out`, `-o`"
-msgstr ""
+msgstr "`--out`, `-o`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the working directory, **resolved to an absolute path**"
-msgstr ""
+msgstr "la cartella di lavoro, **risolta in un percorso assoluto**"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the **parent** must exist; the directory itself need not"
-msgstr ""
+msgstr "il **genitore** deve esistere; la cartella stessa no"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-o ./results`"
-msgstr ""
+msgstr "`-o ./results`"
 
 #: ../../source/reference/configuration/options.md:151
 msgid ""
-"The default is the absolute working directory rather than the literal "
-"`.`, and that is not a detail: in Rust the parent of `.` is the empty "
-"path, which never exists, so a literal would make the parent check fail "
-"for every run that did not pass `--out` — a default that breaks the "
-"default case."
+"The default is the absolute working directory rather than the literal `.`, and that "
+"is not a detail: in Rust the parent of `.` is the empty path, which never exists, so "
+"a literal would make the parent check fail for every run that did not pass `--out` — "
+"a default that breaks the default case."
 msgstr ""
+"Il valore predefinito è la cartella di lavoro assoluta anziché il letterale `.`, e "
+"non è un dettaglio: in Rust il genitore di `.` è il percorso vuoto, che non esiste "
+"mai, quindi un letterale farebbe fallire il controllo sul genitore per ogni "
+"esecuzione che non passi `--out` — un valore predefinito che rompe il caso "
+"predefinito."
 
 #: ../../source/reference/configuration/options.md:156
 msgid ""
-"A path ending in `.tar.gz` switches [`compressed`](#compressed) on and "
-"has the suffix stripped. Under the `single_file` profile a path not "
-"ending in `.csv` gets `out.csv` appended."
+"A path ending in `.tar.gz` switches [`compressed`](#compressed) on and has the suffix"
+" stripped. Under the `single_file` profile a path not ending in `.csv` gets `out.csv`"
+" appended."
 msgstr ""
+"Un percorso che finisce in `.tar.gz` accende [`compressed`](#compressed) e si vede "
+"togliere il suffisso. Sotto il profilo `single_file` a un percorso che non finisca in"
+" `.csv` viene aggiunto `out.csv`."
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--out-profile`, `-P`"
-msgstr ""
+msgstr "`--out-profile`, `-P`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "one of `regular`, `single_file`, `structured`"
-msgstr ""
+msgstr "uno fra `regular`, `single_file`, `structured`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`regular`"
-msgstr ""
+msgstr "`regular`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the name, case-insensitively; anything else is an error listing the three"
 msgstr ""
+"il nome, senza distinzione fra maiuscole e minuscole; qualsiasi altra cosa è un "
+"errore che elenca i tre"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-P structured`, `FREEPORTS_OUT_PROFILE=single_file`"
-msgstr ""
+msgstr "`-P structured`, `FREEPORTS_OUT_PROFILE=single_file`"
 
 #: ../../source/reference/configuration/options.md:175
 #, python-brace-format
 msgid ""
-"The same three names on every source, so a run does not change meaning "
-"when its profile moves from a flag into a file. "
-"{doc}`../../guides/user/output` says what each writes."
+"The same three names on every source, so a run does not change meaning when its "
+"profile moves from a flag into a file. {doc}`../../guides/user/output` says what each"
+" writes."
 msgstr ""
+"Gli stessi tre nomi su ogni sorgente, così che un'esecuzione non cambi significato "
+"quando il suo profilo passa da un'opzione di comando a un file. "
+"{doc}`../../guides/user/output` dice che cosa scrive ciascuno."
 
 #: ../../source/reference/configuration/options.md:181
 msgid "`separate_out`"
-msgstr ""
+msgstr "`separate_out`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--separate-out` — present means true, absent means *nothing said*"
-msgstr ""
+msgstr "`--separate-out` — presente significa vero, assente significa *non detto*"
 
 #: ../../source/reference/configuration/options.md:114
-msgid ""
-"`FREEPORTS_SEPARATE_OUT` — `true`/`yes`/`1`/`y`/`t`, "
-"`false`/`no`/`0`/`n`/`f`"
-msgstr ""
+msgid "`FREEPORTS_SEPARATE_OUT` — `true`/`yes`/`1`/`y`/`t`, `false`/`no`/`0`/`n`/`f`"
+msgstr "`FREEPORTS_SEPARATE_OUT` — `true`/`yes`/`1`/`y`/`t`, `false`/`no`/`0`/`n`/`f`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`out_flags.separate_out` — a real YAML boolean"
-msgstr ""
+msgstr "`out_flags.separate_out` — un vero booleano YAML"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "boolean"
-msgstr ""
+msgstr "booleano"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`false`"
-msgstr ""
+msgstr "`false`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the boolean grammar of its source"
-msgstr ""
+msgstr "la grammatica booleana della propria sorgente"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`out_flags:\\n  separate_out: true`"
-msgstr ""
+msgstr "`out_flags:\\n  separate_out: true`"
 
 #: ../../source/reference/configuration/options.md:194
 msgid ""
-"An **independent field**, not half of a group: a source setting this one "
-"leaves [`compressed`](#compressed) to whatever another source said."
+"An **independent field**, not half of a group: a source setting this one leaves "
+"[`compressed`](#compressed) to whatever another source said."
 msgstr ""
+"Un **campo indipendente**, non la metà di un gruppo: una sorgente che imposti questo "
+"lascia [`compressed`](#compressed) a quanto ha detto un'altra sorgente."
 
 #: ../../source/reference/configuration/options.md:200
 msgid "`compressed`"
-msgstr ""
+msgstr "`compressed`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--archive`, `-z` — present means true, absent means *nothing said*"
-msgstr ""
+msgstr "`--archive`, `-z` — presente significa vero, assente significa *non detto*"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_ARCHIVE` — same boolean grammar"
-msgstr ""
+msgstr "`FREEPORTS_ARCHIVE` — stessa grammatica booleana"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`out_flags.archive` — a real YAML boolean"
-msgstr ""
+msgstr "`out_flags.archive` — un vero booleano YAML"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_ARCHIVE=false`"
-msgstr ""
+msgstr "`FREEPORTS_ARCHIVE=false`"
 
 #: ../../source/reference/configuration/options.md:213
 msgid ""
-"Publicly the option is called **archive**, on every source. `compressed` "
-"is only its internal field name, and `out_flags: compressed:` in a file "
-"is rejected as an unknown sub-key."
+"Publicly the option is called **archive**, on every source. `compressed` is only its "
+"internal field name, and `out_flags: compressed:` in a file is rejected as an unknown"
+" sub-key."
 msgstr ""
+"Pubblicamente l'opzione si chiama **archive**, su ogni sorgente. `compressed` è solo "
+"il suo nome interno di campo, e `out_flags: compressed:` in un file è rifiutata come "
+"sottochiave sconosciuta."
 
 #: ../../source/reference/configuration/options.md:216
 msgid "Also switched on implicitly by an `out_path` ending in `.tar.gz`."
-msgstr ""
+msgstr "Accesa implicitamente anche da un `out_path` che finisca in `.tar.gz`."
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--no-download` — present sets it **false**; absent means *nothing said*"
-msgstr ""
+msgstr "`--no-download` — presente la imposta a **falso**; assente significa *non detto*"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_SAVE_PDF` — the boolean grammar"
-msgstr ""
+msgstr "`FREEPORTS_SAVE_PDF` — la grammatica booleana"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`save_pdf` — a real YAML boolean"
-msgstr ""
+msgstr "`save_pdf` — un vero booleano YAML"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`save pdf` — literally `true` or `false`"
-msgstr ""
+msgstr "`save pdf` — letteralmente `true` oppure `false`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`true`"
-msgstr ""
+msgstr "`true`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the boolean grammar; then it changes how document paths are validated"
-msgstr ""
+msgstr "la grammatica booleana; poi cambia il modo in cui si validano i percorsi dei documenti"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--no-download`, `save_pdf: false`"
-msgstr ""
+msgstr "`--no-download`, `save_pdf: false`"
 
 #: ../../source/reference/configuration/options.md:234
 msgid ""
-"The one option whose command-line spelling is negative, which is why the "
-"flag's name misleads: `--no-download` does not suppress the download, it "
-"suppresses **keeping** the downloaded file."
+"The one option whose command-line spelling is negative, which is why the flag's name "
+"misleads: `--no-download` does not suppress the download, it suppresses **keeping** "
+"the downloaded file."
 msgstr ""
+"L'unica opzione la cui grafia sulla riga di comando è negativa, ed è il motivo per "
+"cui il nome dell'opzione inganna: `--no-download` non impedisce lo scaricamento, "
+"impedisce di **conservare** il file scaricato."
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--workers`, `-j`"
-msgstr ""
+msgstr "`--workers`, `-j`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "a positive integer, or `auto`"
-msgstr ""
+msgstr "un intero positivo, oppure `auto`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`auto`"
-msgstr ""
+msgstr "`auto`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "zero and negatives are a typed error naming the option"
-msgstr ""
+msgstr "zero e i negativi sono un errore tipizzato che nomina l'opzione"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-j 4`, `n_workers: auto`"
-msgstr ""
+msgstr "`-j 4`, `n_workers: auto`"
 
 #: ../../source/reference/configuration/options.md:253
 msgid ""
-"The **global default of both levels**, not a process count. It is what "
-"gives `-j 1` a universal meaning: one job at a time *and* one page at a "
-"time. A level with its own value ignores it."
+"The **global default of both levels**, not a process count. It is what gives `-j 1` a"
+" universal meaning: one job at a time *and* one page at a time. A level with its own "
+"value ignores it."
 msgstr ""
+"Il **valore predefinito globale di entrambi i livelli**, non un conteggio di "
+"processi. È ciò che dà a `-j 1` un significato universale: un job per volta *e* una "
+"pagina per volta. Un livello con un valore proprio lo ignora."
 
 #: ../../source/reference/configuration/options.md:259
 msgid "`parallelism_jobs`"
-msgstr ""
+msgstr "`parallelism_jobs`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--jobs` — long form only, `-j` being taken by the global default"
-msgstr ""
+msgstr "`--jobs` — solo forma lunga, dato che `-j` è preso dal valore predefinito globale"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "unset — inherits `n_workers`"
-msgstr ""
+msgstr "non impostato — eredita da `n_workers`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "as `n_workers`, with this option's name in the error"
-msgstr ""
+msgstr "come `n_workers`, con il nome di questa opzione nell'errore"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--jobs 2`"
-msgstr ""
+msgstr "`--jobs 2`"
 
 #: ../../source/reference/configuration/options.md:272
 msgid ""
-"Left unset on purpose by the defaults tier: a level nobody touched has no"
-" value of its own and inherits the global one. Were the defaults to fill "
-"it in, the global default could no longer reach it."
+"Left unset on purpose by the defaults tier: a level nobody touched has no value of "
+"its own and inherits the global one. Were the defaults to fill it in, the global "
+"default could no longer reach it."
 msgstr ""
+"Lasciato non impostato apposta dal livello dei valori predefiniti: un livello che "
+"nessuno ha toccato non ha un valore proprio ed eredita quello globale. Se i valori "
+"predefiniti lo riempissero, il valore predefinito globale non potrebbe più "
+"raggiungerlo."
 
 #: ../../source/reference/configuration/options.md:279
 msgid "`parallelism_pages`"
-msgstr ""
+msgstr "`parallelism_pages`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "as `n_workers`"
-msgstr ""
+msgstr "come `n_workers`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`parallelism:\\n  pages: auto`"
-msgstr ""
+msgstr "`parallelism:\\n  pages: auto`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--batch`, `-b`"
-msgstr ""
+msgstr "`--batch`, `-b`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "none — not in batch mode"
-msgstr ""
+msgstr "nessuno — non in modalità a lotti"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the CSV is read and its columns checked; an unknown column is an error"
-msgstr ""
+msgstr "il CSV è letto e le sue colonne controllate; una colonna sconosciuta è un errore"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-b jobs.csv`"
-msgstr ""
+msgstr "`-b jobs.csv`"
 
 #: ../../source/reference/configuration/options.md:308
 #, python-brace-format
 msgid "{doc}`../../guides/user/advanced/batch`."
-msgstr ""
+msgstr "{doc}`../../guides/user/advanced/batch`."
 
 #: ../../source/reference/configuration/options.md:313
 msgid "`config_file`"
-msgstr ""
+msgstr "`config_file`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "none — the three tiers are searched instead"
-msgstr ""
+msgstr "nessuno — si cercano invece i tre livelli"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the file is parsed; unknown keys are errors"
-msgstr ""
+msgstr "il file è analizzato; le chiavi sconosciute sono errori"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`--config ./ci-freeports.yaml`"
-msgstr ""
+msgstr "`--config ./ci-freeports.yaml`"
 
 #: ../../source/reference/configuration/options.md:326
 #, python-brace-format
 msgid ""
-"No YAML spelling, for the obvious reason: a configuration file naming the"
-" configuration file to read would be a chicken with no egg. "
-"{doc}`config_file` lists the tiers searched when this is unset."
+"No YAML spelling, for the obvious reason: a configuration file naming the "
+"configuration file to read would be a chicken with no egg. {doc}`config_file` lists "
+"the tiers searched when this is unset."
 msgstr ""
+"Nessuna grafia YAML, per il motivo ovvio: un file di configurazione che nominasse il "
+"file di configurazione da leggere sarebbe una gallina senza uovo. {doc}`config_file` "
+"elenca i livelli che si cercano quando questa non è impostata."
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-v` and `-q`, both **counted** and independent"
-msgstr ""
+msgstr "`-v` e `-q`, entrambe **contate** e indipendenti"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`FREEPORTS_VERBOSITY` — by variant name, case-insensitively"
 msgstr ""
+"`FREEPORTS_VERBOSITY` — per nome della variante, senza distinzione fra maiuscole e "
+"minuscole"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`verbosity` — same names"
-msgstr ""
+msgstr "`verbosity` — stessi nomi"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "one of `silent`, `error`, `warn`, `info`, `debug`, `trace`"
-msgstr ""
+msgstr "uno fra `silent`, `error`, `warn`, `info`, `debug`, `trace`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`warn`"
-msgstr ""
+msgstr "`warn`"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "the name; the counts are clamped and can never be out of range"
 msgstr ""
+"il nome; i conteggi sono limitati agli estremi e non possono mai uscire "
+"dall'intervallo"
 
 #: ../../source/reference/configuration/options.md:114
 msgid "`-vv`, `FREEPORTS_VERBOSITY=trace`"
-msgstr ""
+msgstr "`-vv`, `FREEPORTS_VERBOSITY=trace`"
 
 #: ../../source/reference/configuration/options.md:346
 #, python-brace-format
 msgid ""
-"All three forms are applied, but not at the same instant: `-v`/`-q` "
-"govern from the first line logged, while the environment and YAML forms "
-"take effect the moment the configuration resolves. See {doc}`index` for "
-"the one consequence."
+"All three forms are applied, but not at the same instant: `-v`/`-q` govern from the "
+"first line logged, while the environment and YAML forms take effect the moment the "
+"configuration resolves. See {doc}`index` for the one consequence."
 msgstr ""
+"Tutte e tre le forme sono applicate, ma non nello stesso istante: `-v`/`-q` governano"
+" dalla prima riga registrata, mentre le forme d'ambiente e YAML entrano in vigore nel"
+" momento in cui la configurazione si risolve. Vedi {doc}`index` per l'unica "
+"conseguenza."
 
 #~ msgid ""
-#~ "The environment and YAML forms are "
-#~ "parsed, validated and merged but **do"
-#~ " not reach the parent process's "
-#~ "logging** — see {doc}`index`. Today only"
-#~ " `-v` and `-q` change what you "
-#~ "see."
+#~ "The environment and YAML forms are parsed, "
+#~ "validated and merged but **do not reach "
+#~ "the parent process's logging** — see "
+#~ "{doc}`index`. Today only `-v` and `-q` change"
+#~ " what you see."
 #~ msgstr ""
 

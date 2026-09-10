@@ -21,229 +21,236 @@ msgstr ""
 
 #: ../../source/reference/design/index.md:1
 msgid "The design of the algorithm"
-msgstr ""
+msgstr "Il progetto dell'algoritmo"
 
 #: ../../source/reference/design/index.md:3
 #, python-brace-format
 msgid ""
 "Why the engine has the shape it has. Not *how to run it* — that is "
-"{doc}`../../guides/user/index` — and not which libraries it is built "
-"from, which is a question for contributors and lives in {doc}`the "
-"implementation notes <../../guides/engine/advanced/implementation-"
-"notes>`."
+"{doc}`../../guides/user/index` — and not which libraries it is built from, which is a"
+" question for contributors and lives in {doc}`the implementation notes "
+"<../../guides/engine/advanced/implementation-notes>`."
 msgstr ""
+"Perché il motore abbia la forma che ha. Non *come eseguirlo* — quello è "
+"{doc}`../../guides/user/index` — e non da quali librerie sia costruito, che è una "
+"domanda per chi contribuisce e sta nelle {doc}`note di realizzazione "
+"<../../guides/engine/advanced/implementation-notes>`."
 
 #: ../../source/reference/design/index.md:7
-msgid ""
-"Every page here states what it describes and whether that thing "
-"**exists**:"
-msgstr ""
+msgid "Every page here states what it describes and whether that thing **exists**:"
+msgstr "Ogni pagina qui dichiara che cosa descrive e se quella cosa **esiste**:"
 
 #: ../../source/reference/design/index.md
 msgid "Marker"
-msgstr ""
+msgstr "Marcatura"
 
 #: ../../source/reference/design/index.md
 msgid "Means"
-msgstr ""
+msgstr "Significa"
 
 #: ../../source/reference/design/index.md
 msgid "*implemented*"
-msgstr ""
+msgstr "*realizzato*"
 
 #: ../../source/reference/design/index.md
 msgid "it is in the engine today, and the tests defend it"
-msgstr ""
+msgstr "oggi è nel motore, e i test lo difendono"
 
 #: ../../source/reference/design/index.md
 msgid "*planned*"
-msgstr ""
+msgstr "*previsto*"
 
 #: ../../source/reference/design/index.md
 msgid "designed, argued for, not built. The page says what would change"
-msgstr ""
+msgstr "progettato, argomentato, non costruito. La pagina dice che cosa cambierebbe"
 
 #: ../../source/reference/design/index.md
 msgid "*accepted limit*"
-msgstr ""
+msgstr "*limite accettato*"
 
 #: ../../source/reference/design/index.md
 msgid "a known edge deliberately left as it is, with the reason"
-msgstr ""
+msgstr "un caso limite noto lasciato deliberatamente com'è, con il motivo"
 
 #: ../../source/reference/design/index.md:37
 msgid "The whole algorithm at a glance"
-msgstr ""
+msgstr "L'intero algoritmo a colpo d'occhio"
 
 #: ../../source/reference/design/index.md:39
 msgid ""
-"Documents are classified per document, the union is scheduled into steps,"
-" each step runs page classes through pipeline bundles, and the results "
-"resolve against the promise map before the tables are written"
+"Documents are classified per document, the union is scheduled into steps, each step "
+"runs page classes through pipeline bundles, and the results resolve against the "
+"promise map before the tables are written"
 msgstr ""
+"I documenti sono classificati uno per uno, l'unione è pianificata in passi, ogni "
+"passo fa attraversare alle classi di pagina i fasci di pipeline, e i risultati si "
+"risolvono contro la mappa delle promesse prima che le tabelle siano scritte"
 
 #: ../../source/reference/design/index.md:43
 msgid ""
-"**One run, end to end.** Each document is opened and classified **on its "
-"own**, so that a format's page-class finalizer sees one document's pages."
-" The classified pages of every document are then poured into **one** "
-"schedule, which processes them in steps; a step's results become the next"
-" step's filter. Every page of a class goes through that class's **bundle "
-"of pipelines**, each three segments long, and what comes out is either an"
-" entity or a promise. Entities resolve against the accumulated promise "
-"map at the end, and the whole run writes **one** set of tables."
+"**One run, end to end.** Each document is opened and classified **on its own**, so "
+"that a format's page-class finalizer sees one document's pages. The classified pages "
+"of every document are then poured into **one** schedule, which processes them in "
+"steps; a step's results become the next step's filter. Every page of a class goes "
+"through that class's **bundle of pipelines**, each three segments long, and what "
+"comes out is either an entity or a promise. Entities resolve against the accumulated "
+"promise map at the end, and the whole run writes **one** set of tables."
 msgstr ""
+"**Una esecuzione, da un capo all'altro.** Ogni documento è aperto e classificato "
+"**per conto proprio**, così che il finalizzatore delle classi di pagina di un formato"
+" veda le pagine di un solo documento. Le pagine classificate di tutti i documenti "
+"sono poi versate in **una** pianificazione, che le lavora in passi; i risultati di un"
+" passo diventano il filtro del passo successivo. Ogni pagina di una classe attraversa"
+" il **fascio di pipeline** di quella classe, ciascuna lunga tre segmenti, e ciò che "
+"ne esce è o un'entità o una promessa. Le entità si risolvono contro la mappa delle "
+"promesse accumulata alla fine, e l'intera esecuzione scrive **un solo** insieme di "
+"tabelle."
 
 #: ../../source/reference/design/index.md:51
 msgid ""
-"The two halves of that picture are the two halves of this section. "
-"Everything up to the schedule is about *which pages get processed and in "
-"what order*; everything after it is about *what a page becomes*."
+"The two halves of that picture are the two halves of this section. Everything up to "
+"the schedule is about *which pages get processed and in what order*; everything after"
+" it is about *what a page becomes*."
 msgstr ""
+"Le due metà di quel quadro sono le due metà di questa sezione. Tutto ciò che sta fino"
+" alla pianificazione riguarda *quali pagine vengono lavorate e in che ordine*; tutto "
+"ciò che viene dopo riguarda *in che cosa una pagina si trasforma*."
 
 #: ../../source/reference/design/index.md:55
 msgid "What each design page answers"
-msgstr ""
+msgstr "A che cosa risponde ciascuna pagina di progetto"
 
 #: ../../source/reference/design/index.md:56
-msgid ""
-"**The foundations** — the one assumption everything else rests on, and "
-"what it costs."
-msgstr ""
+msgid "**The foundations** — the one assumption everything else rests on, and what it costs."
+msgstr "**Le fondamenta** — l'unica assunzione su cui poggia tutto il resto, e quanto costa."
 
 #: ../../source/reference/design/index.md:39
 msgid "Page"
-msgstr ""
+msgstr "Pagina"
 
 #: ../../source/reference/design/index.md:39
 msgid "Says"
-msgstr ""
+msgstr "Dice"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`pages`"
-msgstr ""
+msgstr "{doc}`pages`"
 
 #: ../../source/reference/design/index.md:39
-msgid ""
-"the page is the unit of work: the assumption, what follows from it, where"
-" it cedes"
-msgstr ""
+msgid "the page is the unit of work: the assumption, what follows from it, where it cedes"
+msgstr "la pagina è l'unità di lavoro: l'assunzione, ciò che ne discende, dove cede"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`promises`"
-msgstr ""
+msgstr "{doc}`promises`"
 
 #: ../../source/reference/design/index.md:39
 msgid "what to do when a page genuinely cannot know something"
-msgstr ""
+msgstr "che fare quando una pagina davvero non può sapere una cosa"
 
 #: ../../source/reference/design/index.md:63
-msgid ""
-"**Deciding what to process** — from a pile of PDFs to an ordered list of "
-"work."
-msgstr ""
+msgid "**Deciding what to process** — from a pile of PDFs to an ordered list of work."
+msgstr "**Decidere che cosa lavorare** — da un mucchio di PDF a un elenco ordinato di lavoro."
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`classification`"
-msgstr ""
+msgstr "{doc}`classification`"
 
 #: ../../source/reference/design/index.md:39
 msgid "what kind of page is this, and why classifying is itself a pipeline"
-msgstr ""
+msgstr "che tipo di pagina è questa, e perché classificare sia esso stesso una pipeline"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`schedule`"
-msgstr ""
+msgstr "{doc}`schedule`"
 
 #: ../../source/reference/design/index.md:39
 msgid "steps, and why a step's output is the next step's filter"
-msgstr ""
+msgstr "i passi, e perché i risultati di un passo siano il filtro del successivo"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`multidocument`"
-msgstr ""
+msgstr "{doc}`multidocument`"
 
 #: ../../source/reference/design/index.md:39
 msgid "several documents in one run: classified apart, scheduled together"
-msgstr ""
+msgstr "più documenti in una sola esecuzione: classificati a parte, pianificati insieme"
 
 #: ../../source/reference/design/index.md:71
-msgid ""
-"**Processing a page** — the pipeline and the values that travel through "
-"it."
-msgstr ""
+msgid "**Processing a page** — the pipeline and the values that travel through it."
+msgstr "**Lavorare una pagina** — la pipeline e i valori che vi viaggiano dentro."
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`segments`"
-msgstr ""
+msgstr "{doc}`segments`"
 
 #: ../../source/reference/design/index.md:39
 msgid "three segments, why three, and the fourth that is designed but not built"
-msgstr ""
+msgstr "tre segmenti, perché tre, e il quarto che è progettato e non costruito"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`blocks`"
-msgstr ""
+msgstr "{doc}`blocks`"
 
 #: ../../source/reference/design/index.md:39
 msgid "`PdfBlock` and `TextBlock`: an open type, a typed value"
-msgstr ""
+msgstr "`PdfBlock` e `TextBlock`: un tipo aperto, un valore tipizzato"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`entities-and-output`"
-msgstr ""
+msgstr "{doc}`entities-and-output`"
 
 #: ../../source/reference/design/index.md:39
 msgid "what the project models, and the schema as an invariant of the product"
-msgstr ""
+msgstr "che cosa il progetto modella, e lo schema come invariante del prodotto"
 
 #: ../../source/reference/design/index.md:79
 msgid ""
-"**Properties of the whole** — things that are true of the engine rather "
-"than of any one part."
-msgstr ""
+"**Properties of the whole** — things that are true of the engine rather than of any "
+"one part."
+msgstr "**Proprietà dell'insieme** — cose che sono vere del motore anziché di una sua parte."
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`formats-as-plugins`"
-msgstr ""
+msgstr "{doc}`formats-as-plugins`"
 
 #: ../../source/reference/design/index.md:39
 msgid "why the recipes live outside the engine, and how three levels merge"
-msgstr ""
+msgstr "perché le ricette vivano fuori dal motore, e come si fondano i tre livelli"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`determinism`"
-msgstr ""
+msgstr "{doc}`determinism`"
 
 #: ../../source/reference/design/index.md:39
 msgid "what order is guaranteed, and what is not"
-msgstr ""
+msgstr "quale ordine è garantito, e quale no"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`parallelism`"
-msgstr ""
+msgstr "{doc}`parallelism`"
 
 #: ../../source/reference/design/index.md:39
 msgid "parallelism as a consequence of the page assumption, not an addition"
-msgstr ""
+msgstr "il parallelismo come conseguenza dell'assunzione sulla pagina, non come aggiunta"
 
 #: ../../source/reference/design/index.md:39
 #, python-brace-format
 msgid "{doc}`limits`"
-msgstr ""
+msgstr "{doc}`limits`"
 
 #: ../../source/reference/design/index.md:39
 msgid "the accepted limits, stated rather than hidden"
-msgstr ""
+msgstr "i limiti accettati, dichiarati anziché nascosti"
 

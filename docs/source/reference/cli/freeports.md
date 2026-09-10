@@ -148,9 +148,10 @@ counts is added to the default and clamped, so no combination is an error and `-
 | `-vvv` or more | trace |
 
 ```{warning}
-Verbosity is today the one setting the command line has a monopoly on. `FREEPORTS_VERBOSITY` and the
-configuration file's `verbosity` key are parsed, validated and merged, but never reach the logging
-setup of the parent process — see the warning in {doc}`../configuration/index`.
+`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key set the same dial, and both
+work — but they are inside a configuration that cannot be read until logging is already running, so
+they take effect the moment it resolves rather than from the first line. See
+{doc}`../configuration/index` for the one consequence.
 ```
 
 ## `--internal-worker`, the one hidden option

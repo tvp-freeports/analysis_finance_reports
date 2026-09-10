@@ -21,98 +21,120 @@ msgstr ""
 
 #: ../../source/guides/formats/repository.md:1
 msgid "The formats repository"
-msgstr ""
+msgstr "Il repository di formati"
 
 #: ../../source/guides/formats/repository.md:3
 msgid ""
-"A formats repository is an ordinary directory, tracked in its own version"
-" control, holding the recipes for a set of report layouts. The engine "
-"reads it; it is not part of the engine."
+"A formats repository is an ordinary directory, tracked in its own version control, "
+"holding the recipes for a set of report layouts. The engine reads it; it is not part "
+"of the engine."
 msgstr ""
+"Un repository di formati è una comune cartella, tracciata in un proprio sistema di "
+"versionamento, che contiene le ricette per un insieme di impaginazioni di relazioni. "
+"Il motore lo legge; non fa parte del motore."
 
 #: ../../source/guides/formats/repository.md:6
 msgid ""
-"That separation is the project's main structural bet. Support for a new "
-"report needs no release of the engine, touches nothing anyone else "
-"maintains, and can be published by whoever cares about those reports. "
-"`analysis_finance_reports_formats` — *Italy, five top groups* — is one "
-"such repository, and there is nothing privileged about it."
+"That separation is the project's main structural bet. Support for a new report needs "
+"no release of the engine, touches nothing anyone else maintains, and can be published"
+" by whoever cares about those reports. `analysis_finance_reports_formats` — *Italy, "
+"five top groups* — is one such repository, and there is nothing privileged about it."
 msgstr ""
+"Quella separazione è la principale scommessa strutturale del progetto. Il supporto "
+"per una nuova relazione non richiede alcun rilascio del motore, non tocca niente di "
+"ciò che mantiene qualcun altro, e può essere pubblicato da chi ha a cuore quelle "
+"relazioni. `analysis_finance_reports_formats` — *Italia, i cinque gruppi maggiori* — "
+"è uno di questi repository, e non ha niente di privilegiato."
 
 #: ../../source/guides/formats/repository.md:11
 msgid "Starting a repository"
-msgstr ""
+msgstr "Avviare un repository"
 
 #: ../../source/guides/formats/repository.md:18
 msgid "The layout of a repository"
-msgstr ""
+msgstr "La disposizione di un repository"
 
 #: ../../source/guides/formats/repository.md:50
 #, python-brace-format
 msgid ""
-"Everything marked *generated* is rewritten between two markers — by "
-"`freeports-validate report` for the grants and `freeports-dev ci-report` "
-"for the figures — and what is between them is replaced whole; see {ref"
-"}`what-init-format-repo-writes`. Text of your own outside the markers is "
-"kept."
+"Everything marked *generated* is rewritten between two markers — by `freeports-"
+"validate report` for the grants and `freeports-dev ci-report` for the figures — and "
+"what is between them is replaced whole; see {ref}`what-init-format-repo-writes`. Text"
+" of your own outside the markers is kept."
 msgstr ""
+"Tutto ciò che è marcato come *generato* è riscritto fra due marcatori — da "
+"`freeports-validate report` per le attestazioni e da `freeports-dev ci-report` per i "
+"numeri — e ciò che sta in mezzo è sostituito per intero; vedi {ref}`what-init-format-"
+"repo-writes`. Il testo tuo fuori dai marcatori è conservato."
 
 #: ../../source/guides/formats/repository.md:54
 msgid "Working on it: `make`, and asking about it: `freeports-dev`"
-msgstr ""
+msgstr "Lavorarci: `make`, e interrogarlo: `freeports-dev`"
 
 #: ../../source/guides/formats/repository.md:56
 msgid ""
-"The repository is worked on with `make` and interrogated with `freeports-"
-"dev`, and the two are the same vocabulary rather than two ways of doing "
-"the same thing:"
+"The repository is worked on with `make` and interrogated with `freeports-dev`, and "
+"the two are the same vocabulary rather than two ways of doing the same thing:"
 msgstr ""
+"Sul repository si lavora con `make` e lo si interroga con `freeports-dev`, e i due "
+"sono lo stesso vocabolario anziché due modi di fare la stessa cosa:"
 
 #: ../../source/guides/formats/repository.md:67
 msgid ""
-"`make` acts on *this* repository: it writes the measurements into "
-"`reports/`, refreshes the committed reports, and rewrites "
-"`package.yaml`'s fingerprint when it is entitled to. `freeports-dev` and "
-"`freeports-validate` act on *any* repository — `--repo ~/their-formats` —"
-" and write only where you point them. That is why the same figure has two"
-" commands: one to keep yours current, one to ask about somebody else's."
+"`make` acts on *this* repository: it writes the measurements into `reports/`, "
+"refreshes the committed reports, and rewrites `package.yaml`'s fingerprint when it is"
+" entitled to. `freeports-dev` and `freeports-validate` act on *any* repository — "
+"`--repo ~/their-formats` — and write only where you point them. That is why the same "
+"figure has two commands: one to keep yours current, one to ask about somebody else's."
 msgstr ""
+"`make` agisce su *questo* repository: scrive le misure in `reports/`, aggiorna i "
+"rapporti committati, e riscrive l'impronta di `package.yaml` quando ne ha titolo. "
+"`freeports-dev` e `freeports-validate` agiscono su *qualsiasi* repository — `--repo "
+"~/formati-loro` — e scrivono solo dove li punti. È per questo che lo stesso numero ha"
+" due comandi: uno per tenere aggiornato il tuo, uno per chiedere di quello di qualcun"
+" altro."
 
 #: ../../source/guides/formats/repository.md:73
 #, python-brace-format
-msgid ""
-"{doc}`../devops/the-gate` says which targets may refuse a commit, and on "
-"which branch."
+msgid "{doc}`../devops/the-gate` says which targets may refuse a commit, and on which branch."
 msgstr ""
+"{doc}`../devops/the-gate` dice quali target possono rifiutare un commit, e su quale "
+"ramo."
 
 #: ../../source/guides/formats/repository.md:75
 msgid "The `metadata/` tables"
-msgstr ""
+msgstr "Le tabelle di `metadata/`"
 
 #: ../../source/guides/formats/repository.md:76
-msgid ""
-"`metadata/formats.csv` lists the formats by their **components**, not by "
-"their names:"
+msgid "`metadata/formats.csv` lists the formats by their **components**, not by their names:"
 msgstr ""
+"`metadata/formats.csv` elenca i formati per le loro **componenti**, non per il loro "
+"nome:"
 
 #: ../../source/guides/formats/repository.md:84
 msgid ""
-"The name every other file refers to — `AMUNDI-EN24` — is **synthesised** "
-"as `Name-Locale<YY>[@Country][.Version]` and written nowhere. There is "
-"exactly one place a format name comes from, so a name and its components "
-"cannot disagree."
+"The name every other file refers to — `AMUNDI-EN24` — is **synthesised** as `Name-"
+"Locale<YY>[@Country][.Version]` and written nowhere. There is exactly one place a "
+"format name comes from, so a name and its components cannot disagree."
 msgstr ""
+"Il nome a cui si riferisce ogni altro file — `AMUNDI-EN24` — è **sintetizzato** come "
+"`Nome-Locale<AA>[@Paese][.Versione]` e non è scritto da nessuna parte. C'è un solo "
+"posto da cui viene il nome di un formato, quindi un nome e le sue componenti non "
+"possono contraddirsi."
 
 #: ../../source/guides/formats/repository.md:88
 msgid ""
-"`metadata/url_mapping.csv` maps URL prefixes to format names, and is what"
-" lets a document downloaded from a known address be read without "
-"`--format`. The **order matters**: the first matching prefix wins."
+"`metadata/url_mapping.csv` maps URL prefixes to format names, and is what lets a "
+"document downloaded from a known address be read without `--format`. The **order "
+"matters**: the first matching prefix wins."
 msgstr ""
+"`metadata/url_mapping.csv` associa prefissi di URL a nomi di formato, ed è ciò che "
+"permette di leggere senza `--format` un documento scaricato da un indirizzo noto. "
+"L'**ordine conta**: vince il primo prefisso che corrisponde."
 
 #: ../../source/guides/formats/repository.md:92
 msgid "Orchestration"
-msgstr ""
+msgstr "Orchestrazione"
 
 #: ../../source/guides/formats/repository.md:94
 #, python-brace-format
@@ -120,87 +142,118 @@ msgid ""
 "Three tables decide what runs and in what order; "
 "{doc}`../../reference/design/schedule` explains why they have this shape."
 msgstr ""
+"Tre tabelle decidono che cosa gira e in che ordine; "
+"{doc}`../../reference/design/schedule` spiega perché abbiano questa forma."
 
 #: ../../source/guides/formats/repository.md:97
 msgid ""
-"**`algorithms_schedule.csv`** — per format, the page classes in "
-"processing order, split into steps. Classes accumulate into the current "
-"step until a row raises `Filter next iteration`, which closes it and "
-"opens the next. That flag is how you say \"the results so far are the "
-"filter for what comes next\":"
+"**`algorithms_schedule.csv`** — per format, the page classes in processing order, "
+"split into steps. Classes accumulate into the current step until a row raises `Filter"
+" next iteration`, which closes it and opens the next. That flag is how you say \"the "
+"results so far are the filter for what comes next\":"
 msgstr ""
+"**`algorithms_schedule.csv`** — per ciascun formato, le classi di pagina nell'ordine "
+"di lavorazione, divise in passi. Le classi si accumulano nel passo corrente finché "
+"una riga non alza `Filter next iteration`, che lo chiude e apre il successivo. Quel "
+"contrassegno è il modo di dire \"i risultati finora sono il filtro per ciò che viene "
+"dopo\":"
 
 #: ../../source/guides/formats/repository.md:109
 msgid ""
-"Here `investments` runs first and alone; the two remaining classes run in"
-" a second step and can filter on what the first found."
+"Here `investments` runs first and alone; the two remaining classes run in a second "
+"step and can filter on what the first found."
 msgstr ""
+"Qui `investments` gira per prima e da sola; le due classi rimanenti girano in un "
+"secondo passo e possono filtrare su ciò che ha trovato la prima."
 
 #: ../../source/guides/formats/repository.md:112
 #, python-brace-format
 msgid ""
 "**`mapping.csv`** — which pipelines handle which page class, keyed by "
-"`{format}({pipeline})`. Left unspecified, a page class is handled by the "
-"pipeline of the same name. Several rows may point at one class, and one "
-"pipeline may serve several classes."
+"`{format}({pipeline})`. Left unspecified, a page class is handled by the pipeline of "
+"the same name. Several rows may point at one class, and one pipeline may serve "
+"several classes."
 msgstr ""
+"**`mapping.csv`** — quali pipeline gestiscono quale classe di pagina, con chiave "
+"`{format}({pipeline})`. Lasciata non specificata, una classe di pagina è gestita "
+"dalla pipeline con lo stesso nome. Più righe possono puntare a una sola classe, e una"
+" sola pipeline può servire più classi."
 
 #: ../../source/guides/formats/repository.md:116
 msgid ""
-"**`pageclassify_overwrite.csv`** — the formats that replace the standard "
-"page classification with their own pipelines. Empty in the common case."
+"**`pageclassify_overwrite.csv`** — the formats that replace the standard page "
+"classification with their own pipelines. Empty in the common case."
 msgstr ""
+"**`pageclassify_overwrite.csv`** — i formati che sostituiscono la classificazione di "
+"pagina standard con pipeline proprie. Nel caso comune è vuoto."
 
 #: ../../source/guides/formats/repository.md:119
 msgid "Tests, and what they are for"
-msgstr ""
+msgstr "I test, e a che cosa servono"
 
 #: ../../source/guides/formats/repository.md:121
 msgid ""
-"Each format under `tests/formats/<FORMAT>/` has the report, per-page "
-"fixtures, and the expected output."
+"Each format under `tests/formats/<FORMAT>/` has the report, per-page fixtures, and "
+"the expected output."
 msgstr ""
+"Ogni formato sotto `tests/formats/<FORMATO>/` ha la relazione, le fixture per pagina,"
+" e i risultati attesi."
 
 #: ../../source/guides/formats/repository.md:124
 msgid ""
 "The per-page fixtures — `<page>-pdf_blks.json`, `<page>-txt_blks.json`, "
-"`<page>-results.json`, plus a `filter_data.json` per page class — pin one"
-" page at a time and are generated by `freeports-dev make-tests`. They are"
-" what tells you which segment broke."
+"`<page>-results.json`, plus a `filter_data.json` per page class — pin one page at a "
+"time and are generated by `freeports-dev make-tests`. They are what tells you which "
+"segment broke."
 msgstr ""
+"Le fixture per pagina — `<pagina>-pdf_blks.json`, `<pagina>-txt_blks.json`, "
+"`<pagina>-results.json`, più un `filter_data.json` per classe di pagina — fissano una"
+" pagina per volta e sono generate da `freeports-dev make-tests`. Sono ciò che ti dice"
+" quale segmento si è rotto."
 
 #: ../../source/guides/formats/repository.md:128
 #, python-brace-format
 msgid ""
-"`out/` is different in kind. It is the **expected output of the whole "
-"document**, and it is the repository's specification: if a run diverges "
-"from it, the engine is what changed, not the expectation. Regenerating "
-"one of those files is a deliberate act with a reason attached, never a "
-"way to make a red test go green. That is also what makes the grants in "
-"{doc}`../../overview/trust` meaningful — a grant is a claim about the "
-"content of exactly these files."
+"`out/` is different in kind. It is the **expected output of the whole document**, and"
+" it is the repository's specification: if a run diverges from it, the engine is what "
+"changed, not the expectation. Regenerating one of those files is a deliberate act "
+"with a reason attached, never a way to make a red test go green. That is also what "
+"makes the grants in {doc}`../../overview/trust` meaningful — a grant is a claim about"
+" the content of exactly these files."
 msgstr ""
+"`out/` è diverso per natura. È il **risultato atteso dell'intero documento**, ed è la"
+" specifica del repository: se un'esecuzione se ne discosta, ciò che è cambiato è il "
+"motore, non l'aspettativa. Rigenerare uno di quei file è un atto deliberato con una "
+"motivazione allegata, mai un modo di far diventare verde un test rosso. È anche ciò "
+"che rende significative le attestazioni di {doc}`../../overview/trust` — "
+"un'attestazione è un'affermazione sul contenuto esattamente di questi file."
 
 #: ../../source/guides/formats/repository.md:134
 #, python-brace-format
 msgid ""
-"Run them with `freeports-dev test`, optionally narrowed with `--format`. "
-"{doc}`dev-loop` is the workflow, {doc}`../../reference/cli/index` the "
-"option-by-option reference."
+"Run them with `freeports-dev test`, optionally narrowed with `--format`. {doc}`dev-"
+"loop` is the workflow, {doc}`../../reference/cli/index` the option-by-option "
+"reference."
 msgstr ""
+"Eseguili con `freeports-dev test`, eventualmente ristretto con `--format`. {doc}`dev-"
+"loop` è il flusso di lavoro, {doc}`../../reference/cli/index` il riferimento opzione "
+"per opzione."
 
 #: ../../source/guides/formats/repository.md:137
 msgid "Versioning and identity"
-msgstr ""
+msgstr "Versionamento e identità"
 
 #: ../../source/guides/formats/repository.md:139
 msgid "`package.yaml` carries the repository's own identity:"
-msgstr ""
+msgstr "`package.yaml` porta l'identità del repository stesso:"
 
 #: ../../source/guides/formats/repository.md:149
 msgid ""
-"`validation_sha256` ties the repository to the validation document that "
-"vouches for its contents, so that a consumer can tell not only *what* "
-"they have but *what was claimed about it*."
+"`validation_sha256` ties the repository to the validation document that vouches for "
+"its contents, so that a consumer can tell not only *what* they have but *what was "
+"claimed about it*."
 msgstr ""
+"`validation_sha256` lega il repository al documento di validazione che risponde del "
+"suo contenuto, così che chi lo consuma possa sapere non solo *che cosa* ha fra le "
+"mani ma *che cosa è stato affermato al riguardo*."
 

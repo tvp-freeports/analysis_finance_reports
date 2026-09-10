@@ -21,103 +21,120 @@ msgstr ""
 
 #: ../../source/reference/design/blocks.md:1
 msgid "Blocks"
-msgstr ""
+msgstr "Blocchi"
 
 #: ../../source/reference/design/blocks.md:3
 #, python-brace-format
 msgid ""
-"*Implemented.* `PdfBlock` and `TextBlock` are the two units that travel "
-"through a pipeline ({doc}`segments`). Both are the same three things:"
+"*Implemented.* `PdfBlock` and `TextBlock` are the two units that travel through a "
+"pipeline ({doc}`segments`). Both are the same three things:"
 msgstr ""
+"*Realizzato.* `PdfBlock` e `TextBlock` sono le due unità che viaggiano attraverso una"
+" pipeline ({doc}`segments`). Entrambi sono le stesse tre cose:"
 
 #: ../../source/reference/design/blocks.md
 msgid "Part"
-msgstr ""
+msgstr "Parte"
 
 #: ../../source/reference/design/blocks.md
 msgid "Is"
-msgstr ""
+msgstr "È"
 
 #: ../../source/reference/design/blocks.md
 msgid "**block type**"
-msgstr ""
+msgstr "**tipo del blocco**"
 
 #: ../../source/reference/design/blocks.md
 msgid "a string in a newtype — an open set"
-msgstr ""
+msgstr "una stringa dentro un newtype — un insieme aperto"
 
 #: ../../source/reference/design/blocks.md
 msgid "**metadata**"
-msgstr ""
+msgstr "**metadati**"
 
 #: ../../source/reference/design/blocks.md
 msgid "free-form, a typed value enum"
-msgstr ""
+msgstr "a forma libera, un enum di valori tipizzati"
 
 #: ../../source/reference/design/blocks.md
 msgid "**content**"
-msgstr ""
+msgstr "**contenuto**"
 
 #: ../../source/reference/design/blocks.md
 msgid "optional"
-msgstr ""
+msgstr "facoltativo"
 
 #: ../../source/reference/design/blocks.md:12
 msgid "The block type cannot be closed"
-msgstr ""
+msgstr "Il tipo del blocco non si può chiudere"
 
 #: ../../source/reference/design/blocks.md:14
 msgid ""
-"It is a newtype over a string, not an enum, and it has to be: **formats "
-"repositories invent their own block types**, and that is the extension "
-"mechanism working rather than a hole in the model. An enum would mean "
-"every new kind of thing a report can contain requires a release of the "
-"engine."
+"It is a newtype over a string, not an enum, and it has to be: **formats repositories "
+"invent their own block types**, and that is the extension mechanism working rather "
+"than a hole in the model. An enum would mean every new kind of thing a report can "
+"contain requires a release of the engine."
 msgstr ""
+"È un newtype su una stringa, non un enum, e deve esserlo: **i repository di formati "
+"si inventano tipi di blocco propri**, ed è il meccanismo di estensione che funziona "
+"anziché un buco nel modello. Un enum vorrebbe dire che ogni nuovo tipo di cosa che "
+"una relazione può contenere richiede un rilascio del motore."
 
 #: ../../source/reference/design/blocks.md:18
 msgid ""
-"The newtype still earns its keep. It gives a distinct type in signatures "
-"— so a block type cannot be passed where a fund name was wanted — and a "
-"home for the standard constants that most formats use."
+"The newtype still earns its keep. It gives a distinct type in signatures — so a block"
+" type cannot be passed where a fund name was wanted — and a home for the standard "
+"constants that most formats use."
 msgstr ""
+"Il newtype si guadagna comunque il pane. Dà un tipo distinto nelle firme — così che "
+"un tipo di blocco non si possa passare dove si voleva il nome di un fondo — e una "
+"casa per le costanti standard che quasi tutti i formati usano."
 
 #: ../../source/reference/design/blocks.md:21
 msgid "The value is typed, the map is not"
-msgstr ""
+msgstr "Il valore è tipizzato, la mappa no"
 
 #: ../../source/reference/design/blocks.md:23
-msgid ""
-"Metadata and content are a **typed value enum** rather than an untyped "
-"map of strings."
+msgid "Metadata and content are a **typed value enum** rather than an untyped map of strings."
 msgstr ""
+"Metadati e contenuto sono un **enum di valori tipizzati** anziché una mappa di "
+"stringhe senza tipo."
 
 #: ../../source/reference/design/blocks.md:25
 #, python-brace-format
 msgid ""
-"The consequence that matters is not internal: it is what lets "
-"serialisation be **derived** rather than hand-written, and that in turn "
-"is what makes the per-page test fixtures ordinary **JSON** that a person "
-"can read in a diff. A regression in a fixture should be something you can"
-" *see* ({doc}`../../guides/formats/dev-loop`)."
+"The consequence that matters is not internal: it is what lets serialisation be "
+"**derived** rather than hand-written, and that in turn is what makes the per-page "
+"test fixtures ordinary **JSON** that a person can read in a diff. A regression in a "
+"fixture should be something you can *see* ({doc}`../../guides/formats/dev-loop`)."
 msgstr ""
+"La conseguenza che conta non è interna: è ciò che permette alla serializzazione di "
+"essere **derivata** anziché scritta a mano, e questo a sua volta è ciò che rende le "
+"fixture di test per pagina normale **JSON** che una persona può leggere in un diff. "
+"Una regressione in una fixture deve essere qualcosa che si *vede* "
+"({doc}`../../guides/formats/dev-loop`)."
 
 #: ../../source/reference/design/blocks.md:30
 msgid "Comparing a block does not mutate it"
-msgstr ""
+msgstr "Confrontare un blocco non lo modifica"
 
 #: ../../source/reference/design/blocks.md:32
 msgid ""
-"That sounds too obvious to state. It is stated because the previous "
-"implementation hashed metadata by **sorting it in place**, so hashing a "
-"block changed it, and `==` had side effects on its operands."
+"That sounds too obvious to state. It is stated because the previous implementation "
+"hashed metadata by **sorting it in place**, so hashing a block changed it, and `==` "
+"had side effects on its operands."
 msgstr ""
+"Sembra troppo ovvio per dirlo. Lo si dice perché la realizzazione precedente "
+"sottoponeva a hash i metadati **ordinandoli sul posto**, così che sottoporre a hash "
+"un blocco lo cambiasse, e `==` avesse effetti collaterali sui propri operandi."
 
 #: ../../source/reference/design/blocks.md:36
 msgid ""
-"It is the kind of bug that hides for years: everything works until two "
-"blocks are compared in a different order than usual, and then a result "
-"changes for no visible reason. Recording it here is cheaper than "
-"rediscovering it."
+"It is the kind of bug that hides for years: everything works until two blocks are "
+"compared in a different order than usual, and then a result changes for no visible "
+"reason. Recording it here is cheaper than rediscovering it."
 msgstr ""
+"È il tipo di difetto che si nasconde per anni: funziona tutto finché due blocchi non "
+"vengono confrontati in un ordine diverso dal solito, e allora un risultato cambia "
+"senza una ragione visibile. Registrarlo qui costa meno che riscoprirlo."
 

@@ -67,19 +67,20 @@ before: only an extraction from the current sources can say which pages exist.
 What is translated so far
 -------------------------
 
-``it`` covers the pages a reader meets first — the front page, the whole of
-:doc:`../../overview/index` and :doc:`../../start/index`, :doc:`../../guides/user/index`,
-:doc:`../../guides/input-db/index`, :doc:`../../guides/institutional/index`, and the two section
-indexes — which is around 780 strings. The contributor-facing material is not translated: the
-format, engine, DevOps, grants and documentation guides, the CLI and configuration reference, the
-design chapters and the validation section are all still English.
+``it`` covers **all of the prose**: every page a person wrote, from the front page through the
+guides and the reference to the validation section. What is deliberately left in English is the
+material no person writes — the two generated API references under ``generated/`` and the CI report
+under ``dev/ci-report/`` — because those pages are rewritten by a command at every run, and a
+translation of them would be stale before it was committed. Technical names are left in English
+throughout: an option is ``--target-list`` in every language, and a reader who translates it back to
+type it has been misled.
 
 ``fr`` and ``pt`` are scaffolding with nothing translated in them yet. Which languages are carried
 forward has not been decided; the scaffolding is maintained so that the decision stays available.
 
 A partly translated language is the normal state of a translated site, not a broken one: gettext
 falls back **per string**, so an untranslated paragraph appears in English inside an otherwise
-Italian page. ``make i18n-stat`` is how you see where a language actually stands.
+translated page. ``make i18n-stat`` is how you see where a language actually stands.
 
 Translating the engine's messages
 =================================

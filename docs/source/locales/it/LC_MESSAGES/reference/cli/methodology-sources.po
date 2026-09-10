@@ -21,327 +21,399 @@ msgstr ""
 
 #: ../../source/reference/cli/methodology-sources.md:1
 msgid "Methodology sources"
-msgstr ""
+msgstr "Le sorgenti delle metodologie"
 
 #: ../../source/reference/cli/methodology-sources.md:3
 #, python-brace-format
 msgid ""
-"A grant names a methodology, and a methodology is a **document at an "
-"address**. This page is how `freeports-validate` is told which addresses "
-"to trust and how it resolves a name into a body of text. Why the "
-"mechanism is shaped this way — and why the source is deliberately not "
-"recorded in the grant — is {doc}`../../guides/institutional/why-"
-"trust-a-grant`."
+"A grant names a methodology, and a methodology is a **document at an address**. This "
+"page is how `freeports-validate` is told which addresses to trust and how it resolves"
+" a name into a body of text. Why the mechanism is shaped this way — and why the "
+"source is deliberately not recorded in the grant — is "
+"{doc}`../../guides/institutional/why-trust-a-grant`."
 msgstr ""
+"Un'attestazione nomina una metodologia, e una metodologia è un **documento a un "
+"indirizzo**. Questa pagina è come si dice a `freeports-validate` di quali indirizzi "
+"fidarsi e come esso risolva un nome in un corpo di testo. Perché il meccanismo abbia "
+"questa forma — e perché la sorgente non sia deliberatamente registrata "
+"nell'attestazione — è {doc}`../../guides/institutional/why-trust-a-grant`."
 
 #: ../../source/reference/cli/methodology-sources.md:5
 msgid "What a source is"
-msgstr ""
+msgstr "Che cos'è una sorgente"
 
 #: ../../source/reference/cli/methodology-sources.md:7
 msgid ""
-"A grant is a claim made **under a text**, so the tool has to be able to "
-"read that text, and it does not carry one. Methodology pages are resolved"
-" from **sources** you configure, and the hash your document records is "
-"the hash of whatever your sources gave you."
+"A grant is a claim made **under a text**, so the tool has to be able to read that "
+"text, and it does not carry one. Methodology pages are resolved from **sources** you "
+"configure, and the hash your document records is the hash of whatever your sources "
+"gave you."
 msgstr ""
+"Un'attestazione è un'affermazione fatta **sotto un testo**, quindi lo strumento deve "
+"poter leggere quel testo, e non ne porta uno con sé. Le pagine di metodologia si "
+"risolvono da **sorgenti** che configuri tu, e l'hash che il tuo documento registra è "
+"l'hash di ciò che le tue sorgenti ti hanno dato."
 
 #: ../../source/reference/cli/methodology-sources.md:11
 #, python-brace-format
 msgid ""
-"That is a deliberate trade, and it is worth stating both halves. Were the"
-" pages to travel inside the installed package, upgrading `freeports-"
-"validate` would silently change what every grant in every repository "
-"referred to. Instead the text is a document at an address you chose — and"
-" the mirror image of that freedom is that whoever publishes the address "
-"can invalidate your grants by editing the page. "
-"{doc}`../../guides/institutional/why-trust-a-grant` says why that is the "
-"right way round."
+"That is a deliberate trade, and it is worth stating both halves. Were the pages to "
+"travel inside the installed package, upgrading `freeports-validate` would silently "
+"change what every grant in every repository referred to. Instead the text is a "
+"document at an address you chose — and the mirror image of that freedom is that "
+"whoever publishes the address can invalidate your grants by editing the page. "
+"{doc}`../../guides/institutional/why-trust-a-grant` says why that is the right way "
+"round."
 msgstr ""
+"È uno scambio deliberato, e vale la pena dirne entrambe le metà. Se le pagine "
+"viaggiassero dentro il pacchetto installato, aggiornare `freeports-validate` "
+"cambierebbe in silenzio ciò a cui ogni attestazione di ogni repository si riferisce. "
+"Invece il testo è un documento a un indirizzo che hai scelto tu — e l'immagine "
+"speculare di quella libertà è che chi pubblica l'indirizzo può invalidare le tue "
+"attestazioni modificando la pagina. {doc}`../../guides/institutional/why-"
+"trust-a-grant` dice perché sia questo il verso giusto."
 
 #: ../../source/reference/cli/methodology-sources.md:17
 msgid ""
-"**The source is not recorded in your document.** A validation document "
-"stores a methodology's *name* and its *sha256*, and nothing about where "
-"either came from. The source is a contract between the person who granted"
-" and the person who verifies, held in the configuration each of them "
-"writes. The cost is that a hash mismatch is ambiguous — the page may have"
-" been rewritten, or the two of you may simply be reading two publications"
-" of the same methodology — and `sources` below is where that cost is paid"
-" back."
+"**The source is not recorded in your document.** A validation document stores a "
+"methodology's *name* and its *sha256*, and nothing about where either came from. The "
+"source is a contract between the person who granted and the person who verifies, held"
+" in the configuration each of them writes. The cost is that a hash mismatch is "
+"ambiguous — the page may have been rewritten, or the two of you may simply be reading"
+" two publications of the same methodology — and `sources` below is where that cost is"
+" paid back."
 msgstr ""
+"**La sorgente non è registrata nel tuo documento.** Un documento di validazione "
+"conserva il *nome* di una metodologia e il suo *sha256*, e niente su da dove venga "
+"l'uno o l'altro. La sorgente è un patto fra chi ha attestato e chi verifica, "
+"custodito nella configurazione che ciascuno dei due scrive. Il costo è che una "
+"discordanza di hash è ambigua — la pagina può essere stata riscritta, oppure voi due "
+"potete semplicemente star leggendo due pubblicazioni della stessa metodologia — e "
+"`sources`, qui sotto, è dove quel costo viene restituito."
 
 #: ../../source/reference/cli/methodology-sources.md:24
 msgid "The setting"
-msgstr ""
+msgstr "L'impostazione"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "Tier"
-msgstr ""
+msgstr "Livello"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "Spelling"
-msgstr ""
+msgstr "Grafia"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "Type"
-msgstr ""
+msgstr "Tipo"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "configuration file"
-msgstr ""
+msgstr "file di configurazione"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`validate.sources`"
-msgstr ""
+msgstr "`validate.sources`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "a YAML **list** of strings"
-msgstr ""
+msgstr "una **lista** YAML di stringhe"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "environment"
-msgstr ""
+msgstr "ambiente"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`FREEPORTS_VALIDATE_SOURCE`"
-msgstr ""
+msgstr "`FREEPORTS_VALIDATE_SOURCE`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "**one** source — the whole value, never split"
-msgstr ""
+msgstr "**una sola** sorgente — l'intero valore, mai diviso"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "command line"
-msgstr ""
+msgstr "riga di comando"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`--source URI`, `-s URI`"
-msgstr ""
+msgstr "`--source URI`, `-s URI`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "repeatable"
-msgstr ""
+msgstr "ripetibile"
 
 #: ../../source/reference/cli/methodology-sources.md:32
 msgid ""
-"With no tier naming anything, the default is the published documentation:"
-" `https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`."
+"With no tier naming anything, the default is the published documentation: "
+"`https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`."
 msgstr ""
+"Se nessun livello nomina niente, il valore predefinito è la documentazione "
+"pubblicata: `https://docs.freeports.org/en/stable/_sources/validation/*.rst.txt`."
 
 #: ../../source/reference/cli/methodology-sources.md:35
 msgid "Two rules about the list are worth learning once:"
-msgstr ""
+msgstr "Due regole sulla lista valgono la pena di essere imparate una volta per tutte:"
 
 #: ../../source/reference/cli/methodology-sources.md:37
 msgid ""
-"**The tiers do not merge.** The strongest tier that names any source "
-"provides the whole list, so a command line with `-s` ignores the "
-"configuration file's list entirely. Merging would make *which text did "
-"this hash come from* unanswerable from any one place. The case that wants"
-" two sources at once — the published documentation **plus** your own "
-"methodologies — is served by listing both in the same tier, which is why "
-"the file tier takes a list."
+"**The tiers do not merge.** The strongest tier that names any source provides the "
+"whole list, so a command line with `-s` ignores the configuration file's list "
+"entirely. Merging would make *which text did this hash come from* unanswerable from "
+"any one place. The case that wants two sources at once — the published documentation "
+"**plus** your own methodologies — is served by listing both in the same tier, which "
+"is why the file tier takes a list."
 msgstr ""
+"**I livelli non si fondono.** Il livello più forte che nomini una qualsiasi sorgente "
+"fornisce l'intera lista, quindi una riga di comando con `-s` ignora del tutto la "
+"lista del file di configurazione. Fondere renderebbe *da quale testo viene questo "
+"hash* una domanda senza risposta da nessun singolo posto. Al caso che vuole due "
+"sorgenti in una volta — la documentazione pubblicata **più** le tue metodologie — si "
+"provvede elencandole entrambe nello stesso livello, ed è per questo che il livello "
+"del file prende una lista."
 
 #: ../../source/reference/cli/methodology-sources.md:43
 msgid ""
-"**The environment carries one source, and its value is never split.** "
-"Every separator one might pick — comma, colon, space, semicolon — is a "
-"legal character in a URI or a path, so splitting would turn one source "
-"you meant into two that do not exist. This is the same rule "
-"`FREEPORTS_TARGET_LIST` follows, for the same reason."
+"**The environment carries one source, and its value is never split.** Every separator"
+" one might pick — comma, colon, space, semicolon — is a legal character in a URI or a"
+" path, so splitting would turn one source you meant into two that do not exist. This "
+"is the same rule `FREEPORTS_TARGET_LIST` follows, for the same reason."
 msgstr ""
+"**L'ambiente porta una sola sorgente, e il suo valore non viene mai diviso.** Ogni "
+"separatore che si potrebbe scegliere — virgola, due punti, spazio, punto e virgola — "
+"è un carattere lecito in un URI o in un percorso, quindi dividere trasformerebbe una "
+"sorgente che intendevi in due che non esistono. È la stessa regola che segue "
+"`FREEPORTS_TARGET_LIST`, per lo stesso motivo."
 
 #: ../../source/reference/cli/methodology-sources.md:48
 msgid ""
-"**Order is priority.** A name is resolved from the first source that "
-"offers it; the rest are shadowed, and `sources` says so."
+"**Order is priority.** A name is resolved from the first source that offers it; the "
+"rest are shadowed, and `sources` says so."
 msgstr ""
+"**L'ordine è priorità.** Un nome è risolto dalla prima sorgente che lo offre; le "
+"altre sono oscurate, e `sources` lo dice."
 
 #: ../../source/reference/cli/methodology-sources.md:51
 msgid "The grammar of a source"
-msgstr ""
+msgstr "La grammatica di una sorgente"
 
 #: ../../source/reference/cli/methodology-sources.md:53
 msgid ""
-"A source is a pattern containing **exactly one `*`**. The `*` stands for "
-"the methodology's relative name, which may itself contain a `/`; "
-"everything before it is the base and everything after it is the "
-"extension."
+"A source is a pattern containing **exactly one `*`**. The `*` stands for the "
+"methodology's relative name, which may itself contain a `/`; everything before it is "
+"the base and everything after it is the extension."
 msgstr ""
+"Una sorgente è uno schema che contiene **esattamente un `*`**. Il `*` sta per il nome"
+" relativo della metodologia, che può a sua volta contenere una `/`; tutto ciò che lo "
+"precede è la base e tutto ciò che lo segue è l'estensione."
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "What is being resolved"
-msgstr ""
+msgstr "Che cosa si sta risolvendo"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`*` becomes"
-msgstr ""
+msgstr "`*` diventa"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the general methodology — your document's `version` field"
-msgstr ""
+msgstr "la metodologia generale — il campo `version` del tuo documento"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`general_methodology`"
-msgstr ""
+msgstr "`general_methodology`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "a methodology named `basic check`"
-msgstr ""
+msgstr "una metodologia chiamata `basic check`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`methodologies/basic_check`"
-msgstr ""
+msgstr "`methodologies/basic_check`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "Rule"
-msgstr ""
+msgstr "Regola"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "zero, or more than one, `*`"
-msgstr ""
+msgstr "zero, oppure più di un, `*`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid ""
-"a configuration error naming the offending source — it is not guessable "
-"which half is the base"
+"a configuration error naming the offending source — it is not guessable which half is"
+" the base"
 msgstr ""
+"un errore di configurazione che nomina la sorgente incriminata — non si può "
+"indovinare quale metà sia la base"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "a `github.com/<owner>/<repo>/blob/<ref>/<path>` URL"
-msgstr ""
+msgstr "un URL `github.com/<proprietario>/<repo>/blob/<rif>/<percorso>`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid ""
-"rewritten to `raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>`, "
-"because fetching the `blob` page would hash a web page rather than a "
-"document, and would do it silently. Both spellings are correct input"
+"rewritten to `raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>`, because "
+"fetching the `blob` page would hash a web page rather than a document, and would do "
+"it silently. Both spellings are correct input"
 msgstr ""
+"riscritto in `raw.githubusercontent.com/<proprietario>/<repo>/<rif>/<percorso>`, "
+"perché scaricare la pagina `blob` sottoporrebbe a hash una pagina web anziché un "
+"documento, e lo farebbe in silenzio. Entrambe le grafie sono ingressi corretti"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`http://`"
-msgstr ""
+msgstr "`http://`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid ""
-"accepted, and warned about once per run: the hash is what compensates for"
-" an unauthenticated fetch, but you should know which kind you are doing"
+"accepted, and warned about once per run: the hash is what compensates for an "
+"unauthenticated fetch, but you should know which kind you are doing"
 msgstr ""
+"accettato, e segnalato con un avviso una volta per esecuzione: è l'hash a compensare "
+"uno scaricamento non autenticato, ma è bene che tu sappia quale dei due stai facendo"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "a bare relative path"
-msgstr ""
+msgstr "un percorso relativo nudo"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid ""
-"accepted. In a **configuration file** it is resolved against the file's "
-"own directory, because that file is searched for and one line in it is "
-"read from many working directories; on the command line and in the "
-"environment it is relative to the shell you typed it in"
+"accepted. In a **configuration file** it is resolved against the file's own "
+"directory, because that file is searched for and one line in it is read from many "
+"working directories; on the command line and in the environment it is relative to the"
+" shell you typed it in"
 msgstr ""
+"accettato. In un **file di configurazione** è risolto rispetto alla cartella del file"
+" stesso, perché quel file viene cercato e una sua riga è letta da molte cartelle di "
+"lavoro; sulla riga di comando e nell'ambiente è relativo alla shell in cui l'hai "
+"digitato"
 
 #: ../../source/reference/cli/methodology-sources.md:76
 msgid ""
-"Sphinx publishes reStructuredText sources under `_sources/` with a `.txt`"
-" suffix appended, which is why the default pattern ends in `.rst.txt` "
-"rather than `.rst`."
+"Sphinx publishes reStructuredText sources under `_sources/` with a `.txt` suffix "
+"appended, which is why the default pattern ends in `.rst.txt` rather than `.rst`."
 msgstr ""
+"Sphinx pubblica i sorgenti reStructuredText sotto `_sources/` con un suffisso `.txt` "
+"aggiunto, ed è per questo che lo schema predefinito finisce in `.rst.txt` anziché in "
+"`.rst`."
 
 #: ../../source/reference/cli/methodology-sources.md:79
 msgid "Fetching, the cache, and being offline"
-msgstr ""
+msgstr "Lo scaricamento, la cache, e l'essere fuori rete"
 
 #: ../../source/reference/cli/methodology-sources.md:81
 #, python-brace-format
 msgid ""
 "Pages are fetched with `curl -fsSL` and cached, content-addressed, under "
-"`${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/<sha256 of the "
-"URI>/<sha256 of the body>`. Every distinct body ever seen for a URI is "
-"kept, and a `latest` symlink names the most recent one."
+"`${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/<sha256 of the URI>/<sha256 of "
+"the body>`. Every distinct body ever seen for a URI is kept, and a `latest` symlink "
+"names the most recent one."
 msgstr ""
+"Le pagine si scaricano con `curl -fsSL` e si mettono in cache, indirizzate dal "
+"contenuto, sotto `${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/<sha256 "
+"dell'URI>/<sha256 del corpo>`. Si conserva ogni corpo distinto mai visto per un URI, "
+"e un collegamento simbolico `latest` nomina il più recente."
 
 #: ../../source/reference/cli/methodology-sources.md:85
 msgid ""
-"**Online, the cache is a fallback and never a shortcut.** A run with a "
-"network always fetches. A cache consulted first would quietly pin a "
-"methodology to whatever was fetched the day you first saw it — and the "
-"published text changing is precisely the event this whole mechanism "
-"exists to notice."
+"**Online, the cache is a fallback and never a shortcut.** A run with a network always"
+" fetches. A cache consulted first would quietly pin a methodology to whatever was "
+"fetched the day you first saw it — and the published text changing is precisely the "
+"event this whole mechanism exists to notice."
 msgstr ""
+"**In rete, la cache è un ripiego e mai una scorciatoia.** Un'esecuzione con la rete "
+"scarica sempre. Una cache consultata per prima fisserebbe in sordina una metodologia "
+"a ciò che è stato scaricato il giorno in cui l'hai vista per la prima volta — e il "
+"testo pubblicato che cambia è precisamente l'evento che tutto questo meccanismo "
+"esiste per notare."
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "Situation"
-msgstr ""
+msgstr "Situazione"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "What happens"
-msgstr ""
+msgstr "Che cosa succede"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the fetch succeeds"
-msgstr ""
+msgstr "lo scaricamento riesce"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the fetched body is hashed, and cached"
-msgstr ""
+msgstr "il corpo scaricato è sottoposto a hash e messo in cache"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the fetch fails, no `--offline`"
-msgstr ""
+msgstr "lo scaricamento fallisce, senza `--offline`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid ""
-"the check is **inconclusive** — not matching and not mismatched. `check-"
-"grants` exits `3` over it: nothing failed, and not everything was checked"
+"the check is **inconclusive** — not matching and not mismatched. `check-grants` exits"
+" `3` over it: nothing failed, and not everything was checked"
 msgstr ""
+"il controllo è **inconcludente** — né corrispondente né discordante. `check-grants` "
+"esce con `3` per questo: niente è fallito, e non è stato controllato tutto"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the fetch fails, `--offline` given"
-msgstr ""
+msgstr "lo scaricamento fallisce, dato `--offline`"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "the newest cached body is used, and every line that depended on it says so"
-msgstr ""
+msgstr "si usa il corpo in cache più recente, e ogni riga che ne dipendeva lo dice"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "`--offline`, nothing cached"
-msgstr ""
+msgstr "`--offline`, niente in cache"
 
 #: ../../source/reference/cli/methodology-sources.md
 msgid "reported as unreachable"
-msgstr ""
+msgstr "segnalato come irraggiungibile"
 
 #: ../../source/reference/cli/methodology-sources.md:96
 msgid ""
 "`--offline` is a setting like any other: `validate.offline`, "
-"`FREEPORTS_VALIDATE_OFFLINE`, `--offline`. A machine can be permanently "
-"without egress — an air-gapped build, a runner with no network — which is"
-" a property of the machine, written down once, rather than something to "
-"remember on every run."
+"`FREEPORTS_VALIDATE_OFFLINE`, `--offline`. A machine can be permanently without "
+"egress — an air-gapped build, a runner with no network — which is a property of the "
+"machine, written down once, rather than something to remember on every run."
 msgstr ""
+"`--offline` è un'impostazione come le altre: `validate.offline`, "
+"`FREEPORTS_VALIDATE_OFFLINE`, `--offline`. Una macchina può essere permanentemente "
+"senza uscita — una compilazione isolata dalla rete, un runner senza rete — che è una "
+"proprietà della macchina, messa per iscritto una volta, anziché qualcosa da ricordare"
+" a ogni esecuzione."
 
 #: ../../source/reference/cli/methodology-sources.md:101
 msgid "Seeing what your configuration resolves"
-msgstr ""
+msgstr "Vedere che cosa risolve la tua configurazione"
 
 #: ../../source/reference/cli/methodology-sources.md:103
 msgid ""
-"`sources` is the answer to *why does my hash differ from yours*. Two "
-"people can compare its output and see in one line which of the two "
-"possible causes it was. It needs no key."
+"`sources` is the answer to *why does my hash differ from yours*. Two people can "
+"compare its output and see in one line which of the two possible causes it was. It "
+"needs no key."
 msgstr ""
+"`sources` è la risposta a *perché il mio hash è diverso dal tuo*. Due persone possono"
+" confrontarne l'output e vedere in una riga quale delle due cause possibili fosse. "
+"Non richiede alcuna chiave."
 
 #: ../../source/reference/cli/methodology-sources.md:128
 msgid ""
-"It reports the general methodology, every methodology adopted by a "
-"document in this repository, and anything you name as an argument. It "
-"does **not** offer a catalogue: a remote source cannot be enumerated at "
-"all — there is no way to ask a URL what else it serves — so a listing "
-"would silently mean *the local ones* while looking like *all of them*. "
-"Where one source shadows another for the same name, it says which, which "
-"is the fix for the failure where you edit a page, nothing changes, and "
-"nothing anywhere says why."
+"It reports the general methodology, every methodology adopted by a document in this "
+"repository, and anything you name as an argument. It does **not** offer a catalogue: "
+"a remote source cannot be enumerated at all — there is no way to ask a URL what else "
+"it serves — so a listing would silently mean *the local ones* while looking like *all"
+" of them*. Where one source shadows another for the same name, it says which, which "
+"is the fix for the failure where you edit a page, nothing changes, and nothing "
+"anywhere says why."
 msgstr ""
+"Riferisce la metodologia generale, ogni metodologia adottata da un documento di "
+"questo repository, e tutto ciò che nomini come argomento. **Non** offre un catalogo: "
+"una sorgente remota non si può affatto enumerare — non c'è modo di chiedere a un URL "
+"che altro serva — quindi un elenco significherebbe in sordina *quelle locali* pur "
+"sembrando *tutte*. Dove una sorgente ne oscura un'altra per lo stesso nome, dice "
+"quale, che è il rimedio al guasto in cui modifichi una pagina, non cambia niente, e "
+"da nessuna parte niente dice perché."
 

@@ -21,88 +21,110 @@ msgstr ""
 
 #: ../../source/guides/formats/advanced/semistructured.md:1
 msgid "The semistructured level"
-msgstr ""
+msgstr "Il livello semistructured"
 
 #: ../../source/guides/formats/advanced/semistructured.md:3
 msgid ""
-"Between the two others. The algorithm has a **name**; you say which name "
-"serves which segment, and configure it in YAML."
+"Between the two others. The algorithm has a **name**; you say which name serves which"
+" segment, and configure it in YAML."
 msgstr ""
+"Sta fra gli altri due. L'algoritmo ha un **nome**; tu dici quale nome serve quale "
+"segmento, e lo configuri in YAML."
 
 #: ../../source/guides/formats/advanced/semistructured.md:6
 msgid "The two files a semistructured format needs"
-msgstr ""
+msgstr "I due file che servono a un formato semistructured"
 
 #: ../../source/guides/formats/advanced/semistructured.md:7
 msgid ""
-"`content/algorithms/semistructured/formats_mapping.csv` says which named "
-"algorithm serves which segment of which pipeline:"
+"`content/algorithms/semistructured/formats_mapping.csv` says which named algorithm "
+"serves which segment of which pipeline:"
 msgstr ""
+"`content/algorithms/semistructured/formats_mapping.csv` dice quale algoritmo con un "
+"nome serve quale segmento di quale pipeline:"
 
 #: ../../source/guides/formats/advanced/semistructured.md:15
 msgid ""
-"An empty cell leaves that segment unspecified at this level, so another "
-"level can supply it."
+"An empty cell leaves that segment unspecified at this level, so another level can "
+"supply it."
 msgstr ""
+"Una cella vuota lascia quel segmento non specificato a questo livello, così che possa"
+" fornirlo un altro livello."
 
 #: ../../source/guides/formats/advanced/semistructured.md:17
 msgid "One YAML file per segment carries the configuration, under `args/`:"
-msgstr ""
+msgstr "Un file YAML per segmento porta la configurazione, sotto `args/`:"
 
 #: ../../source/guides/formats/advanced/semistructured.md:31
 msgid "The key that links a format to an algorithm"
-msgstr ""
+msgstr "La chiave che lega un formato a un algoritmo"
 
 #: ../../source/guides/formats/advanced/semistructured.md:32
 #, python-brace-format
 msgid ""
-"`{format}({pipeline})`, falling back to the bare `{format}` only for the "
-"**unnamed** pipeline. The two forms are not interchangeable: writing "
-"`AMUNDI-IT24` when the pipeline has a name will not be found, and the "
-"failure is silent in the sense that the segment simply has no "
-"configuration."
+"`{format}({pipeline})`, falling back to the bare `{format}` only for the **unnamed** "
+"pipeline. The two forms are not interchangeable: writing `AMUNDI-IT24` when the "
+"pipeline has a name will not be found, and the failure is silent in the sense that "
+"the segment simply has no configuration."
 msgstr ""
+"`{format}({pipeline})`, con ripiego sul solo `{format}` unicamente per la pipeline "
+"**senza nome**. Le due forme non sono intercambiabili: scrivere `AMUNDI-IT24` quando "
+"la pipeline ha un nome non porta a trovare niente, e il guasto è silenzioso nel senso"
+" che il segmento semplicemente non ha configurazione."
 
 #: ../../source/guides/formats/advanced/semistructured.md:36
 msgid "Lists, and the counter that indexes them"
-msgstr ""
+msgstr "Le liste, e il contatore che le indicizza"
 
 #: ../../source/guides/formats/advanced/semistructured.md:38
 msgid ""
-"Where a value is a **list**, the element used is chosen by **how many "
-"pipes have already been emitted for that pipeline and segment** — not by "
-"the row's position in the mapping table."
+"Where a value is a **list**, the element used is chosen by **how many pipes have "
+"already been emitted for that pipeline and segment** — not by the row's position in "
+"the mapping table."
 msgstr ""
+"Dove un valore è una **lista**, l'elemento usato è scelto da **quante pipe sono già "
+"state emesse per quella pipeline e quel segmento** — non dalla posizione della riga "
+"nella tabella di corrispondenza."
 
 #: ../../source/guides/formats/advanced/semistructured.md:48
 msgid ""
-"An algorithm that returns three pipes advances that counter by **three**."
-" This is the rule that surprises people, and it is worth restating: the "
-"counter follows the pipes actually produced, so adding an algorithm "
-"earlier in the same segment shifts every list index after it."
+"An algorithm that returns three pipes advances that counter by **three**. This is the"
+" rule that surprises people, and it is worth restating: the counter follows the pipes"
+" actually produced, so adding an algorithm earlier in the same segment shifts every "
+"list index after it."
 msgstr ""
+"Un algoritmo che restituisce tre pipe fa avanzare quel contatore di **tre**. È la "
+"regola che coglie di sorpresa, e vale la pena di ripeterla: il contatore segue le "
+"pipe effettivamente prodotte, quindi aggiungere un algoritmo più a monte nello stesso"
+" segmento sposta ogni indice di lista che viene dopo."
 
 #: ../../source/guides/formats/advanced/semistructured.md:52
 msgid "Algorithm names of your own"
-msgstr ""
+msgstr "Nomi di algoritmo tuoi"
 
 #: ../../source/guides/formats/advanced/semistructured.md:53
-msgid ""
-"An algorithm name may be implemented natively or by you, in your "
-"repository's Python."
+msgid "An algorithm name may be implemented natively or by you, in your repository's Python."
 msgstr ""
+"Il nome di un algoritmo può essere realizzato nativamente oppure da te, nel Python "
+"del tuo repository."
 
 #: ../../source/guides/formats/advanced/semistructured.md:55
 msgid ""
-"Defining the same name **both** ways is an **error**, not a precedence to"
-" be remembered. The check runs over every native name of the segment as "
-"soon as your module loads."
+"Defining the same name **both** ways is an **error**, not a precedence to be "
+"remembered. The check runs over every native name of the segment as soon as your "
+"module loads."
 msgstr ""
+"Definire lo stesso nome in **entrambi** i modi è un **errore**, non una precedenza da"
+" ricordare. Il controllo passa su ogni nome nativo del segmento non appena il tuo "
+"modulo viene caricato."
 
 #: ../../source/guides/formats/advanced/semistructured.md:58
 msgid ""
-"A collision is nearly always a typo, and letting one side win silently is"
-" what makes a typo expensive — you would be debugging an algorithm you "
-"did not write while reading the one you did."
+"A collision is nearly always a typo, and letting one side win silently is what makes "
+"a typo expensive — you would be debugging an algorithm you did not write while "
+"reading the one you did."
 msgstr ""
+"Una collisione è quasi sempre un refuso, e lasciar vincere in silenzio una delle due "
+"parti è ciò che rende costoso un refuso — staresti facendo il debug di un algoritmo "
+"che non hai scritto mentre leggi quello che hai scritto."
 

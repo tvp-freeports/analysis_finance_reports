@@ -21,195 +21,235 @@ msgstr ""
 
 #: ../../source/guides/devops/reporting.rst:3
 msgid "Writing the verdict down"
-msgstr ""
+msgstr "Mettere per iscritto il verdetto"
 
 #: ../../source/guides/devops/reporting.rst:5
 msgid ""
-"``ci-check`` prints a table on a terminal and nothing keeps it. "
-"``freeports-dev ci-report`` renders the *same run* into the shapes a "
-"reader meets outside a terminal, and ``make ci-report`` writes all of "
-"them at once — which is what the commit hook runs, staging what it "
-"rewrote, so the published figures and the commit that changed them arrive"
-" together."
+"``ci-check`` prints a table on a terminal and nothing keeps it. ``freeports-dev ci-"
+"report`` renders the *same run* into the shapes a reader meets outside a terminal, "
+"and ``make ci-report`` writes all of them at once — which is what the commit hook "
+"runs, staging what it rewrote, so the published figures and the commit that changed "
+"them arrive together."
 msgstr ""
+"``ci-check`` stampa una tabella su un terminale e niente la conserva. ``freeports-dev"
+" ci-report`` rende la *stessa esecuzione* nelle forme che un lettore incontra fuori "
+"da un terminale, e ``make ci-report`` le scrive tutte in una volta — che è ciò che "
+"esegue il hook di commit, mettendo in stage ciò che ha riscritto, così che i dati "
+"pubblicati e il commit che li ha cambiati arrivino insieme."
 
 #: ../../source/guides/devops/reporting.rst:14
 msgid "``--format``"
-msgstr ""
+msgstr "``--format``"
 
 #: ../../source/guides/devops/reporting.rst:15
 msgid "What it is"
-msgstr ""
+msgstr "Che cos'è"
 
 #: ../../source/guides/devops/reporting.rst:16
 msgid "Where this repository keeps it"
-msgstr ""
+msgstr "Dove questo repository lo tiene"
 
 #: ../../source/guides/devops/reporting.rst:17
 msgid "``json``"
-msgstr ""
+msgstr "``json``"
 
 #: ../../source/guides/devops/reporting.rst:18
 msgid ""
-"The model. Every other rendering is a pure function of it, and a question"
-" none of them answers is a ``jq`` expression away."
+"The model. Every other rendering is a pure function of it, and a question none of "
+"them answers is a ``jq`` expression away."
 msgstr ""
+"Il modello. Ogni altra resa è una funzione pura di esso, e una domanda a cui nessuna "
+"di esse risponde è a un'espressione ``jq`` di distanza."
 
 #: ../../source/guides/devops/reporting.rst:20
 msgid ""
-"Nowhere: it is written to standard output, or to a temporary file so one "
-"evaluation can be rendered several times."
+"Nowhere: it is written to standard output, or to a temporary file so one evaluation "
+"can be rendered several times."
 msgstr ""
+"Da nessuna parte: è scritto sullo standard output, oppure su un file temporaneo così "
+"che una sola valutazione possa essere resa più volte."
 
 #: ../../source/guides/devops/reporting.rst:22
 msgid "``badges``"
-msgstr ""
+msgstr "``badges``"
 
 #: ../../source/guides/devops/reporting.rst:23
 msgid ""
-"One shields-style SVG per metric, plus one for the run as a whole. Drawn "
-"locally, so generating them needs no network."
+"One shields-style SVG per metric, plus one for the run as a whole. Drawn locally, so "
+"generating them needs no network."
 msgstr ""
+"Un SVG in stile shields per metrica, più uno per l'esecuzione nel suo complesso. "
+"Disegnati in locale, quindi generarli non richiede rete."
 
 #: ../../source/guides/devops/reporting.rst:25
 msgid "``ci/report/badges/``"
-msgstr ""
+msgstr "``ci/report/badges/``"
 
 #: ../../source/guides/devops/reporting.rst:26
 msgid "``markdown``"
-msgstr ""
+msgstr "``markdown``"
 
 #: ../../source/guides/devops/reporting.rst:27
 msgid "A block rewritten between two markers in a file somebody else wrote."
-msgstr ""
+msgstr "Un blocco riscritto fra due marcatori in un file che ha scritto qualcun altro."
 
 #: ../../source/guides/devops/reporting.rst:28
 msgid "``README.md``"
-msgstr ""
+msgstr "``README.md``"
 
 #: ../../source/guides/devops/reporting.rst:29
 msgid "``rst``"
-msgstr ""
+msgstr "``rst``"
 
 #: ../../source/guides/devops/reporting.rst:30
 msgid "The same, for a documentation page. ``--table`` picks the arrangement."
-msgstr ""
+msgstr "Lo stesso, per una pagina di documentazione. ``--table`` sceglie la disposizione."
 
 #: ../../source/guides/devops/reporting.rst:31
 msgid ":doc:`../../dev/ci-report/index`, and the two pages beside it"
-msgstr ""
+msgstr ":doc:`../../dev/ci-report/index`, e le due pagine accanto"
 
 #: ../../source/guides/devops/reporting.rst:32
 msgid "``html``"
-msgstr ""
+msgstr "``html``"
 
 #: ../../source/guides/devops/reporting.rst:33
 msgid "One self-contained page: the three arrangements as tabs, and a filter box."
-msgstr ""
+msgstr "Una pagina autosufficiente: le tre disposizioni come schede, e una casella di filtro."
 
 #: ../../source/guides/devops/reporting.rst:34
 msgid ""
 "``docs/source/_extra/ci/report.html``, copied into the site root by "
 "``html_extra_path``"
 msgstr ""
+"``docs/source/_extra/ci/report.html``, copiata nella radice del sito da "
+"``html_extra_path``"
 
 #: ../../source/guides/devops/reporting.rst:36
 msgid ""
-"All of it is published under :doc:`the continuous-integration report "
-"<../../dev/ci-report/index>`, beside the validation coverage in *Trust "
-"and provenance* — because what the last run measured is a report about "
-"this repository rather than a page about contributing to it. The single-"
-"page rendering is `here <../ci/report.html>`_."
+"All of it is published under :doc:`the continuous-integration report <../../dev/ci-"
+"report/index>`, beside the validation coverage in *Trust and provenance* — because "
+"what the last run measured is a report about this repository rather than a page about"
+" contributing to it. The single-page rendering is `here <../ci/report.html>`_."
 msgstr ""
+"Tutto quanto è pubblicato sotto :doc:`il rapporto di integrazione continua <../../dev"
+"/ci-report/index>`, accanto alla copertura di validazione in *Trust and provenance* —"
+" perché ciò che l'ultima esecuzione ha misurato è un rapporto su questo repository "
+"anziché una pagina su come contribuirvi. La resa a pagina singola è `qui "
+"<../ci/report.html>`_."
 
 #: ../../source/guides/devops/reporting.rst:41
 msgid ""
-"**This command never refuses anything.** Its exit status says whether it "
-"could write what it was asked to write, and nothing about what it found —"
-" a hook that could be stopped by its own report is a hook people remove. "
-"That is the rule the grants report already follows, and the reasons are "
-"the same."
+"**This command never refuses anything.** Its exit status says whether it could write "
+"what it was asked to write, and nothing about what it found — a hook that could be "
+"stopped by its own report is a hook people remove. That is the rule the grants report"
+" already follows, and the reasons are the same."
 msgstr ""
+"**Questo comando non rifiuta mai niente.** Il suo stato d'uscita dice se ha potuto "
+"scrivere ciò che gli è stato chiesto di scrivere, e niente su ciò che ha trovato — un"
+" hook che il proprio rapporto potesse fermare è un hook che la gente rimuove. È la "
+"regola che il rapporto sulle attestazioni già segue, e le ragioni sono le stesse."
 
 #: ../../source/guides/devops/reporting.rst:46
 #, python-format
 msgid ""
-"**A badge is coloured by the figure, not by the verdict** — with two "
-"exceptions. A figure under this repository's own minimum is red whatever "
-"its value, because falling short of a rule the repository wrote down is "
-"news; and one nobody could compute, or one taken at another commit, is "
-"grey, because it is not a figure about this code at all. Everywhere else "
-"the colour is the absolute number: painting 32 % green on the grounds "
-"that 32 is what this repository currently demands would flatter a reader "
-"with the project's own floor, and a badge is read by people who have not "
-"opened ``ci.yaml``."
+"**A badge is coloured by the figure, not by the verdict** — with two exceptions. A "
+"figure under this repository's own minimum is red whatever its value, because falling"
+" short of a rule the repository wrote down is news; and one nobody could compute, or "
+"one taken at another commit, is grey, because it is not a figure about this code at "
+"all. Everywhere else the colour is the absolute number: painting 32 % green on the "
+"grounds that 32 is what this repository currently demands would flatter a reader with"
+" the project's own floor, and a badge is read by people who have not opened "
+"``ci.yaml``."
 msgstr ""
+"**Un badge è colorato dal dato, non dal verdetto** — con due eccezioni. Un dato al di"
+" sotto del minimo che questo repository si è dato è rosso qualunque sia il suo "
+"valore, perché restare sotto una regola che il repository ha messo per iscritto è una"
+" notizia; e uno che nessuno ha potuto calcolare, o preso a un altro commit, è grigio,"
+" perché non è affatto un dato su questo codice. Dappertutto altrove il colore è il "
+"numero assoluto: dipingere di verde il 32 % con la scusa che 32 è ciò che questo "
+"repository chiede al momento lusingherebbe il lettore con il pavimento del progetto "
+"stesso, e un badge è letto da gente che non ha aperto ``ci.yaml``."
 
 #: ../../source/guides/devops/reporting.rst:53
 msgid ""
-"**The run as a whole gets one word**, and it is the vocabulary the grants"
-" report already uses:"
+"**The run as a whole gets one word**, and it is the vocabulary the grants report "
+"already uses:"
 msgstr ""
+"**All'esecuzione nel suo complesso tocca una parola sola**, ed è il vocabolario che "
+"il rapporto sulle attestazioni già usa:"
 
 #: ../../source/guides/devops/reporting.rst:59
 msgid "Status"
-msgstr ""
+msgstr "Stato"
 
 #: ../../source/guides/devops/reporting.rst:60
 msgid "When"
-msgstr ""
+msgstr "Quando"
 
 #: ../../source/guides/devops/reporting.rst:61
 msgid "``passing``"
-msgstr ""
+msgstr "``passing``"
 
 #: ../../source/guides/devops/reporting.rst:62
 msgid "every gated figure measured, current, and at or above its minimum"
-msgstr ""
+msgstr "ogni dato sottoposto a gate misurato, aggiornato, e pari o superiore al proprio minimo"
 
 #: ../../source/guides/devops/reporting.rst:63
 msgid "``failing``"
-msgstr ""
+msgstr "``failing``"
 
 #: ../../source/guides/devops/reporting.rst:64
 msgid "a measured figure under its minimum, or a suite that did not pass"
-msgstr ""
+msgstr "un dato misurato al di sotto del proprio minimo, oppure una suite non superata"
 
 #: ../../source/guides/devops/reporting.rst:65
 msgid "``inconclusive``"
-msgstr ""
+msgstr "``inconclusive``"
 
 #: ../../source/guides/devops/reporting.rst:66
 msgid ""
-"nothing below, but something unmeasured, something stale, or something a "
-"``--skip-slow`` run never looked at"
+"nothing below, but something unmeasured, something stale, or something a ``--skip-"
+"slow`` run never looked at"
 msgstr ""
+"niente al di sotto, ma qualcosa di non misurato, qualcosa di vecchio, o qualcosa che "
+"un'esecuzione con ``--skip-slow`` non ha mai guardato"
 
 #: ../../source/guides/devops/reporting.rst:69
 msgid ""
-"``inconclusive`` is grey and is **not** a pass, for the reason "
-"``unmeasured`` is not one: a figure nobody could compute is not a figure "
-"above the threshold."
+"``inconclusive`` is grey and is **not** a pass, for the reason ``unmeasured`` is not "
+"one: a figure nobody could compute is not a figure above the threshold."
 msgstr ""
+"``inconclusive`` è grigio e **non** è un superamento, per il motivo per cui non lo è "
+"``unmeasured``: un dato che nessuno ha potuto calcolare non è un dato sopra la "
+"soglia."
 
 #: ../../source/guides/devops/reporting.rst:74
 msgid ""
-"**No rendering carries a timestamp, and none names a commit unless a "
-"figure is stale.** These artefacts are committed — badges in a "
-"``README.md``, tables in this tree — and a date, or the head recorded "
-"beside every figure, would put a diff in every commit saying nothing had "
-"changed. The commit is named in the one place where it is the news: "
-"beside a figure measured at another one."
+"**No rendering carries a timestamp, and none names a commit unless a figure is "
+"stale.** These artefacts are committed — badges in a ``README.md``, tables in this "
+"tree — and a date, or the head recorded beside every figure, would put a diff in "
+"every commit saying nothing had changed. The commit is named in the one place where "
+"it is the news: beside a figure measured at another one."
 msgstr ""
+"**Nessuna resa porta una marca temporale, e nessuna nomina un commit a meno che un "
+"dato non sia vecchio.** Questi artefatti sono committati — badge in un ``README.md``,"
+" tabelle in questo albero — e una data, o la testa registrata accanto a ogni dato, "
+"metterebbe in ogni commit un diff che dice che non è cambiato niente. Il commit è "
+"nominato nell'unico posto in cui è la notizia: accanto a un dato misurato a un altro "
+"commit."
 
 #: ../../source/guides/devops/reporting.rst:82
 msgid "What Jenkins will add"
-msgstr ""
+msgstr "Che cosa aggiungerà Jenkins"
 
 #: ../../source/guides/devops/reporting.rst:84
 msgid ""
-"Two things, and nothing else: publishing to PyPI on a tagged release "
-"(``make release``), and building the documentation. Everything else it "
-"would run already has a name here, and ``make ci`` is that name."
+"Two things, and nothing else: publishing to PyPI on a tagged release (``make "
+"release``), and building the documentation. Everything else it would run already has "
+"a name here, and ``make ci`` is that name."
 msgstr ""
+"Due cose, e nient'altro: la pubblicazione su PyPI a un rilascio con tag (``make "
+"release``), e la costruzione della documentazione. Tutto il resto che eseguirebbe ha "
+"già un nome qui, e ``make ci`` è quel nome."
 
