@@ -15,6 +15,9 @@ build:
       # The same target used locally, so that the published site and the one built on the
       # writer's screen do not diverge. It deposits `cargo doc` into
       # `docs/source/_extra/rustdoc/`, from where `html_extra_path` copies it into the site.
+      - which cargo
+      - cargo --version
+      - rustc --version
       - make -C docs rustdoc
       #
       # The validation coverage page is **not** generated here, and that is not an omission.
