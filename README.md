@@ -127,13 +127,13 @@ tests.python.lines — measured at a03b5a5e, not at this one. Run `make ci` to t
 
 grants.coverage — freeports-validate found no file a grant could cover, so there is no ratio to report. Run `freeports-validate collect` and check its output.
 
-rust.integration — last run at a03b5a5e, not at HEAD (a77ff5bd). Run `make test-rust-integration`.
+rust.integration — last run at a03b5a5e, not at HEAD (ca091bc5). Run `make test-rust-integration`.
 
-rust.doc — last run at a03b5a5e, not at HEAD (a77ff5bd). Run `make test-rust-doc`.
+rust.doc — last run at a03b5a5e, not at HEAD (ca091bc5). Run `make test-rust-doc`.
 
-python.slow — last run at a03b5a5e, not at HEAD (a77ff5bd). Run `make test-python-slow`.
+python.slow — last run at a03b5a5e, not at HEAD (ca091bc5). Run `make test-python-slow`.
 
-python.online — last run at a03b5a5e, not at HEAD (a77ff5bd). Run `make test-python-online`.
+python.online — last run at a03b5a5e, not at HEAD (ca091bc5). Run `make test-python-online`.
 
 *pass* — measured, current, and at or above the minimum this repository asks for.
 

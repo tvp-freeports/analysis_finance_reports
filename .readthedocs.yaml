@@ -8,9 +8,6 @@ build:
 
   tools:
     python: "3.13"
-
-    # Required to build the PyO3 extension used by autodoc and to
-    # generate the Rust API documentation published with the site.
     rust: "latest"
 
   jobs:
@@ -18,15 +15,6 @@ build:
       html:
         - |
           set -e
-
-          # Read the Python environment selected by Read the Docs.
-          #
-          # The repository Makefile uses VIRTUAL_ENV to determine which
-          # Python environment it should use. Export the environment used
-          # by Read the Docs so that the Makefile does not fall back to
-          # venv/freeports-dev.
-          export VIRTUAL_ENV="$(python -c 'import sys; print(sys.prefix)')"
-          export PATH="$VIRTUAL_ENV/bin:$PATH"
 
           echo "Python:"
           which python
@@ -42,12 +30,17 @@ build:
           cargo --version
           rustc --version
 
+          # The repository's Makefile uses ENV_PREFIX/VIRTUAL_ENV to select
+          # its Python environment. Read the active Python prefix and expose
+          # its bin directory through PATH.
+          PYTHON_PREFIX="$(python -c "import sys; print(sys.prefix)")"
+          export PATH="$PYTHON_PREFIX/bin:$PATH"
+
+          echo "Documentation environment:"
+          echo "  Python prefix: $PYTHON_PREFIX"
+          echo "  sphinx-build: $(command -v sphinx-build)"
+
           # Generate Rust API documentation before building the Sphinx site.
-          # The generated files are written to:
-          #
-          #     docs/source/_extra/rustdoc/
-          #
-          # and are included in the final documentation through Sphinx.
           make -C docs rustdoc
 
           case "$READTHEDOCS_LANGUAGE" in
@@ -64,7 +57,6 @@ build:
               ;;
           esac
 
-          # Fail explicitly if Sphinx did not produce the expected output.
           if [ ! -d "$SOURCE" ]; then
             echo "ERROR: documentation output directory does not exist: $SOURCE"
             exit 1
@@ -75,15 +67,8 @@ build:
 
 python:
   install:
-    # Documentation dependencies:
-    # Sphinx, the RTD theme, MyST, sphinx-intl and Babel.
     - requirements: contrib/requirements.docs.txt
 
-    # autodoc imports the real packages, so they must be installed rather
-    # than mocked.
-    #
-    # freeports contains the PyO3/Rust extension and is built through
-    # maturin as declared by its pyproject.toml build-system configuration.
     - method: pip
       path: packages/freeports
 
