@@ -1,5 +1,5 @@
 # Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html
+# See https://docs.readthedocs.com/platform/stable/config-file/v2.html
 
 version: 2
 
@@ -12,77 +12,27 @@ build:
 
   jobs:
     pre_build:
-      # Verify the toolchains provided by Read the Docs.
-      - which python
-      - python --version
-      - python -m pip --version
+      # The repository's Rust documentation is generated separately from
+      # Sphinx and then included by the Sphinx site.
+      #
+      # Output:
+      #   docs/source/_extra/rustdoc/
       - which cargo
       - cargo --version
       - rustc --version
-
-      # Generate the Rust API documentation.
-      #
-      # This is the repository-specific step that deposits rustdoc under
-      # docs/source/_extra/rustdoc/, where Sphinx includes it in the site.
       - make -C docs rustdoc
 
-    build:
-      html:
-        - |
-          set -e
-
-          echo "Python:"
-          which python
-          python --version
-
-          echo "Sphinx:"
-          which sphinx-build
-          sphinx-build --version
-
-          case "$READTHEDOCS_LANGUAGE" in
-            en)
-              echo "Building English documentation"
-
-              sphinx-build \
-                -b html \
-                docs/source \
-                docs/build/html
-
-              SOURCE="docs/build/html"
-              ;;
-
-            *)
-              echo "Building documentation for language: $READTHEDOCS_LANGUAGE"
-
-              sphinx-build \
-                -b html \
-                -D language="$READTHEDOCS_LANGUAGE" \
-                docs/source \
-                "docs/build/$READTHEDOCS_LANGUAGE"
-
-              SOURCE="docs/build/$READTHEDOCS_LANGUAGE"
-              ;;
-          esac
-
-          if [ ! -d "$SOURCE" ]; then
-            echo "ERROR: documentation output directory does not exist: $SOURCE"
-            exit 1
-          fi
-
-          mkdir -p "$READTHEDOCS_OUTPUT/html"
-          cp -a "$SOURCE/." "$READTHEDOCS_OUTPUT/html/"
+sphinx:
+  configuration: docs/source/conf.py
+  builder: html
 
 python:
   install:
-    # Documentation dependencies, including Sphinx, the RTD theme,
-    # MyST and the translation tools.
+    # Dependencies required by the documentation build, including Sphinx,
+    # the RTD theme, MyST and the translation tools.
     - requirements: contrib/requirements.docs.txt
 
-    # autodoc imports the actual packages, so install them rather than
-    # mocking them.
-    #
-    # freeports contains the PyO3/Rust extension and is built through
-    # maturin as declared by its pyproject.toml build-system configuration.
+    # Sphinx autodoc imports these packages, so they must be installed.
     - method: pip
       path: packages/freeports
 
