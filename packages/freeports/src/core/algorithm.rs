@@ -31,7 +31,7 @@ use crate::core::pipeline::bundle::PipelinesBundle;
 use crate::core::pipeline::{Extracted, FilterData, Pipeline, PipeError, PipelineName};
 use crate::core::schedule::{PageClass, Schedule, ScheduledPage, ScheduleError};
 use crate::formats_utils::text_filter::matcher::CompanyMatchInfos;
-use crate::core::tracing_setup::log_error;
+use crate::core::tracing_setup::{log_error, panic_message};
 
 /// Whoever has the last word on the classification of a document's pages.
 ///
@@ -303,7 +303,26 @@ impl Algorithm {
         // the `.log.csv` with no page number, and no pipe can know it on its own.
         let classify_one = |page: &Page| {
             let page_span = tracing::info_span!("page", page = page.number);
-            page_span.in_scope(|| self.page_classify.apply(page, &FilterData::EMPTY))
+            // The same net as `apply_each_page`, and sound for the same reason: `&self` and `&Page`
+            // cross the boundary by shared reference and nothing is mutated.
+            page_span.in_scope(|| match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                self.page_classify.apply(page, &FilterData::EMPTY)
+            })) {
+                Ok(result) => result,
+                Err(payload) => {
+                    tracing::error!(
+                        page = page.number,
+                        "the engine panicked while classifying this page: {} - page left unclassified",
+                        panic_message(payload.as_ref())
+                    );
+                    // One contribution, and it is `None`: the page is left without a class, which
+                    // is the outcome `classify_pages_with` already has a branch for — no step will
+                    // name it, so nothing is extracted from it, and the other pages keep theirs.
+                    // An empty vector would not do: the count check downstream reads exactly one
+                    // contribution per page and would turn a skipped page into a fatal mismatch.
+                    Ok(vec![Extracted::PageClass(None)])
+                }
+            })
         };
 
         if !parallelism.is_worth_it(pages.len()) || !self.page_classify.scales_with_threads() {
@@ -482,9 +501,20 @@ impl Algorithm {
             // the `Page` column of the `.log.csv`. No pipe knows it on its own, and threading it
             // through by hand would mean adding it to every signature.
             let page_span = tracing::info_span!("page", page = scheduled_page.page.number);
-            page_span.in_scope(|| match bundle.apply(scheduled_page.page, data) {
-                Ok(results) => Ok(results),
-                Err(error) if error.is_page_failure() => {
+            // `AssertUnwindSafe` is sound here, and this is why. What crosses the boundary is
+            // `&PipelinesBundle`, `&Page` and `&FilterData`, all taken by shared reference and none
+            // of them mutated: there is no state a half-finished page could leave inconsistent. The
+            // only mutable state of the round is `skipped`, which is atomic, and the results vector,
+            // which is local to this closure and simply dropped.
+            //
+            // This net only exists because the panic strategy is `unwind`. `Cargo.toml` does not
+            // change it in any profile; switching any profile to `abort` would remove this net in
+            // silence, so it is said here rather than there.
+            page_span.in_scope(|| match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                bundle.apply(scheduled_page.page, data)
+            })) {
+                Ok(Ok(results)) => Ok(results),
+                Ok(Err(error)) if error.is_page_failure() => {
                     // Non-fatal: log and carry on. The document is not spelled out: the enclosing
                     // span carries it, into the `Report` column and into `Activity` alike.
                     tracing::warn!(
@@ -495,7 +525,7 @@ impl Algorithm {
                     skipped.fetch_add(1, Ordering::Relaxed);
                     Ok(Vec::new())
                 }
-                Err(error) => {
+                Ok(Err(error)) => {
                     // `page` is spelled out although the span already carries it: a `.log.csv` row
                     // exists only if the *event* names a page or a coordinate, and this is the one
                     // event a reader will look for.
@@ -503,6 +533,29 @@ impl Algorithm {
                         page = scheduled_page.page.number,
                         error = log_error(&error),
                         "page failed: {error} - page skipped"
+                    );
+                    skipped.fetch_add(1, Ordering::Relaxed);
+                    Ok(Vec::new())
+                }
+                Err(payload) => {
+                    // The fourth branch, and the one that is not an error type: a panic. It costs
+                    // exactly what the three above cost — this page — because a failure belongs to
+                    // the smallest thing that contains it, and nothing smaller than a page contains
+                    // a panic raised anywhere inside a bundle.
+                    //
+                    // The message is all there is: no error type, no `source()` chain, nothing to
+                    // record structurally. It is usually enough, because the panics that reach here
+                    // say what they found — *left side of a rectangle can't be bigger than right
+                    // one, found left '545.52826' and right '372.94'*.
+                    //
+                    // This is a net, not a fix. A value that can be predicted — one that comes from
+                    // outside — is to be built with `build` and handled where it is built; see the
+                    // module documentation of `commons::geometry`. What lands here is what nobody
+                    // foresaw, and it is worth finding out why.
+                    tracing::error!(
+                        page = scheduled_page.page.number,
+                        "the engine panicked on this page: {} - page skipped",
+                        panic_message(payload.as_ref())
                     );
                     skipped.fetch_add(1, Ordering::Relaxed);
                     Ok(Vec::new())
@@ -1437,6 +1490,153 @@ mod tests {
 
             let err = algorithm.classify_pages(&doc("d", vec![page(1, &["x"])])).unwrap_err();
             assert!(matches!(err, AlgorithmError::NotAPageClassification { .. }), "{err:?}");
+        }
+    }
+
+    /// The fourth kind of failure, and the one no `Result` can carry: a **panic** raised anywhere
+    /// inside a bundle. It costs the page it happened on, exactly like the three typed failures
+    /// above, because nothing smaller than a page contains it.
+    ///
+    /// This is a net and not a fix: a value that can be predicted — one that comes from outside —
+    /// belongs in a `build` handled where it is built. What these tests pin down is that whatever
+    /// nobody foresaw still costs a page rather than the run.
+    ///
+    /// The panics printed by the test harness while this module runs are the caught ones, and they
+    /// are expected: the harness has its own hook, which is why `install_panic_hook` is bound to
+    /// the binary's entry point and not to `init`.
+    mod panic_containment {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        /// A work pipeline that panics on the named pages.
+        fn algorithm_panicking_on_pages(pages: &'static [u32]) -> Algorithm {
+            let mut work = Pipeline::new("work");
+            work.pdf_extract.push(PanickingOnPages::pipe("boom", pages));
+            work.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            work.deserialize.push(PromiseDepositor::pipe("promise", "id"));
+            Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classifying_pipeline("classify", Some("a"))),
+                    (PipelineName::new("work"), work),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
+            )
+            .expect("fixture is consistent")
+        }
+
+        /// A classification pipeline that panics on the named pages.
+        fn classifier_panicking_on_pages(pages: &'static [u32]) -> Algorithm {
+            let mut classify = Pipeline::new("classify");
+            classify.pdf_extract.push(PanickingOnPages::pipe("boom", pages));
+            classify.text_filter.push(RecordingFilter::new("filter") as Arc<dyn TextFilterPipe>);
+            classify.deserialize.push(ConstantClassifier::pipe("classify", Some("a")));
+            Algorithm::new(
+                "FMT",
+                BTreeMap::from([
+                    (PipelineName::new("classify"), classify),
+                    (PipelineName::new("work"), promising_pipeline("work", "id")),
+                ]),
+                &[PipelineName::new("classify")],
+                PageClassFinalizer::Identity,
+                Schedule::new(vec![step(&["a"])]),
+                BTreeMap::from([(PageClass::new("a"), vec![PipelineName::new("work")])]),
+            )
+            .expect("fixture is consistent")
+        }
+
+        #[test]
+        fn a_page_that_panics_costs_that_page_and_no_other() {
+            let algorithm = algorithm_panicking_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            let outcome = algorithm.apply(&document, &companies()).expect("a panic must not reach the job");
+
+            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1)]);
+        }
+
+        /// The whole point of the net, stated as the run sees it: before, this call did not return
+        /// at all — the process died and the other 903 jobs of the batch died with it.
+        #[test]
+        fn the_multidocument_entry_point_returns_ok_with_the_panicking_page_missing() {
+            let algorithm = algorithm_panicking_on_pages(&[1]);
+            let documents = [doc("d", vec![page(1, &["x"]), page(2, &["y"])])];
+            let outcomes = algorithm
+                .apply_multidocument(&documents, &companies())
+                .expect("a panic must not reach the job");
+            assert_eq!(outcomes[0].pages.iter().map(|p| (p.page, p.results.len())).collect::<Vec<_>>(), vec![(1, 0), (2, 1)]);
+        }
+
+        /// A panic on *every* page is still a document, not a dead run: the outcome exists and is
+        /// empty, which is what lets the batch go on and the results of the other jobs be written.
+        #[test]
+        fn a_document_whose_every_page_panics_still_produces_an_outcome() {
+            let algorithm = algorithm_panicking_on_pages(&[1, 2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
+            let outcome = algorithm.apply(&document, &companies()).expect("a panic must not reach the job");
+            assert!(outcome.pages.iter().all(|p| p.results.is_empty()));
+        }
+
+        /// A panic in one document must not cost the other documents of the same job — the class
+        /// groups mix their pages, so this is not implied by the test above.
+        #[test]
+        fn the_other_documents_of_the_same_job_are_untouched() {
+            let algorithm = algorithm_panicking_on_pages(&[1]);
+            let documents = [doc("bad", vec![page(1, &["x"])]), doc("good", vec![page(2, &["y"])])];
+            let outcomes = algorithm.apply_multidocument(&documents, &companies()).expect("contained");
+
+            assert_eq!(outcomes[0].pages[0].results.len(), 0);
+            assert_eq!(outcomes[1].pages[0].results.len(), 1);
+        }
+
+        /// Classification has its own net, and its own answer: the page is left **without a
+        /// class**, which is the branch `classify_pages_with` already had for a typed failure.
+        #[test]
+        fn a_classification_that_panics_leaves_that_page_without_a_class() {
+            let algorithm = classifier_panicking_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            let classes = algorithm.classify_pages(&document).expect("a panic must not reach the job");
+
+            assert_eq!(classes, vec![Some(PageClass::new("a")), None, Some(PageClass::new("a"))]);
+        }
+
+        /// Why the panic branch returns one contribution rather than none: the count check compares
+        /// classifications to pages, and an empty vector would turn a contained panic into a fatal
+        /// mismatch — the run dying anyway, one indirection later.
+        #[test]
+        fn the_contribution_count_still_matches_the_page_count() {
+            let algorithm = classifier_panicking_on_pages(&[1, 3]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"]), page(3, &["z"])]);
+            assert_eq!(algorithm.classify_pages(&document).expect("contained").len(), document.pages.len());
+        }
+
+        #[test]
+        fn a_page_left_unclassified_by_a_panic_is_simply_never_scheduled() {
+            let algorithm = classifier_panicking_on_pages(&[2]);
+            let document = doc("d", vec![page(1, &["x"]), page(2, &["y"])]);
+            let outcome = algorithm.apply(&document, &companies()).expect("contained");
+
+            assert_eq!(outcome.pages.iter().map(|p| p.page).collect::<Vec<_>>(), vec![1]);
+        }
+
+        /// And the net holds on the parallel path too, which is a different code path per page:
+        /// each rayon worker re-enters the caller's span and carries its own `catch_unwind`.
+        #[test]
+        fn the_net_holds_when_the_pages_are_processed_in_parallel() {
+            let algorithm = algorithm_panicking_on_pages(&[2, 4]);
+            let document = doc(
+                "d",
+                vec![page(1, &["a"]), page(2, &["b"]), page(3, &["c"]), page(4, &["d"]), page(5, &["e"])],
+            );
+            let outcome = algorithm
+                .apply_with(&document, &companies(), Parallelism::pages(4))
+                .expect("a panic must not reach the job");
+
+            let produced: Vec<_> = outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+            assert_eq!(produced, vec![(1, 1), (2, 0), (3, 1), (4, 0), (5, 1)]);
         }
     }
 

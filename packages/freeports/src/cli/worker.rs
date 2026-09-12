@@ -34,7 +34,7 @@ use std::path::{Path, PathBuf};
 
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::DocumentOutcome;
-use crate::core::tracing_setup::ErrorRecord;
+use crate::core::tracing_setup::{ErrorRecord, panic_message};
 
 /// What the parent asks of a child: one job, and the two places to put its outcome.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -327,20 +327,26 @@ pub fn run_in_processes(
         .collect()
 }
 
-/// Concatenates the results of the successful jobs, or reports the **first** failure in job order.
+/// Concatenates the results of the successful jobs and **collects** the failures of the others.
 ///
-/// "First in job order", not "first to arrive": that is what makes the reported error the same one
-/// the sequential loop would have propagated, whichever child happened to die first.
-pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> Result<Vec<DocumentOutcome>, JobFailure> {
+/// It does not stop at the first failure. One job that failed is one job's worth of results lost,
+/// and throwing away the hundreds that succeeded alongside it would make a failure cost the run —
+/// which is precisely what a level of containment exists to prevent.
+///
+/// Both lists come out **in job order**, not in order of arrival: that is what makes what is
+/// reported the same as what the sequential loop would have reported, whichever child happened to
+/// finish or die first.
+pub fn collect(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<DocumentOutcome>, Vec<JobFailure>) {
     let mut documents = Vec::new();
+    let mut failures = Vec::new();
     for (index, report) in reports.into_iter().enumerate() {
         match report {
             Ok(WorkerReport::Succeeded { documents: mut d }) => documents.append(&mut d),
-            Ok(WorkerReport::Failed { error }) => return Err(JobFailure::Job { index, error }),
-            Err(source) => return Err(JobFailure::Protocol { index, source }),
+            Ok(WorkerReport::Failed { error }) => failures.push(JobFailure::Job { index, error }),
+            Err(source) => failures.push(JobFailure::Protocol { index, source }),
         }
     }
-    Ok(documents)
+    (documents, failures)
 }
 
 /// The exit code of a child whose **protocol** broke: an unreadable request, logs that will not
@@ -356,6 +362,12 @@ pub const PROTOCOL_FAILURE_EXIT_CODE: i32 = 2;
 ///
 /// Returning successfully means "the protocol worked", not "the job succeeded": a failed job is a
 /// failure report deposited successfully, which is exactly what the parent expects to find.
+///
+/// **A panic is a failed job, not a broken protocol.** It is caught here, written into the report as
+/// an ordinary failure, and the process still exits with `0`, so the parent reads it as
+/// [`JobFailure::Job`] — identical to a job that failed in-process — and the run goes on and writes
+/// its results. [`WorkerError::Died`] stays for what it was written for: a child killed by a signal,
+/// and a child that never started.
 pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
     let request = read_request(request_path)?;
 
@@ -367,13 +379,39 @@ pub fn execute(request_path: &Path) -> Result<(), WorkerError> {
     // one moment here, and a child can never end up disagreeing with the run it belongs to.
     log_handle.settle_verbosity(request.config.verbosity)?;
     log_handle.set_csv_dir(&request.log_dir)?;
+    // As in `main`, and after logging for the same reason: the hook logs. A child that kept the
+    // default hook would write its panics straight to the stderr it shares with the parent, outside
+    // every span and interleaved with every other child's output.
+    crate::core::tracing_setup::install_panic_hook();
 
     let parallelism = crate::core::parallelism::Parallelism::pages(request.page_workers);
-    let report = match crate::cli::job::run(&request.config, parallelism) {
-        Ok(documents) => WorkerReport::Succeeded { documents },
+    // The job is run inside a `catch_unwind` so that a panic the page-level net did not cover — one
+    // raised outside any page, loading the formats repository or compiling the target companies —
+    // comes back as a **domain failure of this job** rather than as a dead child.
+    //
+    // `AssertUnwindSafe` is sound here for the same reason as in `Algorithm`: what crosses the
+    // boundary is `&request.config` and a `Copy` parallelism, neither mutated. Nothing is left half
+    // written: the report has not been created yet at this point.
+    let report = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        crate::cli::job::run(&request.config, parallelism)
+    })) {
+        Ok(Ok(documents)) => WorkerReport::Succeeded { documents },
         // Already recorded with its full chain where it happened: here the error is only packed for
         // the journey back, not recorded again.
-        Err(e) => WorkerReport::Failed { error: ErrorRecord::from_error(&e) },
+        Ok(Err(e)) => WorkerReport::Failed { error: ErrorRecord::from_error(&e) },
+        Err(payload) => {
+            // Recorded here, unlike the branch above, because nobody else has: `catch_unwind`
+            // returns a payload, not an error, and no `?` carried this past a log site.
+            let message = panic_message(payload.as_ref());
+            tracing::error!("the engine panicked outside any page: {message} - job failed");
+            WorkerReport::Failed {
+                error: ErrorRecord {
+                    debug: format!("Panic({message:?})"),
+                    display: message,
+                    source: Vec::new(),
+                },
+            }
+        }
     };
 
     let write_result = write_report(&request.report_path, &report);
@@ -714,48 +752,78 @@ mod tests {
             Err(WorkerError::Died { index, status: "exit status: 9".to_string() })
         }
 
-        #[test]
-        fn all_successful_jobs_concatenate_in_job_order() {
-            let documents = collect(vec![succeeded("a"), succeeded("b"), succeeded("c")]).expect("no job failed");
-            let ids: Vec<&str> = documents.iter().map(|d| d.id.as_str()).collect();
-            assert_eq!(ids, ["a", "b", "c"]);
+        /// The two lists `collect` returns, named so the assertions below read as sentences.
+        fn ids_and_failures(reports: Vec<Result<WorkerReport, WorkerError>>) -> (Vec<String>, Vec<JobFailure>) {
+            let (documents, failures) = collect(reports);
+            (documents.iter().map(|d| d.id.as_str().to_string()).collect(), failures)
         }
 
         #[test]
-        fn an_empty_batch_collects_to_no_documents() {
-            assert_eq!(collect(vec![]).expect("no job failed"), vec![]);
+        fn all_successful_jobs_concatenate_in_job_order() {
+            let (ids, failures) = ids_and_failures(vec![succeeded("a"), succeeded("b"), succeeded("c")]);
+            assert_eq!(ids, ["a", "b", "c"]);
+            assert!(failures.is_empty());
+        }
+
+        #[test]
+        fn an_empty_batch_collects_to_no_documents_and_no_failures() {
+            let (documents, failures) = collect(vec![]);
+            assert!(documents.is_empty() && failures.is_empty());
         }
 
         /// A job that extracts nothing neither interrupts the concatenation nor leaves a hole.
         #[test]
         fn a_job_with_no_documents_does_not_break_the_concatenation() {
             let empty = Ok(WorkerReport::Succeeded { documents: vec![] });
-            let documents = collect(vec![succeeded("a"), empty, succeeded("c")]).expect("no job failed");
-            let ids: Vec<&str> = documents.iter().map(|d| d.id.as_str()).collect();
+            let (ids, failures) = ids_and_failures(vec![succeeded("a"), empty, succeeded("c")]);
             assert_eq!(ids, ["a", "c"]);
+            assert!(failures.is_empty());
         }
 
+        /// The change this whole plan exists for, stated at its smallest: a failure in the middle
+        /// does not stop the concatenation. Before, the job before it was returned to nobody and
+        /// the two after it were never looked at.
         #[test]
-        fn the_first_failing_job_in_order_is_the_one_reported() {
-            let failure = collect(vec![succeeded("a"), failed("second broke"), failed("third broke")])
-                .expect_err("a failing job must be reported");
-            assert_eq!(failure.index(), 1);
-            assert_eq!(failure.to_string(), "second broke");
+        fn a_failing_job_costs_its_own_results_and_no_others() {
+            let (ids, failures) = ids_and_failures(vec![succeeded("a"), failed("second broke"), succeeded("c")]);
+            assert_eq!(ids, ["a", "c"]);
+            assert_eq!(failures.len(), 1);
+            assert_eq!(failures[0].index(), 1);
         }
 
-        /// The case that separates "first in order" from "first to arrive": a later job died of a
-        /// signal, an earlier one failed for a domain reason. The earlier one must win.
+        /// Every failure is reported, not only the first, and they come out **in job order** — the
+        /// order that makes the message reproducible, whichever child happened to die first.
         #[test]
-        fn an_earlier_domain_failure_wins_over_a_later_protocol_failure() {
-            let failure = collect(vec![succeeded("a"), failed("second broke"), broken(2)])
-                .expect_err("a failing job must be reported");
-            assert!(matches!(failure, JobFailure::Job { index: 1, .. }), "got {failure:?}");
+        fn every_failure_is_collected_in_job_order() {
+            let (ids, failures) = ids_and_failures(vec![
+                failed("first broke"),
+                succeeded("b"),
+                broken(2),
+                succeeded("d"),
+                failed("fifth broke"),
+            ]);
+            assert_eq!(ids, ["b", "d"]);
+            assert_eq!(failures.iter().map(JobFailure::index).collect::<Vec<_>>(), vec![0, 2, 4]);
         }
 
+        /// Mixed kinds keep their kinds: a domain failure and a protocol failure are different
+        /// things, and the distinction is what lets a signal-killed child be told from a job that
+        /// simply went wrong.
         #[test]
-        fn an_earlier_protocol_failure_wins_over_a_later_domain_failure() {
-            let failure = collect(vec![broken(0), failed("second broke")]).expect_err("a failing job must be reported");
-            assert!(matches!(failure, JobFailure::Protocol { index: 0, .. }), "got {failure:?}");
+        fn domain_and_protocol_failures_are_kept_apart() {
+            let (_, failures) = ids_and_failures(vec![succeeded("a"), failed("second broke"), broken(2)]);
+            assert!(matches!(failures[0], JobFailure::Job { index: 1, .. }), "got {:?}", failures[0]);
+            assert!(matches!(failures[1], JobFailure::Protocol { index: 2, .. }), "got {:?}", failures[1]);
+        }
+
+        /// A batch in which everything failed still comes back as two lists rather than as one
+        /// error: what to do about it belongs to `cli::run::execute`, which is the only place that
+        /// knows whether anything at all was produced.
+        #[test]
+        fn a_batch_in_which_every_job_failed_yields_no_documents_and_every_failure() {
+            let (documents, failures) = collect(vec![failed("a"), broken(1), failed("c")]);
+            assert!(documents.is_empty());
+            assert_eq!(failures.len(), 3);
         }
 
         /// A domain error's message must reach the user **verbatim**: the same job, run
@@ -763,16 +831,16 @@ mod tests {
         #[test]
         fn a_domain_failure_is_reported_with_the_original_message_and_nothing_else() {
             let original = "the specified path /tmp/nope.pdf does not exist";
-            let failure = collect(vec![failed(original)]).expect_err("a failing job must be reported");
-            assert_eq!(failure.to_string(), original);
+            let (_, failures) = ids_and_failures(vec![failed(original)]);
+            assert_eq!(failures[0].to_string(), original);
         }
 
         /// A protocol failure, by contrast, **must** name its job: not being a domain error, the
         /// user has no other way of knowing which batch row went wrong.
         #[test]
         fn a_protocol_failure_names_the_job_it_belongs_to() {
-            let failure = collect(vec![broken(0)]).expect_err("a broken worker must be reported");
-            assert!(failure.to_string().contains("job 0"), "message does not name the job: {failure}");
+            let (_, failures) = ids_and_failures(vec![broken(0)]);
+            assert!(failures[0].to_string().contains("job 0"), "message does not name the job: {}", failures[0]);
         }
     }
 

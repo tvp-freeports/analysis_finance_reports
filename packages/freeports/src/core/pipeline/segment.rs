@@ -411,6 +411,38 @@ pub(crate) mod test_pipes {
         }
     }
 
+    /// Panics **only** on the pages listed, with a message naming the page.
+    ///
+    /// Not an error: a panic, the one category of failure no `Result` can carry. Real ones come out
+    /// of the geometry primitives and the tabularizer when a page's own coordinates make no shape —
+    /// a rectangle whose left side is right of its right one, a cell of zero width, a `NaN` in a
+    /// comparison. This double stands in for all of them without needing such a page.
+    pub(crate) struct PanickingOnPages {
+        pub(crate) name: String,
+        pub(crate) pages: Vec<u32>,
+    }
+
+    impl PanickingOnPages {
+        pub(crate) fn pipe(name: &str, pages: &[u32]) -> Arc<dyn PdfExtractPipe> {
+            Arc::new(PanickingOnPages { name: name.to_string(), pages: pages.to_vec() })
+        }
+    }
+
+    impl PdfExtractPipe for PanickingOnPages {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn extract(&self, page: &Page) -> Result<Vec<PdfBlock>, PipeError> {
+            assert!(!self.pages.contains(&page.number), "page {} made the engine panic", page.number);
+            Ok(page
+                .lines
+                .iter()
+                .map(|line| PdfBlock::bare(BlockType::RELEVANT_BLOCK, line.text().clone()))
+                .collect())
+        }
+    }
+
     /// A pipe declaring that it does **not** scale with threads, like the adapters for
     /// author-written Python pipes, which take the GIL back on every call. It exercises the
     /// degradation to sequential without involving Python at all.

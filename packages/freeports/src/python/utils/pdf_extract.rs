@@ -8,13 +8,15 @@ use pyo3::PyClass;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
 
-use crate::commons::geometry::Limits;
+use crate::commons::geometry::{Limits, Rectangle};
 use crate::core::page::PageImage;
 use crate::commons::sets::Container;
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 use crate::formats_utils::pdf_extract::position::{self, ColumnConfig, RowConfig, TableConfig};
 use crate::formats_utils::pdf_extract::relative::OptionallyRelative;
-use crate::formats_utils::pdf_extract::select::pdf_line::PdfLineSet;
+use crate::formats_utils::pdf_extract::select::pdf_line::{PdfLineSet, SelectPdfLineSet};
+use crate::formats_utils::pdf_extract::select::pdf_line::area::Area;
+use crate::formats_utils::pdf_extract::select::pdf_line::font_size::FontSizeInterval;
 use crate::formats_utils::pdf_extract::select::relative::{
     PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet,
 };
@@ -83,9 +85,22 @@ impl PyPdfLine {
 
 #[pymethods]
 impl PyPdfLine {
+    /// # Errors
+    ///
+    /// `ValueError` if `font_size` is not positive or `bbox` is not a rectangle. `PdfLine::new`
+    /// panics on both, which is the right report for a line the engine builds itself — the PyMuPDF
+    /// reader filters those spans out before ever calling it. Here the four numbers and the size
+    /// are author input, so the boundary validates them and raises something the author can catch.
     #[new]
-    fn new(font: &str, font_size: f32, text: &str, bbox: (f32, f32, f32, f32)) -> PyPdfLine {
-        PyPdfLine(PdfLine::new(font, font_size, text, bbox))
+    fn new(font: &str, font_size: f32, text: &str, bbox: (f32, f32, f32, f32)) -> PyResult<PyPdfLine> {
+        if font_size <= 0.0 {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "the font size of a PdfLine must be positive, found {font_size}"
+            )));
+        }
+        let (x0, y0, x1, y1) = bbox;
+        Rectangle::build(x0, y0, x1, y1).map_err(value_error)?;
+        Ok(PyPdfLine(PdfLine::new(font, font_size, text, bbox)))
     }
 
     #[getter]
@@ -186,24 +201,26 @@ impl PyPdfLineSelection {
         font_size: Option<(f32, f32)>,
         text: Option<&str>,
         area: Option<(f32, f32, f32, f32)>,
-    ) -> PyPdfLineSelection {
+    ) -> PyResult<PyPdfLineSelection> {
         let mut parts: Vec<PyPdfLineSelection> = Vec::new();
         if let Some(font) = font {
             parts.push(PyPdfLineSelection::font(font));
         }
         if let Some((a, b)) = font_size {
-            parts.push(PyPdfLineSelection::font_size(a, b));
+            parts.push(PyPdfLineSelection::font_size(a, b)?);
         }
         if let Some(text) = text {
             parts.push(PyPdfLineSelection::text(text));
         }
         if let Some((x0, y0, x1, y1)) = area {
-            parts.push(PyPdfLineSelection::area(x0, y0, x1, y1));
+            parts.push(PyPdfLineSelection::area(x0, y0, x1, y1)?);
         }
         match parts.split_first() {
-            None => PyPdfLineSelection::font_size(0.0, 1e6),
+            // The one interval that is not author input: a literal pair this crate chose, which is
+            // why it stays on the infallible path.
+            None => Ok(absolute(SelectPdfLineSet::FontSize(FontSizeInterval::new(0.0, 1e6)))),
             Some((first, rest)) => {
-                rest.iter().fold(first.clone(), |acc, part| acc.__and__(part.clone()))
+                Ok(rest.iter().fold(first.clone(), |acc, part| acc.__and__(part.clone())))
             }
         }
     }
@@ -215,9 +232,17 @@ impl PyPdfLineSelection {
         absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_font(font))
     }
 
+    /// # Errors
+    ///
+    /// `ValueError` if the two bounds do not make an interval — inverted, degenerate, or negative.
+    /// Author code computes these bounds from the page (*the same size as the heading, plus one*),
+    /// so a page where the computation comes out backwards is a real occurrence. It raises rather
+    /// than panicking: an exception is something the author can catch, read, and act on, and the
+    /// pipe that does not catch it fails as any other author error does — at the cost of one page.
     #[staticmethod]
-    fn font_size(a: f32, b: f32) -> PyPdfLineSelection {
-        absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_fontsize(a, b))
+    fn font_size(a: f32, b: f32) -> PyResult<PyPdfLineSelection> {
+        let interval = FontSizeInterval::build(a, b).map_err(value_error)?;
+        Ok(absolute(SelectPdfLineSet::FontSize(interval)))
     }
 
     #[staticmethod]
@@ -225,9 +250,24 @@ impl PyPdfLineSelection {
         absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_text(text))
     }
 
+    /// # Errors
+    ///
+    /// `ValueError` if the four sides do not make a rectangle. This is the shape author code hits
+    /// most often, because the sides are typically read off the page:
+    ///
+    /// ```python
+    /// b = PdfLineSelection(font="bold", text="Investment Manager").select(lines)[0].bbox[1]
+    /// t = PdfLineSelection(font="bold", text="^Manager").select(lines)[0].bbox[1] - 10.0
+    /// PdfLineSelection(font="roman", area=(0.0, t, 1e6, b))
+    /// ```
+    ///
+    /// On a page where "Manager" happens to sit below "Investment Manager", `t >= b` and the
+    /// rectangle is inverted. Before this returned a `Result` the engine panicked from the Python
+    /// side, where the author had not even an exception to catch.
     #[staticmethod]
-    fn area(x0: f32, y0: f32, x1: f32, y1: f32) -> PyPdfLineSelection {
-        absolute(crate::formats_utils::pdf_extract::select::pdf_line::SelectPdfLineSet::select_area(x0, y0, x1, y1))
+    fn area(x0: f32, y0: f32, x1: f32, y1: f32) -> PyResult<PyPdfLineSelection> {
+        let area = Area::build(x0, y0, x1, y1).map_err(value_error)?;
+        Ok(absolute(SelectPdfLineSet::Area(area)))
     }
 
     // --- selezioni relative a un'altra selezione ------------------------------------------
@@ -885,5 +925,107 @@ impl PySplittingState {
             SplittingState::Allow(SplittingDirection::Down) => 2,
         };
         Some(PySplittingState(index))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The first tests in this tree, and they are here for a reason: `area` and `font_size` are the
+    /// two constructors whose arguments an author routinely computes **from the page**, so they are
+    /// the two that can be handed numbers no rectangle and no interval can be made of. Before they
+    /// returned a `Result` that aborted the whole run from the Python side, where the author had not
+    /// even an exception to catch.
+    ///
+    /// They hold the GIL, which is why they live in one module of their own.
+    mod fallible_constructors {
+        use super::*;
+        use pyo3::exceptions::PyValueError;
+
+        fn message_of(err: PyErr) -> String {
+            Python::attach(|py| {
+                assert!(err.is_instance_of::<PyValueError>(py), "author code must be able to catch this");
+                err.value(py).to_string()
+            })
+        }
+
+        /// The case observed in `analysis_finance_reports_formats`: the two anchors of a window are
+        /// read off the page, and on some pages they come out in the wrong order.
+        #[test]
+        fn an_inverted_area_raises_value_error_instead_of_aborting_the_run() {
+            Python::initialize();
+            let err = PyPdfLineSelection::area(545.528_26, 0.0, 372.94, 100.0)
+                .err()
+                .expect("an inverted rectangle must be refused");
+            assert_eq!(
+                message_of(err),
+                "left side of a rectangle can't be bigger than right one, found left '545.52826' and right '372.94'"
+            );
+        }
+
+        #[test]
+        fn a_degenerate_area_raises_too() {
+            Python::initialize();
+            assert!(PyPdfLineSelection::area(10.0, 0.0, 10.0, 100.0).is_err(), "bounds are strict");
+        }
+
+        #[test]
+        fn an_inverted_font_size_interval_raises_value_error() {
+            Python::initialize();
+            let err = PyPdfLineSelection::font_size(20.0, 10.0).err().expect("an inverted interval must be refused");
+            assert_eq!(message_of(err), "left limit bound can't be bigger than right one, found left '20' and right '10'");
+        }
+
+        /// The same defect reached through the constructor rather than the static method: `new`
+        /// propagates instead of unwrapping, or the exception would never reach the author.
+        #[test]
+        fn the_constructor_propagates_the_failure_of_the_criterion_it_builds() {
+            Python::initialize();
+            assert!(
+                PyPdfLineSelection::new(Some("bold"), None, None, Some((0.0, 60.0, 1e6, 50.0))).is_err(),
+                "an inverted area given to the constructor must raise, not panic"
+            );
+            assert!(
+                PyPdfLineSelection::new(None, Some((20.0, 10.0)), None, None).is_err(),
+                "an inverted font-size pair given to the constructor must raise, not panic"
+            );
+        }
+
+        /// And the ordinary case is untouched, including the one that asks for nothing at all —
+        /// whose default interval is a literal this crate chose, not author input.
+        /// `PdfLine` is the third constructor of this module whose arguments are author input: a
+        /// pipe that builds a line by hand — from a table cell, from a merged pair of spans — can
+        /// compute a size or a box that makes no line. Same rule, same answer.
+        #[test]
+        fn a_pdf_line_with_a_non_positive_font_size_raises_value_error() {
+            Python::initialize();
+            let err = PyPdfLine::new("Arial", 0.0, "text", (0.0, 0.0, 10.0, 10.0))
+                .expect_err("a line without a positive size is not a line");
+            assert_eq!(message_of(err), "the font size of a PdfLine must be positive, found 0");
+        }
+
+        #[test]
+        fn a_pdf_line_with_an_inverted_bbox_raises_value_error() {
+            Python::initialize();
+            assert!(
+                PyPdfLine::new("Arial", 10.0, "text", (10.0, 0.0, 5.0, 10.0)).is_err(),
+                "an inverted bbox must be refused, not panicked on"
+            );
+        }
+
+        #[test]
+        fn a_sound_pdf_line_still_builds() {
+            Python::initialize();
+            assert!(PyPdfLine::new("Arial", 10.0, "text", (0.0, 0.0, 10.0, 10.0)).is_ok());
+        }
+
+        #[test]
+        fn sound_arguments_still_build_and_an_empty_constructor_still_works() {
+            Python::initialize();
+            assert!(PyPdfLineSelection::area(0.0, 0.0, 100.0, 50.0).is_ok());
+            assert!(PyPdfLineSelection::font_size(9.5, 10.5).is_ok());
+            assert!(PyPdfLineSelection::new(None, None, None, None).is_ok());
+        }
     }
 }

@@ -154,6 +154,40 @@ they take effect the moment it resolves rather than from the first line. See
 {doc}`../configuration/index` for the one consequence.
 ```
 
+## What the exit status says
+
+A run ends in one of **three** states, and the exit status distinguishes all three. Two would not be
+enough, for the same reason `freeports-validate check-grants` needs three
+({doc}`freeports-validate`): *everything I read was fine* and *I read everything and it was fine*
+are different sentences.
+
+| Exit | What it means |
+|---|---|
+| `0` | every document of every job was read, and the results were written |
+| `1` | the run produced nothing: an illegal configuration, or no job succeeded |
+| `3` | the results were written, and **not everything was read** — jobs or documents were skipped |
+
+`3` is deliberately the same number `freeports-validate` uses for the same idea. Two commands of one
+suite must not ask you to remember two tables.
+
+### What does *not* raise it
+
+Rows and pages skipped do not. They are contained at their own level, they happen on ordinary runs
+by the dozen — a page whose layout a format does not cover, a row whose value will not parse — and
+they are already summarised in their own end-of-run event and listed one by one in `.log.csv`
+({doc}`../../guides/user/logging`). A run that skipped four hundred rows and read every document it
+was given exits `0`.
+
+The line is drawn at **what was not read at all**: a job that failed produced nothing for any of its
+documents, and a document that would not open produced nothing at all. Those are pieces of the batch
+that are simply absent from the output, and no amount of reading the results would reveal it.
+
+```{note}
+A failing job no longer costs the run. A batch of 904 jobs in which two fail writes the other 902
+and exits `3`; only a run in which *nothing* was produced exits `1` without writing, because nine
+empty tables and nine tables nobody could fill look the same on disk.
+```
+
 ## `--internal-worker`, the one hidden option
 `--internal-worker` exists and is hidden from `--help` on purpose. It is not a user interface but
 the channel between two copies of the same binary: a parent running the jobs of a batch in child

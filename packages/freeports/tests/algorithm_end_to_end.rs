@@ -186,6 +186,28 @@ impl DeserializePipe for ExplodeOnBoom {
     }
 }
 
+/// Come [`ExplodeOnBoom`], ma **panica** invece di restituire un errore.
+///
+/// Sta in piedi per tutta la famiglia di panici che i moduli portati verbatim possono sollevare su
+/// una pagina reale -- un rettangolo con il lato sinistro a destra di quello destro, una cella di
+/// larghezza nulla nel tabularizer, un `NaN` in un confronto -- senza bisogno di una pagina che li
+/// produca davvero.
+struct PanicOnBoom;
+
+impl DeserializePipe for PanicOnBoom {
+    fn name(&self) -> &str {
+        "panic-on-boom"
+    }
+
+    fn deserialize(&self, block: &TextBlock) -> Result<Vec<Extracted>, PipeError> {
+        let content = block.content.as_str().unwrap_or_default();
+        assert!(!content.contains("boom"), "left side of a rectangle can't be bigger than right one");
+        let mut entries = PromiseEntries::new();
+        entries.push("fund_name", block.content.clone());
+        Ok(vec![Extracted::Promises(entries)])
+    }
+}
+
 /// Registra quante target companies e quanti risultati precedenti ha visto, e non produce nulla:
 /// serve a verificare la semantica di `FilterData` attraverso il motore intero.
 struct CountingFilter {
@@ -441,6 +463,54 @@ mod page_containment {
         let algorithm = exploding_algorithm();
         let documents = [document_with_a_doomed_page(), document("clean", "Beta Fund")];
         let outcomes = algorithm.apply_multidocument(&documents, &[]).unwrap();
+
+        assert_eq!(outcomes.len(), 2);
+        assert!(outcomes[1].pages.iter().all(|p| p.results.len() == 1));
+    }
+
+    /// La stessa pagina, la stessa perdita, ma la causa e' un **panico** e non un errore tipizzato.
+    /// E' la categoria di fallimento che nessun `Result` puo' portare, ed e' quella che faceva
+    /// morire l'intera corsa: qui il documento arriva in fondo, e le pagine sane producono.
+    fn panicking_algorithm() -> Algorithm {
+        algorithm_with(KeepType::pipe("keep-rows", BlockType::TABLE_BODY), Arc::new(PanicOnBoom))
+    }
+
+    #[test]
+    fn a_page_that_panics_costs_that_page_and_the_document_still_comes_out() {
+        let outcome = panicking_algorithm()
+            .apply(&document_with_a_doomed_page(), &[])
+            .expect("un panico di pagina non deve raggiungere il job");
+
+        let per_page: Vec<(u32, usize)> =
+            outcome.pages.iter().map(|p| (p.page, p.results.len())).collect();
+        assert_eq!(per_page, vec![(1, 1), (2, 1), (3, 0)]);
+    }
+
+    /// E cio' che le pagine sane avevano promesso si risolve comunque: il panico non porta via
+    /// nemmeno la mappa delle promesse, che e' globale e vive oltre la pagina.
+    #[test]
+    fn what_the_pages_promised_before_the_panic_still_resolves() {
+        let outcome = panicking_algorithm().apply(&document_with_a_doomed_page(), &[]).unwrap();
+
+        let mut promises = PromiseMap::new();
+        for page in &outcome.pages {
+            for result in &page.results {
+                if let Some(entries) = result.as_promises() {
+                    entries.merge_into(&mut promises);
+                }
+            }
+        }
+        let flattened = promises.flatten().unwrap();
+        assert_eq!(
+            flattened.get("fund_name"),
+            Some(&[BlockValue::from("Alpha Fund"), BlockValue::from("Acme Corp")][..])
+        );
+    }
+
+    #[test]
+    fn a_panicking_page_of_one_document_does_not_touch_the_other_documents() {
+        let documents = [document_with_a_doomed_page(), document("clean", "Beta Fund")];
+        let outcomes = panicking_algorithm().apply_multidocument(&documents, &[]).unwrap();
 
         assert_eq!(outcomes.len(), 2);
         assert!(outcomes[1].pages.iter().all(|p| p.results.len() == 1));

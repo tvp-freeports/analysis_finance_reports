@@ -410,29 +410,78 @@ mod a_failing_job {
             .join("\n")
     }
 
-    /// Un job che fallisce deve fallire allo stesso modo comunque sia stato eseguito: stesso esito,
-    /// stesso messaggio. E' cio' che rende il confine di processo invisibile a chi legge stderr.
+    /// Il testo che stderr riporta per un job fallito deve essere lo stesso comunque il job sia
+    /// stato eseguito. E' cio' che rende il confine di processo invisibile a chi legge stderr.
     #[test]
-    fn fails_with_the_same_message_whether_it_ran_sequentially_or_in_a_worker() {
+    fn is_reported_with_the_same_message_whether_it_ran_sequentially_or_in_a_worker() {
         let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-NOPE24")]);
+
+        let (sequential, _) = fixture.run_with(1, "out-sequential", &["-v"]);
+        let (parallel, _) = fixture.run_with(2, "out-parallel", &["-v"]);
+
+        let failure_line = |output: &Output| {
+            String::from_utf8_lossy(&output.stderr)
+                .lines()
+                .find(|line| line.contains("job 1 failed"))
+                .map(|line| line.to_string())
+                .unwrap_or_else(|| panic!("no failure line in:\n{}", String::from_utf8_lossy(&output.stderr)))
+        };
+        assert_eq!(failure_line(&sequential), failure_line(&parallel), "the same failure is reported differently");
+    }
+
+    /// Il punto del piano, misurato da fuori: **un job che fallisce costa i propri risultati e non
+    /// quelli degli altri**. Prima, il primo fallimento usciva prima di `write_results` e buttava
+    /// via anche i job gia' girati -- su un batch vero, 903 job scartati per 1.
+    ///
+    /// L'uscita e' `3`: i risultati sono stati scritti, e non e' stato letto tutto.
+    #[test]
+    fn costs_its_own_results_and_not_those_of_the_other_jobs() {
+        let fixture = Fixture::new(&[("first", "A-NOPE24"), ("second", "A-EN24")]);
+        let (output, out_dir) = fixture.run(2, "out");
+
+        assert_eq!(
+            output.status.code(),
+            Some(3),
+            "written, but not everything was read:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(out_dir.join("investments.csv").is_file(), "the sound job's results must be on disk");
+        assert!(out_dir.join("funds.csv").is_file());
+    }
+
+    /// Lo stesso esito dai due rami: `--workers 1` e `--workers 2` sono la stessa corsa, ed e' la
+    /// proprieta' che `docs/source/reference/design/determinism.md` difende.
+    #[test]
+    fn the_exit_status_is_the_same_sequentially_and_in_workers() {
+        let fixture = Fixture::new(&[("first", "A-NOPE24"), ("second", "A-EN24")]);
 
         let (sequential, _) = fixture.run(1, "out-sequential");
         let (parallel, _) = fixture.run(2, "out-parallel");
 
-        assert!(!sequential.status.success(), "a job with an unknown format must fail");
-        assert!(!parallel.status.success(), "a job with an unknown format must fail in a worker too");
-        assert_eq!(message_of(&sequential), message_of(&parallel), "the same failure is reported differently");
+        assert_eq!(sequential.status.code(), Some(3));
+        assert_eq!(parallel.status.code(), Some(3));
     }
 
-    /// Il `for` sequenziale non scrive nulla quando un job fallisce, perche' `?` propaga prima di
-    /// `write_results`. Il pool deve comportarsi allo stesso modo, anche se i job successivi hanno
-    /// gia' girato.
+    /// Il pavimento: se **nessun** job ha prodotto niente non c'e' nessun risultato parziale da
+    /// salvare, e sei tabelle vuote sono peggio di nessuna tabella. Uscita `1`, col messaggio del
+    /// primo fallimento in ordine di job.
     #[test]
-    fn writes_no_output_at_all_even_when_later_jobs_succeeded() {
-        let fixture = Fixture::new(&[("first", "A-NOPE24"), ("second", "A-EN24")]);
+    fn writes_nothing_and_exits_one_when_no_job_produced_anything() {
+        let fixture = Fixture::new(&[("first", "A-NOPE24"), ("second", "A-ALSO-NOPE24")]);
         let (output, out_dir) = fixture.run(2, "out");
 
-        assert!(!output.status.success());
-        assert!(!out_dir.join("investments.csv").exists(), "results were written despite a failing job");
+        assert_eq!(output.status.code(), Some(1), "a run that produced nothing must fail");
+        assert!(!out_dir.join("investments.csv").exists(), "six empty tables are worse than none");
+        assert!(message_of(&output).contains("A-NOPE24"), "got: {}", message_of(&output));
+    }
+
+    /// E una corsa in cui tutto e' andato bene esce con `0`: il `3` deve distinguere, non allarmare.
+    #[test]
+    fn a_run_in_which_every_job_worked_still_exits_zero() {
+        let fixture = Fixture::new(&[("first", "A-EN24"), ("second", "A-EN24")]);
+        let (output, out_dir) = fixture.run(2, "out");
+
+        assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8_lossy(&output.stderr));
+        assert!(out_dir.join("investments.csv").is_file());
     }
 }

@@ -24,7 +24,7 @@ use crate::cli::conf_parse::DocumentSpec;
 use crate::cli::freeports_config::FreeportsConfig;
 use crate::core::algorithm::{Algorithm, AlgorithmError, DocumentOutcome};
 use crate::core::parallelism::Parallelism;
-use crate::core::page::FormatName;
+use crate::core::page::{Document, FormatName};
 use crate::formats_repo::LoadError;
 use crate::input::companies_db::{CompileTargetCompaniesError, compile_target_companies};
 use crate::input::document::{DocumentError, load_document};
@@ -49,6 +49,15 @@ pub enum JobError {
     /// No formats repository path: there is nothing to load the algorithm from.
     #[error("no formats_repo_path was configured")]
     MissingFormatsRepoPath,
+    /// Every document of the job failed to resolve or to load.
+    ///
+    /// A document that cannot be read costs that document and no other — see [`run_impl`] — but
+    /// when there is no document left, there is nothing smaller than the job that contains the
+    /// failure, and the job is where it belongs. The alternative would be a job reported as
+    /// successful with zero results, indistinguishable from one that read everything and found
+    /// nothing.
+    #[error("none of the {count} documents of this job could be read")]
+    NoDocumentReadable { count: usize },
 }
 
 /// A unique path under the system's temporary directory for a downloaded document whose spec named
@@ -105,9 +114,37 @@ pub fn run(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Doc
     result
 }
 
+/// Resolves one document spec and loads it, recording a temporary download so the caller can clean
+/// it up afterwards.
+///
+/// Split out of [`run_impl`] so that the two fallible steps of a single document have one `?`-using
+/// body and one place to be caught, rather than two matches inlined in the loop.
+fn resolve_and_load(
+    spec: &DocumentSpec,
+    id: String,
+    config: &FreeportsConfig,
+    temp_files: &mut Vec<PathBuf>,
+) -> Result<Document, JobError> {
+    let (path, is_temp) = resolve_document_path(spec)?;
+    // Recorded before the load, not after: a download that succeeded and a document that then
+    // failed to open still left a file behind, and it is still this job's to remove.
+    if is_temp {
+        temp_files.push(path.clone());
+    }
+    Ok(load_document(&path, id, config.format.clone(), true)?)
+}
+
 /// One algorithm load for the whole job, however many documents it covers: resolve each document
 /// spec, load each document, compile the target companies — skipped when no target lists were given
 /// — and apply the algorithm across them all.
+///
+/// # What costs what
+///
+/// A document that will not resolve or will not open costs **that document**: it is logged, counted
+/// and left out, and the job goes on with the others. Everything else here is configuration rather
+/// than data — a missing formats repository, an algorithm that will not load, target companies that
+/// will not compile — and belongs to the job, because no document contains it. A job in which *no*
+/// document could be read is [`JobError::NoDocumentReadable`], for the reason given there.
 fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<DocumentOutcome>, JobError> {
     // Not logged here: `JobError::MissingFormatsRepoPath` relies solely on `run`'s outer wrapper
     // for its one log line, same as every other `JobError` variant.
@@ -116,6 +153,7 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
 
     let mut documents = Vec::with_capacity(config.reports.len());
     let mut temp_files = Vec::new();
+    let mut skipped_documents = 0usize;
     for spec in &config.reports {
         let id = spec.name.clone().unwrap_or_default();
         // Opened here, at the point where the job dispatches per-document work (not inside
@@ -127,12 +165,30 @@ fn run_impl(config: &FreeportsConfig, parallelism: Parallelism) -> Result<Vec<Do
         let doc_span = tracing::info_span!("document", report = %id);
         let _doc_guard = doc_span.enter();
 
-        let (path, is_temp) = resolve_document_path(spec)?;
-        if is_temp {
-            temp_files.push(path.clone());
+        // A document that will not resolve or will not open costs **that document**, not the job:
+        // the others of a multi-document job are readable and there is no reason they should not be
+        // read. The span above already carries the document, so it fills the `Report` column of the
+        // `.log.csv` without the event having to name it.
+        match resolve_and_load(spec, id, config, &mut temp_files) {
+            Ok(document) => documents.push(document),
+            Err(error) => {
+                tracing::error!(error = log_error(&error), "document skipped: {error}");
+                skipped_documents += 1;
+            }
         }
-        let document = load_document(&path, id, config.format.clone(), true)?;
-        documents.push(document);
+    }
+    // One event per job, not per document: each skipped document already said so where it happened.
+    // Same shape and same reason as the `skipped` pages of `apply_multidocument_with` — whoever
+    // watches only stderr must not finish a job believing everything was read.
+    if skipped_documents > 0 {
+        tracing::warn!(
+            skipped_documents,
+            "some documents could not be read and were left out of this job's results"
+        );
+    }
+    // Not a job that succeeded with nothing in it: see `JobError::NoDocumentReadable`.
+    if documents.is_empty() && !config.reports.is_empty() {
+        return Err(JobError::NoDocumentReadable { count: config.reports.len() });
     }
 
     // An absent input database path is treated as "no target companies available", never an error.
@@ -390,6 +446,121 @@ mod tests {
 
             let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("an empty target list must not prevent the job from running");
             assert_eq!(outcomes.len(), 1);
+        }
+
+        /// A document that will not open costs that document, not the job. Before, the `?` on the
+        /// load meant a single unreadable file in a multi-document job threw away every other
+        /// document of that job as well — documents that were perfectly readable and had already
+        /// been named in the configuration.
+        mod document_containment {
+            use super::*;
+            use pretty_assertions::assert_eq;
+
+            /// A file that exists and is not a PDF: the shape PyMuPDF refuses, which is what a
+            /// truncated download or a mislabelled file really looks like.
+            fn unreadable(path: &std::path::Path) -> std::path::PathBuf {
+                std::fs::write(path, b"this is not a PDF at all").unwrap();
+                path.to_path_buf()
+            }
+
+            #[test]
+            fn an_unreadable_document_does_not_cost_the_readable_ones() {
+                let dir = tempfile::tempdir().unwrap();
+                let repo = MinimalRepo::build();
+                let good = dir.path().join("good.pdf");
+                build_pdf(&good);
+                let bad = unreadable(&dir.path().join("bad.pdf"));
+
+                let reports = vec![
+                    DocumentSpec { url: None, path: Some(bad), name: Some("Broken".to_string()) },
+                    DocumentSpec { url: None, path: Some(good), name: Some("Sound".to_string()) },
+                ];
+                let config = config_for(dir.path(), &repo, reports);
+
+                let outcomes = run(&config, Parallelism::SEQUENTIAL)
+                    .expect("one unreadable document must not fail the job");
+                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["Sound"]);
+            }
+
+            /// The order is the configuration's, whichever document fails: the sound one is kept
+            /// where it was, not moved to the front by the removal of the other.
+            #[test]
+            fn the_surviving_documents_keep_their_order() {
+                let dir = tempfile::tempdir().unwrap();
+                let repo = MinimalRepo::build();
+                let first = dir.path().join("first.pdf");
+                let last = dir.path().join("last.pdf");
+                build_pdf(&first);
+                build_pdf(&last);
+                let bad = unreadable(&dir.path().join("middle.pdf"));
+
+                let reports = vec![
+                    DocumentSpec { url: None, path: Some(first), name: Some("First".to_string()) },
+                    DocumentSpec { url: None, path: Some(bad), name: Some("Middle".to_string()) },
+                    DocumentSpec { url: None, path: Some(last), name: Some("Last".to_string()) },
+                ];
+                let config = config_for(dir.path(), &repo, reports);
+
+                let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("contained");
+                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["First", "Last"]);
+            }
+
+            /// A download that fails is the same kind of loss as a file that will not open, and is
+            /// contained the same way. The port is closed, so the request cannot succeed.
+            #[test]
+            fn a_document_that_cannot_be_downloaded_is_skipped_like_one_that_cannot_be_opened() {
+                let dir = tempfile::tempdir().unwrap();
+                let repo = MinimalRepo::build();
+                let good = dir.path().join("good.pdf");
+                build_pdf(&good);
+
+                // Bound and dropped: the port is known to be free, so nothing answers on it.
+                let closed = {
+                    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+                    listener.local_addr().unwrap()
+                };
+                let reports = vec![
+                    DocumentSpec {
+                        url: Some(format!("http://{closed}/missing.pdf")),
+                        path: Some(dir.path().join("never_arrives.pdf")),
+                        name: Some("Unreachable".to_string()),
+                    },
+                    DocumentSpec { url: None, path: Some(good), name: Some("Sound".to_string()) },
+                ];
+                let config = config_for(dir.path(), &repo, reports);
+
+                let outcomes = run(&config, Parallelism::SEQUENTIAL).expect("contained");
+                assert_eq!(outcomes.iter().map(|o| o.id.as_str()).collect::<Vec<_>>(), vec!["Sound"]);
+            }
+
+            /// And the floor: a job in which nothing could be read is a **failed job**, not a
+            /// successful one with zero results. Nothing smaller than the job contains that, and
+            /// the run level above takes it from here.
+            #[test]
+            fn a_job_in_which_no_document_can_be_read_is_a_failed_job() {
+                let dir = tempfile::tempdir().unwrap();
+                let repo = MinimalRepo::build();
+                let reports = vec![
+                    DocumentSpec { url: None, path: Some(unreadable(&dir.path().join("a.pdf"))), name: Some("A".to_string()) },
+                    DocumentSpec { url: None, path: Some(unreadable(&dir.path().join("b.pdf"))), name: Some("B".to_string()) },
+                ];
+                let config = config_for(dir.path(), &repo, reports);
+
+                match run(&config, Parallelism::SEQUENTIAL) {
+                    Err(JobError::NoDocumentReadable { count }) => assert_eq!(count, 2),
+                    other => panic!("expected NoDocumentReadable, found {other:?}"),
+                }
+            }
+
+            /// A job that names no document at all is not the same thing, and stays what it was: a
+            /// run of nothing, which the configuration layer allows and which produces nothing.
+            #[test]
+            fn a_job_with_no_documents_at_all_is_still_not_a_failure() {
+                let dir = tempfile::tempdir().unwrap();
+                let repo = MinimalRepo::build();
+                let config = config_for(dir.path(), &repo, vec![]);
+                assert!(run(&config, Parallelism::SEQUENTIAL).expect("no documents is not a failure").is_empty());
+            }
         }
     }
 }

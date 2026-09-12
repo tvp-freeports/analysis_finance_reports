@@ -23,7 +23,9 @@ use std::ops::{BitAnd, BitOr, Div};
 
 use ordered_float::OrderedFloat;
 
+use crate::commons::geometry::RectangleBuildError;
 use crate::commons::sets::{Container, SetOps};
+use crate::core::tracing_setup::log_error;
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 use crate::formats_utils::pdf_extract::relative::{OptionallyRelative, RelativeInfo};
 
@@ -309,13 +311,55 @@ impl RelativeInfo<FontSizeInterval> for RelativeFontSizeInterval {
         }
         matched
             .into_iter()
-            .map(|l| {
+            .filter_map(|l| {
                 let fs = *l.font_size();
                 let a = max(OrderedFloat(0.0), OrderedFloat(fs - 1e-4)).into_inner();
-                FontSizeInterval::new(a, fs + 1e-4)
+                // `build`, not `new`: the bounds come from a font size read off this page, so a
+                // degenerate interval is a fact about the document rather than a bug here. It
+                // happens for a size of exactly zero, where the clamp at zero makes both bounds
+                // collapse onto the same tiny interval. The line is dropped from the set; the
+                // selection keeps whatever the other matched lines contribute.
+                match FontSizeInterval::build(a, fs + 1e-4) {
+                    Ok(interval) => Some(interval),
+                    Err(error) => {
+                        tracing::warn!(
+                            font_size = fs,
+                            error = log_error(&error),
+                            "degenerate font-size window from a line of this page - line dropped from the selection: {error}"
+                        );
+                        None
+                    }
+                }
             })
             .reduce(|a, b| a | b)
             .unwrap_or(FontSizeInterval::empty())
+    }
+}
+
+/// A window whose sides came out degenerate or inverted resolves to the **empty area**, and says so
+/// once, naming the four sides.
+///
+/// The empty set is not an invented fallback: it is already the answer these same functions give
+/// when a side's selection matches no line at all, and it is the right reading — a degenerate window
+/// selects nothing. What follows is what already follows from an empty selection: the pipe that
+/// wanted a block does not find one and fails as a page failure, which costs this page and no more.
+/// This event is what that failure cannot say — that the window itself was impossible, and with
+/// which numbers.
+fn degenerate_is_empty(built: Result<Area, RectangleBuildError>, variant: &str, sides: (f32, f32, f32, f32)) -> Option<Area> {
+    match built {
+        Ok(area) => Some(area),
+        Err(error) => {
+            let (left, up, right, bottom) = sides;
+            tracing::warn!(
+                left,
+                up,
+                right,
+                bottom,
+                error = log_error(&error),
+                "RelativeArea::{variant}: degenerate window from this page, resolved to an empty area: {error}"
+            );
+            None
+        }
     }
 }
 
@@ -349,10 +393,18 @@ impl RelativeArea {
             tracing::trace!("RelativeArea::MoveWindow: target selection matched no line, resolved to an empty area");
         }
         anchor
-            .map(|(x0, y0, x1, y1)| {
+            .and_then(|(x0, y0, x1, y1)| {
                 let w = x1 - x0;
                 let h = y1 - y0;
-                Area::new(x0 + x * w, y0 + y * h, x0 + (width_mult + x) * w, y0 + (height_mult + y) * h)
+                // `build`, not `new`: the window is derived from the bounding box of a line of this
+                // page and from multipliers written in a format, so a non-positive multiplier or a
+                // degenerate box makes it collapse or invert. Same answer as an anchor that matched
+                // nothing, below: a degenerate window selects nothing.
+                degenerate_is_empty(
+                    Area::build(x0 + x * w, y0 + y * h, x0 + (width_mult + x) * w, y0 + (height_mult + y) * h),
+                    "MoveWindow",
+                    (x0 + x * w, y0 + y * h, x0 + (width_mult + x) * w, y0 + (height_mult + y) * h),
+                )
             })
             .unwrap_or(Area::empty())
     }
@@ -415,7 +467,16 @@ impl RelativeArea {
                 }
             }
         };
-        Area::new(left, up, right, bottom)
+        // `build`, not `new`. Each of the four sides is either an absolute value or **the
+        // coordinate of a line found on this page**, and nothing makes the four consistent with one
+        // another: if the line anchoring the left side sits, on this page, to the right of the line
+        // anchoring the right one, the rectangle comes out inverted. That is a fact about the
+        // document, not a bug in the engine — and it is what used to abort the whole run.
+        //
+        // The `0.0` / `10e+6` fallbacks above make it likelier rather than rarer, by mixing a real
+        // coordinate with an invented extreme.
+        degenerate_is_empty(Area::build(left, up, right, bottom), "Bounds", (left, up, right, bottom))
+            .unwrap_or(Area::empty())
     }
     fn contextualize_selection(lines: &[PdfLine], set: PdfLineSelection) -> Area {
         let line_set = set.contextualize(lines);
@@ -668,6 +729,138 @@ mod tests {
         fn matches_expected_area(ra: RelativeArea, expected: Area) {
             let a = ra.contextualize(&LINES);
             assert_eq!(a.atoms(), expected.atoms());
+        }
+    }
+
+    /// A window whose sides come out inverted or degenerate is a fact about the page, not a bug in
+    /// the engine: nothing makes the four sides of a `Bounds` consistent with one another, since
+    /// each is either an absolute value or a coordinate of whatever line its own sub-selection found
+    /// here. Every case below used to abort the process, and the last one aborted a real batch of
+    /// 904 jobs.
+    ///
+    /// The answer is the **empty area**, which is already what these same functions return when a
+    /// side's selection matches no line: a degenerate window selects nothing.
+    mod degenerate_windows {
+        use super::*;
+
+        /// A page built for this module alone, with the two anchors in the *wrong* order along x:
+        /// the line anchoring the left side sits to the right of the line anchoring the right one.
+        /// The coordinates are the ones the FINECO IR document really had.
+        static CROSSED: LazyLock<Vec<PdfLine>> = LazyLock::new(|| {
+            vec![
+                PdfLine::new("Arial", 10.0, "RIGHT ANCHOR", (300.0, 50.0, 372.94, 60.0)),
+                PdfLine::new("Arial", 10.0, "LEFT ANCHOR", (545.528_26, 50.0, 600.0, 60.0)),
+                PdfLine::new("Arial", 10.0, "ABOVE", (10.0, 10.0, 100.0, 20.0)),
+                PdfLine::new("Arial", 10.0, "BELOW", (10.0, 80.0, 100.0, 90.0)),
+            ]
+        });
+
+        fn anchored_at(text: &str) -> OptRel<f32, PdfLineSelection> {
+            Relative(PdfLineSelection::from_text(Absolute(TextSet::new(&format!("^{text}$")))))
+        }
+
+        /// The reproduction of the panic of `PLAN-run-completes-and-panic-containment.md` §1: left
+        /// side taken from "LEFT ANCHOR" (right edge 600.0, so the *left* side lands at 600.0 —
+        /// the function reads the anchor's right edge), right side from "RIGHT ANCHOR" (left edge
+        /// 300.0). Left beyond right, and the engine used to die on it.
+        #[test]
+        fn bounds_with_the_left_anchor_to_the_right_of_the_right_one_is_empty() {
+            let area = RelativeArea::from_bounds(
+                anchored_at("LEFT ANCHOR"),
+                Absolute(0.0),
+                anchored_at("RIGHT ANCHOR"),
+                Absolute(100.0),
+            )
+            .contextualize(&CROSSED);
+            assert!(area.atoms().is_empty(), "a window with no inside selects nothing, found {area:?}");
+        }
+
+        /// The same defect on the other axis: the top side taken from a line *below* the one the
+        /// bottom side is taken from.
+        #[test]
+        fn bounds_with_the_top_anchor_below_the_bottom_one_is_empty() {
+            let area = RelativeArea::from_bounds(
+                Absolute(0.0),
+                anchored_at("BELOW"),
+                Absolute(1000.0),
+                anchored_at("ABOVE"),
+            )
+            .contextualize(&CROSSED);
+            assert!(area.atoms().is_empty(), "a window with no inside selects nothing, found {area:?}");
+        }
+
+        /// Not only inversion: a window of exactly zero width is degenerate too, and bounds are
+        /// strict. Both sides anchored to the same line give it.
+        #[test]
+        fn bounds_collapsing_onto_a_single_x_is_empty() {
+            let lines = vec![PdfLine::new("Arial", 10.0, "ANCHOR", (100.0, 10.0, 100.0 + 1.0, 20.0))];
+            let area = RelativeArea::from_bounds(
+                Absolute(101.0),
+                Absolute(0.0),
+                Relative(PdfLineSelection::from_text(Absolute(TextSet::new("^ANCHOR$")))),
+                Absolute(100.0),
+            )
+            .contextualize(&lines);
+            assert!(area.atoms().is_empty(), "a zero-width window selects nothing, found {area:?}");
+        }
+
+        /// `MoveWindow` scales the anchor's box by two multipliers written in the format. A
+        /// non-positive multiplier collapses or inverts the window, and that is a defect in the
+        /// format, reported the same way rather than fatal.
+        #[test]
+        fn a_move_window_with_a_non_positive_width_multiplier_is_empty() {
+            let area = RelativeArea::from_movewindow(
+                PdfLineSelection::from_text(Absolute(TextSet::new("^ABOVE$"))),
+                (0.0, 0.0),
+                -1.0,
+                1.0,
+            )
+            .contextualize(&CROSSED);
+            assert!(area.atoms().is_empty(), "an inverted window selects nothing, found {area:?}");
+        }
+
+        #[test]
+        fn a_move_window_with_a_zero_height_multiplier_is_empty() {
+            let area = RelativeArea::from_movewindow(
+                PdfLineSelection::from_text(Absolute(TextSet::new("^ABOVE$"))),
+                (0.0, 0.0),
+                1.0,
+                0.0,
+            )
+            .contextualize(&CROSSED);
+            assert!(area.atoms().is_empty(), "a zero-height window selects nothing, found {area:?}");
+        }
+
+        /// A degenerate window must cost only itself: the anchors of a *sound* window on the same
+        /// page still resolve, so one bad selection in a pipe does not empty the others.
+        #[test]
+        fn a_sound_window_on_the_same_page_is_unaffected() {
+            let area = RelativeArea::from_bounds(
+                anchored_at("RIGHT ANCHOR"),
+                Absolute(0.0),
+                anchored_at("LEFT ANCHOR"),
+                Absolute(100.0),
+            )
+            .contextualize(&CROSSED);
+            assert_eq!(area.atoms(), Area::new(372.94, 0.0, 545.528_26, 100.0).atoms());
+        }
+
+        /// The font-size counterpart. The window around a matched line's size is `size ± 1e-4`, and
+        /// past a few thousand points `1e-4` is smaller than the spacing between two consecutive
+        /// `f32`s: both bounds round onto the same value and the interval is degenerate. A size that
+        /// large is absurd on a real page and perfectly possible in a malformed PDF, which is the
+        /// whole point. That line drops out of the set and the others still contribute.
+        #[test]
+        fn a_font_size_too_large_for_the_window_drops_only_its_own_line() {
+            let lines = vec![
+                PdfLine::new("Arial", 10_000.0, "absurd", (10.0, 10.0, 20.0, 20.0)),
+                PdfLine::new("Arial", 10.0, "visible", (10.0, 30.0, 20.0, 40.0)),
+            ];
+            let interval = RelativeFontSizeInterval::Select(Box::new(PdfLineSelection::from_font(Absolute(
+                FontSet::new("Arial"),
+            ))))
+            .contextualize(&lines);
+            assert_eq!(interval.atoms(), FontSizeInterval::new(10.0 - 1e-4, 10.0 + 1e-4).atoms());
         }
     }
 

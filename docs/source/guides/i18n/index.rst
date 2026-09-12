@@ -24,8 +24,8 @@ The loop, from the repository root:
 .. code-block:: console
 
     make i18n-extract   # extract the translatable strings from the current sources
-    make i18n-prune     # drop catalogues whose page no longer exists
     make i18n-update    # merge the extracted strings into the .po files
+    make i18n-prune     # drop the catalogues nobody should be translating
     make i18n-stat      # how far each language has got, page by page
     make i18n-build     # compile .po into .mo
 
@@ -61,8 +61,22 @@ translator can spend an afternoon on a page nobody will ever build. Reorganising
 these by the dozen, which is why removing them is a step of the loop rather than an occasional
 chore.
 
-It compares the catalogues against ``docs/build/gettext``, so run it after ``i18n-extract`` and not
-before: only an extraction from the current sources can say which pages exist.
+It compares the catalogues against ``docs/build/gettext``, so it has to come after
+``i18n-extract``: only an extraction from the current sources can say which pages exist.
+
+It also has to come **after** ``i18n-update``, which is the half of the order that is easy to get
+wrong. ``sphinx-intl update`` creates a ``.po`` for every ``.pot`` it finds, so a prune run before it
+has everything below undone one step later. The orphan half survives either order — an orphan has no
+``.pot``, so nothing recreates it — which is precisely why the wrong order looks like it worked.
+
+It also removes the catalogues of the pages **a command writes** — ``generated/`` and
+``dev/ci-report/``, named in ``GENERATED_PAGES`` in ``mk/docs.mk``. Those pages are rewritten at
+every run, so a translation of one would be stale before the commit translating it landed; and the
+CI report in particular repeats the same cell text down a column, which Sphinx extracts as
+**duplicate message definitions**. ``sphinx-intl`` tolerates those, but GNU ``msgfmt`` refuses such
+a file outright and so does Poedit — so leaving them in the tree hands a translator three files
+their tools will not open, describing pages nobody wants translated. With them gone,
+``make i18n-stat`` counts only what a person can actually translate.
 
 What is translated so far
 -------------------------

@@ -21,1186 +21,1448 @@ msgstr ""
 
 #: ../../source/reference/cli/freeports-validate.md:1
 msgid "`freeports-validate`"
-msgstr ""
+msgstr "`freeports-validate`"
 
 #: ../../source/reference/cli/freeports-validate.md:3
 #, python-brace-format
 msgid ""
-"Everything this command does revolves around one file: your **validation "
-"document**, a YAML file at `<repo>/validation/<your_name>.yaml`, signed "
-"by your GPG key. {doc}`../../guides/institutional/why-trust-a-grant` "
-"explains why the mechanism is shaped this way; this section is how to "
-"operate it."
+"Everything this command does revolves around one file: your **validation document**, "
+"a YAML file at `<repo>/validation/<your_name>.yaml`, signed by your GPG key. "
+"{doc}`../../guides/institutional/why-trust-a-grant` explains why the mechanism is "
+"shaped this way; this section is how to operate it."
 msgstr ""
+"Tutto ciò che questo comando fa ruota attorno a un file solo: il tuo **documento di "
+"validazione**, un file YAML in `<repo>/validation/<tuo_nome>.yaml`, firmato con la "
+"tua chiave GPG. {doc}`../../guides/institutional/why-trust-a-grant` spiega perché il "
+"meccanismo abbia questa forma; questa sezione è come usarlo."
 
 #: ../../source/reference/cli/freeports-validate.md:7
 msgid "What `freeports-validate` needs installed"
-msgstr ""
+msgstr "Che cosa richiede installato `freeports-validate`"
 
 #: ../../source/reference/cli/freeports-validate.md:8
 msgid ""
-"Unlike `freeports-dev`, this tool is a set of shell scripts, so it "
-"depends on **programs**. Two of them are Python packages and are "
-"installed with it; the rest must come from your system:"
+"Unlike `freeports-dev`, this tool is a set of shell scripts, so it depends on "
+"**programs**. Two of them are Python packages and are installed with it; the rest "
+"must come from your system:"
 msgstr ""
+"A differenza di `freeports-dev`, questo strumento è un insieme di script di shell, "
+"quindi dipende da **programmi**. Due di essi sono pacchetti Python e si installano "
+"con lui; gli altri devono venire dal tuo sistema:"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "Program"
-msgstr ""
+msgstr "Programma"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "Used for"
-msgstr ""
+msgstr "Serve a"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "Comes from"
-msgstr ""
+msgstr "Viene da"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`yq`"
-msgstr ""
+msgstr "`yq`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "every read and write of the YAML document"
-msgstr ""
+msgstr "ogni lettura e scrittura del documento YAML"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "installed with `freeports-validate`"
-msgstr ""
+msgstr "installato con `freeports-validate`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`check-jsonschema`"
-msgstr ""
+msgstr "`check-jsonschema`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "validating the document against its schema"
-msgstr ""
+msgstr "validare il documento contro il proprio schema"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`jq`"
-msgstr ""
+msgstr "`jq`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`yq` shells out to it — it *is* the expression engine"
-msgstr ""
+msgstr "`yq` si appoggia a lui — *è* il motore delle espressioni"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "your system's package manager"
-msgstr ""
+msgstr "il gestore di pacchetti del tuo sistema"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`curl`"
-msgstr ""
+msgstr "`curl`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "fetching a methodology page from the source it is published at"
-msgstr ""
+msgstr "scaricare una pagina di metodologia dalla sorgente in cui è pubblicata"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`gpg`"
-msgstr ""
+msgstr "`gpg`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "signing and verifying, and as the source of your identity"
-msgstr ""
+msgstr "firmare e verificare, ed essere la sorgente della tua identità"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "GnuPG 2"
-msgstr ""
+msgstr "GnuPG 2"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`sha256sum`, `realpath`"
-msgstr ""
+msgstr "`sha256sum`, `realpath`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "content hashes and repository-relative paths"
-msgstr ""
+msgstr "gli hash del contenuto e i percorsi relativi al repository"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "GNU coreutils"
-msgstr ""
+msgstr "GNU coreutils"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`freeports`"
-msgstr ""
+msgstr "`freeports`"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "**optional** — only to read settings from the configuration file"
-msgstr ""
+msgstr "**facoltativo** — solo per leggere le impostazioni dal file di configurazione"
 
 #: ../../source/reference/cli/freeports-validate.md
 msgid "`pip install 'freeports-validate[config]'`"
-msgstr ""
+msgstr "`pip install 'freeports-validate[config]'`"
 
 #: ../../source/reference/cli/freeports-validate.md:22
-msgid ""
-"**Two unrelated programs are called `yq`, and this project needs a "
-"specific one.**"
+msgid "**Two unrelated programs are called `yq`, and this project needs a specific one.**"
 msgstr ""
+"**Ci sono due programmi senza rapporto fra loro che si chiamano `yq`, e a questo "
+"progetto ne serve uno preciso.**"
 
 #: ../../source/reference/cli/freeports-validate.md:29
 msgid ""
-"They are not forks of one another; they collided on a name. Distributions"
-" disagree about which one `yq` means, so if the signing commands fail "
-"with messages about undefined functions, check what you have:"
+"They are not forks of one another; they collided on a name. Distributions disagree "
+"about which one `yq` means, so if the signing commands fail with messages about "
+"undefined functions, check what you have:"
 msgstr ""
+"Non sono l'uno il fork dell'altro; si sono scontrati su un nome. Le distribuzioni non"
+" sono d'accordo su quale dei due significhi `yq`, quindi se i comandi di firma "
+"falliscono con messaggi su funzioni non definite, controlla che cosa hai:"
 
 #: ../../source/reference/cli/freeports-validate.md:37
 msgid ""
-"Installing `freeports-validate` pulls in the right one. It is also why "
-"the filters in these scripts are plain jq: the signature is computed over"
-" `yq -y -S 'del(.sign)'`, and `-S` is **jq's own** recursive key sort — "
-"an implementation detail that has to be identical for everyone, or one "
-"person's signature cannot be verified by another."
+"Installing `freeports-validate` pulls in the right one. It is also why the filters in"
+" these scripts are plain jq: the signature is computed over `yq -y -S 'del(.sign)'`, "
+"and `-S` is **jq's own** recursive key sort — an implementation detail that has to be"
+" identical for everyone, or one person's signature cannot be verified by another."
 msgstr ""
+"Installare `freeports-validate` tira dentro quello giusto. È anche il motivo per cui "
+"i filtri di questi script sono jq puro: la firma è calcolata su `yq -y -S "
+"'del(.sign)'`, e `-S` è l'ordinamento ricorsivo delle chiavi **proprio di jq** — un "
+"dettaglio di realizzazione che dev'essere identico per tutti, altrimenti la firma di "
+"una persona non si può verificare da un'altra."
 
 #: ../../source/reference/cli/freeports-validate.md:43
 msgid "Prerequisite: the OpenPGP key"
-msgstr ""
+msgstr "Prerequisito: la chiave OpenPGP"
 
 #: ../../source/reference/cli/freeports-validate.md:45
 msgid ""
-"The tool has no user accounts. **Your key is your identity**, and the "
-"name and email written into your validation document are read out of the "
-"key's user ID — not typed in, and therefore not something you can get "
-"wrong in one place and right in another."
+"The tool has no user accounts. **Your key is your identity**, and the name and email "
+"written into your validation document are read out of the key's user ID — not typed "
+"in, and therefore not something you can get wrong in one place and right in another."
 msgstr ""
+"Lo strumento non ha account utente. **La tua chiave è la tua identità**, e il nome e "
+"l'indirizzo di posta scritti nel tuo documento di validazione sono letti dallo user "
+"ID della chiave — non digitati, e quindi non qualcosa che puoi sbagliare in un posto "
+"e azzeccare in un altro."
 
 #: ../../source/reference/cli/freeports-validate.md:49
 msgid ""
-"That is also the limit of what a key is for here. It says who is "
-"*speaking*, so it is asked for by the subcommands that speak in your "
-"name, and by nothing else:"
+"That is also the limit of what a key is for here. It says who is *speaking*, so it is"
+" asked for by the subcommands that speak in your name, and by nothing else:"
 msgstr ""
+"È anche il limite di ciò a cui serve qui una chiave. Dice chi *sta parlando*, quindi "
+"la chiedono i sottocomandi che parlano a tuo nome, e nient'altro:"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "Subcommand"
-msgstr ""
+msgstr "Sottocomando"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "Needs a key"
-msgstr ""
+msgstr "Richiede una chiave"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "Because"
-msgstr ""
+msgstr "Perché"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "`create-document`, `grant`, `ungrant`, `update`, `sign-document`"
-msgstr ""
+msgstr "`create-document`, `grant`, `ungrant`, `update`, `sign-document`"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "**yes**"
-msgstr ""
+msgstr "**sì**"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "each writes, or signs, the one document that belongs to you"
-msgstr ""
+msgstr "ciascuno scrive, o firma, l'unico documento che ti appartiene"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "`check-grants` with no argument"
-msgstr ""
+msgstr "`check-grants` senza argomenti"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "optional"
-msgstr ""
+msgstr "facoltativa"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid ""
-"with a key it checks *your* document; without one there is nothing that "
-"is yours, so it checks **every** document in `validation/`"
+"with a key it checks *your* document; without one there is nothing that is yours, so "
+"it checks **every** document in `validation/`"
 msgstr ""
+"con una chiave controlla il *tuo* documento; senza, non c'è niente che sia tuo, "
+"quindi controlla **ogni** documento in `validation/`"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "`check-grants <document>`, `who-grants`, `granted-by`, `granted-with`"
-msgstr ""
+msgstr "`check-grants <documento>`, `who-grants`, `granted-by`, `granted-with`"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "**no**"
-msgstr ""
+msgstr "**no**"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid ""
-"they verify signed files against your keyring — a question about other "
-"people, not about you"
+"they verify signed files against your keyring — a question about other people, not "
+"about you"
 msgstr ""
+"verificano file firmati contro il tuo portachiavi — una domanda su altre persone, non"
+" su di te"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "`sources`, `check-methodology`, `collect`, `report`"
-msgstr ""
+msgstr "`sources`, `check-methodology`, `collect`, `report`"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid ""
-"they ask what your configuration resolves, what a page says, and what the"
-" repository has been vouched for. None of that is done in anybody's name"
+"they ask what your configuration resolves, what a page says, and what the repository "
+"has been vouched for. None of that is done in anybody's name"
 msgstr ""
+"chiedono che cosa risolva la tua configurazione, che cosa dica una pagina, e di che "
+"cosa si sia risposto nel repository. Niente di ciò si fa a nome di qualcuno"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid "`refresh-links`"
-msgstr ""
+msgstr "`refresh-links`"
 
 #: ../../source/reference/cli/freeports-validate.md:21
 msgid ""
-"it rewrites a local page's pins. That page is not signed; the documents "
-"that pin *it* are, and they are somebody else's"
+"it rewrites a local page's pins. That page is not signed; the documents that pin *it*"
+" are, and they are somebody else's"
 msgstr ""
+"riscrive i riferimenti fissati di una pagina locale. Quella pagina non è firmata; lo "
+"sono i documenti che fissano *lei*, e sono di qualcun altro"
 
 #: ../../source/reference/cli/freeports-validate.md:60
 msgid ""
-"So reading what others have vouched for needs no key of your own. That is"
-" what lets `check-grants` run in continuous integration, and lets anyone "
-"audit a repository they did not write."
+"So reading what others have vouched for needs no key of your own. That is what lets "
+"`check-grants` run in continuous integration, and lets anyone audit a repository they"
+" did not write."
 msgstr ""
+"Leggere di che cosa altri hanno risposto non richiede perciò una chiave tua. È ciò "
+"che permette a `check-grants` di girare nell'integrazione continua, e a chiunque di "
+"revisionare un repository che non ha scritto."
 
 #: ../../source/reference/cli/freeports-validate.md:64
 msgid ""
-"**`gpg` or `gpg2`?** The scripts call `gpg`, and what they need is "
-"**GnuPG 2**. Since GnuPG 2.2 the `gpg` command *is* version 2 and `gpg2` "
-"survives as an alias for it, so on a current system `gpg --version` "
-"reporting `2.x` is all you have to check. Where `gpg` is still GnuPG 1.4,"
-" install GnuPG 2 and make `gpg` resolve to it — through your "
-"distribution's alternatives mechanism or a `PATH` entry. Pointing the "
-"tool at `gpg2` instead is not an option: the name is written into the "
-"scripts."
+"**`gpg` or `gpg2`?** The scripts call `gpg`, and what they need is **GnuPG 2**. Since"
+" GnuPG 2.2 the `gpg` command *is* version 2 and `gpg2` survives as an alias for it, "
+"so on a current system `gpg --version` reporting `2.x` is all you have to check. "
+"Where `gpg` is still GnuPG 1.4, install GnuPG 2 and make `gpg` resolve to it — "
+"through your distribution's alternatives mechanism or a `PATH` entry. Pointing the "
+"tool at `gpg2` instead is not an option: the name is written into the scripts."
 msgstr ""
+"**`gpg` oppure `gpg2`?** Gli script chiamano `gpg`, e ciò di cui hanno bisogno è "
+"**GnuPG 2**. Da GnuPG 2.2 il comando `gpg` *è* la versione 2 e `gpg2` sopravvive come"
+" suo alias, quindi su un sistema attuale basta controllare che `gpg --version` "
+"riferisca `2.x`. Dove `gpg` è ancora GnuPG 1.4, installa GnuPG 2 e fa' in modo che "
+"`gpg` si risolva su di esso — tramite il meccanismo delle alternative della tua "
+"distribuzione o una voce di `PATH`. Puntare invece lo strumento a `gpg2` non è "
+"un'opzione: il nome è scritto dentro gli script."
 
 #: ../../source/reference/cli/freeports-validate.md:71
-msgid ""
-"**1. Create a key**, if you do not already have one you want to use for "
-"this:"
-msgstr ""
+msgid "**1. Create a key**, if you do not already have one you want to use for this:"
+msgstr "**1. Crea una chiave**, se non ne hai già una che vuoi usare a questo scopo:"
 
 #: ../../source/reference/cli/freeports-validate.md:77
 msgid ""
-"Take the algorithm GnuPG offers — on 2.4 that is **Ed25519**, which is "
-"what this project's own validation document is signed with. Give it an "
-"expiry you are willing to maintain; step 7 explains why that is close to "
-"free. At the user-ID prompt enter a real name and a real email. Both are "
-"required: the scripts split the UID on `<…>`, so a key with no email "
-"produces a document that fails schema validation, and a key with no name "
-"produces a document with nowhere to live."
+"Take the algorithm GnuPG offers — on 2.4 that is **Ed25519**, which is what this "
+"project's own validation document is signed with. Give it an expiry you are willing "
+"to maintain; step 7 explains why that is close to free. At the user-ID prompt enter a"
+" real name and a real email. Both are required: the scripts split the UID on `<…>`, "
+"so a key with no email produces a document that fails schema validation, and a key "
+"with no name produces a document with nowhere to live."
 msgstr ""
+"Prendi l'algoritmo che GnuPG propone — sulla 2.4 è **Ed25519**, ed è quello con cui è"
+" firmato il documento di validazione di questo progetto. Dàlle una scadenza che sei "
+"disposto a mantenere; il passo 7 spiega perché costi quasi niente. Alla richiesta "
+"dello user ID inserisci un nome vero e un indirizzo di posta vero. Servono entrambi: "
+"gli script dividono lo UID su `<…>`, quindi una chiave senza indirizzo produce un "
+"documento che non supera la validazione dello schema, e una chiave senza nome produce"
+" un documento che non ha dove abitare."
 
 #: ../../source/reference/cli/freeports-validate.md:83
 msgid "The same thing without prompts, for a container or a fresh machine:"
-msgstr ""
+msgstr "La stessa cosa senza domande, per un contenitore o una macchina appena preparata:"
 
 #: ../../source/reference/cli/freeports-validate.md:89
 msgid ""
-"**2. Keep the revocation certificate, and back up the secret key.** GnuPG"
-" writes a revocation certificate the moment the key is created and prints"
-" where it put it:"
+"**2. Keep the revocation certificate, and back up the secret key.** GnuPG writes a "
+"revocation certificate the moment the key is created and prints where it put it:"
 msgstr ""
+"**2. Conserva il certificato di revoca, e fa' una copia della chiave segreta.** GnuPG"
+" scrive un certificato di revoca nel momento in cui la chiave è creata e stampa dove "
+"l'ha messo:"
 
 #: ../../source/reference/cli/freeports-validate.md:96
 msgid ""
-"That file is the only way to announce that a key must no longer be "
-"trusted — and the moment you need it is precisely the moment you can no "
-"longer produce one. Copy it somewhere that is not the machine holding the"
-" key, and back up the secret half while you are there:"
+"That file is the only way to announce that a key must no longer be trusted — and the "
+"moment you need it is precisely the moment you can no longer produce one. Copy it "
+"somewhere that is not the machine holding the key, and back up the secret half while "
+"you are there:"
 msgstr ""
+"Quel file è l'unico modo di annunciare che di una chiave non ci si deve più fidare — "
+"e il momento in cui ti serve è precisamente il momento in cui non ne puoi più "
+"produrre uno. Copialo da qualche parte che non sia la macchina che tiene la chiave, e"
+" già che ci sei fa' una copia della metà segreta:"
 
 #: ../../source/reference/cli/freeports-validate.md:104
 msgid ""
-"Losing the key does **not** invalidate grants you have already issued: "
-"verification needs only the public half, which by then is in other "
-"people's keyrings. What it ends is your ability to issue or amend any, "
-"under a name that is already in the repository."
+"Losing the key does **not** invalidate grants you have already issued: verification "
+"needs only the public half, which by then is in other people's keyrings. What it ends"
+" is your ability to issue or amend any, under a name that is already in the "
+"repository."
 msgstr ""
+"Perdere la chiave **non** invalida le attestazioni che hai già emesso: la verifica ha"
+" bisogno solo della metà pubblica, che a quel punto sta nei portachiavi di altre "
+"persone. Ciò che finisce è la tua capacità di emetterne o modificarne, sotto un nome "
+"che è già nel repository."
 
 #: ../../source/reference/cli/freeports-validate.md:108
 msgid ""
-"**3. Take the key's fingerprint** — the full 40 hex digits, not the short"
-" or long key ID:"
+"**3. Take the key's fingerprint** — the full 40 hex digits, not the short or long key"
+" ID:"
 msgstr ""
+"**3. Prendi l'impronta della chiave** — tutte le 40 cifre esadecimali, non "
+"l'identificatore corto o lungo:"
 
 #: ../../source/reference/cli/freeports-validate.md:116
 msgid ""
-"This is the detail that catches everyone. The schema requires "
-"`who.pubkey_id` to be exactly **40 uppercase hex digits** — a "
-"fingerprint. `gpg --list-keys --keyid-format=long`, the incantation most "
-"documentation reaches for, prints the 16-digit long ID, and a document "
-"built from it is rejected by `check-jsonschema` with a message about a "
-"pattern rather than about the key."
+"This is the detail that catches everyone. The schema requires `who.pubkey_id` to be "
+"exactly **40 uppercase hex digits** — a fingerprint. `gpg --list-keys --keyid-"
+"format=long`, the incantation most documentation reaches for, prints the 16-digit "
+"long ID, and a document built from it is rejected by `check-jsonschema` with a "
+"message about a pattern rather than about the key."
 msgstr ""
+"È il dettaglio che coglie tutti di sorpresa. Lo schema pretende che `who.pubkey_id` "
+"sia esattamente **40 cifre esadecimali maiuscole** — un'impronta. `gpg --list-keys "
+"--keyid-format=long`, la formula a cui ricorre quasi tutta la documentazione, stampa "
+"l'identificatore lungo a 16 cifre, e un documento costruito su di esso è rifiutato da"
+" `check-jsonschema` con un messaggio su uno schema anziché sulla chiave."
 
 #: ../../source/reference/cli/freeports-validate.md:122
 #, python-brace-format
 msgid ""
-"**4. Tell the tool which key to use.** The subcommands in the first row "
-"of the table above refuse to start without it, and there are three ways "
-"to say it — the same three every other setting has "
-"({doc}`../configuration/dev-and-validate`):"
+"**4. Tell the tool which key to use.** The subcommands in the first row of the table "
+"above refuse to start without it, and there are three ways to say it — the same three"
+" every other setting has ({doc}`../configuration/dev-and-validate`):"
 msgstr ""
+"**4. Di' allo strumento quale chiave usare.** I sottocomandi della prima riga della "
+"tabella qui sopra si rifiutano di partire senza, e ci sono tre modi di dirlo — gli "
+"stessi tre che ha ogni altra impostazione ({doc}`../configuration/dev-and-validate`):"
 
 #: ../../source/reference/cli/freeports-validate.md:137
 msgid ""
-"`packages/freeports_validate/.env.template` is the environment form, "
-"ready to copy next to your other per-project settings. Reading it from "
-"the configuration file needs the engine installed alongside — `pip "
-"install 'freeports-validate[config]'` — because that is the one thing "
-"that knows where a configuration file lives."
+"`packages/freeports_validate/.env.template` is the environment form, ready to copy "
+"next to your other per-project settings. Reading it from the configuration file needs"
+" the engine installed alongside — `pip install 'freeports-validate[config]'` — "
+"because that is the one thing that knows where a configuration file lives."
 msgstr ""
+"`packages/freeports_validate/.env.template` è la forma d'ambiente, pronta da copiare "
+"accanto alle tue altre impostazioni di progetto. Leggerlo dal file di configurazione "
+"richiede il motore installato accanto — `pip install 'freeports-validate[config]'` — "
+"perché è l'unica cosa che sa dove viva un file di configurazione."
 
 #: ../../source/reference/cli/freeports-validate.md:142
 msgid ""
-"**5. Publish the public half**, because a signature nobody can check is a"
-" signature nobody reads. Verification is `gpg --verify` against the "
-"signer's public key; without it, `check-grants` can confirm that a "
-"document is well formed and that its hashes are current, but not that the"
-" signature is yours."
+"**5. Publish the public half**, because a signature nobody can check is a signature "
+"nobody reads. Verification is `gpg --verify` against the signer's public key; without"
+" it, `check-grants` can confirm that a document is well formed and that its hashes "
+"are current, but not that the signature is yours."
 msgstr ""
+"**5. Pubblica la metà pubblica**, perché una firma che nessuno può controllare è una "
+"firma che nessuno legge. La verifica è `gpg --verify` contro la chiave pubblica di "
+"chi ha firmato; senza di essa, `check-grants` può confermare che un documento è ben "
+"formato e che i suoi hash sono aggiornati, ma non che la firma sia tua."
 
 #: ../../source/reference/cli/freeports-validate.md:151
 msgid ""
-"Three places to put it, in increasing order of how little they ask of the"
-" person checking:"
+"Three places to put it, in increasing order of how little they ask of the person "
+"checking:"
 msgstr ""
+"Tre posti in cui metterla, in ordine crescente di quanto poco chiedano a chi "
+"controlla:"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "Where"
-msgstr ""
+msgstr "Dove"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "How"
-msgstr ""
+msgstr "Come"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "What it gives, and what it does not"
-msgstr ""
+msgstr "Che cosa dà, e che cosa no"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "the repository itself"
-msgstr ""
+msgstr "il repository stesso"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "commit `ada.pub.asc` beside your document"
-msgstr ""
+msgstr "fa' commit di `ada.pub.asc` accanto al tuo documento"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid ""
-"anyone with the checkout can verify, fetching nothing — but the key "
-"travels with the thing it authenticates, so on its own it attests to "
-"nothing"
+"anyone with the checkout can verify, fetching nothing — but the key travels with the "
+"thing it authenticates, so on its own it attests to nothing"
 msgstr ""
+"chiunque abbia il checkout può verificare senza scaricare niente — ma la chiave "
+"viaggia insieme alla cosa che autentica, quindi da sola non attesta niente"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "`keys.openpgp.org`"
-msgstr ""
+msgstr "`keys.openpgp.org`"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid ""
-"`gpg --keyserver hkps://keys.openpgp.org --send-keys <FINGERPRINT>`, then"
-" follow the confirmation mail"
+"`gpg --keyserver hkps://keys.openpgp.org --send-keys <FINGERPRINT>`, then follow the "
+"confirmation mail"
 msgstr ""
+"`gpg --keyserver hkps://keys.openpgp.org --send-keys <IMPRONTA>`, poi segui la posta "
+"di conferma"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid ""
-"the server verifies the address before the key becomes searchable by "
-"email; unconfirmed, it is retrievable by fingerprint only"
+"the server verifies the address before the key becomes searchable by email; "
+"unconfirmed, it is retrievable by fingerprint only"
 msgstr ""
+"il server verifica l'indirizzo prima che la chiave diventi ricercabile per posta; "
+"senza conferma, si può recuperare solo per impronta"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "WKD, on a domain you control"
-msgstr ""
+msgstr "WKD, su un dominio che controlli"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid "publish under `.well-known/openpgpkey/`"
-msgstr ""
+msgstr "pubblica sotto `.well-known/openpgpkey/`"
 
 #: ../../source/reference/cli/freeports-validate.md:115
 msgid ""
-"`gpg --locate-keys ada@example.org` just finds it — the least ceremony "
-"for the person checking, and it ties the key to the domain"
+"`gpg --locate-keys ada@example.org` just finds it — the least ceremony for the person"
+" checking, and it ties the key to the domain"
 msgstr ""
+"`gpg --locate-keys ada@example.org` la trova e basta — la minima cerimonia per chi "
+"controlla, e lega la chiave al dominio"
 
 #: ../../source/reference/cli/freeports-validate.md:159
 msgid ""
-"Symmetrically, to check someone else's grants you need *their* public key"
-" in your keyring — `gpg --import their.pub.asc`, or `gpg --locate-keys "
-"their@email`. A repository with several contributors is a repository "
-"where each of them has imported the others."
+"Symmetrically, to check someone else's grants you need *their* public key in your "
+"keyring — `gpg --import their.pub.asc`, or `gpg --locate-keys their@email`. A "
+"repository with several contributors is a repository where each of them has imported "
+"the others."
 msgstr ""
+"Simmetricamente, per controllare le attestazioni di qualcun altro ti serve la *sua* "
+"chiave pubblica nel tuo portachiavi — `gpg --import loro.pub.asc`, oppure `gpg "
+"--locate-keys loro@posta`. Un repository con più contributori è un repository in cui "
+"ciascuno di essi ha importato gli altri."
 
 #: ../../source/reference/cli/freeports-validate.md:163
 msgid ""
-"**6. Certifying a key** — signing somebody else's — states that *you* "
-"have satisfied yourself that the key belongs to the person named on it. "
-"Do it after confirming the fingerprint through some channel other than "
-"the one that handed you the key:"
+"**6. Certifying a key** — signing somebody else's — states that *you* have satisfied "
+"yourself that the key belongs to the person named on it. Do it after confirming the "
+"fingerprint through some channel other than the one that handed you the key:"
 msgstr ""
+"**6. Certificare una chiave** — firmare quella di qualcun altro — dichiara che *tu* "
+"ti sei convinto che la chiave appartenga alla persona che vi è nominata. Fallo dopo "
+"aver confermato l'impronta attraverso un canale diverso da quello che ti ha "
+"consegnato la chiave:"
 
 #: ../../source/reference/cli/freeports-validate.md:173
 msgid ""
-"**`freeports-validate` does not consult trust.** `gpg --verify` succeeds "
-"for a good signature from a key you have never certified — it prints "
-"*\"WARNING: This key is not certified with a trusted signature\"* and "
-"exits zero — and `check-grants` duly reports the signature as valid."
+"**`freeports-validate` does not consult trust.** `gpg --verify` succeeds for a good "
+"signature from a key you have never certified — it prints *\"WARNING: This key is not"
+" certified with a trusted signature\"* and exits zero — and `check-grants` duly "
+"reports the signature as valid."
 msgstr ""
+"**`freeports-validate` non consulta la fiducia.** `gpg --verify` riesce per una firma"
+" buona proveniente da una chiave che non hai mai certificato — stampa *\"WARNING: "
+"This key is not certified with a trusted signature\"* ed esce con zero — e `check-"
+"grants` riferisce debitamente la firma come valida."
 
 #: ../../source/reference/cli/freeports-validate.md:177
 msgid ""
-"Certifying keys is therefore for **your** judgement about who a "
-"contributor is; it changes nothing the tool decides. The mechanism ties a"
-" claim to a key. Tying that key to a person is yours to do."
+"Certifying keys is therefore for **your** judgement about who a contributor is; it "
+"changes nothing the tool decides. The mechanism ties a claim to a key. Tying that key"
+" to a person is yours to do."
 msgstr ""
+"Certificare le chiavi serve perciò al **tuo** giudizio su chi sia un contributore; "
+"non cambia niente di ciò che lo strumento decide. Il meccanismo lega un'affermazione "
+"a una chiave. Legare quella chiave a una persona tocca a te."
 
 #: ../../source/reference/cli/freeports-validate.md:181
-msgid ""
-"What the verification step actually distinguishes, then, is narrower than"
-" it looks:"
+msgid "What the verification step actually distinguishes, then, is narrower than it looks:"
 msgstr ""
+"Ciò che il passo di verifica distingue davvero è quindi più ristretto di quanto "
+"sembri:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Situation"
-msgstr ""
+msgstr "Situazione"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`gpg --verify`"
-msgstr ""
+msgstr "`gpg --verify`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "What `check-grants` reports"
-msgstr ""
+msgstr "Che cosa riferisce `check-grants`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "good signature, key certified or not"
-msgstr ""
+msgstr "firma buona, chiave certificata o no"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "success"
-msgstr ""
+msgstr "riuscita"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "signature valid"
-msgstr ""
+msgstr "firma valida"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "good signature, signer's key has **expired**"
-msgstr ""
+msgstr "firma buona, la chiave di chi ha firmato è **scaduta**"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "the document changed after it was signed"
-msgstr ""
+msgstr "il documento è cambiato dopo essere stato firmato"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "failure"
-msgstr ""
+msgstr "fallita"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "invalid signature"
-msgstr ""
+msgstr "firma non valida"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "the signer's public key is **not in your keyring**"
-msgstr ""
+msgstr "la chiave pubblica di chi ha firmato **non è nel tuo portachiavi**"
 
 #: ../../source/reference/cli/freeports-validate.md:190
 msgid ""
-"The last row is the one that misleads, and it is worth knowing before you"
-" accuse anyone: a document reported as having an invalid signature is far"
-" more often a key you are missing than a document somebody tampered with."
+"The last row is the one that misleads, and it is worth knowing before you accuse "
+"anyone: a document reported as having an invalid signature is far more often a key "
+"you are missing than a document somebody tampered with."
 msgstr ""
+"L'ultima riga è quella che inganna, e conviene saperlo prima di accusare qualcuno: un"
+" documento riferito come avente una firma non valida è molto più spesso una chiave "
+"che ti manca che un documento manomesso da qualcuno."
 
 #: ../../source/reference/cli/freeports-validate.md:194
 msgid ""
-"**7. Expiry, renewal and revocation.** An expiry date is a dead-man's "
-"switch rather than a deadline — it limits how long a key stands "
-"unattended, and extending it costs one command:"
+"**7. Expiry, renewal and revocation.** An expiry date is a dead-man's switch rather "
+"than a deadline — it limits how long a key stands unattended, and extending it costs "
+"one command:"
 msgstr ""
+"**7. Scadenza, rinnovo e revoca.** Una data di scadenza è un interruttore dell'uomo "
+"morto anziché un termine — limita quanto a lungo una chiave resti incustodita, e "
+"prolungarla costa un comando:"
 
 #: ../../source/reference/cli/freeports-validate.md:201
 msgid ""
-"Then re-export and re-publish, since the new expiry is part of the public"
-" key. As the table above records, **expiry does not retract anything**: "
-"signatures made while the key was valid keep verifying afterwards, so "
-"letting a key lapse never silently invalidates grants you already issued."
+"Then re-export and re-publish, since the new expiry is part of the public key. As the"
+" table above records, **expiry does not retract anything**: signatures made while the"
+" key was valid keep verifying afterwards, so letting a key lapse never silently "
+"invalidates grants you already issued."
 msgstr ""
+"Poi riesporta e ripubblica, dato che la nuova scadenza fa parte della chiave "
+"pubblica. Come registra la tabella qui sopra, **la scadenza non ritira niente**: le "
+"firme fatte mentre la chiave era valida continuano a verificarsi anche dopo, quindi "
+"lasciar scadere una chiave non invalida mai in silenzio le attestazioni che hai già "
+"emesso."
 
 #: ../../source/reference/cli/freeports-validate.md:205
 msgid ""
-"Revocation is the other case, and it is a real statement rather than a "
-"lapse: this key must not be trusted, because it was lost or compromised. "
-"Publish the certificate you saved in step 2 —"
+"Revocation is the other case, and it is a real statement rather than a lapse: this "
+"key must not be trusted, because it was lost or compromised. Publish the certificate "
+"you saved in step 2 —"
 msgstr ""
+"La revoca è l'altro caso, ed è una dichiarazione vera anziché una decadenza: di "
+"questa chiave non ci si deve fidare, perché è stata persa o compromessa. Pubblica il "
+"certificato che hai salvato al passo 2 —"
 
 #: ../../source/reference/cli/freeports-validate.md:213
 msgid ""
-"— and then re-key: your document records the old fingerprint in "
-"`who.pubkey_id` and carries a signature made with it. There is no "
-"subcommand for changing that, because it is not a routine operation: "
-"replace `who.pubkey_id` with the new fingerprint by hand and run "
-"`freeports-validate sign-document --update`. Grants signed by a "
-"compromised key should be reconsidered, not merely re-signed — the point "
-"of the mechanism is that a name stands behind them."
+"— and then re-key: your document records the old fingerprint in `who.pubkey_id` and "
+"carries a signature made with it. There is no subcommand for changing that, because "
+"it is not a routine operation: replace `who.pubkey_id` with the new fingerprint by "
+"hand and run `freeports-validate sign-document --update`. Grants signed by a "
+"compromised key should be reconsidered, not merely re-signed — the point of the "
+"mechanism is that a name stands behind them."
 msgstr ""
+"— e poi rifa' la chiave: il tuo documento registra la vecchia impronta in "
+"`who.pubkey_id` e porta una firma fatta con essa. Non c'è un sottocomando per "
+"cambiarlo, perché non è un'operazione di ordinaria amministrazione: sostituisci "
+"`who.pubkey_id` con la nuova impronta a mano ed esegui `freeports-validate sign-"
+"document --update`. Le attestazioni firmate con una chiave compromessa vanno "
+"riconsiderate, non semplicemente rifirmate — il senso del meccanismo è che dietro a "
+"esse ci sia un nome."
 
 #: ../../source/reference/cli/freeports-validate.md:220
 msgid "Creating your validation document"
-msgstr ""
+msgstr "Creare il tuo documento di validazione"
 
 #: ../../source/reference/cli/freeports-validate.md:226
 msgid ""
-"It fills the template from your key — name, email, fingerprint — resolves"
-" the general methodology from your sources and stamps the `version` field"
-" with its hash, validates the result against the schema, and writes it to"
-" `<repo>/validation/<your_name>.yaml`, the name lowercased with spaces "
-"turned into underscores — creating that directory when the repository has"
-" none, since `init-format-repo` lays it down with the rest of the "
-"skeleton but a repository assembled by hand may not have it. Creating it "
-"is announced. A *missing* `validation/` is also what a misresolved "
-"repository root looks like, though, so the root has to look like a "
-"formats repository first — by the `metadata/formats.csv` `freeports-dev` "
-"checks for — and one that does not is named and refused rather than "
-"quietly populated. It refuses to overwrite an existing document, and the "
-"new one is unsigned:"
+"It fills the template from your key — name, email, fingerprint — resolves the general"
+" methodology from your sources and stamps the `version` field with its hash, "
+"validates the result against the schema, and writes it to "
+"`<repo>/validation/<your_name>.yaml`, the name lowercased with spaces turned into "
+"underscores — creating that directory when the repository has none, since `init-"
+"format-repo` lays it down with the rest of the skeleton but a repository assembled by"
+" hand may not have it. Creating it is announced. A *missing* `validation/` is also "
+"what a misresolved repository root looks like, though, so the root has to look like a"
+" formats repository first — by the `metadata/formats.csv` `freeports-dev` checks for "
+"— and one that does not is named and refused rather than quietly populated. It "
+"refuses to overwrite an existing document, and the new one is unsigned:"
 msgstr ""
+"Riempie il modello a partire dalla tua chiave — nome, indirizzo, impronta — risolve "
+"la metodologia generale dalle tue sorgenti e marca il campo `version` con il suo "
+"hash, valida il risultato contro lo schema, e lo scrive in "
+"`<repo>/validation/<tuo_nome>.yaml`, con il nome in minuscolo e gli spazi trasformati"
+" in trattini bassi — creando quella cartella se il repository non ce l'ha, dato che "
+"`init-format-repo` la posa insieme al resto dello scheletro ma un repository messo "
+"insieme a mano può non averla. La creazione è annunciata. Un `validation/` "
+"*mancante*, però, è anche l'aspetto che ha una radice di repository risolta male, "
+"quindi la radice deve prima sembrare un repository di formati — per via del "
+"`metadata/formats.csv` che `freeports-dev` controlla — e una che non lo sembra è "
+"nominata e rifiutata anziché popolata in sordina. Si rifiuta di sovrascrivere un "
+"documento esistente, e quello nuovo non è firmato:"
 
 #: ../../source/reference/cli/freeports-validate.md:248
 msgid ""
-"Sign it before doing anything else — every other subcommand verifies the "
-"existing signature *before* it will modify the document, and an unsigned "
-"document is refused:"
+"Sign it before doing anything else — every other subcommand verifies the existing "
+"signature *before* it will modify the document, and an unsigned document is refused:"
 msgstr ""
+"Firmalo prima di fare qualsiasi altra cosa — ogni altro sottocomando verifica la "
+"firma esistente *prima* di modificare il documento, e un documento non firmato è "
+"rifiutato:"
 
 #: ../../source/reference/cli/freeports-validate.md:255
 msgid "Adopting a methodology, then granting files"
-msgstr ""
+msgstr "Adottare una metodologia, poi attestare dei file"
 
 #: ../../source/reference/cli/freeports-validate.md:257
 #, python-brace-format
 msgid ""
-"A grant is always *a file, under a methodology*, so the methodology has "
-"to be adopted first. Three are published today — `basic check`, `golden "
-"standard`, `agreement and good faith` — and "
-"{doc}`../../guides/institutional/why-trust-a-grant` says what each one "
-"claims. Names are normalised: underscores become spaces and everything is"
-" lowercased, so `golden_standard`, `Golden Standard` and `golden "
-"standard` are one methodology."
+"A grant is always *a file, under a methodology*, so the methodology has to be adopted"
+" first. Three are published today — `basic check`, `golden standard`, `agreement and "
+"good faith` — and {doc}`../../guides/institutional/why-trust-a-grant` says what each "
+"one claims. Names are normalised: underscores become spaces and everything is "
+"lowercased, so `golden_standard`, `Golden Standard` and `golden standard` are one "
+"methodology."
 msgstr ""
+"Un'attestazione è sempre *un file, sotto una metodologia*, quindi la metodologia va "
+"adottata per prima. Oggi ne sono pubblicate tre — `basic check`, `golden standard`, "
+"`agreement and good faith` — e {doc}`../../guides/institutional/why-trust-a-grant` "
+"dice che cosa afferma ciascuna. I nomi sono normalizzati: i trattini bassi diventano "
+"spazi e tutto va in minuscolo, quindi `golden_standard`, `Golden Standard` e `golden "
+"standard` sono un'unica metodologia."
 
 #: ../../source/reference/cli/freeports-validate.md:269
 msgid ""
-"Adopting a methodology resolves its page and records the hash of that "
-"text; granting a file records the file's own hash and its path relative "
-"to the repository root. Both re-sign the document immediately, so it is "
-"never left in a state where its contents and its signature disagree."
+"Adopting a methodology resolves its page and records the hash of that text; granting "
+"a file records the file's own hash and its path relative to the repository root. Both"
+" re-sign the document immediately, so it is never left in a state where its contents "
+"and its signature disagree."
 msgstr ""
+"Adottare una metodologia ne risolve la pagina e ne registra l'hash del testo; "
+"attestare un file ne registra l'hash e il percorso relativo alla radice del "
+"repository. Entrambi rifirmano immediatamente il documento, così che non resti mai in"
+" uno stato in cui il suo contenuto e la sua firma sono in disaccordo."
 
 #: ../../source/reference/cli/freeports-validate.md:273
 msgid ""
-"Nothing is written until every file has passed. A grant is one act — the "
-"document is modified file by file and signed once at the end — so "
-"refusing halfway would leave a document that had been changed and not "
-"signed, which is the state `check-grants` reports as *no signature "
-"found*, reached by a command doing what it was told."
+"Nothing is written until every file has passed. A grant is one act — the document is "
+"modified file by file and signed once at the end — so refusing halfway would leave a "
+"document that had been changed and not signed, which is the state `check-grants` "
+"reports as *no signature found*, reached by a command doing what it was told."
 msgstr ""
+"Non si scrive niente finché ogni file non è passato. Un'attestazione è un atto solo —"
+" il documento è modificato file per file e firmato una volta alla fine — quindi "
+"rifiutare a metà lascerebbe un documento che è stato modificato e non firmato, che è "
+"lo stato che `check-grants` riferisce come *nessuna firma trovata*, raggiunto da un "
+"comando che faceva ciò che gli era stato detto."
 
 #: ../../source/reference/cli/freeports-validate.md:278
 msgid "To withdraw:"
-msgstr ""
+msgstr "Per ritirare:"
 
 #: ../../source/reference/cli/freeports-validate.md:286
 msgid ""
-"The last form asks for confirmation, because it removes every grant made "
-"under that methodology at once."
+"The last form asks for confirmation, because it removes every grant made under that "
+"methodology at once."
 msgstr ""
+"L'ultima forma chiede conferma, perché toglie in una volta ogni attestazione fatta "
+"sotto quella metodologia."
 
 #: ../../source/reference/cli/freeports-validate.md:289
 msgid "What a methodology says it covers"
-msgstr ""
+msgstr "Che cosa una metodologia dichiara di coprire"
 
 #: ../../source/reference/cli/freeports-validate.md:291
 msgid ""
-"A methodology page may declare which repository paths it applies to, in "
-"an ordinary visible section titled `Supported paths`. Each entry is an "
-"inline literal with a prose gloss under it:"
+"A methodology page may declare which repository paths it applies to, in an ordinary "
+"visible section titled `Supported paths`. Each entry is an inline literal with a "
+"prose gloss under it:"
 msgstr ""
+"Una pagina di metodologia può dichiarare a quali percorsi del repository si applichi,"
+" in una normale sezione visibile intitolata `Supported paths`. Ogni voce è un "
+"letterale in linea con sotto una glossa in prosa:"
 
 #: ../../source/reference/cli/freeports-validate.md:304
 msgid ""
-"The gloss is the substance. `tests/formats/` means one thing in a formats"
-" repository and another in the engine's own repository, and that "
-"ambiguity is resolved by an author writing down which they mean — never "
-"by the tool guessing. So nothing here interprets the prose; everything "
-"here shows it."
+"The gloss is the substance. `tests/formats/` means one thing in a formats repository "
+"and another in the engine's own repository, and that ambiguity is resolved by an "
+"author writing down which they mean — never by the tool guessing. So nothing here "
+"interprets the prose; everything here shows it."
 msgstr ""
+"La glossa è la sostanza. `tests/formats/` significa una cosa in un repository di "
+"formati e un'altra nel repository del motore, e quell'ambiguità si scioglie perché un"
+" autore mette per iscritto quale dei due intenda — mai perché lo strumento tiri a "
+"indovinare. Qui perciò niente interpreta la prosa; qui tutto la mostra."
 
 #: ../../source/reference/cli/freeports-validate.md:308
 msgid ""
-"The pattern grammar is deliberately tiny, because these patterns are read"
-" by people deciding whether to trust a grant. A pattern that looked like "
-"a shell glob but was not one would be worse than no pattern language at "
-"all:"
+"The pattern grammar is deliberately tiny, because these patterns are read by people "
+"deciding whether to trust a grant. A pattern that looked like a shell glob but was "
+"not one would be worse than no pattern language at all:"
 msgstr ""
+"La grammatica degli schemi è deliberatamente minuscola, perché questi schemi sono "
+"letti da persone che stanno decidendo se fidarsi di un'attestazione. Uno schema che "
+"sembrasse una glob di shell senza esserlo sarebbe peggio del non avere affatto un "
+"linguaggio di schemi:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Token"
-msgstr ""
+msgstr "Simbolo"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Matches"
-msgstr ""
+msgstr "Corrisponde a"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`*`"
-msgstr ""
+msgstr "`*`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "any part of **one** path segment; never crosses a `/`"
-msgstr ""
+msgstr "una parte qualsiasi di **un solo** segmento di percorso; non attraversa mai una `/`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`**`"
-msgstr ""
+msgstr "`**`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "zero or more whole segments"
-msgstr ""
+msgstr "zero o più segmenti interi"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "a trailing `/`"
-msgstr ""
+msgstr "una `/` finale"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "the directory and everything under it — the same as appending `**`"
-msgstr ""
+msgstr "la cartella e tutto ciò che vi sta sotto — come aggiungere `**`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "anything else"
-msgstr ""
+msgstr "qualsiasi altra cosa"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "itself, literally"
-msgstr ""
+msgstr "sé stessa, alla lettera"
 
 #: ../../source/reference/cli/freeports-validate.md:319
 msgid ""
-"There are no character classes, no braces, no negation and no `?`. "
-"Patterns are always relative to the repository root."
+"There are no character classes, no braces, no negation and no `?`. Patterns are "
+"always relative to the repository root."
 msgstr ""
+"Non ci sono classi di caratteri, né parentesi graffe, né negazione, né `?`. Gli "
+"schemi sono sempre relativi alla radice del repository."
 
 #: ../../source/reference/cli/freeports-validate.md:322
 msgid ""
-"**A page with no `Supported paths` section supports any path** — the "
-"behaviour from before the section existed, and the honest answer for a "
-"methodology whose scope genuinely cannot be written as a set of paths. A "
-"section that exists and declares *nothing* is read the other way, as a "
-"page whose author opened the subject in order to constrain it and then "
-"named none; the refusal says so, because that is almost certainly a "
-"mistake in the page rather than a methodology covering nothing."
+"**A page with no `Supported paths` section supports any path** — the behaviour from "
+"before the section existed, and the honest answer for a methodology whose scope "
+"genuinely cannot be written as a set of paths. A section that exists and declares "
+"*nothing* is read the other way, as a page whose author opened the subject in order "
+"to constrain it and then named none; the refusal says so, because that is almost "
+"certainly a mistake in the page rather than a methodology covering nothing."
 msgstr ""
+"**Una pagina senza sezione `Supported paths` supporta qualsiasi percorso** — il "
+"comportamento di quando la sezione non esisteva, e la risposta onesta per una "
+"metodologia il cui ambito davvero non si può scrivere come un insieme di percorsi. "
+"Una sezione che esista e non dichiari *niente* si legge nell'altro modo, come una "
+"pagina il cui autore ha aperto l'argomento per porvi un limite e poi non ne ha "
+"nominato nessuno; il rifiuto lo dice, perché quello è quasi certamente un errore "
+"nella pagina anziché una metodologia che non copre niente."
 
 #: ../../source/reference/cli/freeports-validate.md:328
 msgid "What follows from the declaration is asymmetric on purpose:"
-msgstr ""
+msgstr "Ciò che discende dalla dichiarazione è asimmetrico apposta:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Moment"
-msgstr ""
+msgstr "Momento"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "No section"
-msgstr ""
+msgstr "Nessuna sezione"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Path matches"
-msgstr ""
+msgstr "Il percorso corrisponde"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "No match"
-msgstr ""
+msgstr "Nessuna corrispondenza"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`grant`"
-msgstr ""
+msgstr "`grant`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "accepted"
-msgstr ""
+msgstr "accettata"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid ""
-"**refused**, printing every pattern with its gloss. Overridable with "
-"`--force`, or by answering the question it asks when you are at a "
-"terminal"
+"**refused**, printing every pattern with its gloss. Overridable with `--force`, or by"
+" answering the question it asks when you are at a terminal"
 msgstr ""
+"**rifiutata**, stampando ogni schema con la sua glossa. Si può scavalcare con "
+"`--force`, o rispondendo alla domanda che pone quando sei a un terminale"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`check-grants`"
-msgstr ""
+msgstr "`check-grants`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "silent"
-msgstr ""
+msgstr "in silenzio"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "a **warning**, never a failure"
-msgstr ""
+msgstr "un **avviso**, mai un guasto"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`who-grants`, `granted-by`, `granted-with`"
-msgstr ""
+msgstr "`who-grants`, `granted-by`, `granted-with`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "listed"
-msgstr ""
+msgstr "elencata"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "listed and marked `(!)`, with one legend line at the end of the run"
-msgstr ""
+msgstr "elencata e marcata `(!)`, con una riga di legenda alla fine dell'esecuzione"
 
 #: ../../source/reference/cli/freeports-validate.md:336
 msgid ""
-"Refusing at grant time is cheap and catches the mistake while its author "
-"is standing there. Failing at check time would break a repository over a "
-"page somebody else edited, which is not something a repository's own "
-"continuous integration should be able to suffer."
+"Refusing at grant time is cheap and catches the mistake while its author is standing "
+"there. Failing at check time would break a repository over a page somebody else "
+"edited, which is not something a repository's own continuous integration should be "
+"able to suffer."
 msgstr ""
+"Rifiutare al momento dell'attestazione costa poco e coglie l'errore mentre il suo "
+"autore è lì presente. Fallire al momento del controllo romperebbe un repository per "
+"via di una pagina modificata da qualcun altro, che non è qualcosa a cui "
+"l'integrazione continua di un repository debba poter essere soggetta."
 
 #: ../../source/reference/cli/freeports-validate.md:340
 msgid ""
-"`--force` has no configuration-file or environment tier, unlike every "
-"*setting* in this command. It is not a setting: it is a per-invocation "
-"override of a refusal, and written into a configuration file it would "
-"permanently disable the very check it overrides, for grants nobody was "
-"present to consider. `grant` also refuses when the methodology page "
-"cannot be resolved at all — signing under a text this run could not read "
-"is exactly what a signature must not mean — and `--force` overrides that "
-"too."
+"`--force` has no configuration-file or environment tier, unlike every *setting* in "
+"this command. It is not a setting: it is a per-invocation override of a refusal, and "
+"written into a configuration file it would permanently disable the very check it "
+"overrides, for grants nobody was present to consider. `grant` also refuses when the "
+"methodology page cannot be resolved at all — signing under a text this run could not "
+"read is exactly what a signature must not mean — and `--force` overrides that too."
 msgstr ""
+"`--force` non ha né un livello di file di configurazione né uno d'ambiente, a "
+"differenza di ogni *impostazione* di questo comando. Non è un'impostazione: è lo "
+"scavalcamento di un rifiuto per una singola invocazione, e scritto in un file di "
+"configurazione disattiverebbe permanentemente proprio il controllo che scavalca, per "
+"attestazioni che nessuno era presente a valutare. `grant` rifiuta anche quando la "
+"pagina di metodologia non si riesce affatto a risolvere — firmare sotto un testo che "
+"questa esecuzione non ha potuto leggere è esattamente ciò che una firma non deve "
+"significare — e `--force` scavalca anche quello."
 
 #: ../../source/reference/cli/freeports-validate.md:347
 msgid "What a page pins, and checking it"
-msgstr ""
+msgstr "Che cosa una pagina fissa, e come controllarlo"
 
 #: ../../source/reference/cli/freeports-validate.md:349
 msgid ""
-"A methodology page is prose, and prose cites things: a diagram, a "
-"specification, another document. A grant made under that page is in part "
-"a claim about what those said, so a page may pin each of them by hash in "
-"an ordinary reStructuredText comment:"
+"A methodology page is prose, and prose cites things: a diagram, a specification, "
+"another document. A grant made under that page is in part a claim about what those "
+"said, so a page may pin each of them by hash in an ordinary reStructuredText comment:"
 msgstr ""
+"Una pagina di metodologia è prosa, e la prosa cita delle cose: un diagramma, una "
+"specifica, un altro documento. Un'attestazione fatta sotto quella pagina è in parte "
+"un'affermazione su ciò che quelle cose dicevano, quindi una pagina può fissare "
+"ciascuna di esse tramite hash in un normale commento reStructuredText:"
 
 #: ../../source/reference/cli/freeports-validate.md:363
 msgid ""
-"`..` followed by text that is not a directive is a comment in every "
-"reStructuredText parser: it renders as nothing, breaks no build, and "
-"reads plainly in the source."
+"`..` followed by text that is not a directive is a comment in every reStructuredText "
+"parser: it renders as nothing, breaks no build, and reads plainly in the source."
 msgstr ""
+"`..` seguito da testo che non sia una direttiva è un commento in ogni analizzatore "
+"reStructuredText: non rende niente, non rompe alcuna compilazione, e si legge senza "
+"problemi nel sorgente."
 
 #: ../../source/reference/cli/freeports-validate.md:366
 msgid ""
-"**The pins are not a second trust root.** They are lines of the page, so "
-"the page's own `sha256` — the one your document records — already commits"
-" to every one of them. Verifying them is an optional *deepening*, never a"
-" separate thing to trust:"
+"**The pins are not a second trust root.** They are lines of the page, so the page's "
+"own `sha256` — the one your document records — already commits to every one of them. "
+"Verifying them is an optional *deepening*, never a separate thing to trust:"
 msgstr ""
+"**I riferimenti fissati non sono una seconda radice di fiducia.** Sono righe della "
+"pagina, quindi lo `sha256` della pagina stessa — quello che il tuo documento registra"
+" — li impegna già tutti. Verificarli è un *approfondimento* facoltativo, mai una cosa"
+" a sé di cui fidarsi:"
 
 #: ../../source/reference/cli/freeports-validate.md:376
 msgid ""
-"`check-methodology` needs no key. It reports the URI the name resolved "
-"from, the page's hash, and three counts: **pinned** targets, **unpinned**"
-" ones (a count rather than an error — most prose links are incidental) "
-"and **stale** pins, which name something the page no longer cites at all."
-" A stale pin is a claim left behind by an edit, and only the person who "
-"made the edit can say whether the claim went with it."
+"`check-methodology` needs no key. It reports the URI the name resolved from, the "
+"page's hash, and three counts: **pinned** targets, **unpinned** ones (a count rather "
+"than an error — most prose links are incidental) and **stale** pins, which name "
+"something the page no longer cites at all. A stale pin is a claim left behind by an "
+"edit, and only the person who made the edit can say whether the claim went with it."
 msgstr ""
+"`check-methodology` non richiede alcuna chiave. Riferisce l'URI da cui il nome si è "
+"risolto, l'hash della pagina, e tre conteggi: i bersagli **fissati**, quelli **non "
+"fissati** (un conteggio anziché un errore — quasi tutti i rimandi in prosa sono "
+"accessori) e i riferimenti fissati **vecchi**, che nominano qualcosa che la pagina "
+"non cita più. Un riferimento fissato vecchio è un'affermazione lasciata indietro da "
+"una modifica, e solo chi ha fatto la modifica può dire se l'affermazione l'abbia "
+"seguita."
 
 #: ../../source/reference/cli/freeports-validate.md:382
 msgid ""
-"**Following the pins is the default.** It is the question a reader is "
-"really asking — not \"does this page still hash the same\" but \"do the "
-"things it relies on still say what its author read\" — and it should not "
-"be the one you have to know to ask for. It costs one fetch per pinned "
-"resource, so there is a way out: `--no-deep` (or `--shallow`) for one "
-"run, `validate.deep: false` in the configuration file, "
-"`FREEPORTS_VALIDATE_DEEP=0` in the environment. Turning it off is a "
-"decision about cost, not a claim that the page is untrustworthy: the "
-"page's own hash still matches, and that is what the document recorded."
+"**Following the pins is the default.** It is the question a reader is really asking —"
+" not \"does this page still hash the same\" but \"do the things it relies on still "
+"say what its author read\" — and it should not be the one you have to know to ask "
+"for. It costs one fetch per pinned resource, so there is a way out: `--no-deep` (or "
+"`--shallow`) for one run, `validate.deep: false` in the configuration file, "
+"`FREEPORTS_VALIDATE_DEEP=0` in the environment. Turning it off is a decision about "
+"cost, not a claim that the page is untrustworthy: the page's own hash still matches, "
+"and that is what the document recorded."
 msgstr ""
+"**Seguire i riferimenti fissati è il valore predefinito.** È la domanda che un "
+"lettore si sta davvero facendo — non \"questa pagina ha ancora lo stesso hash\" ma "
+"\"le cose su cui si appoggia dicono ancora ciò che il suo autore ha letto\" — e non "
+"dev'essere quella che devi sapere di dover chiedere. Costa uno scaricamento per "
+"risorsa fissata, quindi c'è una via d'uscita: `--no-deep` (oppure `--shallow`) per "
+"una sola esecuzione, `validate.deep: false` nel file di configurazione, "
+"`FREEPORTS_VALIDATE_DEEP=0` nell'ambiente. Spegnerlo è una decisione sul costo, non "
+"l'affermazione che la pagina non sia affidabile: l'hash della pagina corrisponde "
+"comunque, ed è quello che il documento aveva registrato."
 
 #: ../../source/reference/cli/freeports-validate.md:390
 msgid "To re-pin a page you are the author of:"
-msgstr ""
+msgstr "Per rifissare i riferimenti di una pagina di cui sei l'autore:"
 
 #: ../../source/reference/cli/freeports-validate.md:396
 msgid ""
-"It fetches everything the page cites, rewrites its `.. sha256:` comments "
-"in place, and is idempotent — running it twice changes nothing. It "
-"refuses a URI, and it refuses a copy sitting inside the resolver's own "
-"cache, because editing one of those would produce a text whose hash "
-"matches nothing anybody published. When it does write, it says loudly, in"
-" red, that the page's own hash has changed and that **every grant made "
-"under it is now invalid**. That is the mechanism working, and it is why "
+"It fetches everything the page cites, rewrites its `.. sha256:` comments in place, "
+"and is idempotent — running it twice changes nothing. It refuses a URI, and it "
+"refuses a copy sitting inside the resolver's own cache, because editing one of those "
+"would produce a text whose hash matches nothing anybody published. When it does "
+"write, it says loudly, in red, that the page's own hash has changed and that **every "
+"grant made under it is now invalid**. That is the mechanism working, and it is why "
 "this is a separate command rather than a step of `update`."
 msgstr ""
+"Scarica tutto ciò che la pagina cita, ne riscrive sul posto i commenti `.. sha256:`, "
+"ed è idempotente — eseguirlo due volte non cambia niente. Rifiuta un URI, e rifiuta "
+"una copia che stia dentro la cache del risolutore, perché modificarne una produrrebbe"
+" un testo il cui hash non corrisponde a niente che qualcuno abbia pubblicato. Quando "
+"scrive, dice rumorosamente, in rosso, che l'hash della pagina è cambiato e che **ogni"
+" attestazione fatta sotto di essa adesso non vale più**. È il meccanismo che "
+"funziona, ed è il motivo per cui questo è un comando a sé anziché un passo di "
+"`update`."
 
 #: ../../source/reference/cli/freeports-validate.md:403
 msgid ""
-"Two rules govern what it keeps. A pin whose target the run could not "
-"reach keeps exactly the hash it had — turning a network failure into a "
-"withdrawn claim would be the quietest possible way to lose one. A pin "
-"naming something the page has stopped citing is dropped."
+"Two rules govern what it keeps. A pin whose target the run could not reach keeps "
+"exactly the hash it had — turning a network failure into a withdrawn claim would be "
+"the quietest possible way to lose one. A pin naming something the page has stopped "
+"citing is dropped."
 msgstr ""
+"Due regole governano ciò che conserva. Un riferimento fissato il cui bersaglio "
+"l'esecuzione non ha potuto raggiungere conserva esattamente l'hash che aveva — "
+"trasformare un guasto di rete in un'affermazione ritirata sarebbe il modo più "
+"silenzioso possibile di perderne una. Un riferimento fissato che nomini qualcosa che "
+"la pagina ha smesso di citare viene lasciato cadere."
 
 #: ../../source/reference/cli/freeports-validate.md:407
 msgid "Checking grants"
-msgstr ""
+msgstr "Controllare le attestazioni"
 
 #: ../../source/reference/cli/freeports-validate.md:413
 msgid ""
-"It reports, item by item: the schema, the signature, the general-"
-"methodology version, the hash of every adopted methodology, and the hash "
-"of every granted file."
+"It reports, item by item: the schema, the signature, the general-methodology version,"
+" the hash of every adopted methodology, and the hash of every granted file."
 msgstr ""
+"Riferisce, voce per voce: lo schema, la firma, la versione della metodologia "
+"generale, l'hash di ogni metodologia adottata, e l'hash di ogni file attestato."
 
 #: ../../source/reference/cli/freeports-validate.md:416
 msgid ""
-"A run ends in one of **three** states, and the exit status distinguishes "
-"all three. Two would not be enough, because \"everything I checked was "
-"fine\" and \"I checked everything and it was fine\" are different "
-"sentences, and only the second is a grant verified:"
+"A run ends in one of **three** states, and the exit status distinguishes all three. "
+"Two would not be enough, because \"everything I checked was fine\" and \"I checked "
+"everything and it was fine\" are different sentences, and only the second is a grant "
+"verified:"
 msgstr ""
+"Un'esecuzione finisce in uno di **tre** stati, e lo stato d'uscita li distingue tutti"
+" e tre. Due non basterebbero, perché \"tutto ciò che ho controllato andava bene\" e "
+"\"ho controllato tutto e andava bene\" sono frasi diverse, e solo la seconda è "
+"un'attestazione verificata:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Exit"
-msgstr ""
+msgstr "Uscita"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "What it means"
-msgstr ""
+msgstr "Che cosa significa"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`0`"
-msgstr ""
+msgstr "`0`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "every claim was compared against what it names, and every comparison held"
-msgstr ""
+msgstr "ogni affermazione è stata confrontata con ciò che nomina, e ogni confronto ha retto"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`1`"
-msgstr ""
+msgstr "`1`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid ""
-"something was compared and did not hold: a signature, a version, a "
-"methodology hash, a file hash"
+"something was compared and did not hold: a signature, a version, a methodology hash, "
+"a file hash"
 msgstr ""
+"qualcosa è stato confrontato e non ha retto: una firma, una versione, l'hash di una "
+"metodologia, l'hash di un file"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "`3`"
-msgstr ""
+msgstr "`3`"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "nothing was found wrong, and not everything was looked at"
-msgstr ""
+msgstr "non si è trovato niente di sbagliato, e non si è guardato tutto"
 
 #: ../../source/reference/cli/freeports-validate.md:426
 msgid ""
-"The third is the one worth dwelling on. A methodology page that could not"
-" be fetched leaves every grant made under it **uncompared** — neither "
-"confirmed nor disproved. Counting that as a failure would accuse a "
-"granter over a network outage, so it is not counted; reporting it as a "
-"pass would launder \"I could not look\" into \"I looked and it was "
-"fine\", which is the one sentence a validation tool must never say. So "
-"the run says, in as many words, that those grants are *not vouched for by"
-" this run* and should be treated as ungranted until a run that could read"
-" the pages says otherwise."
+"The third is the one worth dwelling on. A methodology page that could not be fetched "
+"leaves every grant made under it **uncompared** — neither confirmed nor disproved. "
+"Counting that as a failure would accuse a granter over a network outage, so it is not"
+" counted; reporting it as a pass would launder \"I could not look\" into \"I looked "
+"and it was fine\", which is the one sentence a validation tool must never say. So the"
+" run says, in as many words, that those grants are *not vouched for by this run* and "
+"should be treated as ungranted until a run that could read the pages says otherwise."
 msgstr ""
+"Il terzo è quello su cui vale la pena soffermarsi. Una pagina di metodologia che non "
+"si è potuta scaricare lascia **non confrontata** ogni attestazione fatta sotto di "
+"essa — né confermata né smentita. Contarlo come un guasto accuserebbe chi ha "
+"attestato per un'interruzione di rete, quindi non si conta; riferirlo come un "
+"superamento riciclerebbe \"non ho potuto guardare\" in \"ho guardato e andava bene\","
+" che è l'unica frase che uno strumento di validazione non deve mai dire. L'esecuzione"
+" dice perciò, in tutte lettere, che quelle attestazioni *non sono avallate da questa "
+"esecuzione* e vanno trattate come non attestate finché un'esecuzione che abbia potuto"
+" leggere le pagine non dica altro."
 
 #: ../../source/reference/cli/freeports-validate.md:433
 msgid ""
-"`--offline` makes that state deliberate rather than accidental: it "
-"answers from the cache where it can, and only what it could not answer "
-"leaves the run inconclusive."
+"`--offline` makes that state deliberate rather than accidental: it answers from the "
+"cache where it can, and only what it could not answer leaves the run inconclusive."
 msgstr ""
+"`--offline` rende quello stato deliberato anziché accidentale: risponde dalla cache "
+"dove può, e solo ciò a cui non ha potuto rispondere lascia l'esecuzione "
+"inconcludente."
 
 #: ../../source/reference/cli/freeports-validate.md:436
 msgid "One thing it says is a warning and never any of the three:"
-msgstr ""
+msgstr "Una cosa che dice è un avviso e non è mai nessuno dei tre:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "a file granted outside the paths its methodology declares"
-msgstr ""
+msgstr "un file attestato fuori dai percorsi che la sua metodologia dichiara"
 
 #: ../../source/reference/cli/freeports-validate.md:172
-msgid ""
-"a warning. Failing here would break a repository over a page somebody "
-"else edited"
+msgid "a warning. Failing here would break a repository over a page somebody else edited"
 msgstr ""
+"un avviso. Fallire qui romperebbe un repository per via di una pagina modificata da "
+"qualcun altro"
 
 #: ../../source/reference/cli/freeports-validate.md:442
 msgid ""
-"The explanations below are printed on a **green** run too: a warning "
-"nobody explains is a warning nobody acts on."
+"The explanations below are printed on a **green** run too: a warning nobody explains "
+"is a warning nobody acts on."
 msgstr ""
+"Le spiegazioni qui sotto sono stampate anche in un'esecuzione **verde**: un avviso "
+"che nessuno spiega è un avviso su cui nessuno agisce."
 
 #: ../../source/reference/cli/freeports-validate.md:445
 msgid ""
-"Those lines name a discrepancy rather than explain one, so a failing run "
-"closes with a short section saying what each *kind* of failure it hit can"
-" mean — that an invalid signature is far more often a public key missing "
-"from your keyring than a document somebody tampered with, that a file "
-"hash mismatch is the mechanism working rather than breaking, that a "
-"changed methodology page invalidates the claims made under it because "
-"they were claims about that text. For the two hash mismatches that "
-"involve a resolved page — a methodology's, and the general methodology "
-"behind `version` — the first cause it names is a **differently-configured"
-" source**, ahead of the page having changed, and it prints the sources in"
-" use and the URI the name resolved to here, so you can compare them with "
-"the granter's. It is printed once for the whole run rather than once per "
-"document, and only for the kinds that actually occurred; a run with "
+"Those lines name a discrepancy rather than explain one, so a failing run closes with "
+"a short section saying what each *kind* of failure it hit can mean — that an invalid "
+"signature is far more often a public key missing from your keyring than a document "
+"somebody tampered with, that a file hash mismatch is the mechanism working rather "
+"than breaking, that a changed methodology page invalidates the claims made under it "
+"because they were claims about that text. For the two hash mismatches that involve a "
+"resolved page — a methodology's, and the general methodology behind `version` — the "
+"first cause it names is a **differently-configured source**, ahead of the page having"
+" changed, and it prints the sources in use and the URI the name resolved to here, so "
+"you can compare them with the granter's. It is printed once for the whole run rather "
+"than once per document, and only for the kinds that actually occurred; a run with "
 "nothing wrong prints none of it."
 msgstr ""
+"Quelle righe nominano una discrepanza anziché spiegarla, quindi un'esecuzione fallita"
+" si chiude con una breve sezione che dice che cosa possa significare ciascun *tipo* "
+"di guasto incontrato — che una firma non valida è molto più spesso una chiave "
+"pubblica che manca dal tuo portachiavi che un documento manomesso da qualcuno, che "
+"una discordanza di hash su un file è il meccanismo che funziona anziché rompersi, che"
+" una pagina di metodologia cambiata invalida le affermazioni fatte sotto di essa "
+"perché erano affermazioni su quel testo. Per le due discordanze di hash che "
+"riguardano una pagina risolta — quella di una metodologia, e la metodologia generale "
+"dietro a `version` — la prima causa che nomina è una **sorgente configurata "
+"diversamente**, prima ancora che la pagina sia cambiata, e stampa le sorgenti in uso "
+"e l'URI a cui il nome si è risolto qui, così che tu possa confrontarli con quelli di "
+"chi ha attestato. È stampata una volta per l'intera esecuzione anziché una volta per "
+"documento, e solo per i tipi che si sono davvero verificati; un'esecuzione in cui non"
+" c'è niente di sbagliato non ne stampa niente."
 
 #: ../../source/reference/cli/freeports-validate.md:457
 msgid ""
-"With no argument, what it looks at depends on whether a key is configured"
-" — because that is what decides whether any document here is *yours*:"
+"With no argument, what it looks at depends on whether a key is configured — because "
+"that is what decides whether any document here is *yours*:"
 msgstr ""
+"Senza argomenti, che cosa guardi dipende dal fatto che sia configurata una chiave — "
+"perché è quello a decidere se qualche documento qui sia *tuo*:"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "Bare `check-grants` checks"
-msgstr ""
+msgstr "`check-grants` nudo controlla"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "a key is configured"
-msgstr ""
+msgstr "è configurata una chiave"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "**only your own** document, the one belonging to that key"
-msgstr ""
+msgstr "**solo il tuo** documento, quello che appartiene a quella chiave"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "no key is configured"
-msgstr ""
+msgstr "non è configurata alcuna chiave"
 
 #: ../../source/reference/cli/freeports-validate.md:172
 msgid "**every** `validation/*.yaml` in the repository"
-msgstr ""
+msgstr "**ogni** `validation/*.yaml` del repository"
 
 #: ../../source/reference/cli/freeports-validate.md:466
 msgid ""
-"The first row has a trap in it. If you have a key configured but no "
-"document of your own in this repository, `check-grants` says so and then "
-"reports *\"All validation documents passed verification\"* — having "
-"verified nothing, because there was nothing of yours to verify. A green "
-"bare `check-grants` from a contributor's own machine is not evidence that"
-" a repository's grants hold."
+"The first row has a trap in it. If you have a key configured but no document of your "
+"own in this repository, `check-grants` says so and then reports *\"All validation "
+"documents passed verification\"* — having verified nothing, because there was nothing"
+" of yours to verify. A green bare `check-grants` from a contributor's own machine is "
+"not evidence that a repository's grants hold."
 msgstr ""
+"Nella prima riga c'è una trappola. Se hai una chiave configurata ma in questo "
+"repository nessun documento tuo, `check-grants` lo dice e poi riferisce *\"All "
+"validation documents passed verification\"* — non avendo verificato niente, perché "
+"non c'era niente di tuo da verificare. Un `check-grants` nudo e verde dalla macchina "
+"di un contributore non è una prova che le attestazioni di un repository reggano."
 
 #: ../../source/reference/cli/freeports-validate.md:471
 msgid ""
-"The second row is the form to use in continuous integration, and it needs"
-" no key precisely because nothing there speaks in anyone's name: it "
-"verifies every document against the keyring it is given."
+"The second row is the form to use in continuous integration, and it needs no key "
+"precisely because nothing there speaks in anyone's name: it verifies every document "
+"against the keyring it is given."
 msgstr ""
+"La seconda riga è la forma da usare nell'integrazione continua, e non richiede alcuna"
+" chiave proprio perché lì niente parla a nome di qualcuno: verifica ogni documento "
+"contro il portachiavi che gli viene dato."
 
 #: ../../source/reference/cli/freeports-validate.md:475
 msgid ""
-"A failing signature on a document that is not yours usually means its "
-"author's public key is not in your keyring, not that the document was "
-"tampered with. Import it before concluding anything: `gpg --import "
-"their.pub.asc`."
+"A failing signature on a document that is not yours usually means its author's public"
+" key is not in your keyring, not that the document was tampered with. Import it "
+"before concluding anything: `gpg --import their.pub.asc`."
 msgstr ""
+"Una firma fallita su un documento che non è tuo di solito significa che la chiave "
+"pubblica del suo autore non è nel tuo portachiavi, non che il documento sia stato "
+"manomesso. Importala prima di concludere qualsiasi cosa: `gpg --import loro.pub.asc`."
 
 #: ../../source/reference/cli/freeports-validate.md:479
 msgid ""
-"It answers one narrow question — *are these grants still about these "
-"files* — and it is not a substitute for the tests passing, any more than "
-"the tests are a substitute for it. One says the code still does what it "
-"did yesterday; the other says a person put their name to the result."
+"It answers one narrow question — *are these grants still about these files* — and it "
+"is not a substitute for the tests passing, any more than the tests are a substitute "
+"for it. One says the code still does what it did yesterday; the other says a person "
+"put their name to the result."
 msgstr ""
+"Risponde a una domanda ristretta — *queste attestazioni parlano ancora di questi "
+"file* — e non sostituisce il superamento dei test, così come i test non sostituiscono"
+" lui. Uno dice che il codice fa ancora quel che faceva ieri; l'altro dice che una "
+"persona ha messo il proprio nome sul risultato."
 
 #: ../../source/reference/cli/freeports-validate.md:483
 msgid "Asking who stands behind what"
-msgstr ""
+msgstr "Chiedere chi c'è dietro a che cosa"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "Command"
-msgstr ""
+msgstr "Comando"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "Lists"
-msgstr ""
+msgstr "Elenca"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "Grouped by"
-msgstr ""
+msgstr "Raggruppate per"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "Alternative"
-msgstr ""
+msgstr "Alternativa"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`who-grants <files…>`"
-msgstr ""
+msgstr "`who-grants <file…>`"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "who vouched for these files"
-msgstr ""
+msgstr "chi ha risposto di questi file"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "contributor"
-msgstr ""
+msgstr "contributore"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`-m`, by methodology"
-msgstr ""
+msgstr "`-m`, per metodologia"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`granted-by <contributor>`"
-msgstr ""
+msgstr "`granted-by <contributore>`"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "what this person vouched for"
-msgstr ""
+msgstr "di che cosa ha risposto questa persona"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "methodology"
-msgstr ""
+msgstr "metodologia"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`-f`, by file"
-msgstr ""
+msgstr "`-f`, per file"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`granted-with <methodology>`"
-msgstr ""
+msgstr "`granted-with <metodologia>`"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "what was vouched for under this methodology"
-msgstr ""
+msgstr "di che cosa si è risposto sotto questa metodologia"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "file"
-msgstr ""
+msgstr "file"
 
 #: ../../source/reference/cli/freeports-validate.md:465
 msgid "`-c`, by contributor"
-msgstr ""
+msgstr "`-c`, per contributore"
 
 #: ../../source/reference/cli/freeports-validate.md:491
 msgid ""
-"A contributor can be named by their name, their email or their key "
-"fingerprint — whichever you have."
+"A contributor can be named by their name, their email or their key fingerprint — "
+"whichever you have."
 msgstr ""
+"Un contributore si può nominare con il proprio nome, il proprio indirizzo di posta o "
+"l'impronta della propria chiave — quello che hai."
 
 #: ../../source/reference/cli/freeports-validate.md:493
 msgid ""
-"All three annotate a grant made outside the paths its methodology "
-"declares with `(!)`, and print one legend line at the end of the run "
-"explaining the mark. Such a grant is listed rather than hidden: somebody "
-"made that claim, and the reader is told under what."
+"All three annotate a grant made outside the paths its methodology declares with "
+"`(!)`, and print one legend line at the end of the run explaining the mark. Such a "
+"grant is listed rather than hidden: somebody made that claim, and the reader is told "
+"under what."
 msgstr ""
+"Tutti e tre annotano con `(!)` un'attestazione fatta fuori dai percorsi che la sua "
+"metodologia dichiara, e stampano alla fine dell'esecuzione una riga di legenda che "
+"spiega il segno. Un'attestazione simile è elencata anziché nascosta: qualcuno ha "
+"fatto quell'affermazione, e al lettore si dice sotto che cosa."
 
 #: ../../source/reference/cli/freeports-validate.md:497
 msgid "After a file legitimately changes"
-msgstr ""
+msgstr "Dopo che un file è legittimamente cambiato"
 
 #: ../../source/reference/cli/freeports-validate.md:499
 msgid ""
-"A grant is a claim about *bytes*. When granted content changes for a good"
-" reason — a format was fixed, and its reference output genuinely should "
-"differ — the grant does not follow it automatically, and that is the "
-"design working. Restating it is explicit:"
+"A grant is a claim about *bytes*. When granted content changes for a good reason — a "
+"format was fixed, and its reference output genuinely should differ — the grant does "
+"not follow it automatically, and that is the design working. Restating it is "
+"explicit:"
 msgstr ""
+"Un'attestazione è un'affermazione sui *byte*. Quando un contenuto attestato cambia "
+"per un buon motivo — un formato è stato corretto, e i suoi risultati di riferimento "
+"devono davvero essere diversi — l'attestazione non lo segue automaticamente, ed è il "
+"progetto che funziona. Ridichiararla è esplicito:"
 
 #: ../../source/reference/cli/freeports-validate.md:509
 msgid ""
-"`update file` restates an existing claim; it does not create one. A file "
-"that was never granted under that methodology is refused, naming the "
-"`grant` that would be the right command, rather than being accepted, "
-"doing nothing and reporting success."
+"`update file` restates an existing claim; it does not create one. A file that was "
+"never granted under that methodology is refused, naming the `grant` that would be the"
+" right command, rather than being accepted, doing nothing and reporting success."
 msgstr ""
+"`update file` ridichiara un'affermazione esistente; non ne crea una. Un file mai "
+"attestato sotto quella metodologia è rifiutato, nominando il `grant` che sarebbe il "
+"comando giusto, anziché essere accettato, non fare niente e riferire successo."
 
 #: ../../source/reference/cli/freeports-validate.md:513
 msgid ""
-"Each re-signs afterwards. `update methodology` is the heavy one: a "
-"changed methodology page means the claims made under it were made about a"
-" text that no longer exists, so it **drops every file granted under that "
-"methodology**, after asking. That is deliberate — the alternative would "
-"be carrying old claims forward under a new meaning."
+"Each re-signs afterwards. `update methodology` is the heavy one: a changed "
+"methodology page means the claims made under it were made about a text that no longer"
+" exists, so it **drops every file granted under that methodology**, after asking. "
+"That is deliberate — the alternative would be carrying old claims forward under a new"
+" meaning."
 msgstr ""
+"Ciascuno rifirma dopo. `update methodology` è quello pesante: una pagina di "
+"metodologia cambiata significa che le affermazioni fatte sotto di essa sono state "
+"fatte su un testo che non esiste più, quindi **lascia cadere ogni file attestato "
+"sotto quella metodologia**, dopo aver chiesto. È voluto — l'alternativa sarebbe "
+"portarsi avanti vecchie affermazioni sotto un significato nuovo."
 
 #: ../../source/reference/cli/freeports-validate.md:519
 msgid ""
-"`update` is not the way to silence a failing `check-grants`. It re-states"
-" an intention to vouch, and it should be run by the person who has "
-"actually confirmed that the change was expected. Running it because a "
-"check went red converts a real signal into a signature."
+"`update` is not the way to silence a failing `check-grants`. It re-states an "
+"intention to vouch, and it should be run by the person who has actually confirmed "
+"that the change was expected. Running it because a check went red converts a real "
+"signal into a signature."
 msgstr ""
+"`update` non è il modo di far tacere un `check-grants` fallito. Ridichiara "
+"l'intenzione di rispondere di qualcosa, e va eseguito dalla persona che ha davvero "
+"confermato che la modifica era attesa. Eseguirlo perché un controllo è diventato "
+"rosso converte un segnale vero in una firma."
 
 #: ../../source/reference/cli/freeports-validate.md:524
 msgid "Where the validation files live"
-msgstr ""
+msgstr "Dove vivono i file di validazione"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "Path"
-msgstr ""
+msgstr "Percorso"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "What"
-msgstr ""
+msgstr "Che cosa"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "`<repo>/validation/<name>.yaml`"
-msgstr ""
+msgstr "`<repo>/validation/<nome>.yaml`"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "one validation document per contributor"
-msgstr ""
+msgstr "un documento di validazione per contributore"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "`<repo>/package.yaml` → `info.validation_sha256`"
-msgstr ""
+msgstr "`<repo>/package.yaml` → `info.validation_sha256`"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "ties the repository to the document vouching for it"
-msgstr ""
+msgstr "lega il repository al documento che ne risponde"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "the installed package's `lib/document.schema.json`"
-msgstr ""
+msgstr "il `lib/document.schema.json` del pacchetto installato"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 msgid "the schema every document is checked against"
-msgstr ""
+msgstr "lo schema contro cui è controllato ogni documento"
 
 #: ../../source/reference/cli/freeports-validate.md:518
 #, python-brace-format
 msgid "`${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/`"
-msgstr ""
+msgstr "`${XDG_CACHE_HOME:-$HOME/.cache}/freeports-validate/`"
 
 #: ../../source/reference/cli/freeports-validate.md:518
-msgid ""
-"every methodology body ever fetched, keyed by the URI's hash and then by "
-"its own"
-msgstr ""
+msgid "every methodology body ever fetched, keyed by the URI's hash and then by its own"
+msgstr "ogni corpo di metodologia mai scaricato, con chiave l'hash dell'URI e poi il proprio"
 
 #: ../../source/reference/cli/freeports-validate.md:532
 #, python-brace-format
 msgid ""
-"The methodology pages are **not** in that list, and that is the point. "
-"They ship neither with the repository nor with the tool: they are "
-"resolved from the sources you configure, so the text a grant refers to is"
-" a document at an address its granter chose. The pages this project "
-"publishes are in {doc}`the validation section <../../validation/index>` "
-"of this site, which is exactly what the default source fetches — and, "
-"being hashed artefacts, they cannot be edited as ordinary prose."
+"The methodology pages are **not** in that list, and that is the point. They ship "
+"neither with the repository nor with the tool: they are resolved from the sources you"
+" configure, so the text a grant refers to is a document at an address its granter "
+"chose. The pages this project publishes are in {doc}`the validation section "
+"<../../validation/index>` of this site, which is exactly what the default source "
+"fetches — and, being hashed artefacts, they cannot be edited as ordinary prose."
 msgstr ""
+"Le pagine di metodologia **non** sono in quell'elenco, ed è tutto il punto. Non "
+"viaggiano né con il repository né con lo strumento: si risolvono dalle sorgenti che "
+"configuri tu, quindi il testo a cui un'attestazione si riferisce è un documento a un "
+"indirizzo che chi ha attestato ha scelto. Le pagine che questo progetto pubblica "
+"stanno nella {doc}`sezione sulla validazione <../../validation/index>` di questo "
+"sito, che è esattamente ciò che la sorgente predefinita scarica — e, essendo "
+"artefatti sottoposti a hash, non si possono modificare come prosa ordinaria."
 
 #~ msgid ""
 #~ "This variable used to be called "
-#~ "`AFINANCE_VALIDATION_KEYID`, a name from "
-#~ "before the project was called freeports"
-#~ " and the only setting anywhere that"
-#~ " did not begin with `FREEPORTS_`. The"
-#~ " old name is **no longer read**: "
-#~ "a shell that exports only it gets"
-#~ " the same refusal as one that "
-#~ "sets nothing."
+#~ "`AFINANCE_VALIDATION_KEYID`, a name from before the"
+#~ " project was called freeports and the only"
+#~ " setting anywhere that did not begin with"
+#~ " `FREEPORTS_`. The old name is **no longer"
+#~ " read**: a shell that exports only it "
+#~ "gets the same refusal as one that sets"
+#~ " nothing."
 #~ msgstr ""
 

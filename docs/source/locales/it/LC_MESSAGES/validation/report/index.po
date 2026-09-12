@@ -21,128 +21,162 @@ msgstr ""
 
 #: ../../source/validation/report/index.rst:3
 msgid "Validation coverage"
-msgstr ""
+msgstr "Copertura della validazione"
 
 #: ../../source/validation/report/index.rst:5
 msgid ""
-"What this repository's :doc:`validation documents <../index>` claim, "
-"gathered into one place. The figures below are a *summary of claims*, not"
-" a proof of them: they say who has vouched for which files under which "
-"methodology, and whether the signatures and hashes still hold as of the "
-"run that wrote this page. To be sure of any line of it, run the check "
-"yourself:"
+"What this repository's :doc:`validation documents <../index>` claim, gathered into "
+"one place. The figures below are a *summary of claims*, not a proof of them: they say"
+" who has vouched for which files under which methodology, and whether the signatures "
+"and hashes still hold as of the run that wrote this page. To be sure of any line of "
+"it, run the check yourself:"
 msgstr ""
+"Ciò che i :doc:`documenti di validazione <../index>` di questo repository affermano, "
+"raccolto in un posto solo. I numeri qui sotto sono un *riassunto di affermazioni*, "
+"non una loro dimostrazione: dicono chi ha risposto di quali file sotto quale "
+"metodologia, e se le firme e gli hash reggano ancora al momento dell'esecuzione che "
+"ha scritto questa pagina. Per essere certo di una qualsiasi riga, esegui tu stesso il"
+" controllo:"
 
 #: ../../source/validation/report/index.rst:14
 msgid ""
 "The assertions this repository grants are the prose ones under "
-"``docs/source/validation/assertions/`` — statements about the software "
-"that a person read, understood and agreed with, recorded under "
-":doc:`agreement and good faith "
-"<../methodologies/agreement_and_good_faith>`. A grant of one of them is a"
-" claim about a *statement*, not about any bytes a program wrote, which is"
-" what separates it from the methodologies a formats repository uses."
+"``docs/source/validation/assertions/`` — statements about the software that a person "
+"read, understood and agreed with, recorded under :doc:`agreement and good faith "
+"<../methodologies/agreement_and_good_faith>`. A grant of one of them is a claim about"
+" a *statement*, not about any bytes a program wrote, which is what separates it from "
+"the methodologies a formats repository uses."
 msgstr ""
+"Le asserzioni che questo repository attesta sono quelle in prosa sotto "
+"``docs/source/validation/assertions/`` — dichiarazioni sul software che una persona "
+"ha letto, capito e condiviso, registrate sotto :doc:`agreement and good faith "
+"<../methodologies/agreement_and_good_faith>`. L'attestazione di una di esse è "
+"un'affermazione su una *dichiarazione*, non su byte scritti da un programma, ed è ciò"
+" che la separa dalle metodologie che usa un repository di formati."
 
 #: ../../source/validation/report/index.rst:21
 msgid "`Open the coverage page: the three viewpoints as tabs <../coverage.html>`_"
-msgstr ""
+msgstr "`Apri la pagina di copertura: i tre punti di vista come schede <../coverage.html>`_"
 
 #: ../../source/validation/report/index.rst:25
 msgid ""
-"That page is a single generated HTML file published beside this site, the"
-" same arrangement the :doc:`Rust API <../../generated/rust-api>` uses. It"
-" is **not** rebuilt with the site: whether a signature is valid is "
-"computed from the keyring of whoever runs the command, and a "
-"documentation builder has no public keys in it — so a page generated "
-"there would announce that every grant in the repository is invalid. It is"
-" written by the commit hook, on a machine that holds the keys, and "
-"committed under ``docs/source/_extra/validation/``. Building the site "
-"only copies it."
+"That page is a single generated HTML file published beside this site, the same "
+"arrangement the :doc:`Rust API <../../generated/rust-api>` uses. It is **not** "
+"rebuilt with the site: whether a signature is valid is computed from the keyring of "
+"whoever runs the command, and a documentation builder has no public keys in it — so a"
+" page generated there would announce that every grant in the repository is invalid. "
+"It is written by the commit hook, on a machine that holds the keys, and committed "
+"under ``docs/source/_extra/validation/``. Building the site only copies it."
 msgstr ""
+"Quella pagina è un singolo file HTML generato e pubblicato accanto a questo sito, la "
+"stessa disposizione che usa l':doc:`API Rust <../../generated/rust-api>`. **Non** è "
+"ricostruita insieme al sito: se una firma sia valida si calcola dal portachiavi di "
+"chi esegue il comando, e un costruttore di documentazione non ha chiavi pubbliche "
+"dentro — quindi una pagina generata lì annuncerebbe che ogni attestazione del "
+"repository non è valida. È scritta dal hook di commit, su una macchina che le chiavi "
+"ce le ha, e committata sotto ``docs/source/_extra/validation/``. Costruire il sito si"
+" limita a copiarla."
 
 #: ../../source/validation/report/index.rst:35
 msgid ""
-"1 grant by 1 contributor under 1 methodology; coverage 1/1 (100%); check-"
-"grants: passing"
+"1 grant by 1 contributor under 1 methodology; coverage 1/1 (100%); check-grants: "
+"passing"
 msgstr ""
+"1 attestazione di 1 contributore sotto 1 metodologia; copertura 1/1 (100%); check-"
+"grants: passing"
 
 #: ../../source/validation/report/index.rst:37
 msgid ""
-"*Generated by `freeports-validate report`, and demonstrative: it shows "
-"what this repository's validation documents claim as of one run, not that"
-" the data is correct. To be sure of any line, run `freeports-validate "
-"check-grants` yourself.* `What these claims are worth: the general "
-"methodology "
+"*Generated by `freeports-validate report`, and demonstrative: it shows what this "
+"repository's validation documents claim as of one run, not that the data is correct. "
+"To be sure of any line, run `freeports-validate check-grants` yourself.* `What these "
+"claims are worth: the general methodology "
 "<https://docs.freeports.org/en/stable/validation/general_methodology.html>`_."
 msgstr ""
+"*Generata da `freeports-validate report`, e dimostrativa: mostra ciò che i documenti "
+"di validazione di questo repository affermano al momento di una certa esecuzione, non"
+" che i dati siano corretti. Per essere certo di una qualsiasi riga, esegui tu stesso "
+"`freeports-validate check-grants`.* `Quanto valgano queste affermazioni: la "
+"metodologia generale "
+"<https://docs.freeports.org/en/stable/validation/general_methodology.html>`_."
 
 #: ../../source/validation/report/index.rst:41
 msgid "Methodology"
-msgstr ""
+msgstr "Metodologia"
 
 #: ../../source/validation/report/index.rst:41
 msgid "Grants"
-msgstr ""
+msgstr "Attestazioni"
 
 #: ../../source/validation/report/index.rst:41
 msgid "Coverage"
-msgstr ""
+msgstr "Copertura"
 
 #: ../../source/validation/report/index.rst:41
 msgid "Adopted by"
-msgstr ""
+msgstr "Adottata da"
 
 #: ../../source/validation/report/index.rst:43
 msgid "agreement and good faith"
-msgstr ""
+msgstr "agreement and good faith"
 
 #: ../../source/validation/report/index.rst:43
 msgid "1"
-msgstr ""
+msgstr "1"
 
 #: ../../source/validation/report/index.rst:43
 msgid "1/1 (100%)"
-msgstr ""
+msgstr "1/1 (100%)"
 
 #: ../../source/validation/report/index.rst:43
 msgid "Oreste Sciacqualegni"
-msgstr ""
+msgstr "Oreste Sciacqualegni"
 
 #: ../../source/validation/report/index.rst:46
 msgid ""
 "agreement and good faith: "
 "https://docs.freeports.org/en/latest/_sources/validation/methodologies/agreement_and_good_faith.rst.txt"
 msgstr ""
+"agreement and good faith: "
+"https://docs.freeports.org/en/latest/_sources/validation/methodologies/agreement_and_good_faith.rst.txt"
 
 #: ../../source/validation/report/index.rst:51
 msgid "The same claims, six other ways"
-msgstr ""
+msgstr "Le stesse affermazioni, in altri sei modi"
 
 #: ../../source/validation/report/index.rst:53
 msgid ""
-"Each page below is one of the three lookup subcommands written down for "
-"the whole repository at once. The name of a table reads as *grouped by "
-"the first, listing the second*."
+"Each page below is one of the three lookup subcommands written down for the whole "
+"repository at once. The name of a table reads as *grouped by the first, listing the "
+"second*."
 msgstr ""
+"Ciascuna pagina qui sotto è uno dei tre sottocomandi di ricerca messo per iscritto "
+"per l'intero repository in una volta. Il nome di una tabella si legge come "
+"*raggruppata per la prima, che elenca la seconda*."
 
 #: ../../source/validation/report/index.rst:67
 msgid "Keeping all of it current"
-msgstr ""
+msgstr "Tenere aggiornato tutto quanto"
 
 #: ../../source/validation/report/index.rst:69
 msgid ""
-"The badges in the README, the summary block above and the six pages are "
-"all functions of what ``validation/`` claims, so a commit that changes a "
-"granted file and leaves them alone publishes figures that are already "
-"wrong. ``.githooks/pre-commit`` regenerates them and stages what it "
-"rewrote, and never refuses a commit over it: a committer with no network "
-"still has to be able to commit."
+"The badges in the README, the summary block above and the six pages are all functions"
+" of what ``validation/`` claims, so a commit that changes a granted file and leaves "
+"them alone publishes figures that are already wrong. ``.githooks/pre-commit`` "
+"regenerates them and stages what it rewrote, and never refuses a commit over it: a "
+"committer with no network still has to be able to commit."
 msgstr ""
+"I badge nel README, il blocco di riassunto qui sopra e le sei pagine sono tutti "
+"funzioni di ciò che ``validation/`` afferma, quindi un commit che cambi un file "
+"attestato e li lasci stare pubblica numeri che sono già sbagliati. ``.githooks/pre-"
+"commit`` li rigenera e mette in stage ciò che ha riscritto, e per questo non rifiuta "
+"mai un commit: chi fa commit senza rete deve comunque poter fare commit."
 
 #: ../../source/validation/report/index.rst:75
 msgid ""
-"By hand, it is one walk of the repository rendered several times — ``make"
-" validation-report``, or the commands that target spells out."
+"By hand, it is one walk of the repository rendered several times — ``make validation-"
+"report``, or the commands that target spells out."
 msgstr ""
+"A mano, è una sola passata del repository resa più volte — ``make validation-"
+"report``, oppure i comandi che quel target scrive per esteso."
 

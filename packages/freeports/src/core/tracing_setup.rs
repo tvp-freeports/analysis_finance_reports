@@ -1320,6 +1320,10 @@ impl LogHandle {
     /// CLI calls it as soon as the configuration resolves and `out_path` is known (see
     /// `cli::run::execute`). Rows logged before this call are not lost — they are held in memory
     /// until `close()` regardless of when the destination is settled.
+    ///
+    /// `freeports.log.jsonl` deliberately does **not** follow: it is a separate artefact from the
+    /// run's output, it exists only at `trace`, and it stays in the directory the command was
+    /// launched from.
     pub fn set_csv_dir(&self, dir: &Path) -> Result<(), TracingSetupError> {
         std::fs::create_dir_all(dir)
             .map_err(|source| TracingSetupError::OpenCsvFile { path: dir.to_path_buf(), source })?;
@@ -1444,6 +1448,62 @@ where
     E: std::error::Error + 'static,
 {
     error
+}
+
+/// The message carried by a caught panic, out of the opaque payload `catch_unwind` hands back.
+///
+/// A panic payload is a `Box<dyn Any>`, and the only two shapes the standard library ever puts in
+/// it are the `&'static str` of `panic!("literal")` and the `String` of a formatted `panic!`.
+/// Anything else comes from `panic_any`, which nothing in this crate calls; it gets a placeholder
+/// rather than a lie.
+///
+/// This message is the **only** diagnosis a caught panic leaves behind — there is no error type, no
+/// `source()` chain, nothing to record structurally — which is why it is worth extracting properly
+/// instead of writing "the engine panicked" and losing it.
+///
+/// ```
+/// use freeports::core::tracing_setup::panic_message;
+///
+/// let payload = std::panic::catch_unwind(|| panic!("left is bigger than right"))
+///     .expect_err("the closure panics");
+/// assert_eq!(panic_message(payload.as_ref()), "left is bigger than right");
+/// ```
+pub fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(message) = payload.downcast_ref::<&'static str>() {
+        (*message).to_string()
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "a panic carrying a payload of an unknown type".to_string()
+    }
+}
+
+/// Silences the default panic hook and sends what it knows — the source location and the backtrace
+/// — to `trace` instead.
+///
+/// Every panic in this engine is **caught**: by the page-level net in
+/// [`Algorithm`](crate::core::algorithm::Algorithm), by `cli::worker::execute` in a child process,
+/// and by `main` as the last resort. Each catcher reports it once, with [`panic_message`], from
+/// inside the spans that say which document and which page the run was on. The default hook would
+/// write a second copy of the same fact straight to stderr, outside every span and before the first
+/// — two lines for one event, which `docs/source/guides/user/logging.md` forbids.
+///
+/// What the catcher cannot say is where in the code it happened, and that is what stays here. At
+/// `trace`, because it is the one part of a panic report that means nothing to anyone but a
+/// developer of this crate.
+///
+/// **Installed from `main`, not from [`init`]**, and deliberately so: the hook is global to the
+/// process, and `cargo test` runs this crate's `#[should_panic]` tests in a process whose harness
+/// installs a hook of its own. Binding it to the binary's entry point keeps the two apart without a
+/// `cfg!(test)` guard that would be a lie in any embedding program.
+pub fn install_panic_hook() {
+    std::panic::set_hook(Box::new(|info| {
+        tracing::trace!(
+            location = %info.location().map_or_else(|| "an unknown location".to_string(), ToString::to_string),
+            backtrace = %std::backtrace::Backtrace::force_capture(),
+            "panic caught, unwinding"
+        );
+    }));
 }
 
 /// The error attached to one record, in **structural** form: nothing derives `Serialize` on the

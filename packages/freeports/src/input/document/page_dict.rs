@@ -8,6 +8,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 use crate::commons::geometry::Rectangle;
+use crate::core::tracing_setup::log_error;
 use crate::core::page::{PageError, PageImage};
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
 
@@ -178,13 +179,29 @@ pub fn pdflines_from_pagedict(page: &PageDict, auto_rotate: bool) -> Vec<PdfLine
 }
 
 /// Extracts the raster images as [`PageImage`]s: raw, undecoded bytes.
+///
+/// An image whose bounding box is degenerate or inverted is **dropped with a warning**, for exactly
+/// the reason [`pdflines_from_pagedict`] gives above for text spans: the box comes from the PDF
+/// itself, and a malformed PDF must not be able to abort the process. The two functions read the
+/// same dict and had two different answers to the same question; now they have one.
 pub fn pdfimages_from_pagedict(page: &PageDict) -> Vec<PageImage> {
     page.blocks
         .iter()
         .filter_map(|b| match b {
             PageDictBlock::ImageRaster { bbox, ext, data } => {
                 let (x0, y0, x1, y1) = *bbox;
-                Some(PageImage { bbox: Rectangle::new(x0, y0, x1, y1), ext: ext.clone(), data: data.clone() })
+                match Rectangle::build(x0, y0, x1, y1) {
+                    Ok(bbox) => Some(PageImage { bbox, ext: ext.clone(), data: data.clone() }),
+                    Err(error) => {
+                        tracing::warn!(
+                            coord_1 = %format!("x {x0}..{x1}"),
+                            coord_2 = %format!("y {y0}..{y1}"),
+                            error = log_error(&error),
+                            "discarding a raster image with a degenerate or inverted bbox: {error}"
+                        );
+                        None
+                    }
+                }
             }
             _ => None,
         })
@@ -639,6 +656,7 @@ mod tests {
     mod pdfimages_from_pagedict_behavior {
         use super::*;
         use pretty_assertions::assert_eq;
+        use test_case::test_case;
 
         #[test]
         fn only_imageraster_blocks_produce_images() {
@@ -689,6 +707,37 @@ mod tests {
         fn no_image_blocks_yields_an_empty_vec() {
             let page = PageDict { width: 10.0, height: 10.0, blocks: vec![PageDictBlock::Text { lines: vec![] }, PageDictBlock::Other] };
             assert!(pdfimages_from_pagedict(&page).is_empty());
+        }
+
+        /// The rule text spans have obeyed all along, now obeyed here too: a box that comes out of
+        /// the PDF malformed costs that image, never the process.
+        #[test_case((5.0, 0.0, 1.0, 10.0); "inverted on x")]
+        #[test_case((0.0, 5.0, 10.0, 1.0); "inverted on y")]
+        #[test_case((3.0, 0.0, 3.0, 10.0); "zero width")]
+        #[test_case((0.0, 3.0, 10.0, 3.0); "zero height")]
+        fn an_image_with_a_degenerate_or_inverted_bbox_is_dropped(bbox: (f32, f32, f32, f32)) {
+            let page = PageDict {
+                width: 10.0,
+                height: 10.0,
+                blocks: vec![PageDictBlock::ImageRaster { bbox, ext: "png".to_string(), data: vec![1] }],
+            };
+            assert!(pdfimages_from_pagedict(&page).is_empty(), "{bbox:?} is not a rectangle");
+        }
+
+        /// And it costs only itself: the sound images of the same page still come out, in order.
+        #[test]
+        fn a_dropped_image_does_not_cost_the_sound_ones() {
+            let page = PageDict {
+                width: 10.0,
+                height: 10.0,
+                blocks: vec![
+                    PageDictBlock::ImageRaster { bbox: (0.0, 0.0, 1.0, 1.0), ext: "png".to_string(), data: vec![1] },
+                    PageDictBlock::ImageRaster { bbox: (9.0, 0.0, 2.0, 1.0), ext: "png".to_string(), data: vec![2] },
+                    PageDictBlock::ImageRaster { bbox: (2.0, 2.0, 3.0, 3.0), ext: "jpeg".to_string(), data: vec![3] },
+                ],
+            };
+            let images = pdfimages_from_pagedict(&page);
+            assert_eq!(images.iter().map(|i| i.data.clone()).collect::<Vec<_>>(), vec![vec![1], vec![3]]);
         }
     }
 }

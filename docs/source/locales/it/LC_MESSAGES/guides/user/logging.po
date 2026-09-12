@@ -99,13 +99,12 @@ msgid "always, `warn` and above"
 msgstr "sempre, da `warn` in su"
 
 #: ../../source/guides/user/logging.md:12
-#, fuzzy
 msgid ""
 "Only the first of the three is there on an ordinary run. Below `trace` the structured"
 " log does not exist — not an empty file, no file — because a run you are watching on "
 "stderr should leave nothing behind in the directory you started it from."
 msgstr ""
-"In un'esecuzione ordinaria c'è solo la prima delle tre. Sotto a `-vvv` il registro "
+"In un'esecuzione ordinaria c'è solo la prima delle tre. Sotto a `trace` il registro "
 "strutturato non esiste — non un file vuoto: nessun file — perché un'esecuzione che "
 "stai guardando su stderr non deve lasciare niente nella cartella da cui l'hai "
 "lanciata."
@@ -276,7 +275,6 @@ msgstr ""
 " si tolgono."
 
 #: ../../source/guides/user/logging.md:82
-#, fuzzy
 msgid ""
 "One JSON object per line, in the **working** directory, and **only at `trace`** — "
 "`-vvv`, or the `verbosity` setting from any of its other sources. Each record carries"
@@ -285,14 +283,15 @@ msgid ""
 "— the error in structured form, with its `Debug` shape, its message, and its whole "
 "`source()` chain."
 msgstr ""
-"Un oggetto JSON per riga, nella cartella di **lavoro**, e **solo con `-vvv`**. Ogni "
-"record porta l'orologio a muro, il livello, lo stesso percorso di attività che stampa"
-" stderr, il modulo `target` che stderr omette, il messaggio, le eventuali coordinate "
-"e — dove l'evento ne ha allegato uno — l'errore in forma strutturata, con la sua "
-"forma `Debug`, il suo messaggio e l'intera catena di `source()`."
+"Un oggetto JSON per riga, nella cartella di **lavoro**, e **solo a `trace`** — con "
+"`-vvv`, oppure con l'impostazione `verbosity` da una qualsiasi delle sue altre "
+"sorgenti. Ogni record porta l'orologio a muro, il livello, lo stesso percorso di "
+"attività che stampa stderr, il modulo `target` che stderr omette, il messaggio, le "
+"eventuali coordinate e — dove l'evento ne ha allegato uno — l'errore in forma "
+"strutturata, con la sua forma `Debug`, il suo messaggio e l'intera catena di "
+"`source()`."
 
 #: ../../source/guides/user/logging.md:88
-#, fuzzy
 msgid ""
 "It exists at one verbosity because it answers a question only that verbosity answers:"
 " *everything the engine did, in order, with the module and the error chain attached*."
@@ -301,8 +300,8 @@ msgid ""
 msgstr ""
 "Esiste a una sola verbosità perché risponde a una domanda a cui risponde solo quella "
 "verbosità: *tutto ciò che il motore ha fatto, in ordine, con il modulo e la catena "
-"degli errori allegati*. Da `-vv` in giù sarebbe una trascrizione parziale che nessuno"
-" ha chiesto, scritta in qualunque cartella ti trovassi per caso."
+"degli errori allegati*. Da `debug` in giù sarebbe una trascrizione parziale che "
+"nessuno ha chiesto, scritta in qualunque cartella ti trovassi per caso."
 
 #: ../../source/guides/user/logging.md:93
 msgid ""

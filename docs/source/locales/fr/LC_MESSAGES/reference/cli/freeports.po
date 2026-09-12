@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"POT-Creation-Date: 2026-09-12 09:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -503,17 +503,18 @@ msgstr ""
 #: ../../source/reference/cli/freeports.md:151
 #, python-brace-format
 msgid ""
-"Verbosity is today the one setting the command line has a monopoly on. "
-"`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key are "
-"parsed, validated and merged, but never reach the logging setup of the "
-"parent process — see the warning in {doc}`../configuration/index`."
-msgstr ""
-
-#: ../../source/reference/cli/freeports.md:156
-msgid "`--internal-worker`, the one hidden option"
+"`FREEPORTS_VERBOSITY` and the configuration file's `verbosity` key set "
+"the same dial, and both work — but they are inside a configuration that "
+"cannot be read until logging is already running, so they take effect the "
+"moment it resolves rather than from the first line. See "
+"{doc}`../configuration/index` for the one consequence."
 msgstr ""
 
 #: ../../source/reference/cli/freeports.md:157
+msgid "`--internal-worker`, the one hidden option"
+msgstr ""
+
+#: ../../source/reference/cli/freeports.md:158
 msgid ""
 "`--internal-worker` exists and is hidden from `--help` on purpose. It is "
 "not a user interface but the channel between two copies of the same "
@@ -521,4 +522,15 @@ msgid ""
 " to itself, naming a request file inside a temporary directory that "
 "disappears when the run ends. Running it by hand makes no sense."
 msgstr ""
+
+#~ msgid ""
+#~ "Verbosity is today the one setting "
+#~ "the command line has a monopoly "
+#~ "on. `FREEPORTS_VERBOSITY` and the "
+#~ "configuration file's `verbosity` key are "
+#~ "parsed, validated and merged, but never"
+#~ " reach the logging setup of the "
+#~ "parent process — see the warning "
+#~ "in {doc}`../configuration/index`."
+#~ msgstr ""
 

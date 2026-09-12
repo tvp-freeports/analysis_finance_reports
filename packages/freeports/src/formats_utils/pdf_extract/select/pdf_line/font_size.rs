@@ -13,7 +13,7 @@
 use ordered_float::OrderedFloat;
 use std::cmp::max;
 
-use crate::commons::geometry::PositiveLimits;
+use crate::commons::geometry::{PositiveLimits, PositiveLimitsBuildError};
 use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
 use crate::commons::sets::{Container, Overlappable, SetRelation};
 
@@ -127,8 +127,19 @@ pub type FontSizeSet = Interval;
 pub type FontSizeInterval = FontSizeSet;
 
 impl FontSizeInterval {
+    /// The one-interval set, for bounds that are an **internal** invariant of the caller.
+    ///
+    /// Panics on a degenerate, inverted or negative interval, which is what [`PositiveLimits::new`]
+    /// promises. Use [`FontSizeInterval::build`] wherever a bound can come from the page or from a
+    /// format's configuration.
     pub fn new(a: f32, b: f32) -> Self {
         Self::from_atom(PositiveLimits::new(a, b))
+    }
+
+    /// The fallible twin of [`FontSizeInterval::new`], for bounds that come **from outside** — a
+    /// font size read off a line of this page, typically.
+    pub fn build(a: f32, b: f32) -> Result<Self, PositiveLimitsBuildError> {
+        Ok(Self::from_atom(PositiveLimits::build(a, b)?))
     }
     pub fn from_precision(c: f32, prec: f32) -> Self {
         let a = max(OrderedFloat(0.0), OrderedFloat(c - prec)).into_inner();
@@ -167,6 +178,60 @@ mod tests {
             let mut expected = HashSet::new();
             expected.insert(PositiveLimits::new(0.0, 6.0));
             assert_eq!(FontSizeInterval::from_precision(1.0, 5.0).atoms(), &expected);
+        }
+    }
+
+    /// [`FontSizeInterval::build`], the twin for bounds that come from outside — a size read off a
+    /// line of the page, or a pair written by author code.
+    mod fallible_construction {
+        use super::*;
+        use crate::commons::geometry::{LimitsBuildError, PositiveLimitsBuildError};
+        use pretty_assertions::assert_eq;
+
+        #[test]
+        fn build_accepts_what_new_accepts_and_yields_the_same_interval() {
+            assert_eq!(
+                FontSizeInterval::build(6.0, 70.0).expect("a proper interval must build").atoms(),
+                FontSizeInterval::new(6.0, 70.0).atoms()
+            );
+        }
+
+        #[test]
+        fn an_inverted_interval_is_refused() {
+            match FontSizeInterval::build(70.0, 6.0) {
+                Err(PositiveLimitsBuildError::InvalidLimit(LimitsBuildError::NegativeInterval(a, b))) => {
+                    assert_eq!((a, b), (70.0, 6.0));
+                }
+                other => panic!("expected an inverted interval, found {other:?}"),
+            }
+        }
+
+        /// The shape the engine actually produces: a font size of exactly zero, clamped at zero on
+        /// the left, leaves both bounds on the same value.
+        #[test]
+        fn a_degenerate_interval_is_refused() {
+            match FontSizeInterval::build(4.0, 4.0) {
+                Err(PositiveLimitsBuildError::InvalidLimit(LimitsBuildError::NegativeInterval(a, b))) => {
+                    assert_eq!((a, b), (4.0, 4.0));
+                }
+                other => panic!("expected a degenerate interval, found {other:?}"),
+            }
+        }
+
+        #[test]
+        fn a_negative_left_bound_is_refused_before_the_interval_is_even_considered() {
+            match FontSizeInterval::build(-1.0, 6.0) {
+                Err(PositiveLimitsBuildError::LeftNegative(a)) => assert_eq!(a, -1.0),
+                other => panic!("expected a negative left bound, found {other:?}"),
+            }
+        }
+
+        #[test]
+        fn a_negative_right_bound_is_refused_too() {
+            match FontSizeInterval::build(0.0, -6.0) {
+                Err(PositiveLimitsBuildError::RightNegative(b)) => assert_eq!(b, -6.0),
+                other => panic!("expected a negative right bound, found {other:?}"),
+            }
         }
     }
 

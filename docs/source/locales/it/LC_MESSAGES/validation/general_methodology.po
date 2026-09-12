@@ -21,620 +21,759 @@ msgstr ""
 
 #: ../../source/validation/general_methodology.rst:15
 msgid "General methodology"
-msgstr ""
+msgstr "Metodologia generale"
 
 #: ../../source/validation/general_methodology.rst:17
 msgid ""
-"A repository has one directory dedicated to the tests, called ``tests``, "
-"and one dedicated to accountability, called ``validation``. This page "
-"describes what the second one contains, what the entries in it mean, and "
-"how a reader can reconstruct any claim made there."
+"A repository has one directory dedicated to the tests, called ``tests``, and one "
+"dedicated to accountability, called ``validation``. This page describes what the "
+"second one contains, what the entries in it mean, and how a reader can reconstruct "
+"any claim made there."
 msgstr ""
+"Un repository ha una cartella dedicata ai test, chiamata ``tests``, e una dedicata "
+"alla rendicontabilità, chiamata ``validation``. Questa pagina descrive che cosa "
+"contenga la seconda, che cosa significhino le voci che vi si trovano, e come un "
+"lettore possa ricostruire qualsiasi affermazione vi sia fatta."
 
 #: ../../source/validation/general_methodology.rst:21
 msgid ""
-"We develop tests to establish that the program does what we say it does. "
-"Some of what we want to say, though, is not a thing a test can establish "
-"— that a person looked at a result and found it reasonable, that somebody"
-" read a statement and agrees with it — and those claims need a protocol "
-"rather than an assertion. This page is the protocol for making such "
-"claims, and it is the text every one of them is made under."
+"We develop tests to establish that the program does what we say it does. Some of what"
+" we want to say, though, is not a thing a test can establish — that a person looked "
+"at a result and found it reasonable, that somebody read a statement and agrees with "
+"it — and those claims need a protocol rather than an assertion. This page is the "
+"protocol for making such claims, and it is the text every one of them is made under."
 msgstr ""
+"Sviluppiamo dei test per stabilire che il programma faccia ciò che diciamo faccia. "
+"Parte di ciò che vogliamo dire, però, non è una cosa che un test possa stabilire — "
+"che una persona ha guardato un risultato e l'ha trovato ragionevole, che qualcuno ha "
+"letto una dichiarazione e la condivide — e quelle affermazioni hanno bisogno di un "
+"protocollo anziché di un'asserzione. Questa pagina è il protocollo per fare "
+"affermazioni del genere, ed è il testo sotto il quale ciascuna di esse è fatta."
 
 #: ../../source/validation/general_methodology.rst:27
 msgid "There are two kinds of thing we grant the content of:"
-msgstr ""
+msgstr "Ci sono due tipi di cose di cui attestiamo il contenuto:"
 
 #: ../../source/validation/general_methodology.rst:29
 msgid "**test results** — under the ``tests`` directory: files of type"
-msgstr ""
+msgstr "**i risultati dei test** — sotto la cartella ``tests``: file di tipo"
 
 #: ../../source/validation/general_methodology.rst:31
 msgid "``.csv``"
-msgstr ""
+msgstr "``.csv``"
 
 #: ../../source/validation/general_methodology.rst:32
 msgid "``.yaml``"
-msgstr ""
+msgstr "``.yaml``"
 
 #: ../../source/validation/general_methodology.rst:33
 msgid "``.json``"
-msgstr ""
+msgstr "``.json``"
 
 #: ../../source/validation/general_methodology.rst:34
 #: ../../source/validation/general_methodology.rst:42
 msgid "``.png``"
-msgstr ""
+msgstr "``.png``"
 
 #: ../../source/validation/general_methodology.rst:35
 msgid "``.pdf``"
-msgstr ""
+msgstr "``.pdf``"
 
 #: ../../source/validation/general_methodology.rst:37
 msgid ""
-"**assertions** — statements published as prose in the documentation, for "
-"the freeports engine under ``docs/source/validation/assertions``: files "
-"of type"
+"**assertions** — statements published as prose in the documentation, for the "
+"freeports engine under ``docs/source/validation/assertions``: files of type"
 msgstr ""
+"**le asserzioni** — dichiarazioni pubblicate in prosa nella documentazione, per il "
+"motore freeports sotto ``docs/source/validation/assertions``: file di tipo"
 
 #: ../../source/validation/general_methodology.rst:40
 msgid "``.rst``"
-msgstr ""
+msgstr "``.rst``"
 
 #: ../../source/validation/general_methodology.rst:41
 msgid "``.md``"
-msgstr ""
+msgstr "``.md``"
 
 #: ../../source/validation/general_methodology.rst:43
 msgid "``.svg``"
-msgstr ""
+msgstr "``.svg``"
 
 #: ../../source/validation/general_methodology.rst:45
 msgid ""
-"A file is granted through a specific **methodology**, which is a "
-"published document describing the protocol that was applied to it."
+"A file is granted through a specific **methodology**, which is a published document "
+"describing the protocol that was applied to it."
 msgstr ""
+"Un file è attestato tramite una precisa **metodologia**, che è un documento "
+"pubblicato che descrive il protocollo che gli è stato applicato."
 
 #: ../../source/validation/general_methodology.rst:50
 msgid "Where methodologies come from"
-msgstr ""
+msgstr "Da dove vengono le metodologie"
 
 #: ../../source/validation/general_methodology.rst:52
 msgid ""
-"A grant is a claim made **under a text**, so the text has to be something"
-" both the person granting and the person verifying can obtain. "
-"Methodology pages are therefore **published documents, resolved from a "
-"location each of them configures**, called a *source*."
+"A grant is a claim made **under a text**, so the text has to be something both the "
+"person granting and the person verifying can obtain. Methodology pages are therefore "
+"**published documents, resolved from a location each of them configures**, called a "
+"*source*."
 msgstr ""
+"Un'attestazione è un'affermazione fatta **sotto un testo**, quindi il testo "
+"dev'essere qualcosa che sia chi attesta sia chi verifica possono procurarsi. Le "
+"pagine di metodologia sono perciò **documenti pubblicati, risolti da una posizione "
+"che ciascuno dei due configura**, chiamata *sorgente*."
 
 #: ../../source/validation/general_methodology.rst:56
 msgid ""
 "A source is a pattern containing exactly one ``*``, which stands for the "
 "methodology's relative name::"
 msgstr ""
+"Una sorgente è uno schema che contiene esattamente un ``*``, che sta per il nome "
+"relativo della metodologia::"
 
 #: ../../source/validation/general_methodology.rst:63
 msgid ""
-"The general methodology — this page — is looked for at "
-"``general_methodology``; a methodology named ``basic check`` is looked "
-"for at ``methodologies/basic_check``, its name lowercased with spaces "
-"turned into underscores. Several sources may be configured, and their "
-"order is priority: a name is resolved from the first that offers it."
+"The general methodology — this page — is looked for at ``general_methodology``; a "
+"methodology named ``basic check`` is looked for at ``methodologies/basic_check``, its"
+" name lowercased with spaces turned into underscores. Several sources may be "
+"configured, and their order is priority: a name is resolved from the first that "
+"offers it."
 msgstr ""
+"La metodologia generale — questa pagina — si cerca in ``general_methodology``; una "
+"metodologia chiamata ``basic check`` si cerca in ``methodologies/basic_check``, con "
+"il nome in minuscolo e gli spazi trasformati in trattini bassi. Si possono "
+"configurare più sorgenti, e il loro ordine è priorità: un nome è risolto dalla prima "
+"che lo offre."
 
 #: ../../source/validation/general_methodology.rst:70
 msgid ""
-"**A validation document records a methodology's name and its hash, and "
-"deliberately not the source they came from.**"
+"**A validation document records a methodology's name and its hash, and deliberately "
+"not the source they came from.**"
 msgstr ""
+"**Un documento di validazione registra il nome di una metodologia e il suo hash, e "
+"deliberatamente non la sorgente da cui vengono.**"
 
 #: ../../source/validation/general_methodology.rst:73
 msgid ""
-"The source is a contract between the person who grants and the person who"
-" verifies, and each of them writes it in their own configuration. "
-"Recording the granter's source inside the document would make the "
-"document assert something about the verifier's setup that it has no "
-"standing to assert, and would turn a shared name into a URL that has to "
-"keep working for ever."
+"The source is a contract between the person who grants and the person who verifies, "
+"and each of them writes it in their own configuration. Recording the granter's source"
+" inside the document would make the document assert something about the verifier's "
+"setup that it has no standing to assert, and would turn a shared name into a URL that"
+" has to keep working for ever."
 msgstr ""
+"La sorgente è un patto fra chi attesta e chi verifica, e ciascuno dei due la scrive "
+"nella propria configurazione. Registrare nel documento la sorgente di chi attesta "
+"farebbe affermare al documento qualcosa sull'impostazione di chi verifica, cosa che "
+"non ha titolo di affermare, e trasformerebbe un nome condiviso in un URL che deve "
+"continuare a funzionare per sempre."
 
 #: ../../source/validation/general_methodology.rst:78
 msgid ""
-"The price of that decision is that a hash mismatch is ambiguous: the page"
-" may have been rewritten, or the two of you may be reading two different "
-"publications of the same methodology. ``freeports-validate sources`` "
-"prints what each name resolves to on the machine it is run on, so two "
-"people can compare one line each and see which of the two it was."
+"The price of that decision is that a hash mismatch is ambiguous: the page may have "
+"been rewritten, or the two of you may be reading two different publications of the "
+"same methodology. ``freeports-validate sources`` prints what each name resolves to on"
+" the machine it is run on, so two people can compare one line each and see which of "
+"the two it was."
 msgstr ""
+"Il prezzo di quella decisione è che una discordanza di hash è ambigua: la pagina può "
+"essere stata riscritta, oppure voi due potete star leggendo due pubblicazioni diverse"
+" della stessa metodologia. ``freeports-validate sources`` stampa a che cosa si "
+"risolva ciascun nome sulla macchina in cui viene eseguito, così che due persone "
+"possano confrontare una riga a testa e vedere quale dei due casi fosse."
 
 #: ../../source/validation/general_methodology.rst:83
 msgid ""
-"This also means the methodology pages do **not** travel inside the tool. "
-"Were they to, upgrading the tool would silently change what every grant "
-"in every repository refers to, and the text a claim is about must not be "
-"chosen by a package manager. The price of the arrangement is stated "
-"openly: whoever publishes a methodology can invalidate the grants made "
-"under it, by editing the page."
+"This also means the methodology pages do **not** travel inside the tool. Were they "
+"to, upgrading the tool would silently change what every grant in every repository "
+"refers to, and the text a claim is about must not be chosen by a package manager. The"
+" price of the arrangement is stated openly: whoever publishes a methodology can "
+"invalidate the grants made under it, by editing the page."
 msgstr ""
+"Questo significa anche che le pagine di metodologia **non** viaggiano dentro lo "
+"strumento. Se lo facessero, aggiornare lo strumento cambierebbe in silenzio ciò a cui"
+" si riferisce ogni attestazione di ogni repository, e il testo di cui parla "
+"un'affermazione non dev'essere scelto da un gestore di pacchetti. Il prezzo di questa"
+" impalcatura è dichiarato apertamente: chi pubblica una metodologia può invalidare le"
+" attestazioni fatte sotto di essa, modificando la pagina."
 
 #: ../../source/validation/general_methodology.rst:90
 msgid "Validation documents"
-msgstr ""
+msgstr "I documenti di validazione"
 
 #: ../../source/validation/general_methodology.rst:92
 msgid ""
-"The ``validation`` directory of a repository holds one ``.yaml`` document"
-" per contributor, named after them — ``validation/jane_doe.yaml``. Each "
-"is a record of what that person vouches for, and it is signed by them:"
+"The ``validation`` directory of a repository holds one ``.yaml`` document per "
+"contributor, named after them — ``validation/jane_doe.yaml``. Each is a record of "
+"what that person vouches for, and it is signed by them:"
 msgstr ""
+"La cartella ``validation`` di un repository contiene un documento ``.yaml`` per "
+"contributore, che ne porta il nome — ``validation/jane_doe.yaml``. Ciascuno è la "
+"registrazione di ciò di cui quella persona risponde, ed è firmato da lei:"
 
 #: ../../source/validation/general_methodology.rst:121
 msgid "``version``"
-msgstr ""
+msgstr "``version``"
 
 #: ../../source/validation/general_methodology.rst:122
 msgid ""
-"Which version of the **general methodology** the document was written "
-"under — that is, of this page. It fixes how the entries below are to be "
-"interpreted. It is the ``SHA256`` of the source file of this page, "
-"resolved from the configured sources. If the content of this page "
-"changes, the hash changes with it and every document referring to the old"
-" one is invalidated."
+"Which version of the **general methodology** the document was written under — that "
+"is, of this page. It fixes how the entries below are to be interpreted. It is the "
+"``SHA256`` of the source file of this page, resolved from the configured sources. If "
+"the content of this page changes, the hash changes with it and every document "
+"referring to the old one is invalidated."
 msgstr ""
+"Sotto quale versione della **metodologia generale** il documento è stato scritto — "
+"cioè di questa pagina. Fissa come vadano interpretate le voci che seguono. È lo "
+"``SHA256`` del file sorgente di questa pagina, risolto dalle sorgenti configurate. Se"
+" il contenuto di questa pagina cambia, l'hash cambia con esso e ogni documento che si"
+" riferisce a quello vecchio è invalidato."
 
 #: ../../source/validation/general_methodology.rst:127
 msgid "``who``"
-msgstr ""
+msgstr "``who``"
 
 #: ../../source/validation/general_methodology.rst:128
 msgid "Who is accountable for the content of the document:"
-msgstr ""
+msgstr "Chi risponde del contenuto del documento:"
 
 #: ../../source/validation/general_methodology.rst:130
 msgid ""
-"``name`` — the complete name of the person who owns the document and is "
-"responsible for what it says; in particular, the owner of the "
-"cryptographic keys used to sign it;"
+"``name`` — the complete name of the person who owns the document and is responsible "
+"for what it says; in particular, the owner of the cryptographic keys used to sign it;"
 msgstr ""
+"``name`` — il nome completo della persona che possiede il documento ed è responsabile"
+" di ciò che vi è scritto; in particolare, chi possiede le chiavi crittografiche usate"
+" per firmarlo;"
 
 #: ../../source/validation/general_methodology.rst:132
 msgid ""
-"``email`` — their email address. It is the channel through which they can"
-" be notified of an inconsistency, and the link to a physical person: keys"
-" are published on the `OpenPGP key server <https://keys.openpgp.org/>`_, "
-"which requires email verification before a public key can be found by "
-"address;"
+"``email`` — their email address. It is the channel through which they can be notified"
+" of an inconsistency, and the link to a physical person: keys are published on the "
+"`OpenPGP key server <https://keys.openpgp.org/>`_, which requires email verification "
+"before a public key can be found by address;"
 msgstr ""
+"``email`` — il suo indirizzo di posta. È il canale attraverso il quale le si può "
+"segnalare un'incoerenza, e il legame con una persona fisica: le chiavi si pubblicano "
+"sul `key server OpenPGP <https://keys.openpgp.org/>`_, che richiede la verifica "
+"dell'indirizzo prima che una chiave pubblica si possa trovare per indirizzo;"
 
 #: ../../source/validation/general_methodology.rst:136
 msgid "``pubkey_id`` — the fingerprint of the key pair used to sign the document."
-msgstr ""
+msgstr "``pubkey_id`` — l'impronta della coppia di chiavi usata per firmare il documento."
 
 #: ../../source/validation/general_methodology.rst:138
 msgid "``methodologies``"
-msgstr ""
+msgstr "``methodologies``"
 
 #: ../../source/validation/general_methodology.rst:139
 msgid "Every methodology this document uses, each with:"
-msgstr ""
+msgstr "Ogni metodologia che questo documento usa, ciascuna con:"
 
 #: ../../source/validation/general_methodology.rst:141
 msgid ""
-"``name`` — the methodology's name, which is its published file name with "
-"``_`` replaced by a space, lowercased, and without the ``.rst`` "
-"extension. The page published at ``methodologies/basic_check.rst`` is "
-"named ``basic check``."
+"``name`` — the methodology's name, which is its published file name with ``_`` "
+"replaced by a space, lowercased, and without the ``.rst`` extension. The page "
+"published at ``methodologies/basic_check.rst`` is named ``basic check``."
 msgstr ""
+"``name`` — il nome della metodologia, che è il nome del file pubblicato con i ``_`` "
+"sostituiti da spazi, in minuscolo, e senza l'estensione ``.rst``. La pagina "
+"pubblicata in ``methodologies/basic_check.rst`` si chiama ``basic check``."
 
 #: ../../source/validation/general_methodology.rst:144
 msgid ""
-"``sha256`` — the hash of the exact text the entry refers to. If the "
-"protocol described by that page is updated, the hash changes and every "
-"document referring to the old text is invalidated with it."
+"``sha256`` — the hash of the exact text the entry refers to. If the protocol "
+"described by that page is updated, the hash changes and every document referring to "
+"the old text is invalidated with it."
 msgstr ""
+"``sha256`` — l'hash del testo esatto a cui la voce si riferisce. Se il protocollo "
+"descritto da quella pagina è aggiornato, l'hash cambia e con esso è invalidato ogni "
+"documento che si riferisce al testo precedente."
 
 #: ../../source/validation/general_methodology.rst:148
 msgid "``data``"
-msgstr ""
+msgstr "``data``"
 
 #: ../../source/validation/general_methodology.rst:149
 msgid ""
-"What is actually vouched for: a list of methodologies, each with the "
-"files granted under it. The methodology named here must be one of the "
-"names in the ``methodologies`` section above."
+"What is actually vouched for: a list of methodologies, each with the files granted "
+"under it. The methodology named here must be one of the names in the "
+"``methodologies`` section above."
 msgstr ""
+"Ciò di cui si risponde davvero: un elenco di metodologie, ciascuna con i file "
+"attestati sotto di essa. La metodologia qui nominata dev'essere uno dei nomi della "
+"sezione ``methodologies`` qui sopra."
 
 #: ../../source/validation/general_methodology.rst:152
 msgid ""
-"Each ``path`` is **relative to the root of the repository the document "
-"lives in** — for example ``tests/formats/ARCA-IT24/1/out/funds.csv``, or "
-"``docs/source/validation/assertions/validation_algorithm_trustworthiness.rst``."
-" The accompanying ``sha256`` is the hash of that file's content, which is"
-" what makes the grant a claim about *bytes* rather than about a name: if "
-"the file changes, the grant visibly no longer applies to what is on disk."
+"Each ``path`` is **relative to the root of the repository the document lives in** — "
+"for example ``tests/formats/ARCA-IT24/1/out/funds.csv``, or "
+"``docs/source/validation/assertions/validation_algorithm_trustworthiness.rst``. The "
+"accompanying ``sha256`` is the hash of that file's content, which is what makes the "
+"grant a claim about *bytes* rather than about a name: if the file changes, the grant "
+"visibly no longer applies to what is on disk."
 msgstr ""
+"Ogni ``path`` è **relativo alla radice del repository in cui vive il documento** — "
+"per esempio ``tests/formats/ARCA-IT24/1/out/funds.csv``, oppure "
+"``docs/source/validation/assertions/validation_algorithm_trustworthiness.rst``. Lo "
+"``sha256`` che lo accompagna è l'hash del contenuto di quel file, ed è ciò che rende "
+"l'attestazione un'affermazione sui *byte* anziché su un nome: se il file cambia, "
+"l'attestazione visibilmente non si applica più a ciò che sta sul disco."
 
 #: ../../source/validation/general_methodology.rst:159
 msgid "``sign``"
-msgstr ""
+msgstr "``sign``"
 
 #: ../../source/validation/general_methodology.rst:160
 msgid ""
-"The signature, produced with the private half of the key pair identified "
-"in ``who`` over the rest of the document. What is signed is the document "
-"with the ``sign`` field removed and every mapping key sorted recursively,"
-" so that two people writing the same content produce the same bytes to "
-"sign."
+"The signature, produced with the private half of the key pair identified in ``who`` "
+"over the rest of the document. What is signed is the document with the ``sign`` field"
+" removed and every mapping key sorted recursively, so that two people writing the "
+"same content produce the same bytes to sign."
 msgstr ""
+"La firma, prodotta con la metà privata della coppia di chiavi identificata in ``who``"
+" sul resto del documento. Ciò che si firma è il documento con il campo ``sign`` tolto"
+" e con ogni chiave di mappatura ordinata ricorsivamente, così che due persone che "
+"scrivono lo stesso contenuto producano gli stessi byte da firmare."
 
 #: ../../source/validation/general_methodology.rst:167
 msgid ""
-"You can produce the exact bytes that are signed — normalised, and without"
-" the signature — with:"
+"You can produce the exact bytes that are signed — normalised, and without the "
+"signature — with:"
 msgstr ""
+"Puoi produrre i byte esatti che vengono firmati — normalizzati, e senza la firma — "
+"con:"
 
 #: ../../source/validation/general_methodology.rst:174
 msgid ""
-"``-S`` is **jq's** own recursive key sort. This project uses the Python "
-"``yq`` (kislyuk), which is a thin wrapper around ``jq``; the unrelated Go"
-" program of the same name has its own expression language and does not "
-"emit identical bytes."
+"``-S`` is **jq's** own recursive key sort. This project uses the Python ``yq`` "
+"(kislyuk), which is a thin wrapper around ``jq``; the unrelated Go program of the "
+"same name has its own expression language and does not emit identical bytes."
 msgstr ""
+"``-S`` è l'ordinamento ricorsivo delle chiavi proprio di **jq**. Questo progetto usa "
+"lo ``yq`` in Python (kislyuk), che è un sottile involucro attorno a ``jq``; il "
+"programma in Go con lo stesso nome, che non c'entra niente, ha un proprio linguaggio "
+"di espressioni e non emette byte identici."
 
 #: ../../source/validation/general_methodology.rst:180
 msgid "What a methodology may declare about itself"
-msgstr ""
+msgstr "Che cosa una metodologia può dichiarare di sé"
 
 #: ../../source/validation/general_methodology.rst:182
 msgid ""
-"Two things on a methodology page are read by the tool rather than only by"
-" people. Both are optional, and both exist to make a grant more legible "
-"rather than to constrain it."
+"Two things on a methodology page are read by the tool rather than only by people. "
+"Both are optional, and both exist to make a grant more legible rather than to "
+"constrain it."
 msgstr ""
+"Due cose di una pagina di metodologia sono lette dallo strumento e non solo dalle "
+"persone. Entrambe sono facoltative, ed entrambe esistono per rendere un'attestazione "
+"più leggibile anziché per vincolarla."
 
 #: ../../source/validation/general_methodology.rst:186
 msgid "Which paths it covers"
-msgstr ""
+msgstr "Quali percorsi copre"
 
 #: ../../source/validation/general_methodology.rst:188
 msgid ""
-"A methodology page may carry an ordinary, visible section whose title is "
-"``Supported paths``, declaring the repository paths that methodology "
-"applies to. Each entry is a single inline literal with a prose gloss "
-"underneath:"
+"A methodology page may carry an ordinary, visible section whose title is ``Supported "
+"paths``, declaring the repository paths that methodology applies to. Each entry is a "
+"single inline literal with a prose gloss underneath:"
 msgstr ""
+"Una pagina di metodologia può portare una sezione ordinaria e visibile il cui titolo "
+"è ``Supported paths``, che dichiara i percorsi del repository a cui quella "
+"metodologia si applica. Ogni voce è un unico letterale in linea con sotto una glossa "
+"in prosa:"
 
 #: ../../source/validation/general_methodology.rst:202
 msgid ""
-"The gloss is the substance. The same path can mean different things in "
-"two repositories — a ``tests/formats/`` directory exists both in a "
-"formats repository and in the extraction engine's own — and that "
-"ambiguity is resolved by an author writing down which one they mean, "
-"never by the tool guessing."
+"The gloss is the substance. The same path can mean different things in two "
+"repositories — a ``tests/formats/`` directory exists both in a formats repository and"
+" in the extraction engine's own — and that ambiguity is resolved by an author writing"
+" down which one they mean, never by the tool guessing."
 msgstr ""
+"La glossa è la sostanza. Lo stesso percorso può significare cose diverse in due "
+"repository — una cartella ``tests/formats/`` esiste sia in un repository di formati "
+"sia in quello del motore di estrazione — e quell'ambiguità si scioglie perché un "
+"autore mette per iscritto quale dei due intenda, mai perché lo strumento tiri a "
+"indovinare."
 
 #: ../../source/validation/general_methodology.rst:207
 msgid "The pattern grammar is four tokens, and everything else is literal:"
-msgstr ""
+msgstr "La grammatica degli schemi è di quattro simboli, e tutto il resto è letterale:"
 
 #: ../../source/validation/general_methodology.rst:213
 msgid "Token"
-msgstr ""
+msgstr "Simbolo"
 
 #: ../../source/validation/general_methodology.rst:214
 msgid "Matches"
-msgstr ""
+msgstr "Corrisponde a"
 
 #: ../../source/validation/general_methodology.rst:215
 msgid "``*``"
-msgstr ""
+msgstr "``*``"
 
 #: ../../source/validation/general_methodology.rst:216
 msgid "any part of one path segment; never crosses a ``/``"
-msgstr ""
+msgstr "una parte qualsiasi di un solo segmento di percorso; non attraversa mai una ``/``"
 
 #: ../../source/validation/general_methodology.rst:217
 msgid "``**``"
-msgstr ""
+msgstr "``**``"
 
 #: ../../source/validation/general_methodology.rst:218
 msgid "zero or more whole segments"
-msgstr ""
+msgstr "zero o più segmenti interi"
 
 #: ../../source/validation/general_methodology.rst:219
 msgid "a trailing ``/``"
-msgstr ""
+msgstr "una ``/`` finale"
 
 #: ../../source/validation/general_methodology.rst:220
 msgid "the directory and everything under it — the same as appending ``**``"
-msgstr ""
+msgstr "la cartella e tutto ciò che vi sta sotto — come aggiungere ``**``"
 
 #: ../../source/validation/general_methodology.rst:221
 msgid "anything else"
-msgstr ""
+msgstr "qualsiasi altra cosa"
 
 #: ../../source/validation/general_methodology.rst:222
 msgid "itself"
-msgstr ""
+msgstr "sé stessa"
 
 #: ../../source/validation/general_methodology.rst:224
 msgid ""
-"There are no character classes, braces, negation or ``?``. Patterns are "
-"always relative to the repository root."
+"There are no character classes, braces, negation or ``?``. Patterns are always "
+"relative to the repository root."
 msgstr ""
+"Non ci sono classi di caratteri, parentesi graffe, negazione o ``?``. Gli schemi sono"
+" sempre relativi alla radice del repository."
 
 #: ../../source/validation/general_methodology.rst:227
 msgid ""
-"**A page with no such section covers any path.** That is the behaviour "
-"from before this convention existed, and it remains the honest answer for"
-" a methodology whose scope cannot be written as a set of paths."
+"**A page with no such section covers any path.** That is the behaviour from before "
+"this convention existed, and it remains the honest answer for a methodology whose "
+"scope cannot be written as a set of paths."
 msgstr ""
+"**Una pagina senza una sezione simile copre qualsiasi percorso.** È il comportamento "
+"di quando questa convenzione non esisteva, e resta la risposta onesta per una "
+"metodologia il cui ambito non si può scrivere come un insieme di percorsi."
 
 #: ../../source/validation/general_methodology.rst:231
 msgid ""
-"Where a grant names a path outside the declared set, the consequence "
-"differs by moment, and the asymmetry is deliberate:"
+"Where a grant names a path outside the declared set, the consequence differs by "
+"moment, and the asymmetry is deliberate:"
 msgstr ""
+"Dove un'attestazione nomina un percorso fuori dall'insieme dichiarato, la conseguenza"
+" cambia a seconda del momento, e l'asimmetria è voluta:"
 
 #: ../../source/validation/general_methodology.rst:238
 msgid "Moment"
-msgstr ""
+msgstr "Momento"
 
 #: ../../source/validation/general_methodology.rst:239
 msgid "What happens"
-msgstr ""
+msgstr "Che cosa succede"
 
 #: ../../source/validation/general_methodology.rst:240
 msgid "granting"
-msgstr ""
+msgstr "attestazione"
 
 #: ../../source/validation/general_methodology.rst:241
 msgid ""
-"refused, showing every declared pattern with its gloss; overridable by "
-"the person granting"
+"refused, showing every declared pattern with its gloss; overridable by the person "
+"granting"
 msgstr ""
+"rifiutata, mostrando ogni schema dichiarato con la sua glossa; scavalcabile da chi "
+"attesta"
 
 #: ../../source/validation/general_methodology.rst:242
 msgid "checking"
-msgstr ""
+msgstr "controllo"
 
 #: ../../source/validation/general_methodology.rst:243
 msgid "a warning, never a failure"
-msgstr ""
+msgstr "un avviso, mai un guasto"
 
 #: ../../source/validation/general_methodology.rst:244
 msgid "the lookups"
-msgstr ""
+msgstr "le ricerche"
 
 #: ../../source/validation/general_methodology.rst:245
 msgid "the grant is listed, and marked as outside the declared set"
-msgstr ""
+msgstr "l'attestazione è elencata, e marcata come fuori dall'insieme dichiarato"
 
 #: ../../source/validation/general_methodology.rst:247
 msgid ""
-"Refusing at grant time is cheap and catches the mistake while its author "
-"is present. Failing at check time would break a repository because "
-"somebody else edited a page it adopts, and no methodology author should "
-"have that power over other people's repositories."
+"Refusing at grant time is cheap and catches the mistake while its author is present. "
+"Failing at check time would break a repository because somebody else edited a page it"
+" adopts, and no methodology author should have that power over other people's "
+"repositories."
 msgstr ""
+"Rifiutare al momento dell'attestazione costa poco e coglie l'errore mentre il suo "
+"autore è presente. Fallire al momento del controllo romperebbe un repository perché "
+"qualcun altro ha modificato una pagina che esso adotta, e nessun autore di "
+"metodologia deve avere quel potere sui repository altrui."
 
 #: ../../source/validation/general_methodology.rst:252
 msgid "What it pins"
-msgstr ""
+msgstr "Che cosa fissa"
 
 #: ../../source/validation/general_methodology.rst:254
 msgid ""
-"A methodology page is prose, and prose cites things — a diagram, a "
-"specification, another document. A grant made under the page is in part a"
-" claim about what those things said, so the page may pin each of them by "
-"hash, in an ordinary reStructuredText comment:"
+"A methodology page is prose, and prose cites things — a diagram, a specification, "
+"another document. A grant made under the page is in part a claim about what those "
+"things said, so the page may pin each of them by hash, in an ordinary "
+"reStructuredText comment:"
 msgstr ""
+"Una pagina di metodologia è prosa, e la prosa cita delle cose — un diagramma, una "
+"specifica, un altro documento. Un'attestazione fatta sotto quella pagina è in parte "
+"un'affermazione su ciò che quelle cose dicevano, quindi la pagina può fissare "
+"ciascuna di esse tramite hash, in un normale commento reStructuredText:"
 
 #: ../../source/validation/general_methodology.rst:264
 msgid ""
 "``..`` followed by text that is not a directive is a comment in every "
-"reStructuredText parser: it renders as nothing and breaks no build. The "
-"target is either an absolute URI or a path relative to the page itself."
+"reStructuredText parser: it renders as nothing and breaks no build. The target is "
+"either an absolute URI or a path relative to the page itself."
 msgstr ""
+"``..`` seguito da testo che non sia una direttiva è un commento in ogni analizzatore "
+"reStructuredText: non rende niente e non rompe alcuna compilazione. Il bersaglio è un"
+" URI assoluto oppure un percorso relativo alla pagina stessa."
 
 #: ../../source/validation/general_methodology.rst:268
 msgid ""
-"**These pins are not a second thing to trust.** They are lines of the "
-"page, so the page's own ``sha256`` — the one a validation document "
-"records — already commits to every one of them. Following them is a "
-"*deepening* of a check, answering the transitive question of whether the "
-"things a page relies on still say what its author read."
+"**These pins are not a second thing to trust.** They are lines of the page, so the "
+"page's own ``sha256`` — the one a validation document records — already commits to "
+"every one of them. Following them is a *deepening* of a check, answering the "
+"transitive question of whether the things a page relies on still say what its author "
+"read."
 msgstr ""
+"**Questi riferimenti fissati non sono una seconda cosa di cui fidarsi.** Sono righe "
+"della pagina, quindi lo ``sha256`` della pagina stessa — quello che un documento di "
+"validazione registra — li impegna già tutti. Seguirli è un *approfondimento* di un "
+"controllo, che risponde alla domanda transitiva se le cose su cui una pagina si "
+"appoggia dicano ancora ciò che il suo autore ha letto."
 
 #: ../../source/validation/general_methodology.rst:275
 msgid "Utilities for the users"
-msgstr ""
+msgstr "Strumenti per chi usa"
 
 #: ../../source/validation/general_methodology.rst:277
-msgid ""
-"Three commands answer the same question from the three directions it can "
-"be asked:"
-msgstr ""
+msgid "Three commands answer the same question from the three directions it can be asked:"
+msgstr "Tre comandi rispondono alla stessa domanda dalle tre direzioni da cui la si può porre:"
 
 #: ../../source/validation/general_methodology.rst:279
 msgid "``freeports-validate who-grants <file>`` — who vouches for this file"
-msgstr ""
+msgstr "``freeports-validate who-grants <file>`` — chi risponde di questo file"
 
 #: ../../source/validation/general_methodology.rst:280
 msgid ""
-"``freeports-validate granted-by <contributor>`` — what this person "
-"vouches for, named by their complete name, their email or their key "
-"fingerprint"
+"``freeports-validate granted-by <contributor>`` — what this person vouches for, named"
+" by their complete name, their email or their key fingerprint"
 msgstr ""
+"``freeports-validate granted-by <contributore>`` — di che cosa risponde questa "
+"persona, nominata con il proprio nome completo, il proprio indirizzo di posta o "
+"l'impronta della propria chiave"
 
 #: ../../source/validation/general_methodology.rst:282
 msgid ""
-"``freeports-validate granted-with <methodology>`` — what has been vouched"
-" for under this methodology, named as the ``name`` entries in a "
-"document's ``methodologies`` section are"
+"``freeports-validate granted-with <methodology>`` — what has been vouched for under "
+"this methodology, named as the ``name`` entries in a document's ``methodologies`` "
+"section are"
 msgstr ""
+"``freeports-validate granted-with <metodologia>`` — di che cosa si è risposto sotto "
+"questa metodologia, nominata come lo sono le voci ``name`` della sezione "
+"``methodologies`` di un documento"
 
 #: ../../source/validation/general_methodology.rst:285
 msgid "They output, respectively:"
-msgstr ""
+msgstr "Producono, rispettivamente:"
 
 #: ../../source/validation/general_methodology.rst:287
 msgid ""
-"the contributors that grant that file — grouped by contributor "
-"*(default)*, or by methodology"
+"the contributors that grant that file — grouped by contributor *(default)*, or by "
+"methodology"
 msgstr ""
+"i contributori che attestano quel file — raggruppati per contributore "
+"*(predefinito)*, oppure per metodologia"
 
 #: ../../source/validation/general_methodology.rst:288
-msgid ""
-"the files granted by that contributor — grouped by methodology "
-"*(default)*, or by file"
+msgid "the files granted by that contributor — grouped by methodology *(default)*, or by file"
 msgstr ""
+"i file attestati da quel contributore — raggruppati per metodologia *(predefinito)*, "
+"oppure per file"
 
 #: ../../source/validation/general_methodology.rst:289
-msgid ""
-"the files covered by that methodology — grouped by file *(default)*, or "
-"by contributor"
+msgid "the files covered by that methodology — grouped by file *(default)*, or by contributor"
 msgstr ""
+"i file coperti da quella metodologia — raggruppati per file *(predefinito)*, oppure "
+"per contributore"
 
 #: ../../source/validation/general_methodology.rst:291
 msgid ""
-"The grouping is chosen with ``-f`` by file, ``-c`` by contributor, ``-m``"
-" by methodology."
+"The grouping is chosen with ``-f`` by file, ``-c`` by contributor, ``-m`` by "
+"methodology."
 msgstr ""
+"Il raggruppamento si sceglie con ``-f`` per file, ``-c`` per contributore, ``-m`` per"
+" metodologia."
 
 #: ../../source/validation/general_methodology.rst:293
 msgid ""
-"**How they work.** Each reads every validation document in the "
-"repository's ``validation`` directory, and for each one:"
+"**How they work.** Each reads every validation document in the repository's "
+"``validation`` directory, and for each one:"
 msgstr ""
+"**Come funzionano.** Ciascuno legge ogni documento di validazione nella cartella "
+"``validation`` del repository, e per ciascuno:"
 
 #: ../../source/validation/general_methodology.rst:296
-msgid ""
-"validates the document against its schema, and its signature against your"
-" keyring;"
+msgid "validates the document against its schema, and its signature against your keyring;"
 msgstr ""
+"valida il documento contro il proprio schema, e la sua firma contro il tuo "
+"portachiavi;"
 
 #: ../../source/validation/general_methodology.rst:297
-msgid ""
-"resolves every adopted methodology from your configured sources and "
-"compares hashes;"
+msgid "resolves every adopted methodology from your configured sources and compares hashes;"
 msgstr ""
+"risolve dalle tue sorgenti configurate ogni metodologia adottata e ne confronta gli "
+"hash;"
 
 #: ../../source/validation/general_methodology.rst:298
-msgid ""
-"compares the recorded hash of each granted file against the file as it is"
-" now;"
-msgstr ""
+msgid "compares the recorded hash of each granted file against the file as it is now;"
+msgstr "confronta l'hash registrato di ciascun file attestato con il file com'è adesso;"
 
 #: ../../source/validation/general_methodology.rst:299
 msgid ""
-"reports only what survived all three, annotating any grant that lies "
-"outside the paths its methodology declares."
+"reports only what survived all three, annotating any grant that lies outside the "
+"paths its methodology declares."
 msgstr ""
+"riferisce solo ciò che è sopravvissuto a tutti e tre, annotando ogni attestazione che"
+" cada fuori dai percorsi che la sua metodologia dichiara."
 
 #: ../../source/validation/general_methodology.rst:302
 msgid ""
-"None of the three needs a signing key of your own. Reading what other "
-"people have vouched for is not an act done in anybody's name."
+"None of the three needs a signing key of your own. Reading what other people have "
+"vouched for is not an act done in anybody's name."
 msgstr ""
+"Nessuno dei tre richiede una chiave di firma tua. Leggere di che cosa altre persone "
+"hanno risposto non è un atto compiuto a nome di qualcuno."
 
 #: ../../source/validation/general_methodology.rst:313
 msgid "Utilities for the developers"
-msgstr ""
+msgstr "Strumenti per chi sviluppa"
 
 #: ../../source/validation/general_methodology.rst:315
-msgid ""
-"``create-document`` — first-time setup: creates your personal validation "
-"document"
+msgid "``create-document`` — first-time setup: creates your personal validation document"
 msgstr ""
+"``create-document`` — preparazione iniziale: crea il tuo documento di validazione "
+"personale"
 
 #: ../../source/validation/general_methodology.rst:316
-msgid ""
-"``grant <files> [with <methodology>]`` — vouch for files under a "
-"methodology"
-msgstr ""
+msgid "``grant <files> [with <methodology>]`` — vouch for files under a methodology"
+msgstr "``grant <file> [with <metodologia>]`` — rispondi di dei file sotto una metodologia"
 
 #: ../../source/validation/general_methodology.rst:317
 #, python-brace-format
 msgid "``ungrant <files> [with {any|<methodology>}]`` — withdraw"
-msgstr ""
+msgstr "``ungrant <file> [with {any|<metodologia>}]`` — ritira"
 
 #: ../../source/validation/general_methodology.rst:318
 msgid ""
-"``check-grants [<document>]`` — verify: schema, signature, version, "
-"methodology hashes, file hashes"
+"``check-grants [<document>]`` — verify: schema, signature, version, methodology "
+"hashes, file hashes"
 msgstr ""
+"``check-grants [<documento>]`` — verifica: schema, firma, versione, hash delle "
+"metodologie, hash dei file"
 
 #: ../../source/validation/general_methodology.rst:320
 msgid "``update <subcommand>``"
-msgstr ""
+msgstr "``update <sottocomando>``"
 
 #: ../../source/validation/general_methodology.rst:322
 msgid "``file`` — restate an existing grant after the file legitimately changed"
 msgstr ""
+"``file`` — ridichiara un'attestazione esistente dopo che il file è legittimamente "
+"cambiato"
 
 #: ../../source/validation/general_methodology.rst:323
 msgid "``version`` — after this page changed"
-msgstr ""
+msgstr "``version`` — dopo che questa pagina è cambiata"
 
 #: ../../source/validation/general_methodology.rst:324
 msgid "``methodology`` — after a methodology page changed"
-msgstr ""
+msgstr "``methodology`` — dopo che una pagina di metodologia è cambiata"
 
 #: ../../source/validation/general_methodology.rst:326
 msgid "``sign-document`` — sign the document after changes"
-msgstr ""
+msgstr "``sign-document`` — firma il documento dopo le modifiche"
 
 #: ../../source/validation/general_methodology.rst:327
 msgid "``sources`` — what your configuration resolves, and where from"
-msgstr ""
+msgstr "``sources`` — che cosa risolve la tua configurazione, e da dove"
 
 #: ../../source/validation/general_methodology.rst:328
 msgid ""
-"``check-methodology <name>`` — one page in detail: where it came from, "
-"and what it pins"
+"``check-methodology <name>`` — one page in detail: where it came from, and what it "
+"pins"
 msgstr ""
+"``check-methodology <nome>`` — una pagina in dettaglio: da dove viene, e che cosa "
+"fissa"
 
 #: ../../source/validation/general_methodology.rst:329
 msgid "``report`` — what the repository as a whole has been vouched for"
-msgstr ""
+msgstr "``report`` — di che cosa si è risposto nel repository nel suo complesso"
 
 #: ../../source/validation/general_methodology.rst:331
 msgid ""
-"**Signing.** ``sign-document`` validates the document against its schema,"
-" refuses to overwrite an existing signature without ``--update``, "
-"normalises the document as described above, produces a GPG detached "
-"signature with your private key, and embeds it in the ``sign`` field."
+"**Signing.** ``sign-document`` validates the document against its schema, refuses to "
+"overwrite an existing signature without ``--update``, normalises the document as "
+"described above, produces a GPG detached signature with your private key, and embeds "
+"it in the ``sign`` field."
 msgstr ""
+"**La firma.** ``sign-document`` valida il documento contro il proprio schema, si "
+"rifiuta di sovrascrivere una firma esistente senza ``--update``, normalizza il "
+"documento come descritto sopra, produce una firma GPG staccata con la tua chiave "
+"privata, e la incorpora nel campo ``sign``."
 
 #: ../../source/validation/general_methodology.rst:335
 msgid ""
-"**Verification.** Every command that reads a document verifies its "
-"signature against your keyring before believing anything in it. A "
-"signature that fails to verify is far more often a public key missing "
-"from your keyring than a document somebody tampered with — import it and "
-"try again before concluding anything."
+"**Verification.** Every command that reads a document verifies its signature against "
+"your keyring before believing anything in it. A signature that fails to verify is far"
+" more often a public key missing from your keyring than a document somebody tampered "
+"with — import it and try again before concluding anything."
 msgstr ""
+"**La verifica.** Ogni comando che legge un documento ne verifica la firma contro il "
+"tuo portachiavi prima di credere a qualsiasi cosa vi sia scritta. Una firma che non "
+"si verifica è molto più spesso una chiave pubblica che manca dal tuo portachiavi che "
+"un documento manomesso da qualcuno — importala e riprova prima di concludere "
+"qualsiasi cosa."
 
 #: ../../source/validation/general_methodology.rst:342
 msgid ""
-"``update`` is not the way to silence a failing check. It restates an "
-"intention to vouch, and it should be run by the person who has confirmed "
-"that the change was expected. Running it because a check went red "
-"converts a real signal into a signature."
+"``update`` is not the way to silence a failing check. It restates an intention to "
+"vouch, and it should be run by the person who has confirmed that the change was "
+"expected. Running it because a check went red converts a real signal into a "
+"signature."
 msgstr ""
+"``update`` non è il modo di far tacere un controllo che fallisce. Ridichiara "
+"l'intenzione di rispondere di qualcosa, e va eseguito dalla persona che ha confermato"
+" che la modifica era attesa. Eseguirlo perché un controllo è diventato rosso converte"
+" un segnale vero in una firma."
 
 #: ../../source/validation/general_methodology.rst:348
 msgid "What this mechanism does not do"
-msgstr ""
+msgstr "Che cosa questo meccanismo non fa"
 
 #: ../../source/validation/general_methodology.rst:350
 msgid ""
-"It does not establish that the extraction is correct. It establishes that"
-" a claim was made: by a named person, under a published protocol, about "
-"an exact sequence of bytes, and that the claim can still be checked. "
-"Where that is not enough for your purpose, the honest answer is that it "
-"is not enough — and the methodology pages are written to let you "
-"determine that for yourself rather than to reassure you."
+"It does not establish that the extraction is correct. It establishes that a claim was"
+" made: by a named person, under a published protocol, about an exact sequence of "
+"bytes, and that the claim can still be checked. Where that is not enough for your "
+"purpose, the honest answer is that it is not enough — and the methodology pages are "
+"written to let you determine that for yourself rather than to reassure you."
 msgstr ""
+"Non stabilisce che l'estrazione sia corretta. Stabilisce che un'affermazione è stata "
+"fatta: da una persona con un nome, secondo un protocollo pubblicato, su una sequenza "
+"esatta di byte, e che l'affermazione si può ancora controllare. Dove questo non basta"
+" al tuo scopo, la risposta onesta è che non basta — e le pagine di metodologia sono "
+"scritte per permetterti di stabilirlo da te anziché per rassicurarti."
 

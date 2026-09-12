@@ -226,8 +226,22 @@ pub fn accumulate(outcomes: &[DocumentOutcome]) -> Result<TransformedTables, Acc
     let mut acc = Accumulator::default();
     for doc in outcomes {
         let report = doc.id.as_str().to_string();
+        // The same two spans, with the same field names, that `Algorithm::apply_each_page` and
+        // `cli::job::run` open around their own work — `report` and `page` are what fill the
+        // `Report` and `Page` columns of the `.log.csv`.
+        //
+        // Phase 2 is where a promise that nobody ever kept is finally noticed (`core::promisable`
+        // warns that the entity was dropped), and without these two spans that warning is the one
+        // event of a run that says neither which document nor which page it came from — which makes
+        // it undiagnosable, since a lost entity is only actionable against the format that produced
+        // it. Phase 1 above stays deliberately without them: the promise map is global by
+        // construction, a chain crosses pages and documents, and a document there would be a lie.
+        let document_span = tracing::info_span!("document", report = %doc.id);
+        let _document_guard = document_span.enter();
         for page in &doc.pages {
             let page_n = page.page as i32;
+            let page_span = tracing::info_span!("page", page = page.page);
+            let _page_guard = page_span.enter();
             for result in &page.results {
                 match result {
                     Extracted::Promises(_) | Extracted::PageClass(_) => {}
@@ -779,6 +793,170 @@ mod tests {
                 )],
             )];
             assert!(accumulate(&outcomes).is_err());
+        }
+    }
+
+    /// An entity dropped because nobody kept its promise is only actionable against the format that
+    /// produced it — so the event that reports it has to say which document and which page it came
+    /// from. It is the one event of a run that used to say neither: phase 2 had `doc.id` and
+    /// `page.page` in hand for the provenance columns of the output rows, and opened no span with
+    /// them.
+    mod dropped_entity_context {
+        use super::*;
+        use std::sync::{Arc as StdArc, Mutex};
+        use tracing::field::{Field, Visit};
+        use tracing_subscriber::Registry;
+        use tracing_subscriber::layer::{Context, Layer, SubscriberExt};
+        use tracing_subscriber::registry::LookupSpan;
+
+        /// Every field of one span or event, flattened to strings. `report = %id` arrives as a
+        /// `Display` value (hence `record_debug` over `format_args!`), `page` as a `u64`.
+        #[derive(Default, Clone, Debug)]
+        struct Fields(Vec<(String, String)>);
+
+        impl Fields {
+            fn get(&self, name: &str) -> Option<&str> {
+                self.0.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str())
+            }
+        }
+
+        impl Visit for Fields {
+            fn record_u64(&mut self, field: &Field, value: u64) {
+                self.0.push((field.name().to_string(), value.to_string()));
+            }
+
+            fn record_str(&mut self, field: &Field, value: &str) {
+                self.0.push((field.name().to_string(), value.to_string()));
+            }
+
+            fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+                self.0.push((field.name().to_string(), format!("{value:?}")));
+            }
+        }
+
+        /// One captured event with the whole span stack that was open around it, outermost first —
+        /// which is exactly what the `Activity` path and the `Report`/`Page` columns are built from.
+        #[derive(Clone, Debug)]
+        struct Captured {
+            message: String,
+            scope: Vec<(String, Fields)>,
+        }
+
+        impl Captured {
+            fn span(&self, name: &str) -> Option<&Fields> {
+                self.scope.iter().find(|(n, _)| n == name).map(|(_, f)| f)
+            }
+        }
+
+        #[derive(Clone, Default)]
+        struct CapturingLayer {
+            records: StdArc<Mutex<Vec<Captured>>>,
+        }
+
+        impl<S> Layer<S> for CapturingLayer
+        where
+            S: tracing::Subscriber + for<'a> LookupSpan<'a>,
+        {
+            fn on_new_span(&self, attrs: &tracing::span::Attributes<'_>, id: &tracing::span::Id, ctx: Context<'_, S>) {
+                let mut fields = Fields::default();
+                attrs.record(&mut fields);
+                if let Some(span) = ctx.span(id) {
+                    span.extensions_mut().insert(fields);
+                }
+            }
+
+            fn on_event(&self, event: &tracing::Event<'_>, ctx: Context<'_, S>) {
+                let mut fields = Fields::default();
+                event.record(&mut fields);
+                let scope = ctx
+                    .event_scope(event)
+                    .into_iter()
+                    .flat_map(|spans| spans.from_root().collect::<Vec<_>>())
+                    .map(|span| {
+                        let captured = span.extensions().get::<Fields>().cloned().unwrap_or_default();
+                        (span.name().to_string(), captured)
+                    })
+                    .collect();
+                self.records.lock().unwrap().push(Captured {
+                    message: fields.get("message").unwrap_or_default().to_string(),
+                    scope,
+                });
+            }
+        }
+
+        fn events_of(f: impl FnOnce()) -> Vec<Captured> {
+            let layer = CapturingLayer::default();
+            let subscriber = Registry::default().with(layer.clone());
+            tracing::subscriber::with_default(subscriber, f);
+            let records = layer.records.lock().unwrap();
+            records.clone()
+        }
+
+        fn dropped_events(records: &[Captured]) -> Vec<&Captured> {
+            records.iter().filter(|r| r.message.contains("entity dropped")).collect()
+        }
+
+        /// Two documents, each losing an entity on a page of its own: each warning must name its
+        /// own document and its own page, or the two are indistinguishable in the `.log.csv`.
+        #[test]
+        fn a_dropped_entity_names_its_document_and_its_page() {
+            let outcomes = vec![
+                doc("Doc A", "FMT", vec![page(7, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-a")])]),
+                doc("Doc B", "FMT", vec![page(12, "investments", vec![equity_with_promised_market_value("Beta Fund", "mv-b")])]),
+            ];
+            let records = events_of(|| {
+                accumulate(&outcomes).expect("a non-strict unresolved promise is not an error");
+            });
+
+            let dropped = dropped_events(&records);
+            assert_eq!(dropped.len(), 2, "one warning per lost entity");
+            let located: Vec<(Option<&str>, Option<&str>)> = dropped
+                .iter()
+                .map(|r| (r.span("document").and_then(|f| f.get("report")), r.span("page").and_then(|f| f.get("page"))))
+                .collect();
+            assert_eq!(located, vec![(Some("Doc A"), Some("7")), (Some("Doc B"), Some("12"))]);
+        }
+
+        /// The page span is opened per page, not once per document: two pages of one document that
+        /// each lose an entity must not both be reported against the first one.
+        #[test]
+        fn two_pages_of_one_document_are_told_apart() {
+            let outcomes = vec![doc(
+                "R",
+                "FMT",
+                vec![
+                    page(3, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-1")]),
+                    page(4, "investments", vec![equity_with_promised_market_value("Alpha Fund", "mv-2")]),
+                ],
+            )];
+            let records = events_of(|| {
+                accumulate(&outcomes).expect("a non-strict unresolved promise is not an error");
+            });
+
+            let pages: Vec<Option<&str>> =
+                dropped_events(&records).iter().map(|r| r.span("page").and_then(|f| f.get("page"))).collect();
+            assert_eq!(pages, vec![Some("3"), Some("4")]);
+        }
+
+        /// And the deliberate exception: phase 1 stays context-free. The promise map is global by
+        /// construction — a chain can cross pages and documents, which is the whole reason the phase
+        /// exists on its own — so a document named there would be a lie, not a convenience.
+        #[test]
+        fn the_global_promise_map_is_reported_without_a_document() {
+            let outcomes = vec![doc("R", "FMT", vec![page(1, "investments", vec![equity("Alpha Fund", 10.0)])])];
+            let records = events_of(|| {
+                accumulate(&outcomes).expect("valid fixture");
+            });
+
+            let flattened = records
+                .iter()
+                .find(|r| r.message.contains("promise map flattened"))
+                .expect("phase 1 reports the flattened map");
+            assert!(
+                flattened.span("document").is_none() && flattened.span("page").is_none(),
+                "phase 1 has no document and no page to name, found {:?}",
+                flattened.scope
+            );
         }
     }
 

@@ -26,14 +26,14 @@ use crate::cli::config_locations::cmd::{CliArgs, CmdConfigError};
 use crate::cli::config_locations::env::{self, EnvConfigError};
 use crate::cli::config_locations::file::{self, FileConfigError};
 use crate::cli::freeports_config::{self, FreeportsConfig, FreeportsConfigError};
-use crate::cli::job::{self, JobError};
+use crate::cli::job;
 use crate::cli::output::{self, OutputError};
 use crate::cli::parallelism_config::ParallelismConfig;
 use crate::cli::partial_config::{ConfigSource, defaults, overwrite};
 use crate::cli::worker::{self, JobFailure, WorkerError};
 use crate::core::algorithm::DocumentOutcome;
 use crate::core::parallelism::{self, Parallelism};
-use crate::core::tracing_setup::{LogHandle, TracingSetupError};
+use crate::core::tracing_setup::{ErrorRecord, LogHandle, TracingSetupError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum CliError {
@@ -48,16 +48,18 @@ pub enum CliError {
     #[error(transparent)]
     Validate(#[from] FreeportsConfigError),
     #[error(transparent)]
-    Job(#[from] JobError),
-    #[error(transparent)]
     Output(#[from] OutputError),
     /// The log could not take its place beside the outputs — a directory that cannot be created, a
     /// file that cannot be opened. Not a job error, but not swallowed either: without the log the
     /// user loses the localised diagnostics of the very run they are launching.
     #[error(transparent)]
     Logging(#[from] TracingSetupError),
-    /// A job run in a child process produced no result. Deliberately transparent: for a domain
-    /// failure the message must be **identical** to the one the sequential path would have printed.
+    /// **No job produced anything**, and this is the first failure in job order.
+    ///
+    /// Not "a job failed": a job that fails costs its own results and nothing else, and the run goes
+    /// on and writes what the others produced. This variant is the floor — a run with no partial
+    /// result to save — and it carries the same `JobFailure` whether the job ran in this process or
+    /// in a child, so the message is byte-for-byte the one the sequential path would have printed.
     #[error(transparent)]
     Worker(#[from] JobFailure),
     /// The child-process infrastructure did not start — a work area that cannot be created, an
@@ -69,6 +71,25 @@ pub enum CliError {
     },
     #[error(transparent)]
     WorkerRequest(#[from] WorkerError),
+}
+
+/// What a finished run has to say about itself beyond "it did not fail".
+///
+/// Two sentences that are not the same — *everything I looked at was fine* and *I looked at
+/// everything and it was fine* — and a run that cannot tell them apart makes a batch of 904 jobs
+/// with two silently missing look exactly like a batch of 904 that all worked.
+///
+/// It covers **jobs and documents**, deliberately not rows and pages. Those are contained at their
+/// own level, happen on ordinary runs by the dozen, and are already summarised in their own
+/// end-of-run event; promoting them here would change the exit status of nearly every run that
+/// works.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RunCompleteness {
+    /// Every document of every job was read, and the results were written.
+    Everything,
+    /// The results were written, and **not everything was read**: jobs failed, or documents could
+    /// not be opened.
+    NotEverything,
 }
 
 /// Resolves the configurations without running any job or writing any output.
@@ -129,7 +150,18 @@ pub fn resolve_configs(args: CliArgs) -> Result<Vec<FreeportsConfig>, CliError> 
 /// Opens the outermost span, so that every nested one — and any error each logs at its own boundary
 /// — carries the run's context. No error is re-logged here: each step already logs its own failure
 /// once, closest to where it happened.
-pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
+///
+/// # A job that fails does not cost the run
+///
+/// The results are written **whatever the jobs did**. A batch of 904 jobs in which two fail is 902
+/// jobs' worth of results that exist and are wanted; before, the first failure returned early and
+/// every one of them was thrown away. The failures are reported — one summary and one event each —
+/// and [`RunCompleteness`] carries the fact up to the exit status.
+///
+/// The one case that is still a failed run is a run that produced **nothing at all**: writing the
+/// nine empty files of a batch in which every job failed is worse than not writing, because an
+/// empty table and a table nobody could fill look the same on disk.
+pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<RunCompleteness, CliError> {
     let span = tracing::info_span!("run");
     let _guard = span.enter();
 
@@ -145,11 +177,66 @@ pub fn execute(args: CliArgs, log_handle: &LogHandle) -> Result<(), CliError> {
         log_handle.settle_verbosity(first.verbosity).map_err(CliError::from)?;
         log_handle.set_csv_dir(&output::log_csv_dir(first)).map_err(CliError::from)?;
     }
-    let outcomes = run_jobs(&configs, log_handle)?;
+    let (outcomes, failures) = run_jobs(&configs, log_handle)?;
+    report_failures(&configs, &failures);
+
+    // Nothing came out of any job: there is no partial result to save, and saying so is the only
+    // honest thing left. The failure reported is the **first in job order**, which is the one the
+    // sequential path would have propagated.
+    if outcomes.is_empty()
+        && let Some(first) = failures.into_iter().next()
+    {
+        return Err(CliError::Worker(first));
+    }
+
     if let Some(first) = configs.first() {
         output::write_results(first, &outcomes)?;
     }
-    Ok(())
+    Ok(completeness(&configs, &outcomes))
+}
+
+/// One summary event and one event per failed job, in job order.
+///
+/// The summary exists for whoever watches only stderr: a run that writes its results and says
+/// nothing else would let two missing jobs out of 904 pass unnoticed. Each individual event keeps
+/// the failure's own message — for a domain failure, `JobFailure::Job` makes it byte-for-byte the
+/// one the sequential path would have printed — and adds the index, which is the only thing telling
+/// the reader *which* row of the batch file it was.
+fn report_failures(configs: &[FreeportsConfig], failures: &[JobFailure]) {
+    if failures.is_empty() {
+        return;
+    }
+    tracing::warn!(
+        failed = failures.len(),
+        total = configs.len(),
+        "{} of {} jobs produced no results; the remaining {} were written",
+        failures.len(),
+        configs.len(),
+        configs.len().saturating_sub(failures.len())
+    );
+    for failure in failures {
+        let index = failure.index();
+        tracing::error!(
+            job = index,
+            format = configs.get(index).map(|c| c.format.as_str()).unwrap_or("<unknown>"),
+            "job {index} failed: {failure}"
+        );
+    }
+}
+
+/// Whether the run read everything it was asked to read.
+///
+/// One comparison covers both levels, and covers them the same way whether the jobs ran in this
+/// process or in children: every document named in a configuration produces exactly one outcome
+/// when it is read, a skipped document produces none, and a failed job produces none for any of
+/// its documents. So *documents named* against *outcomes produced* is the whole question.
+fn completeness(configs: &[FreeportsConfig], outcomes: &[DocumentOutcome]) -> RunCompleteness {
+    let named: usize = configs.iter().map(|config| config.reports.len()).sum();
+    if outcomes.len() < named {
+        RunCompleteness::NotEverything
+    } else {
+        RunCompleteness::Everything
+    }
 }
 
 /// The parallelism section governing this run: the **first** resolved configuration's, the same one
@@ -192,19 +279,41 @@ fn resolve_parallelism(configs: &[FreeportsConfig]) -> (usize, Parallelism) {
     (jobs, pages)
 }
 
-/// Runs the resolved jobs and concatenates their results in order.
+/// Runs the resolved jobs, concatenating the results of those that worked and collecting the
+/// failures of those that did not — both in job order.
 ///
 /// A single job, or one worker, stays **exactly** on the sequential loop: no processes, no
 /// temporary work area, nothing observably different. It is the default, and the reason someone who
 /// asks for nothing sees nothing change.
-fn run_jobs(configs: &[FreeportsConfig], log_handle: &LogHandle) -> Result<Vec<DocumentOutcome>, CliError> {
+///
+/// The two branches produce the **same** list of failures, which is what keeps `--jobs 1` and
+/// `--jobs N` the same run — the property `docs/source/reference/design/determinism.md` defends. A
+/// job that fails in this process is packed into the same [`JobFailure::Job`] a child's failure
+/// arrives in, so its message stays the error's own, verbatim.
+///
+/// The `Err` of the return type is for what belongs to the **run** rather than to a job: the worker
+/// infrastructure that would not start, a request that could not be written. No job ran, so there is
+/// nothing partial to keep.
+fn run_jobs(
+    configs: &[FreeportsConfig],
+    log_handle: &LogHandle,
+) -> Result<(Vec<DocumentOutcome>, Vec<JobFailure>), CliError> {
     let (jobs, pages) = resolve_parallelism(configs);
     if jobs <= 1 {
         let mut outcomes = Vec::new();
-        for config in configs {
-            outcomes.extend(job::run(config, pages)?);
+        let mut failures = Vec::new();
+        for (index, config) in configs.iter().enumerate() {
+            match job::run(config, pages) {
+                Ok(documents) => outcomes.extend(documents),
+                // Already logged with its full chain by `job::run` itself; here it is only packed,
+                // in the same shape a child's failure comes back in.
+                Err(error) => failures.push(JobFailure::Job {
+                    index,
+                    error: ErrorRecord::from_error(&error),
+                }),
+            }
         }
-        return Ok(outcomes);
+        return Ok((outcomes, failures));
     }
     run_jobs_in_processes(configs, jobs, pages, log_handle)
 }
@@ -224,7 +333,7 @@ fn run_jobs_in_processes(
     parallelism: usize,
     page_workers: Parallelism,
     log_handle: &LogHandle,
-) -> Result<Vec<DocumentOutcome>, CliError> {
+) -> Result<(Vec<DocumentOutcome>, Vec<JobFailure>), CliError> {
     let executable = std::env::current_exe().map_err(|source| CliError::WorkerSetup { source })?;
     // One work area per run, which cleans itself up: the children's private files do not outlive
     // the parent and never appear beside the results.
@@ -251,7 +360,7 @@ fn run_jobs_in_processes(
         log_handle.absorb_worker_logs(&request.log_dir)?;
     }
 
-    Ok(worker::collect(reports)?)
+    Ok(worker::collect(reports))
 }
 
 #[cfg(test)]
@@ -460,6 +569,93 @@ mod tests {
         }
     }
 
+    /// [`completeness`]: what the exit status is built on. One comparison — documents named against
+    /// outcomes produced — answers both levels at once, and answers them identically whether the
+    /// jobs ran in this process or in children.
+    mod run_completeness {
+        use super::*;
+        use crate::cli::conf_parse::DocumentSpec;
+        use crate::core::page::{DocumentId, FormatName};
+        use crate::core::tracing_setup::Verbosity;
+        use crate::output::routines::write::{OutFlags, OutStructureMode};
+        use pretty_assertions::assert_eq;
+        use std::path::PathBuf;
+
+        fn config_naming(documents: usize) -> FreeportsConfig {
+            FreeportsConfig {
+                verbosity: Verbosity::Warn,
+                reports: (0..documents)
+                    .map(|i| DocumentSpec {
+                        url: None,
+                        path: Some(PathBuf::from(format!("/tmp/{i}.pdf"))),
+                        name: Some(format!("doc-{i}")),
+                    })
+                    .collect(),
+                target_lists: vec!["TEST".to_string()],
+                format: "FMT".to_string(),
+                out_path: PathBuf::from("/tmp/out"),
+                out_profile: OutStructureMode::Regular,
+                out_flags: OutFlags::default(),
+                parallelism: ParallelismConfig::SEQUENTIAL,
+                batch_file: None,
+                save_pdf: false,
+                formats_repo_path: None,
+                input_db_path: None,
+                config_file: None,
+            }
+        }
+
+        fn outcomes(count: usize) -> Vec<DocumentOutcome> {
+            (0..count)
+                .map(|i| DocumentOutcome {
+                    id: DocumentId::new(format!("doc-{i}")),
+                    format: FormatName::new("FMT"),
+                    pages: vec![],
+                })
+                .collect()
+        }
+
+        #[test]
+        fn every_named_document_read_is_everything() {
+            let configs = vec![config_naming(2), config_naming(1)];
+            assert_eq!(completeness(&configs, &outcomes(3)), RunCompleteness::Everything);
+        }
+
+        /// One document short: the job ran and one of its documents would not open. The results are
+        /// written, and the run says it did not read everything.
+        #[test]
+        fn one_document_missing_is_not_everything() {
+            let configs = vec![config_naming(2), config_naming(1)];
+            assert_eq!(completeness(&configs, &outcomes(2)), RunCompleteness::NotEverything);
+        }
+
+        /// A whole job missing is the same shape of answer, which is the point of measuring
+        /// documents rather than jobs: a failed job produces no outcome for any of its documents,
+        /// so the one comparison covers both levels without a second counter to keep in step.
+        #[test]
+        fn a_whole_job_missing_is_not_everything() {
+            let configs = vec![config_naming(3), config_naming(3)];
+            assert_eq!(completeness(&configs, &outcomes(3)), RunCompleteness::NotEverything);
+        }
+
+        /// A run that names no document reads everything it was asked to read, which is nothing.
+        /// The empty batch must not be reported as incomplete.
+        #[test]
+        fn a_run_naming_no_document_is_complete() {
+            assert_eq!(completeness(&[], &[]), RunCompleteness::Everything);
+            assert_eq!(completeness(&[config_naming(0)], &[]), RunCompleteness::Everything);
+        }
+
+        /// Pages and rows are deliberately not part of this. An outcome exists for a document whose
+        /// every page was skipped — the extraction read the document, it just produced nothing from
+        /// it — so a run full of skipped pages still exits `0`, as it does today.
+        #[test]
+        fn a_document_read_but_empty_is_still_a_document_read() {
+            let configs = vec![config_naming(1)];
+            assert_eq!(completeness(&configs, &outcomes(1)), RunCompleteness::Everything);
+        }
+    }
+
     mod resolve_configs_batch_dispatch {
         use super::*;
 
@@ -599,8 +795,17 @@ mod tests {
                 "--out",
                 dir.path().join("out").to_str().unwrap(),
             ]);
+            // The one job of this run is the only one there is, so its failure leaves nothing to
+            // write and the run itself fails — with the job's own message, verbatim. A *batch* in
+            // which this job were one of many would instead write the others and exit with 3.
             let result = execute(args, &test_log_handle());
-            assert!(matches!(result, Err(CliError::Job(_))), "got {result:?}");
+            match result {
+                Err(CliError::Worker(failure)) => {
+                    assert_eq!(failure.index(), 0);
+                    assert_eq!(failure.to_string(), "unknown format 'DOES-NOT-EXIST'; the repository declares 0 format(s)");
+                }
+                other => panic!("got {other:?}"),
+            }
         }
     }
 
@@ -608,14 +813,11 @@ mod tests {
     /// same note as the job tests.
     mod python_boundary {
         use super::*;
+        use pretty_assertions::assert_eq;
         use pyo3::prelude::*;
 
-        #[test]
-        fn a_full_non_batch_invocation_writes_the_regular_profile_csvs_to_disk() {
-            let _scope = EnvScope::new();
-            let dir = tempfile::tempdir().unwrap();
-
-            let pdf_path = dir.path().join("report.pdf");
+        /// A minimal PDF with text the fixture repository's classifier recognises.
+        fn build_minimal_pdf(pdf_path: &std::path::Path) {
             Python::attach(|py| {
                 let fitz = PyModule::import(py, "fitz")
                     .expect("PyMuPDF (fitz) must be importable: activate venv/freeports-dev, see AGENTS.md");
@@ -625,8 +827,11 @@ mod tests {
                 doc.call_method1("save", (pdf_path.to_str().unwrap(),)).unwrap();
                 doc.call_method0("close").unwrap();
             });
+        }
 
-            let repo = dir.path().join("formats_repo");
+        /// A formats repository declaring exactly one format, `A-EN24`. Returns its path.
+        fn write_minimal_repo(dir: &std::path::Path) -> std::path::PathBuf {
+            let repo = dir.join("formats_repo");
             for (relative, content) in [
                 ("metadata/formats.csv", "Name,Locale,Year,Country,Version\nA,EN,24,,\n"),
                 ("metadata/url_mapping.csv", "Format name,Url\n"),
@@ -660,6 +865,16 @@ mod tests {
                 std::fs::create_dir_all(path.parent().unwrap()).unwrap();
                 std::fs::write(path, content).unwrap();
             }
+            repo
+        }
+
+        #[test]
+        fn a_full_non_batch_invocation_writes_the_regular_profile_csvs_to_disk() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf_path = dir.path().join("report.pdf");
+            build_minimal_pdf(&pdf_path);
+            let repo = write_minimal_repo(dir.path());
 
             let out_dir = dir.path().join("out");
             std::fs::create_dir_all(&out_dir).unwrap();
@@ -680,10 +895,110 @@ mod tests {
                 config_path.to_str().unwrap(),
             ]);
 
-            execute(args, &test_log_handle())
+            let completeness = execute(args, &test_log_handle())
                 .expect("a fully valid, self-contained invocation must succeed end to end");
+            assert_eq!(completeness, RunCompleteness::Everything);
             assert!(out_dir.join("investments.csv").is_file());
             assert!(out_dir.join("funds.csv").is_file());
+        }
+
+        /// The whole plan, end to end and at its smallest: a batch of two jobs of which one cannot
+        /// even load its format. Before, that one failure returned early and the other job's
+        /// results — already extracted, already in memory — were thrown away with it, and nothing
+        /// was written at all. Scaled up, that is 903 jobs discarded because of 1.
+        #[test]
+        fn a_batch_with_one_failing_job_still_writes_the_others_and_reports_not_everything() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf_path = dir.path().join("report.pdf");
+            build_minimal_pdf(&pdf_path);
+            let repo = write_minimal_repo(dir.path());
+
+            let batch = dir.path().join("batch.csv");
+            std::fs::write(
+                &batch,
+                format!(
+                    "pdf,format
+{path}:Sound,A-EN24
+{path}:Doomed,DOES-NOT-EXIST
+",
+                    path = pdf_path.to_str().unwrap()
+                ),
+            )
+            .unwrap();
+
+            let out_dir = dir.path().join("out");
+            let config_path = empty_config_file(dir.path());
+            let args = parse(&[
+                "--batch",
+                batch.to_str().unwrap(),
+                "--formats-directory",
+                repo.to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--out",
+                out_dir.to_str().unwrap(),
+                "--config",
+                config_path.to_str().unwrap(),
+                // Sequential on purpose: the child-process path cannot be exercised from a test
+                // binary, which is not the real executable. The integration tests cover that half,
+                // and `run_jobs` is written so the two produce the same list of failures.
+                "--workers",
+                "1",
+            ]);
+
+            let completeness = execute(args, &test_log_handle())
+                .expect("one failing job out of two must not fail the run");
+            assert_eq!(completeness, RunCompleteness::NotEverything);
+            assert!(out_dir.join("investments.csv").is_file(), "the results of the sound job must be on disk");
+            assert!(out_dir.join("funds.csv").is_file());
+        }
+
+        /// And the floor: when *every* job fails there is no partial result to save, so nothing is
+        /// written and the run itself fails — with the first failure's own message.
+        #[test]
+        fn a_batch_in_which_every_job_fails_writes_nothing_and_fails() {
+            let _scope = EnvScope::new();
+            let dir = tempfile::tempdir().unwrap();
+            let pdf_path = dir.path().join("report.pdf");
+            build_minimal_pdf(&pdf_path);
+            let repo = write_minimal_repo(dir.path());
+
+            let batch = dir.path().join("batch.csv");
+            std::fs::write(
+                &batch,
+                format!(
+                    "pdf,format
+{path}:First,NOPE-ONE
+{path}:Second,NOPE-TWO
+",
+                    path = pdf_path.to_str().unwrap()
+                ),
+            )
+            .unwrap();
+
+            let out_dir = dir.path().join("out");
+            let config_path = empty_config_file(dir.path());
+            let args = parse(&[
+                "--batch",
+                batch.to_str().unwrap(),
+                "--formats-directory",
+                repo.to_str().unwrap(),
+                "--target-list",
+                "TEST",
+                "--out",
+                out_dir.to_str().unwrap(),
+                "--config",
+                config_path.to_str().unwrap(),
+                "--workers",
+                "1",
+            ]);
+
+            match execute(args, &test_log_handle()) {
+                Err(CliError::Worker(failure)) => assert_eq!(failure.index(), 0, "the first failure in job order"),
+                other => panic!("a run that produced nothing must fail, got {other:?}"),
+            }
+            assert!(!out_dir.join("investments.csv").exists(), "six empty tables are worse than none");
         }
     }
 }

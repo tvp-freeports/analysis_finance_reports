@@ -13,7 +13,7 @@
 //! selection type, and the module holding the data must not depend on the one holding the
 //! selections.
 
-use crate::commons::geometry::Rectangle;
+use crate::commons::geometry::{Rectangle, RectangleBuildError};
 use crate::commons::sets::indipendent_atoms::{AtomAlgebra, AtomOperations, CompoundAtomOperationRes, DisjointAtomsSet};
 use crate::commons::sets::{Container, Overlappable, SetRelation};
 use crate::formats_utils::pdf_extract::pdf_line::PdfLine;
@@ -233,8 +233,22 @@ impl AtomAlgebra for Rectangle {}
 pub type Area = DisjointAtomsSet<Rectangle, (f32, f32)>;
 
 impl Area {
+    /// The one-rectangle area, for sides that are an **internal** invariant of the caller.
+    ///
+    /// Panics on a degenerate or inverted rectangle, which is what [`Rectangle::new`] promises. Use
+    /// [`Area::build`] wherever a side can come from the page, from a format's configuration, or
+    /// from a Python pipe.
     pub fn new(x0: f32, y0: f32, x1: f32, y1: f32) -> Self {
         Self::from_atom(Rectangle::new(x0, y0, x1, y1))
+    }
+
+    /// The fallible twin of [`Area::new`], for sides that come **from outside**.
+    ///
+    /// A window anchored to lines found on the page can come out inverted — the line anchoring the
+    /// left side sitting, on this page, to the right of the line anchoring the right one. That is a
+    /// fact about the document, not a bug in the engine, so it is reported rather than panicked on.
+    pub fn build(x0: f32, y0: f32, x1: f32, y1: f32) -> Result<Self, RectangleBuildError> {
+        Ok(Self::from_atom(Rectangle::build(x0, y0, x1, y1)?))
     }
 }
 
@@ -263,6 +277,59 @@ mod tests {
             let mut expected = HashSet::new();
             expected.insert(Rectangle::new(x0, y0, x1, y1));
             assert_eq!(Area::new(x0, y0, x1, y1).atoms(), &expected);
+        }
+    }
+
+    /// [`Area::build`], the twin for sides that come from outside: it must accept exactly what
+    /// `new` accepts and refuse — rather than panic on — every shape that is not a rectangle.
+    mod fallible_construction {
+        use super::*;
+        use crate::commons::geometry::{LimitsBuildError, RectangleBuildError};
+        use pretty_assertions::assert_eq;
+        use test_case::test_case;
+
+        #[test]
+        fn build_accepts_what_new_accepts_and_yields_the_same_area() {
+            let (x0, y0, x1, y1) = (3.4, 4.5, 4.5, 56.0);
+            assert_eq!(
+                Area::build(x0, y0, x1, y1).expect("a proper rectangle must build").atoms(),
+                Area::new(x0, y0, x1, y1).atoms()
+            );
+        }
+
+        #[test_case(10.0, 0.0, 5.0, 10.0; "inverted on x")]
+        #[test_case(5.0, 5.0, 5.0, 10.0; "degenerate on x")]
+        fn a_horizontal_defect_is_reported_as_horizontal(x0: f32, y0: f32, x1: f32, y1: f32) {
+            match Area::build(x0, y0, x1, y1) {
+                Err(RectangleBuildError::Horizontal(LimitsBuildError::NegativeInterval(a, b))) => {
+                    assert_eq!((a, b), (x0, x1));
+                }
+                other => panic!("expected a horizontal defect, found {other:?}"),
+            }
+        }
+
+        #[test_case(0.0, 10.0, 5.0, 5.0; "inverted on y")]
+        #[test_case(0.0, 5.0, 5.0, 5.0; "degenerate on y")]
+        fn a_vertical_defect_is_reported_as_vertical(x0: f32, y0: f32, x1: f32, y1: f32) {
+            match Area::build(x0, y0, x1, y1) {
+                Err(RectangleBuildError::Vertical(LimitsBuildError::NegativeInterval(a, b))) => {
+                    assert_eq!((a, b), (y0, y1));
+                }
+                other => panic!("expected a vertical defect, found {other:?}"),
+            }
+        }
+
+        /// The case that started all of this, with the coordinates it really had: a FINECO IR page
+        /// on which the line anchoring the left side sits to the right of the one anchoring the
+        /// right side. `new` aborts the process here; `build` says so.
+        #[test]
+        fn the_two_sides_that_aborted_a_batch_of_904_jobs() {
+            let error = Area::build(545.528_26, 0.0, 372.94, 100.0)
+                .expect_err("the left side is right of the right one");
+            assert_eq!(
+                error.to_string(),
+                "left side of a rectangle can't be bigger than right one, found left '545.52826' and right '372.94'"
+            );
         }
     }
 

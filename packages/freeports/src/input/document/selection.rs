@@ -12,6 +12,7 @@
 use once_cell::sync::Lazy;
 use onig::Regex;
 
+use crate::commons::geometry::RectangleBuildError;
 // Used only by the tests below, which call `contains` in a helper; the `cfg(test)` avoids an
 // unused-import warning in the normal build.
 #[cfg(test)]
@@ -71,6 +72,14 @@ pub enum LineSelectionError {
     EmptyFontList,
     #[error(transparent)]
     Area(#[from] PositionError),
+    /// The four sides passed `InputArea`'s own validation and still make no rectangle.
+    ///
+    /// `InputArea::build` checks each side it was *given* — positive, and `max` above `min` — but a
+    /// side left out is filled in here with `0.0` or `1e6`, and those are not compared against
+    /// anything. An `x_min` above `1e6` with no `x_max` is the shape that gets through: both checks
+    /// pass, and the rectangle comes out inverted.
+    #[error("the area of this selection is not a rectangle: {0}")]
+    DegenerateArea(#[from] RectangleBuildError),
 }
 
 /// The precision of the font-size interval built around an exact size.
@@ -95,7 +104,11 @@ pub fn pdfline_selection_from_dict(data: &InputPdfLineSet) -> Result<PdfLineSele
             let y_min = input_area.y_min().unwrap_or(0.0);
             let x_max = input_area.x_max().unwrap_or(1e6);
             let y_max = input_area.y_max().unwrap_or(1e6);
-            Some(Area::new(x_min, y_min, x_max, y_max))
+            // `build`, not `new`: these four numbers are written by hand in a formats repository,
+            // and two of them may be the fallbacks above rather than anything the author chose. A
+            // selection nobody can satisfy is a defect in that repository and is reported as such —
+            // it must not be a panic, which would cost the whole run for one line of CSV.
+            Some(Area::build(x_min, y_min, x_max, y_max)?)
         }
         None => None,
     };
@@ -458,6 +471,69 @@ mod tests {
             let inner = PositionError::XMinNotPositive(0.0);
             let expected = inner.to_string();
             assert_eq!(LineSelectionError::Area(inner).to_string(), expected);
+        }
+
+        #[test]
+        fn degenerate_area_names_the_geometry_defect_it_wraps() {
+            let inner = Area::build(10.0, 0.0, 5.0, 10.0).expect_err("inverted on x");
+            assert_eq!(
+                LineSelectionError::DegenerateArea(inner).to_string(),
+                format!("the area of this selection is not a rectangle: {inner}")
+            );
+        }
+    }
+
+    /// `InputArea::build` checks each side it is *given*; the sides it is not given are filled in
+    /// here with `0.0` and `1e6`, and those are compared against nothing. A selection spec can
+    /// therefore pass validation and still describe no rectangle — which used to abort the run
+    /// rather than reporting a defect in the formats repository.
+    mod area_beyond_what_input_area_validates {
+        use super::*;
+        use pretty_assertions::assert_eq;
+
+        fn spec(x_min: Option<f32>, x_max: Option<f32>, y_min: Option<f32>, y_max: Option<f32>) -> InputPdfLineSet {
+            InputPdfLineSet { area: Some(InputAreaSpec { x_min, x_max, y_min, y_max }), ..Default::default() }
+        }
+
+        /// The shape that gets through: `x_min` above the `1e6` that stands in for an absent
+        /// `x_max`. Both of `InputArea`'s checks pass — the value is positive, and there is no
+        /// `x_max` to compare it with.
+        #[test]
+        fn an_x_min_above_the_absent_x_max_fallback_is_a_degenerate_area_not_a_panic() {
+            match expect_err(pdfline_selection_from_dict(&spec(Some(2e6), None, None, None))) {
+                LineSelectionError::DegenerateArea(_) => {}
+                other => panic!("expected DegenerateArea, found {other}"),
+            }
+        }
+
+        #[test]
+        fn the_same_on_the_vertical_axis() {
+            match expect_err(pdfline_selection_from_dict(&spec(None, None, Some(2e6), None))) {
+                LineSelectionError::DegenerateArea(_) => {}
+                other => panic!("expected DegenerateArea, found {other}"),
+            }
+        }
+
+        /// What `InputArea` does catch stays caught by `InputArea`, with its own message: this
+        /// variant is the gap-filler, not a replacement.
+        #[test]
+        fn an_inverted_pair_both_sides_given_is_still_reported_by_input_area() {
+            match expect_err(pdfline_selection_from_dict(&spec(Some(90.0), Some(10.0), None, None))) {
+                LineSelectionError::Area(PositionError::XBoundsInverted { x_min, x_max }) => {
+                    assert_eq!((x_min, x_max), (90.0, 10.0));
+                }
+                other => panic!("expected XBoundsInverted, found {other}"),
+            }
+        }
+
+        /// And an ordinary spec still builds: the new fallible path must not have narrowed what a
+        /// formats repository is allowed to write.
+        #[test]
+        fn an_area_with_only_a_lower_bound_still_builds() {
+            let selection = pdfline_selection_from_dict(&spec(Some(10.0), None, None, None))
+                .expect("a half-open area is legitimate");
+            assert!(selects(&selection, &line("Arial", 12.0, "right of x_min", (20.0, 0.0, 30.0, 10.0))));
+            assert!(!selects(&selection, &line("Arial", 12.0, "left of x_min", (1.0, 0.0, 5.0, 10.0))));
         }
     }
 }

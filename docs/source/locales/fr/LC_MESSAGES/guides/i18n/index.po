@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: freeports 0.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 20:18+0200\n"
+"POT-Creation-Date: 2026-09-12 09:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -108,47 +108,73 @@ msgstr ""
 
 #: ../../source/guides/i18n/index.rst:64
 msgid ""
-"It compares the catalogues against ``docs/build/gettext``, so run it "
-"after ``i18n-extract`` and not before: only an extraction from the "
-"current sources can say which pages exist."
+"It compares the catalogues against ``docs/build/gettext``, so it has to "
+"come after ``i18n-extract``: only an extraction from the current sources "
+"can say which pages exist."
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:68
+#: ../../source/guides/i18n/index.rst:67
+msgid ""
+"It also has to come **after** ``i18n-update``, which is the half of the "
+"order that is easy to get wrong. ``sphinx-intl update`` creates a ``.po``"
+" for every ``.pot`` it finds, so a prune run before it has everything "
+"below undone one step later. The orphan half survives either order — an "
+"orphan has no ``.pot``, so nothing recreates it — which is precisely why "
+"the wrong order looks like it worked."
+msgstr ""
+
+#: ../../source/guides/i18n/index.rst:72
+msgid ""
+"It also removes the catalogues of the pages **a command writes** — "
+"``generated/`` and ``dev/ci-report/``, named in ``GENERATED_PAGES`` in "
+"``mk/docs.mk``. Those pages are rewritten at every run, so a translation "
+"of one would be stale before the commit translating it landed; and the CI"
+" report in particular repeats the same cell text down a column, which "
+"Sphinx extracts as **duplicate message definitions**. ``sphinx-intl`` "
+"tolerates those, but GNU ``msgfmt`` refuses such a file outright and so "
+"does Poedit — so leaving them in the tree hands a translator three files "
+"their tools will not open, describing pages nobody wants translated. With"
+" them gone, ``make i18n-stat`` counts only what a person can actually "
+"translate."
+msgstr ""
+
+#: ../../source/guides/i18n/index.rst:82
 msgid "What is translated so far"
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:70
+#: ../../source/guides/i18n/index.rst:84
 msgid ""
-"``it`` covers the pages a reader meets first — the front page, the whole "
-"of :doc:`../../overview/index` and :doc:`../../start/index`, "
-":doc:`../../guides/user/index`, :doc:`../../guides/input-db/index`, "
-":doc:`../../guides/institutional/index`, and the two section indexes — "
-"which is around 780 strings. The contributor-facing material is not "
-"translated: the format, engine, DevOps, grants and documentation guides, "
-"the CLI and configuration reference, the design chapters and the "
-"validation section are all still English."
+"``it`` covers **all of the prose**: every page a person wrote, from the "
+"front page through the guides and the reference to the validation "
+"section. What is deliberately left in English is the material no person "
+"writes — the two generated API references under ``generated/`` and the CI"
+" report under ``dev/ci-report/`` — because those pages are rewritten by a"
+" command at every run, and a translation of them would be stale before it"
+" was committed. Technical names are left in English throughout: an option"
+" is ``--target-list`` in every language, and a reader who translates it "
+"back to type it has been misled."
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:77
+#: ../../source/guides/i18n/index.rst:92
 msgid ""
 "``fr`` and ``pt`` are scaffolding with nothing translated in them yet. "
 "Which languages are carried forward has not been decided; the scaffolding"
 " is maintained so that the decision stays available."
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:80
+#: ../../source/guides/i18n/index.rst:95
 msgid ""
 "A partly translated language is the normal state of a translated site, "
 "not a broken one: gettext falls back **per string**, so an untranslated "
-"paragraph appears in English inside an otherwise Italian page. ``make "
+"paragraph appears in English inside an otherwise translated page. ``make "
 "i18n-stat`` is how you see where a language actually stands."
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:85
+#: ../../source/guides/i18n/index.rst:100
 msgid "Translating the engine's messages"
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:87
+#: ../../source/guides/i18n/index.rst:102
 msgid ""
 "The engine looks up its user-facing strings through a gettext catalogue "
 "at run time, falling back to the message id itself when there is no "
@@ -156,7 +182,7 @@ msgid ""
 "never be able to stop a run."
 msgstr ""
 
-#: ../../source/guides/i18n/index.rst:93
+#: ../../source/guides/i18n/index.rst:108
 msgid ""
 "The catalogue tree the engine reads is **not currently in this "
 "repository**: what the crate holds is the lookup code and one ``.mo`` "
@@ -231,5 +257,41 @@ msgstr ""
 #~ "engine is unfinished work, and this "
 #~ "page will describe the workflow once "
 #~ "there is one to describe."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "``it`` covers the pages a reader "
+#~ "meets first — the front page, the"
+#~ " whole of :doc:`../../overview/index` and "
+#~ ":doc:`../../start/index`, :doc:`../../guides/user/index`, "
+#~ ":doc:`../../guides/input-db/index`, "
+#~ ":doc:`../../guides/institutional/index`, and the two"
+#~ " section indexes — which is around"
+#~ " 780 strings. The contributor-facing "
+#~ "material is not translated: the format,"
+#~ " engine, DevOps, grants and documentation"
+#~ " guides, the CLI and configuration "
+#~ "reference, the design chapters and the"
+#~ " validation section are all still "
+#~ "English."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "A partly translated language is the "
+#~ "normal state of a translated site, "
+#~ "not a broken one: gettext falls "
+#~ "back **per string**, so an untranslated"
+#~ " paragraph appears in English inside "
+#~ "an otherwise Italian page. ``make "
+#~ "i18n-stat`` is how you see where "
+#~ "a language actually stands."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "It compares the catalogues against "
+#~ "``docs/build/gettext``, so run it after "
+#~ "``i18n-extract`` and not before: only "
+#~ "an extraction from the current sources"
+#~ " can say which pages exist."
 #~ msgstr ""
 

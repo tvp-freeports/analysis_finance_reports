@@ -67,9 +67,16 @@ Typed errors everywhere, and no panics on a user path
 file.
 
 One error enum per module, built with ``thiserror``. Panics remain only where the input genuinely
-cannot come from outside, and where they do, the module says so. Two inherited panics are documented
-limits rather than pending fixes — a deliberate choice to record a known edge instead of pretending
-it was handled.
+cannot come from outside, and where they do, the module says so. The geometry primitives make the
+distinction explicit by offering both constructions: ``new`` panics and is for internal invariants,
+``build`` returns a ``Result`` and is what a caller reading a page dict, a format's configuration or
+a Python pipe's arguments must use.
+
+The rule is nonetheless backed by a net. A panic raised anywhere inside a page's pipelines is caught
+and costs **that page** — an ``ERROR`` in ``.log.csv`` naming the document, the page and the panic's
+own message, and the page skipped. It is not a substitute for using ``build`` where the value comes
+from outside: it is what keeps a mistake about *where* a value comes from from costing a batch of
+904 jobs, which is exactly what it used to cost.
 
 No pandas, no Pydantic, no Pandera
 ==================================

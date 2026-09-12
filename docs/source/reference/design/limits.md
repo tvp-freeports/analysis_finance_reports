@@ -16,10 +16,15 @@ everywhere would make every pipe pay for a case almost none of them want.
 A format may express "this page continues the previous one" in its page-class finalizer, and nowhere
 else. Extraction is per page, full stop ({doc}`pages`).
 
-**Two inherited panics.**
-Carried over from the Python original, on paths whose input genuinely cannot come from outside. They
-are documented where they are rather than converted into errors that would never fire, because a
-recorded known edge is more honest than a pretence of handling.
+**Panics on paths whose input cannot come from outside.**
+Carried over from the Python original, and left as they are rather than converted into errors that
+would never fire: a recorded known edge is more honest than a pretence of handling. Where a value
+*can* come from outside — a page's own coordinates, a format's configuration, a Python pipe's
+arguments — the construction is fallible and the failure is handled where it happens.
+
+A panic is nonetheless **contained at the page**, so that one this reasoning got wrong costs a page
+and not a run of 904 jobs. The net does not replace the rule; it makes being wrong about the rule
+survivable, and says so in `.log.csv` with the document and the page.
 
 **The PDF line model, the line selections and the tabularizer were not redesigned.**
 Ported essentially as they were, and improvements noticed during the port were **reported rather than

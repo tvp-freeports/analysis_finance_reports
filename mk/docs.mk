@@ -84,6 +84,16 @@ i18n-build: ## Compile the .po files into .mo
 i18n-stat: ## How far each language has got: translated / fuzzy / untranslated per page
 	$(SPHINXINTL) stat -d docs/source/locales
 
+# The pages a command writes rather than a person: the two API references and the CI report. They
+# are **not** translated, and their catalogues are removed rather than left empty, for two reasons.
+#
+# A page rewritten at every run would be stale in translation before the commit that translated it
+# landed; and these three in particular carry the same cell text several times over, which Sphinx
+# extracts as duplicate message definitions. `sphinx-intl` tolerates those, GNU `msgfmt` refuses
+# the file outright, and so does Poedit — so a translator opening the tree finds three files their
+# tools will not read, describing pages nobody wants translated.
+GENERATED_PAGES = generated dev/ci-report
+
 # The step `sphinx-intl update` cannot take. It merges the current strings into the catalogues and
 # marks what has gone stale *inside* a file, but a `.po` belonging to a page that no longer exists
 # is not stale, it is orphaned: nothing points at it, `stat` still counts it, and a translator can
@@ -93,15 +103,25 @@ i18n-stat: ## How far each language has got: translated / fuzzy / untranslated p
 # Deliberately compared against `docs/build/gettext`, which is what `i18n-extract` has just
 # written: a catalogue is orphaned when there is no `.pot` for it, and only an extraction from the
 # current sources can say that.
-i18n-prune: ## Delete catalogues whose page no longer exists (run after i18n-extract)
+#
+# **Run it after `i18n-update`, not before.** `sphinx-intl update` creates a `.po` for every `.pot`
+# it finds, so a prune that runs first has its machine-written half undone one step later. The
+# orphan half survives either order -- an orphan has no `.pot`, so nothing recreates it -- which is
+# exactly why getting the order wrong looks like it worked.
+i18n-prune: ## Delete catalogues of pages that are gone or machine-written (after i18n-update)
 	@if [ ! -d docs/build/gettext ]; then \
 	    echo "docs/build/gettext is missing -- run 'make i18n-extract' first." >&2; exit 1; \
 	 fi
 	@find docs/source/locales -name '*.po' | while read -r po; do \
 	    page=$${po#docs/source/locales/}; page=$${page#*/LC_MESSAGES/}; \
 	    if [ ! -f "docs/build/gettext/$${page%.po}.pot" ]; then \
-	        echo "orphaned, removing: $$po"; rm -f "$$po" "$${po%.po}.mo"; \
+	        echo "orphaned, removing: $$po"; rm -f "$$po" "$${po%.po}.mo"; continue; \
 	    fi; \
+	    for area in $(GENERATED_PAGES); do \
+	        case "$$page" in "$$area"/*) \
+	            echo "machine-written, removing: $$po"; rm -f "$$po" "$${po%.po}.mo";; \
+	        esac; \
+	    done; \
 	 done
 	@find docs/source/locales -type d -empty -delete 2>/dev/null || true
 
