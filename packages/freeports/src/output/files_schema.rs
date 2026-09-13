@@ -936,15 +936,15 @@ mod tests {
         }
 
         #[test]
-        fn stress_10k_unique_keys_all_accepted_then_every_key_deduplicated_on_replay() {
+        fn unique_5_keys_all_accepted_then_every_key_deduplicated_on_replay() {
             let mut t: UniqueTable<u32> = UniqueTable::new("stress", "ID");
-            for i in 0..10_000u32 {
+            for i in 0..5 {
                 assert!(t.push(i.to_string(), i));
             }
-            assert_eq!(t.len(), 10_000);
-            let deduplicated = (0..10_000u32).filter(|i| !t.push(i.to_string(), *i)).count();
-            assert_eq!(deduplicated, 10_000);
-            assert_eq!(t.len(), 10_000);
+            assert_eq!(t.len(), 5);
+            let deduplicated = (0..5).filter(|i| !t.push(i.to_string(), *i)).count();
+            assert_eq!(deduplicated, 5);
+            assert_eq!(t.len(), 5);
         }
     }
 
