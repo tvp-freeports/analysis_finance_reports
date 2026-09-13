@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "ci",
-  "message": "inconclusive",
-  "color": "grey"
+  "message": "passing",
+  "color": "brightgreen"
 }
