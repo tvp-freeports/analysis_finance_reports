@@ -34,17 +34,24 @@ report and *find the thing*.
 
 | The message says | It means | Usually |
 |---|---|---|
-| `… sits on the edge of the admissible range - kept` | a value landed exactly on a boundary of its domain — a holding worth zero, a position that is the whole fund | fine, and kept on purpose |
+| `… sits on the upper edge of the admissible range - kept` | a value landed exactly on the top of its domain — a position that is the whole fund | usually fine, but it is also what a column read one cell off looks like |
 | `forced "…" to "…" to read it as a number` | the cell was not a clean number and noise had to be stripped before it could be read | worth a look |
 | `… - holding skipped` / `page skipped` | something did not satisfy the output schema and was dropped, with the field named | a real loss, always read it |
 | `the … is missing: N cells past the anchor` | the grid was walked and the expected cell was not there | a column mapping to re-check |
 
 Two habits follow from that table.
 
-**A warning is not automatically a bug.** The engine warns about zero-valued holdings because zero
-is on the edge of what is admissible, not because zero is wrong — a security written off is worth
-exactly nothing, and discarding it would throw away the very fact worth reporting. In the run above,
-116 of the 188 rows were holdings rounding to 0.00% of net assets. All correct.
+Only the **upper** edge reaches this file. The lower one — a holding worth zero, a zero-coupon
+bond, a position that rounds away to 0,00% — is the ordinary case and is a `debug` event, visible
+with `-vv` in `freeports.log.jsonl` and nowhere else. It used to be a warning, and on one
+903-report run it was 121 of the 344 rows, every one of them correct: a file that says so on every
+written-off holding says nothing else.
+
+**A warning is not automatically a bug.** The engine warns about a position worth the whole fund
+because it is on the edge of what is admissible, not because it is wrong — a fund really can hold a
+single position worth all its net assets, and discarding it would throw away the very fact worth
+reporting. What earns it a warning rather than silence is that the same value is also what a column
+read one cell off produces.
 
 **And silence is not automatically correctness.** The events you get are the ones the engine knew
 how to doubt. Nothing warns you that a column mapping is off by one and every market value belongs

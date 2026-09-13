@@ -166,7 +166,15 @@ pub fn fulfill_promises<T: PromisableFields>(
             Err(err) => {
                 // Non-strict, so the entity disappears rather than travelling up as an error.
                 // Logged before it is dropped, because a dropped entity is otherwise invisible.
-                tracing::warn!(
+                //
+                // `debug`, not `warn`: a promise a format deliberately never keeps is the ordinary
+                // case, not the report being awkward. A format filters out the entities it is not
+                // interested in at the point where it knows them -- typically a fund outside the
+                // target list -- and everything downstream that referred to them then finds nothing
+                // to resolve. On a real run that is the single most frequent event of all, and at
+                // `warn` it would fill the audit trail with rows that ask the reader to look for a
+                // defect that is not there. It stays in the `.jsonl` from `-vv` up.
+                tracing::debug!(
                     coord_ref_2 = field,
                     promise = %promise,
                     error = log_error(&err),
@@ -188,7 +196,8 @@ pub fn fulfill_promises<T: PromisableFields>(
             Ok(v) => v,
             Err(err) if promise.strict() => return Err(err.into()),
             Err(err) => {
-                tracing::warn!(
+                // Same reasoning as phase 1 above.
+                tracing::debug!(
                     coord_ref_2 = field,
                     promise = %promise,
                     error = log_error(&err),

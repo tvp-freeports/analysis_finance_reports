@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::commons::consts::Currency;
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
+    ExtractTextPdfBlockOrFailPage, InvestmentsStandardArgs, TableSettings, PdfExtractCurrencyConstant, PdfExtractInvestmentsStandard,
     PdfExtractStandardFuncsError, pdf_extract_fund_standard,
 };
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
@@ -46,10 +46,10 @@ pub struct InputStandardCostCurr {
     pub currency: Currency,
     #[serde(default)]
     pub algorithm_flags: Option<String>,
+    /// How far apart two cells may sit and still share a **column**.
     #[serde(default)]
-    pub tolerance: f32,
-    #[serde(default)]
-    pub row_algorithm_flags: Option<String>,
+    pub col_tolerance: f32,
+    /// The same for a **row**. Independent: leaving it out means zero, not `col_tolerance`.
     #[serde(default)]
     pub row_tolerance: f32,
 }
@@ -96,10 +96,12 @@ pub fn standard_cost_curr(
 
     let args = InvestmentsStandardArgs {
         deselection_list,
-        algorithm_flags: flags("algorithm_flags", &input.algorithm_flags)?,
-        tolerance: input.tolerance,
-        row_algorithm_flags: flags("row_algorithm_flags", &input.row_algorithm_flags)?,
-        row_tolerance: input.row_tolerance,
+        table: TableSettings {
+            algorithm_flags: flags("algorithm_flags", &input.algorithm_flags)?,
+            col_tolerance: input.col_tolerance,
+            row_tolerance: input.row_tolerance,
+            ..TableSettings::default()
+        },
         ..InvestmentsStandardArgs::new(selection("body_set", &input.body_set)?)
     };
 

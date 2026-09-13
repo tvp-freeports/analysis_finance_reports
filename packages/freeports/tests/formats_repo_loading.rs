@@ -47,7 +47,7 @@ impl RepoBuilder {
             )
             .write(
                 "content/algorithms/structured/investments/additional_args.csv",
-                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
+                "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
             )
             .write("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n")
             .write("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n")
@@ -290,8 +290,8 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,MARKET_VALUE | PERC_NET_ASSETS\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,,MARKET_VALUE | PERC_NET_ASSETS\n",
         );
         assert!(repo.load().is_ok(), "a repository declaring the column must load");
     }
@@ -301,8 +301,8 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,MARKET_VALEU\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,,MARKET_VALEU\n",
         );
         let err = repo.load().unwrap_err();
         assert!(err.to_string().contains("MARKET_VALEU"), "{err}");
@@ -315,8 +315,8 @@ mod configuration_errors {
         let repo = RepoBuilder::minimal();
         repo.write(
             "content/algorithms/structured/investments/additional_args.csv",
-            "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
-             A-EN24,,,,,,,MARKET_VALUE\n",
+            "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n\
+             A-EN24,,,,,,,,MARKET_VALUE\n",
         );
         repo.write(
             "content/algorithms/structured/investments/partial_pipes.csv",

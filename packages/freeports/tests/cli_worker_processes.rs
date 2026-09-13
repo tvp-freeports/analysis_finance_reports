@@ -80,7 +80,7 @@ impl Fixture {
             ),
             (
                 "content/algorithms/structured/investments/additional_args.csv",
-                "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
+                "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n",
             ),
             ("content/algorithms/structured/investments/partial_pipes.csv", "ID,pdf_extract,text_filter,deserialize\n"),
             ("content/algorithms/structured/investments/deselection_lists.csv", "ID,Deselection set\n"),

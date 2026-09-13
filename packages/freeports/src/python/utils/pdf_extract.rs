@@ -519,7 +519,7 @@ pub fn py_get_groups(lines: &Bound<'_, PyAny>, treshold: f32, vertical: bool) ->
 #[pyfunction]
 #[pyo3(name = "get_table_coordinates", signature = (
     lines, table_cfg=None, algorithm_flags=None, collapse_alg=None,
-    tolerance=0.0, tolerance_mu=None, company_col=None, collapse=false,
+    col_tolerance=0.0, row_tolerance=0.0, tolerance_mu=None, company_col=None, collapse=false,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_get_table_coordinates(
@@ -527,7 +527,8 @@ pub fn py_get_table_coordinates(
     table_cfg: Option<PyRef<'_, PyTableConfig>>,
     algorithm_flags: Option<PyRef<'_, PyTablePosAlgorithm>>,
     collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
-    tolerance: f32,
+    col_tolerance: f32,
+    row_tolerance: f32,
     tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
     company_col: Option<usize>,
     collapse: bool,
@@ -536,7 +537,8 @@ pub fn py_get_table_coordinates(
         table_config: table_cfg.map(|c| c.0.clone()),
         algorithm_flags: algorithm_flags.map(|f| f.0).unwrap_or(TablePosAlgorithm::Default),
         collapse_algorithm: collapse_alg.map(|c| c.native()).unwrap_or(CollapseAlgorithm::Geometry),
-        tolerance,
+        col_tolerance,
+        row_tolerance,
         tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
         company_col,
         collapse,
@@ -678,6 +680,13 @@ where
         })
         .collect::<PyResult<Vec<_>>>()?;
     Ok(Some(items))
+}
+
+impl PyTableConfig {
+    /// The wrapped native configuration, as the standard pipe constructors require it.
+    pub fn native(&self) -> &TableConfig {
+        &self.0
+    }
 }
 
 #[pymethods]

@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::core::pipeline::{Pipeline, PipelineName};
 use crate::formats_utils::deserialize::standard_funcs::{DeserializerFundStandard, DeserializerInvestmentStandard};
 use crate::formats_utils::pdf_extract::standard_funcs::{
-    InvestmentsStandardArgs, PdfExtractInvestmentsStandard, pdf_extract_currency_standard, pdf_extract_fund_standard,
+    InvestmentsStandardArgs, TableSettings, PdfExtractInvestmentsStandard, pdf_extract_currency_standard, pdf_extract_fund_standard,
 };
 use crate::formats_utils::pdf_extract::tabularizer::coordinates::TablePosAlgorithm;
 use crate::formats_utils::text_filter::dash_as_zero::DashAsZero;
@@ -69,8 +69,12 @@ fn add_pdf_extract(pipeline: &mut Pipeline, config: &InvestmentsConfig) -> Resul
     let body_set = selection(config, "Body set", config.args.body_set.as_deref().unwrap_or(""))?;
     let args = InvestmentsStandardArgs {
         deselection_list,
-        algorithm_flags: parse_algorithm_flags(config)?,
-        tolerance: config.additional.as_ref().and_then(|a| a.tolerance).unwrap_or(0.0),
+        table: TableSettings {
+            algorithm_flags: parse_algorithm_flags(config)?,
+            col_tolerance: config.additional.as_ref().and_then(|a| a.col_tolerance).unwrap_or(0.0),
+            row_tolerance: config.additional.as_ref().and_then(|a| a.row_tolerance).unwrap_or(0.0),
+            ..TableSettings::default()
+        },
         ..InvestmentsStandardArgs::new(body_set)
     };
     pipeline.pdf_extract.push(Arc::new(PdfExtractInvestmentsStandard::new(args)));
@@ -158,7 +162,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -389,7 +393,7 @@ mod tests {
         fn flags_of(expression: &str) -> Result<TablePosAlgorithm, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,{expression},,,,,,,\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_algorithm_flags(&configs[0])
         }
@@ -434,7 +438,7 @@ mod tests {
         fn dash_flags_of(cell: &str) -> Result<DashAsZero, StructuredError> {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell}\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell}\n"));
             let configs = get_investments_configs(repo.path())?;
             parse_dash_as_zero(&configs[0])
         }
@@ -486,7 +490,7 @@ mod tests {
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,1,,,,\n"));
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24,,,,,,,MARKET_VALUE\n"),
+                &format!("{ADD_HEADER}A-EN24,,,,,,,,MARKET_VALUE\n"),
             );
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,,FALSE,\n"));
             assert!(get_investments_configs(repo.path()).is_err());
@@ -515,7 +519,7 @@ mod tests {
                 "investments/args.csv",
                 &format!("{ARGS_HEADER}A-EN24,ArialBold,ArialItalic,Arial,1,,2,,\n"),
             );
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,{cell}\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,,,,,{cell}\n"));
             let pipeline = only_pipeline(get_pipelines(repo.path(), "A-EN24").expect("pipelines"));
             let companies = CompanyMatchInfos::compile_from_target_companies(vec![TargetCompanyInput {
                 name: "Acme Corp".to_string(),

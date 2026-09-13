@@ -54,7 +54,13 @@ pub struct TableCoordinatesConfig {
     pub table_config: Option<TableConfig>,
     pub algorithm_flags: TablePosAlgorithm,
     pub collapse_algorithm: CollapseAlgorithm,
-    pub tolerance: f32,
+    /// How far apart two cells may sit and still share a **column**.
+    pub col_tolerance: f32,
+    /// How far apart two cells may sit and still share a **row**. Independent of
+    /// [`Self::col_tolerance`]: the two axes never share a value, and neither stands in for the
+    /// other when it is left at its default.
+    pub row_tolerance: f32,
+    /// The unit both tolerances are measured in.
     pub tolerance_unit: TablePosMeasureUnit,
     /// Index of the column holding the company name: the only one allowed to break across several
     /// lines, since long names wrap. See [`get_table_coordinates_from_lines`] for the caveat about
@@ -72,7 +78,8 @@ impl Default for TableCoordinatesConfig {
             table_config: None,
             algorithm_flags: TablePosAlgorithm::Default,
             collapse_algorithm: CollapseAlgorithm::Geometry,
-            tolerance: 0.0,
+            col_tolerance: 0.0,
+            row_tolerance: 0.0,
             tolerance_unit: TablePosMeasureUnit::Em,
             company_col: None,
             collapse: false,
@@ -105,7 +112,13 @@ pub fn get_table_coordinates_from_lines(
 
     let cells: Vec<CellGeometry> = lines
         .iter()
-        .map(|line| CellGeometry::new(line.bbox().as_tuple(), config.tolerance_unit.resolve(config.tolerance, line)))
+        .map(|line| {
+            CellGeometry::new(
+                line.bbox().as_tuple(),
+                config.tolerance_unit.resolve(config.col_tolerance, line),
+                config.tolerance_unit.resolve(config.row_tolerance, line),
+            )
+        })
         .collect();
 
     let coords = coordinates::get_table_coordinates(&cells, config.algorithm_flags, &table_config)?;
@@ -210,7 +223,8 @@ mod tests {
             assert!(cfg.table_config.is_none());
             assert!(cfg.algorithm_flags.is_empty());
             assert!(matches!(cfg.collapse_algorithm, CollapseAlgorithm::Geometry));
-            assert_eq!(cfg.tolerance, 0.0);
+            assert_eq!(cfg.col_tolerance, 0.0);
+            assert_eq!(cfg.row_tolerance, 0.0);
             assert_eq!(cfg.tolerance_unit, TablePosMeasureUnit::Em);
             assert!(cfg.company_col.is_none());
             assert!(!cfg.collapse);
@@ -299,7 +313,7 @@ mod tests {
 
         #[test]
         fn a_large_pt_tolerance_merges_nearly_aligned_cells_into_one_column() {
-            let cfg = TableCoordinatesConfig { tolerance: 20.0, tolerance_unit: TablePosMeasureUnit::Pt, ..Default::default() };
+            let cfg = TableCoordinatesConfig { col_tolerance: 20.0, tolerance_unit: TablePosMeasureUnit::Pt, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }
@@ -307,7 +321,7 @@ mod tests {
         #[test]
         fn the_same_tolerance_expressed_in_em_depends_on_the_font_size() {
             // 2 em at size 10 is 20 pt: the same effect as the test in points above.
-            let cfg = TableCoordinatesConfig { tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Em, ..Default::default() };
+            let cfg = TableCoordinatesConfig { col_tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Em, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }
@@ -315,7 +329,7 @@ mod tests {
         #[test]
         fn the_same_tolerance_expressed_in_perc_depends_on_the_line_width() {
             // Twice the width (10 pt) is 20 pt.
-            let cfg = TableCoordinatesConfig { tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Perc, ..Default::default() };
+            let cfg = TableCoordinatesConfig { col_tolerance: 2.0, tolerance_unit: TablePosMeasureUnit::Perc, ..Default::default() };
             let coords = get_table_coordinates_from_lines(&nearly_aligned(), &cfg).unwrap();
             assert_eq!(coords[0].1, coords[1].1);
         }

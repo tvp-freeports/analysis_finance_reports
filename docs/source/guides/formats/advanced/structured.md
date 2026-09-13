@@ -48,12 +48,19 @@ pipe that says nothing behaves the way the library does.
 | Column | Segment | Cell | Default |
 |---|---|---|---|
 | `Algorithm flags` | `pdf_extract` | flag expression | no flags |
-| `Tolerance` | `pdf_extract` | number | `0` |
+| `Column tolerance` | `pdf_extract` | number | `0` |
+| `Row tolerance` | `pdf_extract` | number | `0` |
 | `Geometrical indexing` | `text_filter` | `TRUE`/`FALSE` | `TRUE` |
 | `Merge previous` | `text_filter` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret dash as zero` | `text_filter` | flag expression | nothing substituted |
 | `Interpret quantity as float` | `deserialize` | `TRUE`/`FALSE` | `FALSE` |
 | `Interpret cost and value as int` | `deserialize` | `TRUE`/`FALSE` | `TRUE` |
+
+The two tolerances say how far apart two cells may sit and still count as the same column, or the
+same row. They are **independent**: leaving one empty means zero for that axis, never the other
+one's value. A table whose column of names breaks up because the names differ in length wants a
+wide column tolerance and a row tolerance of zero — one number for both would weld consecutive
+holdings into a single row while it was busy reuniting the names.
 
 Each column belongs to one segment, and that matters: a pipe that switches a segment **off** in
 `partial_pipes.csv` and then fills in one of that segment's columns is rejected when the repository
@@ -115,9 +122,10 @@ failing loudly, and a rule that turned any unreadable cell into zero would bury 
 There is no flag for the acquisition **currency**: a dash there says "no currency", and zero is not
 a currency. `ALL` does not touch it.
 
-The zero that results is a real value and behaves like one — including the `warn` in the `.log.csv`
-saying it sits on the edge of its domain ({doc}`../../user/logging`). That is the point: the
-holding is in the output, where it was being dropped before.
+The zero that results is a real value and behaves like one. It is on the lower edge of its domain,
+which the engine notes at `debug` and not in the `.log.csv` ({doc}`../../user/logging`) — zero is
+ordinary, and a file that said so on every written-off holding would say nothing else. That is the
+point: the holding is in the output, where it was being dropped before.
 
 ## Classification rows
 

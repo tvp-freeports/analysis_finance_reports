@@ -4,12 +4,12 @@
 //! the currency statement, the SFDR article, classify the page, rebuild the investments table, read
 //! the assets block. Each takes selections written by the format author and produces [`PdfBlock`]s.
 //!
-//! # Two dead fields, kept on purpose
+//! # How a format configures the tabularizer
 //!
-//! [`PdfExtractInvestmentsStandard`] carries a `tolerance` and a `row_algorithm_flags` that are
-//! readable but never consulted: only `algorithm_flags` and `row_tolerance` actually feed the
-//! coordinate computation. No real format sets a non-default value for either, so keeping them
-//! costs nothing while removing them would silently change what a configuration means.
+//! The two pipes that build a table — [`PdfExtractInvestmentsStandard`] and, for its fund columns,
+//! [`PdfExtractAssetsStandard`] — take a [`TableSettings`] and hand it to the tabularizer
+//! unchanged. It is the same set of knobs the free `get_table_coordinates` exposes, under the same
+//! names, so a format author who has tuned one has tuned the other.
 //!
 //! # Where the deselection list is subtracted
 //!
@@ -31,8 +31,10 @@ use super::pdf_line::PdfLine;
 use super::relative::{OptionallyRelative, RelativeInfo};
 use super::select::pdf_line::PdfLineSet;
 use super::select::relative::{PdfLineSelection, RelativePdfLineSet, RelativeSelectPdfLineSet};
+use super::position::TableConfig;
+use super::tabularizer::collapse::CollapseAlgorithm;
 use super::tabularizer::coordinates::{CoordinateExtractionError, TablePosAlgorithm};
-use super::tabularizer::{TableCoordinatesConfig, get_table_coordinates_from_lines};
+use super::tabularizer::{TableCoordinatesConfig, TablePosMeasureUnit, get_table_coordinates_from_lines};
 
 /// Failures of the standard `pdf_extract` pipes.
 ///
@@ -294,20 +296,91 @@ impl PdfExtractPipe for PdfExtractSfdrArticleStandard {
 
 
 // ----------------------------------------------------------------------------------------------
+// TableSettings
+// ----------------------------------------------------------------------------------------------
+/// How a standard pipe wants its lines grouped into rows and columns.
+///
+/// Every field is a field of [`TableCoordinatesConfig`], which is what this becomes — the type
+/// exists so that a pipe can carry the settings without also carrying the column of the company
+/// name, which is the pipe's own business and not the tabularizer's.
+///
+/// The one knob that is not here is `company_col`: [`Self::config`] takes it, because the
+/// investments pipe already has it as a separate parameter and the assets pipe has no use for it.
+#[derive(Debug, Clone)]
+pub struct TableSettings {
+    /// Explicit rows and columns, when the format knows the grid in advance.
+    pub table_config: Option<TableConfig>,
+    pub algorithm_flags: TablePosAlgorithm,
+    pub collapse_algorithm: CollapseAlgorithm,
+    /// How far apart two cells may sit and still count as the same **column**.
+    pub col_tolerance: f32,
+    /// How far apart two cells may sit and still count as the same **row**. Independent of
+    /// [`Self::col_tolerance`] and never derived from it: a table whose column of names breaks up
+    /// by name length wants a wide column tolerance and a row tolerance of zero.
+    pub row_tolerance: f32,
+    /// What the two tolerances are measured in: points, or ems of the line's own font size.
+    pub tolerance_unit: TablePosMeasureUnit,
+    /// Whether rows broken across several lines are collapsed back into one.
+    pub collapse: bool,
+}
+
+// Written out rather than derived, for the same reason as `TableCoordinatesConfig`'s: neither
+// `TablePosAlgorithm` nor `CollapseAlgorithm` implements `Default`.
+impl Default for TableSettings {
+    fn default() -> Self {
+        Self {
+            table_config: None,
+            algorithm_flags: TablePosAlgorithm::Default,
+            collapse_algorithm: CollapseAlgorithm::Geometry,
+            col_tolerance: 0.0,
+            row_tolerance: 0.0,
+            tolerance_unit: TablePosMeasureUnit::Em,
+            collapse: false,
+        }
+    }
+}
+
+impl TableSettings {
+    /// The settings [`PdfExtractAssetsStandard`] groups its **fund columns** with unless a format
+    /// says otherwise.
+    ///
+    /// These two flags are not a taste: the pipe has always used them, and a statement of net
+    /// assets that carries several funds side by side is read correctly today because of them.
+    /// They are the default rather than the only possibility now, and nothing else changes.
+    pub fn assets_funds() -> Self {
+        Self {
+            algorithm_flags: TablePosAlgorithm::BigCellRule | TablePosAlgorithm::UseRulerArea,
+            ..Self::default()
+        }
+    }
+
+    /// The tabularizer's own configuration, with the company column the pipe supplies.
+    pub fn config(&self, company_col: Option<usize>) -> TableCoordinatesConfig {
+        TableCoordinatesConfig {
+            table_config: self.table_config.clone(),
+            algorithm_flags: self.algorithm_flags,
+            collapse_algorithm: self.collapse_algorithm,
+            col_tolerance: self.col_tolerance,
+            row_tolerance: self.row_tolerance,
+            tolerance_unit: self.tolerance_unit,
+            company_col,
+            collapse: self.collapse,
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------------------------
 // PdfExtractInvestmentsStandard
 // ----------------------------------------------------------------------------------------------
 /// The pipe that rebuilds the investments table: one PDF line per cell, with the `(row, column)`
 /// coordinates put into the metadata for the next segment to read back.
 ///
-/// `tolerance` and `row_algorithm_flags` are kept but **not** consulted; see the module
-/// documentation.
+/// How the lines are grouped into rows and columns is [`TableSettings`], which the format writes
+/// and which reaches the tabularizer unchanged.
 pub struct PdfExtractInvestmentsStandard {
     body_set: PdfLineSelection,
     deselection_list: Vec<PdfLineSelection>,
-    algorithm_flags: TablePosAlgorithm,
-    tolerance: f32,
-    row_algorithm_flags: TablePosAlgorithm,
-    row_tolerance: f32,
+    table: TableSettings,
     company_index: Option<usize>,
 }
 
@@ -316,10 +389,7 @@ pub struct PdfExtractInvestmentsStandard {
 pub struct InvestmentsStandardArgs {
     pub body_set: PdfLineSelection,
     pub deselection_list: Vec<PdfLineSelection>,
-    pub algorithm_flags: TablePosAlgorithm,
-    pub tolerance: f32,
-    pub row_algorithm_flags: TablePosAlgorithm,
-    pub row_tolerance: f32,
+    pub table: TableSettings,
     pub company_index: Option<usize>,
 }
 
@@ -329,10 +399,7 @@ impl InvestmentsStandardArgs {
         Self {
             body_set,
             deselection_list: Vec::new(),
-            algorithm_flags: TablePosAlgorithm::Default,
-            tolerance: 0.0,
-            row_algorithm_flags: TablePosAlgorithm::Default,
-            row_tolerance: 0.0,
+            table: TableSettings::default(),
             company_index: None,
         }
     }
@@ -340,26 +407,13 @@ impl InvestmentsStandardArgs {
 
 impl PdfExtractInvestmentsStandard {
     pub fn new(args: InvestmentsStandardArgs) -> Self {
-        let InvestmentsStandardArgs {
-            body_set,
-            deselection_list,
-            algorithm_flags,
-            tolerance,
-            row_algorithm_flags,
-            row_tolerance,
-            company_index,
-        } = args;
-        Self { body_set, deselection_list, algorithm_flags, tolerance, row_algorithm_flags, row_tolerance, company_index }
+        let InvestmentsStandardArgs { body_set, deselection_list, table, company_index } = args;
+        Self { body_set, deselection_list, table, company_index }
     }
 
-    /// The configured tolerance, never consulted by the algorithm; see the module documentation.
-    pub fn tolerance(&self) -> f32 {
-        self.tolerance
-    }
-
-    /// The configured row flags, never consulted by the algorithm; see the module documentation.
-    pub fn row_algorithm_flags(&self) -> TablePosAlgorithm {
-        self.row_algorithm_flags
+    /// The table settings this pipe was built with.
+    pub fn table(&self) -> &TableSettings {
+        &self.table
     }
 
     pub fn call(&self, page: &Page) -> Result<Vec<PdfBlock>, PdfExtractStandardFuncsError> {
@@ -373,13 +427,7 @@ impl PdfExtractInvestmentsStandard {
             return Ok(Vec::new());
         }
 
-        let config = TableCoordinatesConfig {
-            algorithm_flags: self.algorithm_flags,
-            tolerance: self.row_tolerance,
-            company_col: self.company_index,
-            ..Default::default()
-        };
-        let coords = get_table_coordinates_from_lines(&rows, &config)?;
+        let coords = get_table_coordinates_from_lines(&rows, &self.table.config(self.company_index))?;
         tracing::debug!(
             found = %rows.first().map(|line| line.text().clone()).unwrap_or_default(),
             lines = rows.len(),
@@ -474,6 +522,7 @@ pub struct PdfExtractAssetsStandard {
     net_assets: AssetsColumn,
     table_condition: bool,
     skip_column: i64,
+    table: TableSettings,
 }
 
 /// The construction parameters of [`PdfExtractAssetsStandard`], grouped into a struct so the call
@@ -487,6 +536,10 @@ pub struct AssetsStandardArgs {
     pub date_set: Option<PdfLineSelection>,
     pub table_condition: bool,
     pub skip_column: i64,
+    /// How the **fund columns** are grouped, in the `table_condition: true` mode. The numeric
+    /// columns do not pass through the tabularizer at all: each is a window hung off its own
+    /// anchor, so nothing here touches them.
+    pub table: TableSettings,
 }
 
 impl AssetsStandardArgs {
@@ -507,6 +560,7 @@ impl AssetsStandardArgs {
             date_set: None,
             table_condition: false,
             skip_column: 1,
+            table: TableSettings::assets_funds(),
         }
     }
 }
@@ -529,11 +583,12 @@ impl PdfExtractAssetsStandard {
             date_set,
             table_condition,
             skip_column,
+            table,
         } = args;
         if !table_condition && currency_set.is_none() {
             return Err(PdfExtractStandardFuncsError::ExpectedPdfBlockNotFound { name: "currency".to_string() });
         }
-        Ok(Self { fund_set, currency_set, date_set, tot_assets, liabilities, net_assets, table_condition, skip_column })
+        Ok(Self { fund_set, currency_set, date_set, tot_assets, liabilities, net_assets, table_condition, skip_column, table })
     }
 
     /// The page's lines minus the whitespace-only ones.
@@ -561,11 +616,7 @@ impl PdfExtractAssetsStandard {
         if funds.is_empty() {
             return Ok(Vec::new());
         }
-        let config = TableCoordinatesConfig {
-            algorithm_flags: TablePosAlgorithm::BigCellRule | TablePosAlgorithm::UseRulerArea,
-            ..Default::default()
-        };
-        let coords = get_table_coordinates_from_lines(&funds, &config)?;
+        let coords = get_table_coordinates_from_lines(&funds, &self.table.config(None))?;
         let cols: Vec<usize> = coords.iter().map(|(_, col)| *col).collect();
         let n_cols = cols.iter().copied().max().map(|m| m + 1).unwrap_or(0);
         Ok((0..n_cols)
@@ -1061,17 +1112,106 @@ mod tests {
             assert!(PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap().is_empty());
         }
 
-        #[test]
-        fn the_dead_fields_are_stored_and_readable_but_do_not_change_the_result() {
+        /// The columns of `table_page` are centred 30 points apart, so a tolerance either side of
+        /// 30 says whether the value reaches the tabularizer at all. It used to be stored and
+        /// never read.
+        fn columns_with_tolerance(col_tolerance: f32) -> Vec<BlockValue> {
             let args = InvestmentsStandardArgs {
-                tolerance: 7.5,
-                row_algorithm_flags: TablePosAlgorithm::UseTestPos,
+                table: TableSettings {
+                    col_tolerance,
+                    tolerance_unit: TablePosMeasureUnit::Pt,
+                    ..TableSettings::default()
+                },
                 ..InvestmentsStandardArgs::new(text_sel(""))
             };
-            let pipe = PdfExtractInvestmentsStandard::new(args);
-            assert_eq!(pipe.tolerance(), 7.5);
-            assert!(pipe.row_algorithm_flags().contains(TablePosAlgorithm::UseTestPos));
-            assert_eq!(pipe.call(&table_page()).unwrap(), body_pipe().call(&table_page()).unwrap());
+            PdfExtractInvestmentsStandard::new(args)
+                .call(&table_page())
+                .unwrap()
+                .iter()
+                .map(|b| metadata_of(b, "table-col"))
+                .collect()
+        }
+
+        #[test]
+        fn a_tolerance_below_the_column_gap_leaves_the_columns_apart() {
+            assert_eq!(
+                columns_with_tolerance(5.0),
+                vec![BlockValue::from(0i64), BlockValue::from(1i64), BlockValue::from(0i64), BlockValue::from(1i64)]
+            );
+        }
+
+        #[test]
+        fn a_tolerance_above_the_column_gap_merges_them_into_one() {
+            assert!(
+                columns_with_tolerance(40.0).iter().all(|col| *col == BlockValue::from(0i64)),
+                "a tolerance wider than the gap must reach the tabularizer and collapse the columns"
+            );
+        }
+
+        /// The rows of `table_page` are centred 20 points apart and its columns 30, so a column
+        /// tolerance of 40 leaves the rows alone, because the two axes are separate values and
+        /// neither stands in for the other.
+        #[test]
+        fn a_column_tolerance_joins_the_columns_and_leaves_the_rows_alone() {
+            let args = InvestmentsStandardArgs {
+                table: TableSettings {
+                    col_tolerance: 40.0,
+                    tolerance_unit: TablePosMeasureUnit::Pt,
+                    ..TableSettings::default()
+                },
+                ..InvestmentsStandardArgs::new(text_sel(""))
+            };
+            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let coords: Vec<_> = blocks
+                .iter()
+                .map(|b| (metadata_of(b, "table-row"), metadata_of(b, "table-col")))
+                .collect();
+            assert_eq!(
+                coords,
+                vec![
+                    (BlockValue::from(0i64), BlockValue::from(0i64)),
+                    (BlockValue::from(0i64), BlockValue::from(0i64)),
+                    (BlockValue::from(1i64), BlockValue::from(0i64)),
+                    (BlockValue::from(1i64), BlockValue::from(0i64)),
+                ]
+            );
+        }
+
+        /// The rows of `table_page` are centred 20 points apart. A row tolerance of 40 welds them,
+        /// and it does so **without** touching the columns — the mirror of the test above.
+        #[test]
+        fn a_row_tolerance_joins_the_rows_and_leaves_the_columns_alone() {
+            let args = InvestmentsStandardArgs {
+                table: TableSettings {
+                    row_tolerance: 40.0,
+                    tolerance_unit: TablePosMeasureUnit::Pt,
+                    ..TableSettings::default()
+                },
+                ..InvestmentsStandardArgs::new(text_sel(""))
+            };
+            let blocks = PdfExtractInvestmentsStandard::new(args).call(&table_page()).unwrap();
+            let coords: Vec<_> = blocks
+                .iter()
+                .map(|b| (metadata_of(b, "table-row"), metadata_of(b, "table-col")))
+                .collect();
+            assert_eq!(
+                coords,
+                vec![
+                    (BlockValue::from(0i64), BlockValue::from(0i64)),
+                    (BlockValue::from(0i64), BlockValue::from(1i64)),
+                    (BlockValue::from(0i64), BlockValue::from(0i64)),
+                    (BlockValue::from(0i64), BlockValue::from(1i64)),
+                ]
+            );
+        }
+
+        #[test]
+        fn the_table_settings_are_readable_back() {
+            let args = InvestmentsStandardArgs {
+                table: TableSettings { col_tolerance: 7.5, ..TableSettings::default() },
+                ..InvestmentsStandardArgs::new(text_sel(""))
+            };
+            assert_eq!(PdfExtractInvestmentsStandard::new(args).table().col_tolerance, 7.5);
         }
 
         #[test]

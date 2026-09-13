@@ -135,11 +135,12 @@ impl InvestmentData {
 
     /// Checks the numeric domains of the already-resolved fields only.
     ///
-    /// Every amount here admits its edges, and says so with a warning rather than a refusal: a
-    /// holding frozen and written off is printed at `0,00`, a bond can be carried at no
-    /// acquisition cost, and a fund can hold one position worth its entire net assets. Those are
-    /// the positions worth finding, not the ones worth dropping. Outside the edges — a negative
-    /// amount, a share above the whole — it is still an error.
+    /// Every amount here admits its edges, and says so rather than refusing: a holding frozen and
+    /// written off is printed at `0,00`, a bond can be carried at no acquisition cost, and a fund
+    /// can hold one position worth its entire net assets. Those are the positions worth finding,
+    /// not the ones worth dropping. Outside the edges — a negative amount, a share above the whole
+    /// — it is still an error. The zero end is reported at `debug` and the whole end at `warn`;
+    /// [`FloatConstraint`] says why.
     fn validate_ranges(&self) -> Result<(), OutputClassError> {
         if let Some(v) = self.market_value.resolved() {
             FloatConstraint::NonNegative.validate("market_value", v.into_inner())?;
@@ -450,16 +451,40 @@ mod tests {
         }
 
         #[test]
-        fn a_value_on_the_edge_is_warned_about_once_and_names_its_field() {
+        fn a_value_on_the_lower_edge_is_reported_once_at_debug_and_names_its_field() {
             let f = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
             let (built, records) = build_and_capture(f);
             assert!(built.is_ok());
 
             let edges = edge_events(&records);
             assert_eq!(edges.len(), 1, "one value on an edge, one event: {records:?}");
-            assert_eq!(edges[0].level, Level::WARN);
+            assert_eq!(edges[0].level, Level::DEBUG, "zero is ordinary: a zero-coupon, a rounded-away position");
             assert_eq!(edges[0].field, "market_value");
             assert!(edges[0].message.contains('0'), "{:?}", edges[0]);
+        }
+
+        #[test]
+        fn a_value_on_the_upper_edge_stays_a_warning() {
+            // A fund with its whole net assets in one position is admissible and is also the shape
+            // a column read one cell off produces, so this one keeps the audit trail's attention.
+            let f = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            let (built, records) = build_and_capture(f);
+            assert!(built.is_ok());
+
+            let edges = edge_events(&records);
+            assert_eq!(edges.len(), 1, "one value on an edge, one event: {records:?}");
+            assert_eq!(edges[0].level, Level::WARN);
+            assert_eq!(edges[0].field, "perc_net_assets");
+        }
+
+        #[test]
+        fn the_two_edges_are_told_apart_by_the_message_as_well_as_the_level() {
+            let low = InvestmentFields { market_value: BlockValue::from(0.0), ..fields() };
+            let high = InvestmentFields { perc_net_assets: Some(BlockValue::from(1.0)), ..fields() };
+            let (_, low) = build_and_capture(low);
+            let (_, high) = build_and_capture(high);
+            assert!(edge_events(&low)[0].message.contains("lower edge"), "{:?}", edge_events(&low)[0]);
+            assert!(edge_events(&high)[0].message.contains("upper edge"), "{:?}", edge_events(&high)[0]);
         }
 
         #[test]

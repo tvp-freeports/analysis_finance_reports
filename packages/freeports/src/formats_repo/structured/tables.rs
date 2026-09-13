@@ -134,8 +134,12 @@ pub struct AdditionalArgsRow {
     pub id: String,
     #[serde(rename = "Algorithm flags", deserialize_with = "optional_text")]
     pub algorithm_flags: Option<String>,
-    #[serde(rename = "Tolerance", deserialize_with = "optional_number")]
-    pub tolerance: Option<f32>,
+    #[serde(rename = "Column tolerance", deserialize_with = "optional_number")]
+    pub col_tolerance: Option<f32>,
+    /// The row pass's own tolerance. Independent of the column one: left empty it is zero, not the
+    /// column's value.
+    #[serde(rename = "Row tolerance", deserialize_with = "optional_number")]
+    pub row_tolerance: Option<f32>,
     #[serde(rename = "Interpret quantity as float", deserialize_with = "optional_bool")]
     pub interpret_quantity_as_float: Option<bool>,
     #[serde(rename = "Interpret cost and value as int", deserialize_with = "optional_bool")]
@@ -320,7 +324,10 @@ pub struct PageClassifyConfig {
 /// Declaring a segment off and then configuring it is a contradiction, not something loading should
 /// have to guess its way through.
 const DISABLED_SEGMENT_COLUMNS: [(&str, &[&str]); 3] = [
-    ("pdf_extract", &["Subfund set", "Currency set", "Body set", "Deselection set", "Algorithm flags", "Tolerance"]),
+    (
+        "pdf_extract",
+        &["Subfund set", "Currency set", "Body set", "Deselection set", "Algorithm flags", "Column tolerance", "Row tolerance"],
+    ),
     (
         "text_filter",
         &[
@@ -347,7 +354,8 @@ impl InvestmentsConfig {
             "Body set" => self.args.body_set.is_some(),
             "Deselection set" => !self.deselection_sets.is_empty(),
             "Algorithm flags" => additional.is_some_and(|a| a.algorithm_flags.is_some()),
-            "Tolerance" => additional.is_some_and(|a| a.tolerance.is_some()),
+            "Column tolerance" => additional.is_some_and(|a| a.col_tolerance.is_some()),
+            "Row tolerance" => additional.is_some_and(|a| a.row_tolerance.is_some()),
             "Market value" => self.args.market_value.is_some(),
             "Quantity" => self.args.quantity.is_some(),
             "% net assets" => self.args.perc_net_assets.is_some(),
@@ -519,7 +527,7 @@ mod tests {
 
     const ARGS_HEADER: &str =
         "ID,Subfund set,Currency set,Body set,Market value,Quantity,% net assets,Acquisition cost,Acquisition currency\n";
-    const ADD_HEADER: &str = "ID,Algorithm flags,Tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
+    const ADD_HEADER: &str = "ID,Algorithm flags,Column tolerance,Row tolerance,Interpret quantity as float,Interpret cost and value as int,Geometrical indexing,Merge previous,Interpret dash as zero\n";
     const PARTIAL_HEADER: &str = "ID,pdf_extract,text_filter,deserialize\n";
     const DESEL_HEADER: &str = "ID,Deselection set\n";
     const PAGE_CLASSIFY_HEADER: &str = "ID,Header set,Class\n";
@@ -676,7 +684,7 @@ mod tests {
         #[test]
         fn additional_args_join_onto_the_matching_pipe() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,FALSE,,TRUE,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,FALSE,,TRUE,\n"));
             let config = &get_investments_configs(repo.path()).unwrap()[0];
             let additional = config.additional.as_ref().unwrap();
             assert_eq!(additional.interpret_quantity_as_float, Some(true));
@@ -696,7 +704,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,\n"),
             );
             assert!(get_investments_configs(repo.path()).unwrap()[0].additional.is_some());
         }
@@ -704,7 +712,7 @@ mod tests {
         #[test]
         fn a_secondary_row_matching_no_pipe_is_rejected_with_its_line() {
             let repo = with_one_pipe();
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,TRUE,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}GHOST-EN24,,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             let TableError::UnmatchedRow { line, id, .. } = err else { panic!("expected UnmatchedRow, got {err}") };
             assert_eq!((line, id.as_str()), (1, "GHOST-EN24(investments)/0"));
@@ -715,7 +723,7 @@ mod tests {
             let repo = with_one_pipe();
             repo.write(
                 "investments/additional_args.csv",
-                &format!("{ADD_HEADER}A-EN24(investments)/0,,,TRUE,,,,\nA-EN24(investments)/0,,,FALSE,,,,\n"),
+                &format!("{ADD_HEADER}A-EN24(investments)/0,,,,TRUE,,,,\nA-EN24(investments)/0,,,,FALSE,,,,\n"),
             );
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(matches!(err, TableError::DuplicateRow { line: 2, .. }), "{err}");
@@ -812,7 +820,7 @@ mod tests {
             let repo = Repo::new();
             repo.write("investments/args.csv", &format!("{ARGS_HEADER}A-EN24,,,,,,,,\n"));
             repo.write("investments/partial_pipes.csv", &format!("{PARTIAL_HEADER}A-EN24,TRUE,TRUE,FALSE\n"));
-            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,TRUE,,,,\n"));
+            repo.write("investments/additional_args.csv", &format!("{ADD_HEADER}A-EN24,,,,TRUE,,,,\n"));
             let err = get_investments_configs(repo.path()).unwrap_err();
             assert!(
                 matches!(err, TableError::DisabledSegmentConfigured { segment: "deserialize", .. }),

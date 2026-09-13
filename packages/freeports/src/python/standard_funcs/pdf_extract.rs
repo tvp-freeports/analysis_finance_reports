@@ -16,7 +16,11 @@ use crate::formats_utils::pdf_extract::select::relative::PdfLineSelection;
 
 use crate::python::consts::PyCurrency;
 use crate::python::pipes::PyPdfExtractPipe;
-use crate::python::utils::pdf_extract::{PyPdfLineSelection, PyTablePosAlgorithm};
+use crate::formats_utils::pdf_extract::standard_funcs::TableSettings;
+use crate::formats_utils::pdf_extract::tabularizer::collapse::CollapseAlgorithm;
+use crate::python::utils::pdf_extract::{
+    PyCollapseAlgorithm, PyPdfLineSelection, PyTableConfig, PyTablePosAlgorithm, PyTablePosMeasureUnit,
+};
 use crate::core::tracing_setup::log_error;
 
 /// A native selection from a Python object, with a message naming the argument.
@@ -161,11 +165,14 @@ pub fn py_pdf_extract_sfdr_article_standard(
     manco_set=None,
     currency_set=None,
     deselection_list=None,
-    algorithm_flags=None,
-    tolerance=0.0,
-    row_algorithm_flags=None,
-    row_tolerance=0.0,
     company_index=None,
+    table_cfg=None,
+    algorithm_flags=None,
+    collapse_alg=None,
+    col_tolerance=0.0,
+    row_tolerance=0.0,
+    tolerance_mu=None,
+    collapse=false,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_pdf_extract_investments_standard(
@@ -173,11 +180,14 @@ pub fn py_pdf_extract_investments_standard(
     manco_set: Option<&Bound<'_, PyAny>>,
     currency_set: Option<&Bound<'_, PyAny>>,
     deselection_list: Option<&Bound<'_, PyAny>>,
-    algorithm_flags: Option<&Bound<'_, PyAny>>,
-    tolerance: f64,
-    row_algorithm_flags: Option<&Bound<'_, PyAny>>,
-    row_tolerance: f64,
     company_index: Option<i64>,
+    table_cfg: Option<PyRef<'_, PyTableConfig>>,
+    algorithm_flags: Option<&Bound<'_, PyAny>>,
+    collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
+    col_tolerance: f64,
+    row_tolerance: f64,
+    tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
+    collapse: bool,
 ) -> PyResult<PyPdfExtractPipe> {
     let _ = (manco_set, currency_set);
 
@@ -190,13 +200,34 @@ pub fn py_pdf_extract_investments_standard(
     let args = InvestmentsStandardArgs {
         body_set: selection_of("body_set", body_set)?,
         deselection_list,
-        algorithm_flags: flags_of(algorithm_flags)?,
-        tolerance: tolerance as f32,
-        row_algorithm_flags: flags_of(row_algorithm_flags)?,
-        row_tolerance: row_tolerance as f32,
+        table: table_settings(table_cfg, algorithm_flags, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse)?,
         company_index: company_index.map(|index| index as usize),
     };
     Ok(PyPdfExtractPipe::new(Arc::new(PdfExtractInvestmentsStandard::new(args))))
+}
+
+/// The table settings of a standard pipe, from the same six keywords `get_table_coordinates`
+/// takes. `algorithm_flags` keeps its own converter because it is the one argument the pipes
+/// accepted before this, and it accepts a bare flag as well as a combination.
+#[allow(clippy::too_many_arguments)]
+fn table_settings(
+    table_cfg: Option<PyRef<'_, PyTableConfig>>,
+    algorithm_flags: Option<&Bound<'_, PyAny>>,
+    collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
+    col_tolerance: f64,
+    row_tolerance: f64,
+    tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
+    collapse: bool,
+) -> PyResult<TableSettings> {
+    Ok(TableSettings {
+        table_config: table_cfg.map(|c| c.native().clone()),
+        algorithm_flags: flags_of(algorithm_flags)?,
+        collapse_algorithm: collapse_alg.map(|c| c.native()).unwrap_or(CollapseAlgorithm::Geometry),
+        col_tolerance: col_tolerance as f32,
+        row_tolerance: row_tolerance as f32,
+        tolerance_unit: tolerance_mu.map(|u| u.native()).unwrap_or_default(),
+        collapse,
+    })
 }
 
 /// One column of the assets pipe, from the flat keyword arguments.
@@ -231,6 +262,13 @@ fn assets_column(anchor: PdfLineSelection, vector: (f64, f64), mult: (f64, f64))
     date_set=None,
     table_condition=false,
     skip_column=1,
+    table_cfg=None,
+    algorithm_flags=None,
+    collapse_alg=None,
+    col_tolerance=0.0,
+    row_tolerance=0.0,
+    tolerance_mu=None,
+    collapse=false,
 ))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_pdf_extract_assets_standard(
@@ -248,6 +286,13 @@ pub fn py_pdf_extract_assets_standard(
     date_set: Option<&Bound<'_, PyAny>>,
     table_condition: bool,
     skip_column: i64,
+    table_cfg: Option<PyRef<'_, PyTableConfig>>,
+    algorithm_flags: Option<&Bound<'_, PyAny>>,
+    collapse_alg: Option<PyRef<'_, PyCollapseAlgorithm>>,
+    col_tolerance: f64,
+    row_tolerance: f64,
+    tolerance_mu: Option<PyRef<'_, PyTablePosMeasureUnit>>,
+    collapse: bool,
 ) -> PyResult<PyPdfExtractPipe> {
     let args = AssetsStandardArgs {
         fund_set: selection_of("fund_set", fund_set)?,
@@ -262,6 +307,16 @@ pub fn py_pdf_extract_assets_standard(
         date_set: optional_selection_of("date_set", date_set)?,
         table_condition,
         skip_column,
+        // `algorithm_flags` left out keeps this pipe's own two flags, not `TableSettings`'
+        // default: a format that names none of these keywords must read its fund columns exactly
+        // as it did before.
+        table: TableSettings {
+            algorithm_flags: match algorithm_flags {
+                None => TableSettings::assets_funds().algorithm_flags,
+                Some(_) => flags_of(algorithm_flags)?,
+            },
+            ..table_settings(table_cfg, None, collapse_alg, col_tolerance, row_tolerance, tolerance_mu, collapse)?
+        },
     };
     let pipe = PdfExtractAssetsStandard::build(args).map_err(|e| {
         tracing::error!(error = log_error(&e), "PdfExtractAssetsStandard construction failed: {e}");

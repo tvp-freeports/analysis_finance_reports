@@ -59,23 +59,42 @@ pub enum OutputClassError {
     },
 }
 
+/// Which end of a closed domain a value landed on. See [`FloatConstraint`] for why the two are
+/// reported at different levels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Edge {
+    /// Zero, for every domain that admits it.
+    Lower,
+    /// The whole, for the domains bounded above.
+    Upper,
+}
+
 /// The numeric domains a field can be constrained to.
 ///
-/// # The edges belong to the domain, and are worth saying out loud
+/// # The edges belong to the domain, and the two of them are not worth the same
 ///
 /// A domain here is closed wherever a real report can land on its edge: a holding frozen and
 /// written off is worth exactly zero, a fund can hold a single position worth its whole net
 /// assets. Rejecting those would throw away the very positions this engine exists to surface.
+/// What stays rejected is what falls *outside*: a negative amount, a share above the whole.
 ///
-/// Accepting them is not the same as passing them over in silence. A value sitting **exactly** on
-/// an edge is rare enough to be worth finding again in the report, so [`Self::validate`] lets it
-/// through and emits one `warn`. What stays rejected is what falls *outside*: a negative amount, a
-/// share above the whole.
+/// Accepting an edge is not the same as passing it over in silence, but the **upper** edge and the
+/// **lower** edge say different things, so [`Self::validate`] reports them at different levels.
+///
+/// The lower edge is zero, and zero is ordinary: a zero-coupon bond has an `interest_rate` of
+/// exactly zero, a position that rounds to 0,00% of net assets has a `perc_net_assets` of exactly
+/// zero, a security received at no cost has an `acquisition_cost` of exactly zero. Measured over a
+/// 903-report run it was **every single one** of the 121 edge events, so it goes to `debug`.
+///
+/// The upper edge is the whole: a `perc_net_assets` of exactly `1.0` is a fund with its entire net
+/// assets in one position. That happens, which is why it is admissible — and it is also the shape a
+/// column read one cell off produces, so it is worth finding again in the report. It stays a
+/// `warn`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FloatConstraint {
     /// Strictly greater than zero.
     Positive,
-    /// Greater than or equal to zero. Zero is admissible, and warned about.
+    /// Greater than or equal to zero. Zero is admissible, and reported at `debug`.
     NonNegative,
     /// A **fraction**, not a percentage: `0.05` means five per cent. Both edges are admissible.
     UnitIntervalClosed,
@@ -98,8 +117,9 @@ impl std::fmt::Display for FloatConstraint {
 impl FloatConstraint {
     /// Checks `value`, naming `field` in the error.
     ///
-    /// A value on an admissible edge of the domain passes **and** is logged: see the type's
-    /// documentation for why the two are not in tension.
+    /// A value on an admissible edge of the domain passes **and** is logged — at `warn` on the
+    /// upper edge and at `debug` on the lower one. See the type's documentation for why the two
+    /// edges do not deserve the same level.
     pub fn validate(self, field: &'static str, value: f64) -> Result<f64, OutputClassError> {
         let ok = match self {
             FloatConstraint::Positive => value > 0.0,
@@ -110,23 +130,31 @@ impl FloatConstraint {
         if !ok {
             return Err(OutputClassError::OutOfRange { field, constraint: self, value: value.to_string() });
         }
-        if self.is_on_an_edge(value) {
-            // `coord_ref_2` rather than a free field: it is the `.log.csv` column that says *which*
-            // field a row is about, and the enclosing span already carries the page and the
-            // company, which is what makes the value findable in the report.
-            tracing::warn!(coord_ref_2 = field, "{value} sits on the edge of the admissible range - kept");
+        // `coord_ref_2` rather than a free field: it is the `.log.csv` column that says *which*
+        // field a row is about, and the enclosing span already carries the page and the company,
+        // which is what makes the value findable in the report.
+        match self.edge_of(value) {
+            Some(Edge::Upper) => {
+                tracing::warn!(coord_ref_2 = field, "{value} sits on the upper edge of the admissible range - kept")
+            }
+            Some(Edge::Lower) => {
+                tracing::debug!(coord_ref_2 = field, "{value} sits on the lower edge of the admissible range - kept")
+            }
+            None => {}
         }
         Ok(value)
     }
 
-    /// Whether `value` is exactly on an edge the domain **includes**. An open bound has no such
-    /// edge: nothing that passes is next to it.
-    fn is_on_an_edge(self, value: f64) -> bool {
+    /// Which edge `value` sits exactly on, if any. An open bound has no such edge: nothing that
+    /// passes is next to it.
+    fn edge_of(self, value: f64) -> Option<Edge> {
         match self {
-            FloatConstraint::Positive => false,
-            FloatConstraint::NonNegative => value == 0.0,
-            FloatConstraint::UnitIntervalClosed => value == 0.0 || value == 1.0,
-            FloatConstraint::UnitIntervalHalfOpen => value == 0.0,
+            FloatConstraint::Positive => None,
+            FloatConstraint::NonNegative | FloatConstraint::UnitIntervalHalfOpen if value == 0.0 => Some(Edge::Lower),
+            FloatConstraint::NonNegative | FloatConstraint::UnitIntervalHalfOpen => None,
+            FloatConstraint::UnitIntervalClosed if value == 0.0 => Some(Edge::Lower),
+            FloatConstraint::UnitIntervalClosed if value == 1.0 => Some(Edge::Upper),
+            FloatConstraint::UnitIntervalClosed => None,
         }
     }
 }

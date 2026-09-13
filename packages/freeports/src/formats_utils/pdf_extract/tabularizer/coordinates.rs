@@ -67,16 +67,24 @@ impl TablePosAlgorithm {
     }
 }
 
-/// A table cell: its bounds and the tolerance within which it counts as sharing a position with
-/// another.
+/// A table cell: its bounds and, **one per axis**, the tolerance within which it counts as sharing
+/// a position with another.
+///
+/// The two axes of a page are not alike and do not share a value. The columns of a table of
+/// holdings can be tens of points apart while its rows are ten, so a single number wide enough to
+/// join a column broken by name length also welds consecutive holdings into one row. There is no
+/// constructor that sets both from one argument: a caller that wants them equal says so twice.
 #[derive(Debug, Clone, Copy)]
 pub struct CellGeometry {
     bounds: (f32, f32, f32, f32),
-    tolerance: f32,
+    /// How far this cell may sit from another and still share a **column**.
+    col_tolerance: f32,
+    /// How far this cell may sit from another and still share a **row**.
+    row_tolerance: f32,
 }
 
 impl CellGeometry {
-    pub fn new(bounds: (f32, f32, f32, f32), tolerance: f32) -> Self {
+    pub fn new(bounds: (f32, f32, f32, f32), col_tolerance: f32, row_tolerance: f32) -> Self {
         let (x0, y0, x1, y1) = bounds;
         if let Err(err) = Limits::build(x0, x1) {
             panic!("Invalid horizontal interval: {err:?}");
@@ -84,7 +92,7 @@ impl CellGeometry {
         if let Err(err) = Limits::build(y0, y1) {
             panic!("Invalid vertical interval: {err:?}");
         }
-        Self { bounds, tolerance }
+        Self { bounds, col_tolerance, row_tolerance }
     }
 }
 
@@ -101,9 +109,12 @@ struct CellGeometryUnindexed {
 }
 impl CellGeometryUnindexed {
     fn from_cell_geometry(cell: &CellGeometry, index: usize, horizontal: bool) -> Self {
-        let CellGeometry { tolerance, bounds: (x0, y0, x1, y1) } = cell;
-        let (a, b) = if horizontal { (*x0, *x1) } else { (*y0, *y1) };
-        Self { index, tolerance: *tolerance, area: b - a, pos: (a + b) / 2.0, bounds: Limits::build(a, b).unwrap() }
+        let CellGeometry { col_tolerance, row_tolerance, bounds: (x0, y0, x1, y1) } = cell;
+        // `horizontal` is the pass that groups cells into columns, so it is the column tolerance
+        // that applies to it.
+        let (a, b, tolerance) =
+            if horizontal { (*x0, *x1, *col_tolerance) } else { (*y0, *y1, *row_tolerance) };
+        Self { index, tolerance, area: b - a, pos: (a + b) / 2.0, bounds: Limits::build(a, b).unwrap() }
     }
     fn from_limits(limits: Limits, index: usize, tolerance: f32) -> Self {
         let (a, b) = limits.as_tuple();
@@ -225,21 +236,21 @@ mod tests {
         fn accepts_valid_bounds() {
             // No `matches!` with floating-point literals in the pattern, which the compiler
             // forbids: the fields are compared directly after destructuring.
-            let CellGeometry { bounds, tolerance } = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0);
+            let CellGeometry { bounds, col_tolerance, .. } = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0, 43.0);
             assert_eq!(bounds, (0.1, 2.0, 40.0, 22.0));
-            assert_eq!(tolerance, 43.0);
+            assert_eq!(col_tolerance, 43.0);
         }
 
         #[test]
         #[should_panic(expected = "Invalid horizontal interval:")]
         fn panics_on_an_inverted_horizontal_interval() {
-            CellGeometry::new((110.1, 2.0, 40.0, 22.0), 43.0);
+            CellGeometry::new((110.1, 2.0, 40.0, 22.0), 43.0, 43.0);
         }
 
         #[test]
         #[should_panic(expected = "Invalid vertical interval:")]
         fn panics_on_an_inverted_vertical_interval() {
-            CellGeometry::new((0.1, 22.0, 40.0, 2.0), 43.0);
+            CellGeometry::new((0.1, 22.0, 40.0, 2.0), 43.0, 43.0);
         }
     }
 
@@ -255,8 +266,8 @@ mod tests {
 
         #[test]
         fn same_position_is_true_within_the_combined_tolerance() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((0.5, 0.0, 1.5, 1.5), 1.1);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((0.5, 0.0, 1.5, 1.5), 1.1, 1.1);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(same_position(&a, &b));
             }
@@ -264,8 +275,8 @@ mod tests {
 
         #[test]
         fn same_position_is_false_beyond_the_combined_tolerance() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1, 1.1);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(!same_position(&a, &b));
             }
@@ -273,8 +284,8 @@ mod tests {
 
         #[test]
         fn position_in_area_is_true_when_the_center_falls_within_the_other_bounds() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((0.5, 0.0, 1.5, 1.5), 1.1);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((0.5, 0.0, 1.5, 1.5), 1.1, 1.1);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(position_in_area(&a, &b));
             }
@@ -282,8 +293,8 @@ mod tests {
 
         #[test]
         fn position_in_area_is_false_when_the_center_falls_outside_the_other_bounds() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1, 1.1);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(!position_in_area(&a, &b));
             }
@@ -291,8 +302,8 @@ mod tests {
 
         #[test]
         fn areas_intersect_is_true_when_the_tolerance_widened_bounds_overlap() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((1.1, 0.0, 10.5, 1.5), 0.2);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((1.1, 0.0, 10.5, 1.5), 0.2, 0.2);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(areas_intersect(&a, &b));
             }
@@ -300,8 +311,8 @@ mod tests {
 
         #[test]
         fn areas_intersect_is_false_when_the_tolerance_widened_bounds_stay_apart() {
-            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0);
-            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1);
+            let cell_a = CellGeometry::new((0.0, 0.0, 1.0, 1.0), 0.0, 0.0);
+            let cell_b = CellGeometry::new((10.5, 0.0, 11.5, 1.5), 1.1, 1.1);
             for (a, b) in pairs(&cell_a, &cell_b) {
                 assert!(!areas_intersect(&a, &b));
             }
@@ -314,7 +325,7 @@ mod tests {
 
         #[test]
         fn from_cell_geometry_horizontal_reads_the_x_axis() {
-            let cell = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0);
+            let cell = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0, 43.0);
             let u = CellGeometryUnindexed::from_cell_geometry(&cell, 100, true);
             assert_eq!(u.index, 100);
             assert_eq!(u.pos, 20.05);
@@ -325,7 +336,7 @@ mod tests {
 
         #[test]
         fn from_cell_geometry_vertical_reads_the_y_axis() {
-            let cell = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0);
+            let cell = CellGeometry::new((0.1, 2.0, 40.0, 22.0), 43.0, 43.0);
             let u = CellGeometryUnindexed::from_cell_geometry(&cell, 11, false);
             assert_eq!(u.index, 11);
             assert_eq!(u.pos, 12.0);
@@ -376,7 +387,7 @@ mod tests {
             x_col
                 .iter()
                 .zip(y_row.iter())
-                .map(|(&((x0, x1), _), &((y0, y1), _))| CellGeometry::new((x0, y0, x1, y1), 0.0))
+                .map(|(&((x0, x1), _), &((y0, y1), _))| CellGeometry::new((x0, y0, x1, y1), 0.0, 0.0))
                 .collect()
         }
 
@@ -438,14 +449,14 @@ mod tests {
 
         #[test]
         fn explicit_column_limits_override_the_smallest_cell_heuristic() {
-            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(x0, x1)| CellGeometry::new((x0, 0.0, x1, 1.0), 0.0)).collect();
+            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(x0, x1)| CellGeometry::new((x0, 0.0, x1, 1.0), 0.0, 0.0)).collect();
             let table_cfg = TableConfig { cols: Some(vec![ColumnConfig { splitting: None, nullable: None, limits: Some(Limits::build(0.1, 50.0).unwrap()) }]), rows: None };
             assert_eq!(BIG_ONE.to_vec(), get_table_indexes(&cells, TablePosAlgorithm::UseRulerArea, &table_cfg).unwrap());
         }
 
         #[test]
         fn explicit_row_limits_can_be_touching_on_the_left_or_the_right() {
-            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(y0, y1)| CellGeometry::new((0.0, y0, 1.0, y1), 0.0)).collect();
+            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(y0, y1)| CellGeometry::new((0.0, y0, 1.0, y1), 0.0, 0.0)).collect();
             let table_cfg = TableConfig {
                 rows: Some(vec![
                     RowConfig { limits: Some(Limits::build(0.0, 3.0).unwrap()) },
@@ -475,7 +486,7 @@ mod tests {
 
         #[test]
         fn a_row_with_unspecified_limits_falls_back_to_the_smallest_cell_heuristic() {
-            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(y0, y1)| CellGeometry::new((0.0, y0, 1.0, y1), 0.0)).collect();
+            let cells: Vec<CellGeometry> = INTERVALS.iter().map(|&(y0, y1)| CellGeometry::new((0.0, y0, 1.0, y1), 0.0, 0.0)).collect();
             let table_cfg = TableConfig {
                 rows: Some(vec![
                     RowConfig { limits: Some(Limits::build(0.0, 2.0).unwrap()) },
@@ -496,7 +507,7 @@ mod tests {
         #[should_panic(expected = "Doesn't make any sense to return Row indexes when interested to (Row,Col)")]
         fn panics_when_return_rows_is_set() {
             use super::*;
-            let cells = vec![CellGeometry::new((0.0, 1.0, 1.0, 2.0), 0.0)];
+            let cells = vec![CellGeometry::new((0.0, 1.0, 1.0, 2.0), 0.0, 0.0)];
             let _ = get_table_coordinates(&cells, TablePosAlgorithm::ReturnRows, &TableConfig { cols: None, rows: None });
         }
     }
