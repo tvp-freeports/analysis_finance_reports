@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "grants.keys_online",
-  "message": "100.0%",
-  "color": "brightgreen"
+  "message": "stale",
+  "color": "grey"
 }

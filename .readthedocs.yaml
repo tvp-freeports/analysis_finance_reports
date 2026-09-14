@@ -17,9 +17,6 @@ build:
       #
       # Output:
       #   docs/source/_extra/rustdoc/
-      - which cargo
-      - cargo --version
-      - rustc --version
       - make -C docs rustdoc
 
 sphinx:
