@@ -125,13 +125,13 @@ tests.rust.lines, docs.rust, grants.coverage, grants.keys_online, tests.python.f
 
 tests.python.lines — measured at 78f72902, not at this one. Run `make ci` to take it again. (packages with their own minimum: freeports_dev, freeports_validate)
 
-rust.integration — last run at 78f72902, not at HEAD (465a2215). Run `make test-rust-integration`.
+rust.integration — last run at 78f72902, not at HEAD (7eae0b22). Run `make test-rust-integration`.
 
-rust.doc — last run at 78f72902, not at HEAD (465a2215). Run `make test-rust-doc`.
+rust.doc — last run at 78f72902, not at HEAD (7eae0b22). Run `make test-rust-doc`.
 
-python.slow — last run at 78f72902, not at HEAD (465a2215). Run `make test-python-slow`.
+python.slow — last run at 78f72902, not at HEAD (7eae0b22). Run `make test-python-slow`.
 
-python.online — last run at 78f72902, not at HEAD (465a2215). Run `make test-python-online`.
+python.online — last run at 78f72902, not at HEAD (7eae0b22). Run `make test-python-online`.
 
 *pass* — measured, current, and at or above the minimum this repository asks for.
 
