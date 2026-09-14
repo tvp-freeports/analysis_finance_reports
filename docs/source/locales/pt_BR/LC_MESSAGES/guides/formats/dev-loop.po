@@ -1,0 +1,210 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/dev-loop.md:1
+msgid "The development loop"
+msgstr "O ciclo de desenvolvimento"
+
+#: ../../source/guides/formats/dev-loop.md:3
+#, python-brace-format
+msgid ""
+"Four commands, in this order, over and over. {doc}`../../reference/cli/index` is the "
+"option-by-option reference; this page is what the loop is *for*."
+msgstr ""
+"Quatro comandos, nesta ordem, repetidos. {doc}`../../reference/cli/index` é a "
+"referência opção por opção; esta página é *para que serve* o ciclo."
+
+#: ../../source/guides/formats/dev-loop.md:12
+msgid "1. `inspect-document` — which page is what"
+msgstr "1. `inspect-document` — que página é o quê"
+
+#: ../../source/guides/formats/dev-loop.md:21
+msgid ""
+"**Run this first, and do not go past it until it is right.** If classification is "
+"wrong, nothing downstream can be: a page that should be `investments` and comes back "
+"as nothing is a classification bug, not an extraction bug, and chasing it in "
+"`pdf_extract` is the single most common way to lose an afternoon."
+msgstr ""
+"**Rode este primeiro, e não passe adiante enquanto não estiver certo.** Se a "
+"classificação está errada, nada do que vem depois pode estar certo: uma página que "
+"deveria ser `investments` e volta como nada é um bug de classificação, não de "
+"extração, e caçá-lo no `pdf_extract` é o jeito mais comum de todos de perder uma "
+"tarde."
+
+#: ../../source/guides/formats/dev-loop.md:26
+msgid "2. `inspect-page` — what the engine sees, stage by stage"
+msgstr "2. `inspect-page` — o que o motor vê, estágio por estágio"
+
+#: ../../source/guides/formats/dev-loop.md:34
+msgid ""
+"The three pipeline modes in order, and the order is the method: each shows what one "
+"segment made of the page, so the first one that looks wrong is the segment to fix. "
+"This turns *\"the page is wrong\"* — a question with no handle on it — into "
+"*\"`text_filter` dropped these blocks\"*, which has one."
+msgstr ""
+"Os três modos de pipeline na ordem, e a ordem é o método: cada um mostra o que um "
+"segmento fez da página, então o primeiro que parecer errado é o segmento a corrigir. "
+"Isso transforma *\"a página está errada\"* — uma pergunta sem nenhuma pega — em *\"o "
+"`text_filter` descartou estes blocos\"*, que tem uma."
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "First wrong at"
+msgstr "Primeiro errado em"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "Look at"
+msgstr "Olhe para"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "`pdf_blks`"
+msgstr "`pdf_blks`"
+
+#: ../../source/guides/formats/dev-loop.md
+#, python-brace-format
+msgid "the layout selections: font, size, area ({doc}`selections`)"
+msgstr "as seleções de layout: font, corpo, área ({doc}`selections`)"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "`txt_blks`"
+msgstr "`txt_blks`"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "the filter: are the target companies matching? is the regex right?"
+msgstr "o filtro: as empresas procuradas estão casando? a expressão regular está certa?"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "`results`"
+msgstr "`results`"
+
+#: ../../source/guides/formats/dev-loop.md
+msgid "the deserializer: types, columns, units"
+msgstr "o desserializador: tipos, colunas, unidades"
+
+#: ../../source/guides/formats/dev-loop.md:44
+msgid "Two more families of mode:"
+msgstr "Mais duas famílias de modo:"
+
+#: ../../source/guides/formats/dev-loop.md:46
+msgid ""
+"`table_md` / `table_ascii` render the PDF blocks **as a table**, with their row and "
+"column metadata — which is how you check that the tabularizer read the columns the "
+"way you read them;"
+msgstr ""
+"`table_md` / `table_ascii` renderizam os blocos do PDF **como tabela**, com os "
+"metadados de linha e coluna deles — e é assim que se confere se o tabularizador leu "
+"as colunas do mesmo jeito que você as lê;"
+
+#: ../../source/guides/formats/dev-loop.md:48
+msgid ""
+"`structured` / `semistructured` / `unstructured` take `--strings` and report which "
+"lines match, which is how you find out what font and size a value is set in before "
+"writing a selection at all."
+msgstr ""
+"`structured` / `semistructured` / `unstructured` recebem `--strings` e informam que "
+"linhas casam, e é assim que se descobre em que font e em que corpo um valor está "
+"composto, antes mesmo de escrever qualquer seleção."
+
+#: ../../source/guides/formats/dev-loop.md:51
+msgid "3. `make-tests` — freeze a page"
+msgstr "3. `make-tests` — congelar uma página"
+
+#: ../../source/guides/formats/dev-loop.md:57
+#, python-brace-format
+msgid ""
+"Writes the three per-page fixtures — PDF blocks, text blocks, results — as **JSON** "
+"under `tests/formats/<FORMAT>/pages/`. JSON and readable on purpose: a regression "
+"should be visible in a diff ({doc}`../../reference/design/blocks`)."
+msgstr ""
+"Escreve as três fixtures por página — blocos do PDF, blocos de texto, resultados — em"
+" **JSON** sob `tests/formats/<FORMAT>/pages/`. JSON e legível de propósito: uma "
+"regressão tem de ficar visível num diff ({doc}`../../reference/design/blocks`)."
+
+#: ../../source/guides/formats/dev-loop.md:62
+msgid ""
+"`make-tests` records **what the code does now**. It shows you what it is about to "
+"write and asks; read it. Confirming a wrong result promotes a bug into the "
+"specification, and from then on the test defends the bug."
+msgstr ""
+"O `make-tests` registra **o que o código faz agora**. Ele mostra o que está prestes a"
+" escrever e pergunta; leia. Confirmar um resultado errado promove um bug a "
+"especificação, e dali em diante o teste passa a defender o bug."
+
+#: ../../source/guides/formats/dev-loop.md:67
+msgid ""
+"Freeze a handful of representative pages, not every page: the first page of a table, "
+"a continuation page, a page with an awkward row. Those are where formats break."
+msgstr ""
+"Congele um punhado de páginas representativas, não todas: a primeira página de uma "
+"tabela, uma página de continuação, uma página com uma linha complicada. É ali que os "
+"formatos quebram."
+
+#: ../../source/guides/formats/dev-loop.md:70
+msgid "4. `test` — run them"
+msgstr "4. `test` — rodá-los"
+
+#: ../../source/guides/formats/dev-loop.md:79
+msgid "Two kinds of test with very different costs:"
+msgstr "Dois tipos de teste com custos muito diferentes:"
+
+#: ../../source/guides/formats/dev-loop.md:81
+msgid ""
+"**Per-page tests** replay one page through one segment against its fixture. Fast, run"
+" constantly, and they tell you *which segment of which page* changed."
+msgstr ""
+"Os **testes por página** repassam uma página por um segmento contra a fixture dela. "
+"São rápidos, rodam o tempo todo, e dizem *que segmento de que página* mudou."
+
+#: ../../source/guides/formats/dev-loop.md:84
+msgid ""
+"**The whole-document test** replays the entire report and compares the output tables "
+"against `tests/formats/<FORMAT>/out/`. Slow, marked `integration_tests`, and it is "
+"the one that actually says the format works — the per-page fixtures can all pass "
+"while the schedule, the promise resolution or the deduplication are wrong. It is "
+"`--slow`, or `make test-slow`, and it is **not** in the default run: a command that "
+"leaves it out says so in its last line, and `make ci-check` reports a suite nobody "
+"ran at this commit as `NOT RUN` rather than as a pass."
+msgstr ""
+"O **teste do documento inteiro** repassa o relatório todo e compara as tabelas de "
+"resultado com `tests/formats/<FORMAT>/out/`. É lento, marcado como "
+"`integration_tests`, e é o que de fato diz se o formato funciona — as fixtures por "
+"página podem passar todas enquanto o escalonamento, a resolução das promessas ou a "
+"deduplicação estão errados. É `--slow`, ou `make test-slow`, e **não** faz parte da "
+"execução padrão: um comando que o deixa de fora diz isso na última linha, e o `make "
+"ci-check` informa como `NOT RUN`, e não como aprovada, uma suíte que ninguém rodou "
+"neste commit."
+
+#: ../../source/guides/formats/dev-loop.md:92
+#, python-brace-format
+msgid ""
+"`out/**` is the repository's **specification**, not a snapshot. If a run diverges "
+"from it, the assumption is that the engine changed, not that the expectation was "
+"wrong. Regenerating one of those files is a deliberate act with a reason written down"
+" — never a way to make a red test green. It is also what the grants of "
+"{doc}`../../overview/trust` are *about*: a grant is a claim about the content of "
+"exactly those bytes."
+msgstr ""
+"`out/**` é a **especificação** do repositório, não um snapshot. Se uma execução "
+"diverge dele, presume-se que o motor mudou, não que a expectativa estava errada. "
+"Regenerar um desses arquivos é um ato deliberado, com um motivo posto por escrito — "
+"nunca um jeito de fazer um teste vermelho ficar verde. É também aquilo *de que "
+"tratam* os avais de {doc}`../../overview/trust`: um aval é uma afirmação sobre o "
+"conteúdo exatamente daqueles bytes."
+

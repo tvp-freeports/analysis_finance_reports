@@ -1,0 +1,460 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/structured.md:1
+msgid "The structured level"
+msgstr "O nível structured"
+
+#: ../../source/guides/formats/advanced/structured.md:3
+msgid ""
+"**No code at all, only rows.** The most constrained of the three levels, and the one "
+"that covers most formats."
+msgstr ""
+"**Nada de código, só linhas.** O mais restrito dos três níveis, e o que cobre a maior"
+" parte dos formatos."
+
+#: ../../source/guides/formats/advanced/structured.md:6
+msgid ""
+"The algorithm is fixed and lives in the library; you supply its parameters as columns"
+" of a CSV. The tables live under `content/algorithms/structured/`, in two groups:"
+msgstr ""
+"O algoritmo é fixo e vive na biblioteca; você fornece os parâmetros dele como colunas"
+" de um CSV. As tabelas ficam sob `content/algorithms/structured/`, em dois grupos:"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Directory"
+msgstr "Diretório"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "For"
+msgstr "Para"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`investments/`"
+msgstr "`investments/`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "extracting a fund's holdings"
+msgstr "extrair as posições de um fundo"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`page_classify/`"
+msgstr "`page_classify/`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "classifying pages"
+msgstr "classificar páginas"
+
+#: ../../source/guides/formats/advanced/structured.md:14
+msgid "The `ID` column"
+msgstr "A coluna `ID`"
+
+#: ../../source/guides/formats/advanced/structured.md:16
+msgid ""
+"Every row is keyed by an `ID` saying which pipe of which pipeline of which format it "
+"configures. The full form is:"
+msgstr ""
+"Toda linha tem como chave um `ID` que diz que pipe de que pipeline de que formato ela"
+" configura. A forma completa é:"
+
+#: ../../source/guides/formats/advanced/structured.md:23
+msgid ""
+"The pipeline and the index are almost always omitted and derived. The index in "
+"particular is derived from **the other rows of the same `(format, pipeline)` group**,"
+" not from the row alone — so rows sharing an id describe one pipe, and consecutive "
+"groups get consecutive pipes."
+msgstr ""
+"O pipeline e o índice são quase sempre omitidos e deduzidos. O índice, em especial, é"
+" deduzido a partir das **outras linhas do mesmo grupo `(format, pipeline)`**, não da "
+"linha sozinha — de modo que linhas que compartilham um id descrevem um só pipe, e "
+"grupos consecutivos ganham pipes consecutivos."
+
+#: ../../source/guides/formats/advanced/structured.md:27
+msgid "Extraction rows"
+msgstr "Linhas de extração"
+
+#: ../../source/guides/formats/advanced/structured.md:29
+msgid ""
+"An investments row supplies the selection identifying the table body, the one "
+"identifying the fund name, the one identifying the currency, and the column positions"
+" of market value, quantity, percentage of net assets and acquisition cost:"
+msgstr ""
+"Uma linha de investimentos fornece a seleção que identifica o corpo da tabela, a que "
+"identifica o nome do fundo, a que identifica a moeda, e as posições de coluna do "
+"valor de mercado, da quantidade, da porcentagem do patrimônio líquido e do custo de "
+"aquisição:"
+
+#: ../../source/guides/formats/advanced/structured.md:38
+#, python-brace-format
+msgid ""
+"The `set` columns are {doc}`../selections` in their compact textual form. The numeric"
+" columns are column indices, and negative values count from the right — `-1` being "
+"the last column, which is what you want on a table whose leading columns vary."
+msgstr ""
+"As colunas `set` são {doc}`../selections` na forma textual compacta delas. As colunas"
+" numéricas são índices de coluna, e valores negativos contam da direita — `-1` sendo "
+"a última coluna, que é o que você quer numa tabela cujas primeiras colunas variam."
+
+#: ../../source/guides/formats/advanced/structured.md:42
+msgid "`additional_args.csv`"
+msgstr "`additional_args.csv`"
+
+#: ../../source/guides/formats/advanced/structured.md:44
+msgid ""
+"A second table, joined onto the first by `ID`, holding the parameters a pipe usually "
+"leaves alone. **At most one row per pipe**, and no row at all is the normal case — "
+"every column defaults, and a pipe that says nothing behaves the way the library does."
+msgstr ""
+"Uma segunda tabela, unida à primeira pelo `ID`, que guarda os parâmetros que um pipe "
+"normalmente deixa quietos. **No máximo uma linha por pipe**, e nenhuma linha é o caso"
+" normal — toda coluna tem padrão, e um pipe que não diz nada se comporta como a "
+"biblioteca se comporta."
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Column"
+msgstr "Coluna"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Segment"
+msgstr "Segmento"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Cell"
+msgstr "Célula"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Default"
+msgstr "Padrão"
+
+#: ../../source/guides/formats/advanced/structured.md
+#: ../../source/guides/formats/advanced/structured.md:62
+msgid "`Algorithm flags`"
+msgstr "`Algorithm flags`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`pdf_extract`"
+msgstr "`pdf_extract`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "flag expression"
+msgstr "expressão de flags"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "no flags"
+msgstr "nenhum flag"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Tolerance`"
+msgstr "`Tolerance`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "number"
+msgstr "número"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`0`"
+msgstr "`0`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Geometrical indexing`"
+msgstr "`Geometrical indexing`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`text_filter`"
+msgstr "`text_filter`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`TRUE`/`FALSE`"
+msgstr "`TRUE`/`FALSE`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`TRUE`"
+msgstr "`TRUE`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Merge previous`"
+msgstr "`Merge previous`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`FALSE`"
+msgstr "`FALSE`"
+
+#: ../../source/guides/formats/advanced/structured.md
+#: ../../source/guides/formats/advanced/structured.md:77
+msgid "`Interpret dash as zero`"
+msgstr "`Interpret dash as zero`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "nothing substituted"
+msgstr "nada substituído"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Interpret quantity as float`"
+msgstr "`Interpret quantity as float`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`deserialize`"
+msgstr "`deserialize`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`Interpret cost and value as int`"
+msgstr "`Interpret cost and value as int`"
+
+#: ../../source/guides/formats/advanced/structured.md:58
+msgid ""
+"Each column belongs to one segment, and that matters: a pipe that switches a segment "
+"**off** in `partial_pipes.csv` and then fills in one of that segment's columns is "
+"rejected when the repository loads. Declaring a segment off and configuring it is a "
+"contradiction, not something to guess at."
+msgstr ""
+"Cada coluna pertence a um segmento, e isso importa: um pipe que **desliga** um "
+"segmento no `partial_pipes.csv` e depois preenche uma das colunas daquele segmento é "
+"rejeitado quando o repositório carrega. Declarar um segmento desligado e configurá-lo"
+" é uma contradição, não algo sobre o que chutar."
+
+#: ../../source/guides/formats/advanced/structured.md:64
+msgid ""
+"How the table-coordinates algorithm finds the grid, when its default choices do not "
+"suit a layout: `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, `USE_TEST_POS`."
+msgstr ""
+"Como o algoritmo de coordenadas de tabela encontra a grade, quando as escolhas padrão"
+" dele não servem para um layout: `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, "
+"`USE_TEST_POS`."
+
+#: ../../source/guides/formats/advanced/structured.md:67
+msgid "`Geometrical indexing` and `Merge previous`"
+msgstr "`Geometrical indexing` e `Merge previous`"
+
+#: ../../source/guides/formats/advanced/structured.md:69
+msgid ""
+"`Geometrical indexing` decides what the numeric columns of `args.csv` mean. `TRUE`, "
+"the default, makes them **linear distances on the grid**, wrapping into the next row "
+"when they exceed the table's width. `FALSE` makes them positions in the flat list of "
+"blocks — which shifts every field of any row whose company name wrapped onto two "
+"lines, so it is rarely what you want."
+msgstr ""
+"O `Geometrical indexing` decide o que as colunas numéricas do `args.csv` significam. "
+"`TRUE`, o padrão, faz delas **distâncias lineares sobre a grade**, que passam para a "
+"linha seguinte quando ultrapassam a largura da tabela. `FALSE` faz delas posições na "
+"lista plana de blocos — o que desloca todo campo de qualquer linha cujo nome de "
+"empresa tenha quebrado em duas linhas, e por isso raramente é o que você quer."
+
+#: ../../source/guides/formats/advanced/structured.md:74
+msgid ""
+"`Merge previous` says which way a cell split across two blocks is put back together: "
+"into the **preceding** block (`TRUE`) or the following one."
+msgstr ""
+"O `Merge previous` diz para que lado uma célula partida entre dois blocos é "
+"recomposta: para o bloco **anterior** (`TRUE`) ou para o seguinte."
+
+#: ../../source/guides/formats/advanced/structured.md:79
+msgid ""
+"Several reports print `-` where a number belongs — a frozen holding, a position too "
+"small to round to a visible percentage. That dash is not a number, so by default the "
+"row is dropped (for the market value) or the field left empty (for the others), and "
+"the `.log.csv` says so."
+msgstr ""
+"Vários relatórios imprimem `-` onde iria um número — uma posição congelada, uma "
+"posição pequena demais para arredondar até uma porcentagem visível. Esse travessão "
+"não é um número, então por padrão a linha é descartada (no caso do valor de mercado) "
+"ou o campo fica vazio (nos demais), e o `.log.csv` avisa."
+
+#: ../../source/guides/formats/advanced/structured.md:83
+msgid ""
+"Where you have checked the report and the dash really does mean zero, this column "
+"says so, **one field at a time**:"
+msgstr ""
+"Onde você conferiu o relatório e o travessão de fato quer dizer zero, esta coluna diz"
+" isso, **um campo de cada vez**:"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Flag"
+msgstr "Flag"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "Field"
+msgstr "Campo"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`MARKET_VALUE`"
+msgstr "`MARKET_VALUE`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the market value"
+msgstr "o valor de mercado"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`QUANTITY`"
+msgstr "`QUANTITY`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the nominal quantity"
+msgstr "a quantidade nominal"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`PERC_NET_ASSETS`"
+msgstr "`PERC_NET_ASSETS`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the percentage of net assets"
+msgstr "a porcentagem do patrimônio líquido"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`ACQUISITION_COST`"
+msgstr "`ACQUISITION_COST`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the acquisition cost"
+msgstr "o custo de aquisição"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "`ALL`"
+msgstr "`ALL`"
+
+#: ../../source/guides/formats/advanced/structured.md
+msgid "the four together"
+msgstr "os quatro juntos"
+
+#: ../../source/guides/formats/advanced/structured.md:101
+msgid ""
+"The expression is the same little language `Algorithm flags` uses — `|`, `&`, `^`, "
+"`~` and parentheses — so `ALL & ~QUANTITY` is the three fields other than the "
+"quantity."
+msgstr ""
+"A expressão é a mesma linguagenzinha que o `Algorithm flags` usa — `|`, `&`, `^`, `~`"
+" e parênteses — de modo que `ALL & ~QUANTITY` são os três campos que não a "
+"quantidade."
+
+#: ../../source/guides/formats/advanced/structured.md:104
+msgid ""
+"**Per field, and not one switch,** because the need really is per field: a report "
+"that prints `-` for a percentage it cannot show may print nothing of the sort in the "
+"quantity column, and a single switch would invent a quantity of zero there."
+msgstr ""
+"**Por campo, e não uma chave só,** porque a necessidade é mesmo por campo: um "
+"relatório que imprime `-` numa porcentagem que não consegue mostrar pode não imprimir"
+" nada parecido na coluna da quantidade, e uma chave única inventaria ali uma "
+"quantidade igual a zero."
+
+#: ../../source/guides/formats/advanced/structured.md:108
+msgid ""
+"**Only a dash.** The substitution recognises the dash family and nothing else — `-`, "
+"`–`, `—` and their kin, alone or repeated, with any surrounding space. Not an empty "
+"cell, which in these tables means *absent*; not `n/a`; not a lone `.` or `,`. That "
+"line is drawn deliberately: by far the most common cause of \"this cell is not a "
+"number\" is a **misaligned offset**, where the engine is reading a currency code, a "
+"header or a company name one column away from where it should be. Those must keep "
+"failing loudly, and a rule that turned any unreadable cell into zero would bury them."
+msgstr ""
+"**Só um travessão.** A substituição reconhece a família dos travessões e nada mais — "
+"`-`, `–`, `—` e parentes, sozinhos ou repetidos, com qualquer espaço em volta. Não "
+"uma célula vazia, que nestas tabelas significa *ausente*; não `n/a`; não um `.` ou "
+"uma `,` isolados. Essa linha é traçada de propósito: a causa de longe mais comum de "
+"\"esta célula não é um número\" é um **offset desalinhado**, em que o motor está "
+"lendo um código de moeda, um cabeçalho ou um nome de empresa a uma coluna de "
+"distância de onde deveria. Esses têm de continuar falhando alto, e uma regra que "
+"transformasse em zero qualquer célula ilegível os enterraria."
+
+#: ../../source/guides/formats/advanced/structured.md:115
+msgid ""
+"There is no flag for the acquisition **currency**: a dash there says \"no currency\","
+" and zero is not a currency. `ALL` does not touch it."
+msgstr ""
+"Não há flag para a **moeda** de aquisição: ali um travessão diz \"nenhuma moeda\", e "
+"zero não é moeda. O `ALL` não mexe nela."
+
+#: ../../source/guides/formats/advanced/structured.md:118
+#, python-brace-format
+msgid ""
+"The zero that results is a real value and behaves like one — including the `warn` in "
+"the `.log.csv` saying it sits on the edge of its domain ({doc}`../../user/logging`). "
+"That is the point: the holding is in the output, where it was being dropped before."
+msgstr ""
+"O zero que sai dali é um valor de verdade e se comporta como tal — inclusive com o "
+"`warn` no `.log.csv` dizendo que ele está na borda do próprio domínio "
+"({doc}`../../user/logging`). É esse o ponto: a posição está no resultado, onde antes "
+"vinha sendo descartada."
+
+#: ../../source/guides/formats/advanced/structured.md:122
+msgid "Classification rows"
+msgstr "Linhas de classificação"
+
+#: ../../source/guides/formats/advanced/structured.md:124
+msgid ""
+"A classification row declares a page class and **one** header to look for. Rows "
+"sharing an id describe one pipe, and the page belongs to that class if it contains "
+"**all** of them:"
+msgstr ""
+"Uma linha de classificação declara uma classe de página e **um** cabeçalho a "
+"procurar. Linhas que compartilham um id descrevem um só pipe, e a página pertence "
+"àquela classe se contiver **todos** eles:"
+
+#: ../../source/guides/formats/advanced/structured.md:133
+msgid ""
+"Two rows, one id, both required. Splitting a conjunction across rows rather than "
+"packing it into one cell is what keeps these files editable in a spreadsheet."
+msgstr ""
+"Duas linhas, um id, as duas obrigatórias. Repartir uma conjunção entre linhas em vez "
+"de enfiá-la numa célula só é o que mantém estes arquivos editáveis numa planilha."
+
+#: ../../source/guides/formats/advanced/structured.md:136
+msgid "Partial pipelines"
+msgstr "Pipelines parciais"
+
+#: ../../source/guides/formats/advanced/structured.md:138
+#, python-brace-format
+msgid ""
+"Each of the three segments can be switched off **individually**. That is what a "
+"*partial* pipeline is, and it is what makes the merge with the other levels useful "
+"rather than theoretical: a format can take its `pdf_extract` from here and its "
+"`text_filter` from a Python module, by leaving the second unspecified at this level "
+"({doc}`../../../reference/design/formats-as-plugins`)."
+msgstr ""
+"Cada um dos três segmentos pode ser desligado **individualmente**. É isso que é um "
+"pipeline *parcial*, e é o que torna a fusão com os outros níveis útil em vez de "
+"teórica: um formato pode pegar o `pdf_extract` daqui e o `text_filter` de um módulo "
+"Python, deixando o segundo sem especificação neste nível "
+"({doc}`../../../reference/design/formats-as-plugins`)."
+
+#: ../../source/guides/formats/advanced/structured.md:143
+msgid "Two conventions of the structured tables"
+msgstr "Duas convenções das tabelas structured"
+
+#: ../../source/guides/formats/advanced/structured.md:144
+msgid ""
+"**An empty cell means *absent*, everywhere.** Not zero, not the default — absent. It "
+"is the same rule the output files follow."
+msgstr ""
+"**Uma célula vazia significa *ausente*, em toda parte.** Não zero, não o padrão — "
+"ausente. É a mesma regra que os arquivos de resultado seguem."
+
+#: ../../source/guides/formats/advanced/structured.md:147
+msgid ""
+"**Every validation error names the row number.** These files are edited in a "
+"spreadsheet by people who are not reading Rust backtraces, and an error that cannot "
+"say which row is nearly useless. It is also why the repository's CSVs are parsed by "
+"hand rather than by a dataframe library."
+msgstr ""
+"**Todo erro de validação nomeia o número da linha.** Estes arquivos são editados numa"
+" planilha por gente que não está lendo backtraces de Rust, e um erro que não sabe "
+"dizer qual linha é quase inútil. É também o motivo de o parsing dos CSVs do "
+"repositório ser escrito à mão, em vez de entregue a uma biblioteca de dataframes."
+

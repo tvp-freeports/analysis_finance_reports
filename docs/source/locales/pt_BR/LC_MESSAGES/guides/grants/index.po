@@ -1,0 +1,172 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/grants/index.md:1
+msgid "Contributing a grant"
+msgstr "Contribuir com um aval"
+
+#: ../../source/guides/grants/index.md:3
+msgid ""
+"You have read a file — a format's reference output, or a page of prose about this "
+"software — and you are willing to say so under a published methodology. This section "
+"is that act: what it means, how it is recorded, and what keeps it honest."
+msgstr ""
+"Você leu um arquivo — o resultado de referência de um formato, ou uma página de texto"
+" sobre este software — e está disposto a declarar isso sob uma metodologia publicada."
+" Esta seção é esse ato: o que ele significa, como fica registrado, e o que o mantém "
+"honesto."
+
+#: ../../source/guides/grants/index.md:14
+msgid "What a grant is, and where the pieces live"
+msgstr "O que é um aval, e onde ficam as peças"
+
+#: ../../source/guides/grants/index.md:7
+msgid "You want"
+msgstr "Você quer"
+
+#: ../../source/guides/grants/index.md:7
+msgid "Read"
+msgstr "Leia"
+
+#: ../../source/guides/grants/index.md:7
+msgid "to know why any of this is worth doing"
+msgstr "saber por que vale a pena fazer alguma coisa disto"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`../institutional/why-trust-a-grant`"
+msgstr "{doc}`../institutional/why-trust-a-grant`"
+
+#: ../../source/guides/grants/index.md:7
+msgid "the published methodologies themselves"
+msgstr "as próprias metodologias publicadas"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`../../validation/index`"
+msgstr "{doc}`../../validation/index`"
+
+#: ../../source/guides/grants/index.md:7
+msgid "every option of the command"
+msgstr "cada opção do comando"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`../../reference/cli/freeports-validate`"
+msgstr "{doc}`../../reference/cli/freeports-validate`"
+
+#: ../../source/guides/grants/index.md:7
+msgid "how a methodology name resolves to a text"
+msgstr "como o nome de uma metodologia se resolve num texto"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`../../reference/cli/methodology-sources`"
+msgstr "{doc}`../../reference/cli/methodology-sources`"
+
+#: ../../source/guides/grants/index.md:7
+msgid "to write and publish a methodology of your own"
+msgstr "escrever e publicar uma metodologia sua"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`writing-a-methodology`"
+msgstr "{doc}`writing-a-methodology`"
+
+#: ../../source/guides/grants/index.md:7
+msgid "what this repository's grants currently claim"
+msgstr "o que os avais deste repositório afirmam no momento"
+
+#: ../../source/guides/grants/index.md:7
+#, python-brace-format
+msgid "{doc}`../../validation/report/index`"
+msgstr "{doc}`../../validation/report/index`"
+
+#: ../../source/guides/grants/index.md:24
+msgid "Working with grants"
+msgstr "Trabalhar com avais"
+
+#: ../../source/guides/grants/index.md:33
+msgid ""
+"`check-grants` is the one to run before trusting a repository you did not write, and "
+"in continuous integration — and, unlike the four that write your document, it needs "
+"**no key of your own**: asked without one it checks every document in the repository "
+"against your keyring, which is exactly the question an auditor and a CI job are "
+"asking. It answers a narrow question — are these grants still about these files — and"
+" it is not a substitute for the tests passing, any more than the tests are a "
+"substitute for it. One says the code does what it did yesterday; the other says a "
+"person put their name to the result."
+msgstr ""
+"O `check-grants` é o que se roda antes de confiar num repositório que não foi você "
+"quem escreveu, e na integração contínua — e, ao contrário dos quatro que escrevem o "
+"seu documento, ele **não exige chave nenhuma sua**: chamado sem chave, confere cada "
+"documento do repositório contra o seu chaveiro, que é exatamente a pergunta que um "
+"auditor e um job de CI estão fazendo. Ele responde a uma pergunta estreita — estes "
+"avais ainda falam destes arquivos? — e não substitui os testes passarem, assim como "
+"os testes não o substituem. Um diz que o código faz o que fazia ontem; o outro diz "
+"que uma pessoa pôs o próprio nome no resultado."
+
+#: ../../source/guides/grants/index.md:40
+msgid ""
+"To find out who stands behind something: `who-grants <file>`, `granted-by "
+"<contributor>`, `granted-with <methodology>`."
+msgstr ""
+"Para descobrir quem está por trás de alguma coisa: `who-grants <file>`, `granted-by "
+"<contributor>`, `granted-with <methodology>`."
+
+#: ../../source/guides/grants/index.md:43
+msgid ""
+"`update` refreshes the hashes after a granted file legitimately changed. It re-states"
+" the intent to vouch, and it should be run by someone who has confirmed the change "
+"was expected — it is not the way to silence a `check-grants` failure."
+msgstr ""
+"O `update` atualiza os hashes depois que um arquivo avalizado mudou legitimamente. "
+"Ele redeclara a intenção de responder pelo arquivo, e deve ser rodado por quem tenha "
+"confirmado que a mudança era esperada — não é o jeito de calar uma falha do `check-"
+"grants`."
+
+#: ../../source/guides/grants/index.md:47
+msgid ""
+"To see the state of a whole repository rather than of one file or one person: "
+"`report` renders the same three viewpoints as a page, as badges, or as a table it "
+"rewrites into a README, out of a model `collect` prints as JSON for anything the "
+"renderings did not anticipate."
+msgstr ""
+"Para ver o estado de um repositório inteiro, e não de um arquivo ou de uma pessoa: o "
+"`report` rende os mesmos três pontos de vista como página, como badges, ou como "
+"tabela que ele reescreve dentro de um README, a partir de um modelo que o `collect` "
+"imprime em JSON para tudo aquilo que aquelas renderizações não previram."
+
+#: ../../source/guides/grants/index.md:51
+#, python-brace-format
+msgid ""
+"{doc}`../../reference/cli/freeports-validate` is the operating manual for all of "
+"this: what to install, where methodology pages are resolved from, how to generate and"
+" register the GPG key the whole mechanism hangs on, and what each subcommand does to "
+"the document. {doc}`writing-a-methodology` is the other side of it — writing the text"
+" that grants are made under."
+msgstr ""
+"{doc}`../../reference/cli/freeports-validate` é o manual de operação de tudo isso: o "
+"que instalar, de onde as páginas de metodologia são resolvidas, como gerar e "
+"registrar a chave GPG de que o mecanismo inteiro pende, e o que cada subcomando faz "
+"ao documento. {doc}`writing-a-methodology` é o outro lado disso — escrever o texto "
+"sob o qual os avais são dados."
+

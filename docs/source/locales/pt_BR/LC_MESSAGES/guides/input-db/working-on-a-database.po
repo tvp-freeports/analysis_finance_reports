@@ -1,0 +1,240 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/input-db/working-on-a-database.md:1
+msgid "Getting and changing a database"
+msgstr "Conseguir e alterar um banco"
+
+#: ../../source/guides/input-db/working-on-a-database.md:3
+msgid "Everything is validated on load"
+msgstr "Tudo é validado no carregamento"
+
+#: ../../source/guides/input-db/working-on-a-database.md:5
+msgid ""
+"Company names unique; every bud and regex **of the main table** consistent with its "
+"own company's name, as above; dates in `YYYY-MM-DD`; ticker symbols two to six upper-"
+"case letters; every cross-reference — a list naming a company, a ticker naming a "
+"market, an additional bud or regex naming a company — pointing at something that "
+"exists."
+msgstr ""
+"Nomes de empresa únicos; cada bud e cada expressão regular **da tabela principal** "
+"coerente com o nome da própria empresa, como acima; datas em `YYYY-MM-DD`; códigos de"
+" ticker com duas a seis letras maiúsculas; toda referência cruzada — uma lista "
+"nomeando uma empresa, um ticker nomeando um mercado, um bud ou uma expressão regular "
+"adicional nomeando uma empresa — apontando para algo que existe."
+
+#: ../../source/guides/input-db/working-on-a-database.md:10
+msgid ""
+"Additional buds and regexes are checked for that last cross-reference, plus — buds "
+"only — that they are already normalised. A regex among them is not even compiled "
+"until the run needs it, so a syntax error in one is reported when the matchers are "
+"built rather than when the file is read."
+msgstr ""
+"Dos buds e das expressões regulares adicionais confere-se essa última referência "
+"cruzada e, no caso dos buds, que já estejam normalizados. Uma expressão regular entre"
+" eles nem chega a ser compilada até a execução precisar dela, então um erro de "
+"sintaxe numa delas é avisado quando os reconhecedores são construídos, e não quando o"
+" arquivo é lido."
+
+#: ../../source/guides/input-db/working-on-a-database.md:14
+msgid ""
+"The database is read before any PDF is opened, so a mistake in it is reported in "
+"seconds rather than after a long run produced a table with a company quietly missing "
+"from it."
+msgstr ""
+"O banco é lido antes de qualquer PDF ser aberto, então um erro dentro dele é avisado "
+"em segundos, e não depois de uma execução longa ter produzido uma tabela da qual uma "
+"empresa sumiu sem alarde."
+
+#: ../../source/guides/input-db/working-on-a-database.md:17
+msgid "Getting an input database"
+msgstr "Conseguir um banco de dados de entrada"
+
+#: ../../source/guides/input-db/working-on-a-database.md:18
+msgid ""
+"There are two commands, and which one you want depends on whether the database is a "
+"*dependency* of a formats repository or a thing you intend to maintain."
+msgstr ""
+"Há dois comandos, e qual deles você quer depende de o banco ser uma *dependência* de "
+"um repositório de formatos ou uma coisa que você pretende manter."
+
+#: ../../source/guides/input-db/working-on-a-database.md:21
+msgid ""
+"`freeports-dev setup-input-db` writes a minimal database with a single list called "
+"`TEST` under a formats repository's `tests/input_db/`, which is what that "
+"repository's own tests use. It is a fixture, not a starting point."
+msgstr ""
+"O `freeports-dev setup-input-db` escreve um banco mínimo com uma única lista chamada "
+"`TEST` dentro de `tests/input_db/` de um repositório de formatos, e é o que os testes"
+" daquele repositório usam. É uma fixture, não um ponto de partida."
+
+#: ../../source/guides/input-db/working-on-a-database.md:25
+msgid "`freeports-dev init-input-db <path>` starts a **database of your own**, anywhere:"
+msgstr ""
+"O `freeports-dev init-input-db <caminho>` começa um **banco só seu**, onde você "
+"quiser:"
+
+#: ../../source/guides/input-db/working-on-a-database.md:31
+msgid ""
+"It writes the two directories and all seven tables — empty, but every one of them "
+"present with its header row. That completeness is deliberate: the engine requires all"
+" seven, so a skeleton omitting the file you have nothing to put in yet would fail on "
+"your first run for a reason unrelated to what you were doing. Alongside them it "
+"writes `metadata.yaml` — the manifest naming the schema version and describing the "
+"database — and a `.gitignore`, and offers to `git init`, because which companies "
+"matter is a curated position that deserves a history."
+msgstr ""
+"Ele escreve os dois diretórios e as sete tabelas — vazias, mas todas presentes com "
+"sua linha de cabeçalho. Essa completude é de propósito: o motor exige as sete, então "
+"um esqueleto que deixasse de fora o arquivo em que você ainda não tem nada para pôr "
+"falharia na sua primeira execução por um motivo sem relação nenhuma com o que você "
+"estava fazendo. Ao lado delas ele escreve o `metadata.yaml` — o manifesto que nomeia "
+"a versão do esquema e descreve o banco — e um `.gitignore`, e se oferece para fazer "
+"`git init`, porque quais empresas importam é uma posição curada, que merece ter "
+"história."
+
+#: ../../source/guides/input-db/working-on-a-database.md:38
+msgid ""
+"Pass `--sample` to have the tables filled with the packaged example database — the "
+"`TEST` list and the companies in it — when you would rather edit an example down than"
+" write the first row from nothing."
+msgstr ""
+"Passe `--sample` para que as tabelas venham preenchidas com o banco de exemplo que "
+"acompanha o pacote — a lista `TEST` e as empresas nela — quando você preferir podar "
+"um exemplo a escrever a primeira linha do nada."
+
+#: ../../source/guides/input-db/working-on-a-database.md:42
+msgid ""
+"Either way, the shape is small enough to edit in a spreadsheet, and the validation is"
+" strict enough to catch what a spreadsheet gets wrong."
+msgstr ""
+"De um jeito ou de outro, o formato é pequeno o bastante para se editar numa planilha,"
+" e a validação é rígida o bastante para pegar aquilo que uma planilha erra."
+
+#: ../../source/guides/input-db/working-on-a-database.md:45
+msgid "Working on a database"
+msgstr "Trabalhar num banco"
+
+#: ../../source/guides/input-db/working-on-a-database.md:46
+msgid ""
+"There is nothing to build and no test suite of its own. A database is seven CSV "
+"files, and the loop is the engine's own validation:"
+msgstr ""
+"Não há nada a construir nem suíte de testes própria. Um banco são sete arquivos CSV, "
+"e o ciclo de trabalho é a validação do próprio motor:"
+
+#: ../../source/guides/input-db/working-on-a-database.md:53
+msgid ""
+"**Edit.** In a spreadsheet or a text editor, whichever suits the change. Two things a"
+" spreadsheet will try to do to you: reordering rows, which changes matching because "
+"it is first-match-wins, and \"helpfully\" rewriting a date or stripping a leading "
+"zero from a ticker. Check the diff before committing, and keep the header row."
+msgstr ""
+"**Edite.** Numa planilha ou num editor de texto, conforme couber à mudança. Duas "
+"coisas que uma planilha vai tentar aprontar com você: reordenar as linhas, o que muda"
+" o reconhecimento porque vale a primeira correspondência, e reescrever \"para "
+"ajudar\" uma data ou tirar o zero à esquerda de um ticker. Confira o diff antes de "
+"fazer commit, e mantenha a linha de cabeçalho."
+
+#: ../../source/guides/input-db/working-on-a-database.md:58
+msgid "**Point a run at it** with `-I` / `--db-directory`:"
+msgstr "**Aponte uma execução para ele** com `-I` / `--db-directory`:"
+
+#: ../../source/guides/input-db/working-on-a-database.md:64
+msgid ""
+"The order in which a run fails is the useful part. The configuration is checked first"
+" — a path that does not exist is reported in milliseconds, before anything is loaded "
+"— and the database is read next, before any PDF is opened. So a mistake in the "
+"database costs you seconds, not the length of a run, and it is reported as a specific"
+" row of a specific file rather than as a company quietly missing from the output."
+msgstr ""
+"A ordem em que uma execução falha é a parte útil. A configuração é conferida primeiro"
+" — um caminho que não existe é avisado em milissegundos, antes de qualquer coisa ser "
+"carregada — e o banco é lido logo em seguida, antes de qualquer PDF ser aberto. Assim"
+" um erro no banco custa a você alguns segundos, não a duração de uma execução, e é "
+"avisado como uma linha específica de um arquivo específico, e não como uma empresa "
+"que sumiu sem alarde do resultado."
+
+#: ../../source/guides/input-db/working-on-a-database.md:70
+msgid ""
+"**Read the error, and believe it.** Almost everything the validator rejects is one of"
+" the checks listed above: a bud in `companies.csv` that does not occur in its own "
+"company's name, a regex that does not match the name it sits next to, a cross-"
+"reference to a company that is not in the main table, a malformed date or ticker. The"
+" one class of error that arrives later is a regex with a syntax error among the "
+"*additional* patterns: those are not compiled until the matchers are built."
+msgstr ""
+"**Leia o erro, e acredite nele.** Quase tudo o que o validador rejeita é uma das "
+"conferências listadas acima: um bud em `companies.csv` que não ocorre no nome da "
+"própria empresa, uma expressão regular que não casa com o nome ao lado do qual ela "
+"está, uma referência cruzada a uma empresa que não está na tabela principal, uma data"
+" ou um ticker malformados. A única classe de erro que chega mais tarde é uma "
+"expressão regular com erro de sintaxe entre os patterns *adicionais*: esses só são "
+"compilados quando os reconhecedores são construídos."
+
+#: ../../source/guides/input-db/working-on-a-database.md:77
+msgid ""
+"There is no validate-only command today — the cheapest check is a real run, which is "
+"quick because the database is read first. If you are curating a large database and "
+"want a faster gate, that is a sensible thing to ask for."
+msgstr ""
+"Hoje não existe um comando só de validação — a conferência mais barata é uma execução"
+" de verdade, que é rápida porque o banco é lido primeiro. Se você está curando um "
+"banco grande e quer um gate mais rápido, isso é uma coisa razoável de pedir."
+
+#: ../../source/guides/input-db/working-on-a-database.md:82
+msgid "Which database the tests use"
+msgstr "Que banco os testes usam"
+
+#: ../../source/guides/input-db/working-on-a-database.md:83
+msgid ""
+"A formats repository's tests use the repository's **own** `tests/input_db`, the "
+"minimal one `setup-input-db` writes, and not a curated database. This is deliberate: "
+"a format's test must fail because the *format* broke, never because somebody added a "
+"company to a list somewhere else. Do not point a repository's tests at a real "
+"database to make them more realistic — you would be trading a specification for a "
+"moving target."
+msgstr ""
+"Os testes de um repositório de formatos usam o `tests/input_db` **do próprio "
+"repositório**, aquele mínimo que o `setup-input-db` escreve, e não um banco curado. "
+"Isso é de propósito: o teste de um formato tem de falhar porque o *formato* quebrou, "
+"nunca porque alguém acrescentou uma empresa a uma lista em outro lugar. Não aponte os"
+" testes de um repositório para um banco de verdade a fim de torná-los mais realistas "
+"— você estaria trocando uma especificação por um alvo móvel."
+
+#: ../../source/guides/input-db/working-on-a-database.md:89
+msgid "Changing a database somebody else maintains"
+msgstr "Alterar um banco que outra pessoa mantém"
+
+#: ../../source/guides/input-db/working-on-a-database.md:90
+msgid ""
+"Which companies matter is a question about the work being done, not about PDF "
+"parsing, and two people using the same formats repository will legitimately disagree "
+"about it. A database is therefore easy to fork and cheap to maintain: if your list "
+"differs, the answer is usually your own database rather than a pull request against "
+"someone else's."
+msgstr ""
+"Quais empresas importam é uma pergunta sobre o trabalho que está sendo feito, não "
+"sobre ler PDFs, e duas pessoas usando o mesmo repositório de formatos vão discordar a"
+" respeito — e com razão. Um banco é, portanto, fácil de forkar e barato de manter: se"
+" a sua lista difere, a resposta em geral é um banco seu, não um pull request contra o"
+" de outra pessoa."
+

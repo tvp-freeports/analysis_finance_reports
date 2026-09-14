@@ -1,0 +1,222 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/start/first-run.md:1
+msgid "A first run, argument by argument"
+msgstr "Uma primeira execução, argumento por argumento"
+
+#: ../../source/start/first-run.md:3
+#, python-brace-format
+msgid "Assuming {doc}`install` is done and the two {doc}`../guides/user/inputs` exist."
+msgstr ""
+"Aqui se supõe que {doc}`install` já foi feito e que as duas "
+"{doc}`../guides/user/inputs` existem."
+
+#: ../../source/start/first-run.md:15
+msgid "Line by line:"
+msgstr "Linha por linha:"
+
+#: ../../source/start/first-run.md:17
+msgid "`--input report.pdf`"
+msgstr "`--input report.pdf`"
+
+#: ../../source/start/first-run.md:18
+#, python-brace-format
+msgid ""
+"the document. A bare path here means *this local file*, made absolute, and its own "
+"text becomes the document's **name** — the value that will appear in the `Report` "
+"column of the output. Give it a shorter one with `report.pdf:EURIZON 2023`, which you"
+" will want as soon as there are two documents. The full grammar is in "
+"{doc}`../guides/user/documents`."
+msgstr ""
+"o documento. Um caminho escrito assim, sem mais nada, quer dizer *este arquivo "
+"local*, convertido em caminho absoluto, e o próprio texto dele vira o **nome** do "
+"documento — o valor que vai aparecer na coluna `Report` do resultado. Dá para "
+"encurtar com `report.pdf:EURIZON 2023`, coisa que você vai querer fazer assim que "
+"houver dois documentos. A gramática completa está em {doc}`../guides/user/documents`."
+
+#: ../../source/start/first-run.md:23
+msgid "`--format EURIZON-EN23`"
+msgstr "`--format EURIZON-EN23`"
+
+#: ../../source/start/first-run.md:24
+msgid ""
+"which recipe to read it with. Omissible **only** when the document came from a URL "
+"the formats repository's mapping recognises; a local path carries no evidence of who "
+"published it. Naming a format the repository does not have is an error naming the "
+"format."
+msgstr ""
+"com que receita lê-lo. Só se pode omitir **quando** o documento veio de uma URL que o"
+" mapeamento do repositório de formatos reconhece; um caminho local não traz nenhum "
+"indício de quem o publicou. Indicar um formato que o repositório não tem dá um erro "
+"que nomeia esse formato."
+
+#: ../../source/start/first-run.md:28
+msgid "`--repo ~/work/formats-repo`"
+msgstr "`--repo ~/work/formats-repo`"
+
+#: ../../source/start/first-run.md:29
+msgid ""
+"the formats repository. Also `--formats-directory`, `-F`, `-r`, or "
+"`FREEPORTS_FORMATS_REPO_PATH`."
+msgstr ""
+"o repositório de formatos. Também `--formats-directory`, `-F`, `-r`, ou "
+"`FREEPORTS_FORMATS_REPO_PATH`."
+
+#: ../../source/start/first-run.md:31
+msgid "`--db-directory ~/work/input-db`"
+msgstr "`--db-directory ~/work/input-db`"
+
+#: ../../source/start/first-run.md:32
+msgid "the input database. Also `-I`, or `FREEPORTS_INPUT_DB_PATH`."
+msgstr "o banco de dados de entrada. Também `-I`, ou `FREEPORTS_INPUT_DB_PATH`."
+
+#: ../../source/start/first-run.md:34
+msgid "`--target-list controversial_weapons`"
+msgstr "`--target-list controversial_weapons`"
+
+#: ../../source/start/first-run.md:35
+msgid ""
+"which list of companies to look for. Repeatable. **Without it the run stops "
+"immediately**, before opening the PDF — the presence check runs first on purpose, so "
+"a missing input fails in a second rather than after four minutes of PDF."
+msgstr ""
+"que lista de empresas procurar. Pode ser repetido. **Sem ele a execução para na "
+"hora**, antes de abrir o PDF — a conferência de presença roda primeiro de propósito, "
+"para que uma entrada que falta falhe em um segundo, e não depois de quatro minutos de"
+" PDF."
+
+#: ../../source/start/first-run.md:39
+msgid "`--out ./results`"
+msgstr "`--out ./results`"
+
+#: ../../source/start/first-run.md:40
+msgid ""
+"where the tables go. A directory for the default profile. Defaults to the working "
+"directory, so omitting it is legal and rarely what you want."
+msgstr ""
+"onde as tabelas vão parar. Um diretório, para o perfil padrão. O padrão é o diretório"
+" de trabalho, então omitir é permitido e raramente é o que você quer."
+
+#: ../../source/start/first-run.md:43
+msgid "What the run produced"
+msgstr "O que a execução produziu"
+
+#: ../../source/start/first-run.md:52
+#, python-brace-format
+msgid ""
+"Nine tables and an audit trail. Most runs care about `investments.csv` — one row per "
+"holding — and the rest describe the funds those holdings belong to. Every CSV has its"
+" header even when it has no rows, so *\"nothing found\"* and *\"no such table\"* stay"
+" distinguishable. {doc}`../guides/user/output` is the full list and the rules."
+msgstr ""
+"Nove tabelas e uma trilha de auditoria. A maior parte das execuções se interessa pelo"
+" `investments.csv` — uma linha por posição — e o resto descreve os fundos a que essas"
+" posições pertencem. Todo CSV traz o cabeçalho mesmo quando não tem nenhuma linha, "
+"para que *\"não achei nada\"* e *\"essa tabela não existe\"* continuem sendo coisas "
+"distintas. {doc}`../guides/user/output` traz a lista completa e as regras."
+
+#: ../../source/start/first-run.md:57
+#, python-brace-format
+msgid ""
+"`.log.csv` is not an output table: it is the extraction's own record of what it "
+"skipped and where. It lands **next to the output** because it is a product of the "
+"run. {doc}`../guides/user/logging` explains how to read it."
+msgstr ""
+"O `.log.csv` não é uma tabela de resultado: é o registro em que a própria extração "
+"anota o que pulou e onde. Ele cai **ao lado do resultado** porque é um produto da "
+"execução. {doc}`../guides/user/logging` explica como lê-lo."
+
+#: ../../source/start/first-run.md:61
+msgid "Adding a second document"
+msgstr "Acrescentar um segundo documento"
+
+#: ../../source/start/first-run.md:67
+#, python-brace-format
+msgid ""
+"Two jobs, one run, **one** set of tables, with the `Report` column telling the rows "
+"apart. This is not the same as two separate runs concatenated: in one invocation the "
+"two documents share promise resolution and fund deduplication. See "
+"{doc}`../reference/design/multidocument`."
+msgstr ""
+"Dois jobs, uma execução, **um só** conjunto de tabelas, com a coluna `Report` "
+"separando as linhas. Não é a mesma coisa que duas execuções separadas e depois "
+"concatenadas: numa invocação só, os dois documentos compartilham a resolução das "
+"promessas e a deduplicação dos fundos. Veja {doc}`../reference/design/multidocument`."
+
+#: ../../source/start/first-run.md:71
+msgid "When the first run does not work"
+msgstr "Quando a primeira execução não funciona"
+
+#: ../../source/start/first-run.md
+msgid "Symptom"
+msgstr "Sintoma"
+
+#: ../../source/start/first-run.md
+msgid "Usually"
+msgstr "Em geral"
+
+#: ../../source/start/first-run.md
+msgid "stops at once, says a target list is missing"
+msgstr "para na hora, dizendo que falta uma target list"
+
+#: ../../source/start/first-run.md
+msgid "`--target-list` not given — the first check"
+msgstr "`--target-list` não foi informado — a primeira conferência"
+
+#: ../../source/start/first-run.md
+msgid "runs, finds nothing, writes header-only tables"
+msgstr "roda, não acha nada, escreve tabelas só com cabeçalho"
+
+#: ../../source/start/first-run.md
+msgid "the format is right but the companies are not in the named list, or the list is empty"
+msgstr ""
+"o formato está certo, mas as empresas não estão na lista indicada, ou a lista está "
+"vazia"
+
+#: ../../source/start/first-run.md
+msgid "a format error naming a format"
+msgstr "um erro de formato que nomeia um formato"
+
+#: ../../source/start/first-run.md
+msgid "the name is not in the repository's `metadata/formats.csv`"
+msgstr "o nome não está no `metadata/formats.csv` do repositório"
+
+#: ../../source/start/first-run.md
+msgid "holdings attributed to the wrong company"
+msgstr "posições atribuídas à empresa errada"
+
+#: ../../source/start/first-run.md
+#, python-brace-format
+msgid "the input database's order, not the extraction — see {doc}`../guides/user/inputs`"
+msgstr ""
+"é a ordem do banco de dados de entrada, não a extração — veja "
+"{doc}`../guides/user/inputs`"
+
+#: ../../source/start/first-run.md:79
+#, python-brace-format
+msgid ""
+"Raise the verbosity before guessing: `-v` narrates the run, `-vv` and `-vvv` more. "
+"{doc}`../guides/user/logging`."
+msgstr ""
+"Aumente a verbosidade antes de chutar: `-v` narra a execução, `-vv` e `-vvv` narram "
+"mais. {doc}`../guides/user/logging`."
+

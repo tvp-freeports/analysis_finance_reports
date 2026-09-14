@@ -1,0 +1,83 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt_BR\n"
+"Language-Team: pt_BR <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/input-db/target-lists.md:1
+msgid "Target lists, and their provenance"
+msgstr "As target lists, e a procedência delas"
+
+#: ../../source/guides/input-db/target-lists.md:2
+msgid ""
+"A run does not search for the whole database; it searches for **lists**, named with "
+"`--target-list` / `-T`. A list is a curated set of companies with a provenance:"
+msgstr ""
+"Uma execução não procura o banco inteiro; procura **listas**, indicadas com "
+"`--target-list` / `-T`. Uma lista é um conjunto curado de empresas com uma "
+"procedência:"
+
+#: ../../source/guides/input-db/target-lists.md:16
+msgid ""
+"The institution and the date are not decoration. A list is normally somebody's "
+"published position — an exclusion list, a sector definition, a screening — and the "
+"output of a run is only as interpretable as the answer to \"whose list, as of when\"."
+" Recording it in the database means the answer travels with the data."
+msgstr ""
+"A instituição e a data não são enfeite. Uma lista costuma ser a posição publicada de "
+"alguém — uma lista de exclusão, a definição de um setor, um screening — e o resultado"
+" de uma execução só é interpretável na medida em que se possa responder \"lista de "
+"quem, atualizada quando\". Registrar isso no banco faz com que a resposta viaje junto"
+" com os dados."
+
+#: ../../source/guides/input-db/target-lists.md:21
+msgid "Several lists can be given at once; their companies are unioned."
+msgstr "Dá para indicar várias listas de uma vez; as empresas delas se somam em união."
+
+#: ../../source/guides/input-db/target-lists.md:23
+msgid "Two properties that will surprise you if nobody says them"
+msgstr "Duas propriedades que vão surpreender você se ninguém as disser"
+
+#: ../../source/guides/input-db/target-lists.md:25
+msgid ""
+"**File order is significant and is preserved, never sorted.** Matching is *first "
+"match wins*, so a shorter name that is a prefix of a longer one must sit **after** "
+"the more specific one — exactly where you put it. Sorting the file alphabetically "
+"would silently reattribute holdings to the wrong company, which is the kind of error "
+"that produces a plausible number rather than an obvious failure."
+msgstr ""
+"**A ordem do arquivo é significativa e é preservada, nunca ordenada.** *Vale a "
+"primeira correspondência*, então um nome mais curto que seja prefixo de um mais longo"
+" tem de ficar **depois** do mais específico — exatamente onde você o pôs. Ordenar o "
+"arquivo em ordem alfabética reatribuiria em silêncio posições à empresa errada, que é"
+" o tipo de erro que produz um número plausível em vez de uma falha evidente."
+
+#: ../../source/guides/input-db/target-lists.md:30
+msgid ""
+"**Patterns are matched unanchored.** They search the whole string. This is what the "
+"real matcher does, and validation deliberately does the same, so a pattern that is "
+"accepted is a pattern that can fire. `\\bmaersk` against `ap moller maersk` is the "
+"case that decides it: anchoring the validation would reject a pattern that works "
+"perfectly."
+msgstr ""
+"**Os patterns são comparados sem âncoras.** Eles procuram na string inteira. É o que "
+"o reconhecedor de verdade faz, e a validação faz de propósito o mesmo, para que um "
+"pattern aceito seja um pattern capaz de disparar. `\\bmaersk` sobre `ap moller "
+"maersk` é o caso que decide a questão: ancorar a validação rejeitaria um pattern que "
+"funciona perfeitamente."
+
