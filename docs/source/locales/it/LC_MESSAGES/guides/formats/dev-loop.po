@@ -81,7 +81,7 @@ msgstr "`pdf_blks`"
 #: ../../source/guides/formats/dev-loop.md
 #, python-brace-format
 msgid "the layout selections: font, size, area ({doc}`selections`)"
-msgstr "le selezioni di impaginazione: carattere, corpo, area ({doc}`selections`)"
+msgstr "le selezioni di layout: font, corpo, area ({doc}`selections`)"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "`txt_blks`"
@@ -89,7 +89,7 @@ msgstr "`txt_blks`"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "the filter: are the target companies matching? is the regex right?"
-msgstr "il filtro: le società bersaglio corrispondono? l'espressione regolare è giusta?"
+msgstr "il filtro: le società cercate corrispondono? l'espressione regolare è giusta?"
 
 #: ../../source/guides/formats/dev-loop.md
 msgid "`results`"
@@ -191,7 +191,7 @@ msgstr ""
 "deduplicazione sono sbagliate. È `--slow`, oppure `make test-slow`, e **non** fa "
 "parte dell'esecuzione predefinita: un comando che lo lascia fuori lo dice nella "
 "propria ultima riga, e `make ci-check` riferisce come `NOT RUN`, e non come superata,"
-" una suite che a questo commit non ha eseguito nessuno."
+" una suite che nessuno ha eseguito su questo commit."
 
 #: ../../source/guides/formats/dev-loop.md:92
 #, python-brace-format
@@ -203,8 +203,8 @@ msgid ""
 "{doc}`../../overview/trust` are *about*: a grant is a claim about the content of "
 "exactly those bytes."
 msgstr ""
-"`out/**` è la **specifica** del repository, non un'istantanea. Se un'esecuzione se ne"
-" discosta, si presume che sia cambiato il motore, non che l'aspettativa fosse "
+"`out/**` è la **specifica** del repository, non uno snapshot. Se un'esecuzione se ne "
+"discosta, si presume che sia cambiato il motore, non che l'aspettativa fosse "
 "sbagliata. Rigenerare uno di quei file è un atto deliberato con una motivazione messa"
 " per iscritto — mai un modo di far diventare verde un test rosso. È anche ciò *di cui"
 " parlano* le attestazioni di {doc}`../../overview/trust`: un'attestazione è "

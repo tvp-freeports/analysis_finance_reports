@@ -138,8 +138,8 @@ msgid ""
 " does."
 msgstr ""
 "La colonna del riferimento è ciò che impedisce alla colonna dei lettori di diventare "
-"nove copie dello stesso manuale. A chi scrive un formato e a chi si occupa di DevOps "
-"serve entrambi sapere che cosa fa ``FREEPORTS_ARCHIVE``; nessuna delle due guide lo "
+"nove copie dello stesso manuale. Sia a chi scrive un formato sia a chi si occupa di "
+"DevOps serve sapere che cosa fa ``FREEPORTS_ARCHIVE``; nessuna delle due guide lo "
 "spiega. Entrambe rimandano all'unica pagina che lo fa."
 
 #: ../../source/guides/docs/organisation.rst:49
@@ -191,8 +191,8 @@ msgid ""
 " loop: if not, it is depth."
 msgstr ""
 "**È sequenza, oppure è profondità?** La sequenza resta nella guida. La profondità va "
-"nell'``advanced/`` di quella guida. La prova è se a chi legge per la prima volta "
-"serva per finire il ciclo: se non serve, è profondità."
+"nell'``advanced/`` di quella guida. La prova è questa: a chi legge per la prima volta"
+" serve per finire il ciclo? Se non gli serve, è profondità."
 
 #: ../../source/guides/docs/organisation.rst:68
 msgid ""
@@ -251,8 +251,8 @@ msgid ""
 "A page that is long because it is *thorough about one thing at one level* should stay"
 " long. Length is not the problem; mixing subjects or mixing depths is."
 msgstr ""
-"Una pagina che è lunga perché è *accurata su una cosa a un livello* deve restare "
-"lunga. Il problema non è la lunghezza; sono il mescolare argomenti o il mescolare "
+"Una pagina che è lunga perché è *accurata su una cosa sola a un livello solo* deve "
+"restare lunga. Il problema non è la lunghezza: è mescolare argomenti, o mescolare "
 "profondità."
 
 #: ../../source/guides/docs/organisation.rst:91
@@ -304,7 +304,7 @@ msgstr ""
 "appartiene alla sezione che la racchiude, quindi un toctree alla fine del file rende "
 "ogni pagina figlia una figlia dell'*ultima sezione* — cosa che rappresenta male la "
 "gerarchia. I toctree sono ``:hidden:``, quindi spostarli non cambia affatto la pagina"
-" resa."
+" renderizzata."
 
 #: ../../source/guides/docs/organisation.rst:112
 msgid "Cross-references, and not repeating yourself"
@@ -317,8 +317,7 @@ msgid ""
 "real reference breaks the build when it rots, and a sentence does not."
 msgstr ""
 "Usa ``:doc:`` e ``{doc}`` anziché prosa del tipo \"vedi la pagina della "
-"configurazione\": un rimando vero rompe la compilazione quando marcisce, una frase "
-"no."
+"configurazione\": un rimando vero rompe la build quando marcisce, una frase no."
 
 #: ../../source/guides/docs/organisation.rst:117
 msgid ""

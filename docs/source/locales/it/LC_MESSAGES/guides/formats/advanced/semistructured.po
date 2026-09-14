@@ -69,8 +69,8 @@ msgid ""
 msgstr ""
 "`{format}({pipeline})`, con ripiego sul solo `{format}` unicamente per la pipeline "
 "**senza nome**. Le due forme non sono intercambiabili: scrivere `AMUNDI-IT24` quando "
-"la pipeline ha un nome non porta a trovare niente, e il guasto è silenzioso nel senso"
-" che il segmento semplicemente non ha configurazione."
+"la pipeline ha un nome non porta a trovare niente, e il fallimento è silenzioso nel "
+"senso che il segmento semplicemente resta senza configurazione."
 
 #: ../../source/guides/formats/advanced/semistructured.md:36
 msgid "Lists, and the counter that indexes them"

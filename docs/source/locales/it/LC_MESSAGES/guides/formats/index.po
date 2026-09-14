@@ -29,10 +29,10 @@ msgid ""
 "carries the publication year because a layout is a snapshot — next year's report from"
 " the same issuer is a different format, not a revision of this one."
 msgstr ""
-"Un **formato** è la ricetta per l'impaginazione di una relazione: `EURIZON-EN23`, "
-"`AMUNDI-IT24`. Porta con sé l'anno di pubblicazione perché un'impaginazione è "
-"un'istantanea — la relazione dell'anno prossimo dello stesso emittente è un formato "
-"diverso, non una revisione di questo."
+"Un **formato** è la ricetta per il layout di una relazione: `EURIZON-EN23`, `AMUNDI-"
+"IT24`. Porta con sé l'anno di pubblicazione perché un layout è uno snapshot — la "
+"relazione dell'anno prossimo dello stesso emittente è un formato diverso, non una "
+"revisione di questo."
 
 #: ../../source/guides/formats/index.md:7
 #, python-brace-format
@@ -42,7 +42,7 @@ msgid ""
 "{doc}`../../reference/design/formats-as-plugins`."
 msgstr ""
 "I formati non vivono nel motore. Vivono in un **repository di formati**, e quest'area"
-" riguarda che cosa mettercisi dentro e come lavorarci. Il perché stiano fuori è "
+" riguarda che cosa ci si mette dentro e come ci si lavora. Il perché stiano fuori è "
 "{doc}`../../reference/design/formats-as-plugins`."
 
 #: ../../source/guides/formats/index.md:26

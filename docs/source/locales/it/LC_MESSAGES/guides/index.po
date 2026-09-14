@@ -45,9 +45,9 @@ msgid ""
 "the edges and certainly incomplete."
 msgstr ""
 "**Un progetto prende la forma delle persone che si presentano, non il contrario.** Le"
-" figure qui sotto sono il modo in cui queste pagine si dà il caso siano organizzate "
-"oggi — la registrazione del lavoro che qui è già stato fatto, non l'elenco del lavoro"
-" che conta. Hanno bordi sfumati e sono senz'altro incomplete."
+" figure qui sotto sono il modo in cui queste pagine sono organizzate oggi, e "
+"nient'altro — il resoconto del lavoro che qui è già stato fatto, non l'elenco del "
+"lavoro che conta. Hanno bordi sfumati e sono senz'altro incomplete."
 
 #: ../../source/guides/index.md:13
 msgid ""
@@ -58,12 +58,12 @@ msgid ""
 "about the project and a gap in the documentation; the section gets written "
 "afterwards, which is how most of the ones below came to exist."
 msgstr ""
-"Quindi non cercarti nella tabella per concluderne che manchi. Prendi un pezzo di una "
-"sezione e un pezzo di un'altra, porta una competenza che nessuna di esse aveva "
-"previsto, o arriva con una formazione che questo progetto non ha mai avuto — è il "
-"caso in cui ci guadagnano tutti di più. Un contributo per cui queste pagine non hanno"
-" una sezione è un buon segno per il progetto e una lacuna nella documentazione; la "
-"sezione si scrive dopo, ed è così che sono nate quasi tutte quelle qui sotto."
+"Quindi non cercarti nella tabella per poi concluderne che tu non ci sia. Prendi un "
+"pezzo di una sezione e un pezzo di un'altra, porta una competenza che nessuna di esse"
+" aveva previsto, o arriva con una formazione che questo progetto non ha mai avuto — è"
+" il caso in cui ci guadagnano tutti di più. Un contributo per cui queste pagine non "
+"hanno una sezione è un buon segno per il progetto e una lacuna nella documentazione; "
+"la sezione si scrive dopo, ed è così che sono nate quasi tutte quelle qui sotto."
 
 #: ../../source/guides/index.md:35
 msgid "Where might you start?"
@@ -96,7 +96,7 @@ msgstr "nient'altro che una shell"
 
 #: ../../source/guides/index.md:20
 msgid "want to support a report layout nobody supports yet"
-msgstr "vuoi supportare l'impaginazione di una relazione che nessuno supporta ancora"
+msgstr "vuoi supportare il layout di una relazione che nessuno supporta ancora"
 
 #: ../../source/guides/index.md:20
 #, python-brace-format
@@ -174,7 +174,7 @@ msgstr "gettext"
 
 #: ../../source/guides/index.md:20
 msgid "own the checks that refuse a commit"
-msgstr "farsi carico dei controlli che rifiutano un commit"
+msgstr "ti fai carico dei controlli che rifiutano un commit"
 
 #: ../../source/guides/index.md:20
 #, python-brace-format

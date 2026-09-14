@@ -95,9 +95,9 @@ msgid ""
 "exactly this row, from scratch."
 msgstr ""
 "Quei numeri in coda sono posizioni di colonna nella tabella della relazione, e c'è un"
-" comando che stampa la tabella con le colonne numerate così che tu possa leggerli lì."
-" È questo il livello di difficoltà di cui stiamo parlando. {doc}`first-format` fa "
-"esattamente questa riga, da zero."
+" comando che stampa la tabella con le colonne numerate, così da poterli leggere "
+"direttamente. È questo il livello di difficoltà di cui stiamo parlando. {doc}`first-"
+"format` fa esattamente questa riga, partendo da zero."
 
 #: ../../source/guides/formats/tutorials/index.md:39
 #, python-brace-format
@@ -121,9 +121,9 @@ msgid ""
 "Debugging the extraction of a page that was never selected is the classic way to lose"
 " an afternoon."
 msgstr ""
-"**Fa' venire giusta la classificazione prima di ogni altra cosa.** Quali pagine il "
-"motore guardi si decide per primo, e tutto ciò che viene dopo è privo di senso finché"
-" non è giusto. Fare il debug dell'estrazione di una pagina che non è mai stata "
+"**Metti a posto la classificazione prima di ogni altra cosa.** Quali pagine il motore"
+" guardi si decide per primo, e tutto ciò che viene dopo è privo di senso finché "
+"quello non è giusto. Fare il debug dell'estrazione di una pagina che non è mai stata "
 "selezionata è il modo classico di perdere un pomeriggio."
 
 #: ../../source/guides/formats/tutorials/index.md:49

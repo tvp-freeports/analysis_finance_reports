@@ -35,7 +35,7 @@ msgstr ""
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:7
 msgid "Start from the log, not from the PDF"
-msgstr "Comincia dal registro, non dal PDF"
+msgstr "Comincia dal log, non dal PDF"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:9
 msgid ""
@@ -137,7 +137,7 @@ msgstr "la griglia è stata percorsa e la cella attesa non c'era"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
 msgid "a column mapping to re-check"
-msgstr "una corrispondenza di colonne da ricontrollare"
+msgstr "un mapping di colonne da ricontrollare"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:42
 msgid "Two habits follow from that table."
@@ -152,7 +152,7 @@ msgid ""
 " very fact worth reporting. In the run above, 116 of the 188 rows were holdings "
 "rounding to 0.00% of net assets. All correct."
 msgstr ""
-"**Un avviso non è automaticamente un difetto.** Il motore avvisa sulle posizioni di "
+"**Un avviso non è automaticamente un bug.** Il motore avvisa sulle posizioni di "
 "valore zero perché lo zero sta sul bordo di ciò che è ammissibile, non perché lo zero"
 " sia sbagliato — un titolo azzerato vale esattamente niente, e scartarlo butterebbe "
 "via proprio il fatto degno di essere riportato. Nell'esecuzione qui sopra, 116 delle "
@@ -166,8 +166,8 @@ msgid ""
 "every market value belongs to the row above."
 msgstr ""
 "**E il silenzio non è automaticamente correttezza.** Gli eventi che ottieni sono "
-"quelli di cui il motore ha saputo dubitare. Niente ti avvisa che una corrispondenza "
-"di colonne è spostata di uno e che ogni valore di mercato appartiene alla riga sopra."
+"quelli di cui il motore ha saputo dubitare. Niente ti avvisa che un mapping di "
+"colonne è spostato di uno e che ogni valore di mercato appartiene alla riga sopra."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:53
 msgid "Two examples of the same message meaning opposite things"
@@ -312,8 +312,8 @@ msgid ""
 "rendered as a table:"
 msgstr ""
 "Le modalità a tabella sono quelle che si dimenticano, e sono la via più rapida a una "
-"classe di difetti altrimenti invisibili. Ecco la pagina che conteneva la put su "
-"Exxon, resa come tabella:"
+"classe di bug altrimenti invisibili. Ecco la pagina che conteneva la put su Exxon, "
+"renderizzata come tabella:"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:115
 msgid ""
@@ -367,7 +367,7 @@ msgid ""
 "how a repository accumulates workarounds."
 msgstr ""
 "Lo stesso sintomo abita in posti diversi, e mettere la correzione in quello sbagliato"
-" è il modo in cui un repository accumula aggiramenti."
+" è il modo in cui un repository accumula workaround."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
 msgid "Ask"
@@ -379,7 +379,7 @@ msgstr "Se sì, appartiene a"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
 msgid "would another report with this layout need the same handling?"
-msgstr "un'altra relazione con questa impaginazione avrebbe bisogno dello stesso trattamento?"
+msgstr "un'altra relazione con questo layout avrebbe bisogno dello stesso trattamento?"
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md
 msgid "**the format**"
@@ -424,8 +424,7 @@ msgstr ""
 "valore sbagliato e i risultati. Se è una forzatura a far passare la validazione a un "
 "valore non valido, la correzione è togliere la forzatura e lasciare che il campo o la"
 " riga siano rifiutati con un messaggio che li nomini — non far tacere il messaggio. "
-"Un registro silenzioso e un numero sbagliato è la peggiore delle quattro "
-"combinazioni."
+"Un log silenzioso e un numero sbagliato è la peggiore delle quattro combinazioni."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:150
 msgid "Proving that a fix loses nothing"
@@ -461,10 +460,10 @@ msgid ""
 "against the input database you actually care about, before and after, and diff the "
 "outputs."
 msgstr ""
-"**2. Un'esecuzione vera, messa a diff.** La suite cerca su una piccola lista di "
-"società incorporata, quindi una modifica che tocchi solo società fuori da essa passa "
-"invisibile. Esegui il motore sul database di ingresso che ti interessa davvero, prima"
-" e dopo, e fa' il diff dei risultati."
+"**2. Un'esecuzione vera, confrontata col diff.** La suite cerca su una piccola lista "
+"di società incorporata, quindi una modifica che tocchi solo società fuori da essa "
+"passa invisibile. Esegui il motore sul database di ingresso che ti interessa davvero,"
+" prima e dopo, e fa' il diff dei risultati."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:170
 msgid ""
@@ -485,9 +484,9 @@ msgid ""
 "changed\"* into a count."
 msgstr ""
 "Adesso è emessa ogni riga della relazione, e il diff copre righe a cui un database "
-"realistico non sarebbe mai arrivato. Aspettati del rumore — numeri nudi che vengono "
-"\"riconosciuti\" come nomi di società — ma è questa la misura che trasforma *\"non "
-"sembra essere cambiato nient'altro\"* in un conteggio."
+"realistico non sarebbe mai arrivato. Aspettati del rumore — numeri e nient'altro che "
+"vengono \"riconosciuti\" come nomi di società — ma è questa la misura che trasforma "
+"*\"non sembra essere cambiato nient'altro\"* in un conteggio."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:183
 msgid ""
@@ -553,8 +552,8 @@ msgid ""
 "the first."
 msgstr ""
 "Una volta che ogni differenza ha una ragione, rigenera, e metti per iscritto le "
-"ragioni. Se non riesci a spiegare una differenza, hai trovato un secondo difetto "
-"anziché finito col primo."
+"ragioni. Se non riesci a spiegare una differenza, hai trovato un secondo bug anziché "
+"finito col primo."
 
 #: ../../source/guides/formats/tutorials/diagnosing-a-format.md:204
 msgid "The shape of the whole thing"
@@ -566,7 +565,7 @@ msgid ""
 "misleading warnings became four accurate errors that name the security and the field,"
 " and coupon correctness went from 2695 of 2758 to 2817 of 2817."
 msgstr ""
-"Il risultato, nell'esecuzione che questa pagina segue: 188 righe di registro sono "
+"Il risultato, nell'esecuzione che questa pagina segue: 188 righe di log sono "
 "diventate 175, i ventuno avvisi fuorvianti sono diventati quattro errori accurati che"
 " nominano il titolo e il campo, e la correttezza delle cedole è passata da 2695 su "
 "2758 a 2817 su 2817."

@@ -68,7 +68,7 @@ msgid ""
 "against what"
 msgstr ""
 "come una società viene riconosciuta in una relazione: gemme, espressioni regolari, e "
-"quale file è controllato contro che cosa"
+"quale file viene confrontato con che cosa"
 
 #: ../../source/guides/input-db/index.md:11
 #, python-brace-format
@@ -106,7 +106,7 @@ msgid ""
 msgstr ""
 "`--db-directory` e `--target-list` come opzioni, con i loro valori predefiniti e la "
 "loro validazione, stanno in {doc}`../../reference/cli/freeports`. In un database di "
-"ingresso non c'è alcuna compilazione né alcuna suite di test: il ciclo di lavoro è la"
-" validazione del motore stesso, che gira **prima che sia aperto qualsiasi PDF** e "
+"ingresso non c'è nessuna build né alcuna suite di test: il ciclo di lavoro è la "
+"validazione del motore stesso, che gira **prima che sia aperto qualsiasi PDF** e "
 "perciò risponde in pochi secondi."
 

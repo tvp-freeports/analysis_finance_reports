@@ -156,11 +156,11 @@ msgstr "`pdf_extract`"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "flag expression"
-msgstr "espressione di contrassegni"
+msgstr "espressione di flag"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "no flags"
-msgstr "nessun contrassegno"
+msgstr "nessun flag"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "`Tolerance`"
@@ -237,7 +237,7 @@ msgid ""
 "suit a layout: `RETURN_ROWS`, `BIG_CELL_RULE`, `USE_RULER_AREA`, `USE_TEST_POS`."
 msgstr ""
 "Come l'algoritmo delle coordinate di tabella trova la griglia, quando le sue scelte "
-"predefinite non si adattano a un'impaginazione: `RETURN_ROWS`, `BIG_CELL_RULE`, "
+"predefinite non si adattano a un layout: `RETURN_ROWS`, `BIG_CELL_RULE`, "
 "`USE_RULER_AREA`, `USE_TEST_POS`."
 
 #: ../../source/guides/formats/advanced/structured.md:67
@@ -290,7 +290,7 @@ msgstr ""
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "Flag"
-msgstr "Contrassegno"
+msgstr "Flag"
 
 #: ../../source/guides/formats/advanced/structured.md
 msgid "Field"
@@ -371,7 +371,7 @@ msgstr ""
 "nient'altro — `-`, `–`, `—` e affini, da soli o ripetuti, con qualsiasi spazio "
 "attorno. Non una cella vuota, che in queste tabelle significa *assente*; non `n/a`; "
 "non un `.` o una `,` isolati. Quella linea è tracciata deliberatamente: la causa di "
-"gran lunga più comune di \"questa cella non è un numero\" è uno **scostamento "
+"gran lunga più comune di \"questa cella non è un numero\" è un **offset "
 "disallineato**, dove il motore sta leggendo un codice di valuta, un'intestazione o un"
 " nome di società a una colonna di distanza da dove dovrebbe. Quelli devono continuare"
 " a fallire rumorosamente, e una regola che trasformasse in zero qualsiasi cella "
@@ -382,8 +382,8 @@ msgid ""
 "There is no flag for the acquisition **currency**: a dash there says \"no currency\","
 " and zero is not a currency. `ALL` does not touch it."
 msgstr ""
-"Non c'è alcun contrassegno per la **valuta** d'acquisto: lì un trattino dice "
-"\"nessuna valuta\", e zero non è una valuta. `ALL` non la tocca."
+"Non c'è alcun flag per la **valuta** d'acquisto: lì un trattino dice \"nessuna "
+"valuta\", e zero non è una valuta. `ALL` non la tocca."
 
 #: ../../source/guides/formats/advanced/structured.md:118
 #, python-brace-format
@@ -460,6 +460,7 @@ msgid ""
 msgstr ""
 "**Ogni errore di validazione nomina il numero di riga.** Questi file sono modificati "
 "in un foglio di calcolo da persone che non stanno leggendo backtrace di Rust, e un "
-"errore che non sa dire quale riga è quasi inutile. È anche il motivo per cui i CSV "
-"del repository sono analizzati a mano anziché da una libreria di dataframe."
+"errore che non sa dire quale riga è quasi inutile. È anche il motivo per cui il "
+"parsing dei CSV del repository è scritto a mano anziché affidato a una libreria di "
+"dataframe."
 

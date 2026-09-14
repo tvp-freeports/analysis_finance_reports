@@ -67,7 +67,7 @@ msgstr "`pdf`"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "one or more document specifiers, pipe-separated"
-msgstr "uno o più specificatori di documento, separati da barra verticale"
+msgstr "uno o più specificatori di documento, separati da pipe"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "`format`"
@@ -91,7 +91,7 @@ msgstr "`target list`"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "the target lists for this row, taken **whole**"
-msgstr "le liste bersaglio di questa riga, prese **per intero**"
+msgstr "le target list di questa riga, prese **per intero**"
 
 #: ../../source/guides/user/advanced/batch.md:25
 msgid ""
@@ -118,8 +118,8 @@ msgid ""
 "The `pdf` cell is always split on the pipe, even when it holds a single element, and "
 "what happens next depends on how many elements come out:"
 msgstr ""
-"La cella `pdf` è sempre divisa sulla barra verticale, anche quando contiene un solo "
-"elemento, e ciò che accade poi dipende da quanti elementi ne escono:"
+"La cella `pdf` è sempre divisa sulla pipe, anche quando contiene un solo elemento, e "
+"ciò che accade poi dipende da quanti elementi ne escono:"
 
 #: ../../source/guides/user/advanced/batch.md:36
 msgid ""
@@ -242,7 +242,7 @@ msgstr "per riga"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "target lists"
-msgstr "liste bersaglio"
+msgstr "target list"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "one set, for all of them"
@@ -254,11 +254,11 @@ msgstr "le pagine"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "one pool: every step sees them all"
-msgstr "una sola riserva: ogni passo le vede tutte"
+msgstr "un solo pool: ogni passo le vede tutte"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "one pool per row, isolated from the others"
-msgstr "una riserva per riga, isolata dalle altre"
+msgstr "un pool per riga, isolato dagli altri"
 
 #: ../../source/guides/user/advanced/batch.md
 msgid "filter data, promises, deduplication"
@@ -295,10 +295,10 @@ msgstr ""
 "({doc}`../../../reference/design/multidocument`): le pagine di tutti i documenti sono"
 " classificate documento per documento e poi pianificate **insieme**, così che un "
 "passo che legge un file produca i dati di filtro che un passo successivo su un altro "
-"file riceve. È ciò che permette di estrarre come la sola relazione che è una "
-"relazione pubblicata in più file — le posizioni in uno, i gestori di quei fondi in un"
-" altro. Il lotto è fatto di job davvero distinti che si dà il caso siano eseguiti "
-"insieme e riportati insieme; fra una riga e l'altra non passa niente."
+"file riceve. È ciò che permette a una relazione pubblicata in più file — le posizioni"
+" in uno, i gestori di quei fondi in un altro — di essere estratta come la relazione "
+"unica che è. Il lotto è fatto di job davvero distinti, che semplicemente vengono "
+"eseguiti insieme e riportati insieme; fra una riga e l'altra non passa niente."
 
 #: ../../source/guides/user/advanced/batch.md:88
 msgid ""

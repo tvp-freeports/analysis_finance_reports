@@ -31,8 +31,8 @@ msgid ""
 msgstr ""
 "Hai `freeports` installato e vuoi delle tabelle a partire da una relazione. Questa "
 "sezione è il ciclo di lavoro: che cosa deve esistere perché un'esecuzione possa "
-"funzionare, come dare un nome a un documento, che cosa ne esce, e come leggere i "
-"registri quando non fa quello che ti aspettavi."
+"funzionare, come dare un nome a un documento, che cosa ne esce, e come leggere i log "
+"quando non fa quello che ti aspettavi."
 
 #: ../../source/guides/user/index.md:18
 msgid "What each page answers"

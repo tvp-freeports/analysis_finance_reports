@@ -90,7 +90,7 @@ msgstr "Le quattro cose che servono a un'esecuzione"
 msgid ""
 "Four things must be given, and only one of them can ever be worked out by the engine "
 "on its own:"
-msgstr "Quattro cose vanno date, e una sola di esse il motore può ricavarsela da sé:"
+msgstr "Quattro cose vanno date, e una sola il motore riesce a ricavarsela da sé:"
 
 #: ../../source/start/index.md:7
 msgid "What"
@@ -118,7 +118,7 @@ msgstr "no"
 
 #: ../../source/start/index.md:7
 msgid "a format for it"
-msgstr "un formato per esso"
+msgstr "un formato per quel documento"
 
 #: ../../source/start/index.md:7
 msgid "`--format` / `-f`"
@@ -152,9 +152,9 @@ msgid ""
 "four minutes of PDF."
 msgstr ""
 "Nessuna delle quattro ha un valore predefinito utile, e il motore rifiuta anziché "
-"indovinare. Se non è dato alcun lista bersaglio l'esecuzione si ferma subito, prima "
-"di aprire qualsiasi cosa — il controllo è il primo perché fallire in fretta su un "
-"ingresso mancante è più gentile che fallire dopo quattro minuti di PDF."
+"indovinare. Se non viene data nessuna target list l'esecuzione si ferma subito, prima"
+" di aprire qualunque cosa — il controllo viene per primo perché fallire in fretta su "
+"un ingresso che manca è più gentile che fallire dopo quattro minuti di PDF."
 
 #: ../../source/start/index.md:45
 #, python-brace-format
@@ -180,7 +180,7 @@ msgid ""
 "{doc}`../guides/user/index` if you want to drive it now; {doc}`ways-to-contribute` if"
 " you intend to change it."
 msgstr ""
-"{doc}`../overview/index` se vuoi capire la cosa prima di guidarla; "
-"{doc}`../guides/user/index` se vuoi guidarla adesso; {doc}`ways-to-contribute` se hai"
-" intenzione di cambiarla."
+"{doc}`../overview/index` se vuoi capire com'è fatto prima di metterlo in moto; "
+"{doc}`../guides/user/index` se vuoi usarlo subito; {doc}`ways-to-contribute` se hai "
+"intenzione di cambiarlo."
 

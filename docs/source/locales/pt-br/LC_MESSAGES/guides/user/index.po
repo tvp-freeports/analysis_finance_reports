@@ -1,0 +1,136 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt-br\n"
+"Language-Team: pt-br <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/user/index.md:1
+msgid "Running the engine"
+msgstr "Rodar o motor"
+
+#: ../../source/guides/user/index.md:3
+msgid ""
+"You have `freeports` installed and you want tables out of a report. This section is "
+"the loop: what must exist before a run can work, how to name a document, what comes "
+"out, and how to read the logs when it does not do what you expected."
+msgstr ""
+"Você tem o `freeports` instalado e quer tabelas a partir de um relatório. Esta seção "
+"é o ciclo de trabalho: o que precisa existir para uma execução funcionar, como dar "
+"nome a um documento, o que sai dali, e como ler os logs quando a coisa não faz o que "
+"você esperava."
+
+#: ../../source/guides/user/index.md:18
+msgid "What each page answers"
+msgstr "O que cada página responde"
+
+#: ../../source/guides/user/index.md:7
+msgid "Page"
+msgstr "Página"
+
+#: ../../source/guides/user/index.md:7
+msgid "Answers"
+msgstr "Responde a"
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`inputs`"
+msgstr "{doc}`inputs`"
+
+#: ../../source/guides/user/index.md:7
+msgid "what must exist before a first run can work at all"
+msgstr "o que precisa existir para uma primeira execução chegar a funcionar"
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`documents`"
+msgstr "{doc}`documents`"
+
+#: ../../source/guides/user/index.md:7
+msgid "how to name a document: the `<url>:<path>:<name>` grammar, and `save_pdf`"
+msgstr "como dar nome a um documento: a gramática `<url>:<path>:<name>`, e o `save_pdf`"
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`output`"
+msgstr "{doc}`output`"
+
+#: ../../source/guides/user/index.md:7
+msgid "the profiles, the tables produced, the rules that hold across all of them"
+msgstr "os perfis, as tabelas produzidas, as regras que valem para todas elas"
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`logging`"
+msgstr "{doc}`logging`"
+
+#: ../../source/guides/user/index.md:7
+msgid "the three destinations, where each lands, how to read them"
+msgstr "os três destinos, onde cada um vai parar, como lê-los"
+
+#: ../../source/guides/user/index.md:7
+#, python-brace-format
+msgid "{doc}`advanced/index`"
+msgstr "{doc}`advanced/index`"
+
+#: ../../source/guides/user/index.md:7
+msgid "one job per CSV row, and driving the two levels of parallelism"
+msgstr "um job por linha de CSV, e como conduzir os dois níveis de paralelismo"
+
+#: ../../source/guides/user/index.md:27
+#, python-brace-format
+msgid ""
+"If you have not run it once yet, {doc}`../../start/first-run` is a single real "
+"invocation commented argument by argument, and {doc}`../../start/install` is what to "
+"install first."
+msgstr ""
+"Se você ainda não rodou nenhuma vez, {doc}`../../start/first-run` é uma invocação "
+"real comentada argumento por argumento, e {doc}`../../start/install` é o que instalar"
+" antes."
+
+#: ../../source/guides/user/index.md:30
+msgid "What is not on this axis"
+msgstr "O que não está neste eixo"
+
+#: ../../source/guides/user/index.md:31
+#, python-brace-format
+msgid ""
+"Every **option** of the command, with its type, default and validation, is "
+"{doc}`../../reference/cli/freeports` — a reference page, because the answer does not "
+"depend on who is asking. The four places a setting can come from and how they merge "
+"is {doc}`../../reference/configuration/index`, which is what you want as soon as your"
+" command lines get long."
+msgstr ""
+"Cada **opção** do comando, com seu tipo, seu padrão e sua validação, está em "
+"{doc}`../../reference/cli/freeports` — uma página de referência, porque a resposta "
+"não depende de quem pergunta. Os quatro lugares de onde um ajuste pode vir e como "
+"eles se combinam estão em {doc}`../../reference/configuration/index`, que é o que "
+"você vai querer assim que suas linhas de comando ficarem compridas."
+
+#: ../../source/guides/user/index.md:37
+#, python-brace-format
+msgid ""
+"*Why* a run behaves the way it does — why two reports in one invocation is not the "
+"same as two invocations, why the order of the output is guaranteed in some respects "
+"and not others — is {doc}`../../overview/how-it-works` briefly and "
+"{doc}`../../reference/design/index` properly."
+msgstr ""
+"*Por que* uma execução se comporta como se comporta — por que dois relatórios numa "
+"invocação não é a mesma coisa que duas invocações, por que a ordem do resultado é "
+"garantida em certos aspectos e em outros não — está em {doc}`../../overview/how-it-"
+"works` de forma breve e em {doc}`../../reference/design/index` a fundo."
+

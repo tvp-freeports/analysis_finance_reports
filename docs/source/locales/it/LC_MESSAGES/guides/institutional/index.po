@@ -102,11 +102,12 @@ msgid ""
 " That is deliberate, and it is the whole posture: {doc}`../../generated/index` is "
 "where those pages live, and none of them asks to be believed."
 msgstr ""
-"Ogni dato che questo progetto pubblica su sé stesso — quanto del codice è provato, "
-"quanta documentazione esiste, di quanti file qualcuno ha risposto — è **scritto da un"
-" comando che puoi rieseguire**, e ogni pagina generata dice quale comando. È voluto, "
-"ed è tutto l'atteggiamento del progetto: {doc}`../../generated/index` è dove quelle "
-"pagine stanno, e nessuna di esse chiede di essere creduta."
+"Ogni dato che questo progetto pubblica su sé stesso — quanto del codice è coperto dai"
+" test, quanta documentazione esiste, di quanti file qualcuno ha risposto — è "
+"**scritto da un comando che puoi rieseguire**, e ogni pagina generata dice quale "
+"comando. È voluto, ed è tutto l'atteggiamento del progetto: "
+"{doc}`../../generated/index` è dove quelle pagine stanno, e nessuna di esse chiede di"
+" essere creduta."
 
 #: ../../source/guides/institutional/index.md:35
 #, python-brace-format

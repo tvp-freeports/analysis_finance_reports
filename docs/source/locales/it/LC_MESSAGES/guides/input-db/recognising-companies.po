@@ -41,10 +41,10 @@ msgid ""
 "fast. A bud is therefore about *the text*, not about the name."
 msgstr ""
 "Le **gemme** sono frammenti letterali che fanno da guardia al passaggio a buon "
-"mercato. Il riconoscitore prova le espressioni regolari di una società contro un "
-"pezzo di testo solo se in esso compare una delle gemme di quella società, ed è ciò "
-"che tiene rapido il confronto fra una tabella di centinaia di righe e centinaia di "
-"società. Una gemma riguarda perciò *il testo*, non il nome."
+"mercato. Il riconoscitore prova le espressioni regolari di una società su un pezzo di"
+" testo solo se in esso compare una delle gemme di quella società, ed è ciò che tiene "
+"rapido il confronto fra una tabella di centinaia di righe e centinaia di società. Una"
+" gemma riguarda perciò *il testo*, non il nome."
 
 #: ../../source/guides/input-db/recognising-companies.md:18
 msgid ""
@@ -64,7 +64,7 @@ msgstr ""
 
 #: ../../source/guides/input-db/recognising-companies.md:23
 msgid "The main table is checked against the name; the additional files are not"
-msgstr "La tabella principale è controllata contro il nome; i file aggiuntivi no"
+msgstr "La tabella principale si confronta con il nome; i file aggiuntivi no"
 
 #: ../../source/guides/input-db/recognising-companies.md:25
 msgid "This is the distinction that matters, and it is not a matter of file shape."
@@ -80,11 +80,11 @@ msgid ""
 "is read."
 msgstr ""
 "Le colonne `Bud` e `Regex` di `companies.csv` descrivono **il nome stesso della "
-"società**. Perciò sono controllate contro di esso: la gemma deve essere già "
-"normalizzata e deve comparire davvero nel nome normalizzato, e l'espressione regolare"
-" deve corrispondere a quel nome. Se metti qui un identificatore, deve essere coerente"
-" con il nome che gli sta accanto — uno che non lo fosse potrebbe soltanto produrre "
-"una corrispondenza falsa o nessuna, ed è rifiutato quando il database viene letto."
+"società**. Perciò si confrontano con esso: la gemma deve essere già normalizzata e "
+"deve comparire davvero nel nome normalizzato, e l'espressione regolare deve "
+"corrispondere a quel nome. Se metti qui un identificatore, deve essere coerente con "
+"il nome che gli sta accanto — uno che non lo fosse potrebbe soltanto produrre una "
+"corrispondenza falsa o nessuna, ed è rifiutato quando il database viene letto."
 
 #: ../../source/guides/input-db/recognising-companies.md:33
 msgid ""
@@ -122,11 +122,11 @@ msgid ""
 " a literal: anchors, character classes and escapes have no business being normalised."
 msgstr ""
 "Un controllo arriva comunque su una **gemma** aggiuntiva, ed è una questione diversa "
-"dal somigliare al nome: deve essere **già normalizzata**. Una gemma è confrontata "
-"alla lettera con un testo che il riconoscitore ha normalizzato, quindi `ALADDIN` o "
+"dal somigliare al nome: deve essere **già normalizzata**. Una gemma si confronta alla"
+" lettera con un testo che il riconoscitore ha normalizzato, quindi `ALADDIN` o "
 "`black-rock` non corrisponderebbero mai a niente, senza dirlo — il controllo riguarda"
 " l'alfabeto in cui avviene il confronto. Un'**espressione regolare** aggiuntiva ne è "
-"esente, essendo uno schema anziché un letterale: àncore, classi di caratteri e "
+"esente, essendo un pattern anziché un letterale: àncore, classi di caratteri e "
 "sequenze di escape non hanno alcuna ragione di essere normalizzate."
 
 #: ../../source/guides/input-db/recognising-companies.md:49
@@ -155,16 +155,16 @@ msgid ""
 msgstr ""
 "Prima di ogni gemma o espressione regolare, il riconoscitore pone la domanda a buon "
 "mercato: il testo contiene semplicemente il nome della società? È una ricerca di "
-"sottostringa e non uno schema, ed è tutto il punto — è ciò che fa sopravvivere il "
-"primo passaggio a centinaia di righe di tabella contro centinaia di società."
+"sottostringa e non un pattern, ed è tutto il punto — è ciò che fa sopravvivere il "
+"primo passaggio su centinaia di righe di tabella e centinaia di società."
 
 #: ../../source/guides/input-db/recognising-companies.md:60
 msgid ""
 "Containment alone, though, attributes holdings to the wrong company, and the two "
 "cases that prove it come from real reports:"
 msgstr ""
-"La sola inclusione, però, attribuisce posizioni alla società sbagliata, e i due casi "
-"che lo dimostrano vengono da relazioni vere:"
+"La semplice inclusione, però, attribuisce posizioni alla società sbagliata, e i due "
+"casi che lo dimostrano vengono da relazioni vere:"
 
 #: ../../source/guides/input-db/recognising-companies.md
 msgid "The text"
@@ -176,7 +176,7 @@ msgstr "La società"
 
 #: ../../source/guides/input-db/recognising-companies.md
 msgid "Why bare containment matches"
-msgstr "Perché la nuda inclusione corrisponde"
+msgstr "Perché la semplice inclusione corrisponde"
 
 #: ../../source/guides/input-db/recognising-companies.md
 msgid "`Other Assets`"

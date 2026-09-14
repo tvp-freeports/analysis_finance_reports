@@ -154,10 +154,10 @@ msgid ""
 "explanation for a change that \"had no effect\"."
 msgstr ""
 "``make develop`` costruisce il modulo di estensione; ``make build`` costruisce il "
-"binario. Sono due prodotti di compilazione di un solo crate e nessuno implica "
-"l'altro, quindi dopo aver modificato del Rust che il lato Python usa, ricompila "
-"l'estensione — un ``.so`` vecchio è la spiegazione abituale di una modifica che \"non"
-" ha avuto effetto\"."
+"binario. Sono due prodotti di build di un solo crate e nessuno implica l'altro, "
+"quindi dopo aver modificato del Rust che il lato Python usa, ricompila l'estensione —"
+" un ``.so`` vecchio è la spiegazione abituale di una modifica che \"non ha avuto "
+"effetto\"."
 
 #: ../../source/guides/engine/index.rst:81
 msgid ""
@@ -165,7 +165,7 @@ msgid ""
 "them all. :doc:`build` explains the arrangement."
 msgstr ""
 "Ogni target è una ricetta di comandi che potresti digitare a mano, e ``make help`` li"
-" elenca tutti. :doc:`build` spiega l'impalcatura."
+" elenca tutti. :doc:`build` spiega come sta insieme il tutto."
 
 #: ../../source/guides/engine/index.rst:85
 msgid "What the gate will do to your commit"
@@ -181,7 +181,7 @@ msgstr ""
 "**Al momento nessuna CI costruisce questo repository.** Il ``Jenkinsfile`` descrive "
 "una pipeline ferma, non obsoleta: è conservata, e tenuta aggiornata, perché sarà "
 "riaccesa. Fino ad allora, il gate vero è quello locale — ``make pre-commit``, che è "
-"ciò che esegue il hook di commit."
+"ciò che esegue l'hook di commit."
 
 #: ../../source/guides/engine/index.rst:93
 msgid ""

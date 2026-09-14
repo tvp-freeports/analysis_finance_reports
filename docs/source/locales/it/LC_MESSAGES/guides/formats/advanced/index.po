@@ -31,7 +31,7 @@ msgid ""
 msgstr ""
 "Quasi tutti i formati non escono mai dal primo livello. Queste pagine sono gli altri "
 "due, e la regola per scegliere fra loro: **sali di livello solo quando quello sotto "
-"non riesce davvero a esprimere l'impaginazione.**"
+"non riesce davvero a esprimere il layout.**"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "Level"
@@ -56,7 +56,7 @@ msgstr "righe in un foglio di calcolo, nessun codice"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "the layout is a table the engine can already read"
-msgstr "l'impaginazione è una tabella che il motore sa già leggere"
+msgstr "il layout è una tabella che il motore sa già leggere"
 
 #: ../../source/guides/formats/advanced/index.md:6
 #, python-brace-format
@@ -82,7 +82,7 @@ msgstr "un modulo Python"
 
 #: ../../source/guides/formats/advanced/index.md:6
 msgid "the layout resists parameterisation altogether"
-msgstr "l'impaginazione resiste del tutto alla parametrizzazione"
+msgstr "il layout resiste del tutto alla parametrizzazione"
 
 #: ../../source/guides/formats/advanced/index.md:21
 #, python-brace-format

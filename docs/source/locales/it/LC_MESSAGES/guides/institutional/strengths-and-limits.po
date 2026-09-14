@@ -54,10 +54,10 @@ msgid ""
 " somebody else's repository. The part that must not change does not change in order "
 "to cover more issuers — which is what usually rots this kind of tool."
 msgstr ""
-"**Il supporto cresce senza toccare il motore.** L'impaginazione di una nuova "
-"relazione è un nuovo formato nel repository di qualcun altro. La parte che non deve "
-"cambiare non cambia per coprire più emittenti — che è ciò che di solito fa marcire "
-"questo genere di strumenti."
+"**Il supporto cresce senza toccare il motore.** Il layout di una nuova relazione è un"
+" nuovo formato nel repository di qualcun altro. La parte che non deve cambiare non "
+"cambia per coprire più emittenti — che è ciò che di solito fa marcire questo genere "
+"di strumenti."
 
 #: ../../source/guides/institutional/strengths-and-limits.md:17
 #, python-brace-format
@@ -82,10 +82,10 @@ msgid ""
 " what it found last time."
 msgstr ""
 "**Il progetto si misura e pubblica le misure.** Copertura dei test, copertura della "
-"documentazione, punteggi dei linter, di quanto del repository qualcuno abbia risposto"
-" — è tutto generato, è tutto rieseguibile, e per quei numeri un commit può essere "
-"rifiutato. {doc}`../devops/index` è il meccanismo; {doc}`../../dev/ci-report/index` è"
-" ciò che ha trovato l'ultima volta."
+"documentazione, punteggi dei linter, quanta parte del repository qualcuno ha "
+"attestato — è tutto generato, è tutto rieseguibile, e per quei numeri un commit può "
+"essere rifiutato. {doc}`../devops/index` è il meccanismo; {doc}`../../dev/ci-"
+"report/index` è ciò che ha trovato l'ultima volta."
 
 #: ../../source/guides/institutional/strengths-and-limits.md:26
 #, python-brace-format
@@ -110,8 +110,8 @@ msgid ""
 "itself — {doc}`../../overview/trust`."
 msgstr ""
 "**L'estrazione da documenti fatti per occhi umani non è esatta, e non lo sarà mai.** "
-"La posizione del progetto è che ogni strumento che affermi il contrario stia "
-"travisando sé stesso — {doc}`../../overview/trust`."
+"La posizione del progetto è che ogni strumento che affermi il contrario stia mentendo"
+" su sé stesso — {doc}`../../overview/trust`."
 
 #: ../../source/guides/institutional/strengths-and-limits.md:35
 msgid ""
@@ -153,9 +153,9 @@ msgid ""
 msgstr ""
 "**Alcune sue parti sono progettate e non costruite.** La cosa è dichiarata anziché "
 "nascosta: {doc}`../../reference/design/limits` elenca che cosa è un limite accettato,"
-" che cosa è previsto, e che cosa è semplicemente rotto. Un progetto che tiene una "
-"lista del genere è più facile da ritenere affidabile di uno che non ce l'ha, ed è "
-"anche un'ammissione."
+" che cosa è previsto e che cosa è semplicemente rotto. Di un progetto che tiene una "
+"lista del genere ci si fida più volentieri che di uno che non ce l'ha — ed è anche "
+"un'ammissione."
 
 #: ../../source/guides/institutional/strengths-and-limits.md:50
 #, python-brace-format
@@ -168,7 +168,7 @@ msgstr ""
 
 #: ../../source/guides/institutional/strengths-and-limits.md:53
 msgid "How to check any of it yourself"
-msgstr "Come verificare da te qualunque di queste cose"
+msgstr "Come verificare da te ciascuna di queste cose"
 
 #: ../../source/guides/institutional/strengths-and-limits.md
 msgid "Claim"
@@ -176,7 +176,7 @@ msgstr "Affermazione"
 
 #: ../../source/guides/institutional/strengths-and-limits.md
 msgid "Command that settles it"
-msgstr "Comando che la risolve"
+msgstr "Comando che la dirime"
 
 #: ../../source/guides/institutional/strengths-and-limits.md
 msgid "the grants say what the site says"
@@ -200,7 +200,7 @@ msgstr "un formato legge una data relazione come dovrebbe"
 
 #: ../../source/guides/institutional/strengths-and-limits.md
 msgid "`freeports-dev test`, against that repository"
-msgstr "`freeports-dev test`, contro quel repository"
+msgstr "`freeports-dev test`, su quel repository"
 
 #: ../../source/guides/institutional/strengths-and-limits.md
 msgid "a figure in a report came from where it says"
@@ -217,6 +217,6 @@ msgid ""
 " faith."
 msgstr ""
 "Ogni pagina generata di questo sito ripete quell'invito, con quelle parole, per lo "
-"stesso motivo: un dato che non puoi ricavare di nuovo è un dato che ti si chiede di "
+"stesso motivo: un dato che non puoi rifare da te è un dato che ti si chiede di "
 "credere sulla parola."
 

@@ -131,7 +131,7 @@ msgstr "compilare dai sorgenti"
 
 #: ../../source/start/install.md
 msgid "`rustup` with the stable channel is enough"
-msgstr "basta `rustup` con il canale stabile"
+msgstr "basta `rustup` con il canale stable"
 
 #: ../../source/start/install.md
 msgid "[PyMuPDF](https://pypi.org/project/PyMuPDF/)"
@@ -143,9 +143,7 @@ msgstr "il motore"
 
 #: ../../source/start/install.md
 msgid "pulled in as a dependency; the one external library the engine cannot do without"
-msgstr ""
-"tirata dentro come dipendenza; l'unica libreria esterna di cui il motore non può fare"
-" a meno"
+msgstr "arriva come dipendenza; l'unica libreria esterna di cui il motore non può fare a meno"
 
 #: ../../source/start/install.md
 msgid "GnuPG and `jq`"
@@ -182,8 +180,8 @@ msgid ""
 " a system Python is the fastest way to an import error nobody can reproduce."
 msgstr ""
 "Lavora in un ambiente virtuale. Il motore è un'estensione compilata, e mescolarlo con"
-" un Python di sistema è la via più rapida a un errore di importazione che nessuno "
-"riesce a riprodurre."
+" un Python di sistema è la via più rapida a un errore di import che nessuno riesce a "
+"riprodurre."
 
 #: ../../source/start/install.md:30
 msgid "The repository's `Makefile` does the whole thing, virtual environment included:"
@@ -204,9 +202,9 @@ msgid ""
 "arrangement. If anything looks off, `make doctor` says what is installed, what is "
 "missing, and which target supplies it."
 msgstr ""
-"`make help` elenca il resto, e {doc}`../guides/engine/build` spiega l'impalcatura. Se"
-" qualcosa non torna, `make doctor` dice che cosa è installato, che cosa manca, e "
-"quale target lo fornisce."
+"`make help` elenca il resto, e {doc}`../guides/engine/build` spiega come sta insieme "
+"il tutto. Se qualcosa non torna, `make doctor` dice che cosa è installato, che cosa "
+"manca e quale target lo fornisce."
 
 #: ../../source/start/install.md:48
 msgid "The same thing by hand"
@@ -232,9 +230,9 @@ msgid ""
 msgstr ""
 "Il motore è costruito da [maturin](https://www.maturin.rs/) a causa dell'estensione "
 "Rust; i due pacchetti di strumenti sono normali progetti setuptools. Per "
-"un'installazione modificabile mentre lavori sul crate stesso, usa maturin "
-"direttamente — `maturin develop` ricompila l'estensione sul posto, e `--release` vale"
-" il tempo di compilazione in più per qualsiasi relazione che non sia la più piccola:"
+"un'installazione editabile mentre lavori sul crate stesso, usa maturin direttamente —"
+" `maturin develop` ricompila l'estensione sul posto, e `--release` vale il tempo di "
+"compilazione in più per qualsiasi relazione che non sia la più piccola:"
 
 #: ../../source/start/install.md:70
 msgid ""
@@ -245,9 +243,9 @@ msgid ""
 msgstr ""
 "`freeports-validate` **non** richiede il motore: verificare le attestazioni di "
 "qualcun altro non deve voler dire installare un estrattore di PDF. L'unica cosa a cui"
-" rinuncia senza di esso è leggere le proprie impostazioni dal file di configurazione "
-"di freeports, cosa che richiede al motore di sapere dove un file simile si trovi. Per"
-" avere anche quel livello:"
+" rinuncia senza il motore è leggere le proprie impostazioni dal file di "
+"configurazione di freeports, perché è il motore a sapere dove un file del genere si "
+"trova. Per avere anche quel livello:"
 
 #: ../../source/start/install.md:79
 msgid "A format author installing all three has it anyway."
@@ -265,14 +263,14 @@ msgid ""
 "imports and the command is nowhere."
 msgstr ""
 "`pip install` e `maturin develop` costruiscono il *modulo di estensione*, non il "
-"binario da riga di comando: i due sono prodotti di compilazione distinti di uno "
-"stesso crate, e nessuno dei due implica l'altro. È il motivo abituale per cui "
+"binario da riga di comando: i due sono prodotti di build distinti di uno stesso "
+"crate, e nessuno dei due implica l'altro. È il motivo abituale per cui "
 "un'installazione resta a metà — il modulo si importa e il comando non si trova da "
 "nessuna parte."
 
 #: ../../source/start/install.md:87
 msgid "`make install` covers both. Done by hand it is a cargo build and a copy:"
-msgstr "`make install` copre entrambi. Fatto a mano è una compilazione con cargo e una copia:"
+msgstr "`make install` copre entrambi. Fatto a mano è una build con cargo e una copia:"
 
 #: ../../source/start/install.md:95
 msgid ""
@@ -283,15 +281,15 @@ msgstr ""
 "Per impostazione predefinita `make install-binary` lo mette nel `bin/` dell'ambiente "
 "attivo, così che la disinstallazione sia completa; `make install-binary "
 "PREFIX=/usr/local` lo installa invece a livello di sistema, e `DESTDIR` è rispettato "
-"per l'impacchettamento."
+"per il packaging."
 
 #: ../../source/start/install.md:99
 msgid ""
 "Everything the binary does is also reachable from Python through the same crate, so "
 "this step is optional if you drive the engine as a library."
 msgstr ""
-"Tutto ciò che fa il binario è raggiungibile anche da Python attraverso lo stesso "
-"crate, quindi questo passo è facoltativo se guidi il motore come libreria."
+"Tutto ciò che fa il binario si raggiunge anche da Python attraverso lo stesso crate, "
+"quindi questo passo è facoltativo se usi il motore come libreria."
 
 #: ../../source/start/install.md:102
 msgid "Checking the installation"
@@ -299,7 +297,7 @@ msgstr "Verificare l'installazione"
 
 #: ../../source/start/install.md:108
 msgid "which is these two questions, and says nothing if both work:"
-msgstr "che è queste due domande, e non dice niente se funzionano entrambe:"
+msgstr "che sono poi queste due domande, e che non dice niente se funzionano entrambe:"
 
 #: ../../source/start/install.md:115
 msgid ""

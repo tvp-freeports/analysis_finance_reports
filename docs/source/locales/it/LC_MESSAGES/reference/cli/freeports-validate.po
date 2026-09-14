@@ -492,9 +492,9 @@ msgid ""
 "the others."
 msgstr ""
 "Simmetricamente, per controllare le attestazioni di qualcun altro ti serve la *sua* "
-"chiave pubblica nel tuo portachiavi — `gpg --import loro.pub.asc`, oppure `gpg "
-"--locate-keys loro@posta`. Un repository con più contributori è un repository in cui "
-"ciascuno di essi ha importato gli altri."
+"chiave pubblica nel tuo portachiavi — `gpg --import their.pub.asc`, oppure `gpg "
+"--locate-keys their@email`. Un repository con più contributori è un repository in cui"
+" ciascuno di essi ha importato gli altri."
 
 #: ../../source/reference/cli/freeports-validate.md:163
 msgid ""
@@ -1238,7 +1238,8 @@ msgid ""
 msgstr ""
 "Una firma fallita su un documento che non è tuo di solito significa che la chiave "
 "pubblica del suo autore non è nel tuo portachiavi, non che il documento sia stato "
-"manomesso. Importala prima di concludere qualsiasi cosa: `gpg --import loro.pub.asc`."
+"manomesso. Importala prima di concludere qualsiasi cosa: `gpg --import "
+"their.pub.asc`."
 
 #: ../../source/reference/cli/freeports-validate.md:479
 msgid ""

@@ -26,7 +26,9 @@ msgstr "Una prima esecuzione, argomento per argomento"
 #: ../../source/start/first-run.md:3
 #, python-brace-format
 msgid "Assuming {doc}`install` is done and the two {doc}`../guides/user/inputs` exist."
-msgstr "Dando per fatta l'{doc}`install` e per esistenti i due {doc}`../guides/user/inputs`."
+msgstr ""
+"Qui si suppone che {doc}`install` sia già stato fatto e che i due "
+"{doc}`../guides/user/inputs` esistano."
 
 #: ../../source/start/first-run.md:15
 msgid "Line by line:"
@@ -45,11 +47,11 @@ msgid ""
 " will want as soon as there are two documents. The full grammar is in "
 "{doc}`../guides/user/documents`."
 msgstr ""
-"il documento. Un percorso nudo qui significa *questo file locale*, reso assoluto, e "
-"il suo stesso testo diventa il **nome** del documento — il valore che comparirà nella"
-" colonna `Report` dei risultati. Dagliene uno più corto con `report.pdf:EURIZON "
-"2023`, cosa che vorrai fare non appena i documenti saranno due. La grammatica "
-"completa è in {doc}`../guides/user/documents`."
+"il documento. Un percorso scritto così, senza altro, significa *questo file locale*, "
+"reso assoluto, e il suo stesso testo diventa il **nome** del documento — il valore "
+"che comparirà nella colonna `Report` dei risultati. Puoi dargliene uno più corto con "
+"`report.pdf:EURIZON 2023`, cosa che vorrai fare appena i documenti diventano due. La "
+"grammatica completa è in {doc}`../guides/user/documents`."
 
 #: ../../source/start/first-run.md:23
 msgid "`--format EURIZON-EN23`"
@@ -62,10 +64,10 @@ msgid ""
 "published it. Naming a format the repository does not have is an error naming the "
 "format."
 msgstr ""
-"con quale ricetta leggerlo. Omissibile **solo** quando il documento viene da un URL "
-"che la mappatura del repository di formati riconosce; un percorso locale non porta "
-"con sé alcun indizio su chi l'abbia pubblicato. Nominare un formato che il repository"
-" non ha è un errore che nomina il formato."
+"con quale ricetta leggerlo. Si può omettere **soltanto** quando il documento viene da"
+" un URL che la mappatura del repository di formati riconosce; un percorso locale non "
+"porta con sé alcun indizio su chi l'abbia pubblicato. Nominare un formato che il "
+"repository non ha dà un errore che nomina quel formato."
 
 #: ../../source/start/first-run.md:28
 msgid "`--repo ~/work/formats-repo`"
@@ -175,7 +177,7 @@ msgstr "Di solito"
 
 #: ../../source/start/first-run.md
 msgid "stops at once, says a target list is missing"
-msgstr "si ferma subito, dice che manca un lista bersaglio"
+msgstr "si ferma subito, dice che manca una target list"
 
 #: ../../source/start/first-run.md
 msgid "`--target-list` not given — the first check"

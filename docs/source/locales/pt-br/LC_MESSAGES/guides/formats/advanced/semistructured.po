@@ -1,0 +1,130 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt-br\n"
+"Language-Team: pt-br <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/semistructured.md:1
+msgid "The semistructured level"
+msgstr "O nível semistructured"
+
+#: ../../source/guides/formats/advanced/semistructured.md:3
+msgid ""
+"Between the two others. The algorithm has a **name**; you say which name serves which"
+" segment, and configure it in YAML."
+msgstr ""
+"Fica entre os outros dois. O algoritmo tem um **nome**; você diz que nome serve a que"
+" segmento, e o configura em YAML."
+
+#: ../../source/guides/formats/advanced/semistructured.md:6
+msgid "The two files a semistructured format needs"
+msgstr "Os dois arquivos de que um formato semistructured precisa"
+
+#: ../../source/guides/formats/advanced/semistructured.md:7
+msgid ""
+"`content/algorithms/semistructured/formats_mapping.csv` says which named algorithm "
+"serves which segment of which pipeline:"
+msgstr ""
+"O `content/algorithms/semistructured/formats_mapping.csv` diz que algoritmo com nome "
+"serve a que segmento de que pipeline:"
+
+#: ../../source/guides/formats/advanced/semistructured.md:15
+msgid ""
+"An empty cell leaves that segment unspecified at this level, so another level can "
+"supply it."
+msgstr ""
+"Uma célula vazia deixa aquele segmento sem especificação neste nível, de modo que "
+"outro nível possa fornecê-lo."
+
+#: ../../source/guides/formats/advanced/semistructured.md:17
+msgid "One YAML file per segment carries the configuration, under `args/`:"
+msgstr "Um arquivo YAML por segmento carrega a configuração, sob `args/`:"
+
+#: ../../source/guides/formats/advanced/semistructured.md:31
+msgid "The key that links a format to an algorithm"
+msgstr "A chave que liga um formato a um algoritmo"
+
+#: ../../source/guides/formats/advanced/semistructured.md:32
+#, python-brace-format
+msgid ""
+"`{format}({pipeline})`, falling back to the bare `{format}` only for the **unnamed** "
+"pipeline. The two forms are not interchangeable: writing `AMUNDI-IT24` when the "
+"pipeline has a name will not be found, and the failure is silent in the sense that "
+"the segment simply has no configuration."
+msgstr ""
+"`{format}({pipeline})`, recaindo sobre o `{format}` sozinho apenas no caso do "
+"pipeline **sem nome**. As duas formas não são intercambiáveis: escrever `AMUNDI-IT24`"
+" quando o pipeline tem nome não encontra nada, e a falha é silenciosa no sentido de "
+"que o segmento simplesmente fica sem configuração."
+
+#: ../../source/guides/formats/advanced/semistructured.md:36
+msgid "Lists, and the counter that indexes them"
+msgstr "As listas, e o contador que as indexa"
+
+#: ../../source/guides/formats/advanced/semistructured.md:38
+msgid ""
+"Where a value is a **list**, the element used is chosen by **how many pipes have "
+"already been emitted for that pipeline and segment** — not by the row's position in "
+"the mapping table."
+msgstr ""
+"Onde um valor é uma **lista**, o elemento usado é escolhido por **quantos pipes já "
+"foram emitidos para aquele pipeline e aquele segmento** — não pela posição da linha "
+"na tabela de correspondência."
+
+#: ../../source/guides/formats/advanced/semistructured.md:48
+msgid ""
+"An algorithm that returns three pipes advances that counter by **three**. This is the"
+" rule that surprises people, and it is worth restating: the counter follows the pipes"
+" actually produced, so adding an algorithm earlier in the same segment shifts every "
+"list index after it."
+msgstr ""
+"Um algoritmo que devolve três pipes faz esse contador avançar **três**. É a regra que"
+" pega as pessoas de surpresa, e vale repetir: o contador acompanha os pipes de fato "
+"produzidos, então acrescentar um algoritmo mais acima no mesmo segmento desloca todo "
+"índice de lista que venha depois."
+
+#: ../../source/guides/formats/advanced/semistructured.md:52
+msgid "Algorithm names of your own"
+msgstr "Nomes de algoritmo seus"
+
+#: ../../source/guides/formats/advanced/semistructured.md:53
+msgid "An algorithm name may be implemented natively or by you, in your repository's Python."
+msgstr ""
+"O nome de um algoritmo pode ser implementado nativamente ou por você, no Python do "
+"seu repositório."
+
+#: ../../source/guides/formats/advanced/semistructured.md:55
+msgid ""
+"Defining the same name **both** ways is an **error**, not a precedence to be "
+"remembered. The check runs over every native name of the segment as soon as your "
+"module loads."
+msgstr ""
+"Definir o mesmo nome das **duas** maneiras é um **erro**, não uma precedência a "
+"decorar. A conferência passa por todo nome nativo do segmento assim que o seu módulo "
+"é carregado."
+
+#: ../../source/guides/formats/advanced/semistructured.md:58
+msgid ""
+"A collision is nearly always a typo, and letting one side win silently is what makes "
+"a typo expensive — you would be debugging an algorithm you did not write while "
+"reading the one you did."
+msgstr ""
+"Uma colisão é quase sempre um erro de digitação, e deixar um dos lados vencer em "
+"silêncio é o que torna caro um erro de digitação — você estaria depurando um "
+"algoritmo que não escreveu enquanto lê aquele que escreveu."
+

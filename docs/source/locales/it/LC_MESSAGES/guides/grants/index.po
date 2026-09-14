@@ -118,10 +118,10 @@ msgstr ""
 "`check-grants` è quello da eseguire prima di fidarsi di un repository che non hai "
 "scritto tu, e nell'integrazione continua — e, a differenza dei quattro che scrivono "
 "il tuo documento, **non richiede alcuna chiave tua**: chiamato senza chiave controlla"
-" ogni documento del repository contro il tuo portachiavi, che è esattamente la "
-"domanda che si fanno un revisore e un job di CI. Risponde a una domanda ristretta — "
-"queste attestazioni parlano ancora di questi file — e non sostituisce il superamento "
-"dei test, così come i test non sostituiscono lui. Uno dice che il codice fa quel che "
+" ogni documento del repository sul tuo portachiavi, che è esattamente la domanda che "
+"si fanno un revisore e un job di CI. Risponde a una domanda ristretta — queste "
+"attestazioni parlano ancora di questi file — e non sostituisce il superamento dei "
+"test, così come i test non sostituiscono lui. Uno dice che il codice fa quel che "
 "faceva ieri; l'altro dice che una persona ha messo il proprio nome sul risultato."
 
 #: ../../source/guides/grants/index.md:40
@@ -140,7 +140,7 @@ msgid ""
 msgstr ""
 "`update` aggiorna gli hash dopo che un file attestato è legittimamente cambiato. "
 "Ridichiara l'intenzione di rispondere del file, e va eseguito da chi abbia confermato"
-" che la modifica era attesa — non è il modo di far tacere un guasto di `check-"
+" che la modifica era attesa — non è il modo di far tacere un fallimento di `check-"
 "grants`."
 
 #: ../../source/guides/grants/index.md:47
@@ -153,7 +153,7 @@ msgstr ""
 "Per vedere lo stato di un intero repository anziché di un file o di una persona: "
 "`report` rende gli stessi tre punti di vista come pagina, come badge, o come tabella "
 "che riscrive dentro un README, a partire da un modello che `collect` stampa in JSON "
-"per tutto ciò che le rese non avevano previsto."
+"per tutto ciò che quei rendering non avevano previsto."
 
 #: ../../source/guides/grants/index.md:51
 #, python-brace-format

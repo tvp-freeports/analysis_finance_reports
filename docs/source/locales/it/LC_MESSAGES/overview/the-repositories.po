@@ -30,10 +30,10 @@ msgid ""
 "keeping formats out of the engine: coverage should be able to grow without anyone "
 "touching the part that must not change."
 msgstr ""
-"Il progetto **non** è un monorepo. È un insieme di repository che dipendono l'uno "
-"dall'altro a tempo di esecuzione e sono mantenuti in modo indipendente, che è la "
-"stessa decisione del tenere i formati fuori dal motore: la copertura deve poter "
-"crescere senza che nessuno tocchi la parte che non deve cambiare."
+"Il progetto **non** è un monorepo. È un insieme di repository che a runtime dipendono"
+" l'uno dall'altro e che vengono mantenuti in modo indipendente: è la stessa decisione"
+" che tiene i formati fuori dal motore, cioè che la copertura deve poter crescere "
+"senza che nessuno tocchi la parte che non deve cambiare."
 
 #: ../../source/overview/the-repositories.rst:13
 msgid "Repository"
@@ -69,7 +69,7 @@ msgstr "le definizioni dei formati, i loro test, i loro documenti di validazione
 
 #: ../../source/overview/the-repositories.rst:21
 msgid "add support for a report layout"
-msgstr "aggiungere il supporto per l'impaginazione di una relazione"
+msgstr "aggiungere il supporto per il layout di una relazione"
 
 #: ../../source/overview/the-repositories.rst:22
 msgid "an **input database**"
@@ -77,7 +77,7 @@ msgstr "un **database di ingresso**"
 
 #: ../../source/overview/the-repositories.rst:23
 msgid "company lists, the evidence for recognising them, target lists"
-msgstr "elenchi di società, gli indizi per riconoscerle, liste bersaglio"
+msgstr "elenchi di società, gli indizi per riconoscerle, le target list"
 
 #: ../../source/overview/the-repositories.rst:24
 msgid "change *which* companies a run looks for"
@@ -114,5 +114,5 @@ msgid ""
 "set up."
 msgstr ""
 "Solo il lavoro sul primo repository richiede una toolchain Rust, ed è l'unico ad "
-"avere una compilazione da preparare."
+"avere una build da preparare."
 

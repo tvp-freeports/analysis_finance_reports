@@ -44,9 +44,9 @@ msgid ""
 "soft at the edges and certainly incomplete."
 msgstr ""
 "**Un progetto prende la forma delle persone che si presentano, non il contrario.** Le"
-" forme qui sotto sono il modo in cui questa documentazione si dà il caso sia "
-"organizzata oggi — la registrazione del lavoro che qui è già stato fatto, non "
-"l'elenco del lavoro che conta. Hanno bordi sfumati e sono senz'altro incomplete."
+" forme qui sotto sono il modo in cui questa documentazione è organizzata oggi, e "
+"nient'altro — il resoconto del lavoro che qui è già stato fatto, non l'elenco del "
+"lavoro che conta. Hanno bordi sfumati e sono senz'altro incomplete."
 
 #: ../../source/start/ways-to-contribute.rst:17
 msgid ""
@@ -63,11 +63,11 @@ msgstr ""
 "un pezzo di un'altra, porta una competenza che nessuna di esse aveva previsto, o "
 "arriva con una formazione che questo progetto non ha mai avuto — è il caso in cui ci "
 "guadagnano tutti di più. Segnalare una relazione che il motore legge male, discutere "
-"una decisione di progetto, riscrivere un paragrafo poco chiaro e tradurre una pagina "
-"sono tutti contributi, e nessuno di essi ha bisogno prima di un ruolo. Un contributo "
-"per cui queste pagine non hanno una sezione è un buon segno per il progetto e una "
-"lacuna nella documentazione; la sezione si scrive dopo, ed è così che sono nate quasi"
-" tutte le righe qui sotto."
+"una decisione di progetto, riscrivere un paragrafo poco chiaro, tradurre una pagina: "
+"sono tutti contributi, e nessuno di essi richiede prima un ruolo. Un contributo per "
+"cui queste pagine non hanno una sezione è un buon segno per il progetto e una lacuna "
+"nella documentazione; la sezione si scrive dopo, ed è così che sono nate quasi tutte "
+"le righe qui sotto."
 
 #: ../../source/start/ways-to-contribute.rst:26
 msgid "Which of these is closest?"
@@ -111,7 +111,7 @@ msgstr ":doc:`../guides/engine/index`"
 
 #: ../../source/start/ways-to-contribute.rst:41
 msgid "add support for a report layout"
-msgstr "aggiungere il supporto per l'impaginazione di una relazione"
+msgstr "aggiungere il supporto per il layout di una relazione"
 
 #: ../../source/start/ways-to-contribute.rst:42
 msgid "a formats repository, with ``freeports-dev``"
@@ -127,7 +127,7 @@ msgstr "cambiare *quali* società un'esecuzione cerca"
 
 #: ../../source/start/ways-to-contribute.rst:45
 msgid "an input database — CSV files, no build"
-msgstr "un database di ingresso — file CSV, nessuna compilazione"
+msgstr "un database di ingresso — file CSV, nessuna build"
 
 #: ../../source/start/ways-to-contribute.rst:46
 msgid ":doc:`../guides/input-db/index`"
@@ -171,7 +171,7 @@ msgstr ":doc:`../guides/i18n/index`"
 
 #: ../../source/start/ways-to-contribute.rst:56
 msgid "own the checks that refuse a commit"
-msgstr "farsi carico dei controlli che rifiutano un commit"
+msgstr "farti carico dei controlli che rifiutano un commit"
 
 #: ../../source/start/ways-to-contribute.rst:57
 msgid "``ci.yaml``, the hooks, the ``make`` targets"
@@ -215,9 +215,9 @@ msgid ""
 msgstr ""
 "**Il ciclo del motore — modifica, ricompila, prova.** In ``packages/freeports``. Il "
 "crate produce due cose, il binario ``freeports`` e il modulo di estensione Python, e "
-"**nessuna delle due compilazioni implica l'altra**, quindi una modifica al Rust che "
-"il lato Python usa richiede che l'estensione sia ricompilata. I test vengono prima e "
-"vogliono esaurire i rami anziché campionarli."
+"**nessuna delle due build implica l'altra**, quindi una modifica al Rust che il lato "
+"Python usa richiede che l'estensione sia ricompilata. I test vengono prima e vogliono"
+" esaurire i rami anziché campionarli."
 
 #: ../../source/start/ways-to-contribute.rst:75
 msgid ""
@@ -238,10 +238,10 @@ msgid ""
 " database is a handful of CSV files, and the loop is the engine's own validation, "
 "which runs **before any PDF is opened** and therefore answers in seconds."
 msgstr ""
-"**Il ciclo del database di ingresso — modifica, carica, correggi.** Nessuna "
-"compilazione e nessuna suite di test: il database è una manciata di file CSV, e il "
-"ciclo è la validazione del motore stesso, che gira **prima che sia aperto qualsiasi "
-"PDF** e perciò risponde in pochi secondi."
+"**Il ciclo del database di ingresso — modifica, carica, correggi.** Nessuna build e "
+"nessuna suite di test: il database è una manciata di file CSV, e il ciclo è la "
+"validazione del motore stesso, che gira **prima che sia aperto qualsiasi PDF** e "
+"perciò risponde in pochi secondi."
 
 #: ../../source/start/ways-to-contribute.rst:84
 msgid ""
@@ -250,9 +250,9 @@ msgid ""
 " is invalidated by any change to the file, deliberately."
 msgstr ""
 "**Il ciclo delle attestazioni — leggi, attesta, firma.** Un'attestazione è la "
-"dichiarazione firmata che una metodologia con un nome è stata applicata a un file "
-"preciso, registrata contro l'hash di quel file — e quindi è invalidata da qualsiasi "
-"modifica al file, deliberatamente."
+"dichiarazione firmata che una metodologia, indicata per nome, è stata applicata a un "
+"file preciso, registrata sull'hash di quel file — e quindi decade a qualsiasi "
+"modifica del file, deliberatamente."
 
 #: ../../source/start/ways-to-contribute.rst:88
 msgid ""
@@ -286,12 +286,12 @@ msgid ""
 " is what the review will hold you to, and :doc:`../guides/devops/index` is what the "
 "gate is doing."
 msgstr ""
-"È lo stesso gate che fa scattare il hook di commit — lint più la suite di test veloce"
-" — quindi se i tuoi commit sono passati, è già passato anche lui. Eseguilo comunque "
-"ancora una volta prima della pull request: il hook vede l'albero di lavoro anziché "
-"l'istantanea messa in stage, e un rebase può produrre un commit che nessuno ha "
-"provato. :doc:`../guides/engine/conventions/index` è ciò a cui la revisione ti terrà,"
-" e :doc:`../guides/devops/index` è ciò che il gate sta facendo."
+"È lo stesso gate che fa scattare l'hook di commit — lint più la suite di test veloce "
+"— quindi se i tuoi commit sono passati, è già passato anche lui. Eseguilo comunque "
+"ancora una volta prima della pull request: l'hook vede l'albero di lavoro e non lo "
+"snapshot in stage, e un rebase può produrre un commit che nessuno ha provato. "
+":doc:`../guides/engine/conventions/index` è il metro su cui ti misurerà la revisione,"
+" e :doc:`../guides/devops/index` è che cosa sta facendo il gate."
 
 #: ../../source/start/ways-to-contribute.rst:110
 msgid ""
@@ -315,7 +315,7 @@ msgid ""
 msgstr ""
 "Il `sito <https://www.freeports.org>`_ del progetto ha un proprio `repository "
 "<https://github.com/tvp-freeports/analysis_finance_reports_website>`_ e una propria "
-"toolchain, che non hanno niente in comune con la compilazione descritta qui."
+"toolchain, che non hanno niente in comune con la build descritta qui."
 
 #: ../../source/start/ways-to-contribute.rst:122
 msgid "Resources"

@@ -57,9 +57,9 @@ msgid ""
 " not change; the formats are the part the community grows."
 msgstr ""
 "Questo progetto è la terza strada, resa mantenibile: un motore che non sa niente di "
-"nessuna relazione in particolare, più i **formati** — piccole ricette mantenute a "
-"parte, una per impaginazione — che gli dicono dove guardare. Il motore è la parte che"
-" non cambia; i formati sono la parte che la comunità fa crescere."
+"nessuna relazione in particolare, più i **formati** — ricette piccole, mantenute a "
+"parte, una per ogni layout di relazione — che gli dicono dove guardare. Il motore è "
+"la parte che non cambia; i formati sono la parte che fa crescere la comunità."
 
 #: ../../source/overview/index.md:22
 msgid "Page"
@@ -93,7 +93,7 @@ msgstr "{doc}`how-it-works`"
 
 #: ../../source/overview/index.md:22
 msgid "one run, end to end, in a diagram and a paragraph"
-msgstr "un'esecuzione, da un capo all'altro, in un diagramma e un paragrafo"
+msgstr "un'esecuzione intera, dall'inizio alla fine, in un diagramma e un paragrafo"
 
 #: ../../source/overview/index.md:22
 #, python-brace-format
@@ -130,15 +130,15 @@ msgstr "{doc}`../guides/institutional/why-trust-a-grant`"
 
 #: ../../source/overview/index.md:32
 msgid "This section is the fast pass"
-msgstr "Questa sezione è il passaggio veloce"
+msgstr "Questa sezione è il giro veloce"
 
 #: ../../source/overview/index.md:33
 msgid ""
 "Four short chapters, no technical background needed for two of them, and each one "
 "names the place where the same subject is treated properly."
 msgstr ""
-"Quattro capitoli brevi, due dei quali non richiedono alcuna preparazione tecnica, e "
-"ciascuno indica il punto in cui lo stesso argomento è trattato per bene."
+"Quattro capitoli brevi, due dei quali non chiedono alcuna preparazione tecnica, e "
+"ciascuno dice dove lo stesso argomento è trattato per esteso."
 
 #: ../../source/overview/index.md:43
 msgid "Reading paths, by what you need"

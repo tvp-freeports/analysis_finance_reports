@@ -96,12 +96,11 @@ msgid ""
 "the part that must not change. The formats are the part that grows, and they live in "
 "separate repositories maintained by whoever cares about those issuers."
 msgstr ""
-"Questo progetto è la terza strada con la fragilità messa in disparte. C'è un "
-"**motore** che non sa niente di nessuna relazione in particolare, e ci sono i "
-"**formati** — piccole ricette, una per impaginazione di relazione — che gli dicono "
-"dove guardare. Il motore è la parte che non deve cambiare. I formati sono la parte "
-"che cresce, e vivono in repository separati mantenuti da chi ha a cuore quegli "
-"emittenti."
+"Questo progetto è la terza strada con la fragilità tolta di mezzo. C'è un **motore** "
+"che non sa niente di nessuna relazione in particolare, e ci sono i **formati** — "
+"piccole ricette, una per ogni layout di relazione — che gli dicono dove guardare. Il "
+"motore è la parte che non deve cambiare. I formati sono la parte che cresce, e vivono"
+" in repository separati mantenuti da chi ha a cuore quegli emittenti."
 
 #: ../../source/guides/institutional/why-this-exists.md:30
 msgid ""
@@ -140,7 +139,7 @@ msgstr ""
 " di questa lista, e quanto* su molti emittenti in una volta, e poter mostrare i "
 "propri passaggi quando qualcuno contesta la risposta. Quel \"mostrare i passaggi\" "
 "non è un ornamento — è il motivo per cui il progetto registra chi ha risposto di che "
-"cosa, secondo quale metodologia pubblicata, contro quali byte precisi."
+"cosa, secondo quale metodologia pubblicata, su quali byte esattamente."
 
 #: ../../source/guides/institutional/why-this-exists.md:43
 #, python-brace-format

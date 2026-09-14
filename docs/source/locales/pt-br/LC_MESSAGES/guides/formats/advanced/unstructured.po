@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Oreste Sciacqualegni
+# This file is distributed under the same license as the freeports package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: freeports 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 19:57+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: pt-br\n"
+"Language-Team: pt-br <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../source/guides/formats/advanced/unstructured.md:1
+msgid "The unstructured level"
+msgstr "O nível unstructured"
+
+#: ../../source/guides/formats/advanced/unstructured.md:3
+msgid ""
+"When a layout resists parameterisation, write it. One format, one Python module under"
+" `content/algorithms/unstructured/`."
+msgstr ""
+"Quando um layout resiste à parametrização, escreva-o. Um formato, um módulo Python "
+"sob `content/algorithms/unstructured/`."
+
+#: ../../source/guides/formats/advanced/unstructured.md:20
+msgid ""
+"The module exports a `pipelines` mapping. Two things about that example matter more "
+"than the code itself."
+msgstr ""
+"O módulo exporta um mapa `pipelines`. Naquele exemplo, duas coisas importam mais do "
+"que o próprio código."
+
+#: ../../source/guides/formats/advanced/unstructured.md:23
+msgid "The contract is by shape, not by type"
+msgstr "O contrato é por feitio, não por tipo"
+
+#: ../../source/guides/formats/advanced/unstructured.md:25
+msgid ""
+"`pipelines` maps a name to **any object** with `pdf_extract`, `text_filter` and "
+"`deserialize` attributes, each a callable or an iterable of callables."
+msgstr ""
+"O `pipelines` associa um nome a **qualquer objeto** que tenha os atributos "
+"`pdf_extract`, `text_filter` e `deserialize`, cada um deles um callable ou um "
+"iterável de callables."
+
+#: ../../source/guides/formats/advanced/unstructured.md:28
+msgid ""
+"The engine's own `Pipeline` satisfies that protocol, but a plain object — or a "
+"dictionary — works just as well. Which is what lets a format be written **without "
+"importing the engine at all**, and means a repository's Python is testable on its own"
+" terms."
+msgstr ""
+"O `Pipeline` do próprio motor satisfaz esse protocolo, mas um objeto qualquer — ou um"
+" dicionário — funciona igualmente bem. É isso que permite escrever um formato **sem "
+"importar o motor de jeito nenhum**, e faz com que o Python de um repositório seja "
+"testável por conta própria."
+
+#: ../../source/guides/formats/advanced/unstructured.md:32
+msgid "Native and author pipes mix inside one segment"
+msgstr "Pipes nativos e pipes de autor se misturam dentro de um mesmo segmento"
+
+#: ../../source/guides/formats/advanced/unstructured.md:34
+msgid ""
+"The example does exactly that: a **library** pipe configured with a selection **you**"
+" built."
+msgstr ""
+"O exemplo faz exatamente isso: um pipe **de biblioteca** configurado com uma seleção "
+"construída **por você**."
+
+#: ../../source/guides/formats/advanced/unstructured.md:36
+msgid ""
+"A native pipe passed in from Python is unwrapped back to its Rust form rather than "
+"being called through Python for every block. Only your own callables stay wrapped, "
+"and they are the only thing that pays the boundary cost."
+msgstr ""
+"Um pipe nativo passado a partir do Python é devolvido à sua forma Rust em vez de ser "
+"chamado através do Python a cada bloco. Só os seus próprios callables ficam "
+"embrulhados, e são a única coisa que paga o custo da fronteira."
+
+#: ../../source/guides/formats/advanced/unstructured.md:40
+#, python-brace-format
+msgid ""
+"That has a visible consequence for speed: an author's pipe declares that it does "
+"**not** scale with threads, so a page class handled by one runs sequentially rather "
+"than contending for the GIL ({doc}`../../../reference/design/parallelism`). A format "
+"that gains nothing from `--pages` is usually one of these, and that is the design "
+"working."
+msgstr ""
+"Disso vem uma consequência visível na velocidade: um pipe de autor declara que "
+"**não** escala com threads, então uma classe de página tratada por um deles roda em "
+"sequência em vez de disputar o GIL ({doc}`../../../reference/design/parallelism`). Um"
+" formato que não ganha nada com `--pages` costuma ser um desses, e isso é o projeto "
+"funcionando."
+
+#: ../../source/guides/formats/advanced/unstructured.md:45
+msgid "The classification finalizer"
+msgstr "O finalizador da classificação"
+
+#: ../../source/guides/formats/advanced/unstructured.md:47
+msgid "A module may also export `compute_page_class`:"
+msgstr "Um módulo também pode exportar `compute_page_class`:"
+
+#: ../../source/guides/formats/advanced/unstructured.md:56
+#, python-brace-format
+msgid ""
+"It receives the raw per-page classes of **one document** and returns the resolved "
+"ones. This is where *\"this page continues the table that started on the previous "
+"one\"* is expressed, and it is the only place in the engine where reasoning across "
+"pages is available at all ({doc}`../../../reference/design/classification`)."
+msgstr ""
+"Ele recebe as classes cruas, página a página, de **um documento** e devolve as "
+"classes resolvidas. É aqui que se exprime *\"esta página continua a tabela que "
+"começou na anterior\"*, e é o único lugar do motor em que raciocinar atravessando "
+"páginas é possível ({doc}`../../../reference/design/classification`)."
+
+#: ../../source/guides/formats/advanced/unstructured.md:61
+msgid "What happens when your pipe raises"
+msgstr "O que acontece quando o seu pipe levanta uma exceção"
+
+#: ../../source/guides/formats/advanced/unstructured.md:62
+msgid ""
+"A Python exception raised by your pipe is logged **with its traceback** and converted"
+" to a typed error at the boundary. No Python exception travels further into the "
+"engine, so a format cannot crash a run: the page your pipe raised on is skipped, with"
+" an error row naming the format, the page and the pipe, and every other page of the "
+"document is extracted as usual. A pipe that raises on every page therefore yields an "
+"empty result and a log full of rows saying why, rather than a run that dies."
+msgstr ""
+"Uma exceção Python levantada pelo seu pipe é registrada **com o traceback dela** e "
+"convertida, na fronteira, num erro tipado. Nenhuma exceção Python viaja mais fundo no"
+" motor, então um formato não tem como derrubar uma execução: a página em que o seu "
+"pipe levantou a exceção é pulada, com uma linha de erro nomeando o formato, a página "
+"e o pipe, e todas as outras páginas do documento são extraídas como de costume. Um "
+"pipe que levanta exceção em toda página, portanto, rende um resultado vazio e um log "
+"cheio de linhas dizendo por quê, não uma execução que morre."
+
